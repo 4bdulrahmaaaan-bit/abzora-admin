@@ -40,7 +40,9 @@ String? accessRestrictionMessage(AppUser? user, AbzioAppMode mode) {
   if (mode == AbzioAppMode.unified &&
       user.role != 'user' &&
       user.role != 'vendor' &&
-      user.role != 'rider') {
+      user.role != 'rider' &&
+      user.role != 'admin' &&
+      user.role != 'super_admin') {
     return 'Admin access is available only in the dedicated web panel.';
   }
   return null;
