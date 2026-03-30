@@ -2857,6 +2857,9 @@ class DatabaseService {
   }
 
   Future<List<MeasurementProfile>> getMeasurementProfiles(String userId) async {
+    if (_backendCommerce.isConfigured) {
+      return const <MeasurementProfile>[];
+    }
     try {
       final scopedProfiles = await _fetchCollection(
         'measurements/$userId',
@@ -2880,6 +2883,9 @@ class DatabaseService {
   }
 
   Future<void> saveMeasurementProfile(MeasurementProfile profile) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     final resolvedProfile = MeasurementProfile(
       id: profile.id.isEmpty ? 'mp-${DateTime.now().millisecondsSinceEpoch}' : profile.id,
       userId: profile.userId,
@@ -2899,6 +2905,9 @@ class DatabaseService {
   }
 
   Future<BodyProfile?> getBodyProfile(String userId) async {
+    if (_backendCommerce.isConfigured) {
+      return null;
+    }
     final snapshot = await _ref('users/$userId/bodyProfile').get();
     if (!snapshot.exists) {
       return null;
@@ -2926,6 +2935,10 @@ class DatabaseService {
           size: resolved.recommendedSize,
           updatedAt: resolved.updatedAt,
         );
+    if (_backendCommerce.isConfigured) {
+      await saveUserMemory(userId, memory);
+      return;
+    }
     await _ref('').update({
       'users/$userId/bodyProfile': resolved.toMap(),
       'userMemory/$userId': memory.toMap(),
