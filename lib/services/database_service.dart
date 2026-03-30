@@ -5654,6 +5654,9 @@ class DatabaseService {
   }
 
   Future<VendorKycRequest?> getVendorKycRequestForUser(String userId) {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getMyVendorKycRequest();
+    }
     return _fetchDocument(
       'vendorRequests/vendor-$userId',
       (map, id) => VendorKycRequest.fromMap(map, id),
@@ -5661,6 +5664,9 @@ class DatabaseService {
   }
 
   Future<RiderKycRequest?> getRiderKycRequestForUser(String userId) {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getMyRiderKycRequest();
+    }
     return _fetchDocument(
       'riderRequests/rider-$userId',
       (map, id) => RiderKycRequest.fromMap(map, id),
@@ -5696,6 +5702,12 @@ class DatabaseService {
   }
 
   Future<VendorKycRequest> submitVendorKycRequest(VendorKycRequest request, {required AppUser actor}) async {
+    if (_backendCommerce.isConfigured) {
+      if (actor.id != request.userId) {
+        throw StateError('You can only submit KYC for your own account.');
+      }
+      return _backendCommerce.submitVendorKycRequest(request);
+    }
     if (actor.id != request.userId) {
       throw StateError('You can only submit KYC for your own account.');
     }
@@ -5810,6 +5822,13 @@ class DatabaseService {
   }
 
   Future<void> submitRiderKycRequest(RiderKycRequest request, {required AppUser actor}) async {
+    if (_backendCommerce.isConfigured) {
+      if (actor.id != request.userId) {
+        throw StateError('You can only submit KYC for your own account.');
+      }
+      await _backendCommerce.submitRiderKycRequest(request);
+      return;
+    }
     if (actor.id != request.userId) {
       throw StateError('You can only submit KYC for your own account.');
     }

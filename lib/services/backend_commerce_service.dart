@@ -554,6 +554,50 @@ class BackendCommerceService {
         .toList();
   }
 
+  Future<VendorKycRequest?> getMyVendorKycRequest() async {
+    final payload = await _client.get('/kyc/vendor/me', authenticated: true);
+    if (payload == null) {
+      return null;
+    }
+    final map = Map<String, dynamic>.from(payload as Map);
+    if (map.isEmpty) {
+      return null;
+    }
+    return _vendorKycRequestFromBackend(map);
+  }
+
+  Future<RiderKycRequest?> getMyRiderKycRequest() async {
+    final payload = await _client.get('/kyc/rider/me', authenticated: true);
+    if (payload == null) {
+      return null;
+    }
+    final map = Map<String, dynamic>.from(payload as Map);
+    if (map.isEmpty) {
+      return null;
+    }
+    return _riderKycRequestFromBackend(map);
+  }
+
+  Future<VendorKycRequest> submitVendorKycRequest(VendorKycRequest request) async {
+    final payload = await _client.post(
+      '/kyc/vendor',
+      authenticated: true,
+      body: request.toMap(),
+    );
+    final map = payload is Map<String, dynamic> ? payload : Map<String, dynamic>.from(payload as Map);
+    return _vendorKycRequestFromBackend(map);
+  }
+
+  Future<RiderKycRequest> submitRiderKycRequest(RiderKycRequest request) async {
+    final payload = await _client.post(
+      '/kyc/rider',
+      authenticated: true,
+      body: request.toMap(),
+    );
+    final map = payload is Map<String, dynamic> ? payload : Map<String, dynamic>.from(payload as Map);
+    return _riderKycRequestFromBackend(map);
+  }
+
   Future<void> reviewVendorKycRequest({
     required String requestId,
     required String status,
