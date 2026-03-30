@@ -1,0 +1,329 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+        ".indexOn": ["role", "storeId", "riderApprovalStatus", "riderCity"],
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+          ".write": "auth != null && ((auth.uid === $uid && ((!data.exists() && (newData.child('role').val() === 'user' || newData.child('role').val() === 'customer')) || (data.exists() && newData.child('role').val() === data.child('role').val()))) || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+          "addresses": {
+          "$addressId": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+            ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+          }
+        }
+      }
+    },
+
+      "stores": {
+        ".indexOn": ["ownerId", "isApproved", "isActive", "isFeatured", "approvalStatus", "city", "category"],
+        "$storeId": {
+          ".read": true,
+          ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || (!data.exists() && newData.child('ownerId').val() === auth.uid && newData.child('approvalStatus').val() === 'pending' && newData.child('isApproved').val() === false && newData.child('isActive').val() === false) || (data.exists() && root.child('users').child(auth.uid).child('role').val() === 'vendor' && root.child('users').child(auth.uid).child('storeId').val() === $storeId && data.child('ownerId').val() === auth.uid && newData.child('ownerId').val() === data.child('ownerId').val() && newData.child('store_id').val() === data.child('store_id').val() && newData.child('address').val() === data.child('address').val() && newData.child('city').val() === data.child('city').val() && newData.child('latitude').val() === data.child('latitude').val() && newData.child('longitude').val() === data.child('longitude').val() && newData.child('isApproved').val() === data.child('isApproved').val() && newData.child('isActive').val() === data.child('isActive').val() && newData.child('isFeatured').val() === data.child('isFeatured').val() && newData.child('approvalStatus').val() === data.child('approvalStatus').val() && newData.child('commissionRate').val() === data.child('commissionRate').val() && newData.child('walletBalance').val() === data.child('walletBalance').val() && newData.child('rating').val() === data.child('rating').val() && newData.child('reviewCount').val() === data.child('reviewCount').val() && newData.child('category').val() === data.child('category').val()))"
+        }
+      },
+
+      "products": {
+        ".indexOn": ["storeId", "store_id", "category", "isActive", "createdAt", "brand"],
+        "$productId": {
+          ".read": true,
+          ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || (root.child('users').child(auth.uid).child('role').val() === 'vendor' && (((!data.exists()) && ((newData.child('storeId').val() === root.child('users').child(auth.uid).child('storeId').val()) || (newData.child('store_id').val() === root.child('users').child(auth.uid).child('storeId').val()))) || (data.exists() && (((newData.child('storeId').val() === data.child('storeId').val()) || (newData.child('store_id').val() === data.child('store_id').val())) && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('rating').val() === data.child('rating').val() && newData.child('reviewCount').val() === data.child('reviewCount').val() && ((data.child('storeId').val() === root.child('users').child(auth.uid).child('storeId').val()) || (data.child('store_id').val() === root.child('users').child(auth.uid).child('storeId').val())))))))"
+        }
+      },
+
+      "orders": {
+        ".indexOn": ["userId", "storeId", "riderId", "status", "deliveryStatus", "refundStatus", "payoutStatus", "timestamp", "paymentReference", "idempotencyKey"],
+        "$orderId": {
+          ".read": "auth != null && (data.child('userId').val() === auth.uid || data.child('riderId').val() === auth.uid || data.child('storeId').val() === root.child('users').child(auth.uid).child('storeId').val() || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+          ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || (data.exists() === false && newData.child('userId').val() === auth.uid && newData.child('storeId').isString() && newData.child('paymentMethod').isString() && newData.child('totalAmount').isNumber() && newData.child('createdAt').isString() && newData.child('updatedAt').isString() && newData.child('idempotencyKey').isString() && newData.child('isPaymentVerified').isBoolean() && (!newData.child('paymentReference').exists() || newData.child('paymentReference').isString()) && ((newData.child('paymentMethod').val() === 'COD' && newData.child('isPaymentVerified').val() === false) || (newData.child('paymentMethod').val() !== 'COD' && newData.child('paymentReference').exists() && newData.child('isPaymentVerified').val() === true))) || (data.exists() === true && data.child('userId').val() === auth.uid && newData.child('userId').val() === data.child('userId').val() && newData.child('storeId').val() === data.child('storeId').val() && newData.child('totalAmount').val() === data.child('totalAmount').val() && newData.child('paymentMethod').val() === data.child('paymentMethod').val() && newData.child('timestamp').val() === data.child('timestamp').val() && newData.child('shippingLabel').val() === data.child('shippingLabel').val() && newData.child('shippingAddress').val() === data.child('shippingAddress').val() && newData.child('extraCharges').val() === data.child('extraCharges').val() && newData.child('subtotal').val() === data.child('subtotal').val() && newData.child('taxAmount').val() === data.child('taxAmount').val() && newData.child('platformCommission').val() === data.child('platformCommission').val() && newData.child('vendorEarnings').val() === data.child('vendorEarnings').val() && newData.child('payoutStatus').val() === data.child('payoutStatus').val() && newData.child('payoutId').val() === data.child('payoutId').val() && newData.child('payoutProcessed').val() === data.child('payoutProcessed').val() && newData.child('riderId').val() === data.child('riderId').val() && newData.child('trackingId').val() === data.child('trackingId').val() && newData.child('assignedDeliveryPartner').val() === data.child('assignedDeliveryPartner').val() && newData.child('invoiceNumber').val() === data.child('invoiceNumber').val() && newData.child('orderType').val() === data.child('orderType').val() && newData.child('paymentReference').val() === data.child('paymentReference').val() && newData.child('idempotencyKey').val() === data.child('idempotencyKey').val() && newData.child('isPaymentVerified').val() === data.child('isPaymentVerified').val() && newData.child('createdAt').val() === data.child('createdAt').val() && (!data.child('updatedAt').exists() || newData.child('updatedAt').val() >= data.child('updatedAt').val()) && newData.child('deliveredAt').val() === data.child('deliveredAt').val() && newData.child('isConfirmed').val() === data.child('isConfirmed').val() && newData.child('isDelivered').val() === data.child('isDelivered').val() && newData.child('riderLatitude').val() === data.child('riderLatitude').val() && newData.child('riderLongitude').val() === data.child('riderLongitude').val() && newData.child('riderLocationUpdatedAt').val() === data.child('riderLocationUpdatedAt').val() && newData.child('status').val() === 'Cancelled' && newData.child('deliveryStatus').val() === 'Cancelled' && newData.child('status').val() !== data.child('status').val()) || (data.exists() === true && data.child('storeId').val() === root.child('users').child(auth.uid).child('storeId').val() && newData.child('userId').val() === data.child('userId').val() && newData.child('storeId').val() === data.child('storeId').val() && newData.child('totalAmount').val() === data.child('totalAmount').val() && newData.child('paymentMethod').val() === data.child('paymentMethod').val() && newData.child('timestamp').val() === data.child('timestamp').val() && newData.child('shippingLabel').val() === data.child('shippingLabel').val() && newData.child('shippingAddress').val() === data.child('shippingAddress').val() && newData.child('extraCharges').val() === data.child('extraCharges').val() && newData.child('subtotal').val() === data.child('subtotal').val() && newData.child('taxAmount').val() === data.child('taxAmount').val() && newData.child('platformCommission').val() === data.child('platformCommission').val() && newData.child('vendorEarnings').val() === data.child('vendorEarnings').val() && newData.child('payoutStatus').val() === data.child('payoutStatus').val() && newData.child('payoutId').val() === data.child('payoutId').val() && newData.child('payoutProcessed').val() === data.child('payoutProcessed').val() && newData.child('riderId').val() === data.child('riderId').val() && newData.child('assignedDeliveryPartner').val() === data.child('assignedDeliveryPartner').val() && newData.child('trackingId').val() === data.child('trackingId').val() && newData.child('invoiceNumber').val() === data.child('invoiceNumber').val() && newData.child('orderType').val() === data.child('orderType').val() && newData.child('paymentReference').val() === data.child('paymentReference').val() && newData.child('idempotencyKey').val() === data.child('idempotencyKey').val() && newData.child('isPaymentVerified').val() === data.child('isPaymentVerified').val() && newData.child('createdAt').val() === data.child('createdAt').val() && (!data.child('updatedAt').exists() || newData.child('updatedAt').val() >= data.child('updatedAt').val()) && newData.child('deliveredAt').val() === data.child('deliveredAt').val() && newData.child('isDelivered').val() === data.child('isDelivered').val() && newData.child('riderLatitude').val() === data.child('riderLatitude').val() && newData.child('riderLongitude').val() === data.child('riderLongitude').val() && newData.child('riderLocationUpdatedAt').val() === data.child('riderLocationUpdatedAt').val() && newData.child('status').val() !== data.child('status').val() && (((data.child('status').val() === 'Placed' && newData.child('status').val() === 'Confirmed' && newData.child('deliveryStatus').val() === 'Confirmed' && newData.child('isConfirmed').val() === true) || (data.child('status').val() === 'Confirmed' && newData.child('status').val() === 'Packed' && newData.child('deliveryStatus').val() === 'Packed' && newData.child('isConfirmed').val() === data.child('isConfirmed').val()) || (data.child('status').val() === 'Packed' && newData.child('status').val() === 'Ready for pickup' && newData.child('deliveryStatus').val() === 'Ready for pickup' && newData.child('isConfirmed').val() === data.child('isConfirmed').val())))) || (data.exists() === true && data.child('riderId').val() === auth.uid && newData.child('userId').val() === data.child('userId').val() && newData.child('storeId').val() === data.child('storeId').val() && newData.child('totalAmount').val() === data.child('totalAmount').val() && newData.child('paymentMethod').val() === data.child('paymentMethod').val() && newData.child('timestamp').val() === data.child('timestamp').val() && newData.child('shippingLabel').val() === data.child('shippingLabel').val() && newData.child('shippingAddress').val() === data.child('shippingAddress').val() && newData.child('extraCharges').val() === data.child('extraCharges').val() && newData.child('subtotal').val() === data.child('subtotal').val() && newData.child('taxAmount').val() === data.child('taxAmount').val() && newData.child('platformCommission').val() === data.child('platformCommission').val() && newData.child('vendorEarnings').val() === data.child('vendorEarnings').val() && newData.child('trackingId').val() === data.child('trackingId').val() && newData.child('invoiceNumber').val() === data.child('invoiceNumber').val() && newData.child('orderType').val() === data.child('orderType').val() && newData.child('paymentReference').val() === data.child('paymentReference').val() && newData.child('idempotencyKey').val() === data.child('idempotencyKey').val() && newData.child('isPaymentVerified').val() === data.child('isPaymentVerified').val() && newData.child('createdAt').val() === data.child('createdAt').val() && (!data.child('updatedAt').exists() || newData.child('updatedAt').val() >= data.child('updatedAt').val()) && newData.child('riderId').val() === data.child('riderId').val() && newData.child('assignedDeliveryPartner').val() === data.child('assignedDeliveryPartner').val() && (((data.child('deliveryStatus').val() === 'Assigned' || data.child('deliveryStatus').val() === 'Ready for pickup') && newData.child('deliveryStatus').val() === 'Picked up' && newData.child('status').val() === 'Picked up' && newData.child('isDelivered').val() === data.child('isDelivered').val() && newData.child('deliveredAt').val() === data.child('deliveredAt').val() && newData.child('payoutStatus').val() === data.child('payoutStatus').val() && newData.child('payoutId').val() === data.child('payoutId').val() && newData.child('payoutProcessed').val() === data.child('payoutProcessed').val()) || (data.child('deliveryStatus').val() === 'Picked up' && newData.child('deliveryStatus').val() === 'Out for delivery' && newData.child('status').val() === 'Out for delivery' && newData.child('isDelivered').val() === data.child('isDelivered').val() && newData.child('deliveredAt').val() === data.child('deliveredAt').val() && newData.child('payoutStatus').val() === data.child('payoutStatus').val() && newData.child('payoutId').val() === data.child('payoutId').val() && newData.child('payoutProcessed').val() === data.child('payoutProcessed').val()) || (data.child('deliveryStatus').val() === 'Out for delivery' && newData.child('deliveryStatus').val() === 'Delivered' && newData.child('status').val() === 'Delivered' && newData.child('isDelivered').val() === true && !data.child('deliveredAt').exists() && newData.child('deliveredAt').isString() && (newData.child('payoutStatus').val() === 'Ready' || newData.child('payoutStatus').val() === data.child('payoutStatus').val()) && newData.child('payoutId').val() === data.child('payoutId').val() && newData.child('payoutProcessed').val() === data.child('payoutProcessed').val()))))"
+        }
+      },
+
+    "refundRequests": {
+      ".indexOn": ["userId", "orderId", "status", "createdAt"],
+      "$refundId": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || (!data.exists() && newData.child('userId').val() === auth.uid && newData.child('orderId').isString() && newData.child('reason').isString() && newData.child('status').val() === 'pending' && newData.child('createdAt').isString()))"
+      }
+    },
+
+    "fraudLogs": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      ".indexOn": ["userId", "orderId", "decision", "riskScore", "createdAt"],
+      "$logId": {
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || (!data.exists() && newData.child('userId').val() === auth.uid && newData.child('orderId').isString() && newData.child('refundId').isString() && newData.child('decision').isString() && newData.child('riskScore').isNumber() && newData.child('createdAt').isString()))"
+      }
+    },
+
+    "measurements": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        "$profileId": {
+          ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+        }
+      }
+    },
+
+    "userMemory": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "chatHistory": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        "$chatId": {
+          ".indexOn": ["timestamp"],
+          "$messageId": {
+            ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+          }
+        }
+      }
+    },
+
+    "supportResponseCache": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        "$cacheKey": {
+          ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+        }
+      }
+    },
+
+    "aiUsage": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        "$dateKey": {
+          ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+        }
+      }
+    },
+
+    "aiUsageLogs": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      ".indexOn": ["timestamp", "userId", "intentType", "usedAi"],
+      "$logId": {
+        ".write": "auth != null && (newData.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "aiDailyStats": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      ".indexOn": ["date"],
+      "$dateKey": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "userAIUsage": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      ".indexOn": ["lastUsed", "aiMessages", "totalMessages"],
+      "$uid": {
+        ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "userDailyUsage": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "aiBlockedLogs": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      ".indexOn": ["timestamp", "userId", "reason"],
+      "$logId": {
+        ".write": "auth != null && (newData.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "aiErrorLogs": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      ".indexOn": ["timestamp", "userId", "errorType"],
+      "$logId": {
+        ".write": "auth != null && (newData.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "bookings": {
+      ".indexOn": ["userId", "tailorId", "status"],
+      "$bookingId": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        ".write": "auth != null && (newData.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "vendorRequests": {
+      ".indexOn": ["userId", "status", "city", "createdAt", "verification/autoReviewStatus"],
+      "$requestId": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || (newData.child('userId').val() === auth.uid && newData.child('status').val() === 'pending' && (!data.exists() || data.child('status').val() !== 'approved')))"
+      }
+    },
+
+    "kycDocumentIndex": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      "$documentType": {
+        "$fingerprint": {
+          ".write": "auth != null && (((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')) || (newData.val() === auth.uid && (!data.exists() || data.val() === auth.uid)))"
+        }
+      }
+    },
+
+    "kycFraudLogs": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      "$logId": {
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || newData.child('userId').val() === auth.uid)"
+      }
+    },
+
+    "vendorRiskAssessments": {
+      ".indexOn": ["userId", "status", "riskScore", "updatedAt"],
+      "$userId": {
+        ".read": "auth != null && ($userId === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        ".write": "auth != null && ($userId === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "riderRequests": {
+      ".indexOn": ["userId", "status", "city", "createdAt"],
+      "$requestId": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || (newData.child('userId').val() === auth.uid && newData.child('status').val() === 'pending' && (!data.exists() || data.child('status').val() !== 'approved')))"
+      }
+    },
+
+    "supportChats": {
+      ".indexOn": ["userId", "type", "status", "updatedAt"],
+      "$chatId": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || (!data.exists() && newData.child('userId').val() === auth.uid && newData.child('status').val() === 'open' && newData.child('type').isString() && newData.child('ticketId').isString() && newData.child('createdAt').isString() && newData.child('updatedAt').isString()) || (data.exists() && data.child('userId').val() === auth.uid && newData.child('userId').val() === data.child('userId').val() && newData.child('type').val() === data.child('type').val() && newData.child('ticketId').val() === data.child('ticketId').val() && newData.child('createdAt').val() === data.child('createdAt').val() && (newData.child('status').val() === data.child('status').val() || newData.child('status').val() === 'open' || newData.child('status').val() === 'waiting') && newData.child('unreadCountUser').val() === 0 && newData.child('unreadCountAdmin').val() >= data.child('unreadCountAdmin').val() && newData.child('updatedAt').val() >= data.child('updatedAt').val()))"
+      }
+    },
+
+    "messages": {
+      "$chatId": {
+        ".indexOn": ["timestamp"],
+        "$messageId": {
+          ".read": "auth != null && (root.child('supportChats').child($chatId).child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+          ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || (!data.exists() && root.child('supportChats').child($chatId).child('userId').val() === auth.uid && (((newData.child('senderId').val() === auth.uid && newData.child('senderRole').val() === 'user')) || (newData.child('senderId').val() === 'abzora-assistant' && newData.child('senderRole').val() === 'assistant')) && newData.child('timestamp').isString() && (newData.child('text').isString() || newData.child('imageUrl').isString())))"
+        }
+      }
+    },
+
+    "supportTickets": {
+      ".indexOn": ["userId", "chatId", "status", "issueType", "createdAt"],
+      "$ticketId": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || (!data.exists() && newData.child('userId').val() === auth.uid && newData.child('status').val() === 'open' && newData.child('chatId').isString() && newData.child('issueType').isString() && newData.child('createdAt').isString()) || (data.exists() && data.child('userId').val() === auth.uid && newData.child('userId').val() === data.child('userId').val() && newData.child('chatId').val() === data.child('chatId').val() && newData.child('issueType').val() === data.child('issueType').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('status').val() === 'open' && !newData.child('resolvedAt').exists()))"
+      }
+    },
+
+    "faq": {
+      ".read": true,
+      ".indexOn": ["category"],
+      "$faqId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+      "notifications": {
+        ".indexOn": ["userId", "storeId", "audienceRole", "timestamp", "type"],
+        "$notificationId": {
+          ".read": "auth != null && ((data.child('userId').val() === auth.uid) || (data.child('storeId').val() === root.child('users').child(auth.uid).child('storeId').val()) || (data.child('audienceRole').val() === 'rider' && (data.child('userId').val() === auth.uid || !data.child('userId').exists()) && root.child('users').child(auth.uid).child('role').val() === 'rider') || ((data.child('audienceRole').val() === 'admin' || data.child('audienceRole').val() === 'super_admin') && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')) || (data.child('audienceRole').val() === 'all'))",
+          ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || (newData.child('userId').val() === auth.uid && (newData.child('audienceRole').val() === 'user' || newData.child('audienceRole').val() === 'customer' || newData.child('audienceRole').val() === 'rider')))"
+        }
+      },
+
+    "reviews": {
+      ".read": true,
+      "$reviewId": {
+        ".write": "auth != null && ((data.exists() === false && newData.child('userId').val() === auth.uid) || data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "disputes": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      "$disputeId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "wishlist": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$productId": {
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+
+    "paymentClaims": {
+      "$claimId": {
+        ".read": "auth != null && (!data.exists() || data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') || (!data.exists() && newData.child('userId').val() === auth.uid && newData.child('paymentReference').isString()) || (data.exists() && data.child('userId').val() === auth.uid && newData.child('userId').val() === data.child('userId').val() && newData.child('paymentReference').val() === data.child('paymentReference').val() && newData.child('orderId').isString()))"
+      }
+    },
+
+    "idempotencyClaims": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        "$claimId": {
+          ".write": "auth != null && ((auth.uid === $uid && ((!data.exists() && newData.child('idempotencyKey').isString() && newData.child('orderId').isString()) || (data.exists() && newData.child('idempotencyKey').val() === data.child('idempotencyKey').val() && newData.child('orderId').val() === data.child('orderId').val()))) || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+        }
+      }
+    },
+
+    "chats": {
+      "$chatId": {
+        ".read": "auth != null && data.child('participantIds').hasChild(auth.uid)",
+        ".write": "auth != null && newData.child('participantIds').hasChild(auth.uid)",
+        "messages": {
+          "$messageId": {
+            ".read": "auth != null && root.child('chats').child($chatId).child('participantIds').hasChild(auth.uid)",
+            ".write": "auth != null && root.child('chats').child($chatId).child('participantIds').hasChild(auth.uid)"
+          }
+        }
+      }
+    },
+
+    "activityLogs": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      "$logId": {
+        ".write": "auth != null && newData.child('actorId').val() === auth.uid && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('users').child(auth.uid).child('role').val() === 'vendor' || root.child('users').child(auth.uid).child('role').val() === 'rider')"
+      }
+    },
+
+    "logs": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      "$logId": {
+        ".write": "auth != null && newData.child('actorId').val() === auth.uid && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('users').child(auth.uid).child('role').val() === 'vendor' || root.child('users').child(auth.uid).child('role').val() === 'rider')"
+      }
+    },
+
+    "adminLogs": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      "$logId": {
+        ".write": "auth != null && newData.child('userId').val() === auth.uid && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "payouts": {
+      ".indexOn": ["storeId", "status", "createdAt"],
+      "$payoutId": {
+        ".read": "auth != null && ((data.child('storeId').val() === root.child('users').child(auth.uid).child('storeId').val()) || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+      }
+    },
+
+    "platform": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')"
+    }
+  }
+}

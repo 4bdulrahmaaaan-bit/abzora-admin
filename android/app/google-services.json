@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "473004460649",
+    "project_id": "abzora-bbed7",
+    "storage_bucket": "abzora-bbed7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:473004460649:android:d296d2172af8c78702b0f8",
+        "android_client_info": {
+          "package_name": "com.abdz.fashion.abzio"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtutc5iB4sCamdxuMMk46cZoNkxYlc-jI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:473004460649:android:1f63143b32c87af502b0f8",
+        "android_client_info": {
+          "package_name": "com.abdz.fashion.abzio.partner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtutc5iB4sCamdxuMMk46cZoNkxYlc-jI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

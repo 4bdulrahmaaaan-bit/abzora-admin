@@ -1,0 +1,170 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userDocExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function role() {
+      return signedIn() && userDocExists() ? userDoc().data.role : null;
+    }
+
+    function isSuperAdmin() {
+      return signedIn() && (role() == 'super_admin' || role() == 'admin');
+    }
+
+    function isVendor() {
+      return signedIn() && role() == 'vendor';
+    }
+
+    function isRider() {
+      return signedIn() && role() == 'rider';
+    }
+
+    function isUser() {
+      return signedIn() && role() == 'user';
+    }
+
+    function currentStoreId() {
+      return signedIn() && userDocExists() ? userDoc().data.storeId : null;
+    }
+
+    function sameStore(storeId) {
+      return isSuperAdmin() || (isVendor() && currentStoreId() != null && currentStoreId() == storeId);
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read: if isSuperAdmin() || isOwner(userId);
+      allow create: if signedIn()
+        && isOwner(userId)
+        && request.resource.data.id == request.auth.uid
+        && request.resource.data.role == 'user'
+        && request.resource.data.storeId == null
+        && request.resource.data.walletBalance == 0
+        && request.resource.data.isActive == true
+        && request.resource.data.phone == request.auth.token.phone_number;
+      allow update: if isSuperAdmin()
+        || (isOwner(userId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.email == resource.data.email
+          && request.resource.data.phone == resource.data.phone
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.storeId == resource.data.storeId
+          && request.resource.data.walletBalance == resource.data.walletBalance
+          && request.resource.data.isActive == resource.data.isActive);
+      allow delete: if isSuperAdmin();
+    }
+
+    match /stores/{storeId} {
+      allow read: if true;
+      allow create: if isSuperAdmin()
+        || (request.resource.data.ownerId == request.auth.uid
+          && request.resource.data.isApproved == false
+          && request.resource.data.isActive == false);
+      allow update: if isSuperAdmin()
+        || (sameStore(storeId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.commissionRate == resource.data.commissionRate
+          && request.resource.data.isApproved == resource.data.isApproved
+          && request.resource.data.isActive == resource.data.isActive
+          && request.resource.data.isFeatured == resource.data.isFeatured
+          && request.resource.data.walletBalance == resource.data.walletBalance);
+      allow delete: if isSuperAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isSuperAdmin() || (isVendor() && request.resource.data.storeId == currentStoreId());
+      allow update, delete: if isSuperAdmin() || (isVendor() && resource.data.storeId == currentStoreId());
+    }
+
+    match /orders/{orderId} {
+      allow create: if signedIn() && (
+        isSuperAdmin()
+        || (isUser() && request.resource.data.userId == request.auth.uid)
+        || (isVendor() && request.resource.data.storeId == currentStoreId())
+        || (isRider() && request.resource.data.riderId == request.auth.uid)
+      );
+      allow read: if isSuperAdmin()
+        || (isVendor() && resource.data.storeId == currentStoreId())
+        || (isRider() && resource.data.riderId == request.auth.uid)
+        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow update: if isSuperAdmin()
+        || (isVendor()
+          && resource.data.storeId == currentStoreId()
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.storeId == resource.data.storeId)
+        || (isRider()
+          && resource.data.riderId == request.auth.uid
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.storeId == resource.data.storeId
+          && request.resource.data.riderId == resource.data.riderId)
+        || (signedIn()
+          && resource.data.userId == request.auth.uid
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.storeId == resource.data.storeId
+          && request.resource.data.status == resource.data.status);
+      allow delete: if isSuperAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSuperAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /measurementProfiles/{profileId} {
+      allow read, create, update, delete: if isSuperAdmin()
+        || (signedIn()
+          && (
+            request.resource == null
+              ? resource.data.userId == request.auth.uid
+              : request.resource.data.userId == request.auth.uid
+          )
+        );
+    }
+
+    match /user_cards/{cardId} {
+      allow read: if isSuperAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    match /bookings/{bookingId} {
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSuperAdmin()
+        || (isVendor() && resource.data.storeId == currentStoreId())
+        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow update: if isSuperAdmin() || (isVendor() && resource.data.storeId == currentStoreId());
+      allow delete: if isSuperAdmin();
+    }
+
+    match /chats/{chatId} {
+      allow read: if isSuperAdmin()
+        || (signedIn() && request.auth.uid in resource.data.participantIds);
+      allow create: if isSuperAdmin()
+        || (signedIn() && request.auth.uid in request.resource.data.participantIds);
+      allow update: if isSuperAdmin()
+        || (signedIn() && request.auth.uid in resource.data.participantIds);
+
+      match /messages/{messageId} {
+        allow read, create: if isSuperAdmin()
+          || (signedIn()
+            && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds);
+        allow update, delete: if false;
+      }
+    }
+  }
+}

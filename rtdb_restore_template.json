@@ -1,0 +1,109 @@
+{
+  "users": {
+    "xjzIKGOeohZOeUbIXrE34CySbHn1": {
+      "id": "xjzIKGOeohZOeUbIXrE34CySbHn1",
+      "name": "Customer Test",
+      "email": "",
+      "phone": "+919000000001",
+      "phone_number": "+919000000001",
+      "address": "",
+      "role": "user",
+      "isActive": true,
+      "storeId": null,
+      "walletBalance": 0,
+      "fcmToken": ""
+    },
+    "FbMrMQT694eKokKQt96nTcbDE8R2": {
+      "id": "FbMrMQT694eKokKQt96nTcbDE8R2",
+      "name": "Vendor Test",
+      "email": "",
+      "phone": "+919000000002",
+      "phone_number": "+919000000002",
+      "address": "",
+      "role": "vendor",
+      "isActive": true,
+      "storeId": "s1",
+      "walletBalance": 0,
+      "fcmToken": ""
+    },
+    "P5d16Q1MjBfyBpn0Zj72iFbWneh1": {
+      "id": "P5d16Q1MjBfyBpn0Zj72iFbWneh1",
+      "name": "Rider Test",
+      "email": "",
+      "phone": "+919000000003",
+      "phone_number": "+919000000003",
+      "address": "",
+      "role": "rider",
+      "isActive": true,
+      "storeId": null,
+      "walletBalance": 0,
+      "fcmToken": ""
+    },
+    "JfHe8wbzwUTaxpWi4jeSDvu4syH3": {
+      "id": "JfHe8wbzwUTaxpWi4jeSDvu4syH3",
+      "name": "Super Admin",
+      "email": "",
+      "phone": "+919000000004",
+      "phone_number": "+919000000004",
+      "address": "",
+      "role": "super_admin",
+      "isActive": true,
+      "storeId": null,
+      "walletBalance": 0,
+      "fcmToken": ""
+    }
+  },
+  "stores": {
+    "s1": {
+      "id": "s1",
+      "ownerId": "FbMrMQT694eKokKQt96nTcbDE8R2",
+      "name": "Vendor Test Studio",
+      "description": "Premium fashion storefront.",
+      "imageUrl": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1200",
+      "rating": 0,
+      "reviewCount": 0,
+      "address": "India",
+      "isApproved": true,
+      "isActive": true,
+      "isFeatured": false,
+      "logoUrl": "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=400",
+      "bannerImageUrl": "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=1200",
+      "tagline": "Premium edits and fashion essentials",
+      "commissionRate": 0.15,
+      "walletBalance": 0
+    }
+  },
+  "orders": {},
+  "reviews": {},
+  "measurementProfiles": {},
+  "bookings": {},
+  "payouts": {},
+  "disputes": {},
+  "platform": {
+    "settings": {
+      "customTailoringEnabled": true,
+      "reelsEnabled": true,
+      "offersEnabled": true,
+      "checkoutEnabled": true,
+      "marketplaceEnabled": true,
+      "riderDispatchEnabled": true,
+      "cities": {
+        "Mumbai": true,
+        "Delhi": true,
+        "Bangalore": true,
+        "Hyderabad": true
+      },
+      "regionVendorAvailability": {
+        "Mumbai": true,
+        "Delhi": true,
+        "Bangalore": true,
+        "Hyderabad": true
+      },
+      "allowedAdminDevices": [],
+      "adminIdleTimeoutMinutes": 10,
+      "adminPinEnabled": false,
+      "adminPin": "1234"
+    }
+  },
+  "chats": {}
+}

@@ -1,0 +1,83 @@
+﻿{
+  "project_info": {
+    "project_number": "886864255867",
+    "firebase_url": "https://abzio-d99f9-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "abzio-d99f9",
+    "storage_bucket": "abzio-d99f9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:886864255867:android:bdca6d8a37405cd872fbde",
+        "android_client_info": {
+          "package_name": "com.abdz.fashion.abzio"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "886864255867-j1jeleboc2msdlao01pnu26ikutakonf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANWQYPMAoyi4hno8F1HQcNlEPYgWg32Xw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "886864255867-j1jeleboc2msdlao01pnu26ikutakonf.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "886864255867-m6rrmvut3gvttpdpqo0gar36ndb2l01v.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.abdz.fashion.abzio"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:886864255867:android:db4cdec16f69ee2e72fbde",
+        "android_client_info": {
+          "package_name": "com.abdz.fashion.abzio.partner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "886864255867-j1jeleboc2msdlao01pnu26ikutakonf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANWQYPMAoyi4hno8F1HQcNlEPYgWg32Xw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "886864255867-j1jeleboc2msdlao01pnu26ikutakonf.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "886864255867-m6rrmvut3gvttpdpqo0gar36ndb2l01v.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.abdz.fashion.abzio"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
