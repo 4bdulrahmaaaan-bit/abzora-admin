@@ -2896,6 +2896,9 @@ class DatabaseService {
   }
 
   Future<UserMemory?> getUserMemory(String userId) async {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getUserMemory();
+    }
     final snapshot = await _ref('userMemory/$userId').get();
     if (!snapshot.exists) {
       return null;
@@ -2912,6 +2915,10 @@ class DatabaseService {
       userId: userId,
       updatedAt: memory.updatedAt.isEmpty ? _nowIso() : memory.updatedAt,
     );
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.saveUserMemory(resolved);
+      return;
+    }
     await _ref('userMemory/$userId').set(resolved.toMap());
   }
 
@@ -4116,6 +4123,11 @@ class DatabaseService {
   }
 
   Future<List<UserAddress>> getUserAddresses(String userId) async {
+    if (_backendCommerce.isConfigured) {
+      final addresses = await _backendCommerce.getUserAddresses();
+      addresses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return addresses;
+    }
     final addresses = await _fetchCollection(
       'users/$userId/addresses',
       (map, id) => UserAddress.fromMap(map, id),
@@ -4142,10 +4154,18 @@ class DatabaseService {
       type: address.type,
       createdAt: address.createdAt,
     );
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.saveUserAddress(resolved);
+      return;
+    }
     await _ref('users/${resolved.userId}/addresses/${resolved.id}').set(resolved.toMap());
   }
 
   Future<void> deleteUserAddress(String userId, String addressId) async {
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.deleteUserAddress(addressId);
+      return;
+    }
     await _ref('users/$userId/addresses/$addressId').remove();
   }
 

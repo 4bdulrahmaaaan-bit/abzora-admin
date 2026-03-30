@@ -24,6 +24,55 @@ class BackendCommerceService {
     return _appUserFromBackend(map);
   }
 
+  Future<List<UserAddress>> getUserAddresses() async {
+    final payload = await _client.get('/auth/addresses', authenticated: true);
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return UserAddress.fromMap(map, map['id']?.toString() ?? '');
+        })
+        .toList();
+  }
+
+  Future<UserAddress> saveUserAddress(UserAddress address) async {
+    final payload = await _client.post(
+      '/auth/addresses',
+      authenticated: true,
+      body: address.toMap(),
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return UserAddress.fromMap(map, map['id']?.toString() ?? address.id);
+  }
+
+  Future<void> deleteUserAddress(String addressId) async {
+    await _client.delete('/auth/addresses/$addressId', authenticated: true);
+  }
+
+  Future<UserMemory?> getUserMemory() async {
+    final payload = await _client.get('/auth/memory', authenticated: true);
+    if (payload == null) {
+      return null;
+    }
+    final map = Map<String, dynamic>.from(payload as Map);
+    final userId = map['userId']?.toString() ?? '';
+    if (userId.isEmpty) {
+      return null;
+    }
+    return UserMemory.fromMap(map, userId);
+  }
+
+  Future<UserMemory> saveUserMemory(UserMemory memory) async {
+    final payload = await _client.put(
+      '/auth/memory',
+      authenticated: true,
+      body: memory.toMap(),
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return UserMemory.fromMap(map, map['userId']?.toString() ?? memory.userId);
+  }
+
   Future<List<Store>> getStores() async {
     final payload = await _client.get('/stores');
     final items = payload is List ? payload : const [];
