@@ -41,14 +41,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDMXyII9XqX8lMvFrObqFoVPD9RMO29Qis',
-    appId: '1:886864255867:web:8c6f95135c1a8f5b72fbde',
-    messagingSenderId: '886864255867',
-    projectId: 'abzio-d99f9',
-    authDomain: 'abzio-d99f9.firebaseapp.com',
-    databaseURL: 'https://abzio-d99f9-default-rtdb.asia-southeast1.firebasedatabase.app',
-    storageBucket: 'abzio-d99f9.firebasestorage.app',
-    measurementId: 'G-4C2J7FVZME',
+    apiKey: 'AIzaSyDd81xKreHN5nyJiY-xbpMpruuXc9dV8uk',
+    appId: '1:473004460649:web:688a272c89d6e8e902b0f8',
+    messagingSenderId: '473004460649',
+    projectId: 'abzora-bbed7',
+    authDomain: 'abzora-bbed7.firebaseapp.com',
+    storageBucket: 'abzora-bbed7.firebasestorage.app',
+    measurementId: 'G-NYSLMQY368',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
