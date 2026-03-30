@@ -4,12 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/kyc_selfie_service.dart';
 import '../../services/location_service.dart';
 import '../../services/onboarding_service.dart';
 import '../../widgets/kyc_upload_widget.dart';
 import '../../widgets/state_views.dart';
-import 'live_selfie_verification_screen.dart';
 
 class VendorOnboardingScreen extends StatefulWidget {
   const VendorOnboardingScreen({super.key});
@@ -28,21 +26,16 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
   final _picker = ImagePicker();
   final _onboardingService = OnboardingService();
   final _locationService = LocationService();
-  final _kycSelfieService = const KycSelfieService();
 
   XFile? _ownerPhoto;
   XFile? _storePhoto;
   XFile? _aadhaarPhoto;
   XFile? _panPhoto;
-  XFile? _selfiePhoto;
   double? _latitude;
   double? _longitude;
   bool _submitting = false;
   bool _detectingLocation = false;
-  bool _verifyingSelfie = false;
   VendorKycRequest? _latestSubmission;
-  KycVerificationSummary? _selfieVerification;
-  String? _selfieUrl;
 
   @override
   void initState() {
@@ -109,84 +102,6 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
     }
   }
 
-  Future<void> _startLiveSelfieVerification() async {
-    final auth = context.read<AuthProvider>();
-    final user = auth.user;
-    if (user == null || _ownerPhoto == null || _aadhaarPhoto == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('Add owner photo and Aadhaar before starting live selfie verification.'),
-        ),
-      );
-      return;
-    }
-
-    final result = await Navigator.push<LiveSelfieCheckResult>(
-      context,
-      MaterialPageRoute(builder: (_) => const LiveSelfieVerificationScreen()),
-    );
-    if (result == null || !mounted) {
-      return;
-    }
-
-    setState(() => _verifyingSelfie = true);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final selfieFile = XFile(result.imagePath);
-      final ownerPhotoUrl = await _onboardingService.uploadVendorOwnerPhoto(
-        file: _ownerPhoto!,
-        ownerId: user.id,
-      );
-      final aadhaarUrl = await _onboardingService.uploadVendorDocument(
-        file: _aadhaarPhoto!,
-        ownerId: user.id,
-        label: 'aadhaar-face-ref',
-      );
-      final selfieUrl = await _onboardingService.uploadVendorSelfie(
-        file: selfieFile,
-        ownerId: user.id,
-      );
-      final verification = await _kycSelfieService.verifyLiveSelfie(
-        selfieUrl: selfieUrl,
-        ownerPhotoUrl: ownerPhotoUrl,
-        aadhaarUrl: aadhaarUrl,
-        livenessPassed: result.livenessPassed,
-        livenessMode: result.livenessMode,
-        retryCount: result.retryCount,
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _selfiePhoto = selfieFile;
-        _selfieUrl = selfieUrl;
-        _selfieVerification = verification;
-      });
-      messenger.showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(
-            verification.faceVerified
-                ? 'Live selfie verified successfully.'
-                : verification.reviewSummary,
-          ),
-        ),
-      );
-    } catch (error) {
-      messenger.showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _verifyingSelfie = false);
-      }
-    }
-  }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -196,17 +111,6 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
         const SnackBar(
           behavior: SnackBarBehavior.floating,
           content: Text('Owner photo, store image, Aadhaar, and PAN are all required.'),
-        ),
-      );
-      return;
-    }
-    if (!(_selfieVerification?.livenessPassed ?? false) ||
-        !(_selfieVerification?.faceVerified ?? false) ||
-        _selfiePhoto == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('Complete live selfie verification before submitting KYC.'),
         ),
       );
       return;
@@ -247,11 +151,6 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
         ownerId: user.id,
         label: 'pan',
       );
-      final selfieUrl = _selfieUrl ??
-          await _onboardingService.uploadVendorSelfie(
-            file: _selfiePhoto!,
-            ownerId: user.id,
-          );
 
       final nowIso = DateTime.now().toIso8601String();
       final submitted = await _onboardingService.submitVendorRequest(
@@ -271,9 +170,9 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
             storeImageUrl: storeImageUrl,
             aadhaarUrl: aadhaarUrl,
             panUrl: panUrl,
-            selfieUrl: selfieUrl,
+
           ),
-          verification: _selfieVerification ?? const KycVerificationSummary(),
+          verification: const KycVerificationSummary(),
           createdAt: nowIso,
           updatedAt: nowIso,
         ),
@@ -450,84 +349,6 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
               onPickCamera: () => _pickImage(ImageSource.camera, (file) => _panPhoto = file),
               onPickGallery: () => _pickImage(ImageSource.gallery, (file) => _panPhoto = file),
             ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE8E8E8)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Live selfie verification',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Use the front camera only. Blink or turn your head slightly so ABZORA Partner can confirm you are the same person as the uploaded KYC documents.',
-                    style: TextStyle(color: Color(0xFF6F6F6F), height: 1.4),
-                  ),
-                  if (_selfieVerification != null) ...[
-                    const SizedBox(height: 12),
-                    _ReviewBadge(
-                      status: _selfieVerification!.faceVerified
-                          ? 'auto_verified'
-                          : 'pending_review',
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Liveness: ${_selfieVerification!.livenessPassed ? 'Passed' : 'Failed'}'
-                      ' • Match: ${_selfieVerification!.matchScore.toStringAsFixed(0)}%',
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _selfieVerification!.reviewSummary,
-                      style: const TextStyle(color: Color(0xFF6F6F6F)),
-                    ),
-                    if (_selfieVerification!.flags.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        _selfieVerification!.flags.join(' | '),
-                        style: const TextStyle(color: Color(0xFF8A5A00), height: 1.45),
-                      ),
-                    ],
-                  ],
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _verifyingSelfie ? null : _startLiveSelfieVerification,
-                      icon: _verifyingSelfie
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(
-                              _selfieVerification?.faceVerified == true
-                                  ? Icons.verified_rounded
-                                  : Icons.face_retouching_natural_rounded,
-                            ),
-                      label: Text(
-                        _selfieVerification?.faceVerified == true
-                            ? 'Retake Live Selfie'
-                            : 'Start Live Selfie Check',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
             if (_latestSubmission != null) ...[
               const SizedBox(height: 16),
               Container(
@@ -631,3 +452,4 @@ class _ReviewBadge extends StatelessWidget {
     );
   }
 }
+
