@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import 'backend_commerce_service.dart';
@@ -77,6 +78,8 @@ class DatabaseService {
   FirebaseDatabase get _rtdb => FirebaseDatabaseService.instance;
 
   bool get usesBackendCommerce => _backendCommerce.isConfigured;
+
+  String _paymentPreferenceKey(String userId) => 'payment_pref_$userId';
 
   DatabaseReference _ref(String path) => _rtdb.ref(path);
 
@@ -1026,7 +1029,14 @@ class DatabaseService {
   }
 
   Future<String?> getPreferredPaymentMethod(String userId) async {
-    final snapshot = await _ref('users/$userId/preferences/preferredPaymentMethod').get();
+    if (_backendCommerce.isConfigured) {
+      final prefs = await SharedPreferences.getInstance();
+      final local = prefs.getString(_paymentPreferenceKey(userId))?.trim();
+      return (local == null || local.isEmpty) ? null : local;
+    }
+    final snapshot = await _ref('users/$userId/preferences/preferredPaymentMethod')
+        .get()
+        .timeout(const Duration(seconds: 8), onTimeout: () => throw TimeoutException('Preferred payment method request timed out.'));
     final value = snapshot.value?.toString().trim();
     if (value == null || value.isEmpty) {
       return null;
@@ -1035,7 +1045,13 @@ class DatabaseService {
   }
 
   Future<void> savePreferredPaymentMethod(String userId, String method) async {
-    await _ref('users/$userId/preferences/preferredPaymentMethod').set(method.trim());
+    final normalized = method.trim();
+    if (_backendCommerce.isConfigured) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_paymentPreferenceKey(userId), normalized);
+      return;
+    }
+    await _ref('users/$userId/preferences/preferredPaymentMethod').set(normalized);
   }
 
   Future<void> trackAiStylistConversion({
