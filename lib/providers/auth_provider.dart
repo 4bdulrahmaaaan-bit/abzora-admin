@@ -142,6 +142,20 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<AppUser?> signInWithGoogleAdmin() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final result = await _authService.signInWithGoogleAdmin();
+      _user = result;
+      return result;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> logout() async {
     await _authService.signOut();
     await _liveProfileSubscription?.cancel();

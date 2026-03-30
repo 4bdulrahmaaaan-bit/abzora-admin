@@ -189,6 +189,38 @@ class AuthService {
     return _ensurePhoneProfile(firebaseUser);
   }
 
+  Future<AppUser?> signInWithGoogleAdmin() async {
+    if (!kIsWeb) {
+      throw StateError('Google admin sign-in is available on web only.');
+    }
+
+    final auth = _authOrNull;
+    if (auth == null) {
+      throw StateError('Authentication is unavailable right now.');
+    }
+
+    try {
+      final provider = GoogleAuthProvider()
+        ..setCustomParameters(const {'prompt': 'select_account'});
+      final result = await auth.signInWithPopup(provider);
+      final firebaseUser = result.user;
+      if (firebaseUser == null) {
+        return null;
+      }
+
+      final appUser = await _ensurePhoneProfile(firebaseUser);
+      final normalizedRole = appUser.role.trim().toLowerCase();
+      if (normalizedRole != 'admin' && normalizedRole != 'super_admin') {
+        await signOut();
+        throw StateError('Access denied. Use an approved admin Google account.');
+      }
+
+      return appUser;
+    } catch (error) {
+      throw StateError(_mapAuthError(error));
+    }
+  }
+
   Future<void> requestOtp(String phoneNumber) async {
     final auth = _authOrNull;
     if (auth == null) {
