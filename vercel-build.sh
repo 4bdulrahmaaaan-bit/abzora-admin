@@ -6,4 +6,4 @@ export PATH="$PATH:../flutter/bin"
 
 flutter config --enable-web
 flutter pub get
-flutter build web --release --dart-define=BACKEND_BASE_URL=https://abzora-backend.onrender.com
+flutter build web --release -t lib/main_admin.dart --dart-define=BACKEND_BASE_URL=https://abzora-backend.onrender.com
