@@ -429,6 +429,14 @@ class DatabaseService {
   }
 
   Future<String> ensureReferralCode(AppUser user) async {
+    if (_backendCommerce.isConfigured) {
+      final existing = (user.referralCode ?? '').trim();
+      if (existing.isNotEmpty) {
+        return existing;
+      }
+      final seed = '${(user.phone ?? user.id).replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase()}ABZ';
+      return seed.length > 10 ? seed.substring(0, 10) : seed.padRight(8, 'X');
+    }
     final ref = _ref('users/${user.id}/growth/referralCode');
     final existing = await ref.get();
     final code = (existing.value as String?)?.trim();
@@ -557,6 +565,9 @@ class DatabaseService {
     required AppUser actor,
     required String code,
   }) async {
+    if (_backendCommerce.isConfigured) {
+      return false;
+    }
     final normalized = code.trim().toUpperCase();
     if (normalized.isEmpty) {
       throw StateError('Enter a valid referral code.');
@@ -611,6 +622,9 @@ class DatabaseService {
   }
 
   Future<List<ReferralRecord>> getReferralHistory(String userId) async {
+    if (_backendCommerce.isConfigured) {
+      return const <ReferralRecord>[];
+    }
     final items = await _fetchCollection(
       'referrals/$userId',
       (map, id) => ReferralRecord.fromMap(map, id),
@@ -620,6 +634,22 @@ class DatabaseService {
   }
 
   Future<ReferralDashboardData> getReferralDashboard(AppUser user) async {
+    if (_backendCommerce.isConfigured) {
+      final code = await ensureReferralCode(user);
+      const completedCount = 0;
+      return ReferralDashboardData(
+        referralCode: code,
+        invitedCount: 0,
+        completedCount: completedCount,
+        pendingCount: 0,
+        earnedCredits: 0,
+        walletBalance: user.walletBalance,
+        tier: _referralTierForCompletedInvites(completedCount),
+        nextTierProgress: _referralProgress(completedCount),
+        invitesToNextTier: _invitesToNextReferralTier(completedCount),
+        history: const <ReferralRecord>[],
+      );
+    }
     final code = await ensureReferralCode(user);
     final history = await getReferralHistory(user.id);
     final completed = history.where((item) => item.rewardGiven).toList();
@@ -643,6 +673,9 @@ class DatabaseService {
     required AppUser actor,
     required OrderModel order,
   }) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     final referrerId = (actor.referredBy ?? '').trim();
     if (referrerId.isEmpty || order.totalAmount < 499) {
       return;
@@ -719,10 +752,16 @@ class DatabaseService {
   }
 
   Future<void> _saveGrowthOffer(GrowthOffer offer) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     await _ref('offers/${offer.userId}/${offer.id}').set(offer.toMap());
   }
 
   Future<void> _saveGrowthTrigger(GrowthTrigger trigger) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     await _ref('triggers/${trigger.userId}/${trigger.id}').set(trigger.toMap());
   }
 
@@ -731,6 +770,9 @@ class DatabaseService {
     String type, {
     Duration window = const Duration(hours: 24),
   }) async {
+    if (_backendCommerce.isConfigured) {
+      return false;
+    }
     final triggers = await _fetchCollection(
       'triggers/$userId',
       (map, id) => GrowthTrigger.fromMap(map, id),
@@ -743,6 +785,9 @@ class DatabaseService {
   }
 
   Future<List<GrowthOffer>> getGrowthOffersForUser(AppUser user) async {
+    if (_backendCommerce.isConfigured) {
+      return const <GrowthOffer>[];
+    }
     final offers = await _fetchCollection(
       'offers/${user.id}',
       (map, id) => GrowthOffer.fromMap(map, id),
@@ -1062,6 +1107,9 @@ class DatabaseService {
     String? orderId,
     Map<String, dynamic> metadata = const {},
   }) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     final now = DateTime.now();
     final logId = 'ai-style-${now.millisecondsSinceEpoch}';
     await _ref('aiStylistAnalytics/$logId').set({
@@ -3547,6 +3595,17 @@ class DatabaseService {
   }
 
   Stream<List<OrderModel>> getUserOrders(String userId) {
+    if (_backendCommerce.isConfigured) {
+      return (() async* {
+        yield await _backendCommerce.getUserOrders();
+        while (true) {
+          await Future<void>.delayed(const Duration(seconds: 10));
+          final orders = await _backendCommerce.getUserOrders();
+          orders.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          yield orders;
+        }
+      })();
+    }
     return _watchQueryCollection(
       _ref('orders').orderByChild('userId').equalTo(userId),
       (map, id) => OrderModel.fromMap(map, id),
@@ -5480,6 +5539,9 @@ class DatabaseService {
     required List<OrderItem> items,
     String offerCode = 'COMPLETE10',
   }) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     if (items.isEmpty) {
       return;
     }
@@ -6404,6 +6466,25 @@ class DatabaseService {
   }
 
   Future<List<FaqItem>> getFaqItems() async {
+    if (_backendCommerce.isConfigured) {
+      return const <FaqItem>[
+        FaqItem(
+          id: 'faq-delivery',
+          question: 'How long does delivery take?',
+          answer: 'Most orders are delivered within 2-5 business days based on your city.',
+        ),
+        FaqItem(
+          id: 'faq-payment',
+          question: 'Which payment methods are supported?',
+          answer: 'UPI, cards, and Cash on Delivery are supported based on checkout eligibility.',
+        ),
+        FaqItem(
+          id: 'faq-returns',
+          question: 'How do I request a return or refund?',
+          answer: 'Open your order details and choose return/refund if the order is eligible.',
+        ),
+      ];
+    }
     final faqs = await _fetchCollection(
       'faq',
       (map, id) => FaqItem.fromMap(map, id),
