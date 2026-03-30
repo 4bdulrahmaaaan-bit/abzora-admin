@@ -340,6 +340,110 @@ class BackendCommerceService {
         .toList();
   }
 
+  Future<PlatformSettings> getPlatformSettings() async {
+    final payload = await _client.get('/admin/settings', authenticated: true);
+    return PlatformSettings.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<PlatformSettings> savePlatformSettings(PlatformSettings settings) async {
+    final payload = await _client.put(
+      '/admin/settings',
+      authenticated: true,
+      body: settings.toMap(),
+    );
+    return PlatformSettings.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<List<AppNotification>> getAdminNotifications() async {
+    final payload = await _client.get('/admin/notifications', authenticated: true);
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => AppNotification.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<void> createAdminNotification(AppNotification notification) async {
+    await _client.post(
+      '/admin/notifications',
+      authenticated: true,
+      body: notification.toMap(),
+    );
+  }
+
+  Future<List<PayoutModel>> getAdminPayouts() async {
+    final payload = await _client.get('/admin/payouts', authenticated: true);
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return PayoutModel.fromMap(map, map['id']?.toString() ?? '');
+        })
+        .toList();
+  }
+
+  Future<PayoutModel?> processAdminPayout({
+    required String storeId,
+    required String periodLabel,
+  }) async {
+    final payload = await _client.post(
+      '/admin/payouts/process',
+      authenticated: true,
+      body: {
+        'storeId': storeId,
+        'periodLabel': periodLabel,
+      },
+    );
+    if (payload == null) {
+      return null;
+    }
+    final map = Map<String, dynamic>.from(payload as Map);
+    return PayoutModel.fromMap(map, map['id']?.toString() ?? '');
+  }
+
+  Future<List<DisputeRecord>> getAdminDisputes() async {
+    final payload = await _client.get('/admin/disputes', authenticated: true);
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return DisputeRecord.fromMap(map, map['id']?.toString() ?? '');
+        })
+        .toList();
+  }
+
+  Future<DisputeRecord> updateAdminDispute(DisputeRecord dispute) async {
+    final payload = await _client.patch(
+      '/admin/disputes/${dispute.id}',
+      authenticated: true,
+      body: dispute.toMap(),
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return DisputeRecord.fromMap(map, map['id']?.toString() ?? dispute.id);
+  }
+
+  Future<List<ActivityLogEntry>> getAdminActivityLogs() async {
+    final payload = await _client.get('/admin/activity-logs', authenticated: true);
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return ActivityLogEntry.fromMap(map, map['id']?.toString() ?? '');
+        })
+        .toList();
+  }
+
+  Future<void> createAdminActivityLog(ActivityLogEntry entry) async {
+    await _client.post(
+      '/admin/activity-logs',
+      authenticated: true,
+      body: entry.toMap(),
+    );
+  }
+
   Future<List<Store>> getAdminStores() async {
     final payload = await _client.get('/admin/stores', authenticated: true);
     final items = payload is List ? payload : const [];

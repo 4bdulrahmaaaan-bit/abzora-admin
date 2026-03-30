@@ -1620,6 +1620,10 @@ class DatabaseService {
   }
 
   void _addNotification(AppNotification notification) {
+    if (_backendCommerce.isConfigured) {
+      unawaited(_backendCommerce.createAdminNotification(notification));
+      return;
+    }
     unawaited(_ref('notifications/${notification.id}').set(notification.toMap()));
   }
 
@@ -1832,6 +1836,10 @@ class DatabaseService {
       message: message,
       timestamp: DateTime.now(),
     );
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.createAdminActivityLog(entry);
+      return;
+    }
     final payload = {
       ...entry.toMap(),
       'createdAt': entry.timestamp.toIso8601String(),
@@ -5322,6 +5330,12 @@ class DatabaseService {
     if (user == null) {
       return [];
     }
+    if (_backendCommerce.isConfigured) {
+      if (isSuperAdmin(user)) {
+        return _sortedNotifications(await _backendCommerce.getAdminNotifications());
+      }
+      return [];
+    }
     try {
       if (isSuperAdmin(user)) {
         final adminNotifications = await _fetchQueryCollection(
@@ -5513,6 +5527,17 @@ class DatabaseService {
   }
 
   Future<List<PayoutModel>> getPayouts({AppUser? actor, String? storeId}) async {
+    if (_backendCommerce.isConfigured) {
+      if (actor != null && !isSuperAdmin(actor)) {
+        _requireStoreAccess(actor, storeId ?? actor.storeId ?? '');
+      }
+      final payouts = await _backendCommerce.getAdminPayouts();
+      final scoped = storeId == null
+          ? payouts
+          : payouts.where((payout) => payout.storeId == storeId).toList();
+      scoped.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return scoped;
+    }
     if (actor != null && !isSuperAdmin(actor)) {
       _requireStoreAccess(actor, storeId ?? actor.storeId ?? '');
     }
@@ -5531,6 +5556,28 @@ class DatabaseService {
     required AppUser actor,
     String periodLabel = 'Manual payout',
   }) async {
+    if (_backendCommerce.isConfigured) {
+      _requireSuperAdmin(actor);
+      final payout = await _backendCommerce.processAdminPayout(
+        storeId: storeId,
+        periodLabel: periodLabel,
+      );
+      if (payout != null) {
+        _addNotification(
+          AppNotification(
+            id: 'n-payout-${DateTime.now().millisecondsSinceEpoch}',
+            title: 'Payout processed',
+            body: 'Vendor payout of Rs ${payout.amount.toInt()} has been processed.',
+            type: 'payout',
+            isRead: false,
+            timestamp: DateTime.now(),
+            audienceRole: 'vendor',
+            storeId: storeId,
+          ),
+        );
+      }
+      return payout;
+    }
     _requireSuperAdmin(actor);
     final readyOrders = (await getAllOrders()).where((order) {
       return order.storeId == storeId && order.payoutStatus == 'Ready' && !order.payoutProcessed;
@@ -7864,12 +7911,26 @@ class DatabaseService {
     if (actor != null) {
       _requireSuperAdmin(actor);
     }
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getPlatformSettings();
+    }
     final settings = await _fetchDocument('platform/settings', (map, _) => PlatformSettings.fromMap(map));
     return settings ?? const PlatformSettings();
   }
 
   Future<void> savePlatformSettings(PlatformSettings settings, {required AppUser actor}) async {
     _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.savePlatformSettings(settings);
+      await logActivity(
+        action: 'update_platform_settings',
+        targetType: 'platform',
+        targetId: 'settings',
+        message: 'Updated feature toggles, city availability, or admin security settings.',
+        actor: actor,
+      );
+      return;
+    }
     await _ref('platform/settings').set(settings.toMap());
     await logActivity(
       action: 'update_platform_settings',
@@ -7884,6 +7945,11 @@ class DatabaseService {
     if (actor != null) {
       _requireSuperAdmin(actor);
     }
+    if (_backendCommerce.isConfigured) {
+      final disputes = await _backendCommerce.getAdminDisputes();
+      disputes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return disputes;
+    }
     final disputes = await _fetchCollection('disputes', (map, id) => DisputeRecord.fromMap(map, id));
     disputes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return disputes;
@@ -7891,6 +7957,17 @@ class DatabaseService {
 
   Future<void> updateDispute(DisputeRecord dispute, {required AppUser actor}) async {
     _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.updateAdminDispute(dispute);
+      await logActivity(
+        action: 'update_dispute',
+        targetType: 'dispute',
+        targetId: dispute.id,
+        message: 'Marked ${dispute.type.toLowerCase()} ${dispute.id} as ${dispute.status}.',
+        actor: actor,
+      );
+      return;
+    }
     await _ref('disputes/${dispute.id}').set(dispute.toMap());
     await logActivity(
       action: 'update_dispute',
@@ -7955,6 +8032,11 @@ class DatabaseService {
 
   Future<List<ActivityLogEntry>> getActivityLogs({required AppUser actor}) async {
     _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      final logs = await _backendCommerce.getAdminActivityLogs();
+      logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return logs;
+    }
     final logs = await _fetchCollection('activityLogs', (map, id) => ActivityLogEntry.fromMap(map, id));
     logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return logs;

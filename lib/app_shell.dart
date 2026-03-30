@@ -57,6 +57,13 @@ enum AbzioAppMode {
 }
 
 Future<void> bootstrapAndRun(AbzioAppMode mode) async {
+  await bootstrapAndRunWithInitialRoute(mode);
+}
+
+Future<void> bootstrapAndRunWithInitialRoute(
+  AbzioAppMode mode, {
+  String initialRoute = '/',
+}) async {
   WidgetsFlutterBinding.ensureInitialized();
   _installGlobalErrorHandling();
 
@@ -91,7 +98,7 @@ Future<void> bootstrapAndRun(AbzioAppMode mode) async {
           ),
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ],
-        child: AbzioApp(mode: mode),
+        child: AbzioApp(mode: mode, initialRoute: initialRoute),
       ),
     );
   }, (error, stackTrace) {
@@ -130,9 +137,11 @@ class AbzioApp extends StatelessWidget {
   const AbzioApp({
     super.key,
     this.mode = AbzioAppMode.unified,
+    this.initialRoute = '/',
   });
 
   final AbzioAppMode mode;
+  final String initialRoute;
 
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -164,7 +173,7 @@ class AbzioApp extends StatelessWidget {
           ],
         );
       },
-      initialRoute: '/',
+      initialRoute: initialRoute,
       routes: {
         '/': (context) => _AppLaunchGate(mode: mode),
         '/login': (context) => LoginScreen(

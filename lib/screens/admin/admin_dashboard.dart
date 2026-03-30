@@ -48,9 +48,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
       return;
     }
     final analytics = await _db.getAdminAnalytics();
-    final settings = await _db.getPlatformSettings(actor: actor);
-    final disputes = await _db.getDisputes(actor: actor);
-    final logs = await _db.getActivityLogs(actor: actor);
+    final settings = await _safePlatformSettings(actor);
+    final disputes = await _safeDisputes(actor);
+    final logs = await _safeActivityLogs(actor);
     if (!mounted) return;
     setState(() {
       _analytics = analytics;
@@ -60,6 +60,30 @@ class _AdminDashboardState extends State<AdminDashboard> {
       _loading = false;
     });
     _resetIdleTimer();
+  }
+
+  Future<PlatformSettings> _safePlatformSettings(AppUser actor) async {
+    try {
+      return await _db.getPlatformSettings(actor: actor);
+    } catch (_) {
+      return const PlatformSettings();
+    }
+  }
+
+  Future<List<DisputeRecord>> _safeDisputes(AppUser actor) async {
+    try {
+      return await _db.getDisputes(actor: actor);
+    } catch (_) {
+      return const <DisputeRecord>[];
+    }
+  }
+
+  Future<List<ActivityLogEntry>> _safeActivityLogs(AppUser actor) async {
+    try {
+      return await _db.getActivityLogs(actor: actor);
+    } catch (_) {
+      return const <ActivityLogEntry>[];
+    }
   }
 
   Future<void> _processPayout(Store store) async {

@@ -97,6 +97,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   String? _selectedSupportChatId;
 
   AppUser? get _actor => context.read<AuthProvider>().user;
+  bool get _usesBackendCommerce => _db.usesBackendCommerce;
 
   @override
   void initState() {
@@ -164,7 +165,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     if (actor == null || !context.read<AuthProvider>().isSuperAdmin) {
       return;
     }
-    final settings = await _db.getPlatformSettings(actor: actor);
+    final settings = await _safePlatformSettings(actor);
     if (!mounted) {
       return;
     }
@@ -237,18 +238,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     try {
       final results = await Future.wait([
         _db.getAdminAnalytics(),
-        _db.getPlatformSettings(actor: actor),
+        _safePlatformSettings(actor),
         _db.getUsers(actor: actor),
         _db.getAdminStores(),
         _db.getAllProducts(actor: actor),
         _db.getAllOrders(actor: actor),
-        _db.getPayouts(actor: actor),
-        _db.getNotificationsFor(actor),
+        _safePayouts(actor),
+        _safeNotifications(actor),
         _onboardingService.getVendorRequests(actor: actor),
         _onboardingService.getRiderRequests(actor: actor),
         _db.getSupportChats(actor: actor),
-        _db.getDisputes(actor: actor),
-        _db.getActivityLogs(actor: actor),
+        _safeDisputes(actor),
+        _safeActivityLogs(actor),
         _db.getAiUsageLogs(actor: actor),
         _db.getAiDailyStats(actor: actor),
         _db.getUserAiUsageStats(actor: actor),
@@ -450,6 +451,46 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         SnackBar(content: Text(error.message.toString())),
       );
       await _load();
+    }
+  }
+
+  Future<PlatformSettings> _safePlatformSettings(AppUser actor) async {
+    try {
+      return await _db.getPlatformSettings(actor: actor);
+    } catch (_) {
+      return const PlatformSettings();
+    }
+  }
+
+  Future<List<PayoutModel>> _safePayouts(AppUser actor) async {
+    try {
+      return await _db.getPayouts(actor: actor);
+    } catch (_) {
+      return const <PayoutModel>[];
+    }
+  }
+
+  Future<List<AppNotification>> _safeNotifications(AppUser actor) async {
+    try {
+      return await _db.getNotificationsFor(actor);
+    } catch (_) {
+      return const <AppNotification>[];
+    }
+  }
+
+  Future<List<DisputeRecord>> _safeDisputes(AppUser actor) async {
+    try {
+      return await _db.getDisputes(actor: actor);
+    } catch (_) {
+      return const <DisputeRecord>[];
+    }
+  }
+
+  Future<List<ActivityLogEntry>> _safeActivityLogs(AppUser actor) async {
+    try {
+      return await _db.getActivityLogs(actor: actor);
+    } catch (_) {
+      return const <ActivityLogEntry>[];
     }
   }
 
@@ -1202,9 +1243,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       (AdminWebSection.riders, Icons.delivery_dining_outlined, 'Riders'),
       (AdminWebSection.users, Icons.people_alt_outlined, 'Users'),
       (AdminWebSection.products, Icons.inventory_2_outlined, 'Products'),
-      (AdminWebSection.payouts, Icons.payments_outlined, 'Payouts'),
       (AdminWebSection.analytics, Icons.insights_outlined, 'Analytics'),
-      (AdminWebSection.settings, Icons.tune_rounded, 'Settings'),
+      if (!_usesBackendCommerce)
+        (AdminWebSection.payouts, Icons.payments_outlined, 'Payouts'),
+      if (!_usesBackendCommerce)
+        (AdminWebSection.settings, Icons.tune_rounded, 'Settings'),
     ];
 
     return Container(
@@ -1396,12 +1439,39 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       case AdminWebSection.products:
         return _buildProducts();
       case AdminWebSection.payouts:
-        return _buildPayouts();
+        return _usesBackendCommerce
+            ? _buildBackendUnavailableState(
+                title: 'Payout tools are still migrating',
+                subtitle:
+                    'Vendor settlement controls still depend on legacy Firebase admin data and are hidden in production backend mode.',
+              )
+            : _buildPayouts();
       case AdminWebSection.analytics:
         return _buildAnalytics();
       case AdminWebSection.settings:
-        return _buildSettings();
+        return _usesBackendCommerce
+            ? _buildBackendUnavailableState(
+                title: 'Settings are temporarily hidden',
+                subtitle:
+                    'Platform toggles, disputes, notifications, and audit controls are still using legacy admin storage and will return after the backend migration.',
+              )
+            : _buildSettings();
     }
+  }
+
+  Widget _buildBackendUnavailableState({
+    required String title,
+    required String subtitle,
+  }) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: AbzioEmptyCard(
+          title: title,
+          subtitle: subtitle,
+        ),
+      ),
+    );
   }
 
   Widget _buildDashboard() {
@@ -1514,7 +1584,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               child: _Panel(
                 title: 'Admin alerts',
                 subtitle: 'New KYC, payment, and marketplace signals.',
-                child: _notifications.isEmpty
+                child: _usesBackendCommerce
+                    ? const AbzioEmptyCard(
+                        title: 'Alerts are migrating',
+                        subtitle:
+                            'Admin notification feeds will return here once the backend notification API is wired.',
+                      )
+                    : _notifications.isEmpty
                     ? const AbzioEmptyCard(
                         title: 'No alerts right now',
                         subtitle: 'Admin notifications will appear here as important events happen.',
@@ -1550,7 +1626,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               child: _Panel(
                 title: 'Activity logs',
                 subtitle: 'Recent admin and ops actions.',
-                child: _activityLogs.isEmpty
+                child: _usesBackendCommerce
+                    ? const AbzioEmptyCard(
+                        title: 'Audit log migration in progress',
+                        subtitle:
+                            'Recent admin actions are temporarily hidden until the backend activity log API is connected.',
+                      )
+                    : _activityLogs.isEmpty
                     ? const AbzioEmptyCard(
                         title: 'No activity yet',
                         subtitle: 'Admin and operations logs will appear here once actions are taken.',
