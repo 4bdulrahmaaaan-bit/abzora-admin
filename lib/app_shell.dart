@@ -167,7 +167,10 @@ class AbzioApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => _AppLaunchGate(mode: mode),
-        '/login': (context) => LoginScreen(mode: mode),
+        '/login': (context) => LoginScreen(
+              mode: mode,
+              adminEntry: kIsWeb && mode == AbzioAppMode.unified,
+            ),
         '/admin-login': (context) => const LoginScreen(mode: AbzioAppMode.unified, adminEntry: true),
         '/otp': (context) => OtpVerificationScreen(mode: mode),
           '/admin': (context) => _AdminRoute(mode: mode),
@@ -243,6 +246,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => LoginScreen(
           mode: widget.mode,
+          adminEntry: kIsWeb && widget.mode == AbzioAppMode.unified,
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           final slideAnimation = Tween<Offset>(
@@ -273,7 +277,10 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     }
 
     if (auth.user == null) {
-      return LoginScreen(mode: widget.mode);
+      return LoginScreen(
+        mode: widget.mode,
+        adminEntry: kIsWeb && widget.mode == AbzioAppMode.unified,
+      );
     }
 
     if (!_didRoute) {

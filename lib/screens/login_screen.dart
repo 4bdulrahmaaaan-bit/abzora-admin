@@ -488,32 +488,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ],
-                    if (kIsWeb &&
-                        widget.mode == AbzioAppMode.unified &&
-                        !widget.adminEntry) ...[
-                      const SizedBox(height: 16),
-                      OutlinedButton.icon(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/admin-login'),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(52),
-                          side: BorderSide(color: context.abzioBorder),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                        ),
-                        icon: const Icon(
-                          Icons.admin_panel_settings_outlined,
-                        ),
-                        label: Text(
-                          'Open Super Admin Panel',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: 16),
                     if (widget.mode != AbzioAppMode.operations &&
                         !widget.adminEntry)
