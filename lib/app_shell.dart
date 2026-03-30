@@ -64,10 +64,9 @@ Future<void> bootstrapAndRunWithInitialRoute(
   AbzioAppMode mode, {
   String initialRoute = '/',
 }) async {
-  WidgetsFlutterBinding.ensureInitialized();
-  _installGlobalErrorHandling();
-
   await runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    _installGlobalErrorHandling();
     await AppBootstrapService().initialize();
 
     runApp(
