@@ -208,15 +208,27 @@ class AuthService {
         return null;
       }
 
-      final appUser = await _ensurePhoneProfile(firebaseUser);
-      final normalizedRole = appUser.role.trim().toLowerCase();
+      if (!_backendCommerce.isConfigured) {
+        await signOut();
+        throw StateError('Admin login requires the backend to be configured.');
+      }
+
+      final appUser = await _backendCommerce.getCurrentUserProfile();
+      final normalized = appUser.copyWith(
+        email: appUser.email.isNotEmpty ? appUser.email : (firebaseUser.email ?? ''),
+        phone: (appUser.phone ?? '').isNotEmpty ? appUser.phone : (firebaseUser.phoneNumber ?? ''),
+      );
+      unawaited(_db.saveUser(normalized));
+
+      final normalizedRole = normalized.role.trim().toLowerCase();
       if (normalizedRole != 'admin' && normalizedRole != 'super_admin') {
         await signOut();
         throw StateError('Access denied. Use an approved admin Google account.');
       }
 
-      return appUser;
+      return normalized;
     } catch (error) {
+      await signOut();
       throw StateError(_mapAuthError(error));
     }
   }
