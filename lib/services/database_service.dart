@@ -265,6 +265,12 @@ class DatabaseService {
   }
 
   Future<UserActivitySummary> getUserActivitySummary(String userId) async {
+    if (_backendCommerce.isConfigured) {
+      return UserActivitySummary(
+        userId: userId,
+        segment: 'active',
+      );
+    }
     final summary = await _fetchDocument(
       'userActivity/$userId/summary',
       (map, _) => UserActivitySummary.fromMap(map, userId),
@@ -273,6 +279,9 @@ class DatabaseService {
   }
 
   Future<void> _saveUserActivitySummary(UserActivitySummary summary) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     await _ref('userActivity/${summary.userId}/summary').set(summary.toMap());
   }
 
@@ -281,6 +290,9 @@ class DatabaseService {
     required String type,
     Map<String, dynamic> payload = const {},
   }) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     final eventId = 'evt-${DateTime.now().millisecondsSinceEpoch}';
     await _ref('userActivity/$userId/events/$eventId').set({
       'id': eventId,
@@ -291,6 +303,9 @@ class DatabaseService {
   }
 
   Future<void> trackUserLogin(AppUser user) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     final nowIso = _nowIso();
     final existing = await getUserActivitySummary(user.id);
     final updated = existing.copyWith(
@@ -324,6 +339,9 @@ class DatabaseService {
     required List<OrderItem> items,
     required String action,
   }) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     final nowIso = _nowIso();
     final existing = await getUserActivitySummary(user.id);
     final cartAbandoned = items.isNotEmpty;
@@ -362,6 +380,9 @@ class DatabaseService {
     required AppUser user,
     required OrderModel order,
   }) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     final nowIso = _nowIso();
     final existing = await getUserActivitySummary(user.id);
     final favoriteCategory = order.items.isEmpty
