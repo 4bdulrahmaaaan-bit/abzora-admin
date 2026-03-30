@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'app_config.dart';
 
@@ -148,6 +149,7 @@ class BackendApiClient {
     required String fieldName,
     required List<int> bytes,
     required String filename,
+    MediaType? contentType,
     bool authenticated = true,
   }) async {
     final request = http.MultipartRequest('POST', _uri(path));
@@ -158,6 +160,7 @@ class BackendApiClient {
         fieldName,
         bytes,
         filename: filename,
+        contentType: contentType,
       ),
     );
     final response = await request.send().timeout(const Duration(seconds: 30));

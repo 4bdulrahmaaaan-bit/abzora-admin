@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'app_config.dart';
@@ -86,11 +87,13 @@ class StorageService {
   Future<String> _uploadViaBackend({
     required XFile file,
   }) async {
+    final extension = _fileExtension(file.name);
     final payload = await _backendApiClient.multipart(
       '/upload',
       fieldName: 'image',
       bytes: await file.readAsBytes(),
       filename: file.name,
+      contentType: _contentTypeForExtension(extension),
     );
     final data = payload is Map<String, dynamic>
         ? payload
@@ -239,5 +242,19 @@ class StorageService {
       return '';
     }
     return name.substring(dotIndex).toLowerCase();
+  }
+
+  MediaType _contentTypeForExtension(String extension) {
+    switch (extension) {
+      case '.jpg':
+      case '.jpeg':
+        return MediaType('image', 'jpeg');
+      case '.png':
+        return MediaType('image', 'png');
+      case '.webp':
+        return MediaType('image', 'webp');
+      default:
+        return MediaType('image', 'jpeg');
+    }
   }
 }
