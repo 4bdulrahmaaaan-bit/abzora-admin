@@ -15,10 +15,12 @@ import '../../theme.dart';
 import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
 import 'admin_banners_section.dart';
+import 'admin_categories_section.dart';
 
 enum AdminWebSection {
   dashboard,
   banners,
+  categories,
   kyc,
   support,
   orders,
@@ -1240,6 +1242,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       (AdminWebSection.dashboard, Icons.dashboard_outlined, 'Dashboard'),
       if (_usesBackendCommerce)
         (AdminWebSection.banners, Icons.view_carousel_outlined, 'Banners'),
+      if (_usesBackendCommerce)
+        (AdminWebSection.categories, Icons.category_outlined, 'Categories'),
       (AdminWebSection.kyc, Icons.verified_user_outlined, 'KYC Requests'),
       (AdminWebSection.support, Icons.support_agent_rounded, 'Support'),
       (AdminWebSection.orders, Icons.receipt_long_outlined, 'Orders'),
@@ -1425,18 +1429,26 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   Widget _buildTabContent(BuildContext context) {
-    switch (_tab) {
-      case AdminWebSection.dashboard:
-        return _buildDashboard();
-      case AdminWebSection.banners:
-        return _usesBackendCommerce
+      switch (_tab) {
+        case AdminWebSection.dashboard:
+          return _buildDashboard();
+        case AdminWebSection.banners:
+          return _usesBackendCommerce
             ? const AdminBannersSection()
             : _buildBackendUnavailableState(
                 title: 'Banner tools need backend mode',
                 subtitle:
-                    'Homepage banner management is available only when the admin panel is connected to the backend API.',
-              );
-      case AdminWebSection.kyc:
+                  'Homepage banner management is available only when the admin panel is connected to the backend API.',
+                );
+        case AdminWebSection.categories:
+          return _usesBackendCommerce
+              ? const AdminCategoriesSection()
+              : _buildBackendUnavailableState(
+                  title: 'Category tools need backend mode',
+                  subtitle:
+                      'Category and subcategory management is available only when the admin panel is connected to the backend API.',
+                );
+        case AdminWebSection.kyc:
         return _buildKycHub(context);
       case AdminWebSection.support:
         return _buildSupport();
