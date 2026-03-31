@@ -300,7 +300,7 @@ class _HomeContentState extends State<HomeContent> {
                                 ),
                               ],
                               const SizedBox(height: 20),
-                              _categoryRow(),
+                              const CategorySection(),
                               const SizedBox(height: 20),
                               _promoBanner(
                                 copy: AbzoraCopySets.promoBanners[0],
@@ -1205,59 +1205,229 @@ class _AiStylistFloatingButton extends StatelessWidget {
   }
 }
 
-Widget _categoryRow() {
-  const icons = <IconData>[
-    Icons.male_rounded,
-    Icons.female_rounded,
-    Icons.auto_awesome_rounded,
-    Icons.watch_outlined,
-  ];
-  return SizedBox(
-    height: 92,
-    child: ListView.separated(
-      scrollDirection: Axis.horizontal,
-      itemCount: AbzoraCopySets.categories.length,
-      separatorBuilder: (context, index) => const SizedBox(width: 10),
-      itemBuilder: (context, index) {
-        final category = AbzoraCopySets.categories[index];
-        return TapScale(
-          onTap: () {},
-          child: Container(
-            width: 118,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: Theme.of(context).cardColor,
-              border: Border.all(color: context.abzioBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 12,
-                  offset: const Offset(0, 8),
+class CategorySection extends StatefulWidget {
+  const CategorySection({super.key});
+
+  @override
+  State<CategorySection> createState() => _CategorySectionState();
+}
+
+class _CategorySectionState extends State<CategorySection> {
+  static const _tabs = ['All', 'Men', 'Women', 'Kids'];
+
+  static final Map<String, List<_CategorySectionItem>> _categoryMap = {
+    'All': [
+      _CategorySectionItem(
+        label: AbzoraCopySets.categories[0].title,
+        icon: Icons.male_rounded,
+      ),
+      _CategorySectionItem(
+        label: AbzoraCopySets.categories[1].title,
+        icon: Icons.female_rounded,
+      ),
+      _CategorySectionItem(
+        label: AbzoraCopySets.categories[2].title,
+        icon: Icons.auto_awesome_rounded,
+      ),
+      _CategorySectionItem(
+        label: AbzoraCopySets.categories[3].title,
+        icon: Icons.watch_outlined,
+      ),
+    ],
+    'Men': const [
+      _CategorySectionItem(label: 'Casual', icon: Icons.checkroom_rounded),
+      _CategorySectionItem(label: 'Ethnic', icon: Icons.auto_awesome_rounded),
+      _CategorySectionItem(label: 'Footwear', icon: Icons.hiking_rounded),
+      _CategorySectionItem(label: 'Sports', icon: Icons.sports_basketball_rounded),
+    ],
+    'Women': const [
+      _CategorySectionItem(label: 'Western', icon: Icons.diamond_outlined),
+      _CategorySectionItem(label: 'Ethnic', icon: Icons.local_florist_outlined),
+      _CategorySectionItem(label: 'Fusion', icon: Icons.style_outlined),
+      _CategorySectionItem(label: 'Beauty', icon: Icons.face_retouching_natural_outlined),
+    ],
+    'Kids': const [
+      _CategorySectionItem(label: 'Playwear', icon: Icons.toys_rounded),
+      _CategorySectionItem(label: 'Festive', icon: Icons.celebration_rounded),
+      _CategorySectionItem(label: 'School', icon: Icons.backpack_outlined),
+      _CategorySectionItem(label: 'Sneakers', icon: Icons.directions_run_rounded),
+    ],
+  };
+
+  int _selectedTabIndex = 0;
+  int _selectedCategoryIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentTab = _tabs[_selectedTabIndex];
+    final categories =
+        _categoryMap[currentTab] ?? _categoryMap['All'] ?? const <_CategorySectionItem>[];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 38,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _tabs.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 20),
+            itemBuilder: (context, index) {
+              final tab = _tabs[index];
+              final isSelected = _selectedTabIndex == index;
+              return TapScale(
+                onTap: () {
+                  if (_selectedTabIndex == index) {
+                    return;
+                  }
+                  setState(() {
+                    _selectedTabIndex = index;
+                    _selectedCategoryIndex = 0;
+                  });
+                },
+                child: InkWell(
+                  onTap: () {
+                    if (_selectedTabIndex == index) {
+                      return;
+                    }
+                    setState(() {
+                      _selectedTabIndex = index;
+                      _selectedCategoryIndex = 0;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          tab,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                color: isSelected
+                                    ? AbzioTheme.textPrimary
+                                    : context.abzioSecondaryText,
+                              ),
+                        ),
+                        const SizedBox(height: 6),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          width: isSelected ? 24 : 8,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFC9A74E)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(icons[index], color: AbzioTheme.accentColor, size: 20),
-                const SizedBox(height: 10),
-                Text(category.title, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 2),
-                Text(
-                  category.subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: context.abzioSecondaryText),
-                ),
-              ],
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 14),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 260),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          child: SizedBox(
+            key: ValueKey(currentTab),
+            height: 98,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: categories.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 14),
+              itemBuilder: (context, index) {
+                final category = categories[index];
+                final isSelected = _selectedCategoryIndex == index;
+                return TapScale(
+                  onTap: () {
+                    if (_selectedCategoryIndex == index) {
+                      return;
+                    }
+                    setState(() => _selectedCategoryIndex = index);
+                  },
+                  child: InkWell(
+                    onTap: () {
+                      if (_selectedCategoryIndex == index) {
+                        return;
+                      }
+                      setState(() => _selectedCategoryIndex = index);
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: SizedBox(
+                      width: 72,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOutCubic,
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFFC9A74E).withValues(alpha: 0.16)
+                                  : const Color(0xFFF3F3F3),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFFC9A74E)
+                                    : context.abzioBorder,
+                              ),
+                            ),
+                            child: Icon(
+                              category.icon,
+                              size: 26,
+                              color: isSelected
+                                  ? const Color(0xFFC9A74E)
+                                  : AbzioTheme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            category.label,
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                  color: isSelected
+                                      ? AbzioTheme.textPrimary
+                                      : context.abzioSecondaryText,
+                                  height: 1.2,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
-        );
-      },
-    ),
-  );
+        ),
+      ],
+    );
+  }
+}
+
+class _CategorySectionItem {
+  const _CategorySectionItem({
+    required this.label,
+    required this.icon,
+  });
+
+  final String label;
+  final IconData icon;
 }
 
 Widget _sectionHeader({
