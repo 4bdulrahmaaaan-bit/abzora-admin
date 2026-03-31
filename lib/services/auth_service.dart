@@ -87,10 +87,18 @@ class AuthService {
           return error.message ??
               'Phone authentication hit an internal Firebase error. Please verify phone sign-in and authorized domains.';
       }
-      return error.message ?? 'Authentication failed.';
+      final firebaseMessage = (error.message ?? '').trim();
+      if (firebaseMessage.toLowerCase().contains('requested action is invalid')) {
+        return 'Google sign-in is blocked by Firebase/Auth handler setup. Verify Google sign-in is enabled, authorized domains include abzora-admin.vercel.app and abzora-bbed7.firebaseapp.com, and the browser API key allows both websites.';
+      }
+      return firebaseMessage.isNotEmpty ? firebaseMessage : 'Authentication failed.';
     }
     if (error is Error || error is Exception) {
       final raw = error.toString().trim();
+      final lowerRaw = raw.toLowerCase();
+      if (lowerRaw.contains('requested action is invalid')) {
+        return 'Google sign-in is blocked by Firebase/Auth handler setup. Verify Google sign-in is enabled, authorized domains include abzora-admin.vercel.app and abzora-bbed7.firebaseapp.com, and the browser API key allows both websites.';
+      }
       if (raw.isEmpty || raw == 'Error') {
         return 'Phone sign-in could not start. Please make sure Phone Authentication is enabled and localhost is added to Firebase authorized domains.';
       }
