@@ -1,9 +1,7 @@
 #!/bin/sh
-set -eu
+set -ex
 
-FLUTTER_VERSION="3.41.4"
-
-git clone https://github.com/flutter/flutter.git --depth 1 -b "$FLUTTER_VERSION" ../flutter
+git clone https://github.com/flutter/flutter.git --depth 1 -b stable ../flutter
 export PATH="$PATH:../flutter/bin"
 
 flutter --version
