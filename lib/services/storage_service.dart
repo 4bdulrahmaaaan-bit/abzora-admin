@@ -20,6 +20,7 @@ class StorageService {
     'store_logos',
     'store_banners',
     'homepage_banners',
+    'category_icons',
     'vendor_kyc_owner',
     'vendor_kyc_store',
     'vendor_kyc_docs',

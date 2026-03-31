@@ -1,4 +1,5 @@
 import '../models/banner_model.dart';
+import '../models/category_management_model.dart';
 import '../models/models.dart';
 import 'backend_api_client.dart';
 
@@ -113,6 +114,99 @@ class BackendCommerceService {
 
   Future<void> deleteBanner(String bannerId) async {
     await _client.delete('/banners/$bannerId', authenticated: true);
+  }
+
+  Future<List<CategoryManagementModel>> getAdminCategories() async {
+    final payload = await _client.get('/api/categories', authenticated: true);
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) =>
+            CategoryManagementModel.fromMap(Map<String, dynamic>.from(item)))
+        .toList()
+      ..sort((left, right) => left.order.compareTo(right.order));
+  }
+
+  Future<CategoryManagementModel> createCategory(
+    CategoryManagementModel category,
+  ) async {
+    final payload = await _client.post(
+      '/api/categories',
+      authenticated: true,
+      body: category.toMap(),
+    );
+    return CategoryManagementModel.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
+  }
+
+  Future<CategoryManagementModel> updateCategory(
+    CategoryManagementModel category,
+  ) async {
+    final payload = await _client.put(
+      '/api/categories/${category.id}',
+      authenticated: true,
+      body: category.toMap(),
+    );
+    return CategoryManagementModel.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
+  }
+
+  Future<CategoryManagementModel> toggleCategoryStatus({
+    required String categoryId,
+    required bool isActive,
+  }) async {
+    final payload = await _client.patch(
+      '/api/categories/$categoryId/status',
+      authenticated: true,
+      body: {'isActive': isActive},
+    );
+    return CategoryManagementModel.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
+  }
+
+  Future<void> deleteCategory(String categoryId) async {
+    await _client.delete('/api/categories/$categoryId', authenticated: true);
+  }
+
+  Future<SubcategoryManagementModel> addSubcategory({
+    required String categoryId,
+    required SubcategoryManagementModel subcategory,
+  }) async {
+    final payload = await _client.post(
+      '/api/categories/$categoryId/subcategories',
+      authenticated: true,
+      body: subcategory.toMap(),
+    );
+    return SubcategoryManagementModel.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
+  }
+
+  Future<SubcategoryManagementModel> updateSubcategory({
+    required String categoryId,
+    required SubcategoryManagementModel subcategory,
+  }) async {
+    final payload = await _client.put(
+      '/api/categories/$categoryId/subcategories/${subcategory.id}',
+      authenticated: true,
+      body: subcategory.toMap(),
+    );
+    return SubcategoryManagementModel.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
+  }
+
+  Future<void> deleteSubcategory({
+    required String categoryId,
+    required String subcategoryId,
+  }) async {
+    await _client.delete(
+      '/api/categories/$categoryId/subcategories/$subcategoryId',
+      authenticated: true,
+    );
   }
 
   Future<List<Product>> getProducts() async {
