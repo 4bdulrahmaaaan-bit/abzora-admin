@@ -1,7 +1,12 @@
 #!/bin/sh
 set -ex
 
-git clone https://github.com/flutter/flutter.git --depth 1 -b stable ../flutter
+FLUTTER_REVISION="ff37bef603"
+
+git init ../flutter
+git -C ../flutter remote add origin https://github.com/flutter/flutter.git
+git -C ../flutter fetch --depth 1 origin "$FLUTTER_REVISION"
+git -C ../flutter checkout FETCH_HEAD
 export PATH="$PATH:../flutter/bin"
 
 flutter --version
