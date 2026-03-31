@@ -1,0 +1,804 @@
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/banner_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/backend_commerce_service.dart';
+import '../../services/storage_service.dart';
+import '../../theme.dart';
+import '../../widgets/state_views.dart';
+
+class AdminBannersSection extends StatefulWidget {
+  const AdminBannersSection({super.key});
+
+  @override
+  State<AdminBannersSection> createState() => _AdminBannersSectionState();
+}
+
+class _AdminBannersSectionState extends State<AdminBannersSection> {
+  final BackendCommerceService _commerce = BackendCommerceService();
+  final StorageService _storage = StorageService();
+
+  List<BannerModel> _banners = const [];
+  bool _loading = true;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBanners();
+  }
+
+  Future<void> _loadBanners() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final banners = await _commerce.getBanners(includeInactive: true);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _banners = banners;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _error = error.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _showBannerForm([BannerModel? initialBanner]) async {
+    final result = await showDialog<_BannerFormResult>(
+      context: context,
+      builder: (dialogContext) => BannerFormModal(initialBanner: initialBanner),
+    );
+    if (result == null) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+
+    final actor = context.read<AuthProvider>().user;
+    final actorId = actor?.id ?? '';
+    final ownerId = actorId.isNotEmpty ? actorId : 'admin';
+
+    setState(() => _saving = true);
+    try {
+      var banner = result.banner;
+      if (result.imageFile != null) {
+        final imageUrl = await _storage.uploadPickedImage(
+          file: result.imageFile!,
+          folder: 'homepage_banners',
+          ownerId: ownerId,
+          fileName: 'banner_${DateTime.now().millisecondsSinceEpoch}',
+        );
+        banner = banner.copyWith(imageUrl: imageUrl);
+      }
+
+      if (banner.imageUrl.trim().isEmpty) {
+        throw StateError('Banner image is required.');
+      }
+
+      if (initialBanner == null) {
+        await _commerce.createBanner(banner);
+      } else {
+        await _commerce.updateBanner(banner);
+      }
+
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            initialBanner == null ? 'Banner created successfully.' : 'Banner updated successfully.',
+          ),
+        ),
+      );
+      await _loadBanners();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  Future<void> _toggleBanner(BannerModel banner, bool value) async {
+    setState(() => _saving = true);
+    try {
+      await _commerce.updateBanner(banner.copyWith(isActive: value));
+      if (!mounted) {
+        return;
+      }
+      await _loadBanners();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+      setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _deleteBanner(BannerModel banner) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete banner'),
+        content: Text('Delete "${banner.title.isEmpty ? 'Untitled banner' : banner.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB42318)),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await _commerce.deleteBanner(banner.id);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Banner deleted successfully.')),
+      );
+      await _loadBanners();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+      setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          runSpacing: 12,
+          spacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 620),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Homepage banners',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 28,
+                      color: AbzioTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Control the hero promotions shown on the customer home screen without shipping a new app build.',
+                    style: GoogleFonts.inter(
+                      color: AbzioTheme.textSecondary,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: _saving ? null : () => _showBannerForm(),
+              icon: const Icon(Icons.add_photo_alternate_outlined),
+              label: const Text('Add banner'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        if (_loading)
+          const SizedBox(
+            height: 320,
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_error != null)
+          Center(
+            child: AbzioEmptyCard(
+              title: 'Could not load banners',
+              subtitle: _error!,
+              ctaLabel: 'Retry',
+              onTap: _loadBanners,
+            ),
+          )
+        else
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Banner inventory',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      if (_saving)
+                        Text(
+                          'Saving changes...',
+                          style: GoogleFonts.inter(
+                            color: AbzioTheme.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Banners are sorted by order. Lower values show first on the home page.',
+                    style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                  ),
+                  const SizedBox(height: 18),
+                  if (_banners.isEmpty)
+                    const AbzioEmptyCard(
+                      title: 'No banners yet',
+                      subtitle: 'Create your first homepage banner to start promoting stores, products, or categories.',
+                    )
+                  else
+                    Column(
+                      children: _banners
+                          .map(
+                            (banner) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: BannerRow(
+                                banner: banner,
+                                onEdit: _saving ? null : () => _showBannerForm(banner),
+                                onDelete: _saving ? null : () => _deleteBanner(banner),
+                                onToggleActive: _saving ? null : (value) => _toggleBanner(banner, value),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class BannerRow extends StatelessWidget {
+  const BannerRow({
+    super.key,
+    required this.banner,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onToggleActive,
+  });
+
+  final BannerModel banner;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final ValueChanged<bool>? onToggleActive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9F7F2),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AbzioTheme.grey200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              width: 148,
+              height: 88,
+              color: AbzioTheme.grey200,
+              child: banner.imageUrl.isEmpty
+                  ? const Icon(Icons.image_not_supported_outlined)
+                  : Image.network(
+                      banner.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.broken_image_outlined),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      banner.title.isEmpty ? 'Untitled banner' : banner.title,
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: AbzioTheme.textPrimary,
+                      ),
+                    ),
+                    _MiniPill(
+                      label: banner.isActive ? 'Active' : 'Inactive',
+                      color: banner.isActive ? const Color(0xFF067647) : const Color(0xFF667085),
+                    ),
+                    _MiniPill(
+                      label: 'Order ${banner.order}',
+                      color: AbzioTheme.accentColor,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  banner.subtitle.isEmpty ? 'No subtitle provided.' : banner.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    color: AbzioTheme.textSecondary,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _MetaChip(label: 'CTA: ${banner.ctaText}'),
+                    _MetaChip(label: 'Redirect: ${banner.redirectType}'),
+                    _MetaChip(label: banner.redirectId.isEmpty ? 'No redirect ID' : 'ID: ${banner.redirectId}'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Switch.adaptive(
+                value: banner.isActive,
+                onChanged: onToggleActive,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Edit'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Delete'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFB42318),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class BannerFormModal extends StatefulWidget {
+  const BannerFormModal({
+    super.key,
+    this.initialBanner,
+  });
+
+  final BannerModel? initialBanner;
+
+  @override
+  State<BannerFormModal> createState() => _BannerFormModalState();
+}
+
+class _BannerFormModalState extends State<BannerFormModal> {
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _subtitleController = TextEditingController();
+  final _ctaController = TextEditingController();
+  final _redirectIdController = TextEditingController();
+  final _orderController = TextEditingController();
+  final _picker = ImagePicker();
+
+  String _redirectType = 'store';
+  bool _isActive = true;
+  XFile? _pickedImage;
+  Uint8List? _pickedPreview;
+
+  @override
+  void initState() {
+    super.initState();
+    final banner = widget.initialBanner;
+    if (banner != null) {
+      _titleController.text = banner.title;
+      _subtitleController.text = banner.subtitle;
+      _ctaController.text = banner.ctaText;
+      _redirectIdController.text = banner.redirectId;
+      _orderController.text = banner.order.toString();
+      _redirectType = banner.redirectType;
+      _isActive = banner.isActive;
+    } else {
+      _ctaController.text = 'Shop Now';
+      _orderController.text = '0';
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _subtitleController.dispose();
+    _ctaController.dispose();
+    _redirectIdController.dispose();
+    _orderController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final file = await _picker.pickImage(imageQuality: 92, source: ImageSource.gallery);
+    if (file == null) {
+      return;
+    }
+    final bytes = await file.readAsBytes();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _pickedImage = file;
+      _pickedPreview = bytes;
+    });
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    if (_pickedImage == null && (widget.initialBanner?.imageUrl.trim().isEmpty ?? true)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please choose a banner image.')),
+      );
+      return;
+    }
+
+    Navigator.of(context).pop(
+      _BannerFormResult(
+        banner: BannerModel(
+          id: widget.initialBanner?.id ?? '',
+          imageUrl: widget.initialBanner?.imageUrl ?? '',
+          title: _titleController.text.trim(),
+          subtitle: _subtitleController.text.trim(),
+          ctaText: _ctaController.text.trim().isEmpty ? 'Shop Now' : _ctaController.text.trim(),
+          redirectType: _redirectType,
+          redirectId: _redirectIdController.text.trim(),
+          order: int.tryParse(_orderController.text.trim()) ?? 0,
+          isActive: _isActive,
+        ),
+        imageFile: _pickedImage,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentImage = widget.initialBanner?.imageUrl ?? '';
+    final hasPreview = _pickedPreview != null;
+
+    return AlertDialog(
+      title: Text(widget.initialBanner == null ? 'Add banner' : 'Edit banner'),
+      content: SizedBox(
+        width: 560,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Banner image',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w700,
+                    color: AbzioTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                InkWell(
+                  onTap: _pickImage,
+                  borderRadius: BorderRadius.circular(18),
+                  child: Ink(
+                    height: 176,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AbzioTheme.grey200),
+                      color: const Color(0xFFF8F8F8),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: hasPreview
+                          ? Image.memory(_pickedPreview!, fit: BoxFit.cover)
+                          : currentImage.isNotEmpty
+                              ? Image.network(
+                                  currentImage,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => _UploadPlaceholder(
+                                    hasImage: false,
+                                  ),
+                                )
+                              : const _UploadPlaceholder(hasImage: false),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _pickImage,
+                      icon: const Icon(Icons.upload_outlined),
+                      label: Text(hasPreview || currentImage.isNotEmpty ? 'Replace image' : 'Upload image'),
+                    ),
+                    if (_pickedImage != null) ...[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _pickedImage!.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 18),
+                TextFormField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    hintText: 'Top-rated stores around you',
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty ? 'Title is required.' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _subtitleController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Subtitle',
+                    hintText: 'Handpicked fashion destinations',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _ctaController,
+                        decoration: const InputDecoration(
+                          labelText: 'CTA text',
+                          hintText: 'Shop Now',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 120,
+                      child: TextFormField(
+                        controller: _orderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Order',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _redirectType,
+                  decoration: const InputDecoration(
+                    labelText: 'Redirect type',
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'product', child: Text('product')),
+                    DropdownMenuItem(value: 'store', child: Text('store')),
+                    DropdownMenuItem(value: 'category', child: Text('category')),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setState(() => _redirectType = value);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _redirectIdController,
+                  decoration: const InputDecoration(
+                    labelText: 'Redirect ID',
+                    hintText: 'Product/store/category ID',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SwitchListTile.adaptive(
+                  value: _isActive,
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: AbzioTheme.accentColor,
+                  activeTrackColor: AbzioTheme.accentColor.withValues(alpha: 0.32),
+                  title: const Text('Active banner'),
+                  subtitle: const Text('Inactive banners stay saved but will not show on the customer app.'),
+                  onChanged: (value) => setState(() => _isActive = value),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(widget.initialBanner == null ? 'Create banner' : 'Save changes'),
+        ),
+      ],
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AbzioTheme.grey200),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: AbzioTheme.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniPill extends StatelessWidget {
+  const _MiniPill({
+    required this.label,
+    required this.color,
+  });
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+}
+
+class _UploadPlaceholder extends StatelessWidget {
+  const _UploadPlaceholder({
+    required this.hasImage,
+  });
+
+  final bool hasImage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            hasImage ? Icons.image_outlined : Icons.add_photo_alternate_outlined,
+            size: 32,
+            color: AbzioTheme.textSecondary,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            hasImage ? 'Preview unavailable' : 'Tap to upload banner artwork',
+            style: GoogleFonts.inter(
+              color: AbzioTheme.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BannerFormResult {
+  const _BannerFormResult({
+    required this.banner,
+    required this.imageFile,
+  });
+
+  final BannerModel banner;
+  final XFile? imageFile;
+}

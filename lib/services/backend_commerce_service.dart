@@ -1,3 +1,4 @@
+import '../models/banner_model.dart';
 import '../models/models.dart';
 import 'backend_api_client.dart';
 
@@ -80,6 +81,38 @@ class BackendCommerceService {
         .whereType<Map>()
         .map((item) => _storeFromBackend(Map<String, dynamic>.from(item)))
         .toList();
+  }
+
+  Future<List<BannerModel>> getBanners({bool includeInactive = false}) async {
+    final payload = await _client.get('/banners', authenticated: includeInactive);
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => BannerModel.fromMap(Map<String, dynamic>.from(item)))
+        .toList()
+      ..sort((left, right) => left.order.compareTo(right.order));
+  }
+
+  Future<BannerModel> createBanner(BannerModel banner) async {
+    final payload = await _client.post(
+      '/banners',
+      authenticated: true,
+      body: banner.toMap(),
+    );
+    return BannerModel.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<BannerModel> updateBanner(BannerModel banner) async {
+    final payload = await _client.put(
+      '/banners/${banner.id}',
+      authenticated: true,
+      body: banner.toMap(),
+    );
+    return BannerModel.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<void> deleteBanner(String bannerId) async {
+    await _client.delete('/banners/$bannerId', authenticated: true);
   }
 
   Future<List<Product>> getProducts() async {

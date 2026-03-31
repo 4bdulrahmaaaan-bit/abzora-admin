@@ -11,8 +11,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/banner_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/product_provider.dart';
+import '../../services/backend_api_client.dart';
 import '../../theme.dart';
-import '../../widgets/banner_carousel.dart';
 import '../../widgets/global_skeletons.dart';
 import '../../widgets/home_header.dart';
 import '../../widgets/product_grid.dart';
@@ -228,28 +228,20 @@ class _HomeContentState extends State<HomeContent> {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
     final userName = user?.name.trim().isEmpty ?? true ? '' : user!.name;
-    final savedAddress = (user?.address ?? '').trim();
 
     return Consumer2<ProductProvider, LocationProvider>(
       builder: (context, provider, locationProvider, child) {
         final products = provider.searchResults.isNotEmpty ? provider.searchResults : provider.locationProducts;
         final stores = provider.nearbyStores;
-        final bannerProvider = context.watch<BannerProvider>();
-        final banners = bannerProvider.banners;
+        final banners = context.watch<BannerProvider>().banners;
         final headline = user == null ? AbzoraText.locationLoggedOutTitle : locationProvider.deliveryHeadline(userName);
-        final line2 = user == null
-            ? AbzoraText.locationSubtext
-            : locationProvider.deliverySubline().trim().isNotEmpty
-                ? locationProvider.deliverySubline()
-                : savedAddress.isNotEmpty
-                    ? savedAddress
-                    : AbzoraText.locationSubtext;
         final trendingProducts = products.take(4).toList();
         final justForYouProducts = products.skip(4).take(4).toList();
         final recentlyViewedProducts = products.reversed.take(4).toList();
 
         return Scaffold(
           appBar: HomeHeader(
+            location: headline,
             onSearchTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -264,6 +256,7 @@ class _HomeContentState extends State<HomeContent> {
               MaterialPageRoute(builder: (_) => const WishlistScreen()),
             ),
             onCartTap: () => Navigator.pushNamed(context, '/cart'),
+            onLocationTap: () => showLocationBottomSheet(context),
           ),
           body: provider.isLoading && products.isEmpty
               ? const _HomeSkeleton()
@@ -278,15 +271,9 @@ class _HomeContentState extends State<HomeContent> {
                         sliver: SliverList(
                           delegate: SliverChildListDelegate(
                             [
-                              _locationBar(
-                                title: headline,
-                                line2: line2,
-                                onTap: () => showLocationBottomSheet(context),
-                              ),
-                              const SizedBox(height: 16),
-                              BannerCarousel(
-                                banners: banners,
-                                isLoading: bannerProvider.isLoading,
+                              const SizedBox(height: 8),
+                              HomeBanner(
+                                fallbackBanners: banners,
                                 onBannerTap: (banner) => _handleBannerTap(
                                   banner,
                                   products: products,
@@ -926,63 +913,6 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
   }
 }
 
-Widget _locationBar({
-  required String title,
-  required String line2,
-  required VoidCallback onTap,
-}) {
-  return Builder(
-    builder: (context) => TapScale(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.abzioBorder),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 14,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.location_on_outlined, color: AbzioTheme.accentColor, size: 18),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 3),
-                    Text(
-                      line2,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: context.abzioSecondaryText),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(Icons.keyboard_arrow_down_rounded, color: context.abzioSecondaryText),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
 Widget _tailoringHighlight({required VoidCallback onStart}) {
   return Builder(
     builder: (context) => TapScale(
@@ -1347,6 +1277,219 @@ Widget _sectionHeader({
       ],
     ),
   );
+}
+
+class HomeBanner extends StatefulWidget {
+  const HomeBanner({
+    super.key,
+    required this.fallbackBanners,
+    required this.onBannerTap,
+  });
+
+  final List<BannerModel> fallbackBanners;
+  final ValueChanged<BannerModel> onBannerTap;
+
+  @override
+  State<HomeBanner> createState() => _HomeBannerState();
+}
+
+class _HomeBannerState extends State<HomeBanner> {
+  final PageController _pageController = PageController();
+  final BackendApiClient _apiClient = const BackendApiClient();
+
+  late final Future<List<BannerModel>> _bannersFuture;
+
+  int _currentIndex = 0;
+
+  static const List<BannerModel> _staticFallbackBanners = [
+    BannerModel(
+      imageUrl: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=1200',
+      title: 'Top-rated stores around you',
+      subtitle: 'Handpicked fashion destinations',
+      ctaText: 'View Stores',
+      redirectType: 'store',
+      redirectId: '',
+    ),
+    BannerModel(
+      imageUrl: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=1200',
+      title: 'Wedding edits worth arriving for',
+      subtitle: 'Handpicked fashion destinations',
+      ctaText: 'Discover',
+      redirectType: 'category',
+      redirectId: 'Wedding',
+    ),
+    BannerModel(
+      imageUrl: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=1200',
+      title: 'Top-rated stores around you',
+      subtitle: 'Handpicked fashion destinations',
+      ctaText: 'View Stores',
+      redirectType: 'store',
+      redirectId: '',
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _bannersFuture = fetchBanners();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<List<BannerModel>> fetchBanners() async {
+    try {
+      if (!_apiClient.isConfigured) {
+        return widget.fallbackBanners.isNotEmpty
+            ? widget.fallbackBanners
+            : _staticFallbackBanners;
+      }
+      final payload = await _apiClient.get('/banners');
+      final items = payload is List ? payload : const [];
+      final banners = items
+          .whereType<Map>()
+          .map((item) => BannerModel.fromMap(Map<String, dynamic>.from(item)))
+          .where((banner) => banner.imageUrl.trim().isNotEmpty)
+          .toList();
+      if (banners.isNotEmpty) {
+        return banners;
+      }
+    } catch (_) {
+      // Fall through to provider/static fallback.
+    }
+    return widget.fallbackBanners.isNotEmpty
+        ? widget.fallbackBanners
+        : _staticFallbackBanners;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<BannerModel>>(
+      future: _bannersFuture,
+      builder: (context, snapshot) {
+        final slides = snapshot.data == null || snapshot.data!.isEmpty
+            ? (widget.fallbackBanners.isNotEmpty
+                ? widget.fallbackBanners
+                : _staticFallbackBanners)
+            : snapshot.data!;
+
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            (snapshot.data == null || snapshot.data!.isEmpty)) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              height: 172,
+              color: Theme.of(context).cardColor,
+              alignment: Alignment.center,
+              child: const CircularProgressIndicator(
+                strokeWidth: 2.4,
+                color: Color(0xFFC9A74E),
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            SizedBox(
+              height: 172,
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: slides.length,
+                onPageChanged: (index) => setState(() => _currentIndex = index),
+                itemBuilder: (context, index) {
+                  final slide = slides[index];
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(slide.imageUrl, fit: BoxFit.cover),
+                        Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Color(0x1A000000),
+                                Color(0x66000000),
+                                Color(0xB3000000),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                slide.title,
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.1,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                slide.subtitle,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              FilledButton(
+                                onPressed: () => widget.onBannerTap(slide),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFFC9A74E),
+                                  foregroundColor: const Color(0xFF171717),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: Text(
+                                  slide.ctaText.isEmpty ? 'View Stores' : slide.ctaText,
+                                  style: const TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                slides.length,
+                (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: _currentIndex == index ? 18 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _currentIndex == index ? const Color(0xFFC9A74E) : const Color(0xFFD2D2D2),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 Widget _promoBanner({

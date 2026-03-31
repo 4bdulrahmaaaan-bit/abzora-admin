@@ -19,6 +19,7 @@ class StorageService {
     'user_profiles',
     'store_logos',
     'store_banners',
+    'homepage_banners',
     'vendor_kyc_owner',
     'vendor_kyc_store',
     'vendor_kyc_docs',
