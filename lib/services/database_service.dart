@@ -1422,6 +1422,39 @@ class DatabaseService {
     if (user == null || products.isEmpty) {
       return products;
     }
+    if (_backendCommerce.isConfigured) {
+      final summary = await getUserActivitySummary(user.id);
+      final recentOrders = await getUserOrdersOnce(user.id);
+      final orderedCategories = <String>{};
+      for (final order in recentOrders.take(5)) {
+        for (final item in order.items) {
+          final matched = products.where((product) => product.id == item.productId);
+          if (matched.isNotEmpty && matched.first.category.isNotEmpty) {
+            orderedCategories.add(matched.first.category.toLowerCase());
+          }
+        }
+      }
+
+      int score(Product product) {
+        var total = 0;
+        total += (product.purchaseCount * 2);
+        total += (product.rating * 5).round();
+        if (summary.favoriteCategory != null &&
+            product.category.toLowerCase() == summary.favoriteCategory!.toLowerCase()) {
+          total += 25;
+        }
+        if (orderedCategories.contains(product.category.toLowerCase())) {
+          total += 20;
+        }
+        if (product.isCustomTailoring) {
+          total += 6;
+        }
+        return total;
+      }
+
+      final ranked = [...products]..sort((a, b) => score(b).compareTo(score(a)));
+      return ranked;
+    }
     final summary = await getUserActivitySummary(user.id);
     final viewMap = _asMap((await _ref('users/${user.id}/productViews').get()).value) ?? const <String, dynamic>{};
     final recentOrders = await getUserOrdersOnce(user.id);
@@ -2520,6 +2553,18 @@ class DatabaseService {
   }
 
   Future<Product> getDynamicPrice(Product product, {AppUser? user}) async {
+    if (_backendCommerce.isConfigured) {
+      final userViewCount = user == null ? 0 : 0;
+      final stores = await _backendCommerce.getStores();
+      final matchedStore = stores.where((store) => store.id == product.storeId);
+      final store = matchedStore.isEmpty ? null : matchedStore.first;
+      return _dynamicProductForViewer(
+        _decorateProduct(product),
+        user: user,
+        userViewCount: userViewCount,
+        vendorScore: store?.vendorScore ?? 0,
+      );
+    }
     final userViewCount =
         user == null ? 0 : await _userViewCountForProduct(user.id, product.id);
     final store = await _fetchDocument('stores/${product.storeId}', (map, id) => Store.fromMap(map, id));
@@ -2532,6 +2577,26 @@ class DatabaseService {
   }
 
   Future<void> recordProductView(Product product, {AppUser? user}) async {
+    if (_backendCommerce.isConfigured) {
+      if (user != null) {
+        final summary = await getUserActivitySummary(user.id);
+        await _saveUserActivitySummary(
+          summary.copyWith(
+            productViewCount: summary.productViewCount + 1,
+            lastProductViewAt: _nowIso(),
+            lastActiveAt: _nowIso(),
+            lastViewedProductId: product.id,
+            favoriteCategory: product.category.isNotEmpty ? product.category : summary.favoriteCategory,
+            segment: _growthSegmentFor(
+              orderCount: summary.orderCount,
+              totalSpend: summary.totalSpend,
+              cartAbandoned: summary.cartAbandoned,
+            ),
+          ),
+        );
+      }
+      return;
+    }
     final nowIso = _nowIso();
     final updatedProduct = Product(
       id: product.id,
@@ -2652,6 +2717,9 @@ class DatabaseService {
   }
 
   Future<void> refreshDynamicPrice(Product product) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     final store = await _fetchDocument('stores/${product.storeId}', (map, id) => Store.fromMap(map, id));
     final refreshed = _dynamicProductForViewer(
       _decorateProduct(product),
@@ -2784,7 +2852,9 @@ class DatabaseService {
   }
 
   Future<List<Product>> getCompleteTheLook(Product product) async {
-    final products = (await _productService.fetchAll()).map(_decorateProduct).toList();
+    final products = _backendCommerce.isConfigured
+        ? await _backendCommerce.getProducts()
+        : (await _productService.fetchAll()).map(_decorateProduct).toList();
     return products
         .where((candidate) => candidate.storeId == product.storeId && candidate.id != product.id)
         .take(3)
@@ -2865,6 +2935,9 @@ class DatabaseService {
   }
 
   Future<List<ReviewModel>> getProductReviews(String productId) async {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getProductReviews(productId);
+    }
     final reviews = await _fetchCollection('reviews', (map, id) => ReviewModel.fromMap(map, id));
     reviews.removeWhere((review) => review.targetId != productId || review.targetType != 'product');
     reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -2872,6 +2945,9 @@ class DatabaseService {
   }
 
   Future<List<ReviewModel>> getStoreReviews(String storeId) async {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getStoreReviews(storeId);
+    }
     final reviews = await _fetchCollection('reviews', (map, id) => ReviewModel.fromMap(map, id));
     reviews.removeWhere((review) => review.targetId != storeId || review.targetType != 'store');
     reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -2879,6 +2955,10 @@ class DatabaseService {
   }
 
   Future<void> saveReview(ReviewModel review) async {
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.saveReview(review);
+      return;
+    }
     final resolvedReview = ReviewModel(
       id: review.id.isEmpty ? 'rev-${DateTime.now().millisecondsSinceEpoch}' : review.id,
       userId: review.userId,
@@ -2897,6 +2977,10 @@ class DatabaseService {
   }
 
   Future<void> deleteReview(String reviewId) async {
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.deleteReview(reviewId);
+      return;
+    }
     final existing = await _fetchDocument('reviews/$reviewId', (map, id) => ReviewModel.fromMap(map, id));
     await _ref('reviews/$reviewId').remove();
     if (existing?.targetType == 'store') {
@@ -3575,6 +3659,10 @@ class DatabaseService {
   }
 
   Future<void> createBooking(BookingModel booking) async {
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.createBooking(booking);
+      return;
+    }
     final resolved = BookingModel(
       id: booking.id.isEmpty ? 'bk-${DateTime.now().millisecondsSinceEpoch}' : booking.id,
       userId: booking.userId,
@@ -3590,6 +3678,17 @@ class DatabaseService {
   }
 
   Stream<List<BookingModel>> getUserBookings(String userId) {
+    if (_backendCommerce.isConfigured) {
+      return (() async* {
+        final initial = await _backendCommerce.getMyBookings();
+        yield initial.where((booking) => booking.userId == userId).toList();
+        while (true) {
+          await Future<void>.delayed(const Duration(seconds: 10));
+          final bookings = await _backendCommerce.getMyBookings();
+          yield bookings.where((booking) => booking.userId == userId).toList();
+        }
+      })();
+    }
     return _watchCollection('bookings', (map, id) => BookingModel.fromMap(map, id))
         .map((bookings) => bookings.where((booking) => booking.userId == userId).toList());
   }

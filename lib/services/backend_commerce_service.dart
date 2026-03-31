@@ -91,12 +91,75 @@ class BackendCommerceService {
         .toList();
   }
 
+  Future<List<ReviewModel>> getProductReviews(String productId) async {
+    final payload = await _client.get('/reviews/products/$productId');
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return ReviewModel.fromMap(map, map['id']?.toString() ?? '');
+        })
+        .toList();
+  }
+
+  Future<List<ReviewModel>> getStoreReviews(String storeId) async {
+    final payload = await _client.get('/reviews/stores/$storeId');
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return ReviewModel.fromMap(map, map['id']?.toString() ?? '');
+        })
+        .toList();
+  }
+
+  Future<ReviewModel> saveReview(ReviewModel review) async {
+    final payload = await _client.post(
+      '/reviews',
+      authenticated: true,
+      body: {
+        'id': review.id,
+        ...review.toMap(),
+      },
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return ReviewModel.fromMap(map, map['id']?.toString() ?? review.id);
+  }
+
+  Future<void> deleteReview(String reviewId) async {
+    await _client.delete('/reviews/$reviewId', authenticated: true);
+  }
+
   Future<List<OrderModel>> getUserOrders() async {
     final payload = await _client.get('/orders', authenticated: true);
     final items = payload is List ? payload : const [];
     return items
         .whereType<Map>()
         .map((item) => _orderFromBackend(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<BookingModel> createBooking(BookingModel booking) async {
+    final payload = await _client.post(
+      '/bookings',
+      authenticated: true,
+      body: booking.toMap(),
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return BookingModel.fromMap(map, map['id']?.toString() ?? booking.id);
+  }
+
+  Future<List<BookingModel>> getMyBookings() async {
+    final payload = await _client.get('/bookings/me', authenticated: true);
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return BookingModel.fromMap(map, map['id']?.toString() ?? '');
+        })
         .toList();
   }
 

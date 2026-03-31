@@ -534,7 +534,21 @@ class _TailorBookingScreenState extends State<TailorBookingScreen> {
       notes: _notesController.text.trim(),
     );
 
-    await DatabaseService().createBooking(booking);
+    try {
+      await DatabaseService().createBooking(booking);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isBooking = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+        ),
+      );
+      return;
+    }
 
     if (!mounted) {
       return;

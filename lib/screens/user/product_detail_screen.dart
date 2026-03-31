@@ -191,7 +191,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                       imagePath: imagePath,
                       createdAt: DateTime.now(),
                     );
-                    await _db.saveReview(review);
+                    try {
+                      await _db.saveReview(review);
+                    } catch (error) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            behavior: SnackBarBehavior.floating,
+                            content: Text(error.toString().replaceFirst('Bad state: ', '')),
+                          ),
+                        );
+                      }
+                      return;
+                    }
                     if (context.mounted) {
                       Navigator.pop(context, true);
                     }
@@ -212,7 +224,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   Future<void> _deleteReview(ReviewModel review) async {
-    await _db.deleteReview(review.id);
+    try {
+      await _db.deleteReview(review.id);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text(error.toString().replaceFirst('Bad state: ', '')),
+          ),
+        );
+      }
+      return;
+    }
     await _loadData();
   }
 

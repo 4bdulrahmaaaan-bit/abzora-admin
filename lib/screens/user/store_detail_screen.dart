@@ -88,18 +88,30 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                       );
                       return;
                     }
-                    await _db.saveReview(
-                      ReviewModel(
-                        id: existing?.id ?? '',
-                        userId: currentUser.id,
-                        userName: currentUser.name,
-                        targetId: widget.store.id,
-                        targetType: 'store',
-                        rating: rating,
-                        comment: controller.text.trim(),
-                        createdAt: DateTime.now(),
-                      ),
-                    );
+                    try {
+                      await _db.saveReview(
+                        ReviewModel(
+                          id: existing?.id ?? '',
+                          userId: currentUser.id,
+                          userName: currentUser.name,
+                          targetId: widget.store.id,
+                          targetType: 'store',
+                          rating: rating,
+                          comment: controller.text.trim(),
+                          createdAt: DateTime.now(),
+                        ),
+                      );
+                    } catch (error) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            behavior: SnackBarBehavior.floating,
+                            content: Text(error.toString().replaceFirst('Bad state: ', '')),
+                          ),
+                        );
+                      }
+                      return;
+                    }
                     if (context.mounted) Navigator.pop(context, true);
                   },
                   child: const Text('SAVE REVIEW'),
