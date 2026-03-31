@@ -1240,10 +1240,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   Widget _buildSidebar(BuildContext context) {
     final items = <(AdminWebSection, IconData, String)>[
       (AdminWebSection.dashboard, Icons.dashboard_outlined, 'Dashboard'),
-      if (_usesBackendCommerce)
-        (AdminWebSection.banners, Icons.view_carousel_outlined, 'Banners'),
-      if (_usesBackendCommerce)
-        (AdminWebSection.categories, Icons.category_outlined, 'Categories'),
+      (AdminWebSection.banners, Icons.view_carousel_outlined, 'Banners'),
+      (AdminWebSection.categories, Icons.category_outlined, 'Categories'),
       (AdminWebSection.kyc, Icons.verified_user_outlined, 'KYC Requests'),
       (AdminWebSection.support, Icons.support_agent_rounded, 'Support'),
       (AdminWebSection.orders, Icons.receipt_long_outlined, 'Orders'),
