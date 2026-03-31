@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:abzio/app_shell.dart';
 import 'package:abzio/providers/auth_provider.dart';
+import 'package:abzio/providers/network_provider.dart';
 import 'package:abzio/providers/cart_provider.dart';
 import 'package:abzio/providers/chat_provider.dart';
 import 'package:abzio/providers/product_provider.dart';
@@ -16,6 +17,7 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => NetworkProvider()),
           ChangeNotifierProvider(create: (_) => CartProvider()),
           ChangeNotifierProvider(create: (_) => ProductProvider()),
           ChangeNotifierProvider(create: (_) => ChatProvider()),

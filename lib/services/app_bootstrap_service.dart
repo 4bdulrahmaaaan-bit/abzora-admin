@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 
 import '../firebase_options.dart';
 import 'app_config.dart';
-import 'notification_service.dart';
 
 class AppBootstrapResult {
   final bool firebaseReady;

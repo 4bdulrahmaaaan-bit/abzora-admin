@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
@@ -68,22 +69,41 @@ class CartProvider with ChangeNotifier {
         .toList();
   }
 
+  Future<void> _recordProductCartIntentSafely(Product product, {int quantity = 1}) async {
+    try {
+      if (Firebase.apps.isEmpty) {
+        return;
+      }
+      await _db.recordProductCartIntent(product, quantity: quantity);
+    } catch (_) {
+      // Cart interactions should remain usable even when analytics/realtime
+      // services are unavailable during tests or early bootstrap.
+    }
+  }
+
   Future<void> _track(String action) async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) {
-      return;
+    try {
+      if (Firebase.apps.isEmpty) {
+        return;
+      }
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) {
+        return;
+      }
+      final user = await _db.getUser(userId);
+      if (user == null) {
+        return;
+      }
+      unawaited(
+        _db.trackCartActivity(
+          user: user,
+          items: _asOrderItems(),
+          action: action,
+        ),
+      );
+    } catch (_) {
+      // Ignore tracking failures so cart UX is not blocked by auth/bootstrap.
     }
-    final user = await _db.getUser(userId);
-    if (user == null) {
-      return;
-    }
-    unawaited(
-      _db.trackCartActivity(
-        user: user,
-        items: _asOrderItems(),
-        action: action,
-      ),
-    );
   }
 
   CartAddResult addToCart(Product product, String size) {
@@ -95,14 +115,14 @@ class CartProvider with ChangeNotifier {
     if (existingIndex >= 0) {
       _items[existingIndex].quantity++;
       _lastInteractionAt = DateTime.now();
-      unawaited(_db.recordProductCartIntent(product));
+      unawaited(_recordProductCartIntentSafely(product));
       unawaited(_track('updated'));
       notifyListeners();
       return CartAddResult.updated;
     } else {
       _items.add(CartItem(product: product, size: size));
       _lastInteractionAt = DateTime.now();
-      unawaited(_db.recordProductCartIntent(product));
+      unawaited(_recordProductCartIntentSafely(product));
       unawaited(_track('added'));
       notifyListeners();
       return CartAddResult.added;
@@ -114,7 +134,7 @@ class CartProvider with ChangeNotifier {
     if (index >= 0) {
       _items[index].quantity += delta;
       if (delta > 0) {
-        unawaited(_db.recordProductCartIntent(_items[index].product, quantity: delta));
+        unawaited(_recordProductCartIntentSafely(_items[index].product, quantity: delta));
       }
       if (_items[index].quantity <= 0) {
         _items.removeAt(index);

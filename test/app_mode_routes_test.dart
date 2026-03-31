@@ -44,10 +44,10 @@ void main() {
       );
     });
 
-    test('blocks admin from unified non-admin app route', () {
+    test('allows admin in unified mode and defers route gating to admin shell', () {
       expect(
         accessRestrictionMessage(buildUser('admin'), AbzioAppMode.unified),
-        isNotNull,
+        isNull,
       );
     });
 
