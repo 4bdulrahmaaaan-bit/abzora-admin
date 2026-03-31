@@ -1,7 +1,7 @@
 class AppConfig {
   static const String backendBaseUrl = String.fromEnvironment(
     'BACKEND_BASE_URL',
-    defaultValue: '',
+    defaultValue: 'https://abzora-backend.onrender.com',
   );
   static const String firebaseWebApiKey = String.fromEnvironment('FIREBASE_WEB_API_KEY', defaultValue: '');
   static const String firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID', defaultValue: '');

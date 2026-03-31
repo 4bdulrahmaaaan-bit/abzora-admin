@@ -4292,6 +4292,12 @@ class DatabaseService {
   }
 
   Future<List<AppUser>> getRiders() async {
+    if (_backendCommerce.isConfigured) {
+      final users = await _backendCommerce.getAdminUsers();
+      return users
+          .where((user) => user.role == riderRole && user.isActive && user.riderApprovalStatus == 'approved')
+          .toList();
+    }
     final users = await _fetchCollection('users', (map, _) => AppUser.fromMap(map));
     return users
         .where((user) => user.role == riderRole && user.isActive && user.riderApprovalStatus == 'approved')
@@ -4428,6 +4434,30 @@ class DatabaseService {
   }
 
   Future<OrderModel?> getOrderById(String orderId) async {
+    if (_backendCommerce.isConfigured) {
+      try {
+        final assigned = await _backendCommerce.getAssignedDeliveries();
+        final assignedMatch = assigned.where((order) => order.id == orderId);
+        if (assignedMatch.isNotEmpty) {
+          return assignedMatch.first;
+        }
+      } catch (_) {}
+      try {
+        final userOrders = await _backendCommerce.getUserOrders();
+        final userMatch = userOrders.where((order) => order.id == orderId);
+        if (userMatch.isNotEmpty) {
+          return userMatch.first;
+        }
+      } catch (_) {}
+      try {
+        final adminOrders = await _backendCommerce.getAdminOrders();
+        final adminMatch = adminOrders.where((order) => order.id == orderId);
+        if (adminMatch.isNotEmpty) {
+          return adminMatch.first;
+        }
+      } catch (_) {}
+      return null;
+    }
     return _fetchDocument('orders/$orderId', (map, id) => OrderModel.fromMap(map, id));
   }
 
@@ -4516,6 +4546,9 @@ class DatabaseService {
   }
 
   Future<void> deleteUser(String userId, {AppUser? actor}) async {
+    if (_backendCommerce.isConfigured) {
+      throw StateError('Deleting users is not supported in backend mode yet.');
+    }
     if (actor != null) {
       _requireSuperAdmin(actor);
     }
@@ -4587,6 +4620,9 @@ class DatabaseService {
   }
 
   Future<void> deleteStore(String storeId, {AppUser? actor}) async {
+    if (_backendCommerce.isConfigured) {
+      throw StateError('Deleting stores is not supported in backend mode yet.');
+    }
     if (actor != null) {
       _requireSuperAdmin(actor);
     }
@@ -5234,6 +5270,11 @@ class DatabaseService {
   }
 
   Future<List<OrderModel>> getAvailableDeliveryOrders() async {
+    if (_backendCommerce.isConfigured) {
+      final orders = await _backendCommerce.getAvailableDeliveries();
+      orders.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
+      return orders;
+    }
     final orders = await _fetchCollection('orders', (map, id) => OrderModel.fromMap(map, id));
     final filtered = orders.where(_isOrderAvailableForRider).toList();
     filtered.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
@@ -5443,14 +5484,23 @@ class DatabaseService {
   }
 
   Future<int> getUsersCount() async {
+    if (_backendCommerce.isConfigured) {
+      return (await _backendCommerce.getAdminUsers()).length;
+    }
     return (await _fetchCollection('users', (map, _) => AppUser.fromMap(map))).length;
   }
 
   Future<int> getStoresCount() async {
+    if (_backendCommerce.isConfigured) {
+      return (await _backendCommerce.getAdminStores()).length;
+    }
     return (await _fetchCollection('stores', (map, id) => Store.fromMap(map, id))).length;
   }
 
   Future<int> getOrdersCount() async {
+    if (_backendCommerce.isConfigured) {
+      return (await _backendCommerce.getAdminOrders()).length;
+    }
     return (await _fetchCollection('orders', (map, id) => OrderModel.fromMap(map, id))).length;
   }
 
@@ -5528,6 +5578,9 @@ class DatabaseService {
   }
 
   Future<void> markAllNotificationsRead(AppUser? actor) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     final visible = await getNotificationsFor(actor);
     for (final notification in visible) {
       await _ref('notifications/${notification.id}').update({'isRead': true});
@@ -8074,6 +8127,9 @@ class DatabaseService {
   }
 
   Future<void> updateFcmToken({required String userId, required String token}) async {
+    if (_backendCommerce.isConfigured) {
+      return;
+    }
     await _ref('users/$userId').update({'fcmToken': token});
   }
 
