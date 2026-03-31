@@ -62,7 +62,7 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
     if (linkedStoreId.isEmpty) {
       return null;
     }
-    final stores = await _db.getAdminStores();
+    final stores = await _db.getStores();
     for (final store in stores) {
       if (store.id == linkedStoreId || store.storeId == linkedStoreId) {
         return store;
