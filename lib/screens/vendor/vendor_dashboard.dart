@@ -53,6 +53,24 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
     super.dispose();
   }
 
+  Future<Store?> _loadStore(AppUser actor) async {
+    final ownStore = await _db.getStoreByOwner(actor.id);
+    if (ownStore != null) {
+      return ownStore;
+    }
+    final linkedStoreId = actor.storeId?.trim() ?? '';
+    if (linkedStoreId.isEmpty) {
+      return null;
+    }
+    final stores = await _db.getAdminStores();
+    for (final store in stores) {
+      if (store.id == linkedStoreId || store.storeId == linkedStoreId) {
+        return store;
+      }
+    }
+    return null;
+  }
+
   void _ensureFutures(AppUser actor) {
     if (_boundActorId == actor.id && _storeFuture != null) {
       return;
@@ -60,7 +78,7 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
     _boundActorId = actor.id;
     _analyticsStoreId = null;
     _analyticsFuture = null;
-    _storeFuture = _db.getStoreByOwner(actor.id);
+    _storeFuture = _loadStore(actor);
   }
 
   Future<VendorAnalytics> _analyticsFor(Store store, AppUser actor) {
