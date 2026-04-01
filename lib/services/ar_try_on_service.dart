@@ -8,6 +8,9 @@ enum ArGarmentType {
   jacket,
   dress,
   top,
+  pants,
+  footwear,
+  accessory,
 }
 
 class ArGarmentMetadata {
@@ -99,6 +102,54 @@ class ArTryOnService {
         fit: _fitFor(product),
         widthMultiplier: 1.5,
         heightMultiplier: 2.12,
+        verticalBias: 0.18,
+        assetUrl: assetUrl,
+        prefersTransparentAsset: assetUrl.toLowerCase().endsWith('.png'),
+      );
+    }
+    if (descriptor.contains('jean') ||
+        descriptor.contains('pant') ||
+        descriptor.contains('trouser') ||
+        descriptor.contains('chino') ||
+        descriptor.contains('jogger') ||
+        descriptor.contains('skirt')) {
+      return ArGarmentMetadata(
+        type: ArGarmentType.pants,
+        anchorPoints: const ['hip', 'ankle'],
+        fit: _fitFor(product),
+        widthMultiplier: 1.2,
+        heightMultiplier: 1.72,
+        verticalBias: 0.72,
+        assetUrl: assetUrl,
+        prefersTransparentAsset: assetUrl.toLowerCase().endsWith('.png'),
+      );
+    }
+    if (descriptor.contains('shoe') ||
+        descriptor.contains('sneaker') ||
+        descriptor.contains('heel') ||
+        descriptor.contains('loafer') ||
+        descriptor.contains('sandal')) {
+      return ArGarmentMetadata(
+        type: ArGarmentType.footwear,
+        anchorPoints: const ['ankle'],
+        fit: _fitFor(product),
+        widthMultiplier: 0.72,
+        heightMultiplier: 0.4,
+        verticalBias: 1.18,
+        assetUrl: assetUrl,
+        prefersTransparentAsset: assetUrl.toLowerCase().endsWith('.png'),
+      );
+    }
+    if (descriptor.contains('watch') ||
+        descriptor.contains('belt') ||
+        descriptor.contains('bag') ||
+        descriptor.contains('cap')) {
+      return ArGarmentMetadata(
+        type: ArGarmentType.accessory,
+        anchorPoints: const ['shoulder'],
+        fit: _fitFor(product),
+        widthMultiplier: 0.44,
+        heightMultiplier: 0.34,
         verticalBias: 0.18,
         assetUrl: assetUrl,
         prefersTransparentAsset: assetUrl.toLowerCase().endsWith('.png'),
