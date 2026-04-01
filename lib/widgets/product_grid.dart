@@ -41,21 +41,36 @@ class ProductGrid extends StatelessWidget {
       );
     }
 
-    return GridView.builder(
-      shrinkWrap: shrinkWrap,
-      physics: physics ?? const NeverScrollableScrollPhysics(),
-      itemCount: products.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.64,
-      ),
-      itemBuilder: (context, index) {
-        final product = products[index];
-        return ProductCard(
-          product: product,
-          onTap: () => onProductTap(product),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isCompact = width < 360;
+        final crossAxisCount = width >= 720 ? 3 : 2;
+        final spacing = isCompact ? 10.0 : 12.0;
+        final aspectRatio = width >= 720
+            ? 0.7
+            : isCompact
+            ? 0.62
+            : 0.66;
+
+        return GridView.builder(
+          shrinkWrap: shrinkWrap,
+          physics: physics ?? const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: products.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: spacing,
+            childAspectRatio: aspectRatio,
+          ),
+          itemBuilder: (context, index) {
+            final product = products[index];
+            return ProductCard(
+              product: product,
+              onTap: () => onProductTap(product),
+            );
+          },
         );
       },
     );

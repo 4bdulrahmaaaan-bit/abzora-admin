@@ -266,7 +266,10 @@ class _HomeContentState extends State<HomeContent> {
               : RefreshIndicator(
                   onRefresh: () => provider.fetchHomeData(forceLocationRefresh: true, user: auth.user),
                   color: AbzioTheme.accentColor,
-                  child: CustomScrollView(
+                  child: SafeArea(
+                    top: false,
+                    bottom: false,
+                    child: CustomScrollView(
                     controller: _scrollController,
                     slivers: [
                       SliverPadding(
@@ -371,7 +374,7 @@ class _HomeContentState extends State<HomeContent> {
                         )
                       else
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
                           sliver: SliverList(
                             delegate: SliverChildListDelegate(
                               [
@@ -426,6 +429,7 @@ class _HomeContentState extends State<HomeContent> {
                           ),
                         ),
                     ],
+                  ),
                   ),
                 ),
         );
