@@ -34,6 +34,13 @@ class SizePredictionResult {
     required this.bodyOutlineHighlights,
     this.message = 'Best fit based on your body profile',
     this.reasoning = '',
+    this.accuracyLabel = 'Medium',
+    this.detectedBodyType = 'Regular',
+    this.bodyTypeConfidence = 0.78,
+    this.usedManualEstimate = false,
+    this.canImproveWithSideScan = false,
+    this.privacyNote =
+        'Your images are never stored. Only measurements are محفوظ.',
   });
 
   final String shirtSize;
@@ -49,6 +56,12 @@ class SizePredictionResult {
   final List<String> bodyOutlineHighlights;
   final String message;
   final String reasoning;
+  final String accuracyLabel;
+  final String detectedBodyType;
+  final double bodyTypeConfidence;
+  final bool usedManualEstimate;
+  final bool canImproveWithSideScan;
+  final String privacyNote;
 
   String get confidenceLabel {
     if (confidence >= 0.86) return 'High';
@@ -84,6 +97,7 @@ class BodyScanService {
     PoseRefinementResult? poseRefinement,
     String? productFit,
   }) {
+    final refinement = poseRefinement;
     final bmi = input.weightKg / math.pow(input.heightCm / 100, 2);
     final normalizedFit = (productFit ?? '').trim().toLowerCase();
     final normalizedFrame = input.bodyFrame.trim().toLowerCase();
@@ -120,14 +134,19 @@ class BodyScanService {
       'curvy' => 3.2,
       _ => 0.0,
     };
-    final chest = ((input.heightCm * 0.53) + (bmi * 1.45) + frameBias) +
-        (poseRefinement?.chestAdjustment ?? 0);
-    final waist = ((input.heightCm * 0.42) + (bmi * 1.10) + (frameBias * 0.9)) +
-        (poseRefinement?.waistAdjustment ?? 0);
-    final hip = (waist + (input.bodyFrame == 'curvy' ? 10 : 7)) +
-        (poseRefinement?.hipAdjustment ?? 0);
-    final shoulder = ((input.heightCm * 0.24) + (frameBias * 0.45)) +
-        (poseRefinement?.shoulderAdjustment ?? 0);
+    final hasScanData = refinement != null;
+    final chest = hasScanData
+        ? refinement.chestCm
+        : ((input.heightCm * 0.53) + (bmi * 1.45) + frameBias);
+    final waist = hasScanData
+        ? refinement.waistCm
+        : ((input.heightCm * 0.42) + (bmi * 1.10) + (frameBias * 0.9));
+    final hip = hasScanData
+        ? refinement.hipCm
+        : (waist + (input.bodyFrame == 'curvy' ? 10 : 7));
+    final shoulder = hasScanData
+        ? refinement.shoulderWidthCm
+        : ((input.heightCm * 0.24) + (frameBias * 0.45));
     final sleeve = (input.heightCm * 0.34) + (frameBias * 0.2);
     final length = (input.heightCm * 0.41) + (frameBias * 0.2);
 
@@ -152,10 +171,32 @@ class BodyScanService {
       lengthCm: length,
       fit: fit,
       confidence: confidence,
-      message: 'Best fit based on your body profile',
+      accuracyLabel: poseRefinement?.accuracyLabel ??
+          (input.sideImagePath != null && input.sideImagePath!.isNotEmpty
+              ? 'High'
+              : input.frontImagePath != null && input.frontImagePath!.isNotEmpty
+                  ? 'Medium'
+                  : 'Low'),
+      detectedBodyType: poseRefinement?.detectedBodyType ??
+          _bodyTypeFromFrame(normalizedFrame),
+      bodyTypeConfidence: poseRefinement?.bodyTypeConfidence ??
+          (normalizedFrame == 'regular' ? 0.78 : 0.72),
+      usedManualEstimate: !hasScanData,
+      canImproveWithSideScan:
+          input.frontImagePath != null &&
+          input.frontImagePath!.isNotEmpty &&
+          (input.sideImagePath == null || input.sideImagePath!.isEmpty),
+      message: hasScanData
+          ? 'Best fit based on your body profile'
+          : 'Using manual estimation',
       reasoning: reasons.join(', '),
+      privacyNote: 'Your images are never stored. Only measurements are محفوظ.',
       bodyOutlineHighlights: [
         'We suggest size $shirtSize',
+        if (hasScanData)
+          'Scan data is driving this recommendation with higher priority'
+        else
+          'Manual height, weight, and body frame are driving this estimate',
         'Shoulder width aligned with a $shirtSize upper-body fit',
         'Waist estimate points to $pantSize trousers',
         if (input.sideImagePath != null && input.sideImagePath!.isNotEmpty)
@@ -220,5 +261,16 @@ class BodyScanService {
     if (waist < 90) return '34';
     if (waist < 96) return '36';
     return '38';
+  }
+
+  String _bodyTypeFromFrame(String frame) {
+    switch (frame) {
+      case 'slim':
+        return 'Athletic';
+      case 'heavy':
+        return 'Heavy';
+      default:
+        return 'Regular';
+    }
   }
 }
