@@ -19,6 +19,7 @@ import '../../providers/wishlist_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
 import '../../widgets/animated_wishlist_button.dart';
+import '../../widgets/tap_scale.dart';
 import '../../widgets/state_views.dart';
 import 'ai_stylist_screen.dart';
 import 'live_ar_try_on_screen.dart';
@@ -435,7 +436,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     bool isWishlistPending,
     WishlistProvider wishlist,
   ) {
-    const expandedHeight = 380.0;
+    final mediaQuery = MediaQuery.of(context);
+    final expandedHeight = mediaQuery.size.height.clamp(640.0, 920.0) * 0.46;
     final accentColor = _effectiveAccentColor(product, images);
     return SliverAppBar(
       pinned: true,
@@ -448,7 +450,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       flexibleSpace: LayoutBuilder(
         builder: (context, constraints) {
           final maxHeight = constraints.maxHeight;
-          final collapsedHeight = kToolbarHeight;
+          final collapsedHeight = mediaQuery.padding.top + 84;
           final t = ((maxHeight - collapsedHeight) /
                   (expandedHeight - collapsedHeight))
               .clamp(0.0, 1.0);
@@ -456,7 +458,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               expandedHeight;
           final scale = 0.9 + (0.1 * t);
           final topInset = MediaQuery.of(context).padding.top + 8;
-          final topOffset = topInset + (t * 14);
+          final topOffset = topInset + (t * 10);
           final imageParallax = -36.0 * (1 - t);
           final imageScale = 1.0 + (pullProgress * 0.18);
           final headerColor = Color.lerp(
@@ -1602,139 +1604,89 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
   Widget _buildBottomActionBar(
     BuildContext context,
-    double width,
     Product product,
-    _DetailPricing pricing,
   ) {
-    final accentColor = _effectiveAccentColor(
-      product,
-      product.images.isEmpty
-          ? const ['https://via.placeholder.com/600x750']
-          : product.images,
-    );
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: TweenAnimationBuilder<Offset>(
-        tween: Tween(begin: const Offset(0, 1), end: Offset.zero),
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.easeOutCubic,
-        builder: (context, offset, child) => Transform.translate(
-          offset: Offset(0, offset.dy * 32),
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 280),
-            opacity: 1,
-            child: child,
-          ),
+    final cart = context.watch<CartProvider>();
+    final hasSelectedSize = _selectedSize != null && _selectedSize!.trim().isNotEmpty;
+    final isInCart = cart.items.any((item) => item.product.id == product.id);
+    const primaryPink = Color(0xFFE91E63);
+    final canAddToBag = isInCart || hasSelectedSize;
+    final canBuyNow = hasSelectedSize;
+
+    void showSelectSizeHint() {
+      HapticFeedback.selectionClick();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Select size first')));
+    }
+
+    return TweenAnimationBuilder<Offset>(
+      tween: Tween(begin: const Offset(0, 1), end: Offset.zero),
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      builder: (context, offset, child) => Transform.translate(
+        offset: Offset(0, offset.dy * 32),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 280),
+          opacity: 1,
+          child: child,
         ),
-        child: SafeArea(
-          top: false,
-          child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: Container(
-                padding: EdgeInsets.fromLTRB(16, 14, 16, width < 360 ? 14 : 12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.84),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(30),
-                  ),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.34),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 24,
-                      offset: const Offset(0, -8),
-                    ),
-                  ],
-                ),
-                child: width < 360
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _BottomPriceBlock(
-                            pricing: pricing,
-                            isLimitedStock: product.isLimitedStock,
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: 48,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: accentColor,
-                                foregroundColor: Colors.white,
-                              ),
-                              onPressed: _handleAddToCartPress,
-                              child: const Text('Add to Cart'),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            height: 48,
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: accentColor.withValues(alpha: 0.45)),
-                                foregroundColor: accentColor,
-                              ),
-                              onPressed: _buyNow,
-                              child: const Text('Buy Now'),
-                            ),
-                          ),
-                        ],
-                      )
-                    : Row(
-                        children: [
-                          Expanded(
-                            child: _BottomPriceBlock(
-                              pricing: pricing,
-                              isLimitedStock: product.isLimitedStock,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 2,
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: SizedBox(
-                                    height: 48,
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: accentColor,
-                                        foregroundColor: Colors.white,
-                                      ),
-                                      onPressed: _handleAddToCartPress,
-                                      child: const Text('Add to Cart'),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: SizedBox(
-                                    height: 48,
-                                    child: OutlinedButton(
-                                      style: OutlinedButton.styleFrom(
-                                        side: BorderSide(
-                                          color: accentColor.withValues(alpha: 0.45),
-                                        ),
-                                        foregroundColor: accentColor,
-                                      ),
-                                      onPressed: _buyNow,
-                                      child: const Text('Buy Now'),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              top: BorderSide(color: Color(0xFFEAEAEA)),
             ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: _BottomActionButton(
+                    label: 'Buy Now',
+                    icon: Icons.flash_on_rounded,
+                    onTap: canBuyNow
+                        ? () {
+                            HapticFeedback.lightImpact();
+                            _buyNow();
+                          }
+                        : showSelectSizeHint,
+                    outlined: true,
+                    accentColor: primaryPink,
+                    enabled: canBuyNow,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: _BottomActionButton(
+                    label: isInCart ? 'Go to Cart' : 'Add to Bag',
+                    icon: Icons.shopping_bag_outlined,
+                    onTap: isInCart
+                        ? () {
+                            HapticFeedback.lightImpact();
+                            Navigator.pushNamed(context, '/cart');
+                          }
+                        : (canAddToBag
+                              ? () {
+                                  HapticFeedback.lightImpact();
+                                  _handleAddToCartPress();
+                                }
+                              : showSelectSizeHint),
+                    outlined: false,
+                    accentColor: primaryPink,
+                    enabled: isInCart || canAddToBag,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1795,7 +1747,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
   Widget _buildFixedScreen(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     final lookCardWidth = width < 380 ? 140.0 : 160.0;
+    final contentBottomSpacing = (width < 360 ? 184.0 : 144.0) + bottomInset;
     final auth = context.watch<AuthProvider>();
     final wishlist = context.watch<WishlistProvider>();
     final product = _product;
@@ -1832,6 +1786,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         bottom: false,
         child: Scaffold(
           backgroundColor: const Color(0xFFF7F7F5),
+          bottomNavigationBar: _buildBottomActionBar(
+            context,
+            product,
+          ),
           body: Stack(
             children: [
               CustomScrollView(
@@ -1871,7 +1829,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                             if (_completeTheLook.isNotEmpty)
                               const SizedBox(height: 20),
                             _buildReviewsSection(context, auth, myReview),
-                            const SizedBox(height: 120),
+                            SizedBox(height: contentBottomSpacing),
                           ],
                         ),
                       ),
@@ -1879,7 +1837,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   ),
                 ],
               ),
-              _buildBottomActionBar(context, width, product, pricing),
               _buildCartFlightOverlay(product, images),
             ],
           ),
@@ -3816,62 +3773,73 @@ class _TrustBadge extends StatelessWidget {
   }
 }
 
-class _BottomPriceBlock extends StatelessWidget {
-  const _BottomPriceBlock({
-    required this.pricing,
-    required this.isLimitedStock,
+class _BottomActionButton extends StatelessWidget {
+  const _BottomActionButton({
+    required this.label,
+    required this.icon,
+    required this.accentColor,
+    required this.outlined,
+    required this.enabled,
+    this.onTap,
   });
 
-  final _DetailPricing pricing;
-  final bool isLimitedStock;
+  final String label;
+  final IconData icon;
+  final Color accentColor;
+  final bool outlined;
+  final bool enabled;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          pricing.currentLabel,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-        ),
-        if (pricing.originalLabel != null || pricing.discountPercent > 0) ...[
-          const SizedBox(height: 4),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              if (pricing.originalLabel != null)
-                Text(
-                  pricing.originalLabel!,
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                    decoration: TextDecoration.lineThrough,
-                    fontWeight: FontWeight.w600,
+    final foreground = outlined
+        ? (enabled ? accentColor : AbzioTheme.textSecondary)
+        : (enabled ? Colors.white : Colors.white70);
+    final background = outlined
+        ? Colors.transparent
+        : (enabled ? accentColor : const Color(0xFFCBCBC7));
+    final borderColor = outlined
+        ? (enabled ? accentColor.withValues(alpha: 0.42) : context.abzioBorder)
+        : Colors.transparent;
+
+    return TapScale(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Material(
+        color: background,
+        borderRadius: BorderRadius.circular(14),
+        elevation: outlined || !enabled ? 0 : 4,
+        shadowColor: accentColor.withValues(alpha: 0.18),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderColor),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 18, color: foreground),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: foreground,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              if (pricing.discountPercent > 0)
-                Text(
-                  '${pricing.discountPercent}% OFF',
-                  style: const TextStyle(
-                    color: Color(0xFF218B5B),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-            ],
-          ),
-        ],
-        if (isLimitedStock) ...[
-          const SizedBox(height: 6),
-          const Text(
-            'Limited stock',
-            style: TextStyle(
-              color: Color(0xFFB54708),
-              fontWeight: FontWeight.w800,
+              ],
             ),
           ),
-        ],
-      ],
+        ),
+      ),
     );
   }
 }
