@@ -19,6 +19,7 @@ import '../../theme.dart';
 import '../../widgets/animated_wishlist_button.dart';
 import '../../widgets/state_views.dart';
 import 'ai_stylist_screen.dart';
+import 'search_screen.dart';
 import 'size_recommendation_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -2948,8 +2949,8 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
     final x = -position.dx * (scale - 1);
     final y = -position.dy * (scale - 1);
     controller.value = Matrix4.identity()
-      ..translate(x, y)
-      ..scale(scale);
+      ..translateByDouble(x, y, 0, 1)
+      ..scaleByDouble(scale, scale, 1, 1);
   }
 
   Future<void> _shareCurrentImage() async {
