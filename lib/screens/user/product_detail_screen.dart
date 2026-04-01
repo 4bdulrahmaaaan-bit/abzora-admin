@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/product_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
@@ -327,46 +328,93 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             ),
           ),
           Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 12,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
               child: Row(
                 children: [
                   _HeroIconButton(
                     icon: Icons.arrow_back_ios_new_rounded,
                     onTap: () => Navigator.pop(context),
                   ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.28),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.22),
-                      ),
-                    ),
-                    child: Text(
-                      '${_imageIndex + 1}/${images.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        final provider = context.read<ProductProvider>();
+                        final allProducts = provider.searchResults.isNotEmpty
+                            ? provider.searchResults
+                            : provider.locationProducts;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SearchScreen(
+                              allProducts: allProducts,
+                              selectedLocation: provider.activeLocation,
+                            ),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.search_rounded,
+                              size: 22,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Search in ABZORA',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   AnimatedWishlistButton(
                     isSelected: isWishlisted,
                     isLoading: isWishlistPending,
-                    size: 42,
+                    size: 40,
                     iconSize: 20,
-                    backgroundColor: Colors.white.withValues(alpha: 0.88),
+                    backgroundColor: Colors.grey.withValues(alpha: 0.12),
                     unselectedColor: Theme.of(context).colorScheme.onSurface,
                     onTap: () async {
                       try {
@@ -376,17 +424,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              error.toString().replaceFirst(
-                                'Bad state: ',
-                                '',
-                              ),
+                              error.toString().replaceFirst('Bad state: ', ''),
                             ),
                           ),
                         );
                       }
                     },
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   AnimatedBuilder(
                     animation: _cartPulseScale,
                     builder: (context, child) => Transform.scale(
