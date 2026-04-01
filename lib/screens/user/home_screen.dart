@@ -242,197 +242,229 @@ class _HomeContentState extends State<HomeContent> {
         final justForYouProducts = products.skip(4).take(4).toList();
         final recentlyViewedProducts = products.reversed.take(4).toList();
 
-        return Scaffold(
-          appBar: HomeHeader(
-            location: headline,
-            onSearchTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => SearchScreen(
-                  allProducts: products,
-                  selectedLocation: provider.activeLocation,
+        return SafeArea(
+          top: true,
+          bottom: false,
+          child: Scaffold(
+            appBar: HomeHeader(
+              location: headline,
+              onSearchTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SearchScreen(
+                    allProducts: products,
+                    selectedLocation: provider.activeLocation,
+                  ),
                 ),
               ),
+              onWishlistTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const WishlistScreen()),
+              ),
+              onCartTap: () => Navigator.pushNamed(context, '/cart'),
+              onLocationTap: () => showLocationBottomSheet(context),
             ),
-            onWishlistTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const WishlistScreen()),
-            ),
-            onCartTap: () => Navigator.pushNamed(context, '/cart'),
-            onLocationTap: () => showLocationBottomSheet(context),
-          ),
-          body: provider.isLoading && products.isEmpty
-              ? const _HomeSkeleton()
-              : RefreshIndicator(
-                  onRefresh: () => provider.fetchHomeData(forceLocationRefresh: true, user: auth.user),
-                  color: AbzioTheme.accentColor,
-                  child: SafeArea(
-                    top: false,
-                    bottom: false,
-                    child: CustomScrollView(
-                    controller: _scrollController,
-                    slivers: [
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                        sliver: SliverList(
-                          delegate: SliverChildListDelegate(
-                            [
-                              const SizedBox(height: 8),
-                              HomeBanner(
-                                fallbackBanners: banners,
-                                onBannerTap: (banner) => _handleBannerTap(
-                                  banner,
-                                  products: products,
-                                  stores: stores,
-                                  selectedLocation: provider.activeLocation,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              _tailoringHighlight(
-                                onStart: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const CustomBrandFlowScreen()),
-                                ),
-                              ),
-                              if (widget.showAiDiscoveryCard) ...[
-                                const SizedBox(height: 14),
-                                _aiStylistHighlight(
-                                  onTap: widget.onOpenAiStylist,
-                                ),
-                              ] else if (widget.showCompactAiCard) ...[
-                                const SizedBox(height: 14),
-                                _compactAiStylistCard(
-                                  onTap: widget.onOpenAiStylist,
-                                ),
-                              ],
-                              const SizedBox(height: 20),
-                              const CategorySection(),
-                              const SizedBox(height: 20),
-                              _AiOutfitSection(
-                                user: user,
-                                onOpenAiStylist: widget.onOpenAiStylist,
-                              ),
-                              const SizedBox(height: 20),
-                              _promoBanner(
-                                copy: AbzoraCopySets.promoBanners[0],
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const CustomBrandFlowScreen()),
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              _sectionHeader(
-                                title: AbzoraText.storesNearYou,
-                                subtitle: AbzoraText.locationSubtext,
-                              ),
-                              const SizedBox(height: 12),
-                              if (provider.isLocationLoading)
-                                const _StoreSkeletonList()
-                              else if (stores.isEmpty)
-                                AbzioEmptyCard(
-                                  title: provider.usingNearestStoreFallback
-                                      ? AbzoraText.storesFallbackTitle
-                                      : AbzoraText.storesEmptyTitle,
-                                  subtitle: provider.usingNearestStoreFallback
-                                      ? AbzoraText.storesFallbackSubtitle
-                                      : '${AbzoraText.storesEmptySubtitle} No stores within ${provider.radiusKm.toInt()} km.',
-                                  ctaLabel: provider.radiusKm < 25 ? AbzoraText.expandTo25Km : AbzoraText.changeLocation,
-                                  onTap: () => provider.radiusKm < 25 ? provider.setRadiusKm(25) : showLocationBottomSheet(context),
-                                )
-                              else
-                                SizedBox(
-                                  height: 192,
-                                  child: ListView.separated(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: stores.length,
-                                    separatorBuilder: (context, index) => const SizedBox(width: 12),
-                                    itemBuilder: (context, index) => _storeCard(
-                                      nearby: stores[index],
-                                      onTap: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (_) => StoreDetailScreen(store: stores[index].store)),
+            body: provider.isLoading && products.isEmpty
+                ? const _HomeSkeleton()
+                : RefreshIndicator(
+                    onRefresh: () => provider.fetchHomeData(
+                      forceLocationRefresh: true,
+                      user: auth.user,
+                    ),
+                    color: AbzioTheme.accentColor,
+                    child: SafeArea(
+                      top: false,
+                      bottom: false,
+                      child: CustomScrollView(
+                        controller: _scrollController,
+                        slivers: [
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                            sliver: SliverList(
+                              delegate: SliverChildListDelegate(
+                                [
+                                  const SizedBox(height: 8),
+                                  HomeBanner(
+                                    fallbackBanners: banners,
+                                    onBannerTap: (banner) => _handleBannerTap(
+                                      banner,
+                                      products: products,
+                                      stores: stores,
+                                      selectedLocation: provider.activeLocation,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _tailoringHighlight(
+                                    onStart: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const CustomBrandFlowScreen(),
                                       ),
                                     ),
                                   ),
-                                ),
-                              const SizedBox(height: 20),
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (products.isEmpty)
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          sliver: SliverToBoxAdapter(
-                            child: AbzioEmptyCard(
-                              title: AbzoraText.homeEmptyTitle,
-                              subtitle: AbzoraText.homeEmptySubtitle,
-                              ctaLabel: AbzoraText.homeEmptyCta,
-                              onTap: () => provider.fetchHomeData(forceLocationRefresh: true, user: auth.user),
-                            ),
-                          ),
-                        )
-                      else
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-                          sliver: SliverList(
-                            delegate: SliverChildListDelegate(
-                              [
-                                _productSection(
-                                  context,
-                                  title: AbzoraText.trendingNearYouTitle,
-                                  subtitle: AbzoraText.trendingNearYouSubtitle,
-                                  products: trendingProducts,
-                                ),
-                                const SizedBox(height: 20),
-                                _promoBanner(
-                                  copy: AbzoraCopySets.promoBanners[1],
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => const CustomBrandFlowScreen()),
+                                  if (widget.showAiDiscoveryCard) ...[
+                                    const SizedBox(height: 14),
+                                    _aiStylistHighlight(
+                                      onTap: widget.onOpenAiStylist,
+                                    ),
+                                  ] else if (widget.showCompactAiCard) ...[
+                                    const SizedBox(height: 14),
+                                    _compactAiStylistCard(
+                                      onTap: widget.onOpenAiStylist,
+                                    ),
+                                  ],
+                                  const SizedBox(height: 20),
+                                  const CategorySection(),
+                                  const SizedBox(height: 20),
+                                  _AiOutfitSection(
+                                    user: user,
+                                    onOpenAiStylist: widget.onOpenAiStylist,
                                   ),
-                                ),
-                                const SizedBox(height: 20),
-                                _productSection(
-                                  context,
-                                  title: AbzoraText.justForYouTitle,
-                                  subtitle: AbzoraText.justForYouSubtitle,
-                                  products: justForYouProducts.isEmpty ? trendingProducts : justForYouProducts,
-                                ),
-                                const SizedBox(height: 20),
-                                _promoBanner(
-                                  copy: AbzoraCopySets.promoBanners[2],
-                                  onTap: () => showLocationBottomSheet(context),
-                                ),
-                                const SizedBox(height: 20),
-                                _productSection(
-                                  context,
-                                  title: AbzoraText.recentlyViewedTitle,
-                                  subtitle: AbzoraText.recentlyViewedSubtitle,
-                                  products: recentlyViewedProducts.isEmpty ? trendingProducts : recentlyViewedProducts,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (provider.isLoadingMore)
-                        const SliverToBoxAdapter(
-                          child: Padding(
-                            padding: EdgeInsets.only(bottom: 20),
-                            child: Center(
-                              child: SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: AbzioTheme.accentColor),
+                                  const SizedBox(height: 20),
+                                  _promoBanner(
+                                    copy: AbzoraCopySets.promoBanners[0],
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const CustomBrandFlowScreen(),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  _sectionHeader(
+                                    title: AbzoraText.storesNearYou,
+                                    subtitle: AbzoraText.locationSubtext,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  if (provider.isLocationLoading)
+                                    const _StoreSkeletonList()
+                                  else if (stores.isEmpty)
+                                    AbzioEmptyCard(
+                                      title: provider.usingNearestStoreFallback
+                                          ? AbzoraText.storesFallbackTitle
+                                          : AbzoraText.storesEmptyTitle,
+                                      subtitle: provider.usingNearestStoreFallback
+                                          ? AbzoraText.storesFallbackSubtitle
+                                          : '${AbzoraText.storesEmptySubtitle} No stores within ${provider.radiusKm.toInt()} km.',
+                                      ctaLabel: provider.radiusKm < 25
+                                          ? AbzoraText.expandTo25Km
+                                          : AbzoraText.changeLocation,
+                                      onTap: () => provider.radiusKm < 25
+                                          ? provider.setRadiusKm(25)
+                                          : showLocationBottomSheet(context),
+                                    )
+                                  else
+                                    SizedBox(
+                                      height: 192,
+                                      child: ListView.separated(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: stores.length,
+                                        separatorBuilder: (context, index) =>
+                                            const SizedBox(width: 12),
+                                        itemBuilder: (context, index) => _storeCard(
+                                          nearby: stores[index],
+                                          onTap: () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => StoreDetailScreen(
+                                                store: stores[index].store,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(height: 20),
+                                ],
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
+                          if (products.isEmpty)
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              sliver: SliverToBoxAdapter(
+                                child: AbzioEmptyCard(
+                                  title: AbzoraText.homeEmptyTitle,
+                                  subtitle: AbzoraText.homeEmptySubtitle,
+                                  ctaLabel: AbzoraText.homeEmptyCta,
+                                  onTap: () => provider.fetchHomeData(
+                                    forceLocationRefresh: true,
+                                    user: auth.user,
+                                  ),
+                                ),
+                              ),
+                            )
+                          else
+                            SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                              sliver: SliverList(
+                                delegate: SliverChildListDelegate(
+                                  [
+                                    _productSection(
+                                      context,
+                                      title: AbzoraText.trendingNearYouTitle,
+                                      subtitle: AbzoraText.trendingNearYouSubtitle,
+                                      products: trendingProducts,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _promoBanner(
+                                      copy: AbzoraCopySets.promoBanners[1],
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const CustomBrandFlowScreen(),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _productSection(
+                                      context,
+                                      title: AbzoraText.justForYouTitle,
+                                      subtitle: AbzoraText.justForYouSubtitle,
+                                      products: justForYouProducts.isEmpty
+                                          ? trendingProducts
+                                          : justForYouProducts,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _promoBanner(
+                                      copy: AbzoraCopySets.promoBanners[2],
+                                      onTap: () => showLocationBottomSheet(context),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _productSection(
+                                      context,
+                                      title: AbzoraText.recentlyViewedTitle,
+                                      subtitle: AbzoraText.recentlyViewedSubtitle,
+                                      products: recentlyViewedProducts.isEmpty
+                                          ? trendingProducts
+                                          : recentlyViewedProducts,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          if (provider.isLoadingMore)
+                            const SliverToBoxAdapter(
+                              child: Padding(
+                                padding: EdgeInsets.only(bottom: 20),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AbzioTheme.accentColor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-        );
+              );
       },
     );
   }
