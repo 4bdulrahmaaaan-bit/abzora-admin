@@ -26,6 +26,32 @@ class PoseFrameFeedback {
   bool get isAligned => state == PoseGuideState.aligned;
 }
 
+class TryOnPoseFrame {
+  const TryOnPoseFrame({
+    required this.feedback,
+    required this.leftShoulder,
+    required this.rightShoulder,
+    required this.leftHip,
+    required this.rightHip,
+    required this.shoulderCenter,
+    required this.hipCenter,
+    required this.shoulderWidth,
+    required this.torsoHeight,
+    required this.rotationRadians,
+  });
+
+  final PoseFrameFeedback feedback;
+  final NormalizedLandmarkPoint leftShoulder;
+  final NormalizedLandmarkPoint rightShoulder;
+  final NormalizedLandmarkPoint leftHip;
+  final NormalizedLandmarkPoint rightHip;
+  final NormalizedLandmarkPoint shoulderCenter;
+  final NormalizedLandmarkPoint hipCenter;
+  final double shoulderWidth;
+  final double torsoHeight;
+  final double rotationRadians;
+}
+
 class NormalizedLandmarkPoint {
   const NormalizedLandmarkPoint(this.x, this.y);
 
@@ -169,6 +195,20 @@ class PoseMeasurementService {
     );
   }
 
+  Future<TryOnPoseFrame?> analyzeTryOnLiveInputImage(
+    InputImage inputImage, {
+    bool isSideView = false,
+  }) async {
+    final poses = await _streamDetector.processImage(inputImage);
+    if (poses.isEmpty) {
+      return null;
+    }
+    return _buildTryOnFrame(
+      poses.first,
+      isSideView: isSideView,
+    );
+  }
+
   PoseFrameFeedback _buildFrameFeedback(
     Pose pose, {
     required double heightCm,
@@ -262,6 +302,105 @@ class PoseMeasurementService {
       alignmentHint: isSideView
           ? 'Turn sideways and keep your full profile visible'
           : 'Step back and keep your full body inside the guide',
+    );
+  }
+
+  TryOnPoseFrame? _buildTryOnFrame(
+    Pose pose, {
+    required bool isSideView,
+  }) {
+    final leftShoulder = pose.landmarks[PoseLandmarkType.leftShoulder];
+    final rightShoulder = pose.landmarks[PoseLandmarkType.rightShoulder];
+    final leftHip = pose.landmarks[PoseLandmarkType.leftHip];
+    final rightHip = pose.landmarks[PoseLandmarkType.rightHip];
+    final leftKnee = pose.landmarks[PoseLandmarkType.leftKnee];
+    final rightKnee = pose.landmarks[PoseLandmarkType.rightKnee];
+    final leftAnkle = pose.landmarks[PoseLandmarkType.leftAnkle];
+    final rightAnkle = pose.landmarks[PoseLandmarkType.rightAnkle];
+    final nose = pose.landmarks[PoseLandmarkType.nose];
+
+    if (leftShoulder == null ||
+        rightShoulder == null ||
+        leftHip == null ||
+        rightHip == null ||
+        leftKnee == null ||
+        rightKnee == null ||
+        nose == null ||
+        leftAnkle == null ||
+        rightAnkle == null) {
+      return null;
+    }
+
+    final feedback = _buildFrameFeedback(
+      pose,
+      heightCm: 170,
+      isSideView: isSideView,
+    );
+    final allPoints = <PoseLandmark>[
+      leftShoulder,
+      rightShoulder,
+      leftHip,
+      rightHip,
+      leftKnee,
+      rightKnee,
+      leftAnkle,
+      rightAnkle,
+      nose,
+    ];
+    final minX = allPoints.map((point) => point.x).reduce(math.min);
+    final maxX = allPoints.map((point) => point.x).reduce(math.max);
+    final minY = allPoints.map((point) => point.y).reduce(math.min);
+    final maxY = allPoints.map((point) => point.y).reduce(math.max);
+    final rangeX = math.max(1.0, maxX - minX);
+    final rangeY = math.max(1.0, maxY - minY);
+
+    NormalizedLandmarkPoint normalize(PoseLandmark point) {
+      return NormalizedLandmarkPoint(
+        ((point.x - minX) / rangeX).clamp(0.0, 1.0),
+        ((point.y - minY) / rangeY).clamp(0.0, 1.0),
+      );
+    }
+
+    final normalizedLeftShoulder = normalize(leftShoulder);
+    final normalizedRightShoulder = normalize(rightShoulder);
+    final normalizedLeftHip = normalize(leftHip);
+    final normalizedRightHip = normalize(rightHip);
+    final shoulderCenter = NormalizedLandmarkPoint(
+      (normalizedLeftShoulder.x + normalizedRightShoulder.x) / 2,
+      (normalizedLeftShoulder.y + normalizedRightShoulder.y) / 2,
+    );
+    final hipCenter = NormalizedLandmarkPoint(
+      (normalizedLeftHip.x + normalizedRightHip.x) / 2,
+      (normalizedLeftHip.y + normalizedRightHip.y) / 2,
+    );
+    final shoulderWidth = _distance(
+      normalizedLeftShoulder.x,
+      normalizedLeftShoulder.y,
+      normalizedRightShoulder.x,
+      normalizedRightShoulder.y,
+    );
+    final torsoHeight = _distance(
+      shoulderCenter.x,
+      shoulderCenter.y,
+      hipCenter.x,
+      hipCenter.y,
+    );
+    final rotationRadians = math.atan2(
+      normalizedRightShoulder.y - normalizedLeftShoulder.y,
+      normalizedRightShoulder.x - normalizedLeftShoulder.x,
+    );
+
+    return TryOnPoseFrame(
+      feedback: feedback,
+      leftShoulder: normalizedLeftShoulder,
+      rightShoulder: normalizedRightShoulder,
+      leftHip: normalizedLeftHip,
+      rightHip: normalizedRightHip,
+      shoulderCenter: shoulderCenter,
+      hipCenter: hipCenter,
+      shoulderWidth: shoulderWidth,
+      torsoHeight: torsoHeight,
+      rotationRadians: rotationRadians,
     );
   }
 

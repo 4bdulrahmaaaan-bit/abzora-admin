@@ -21,6 +21,7 @@ import '../../theme.dart';
 import '../../widgets/animated_wishlist_button.dart';
 import '../../widgets/state_views.dart';
 import 'ai_stylist_screen.dart';
+import 'live_ar_try_on_screen.dart';
 import 'search_screen.dart';
 import 'size_recommendation_screen.dart';
 
@@ -412,6 +413,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         content: Text(
           'Recommended size ${recommendation.recommendedSize} selected for this product.',
         ),
+      ),
+    );
+  }
+
+  Future<void> _openLiveTryOn(Product product, Color accentColor) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            LiveArTryOnScreen(product: product, accentColor: accentColor),
       ),
     );
   }
@@ -1248,6 +1259,73 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                       ),
                     ),
                   ),
+                  const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () => _openLiveTryOn(product, accentColor),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: accentColor.withValues(alpha: 0.24)),
+                color: Color.alphaBlend(
+                  accentColor.withValues(alpha: 0.08),
+                  Colors.white,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.view_in_ar_rounded,
+                      size: 18,
+                      color: AbzioTheme.accentColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Try Live (AR)',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            color: accentColor,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'See the fit on your body with live camera tracking',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color: context.abzioSecondaryText,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   const Icon(Icons.arrow_forward_ios_rounded, size: 16),
                 ],
               ),
