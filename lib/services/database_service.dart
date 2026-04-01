@@ -3038,7 +3038,7 @@ class DatabaseService {
 
   Future<BodyProfile?> getBodyProfile(String userId) async {
     if (_backendCommerce.isConfigured) {
-      return null;
+      return _backendCommerce.getBodyProfile();
     }
     final snapshot = await _ref('users/$userId/bodyProfile').get();
     if (!snapshot.exists) {
@@ -3068,7 +3068,7 @@ class DatabaseService {
           updatedAt: resolved.updatedAt,
         );
     if (_backendCommerce.isConfigured) {
-      await saveUserMemory(userId, memory);
+      await _backendCommerce.saveBodyProfile(resolved);
       return;
     }
     await _ref('').update({

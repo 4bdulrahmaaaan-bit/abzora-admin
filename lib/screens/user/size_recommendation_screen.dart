@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/backend_commerce_service.dart';
 import '../../services/body_scan_service.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
@@ -24,11 +28,15 @@ class SizeRecommendationScreen extends StatefulWidget {
 
 class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
   final DatabaseService _database = DatabaseService();
+  final BackendCommerceService _backendCommerce = BackendCommerceService();
   final BodyScanService _bodyScanService = const BodyScanService();
+  static const String _heightStorageKey = 'size_recommendation_height_cm';
+  static const String _weightStorageKey = 'size_recommendation_weight_kg';
+  static const String _bodyTypeStorageKey = 'size_recommendation_body_type';
 
   double _heightCm = 170;
   double _weightKg = 68;
-  String _bodyFrame = 'balanced';
+  String _bodyFrame = 'regular';
   MeasurementProfile? _selectedProfile;
   BodyProfile? _bodyProfile;
   List<MeasurementProfile> _profiles = const [];
@@ -40,7 +48,31 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProfiles();
+    unawaited(_bootstrap());
+  }
+
+  Future<void> _bootstrap() async {
+    await _loadLocalBodyInputs();
+    await _loadProfiles();
+  }
+
+  Future<void> _loadLocalBodyInputs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _heightCm = prefs.getDouble(_heightStorageKey) ?? _heightCm;
+      _weightKg = prefs.getDouble(_weightStorageKey) ?? _weightKg;
+      _bodyFrame = prefs.getString(_bodyTypeStorageKey) ?? _bodyFrame;
+    });
+  }
+
+  Future<void> _saveLocalBodyInputs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_heightStorageKey, _heightCm);
+    await prefs.setDouble(_weightStorageKey, _weightKg);
+    await prefs.setString(_bodyTypeStorageKey, _bodyFrame);
   }
 
   Future<void> _loadProfiles() async {
@@ -88,16 +120,80 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
     });
   }
 
+  String? _resolveProductFit() {
+    final normalized = widget.product?.outfitType?.trim().toLowerCase() ?? '';
+    if (normalized == 'slim' ||
+        normalized == 'regular' ||
+        normalized == 'oversized') {
+      return normalized;
+    }
+    return null;
+  }
+
+  double _confidenceValue(dynamic value) {
+    if (value is num) {
+      return value.toDouble().clamp(0.0, 1.0);
+    }
+    switch ((value ?? '').toString().trim().toLowerCase()) {
+      case 'high':
+        return 0.9;
+      case 'medium':
+        return 0.78;
+      case 'low':
+        return 0.66;
+      default:
+        return 0.74;
+    }
+  }
+
+  SizePredictionResult _mergeRecommendation(
+    SizePredictionResult seed,
+    Map<String, dynamic> payload,
+  ) {
+    final recommendedSize =
+        (payload['recommendedSize'] ?? seed.shirtSize).toString().toUpperCase();
+    final confidence = _confidenceValue(
+      payload['confidence'] ?? seed.confidence,
+    );
+    final reasoning = (payload['reasoning'] ?? seed.reasoning).toString().trim();
+    final message = (payload['message'] ?? seed.message).toString().trim();
+
+    return SizePredictionResult(
+      shirtSize: recommendedSize,
+      pantSize: seed.pantSize,
+      chestCm: seed.chestCm,
+      waistCm: seed.waistCm,
+      hipCm: seed.hipCm,
+      shoulderCm: seed.shoulderCm,
+      sleeveCm: seed.sleeveCm,
+      lengthCm: seed.lengthCm,
+      fit: seed.fit,
+      confidence: confidence,
+      message: message.isEmpty
+          ? 'Best fit based on your body profile'
+          : message,
+      reasoning: reasoning,
+      bodyOutlineHighlights: [
+        'We suggest size $recommendedSize',
+        'Confidence ${confidence >= 0.86 ? 'High' : confidence >= 0.72 ? 'Medium' : 'Low'} based on height, weight, and body type',
+        ...seed.bodyOutlineHighlights,
+      ],
+    );
+  }
+
   Future<void> _calculate() async {
     final auth = context.read<AuthProvider>();
     final user = auth.user;
+    final productFit = _resolveProductFit();
     setState(() => _isCalculating = true);
     await Future<void>.delayed(const Duration(milliseconds: 250));
 
     late final SizePredictionResult result;
     if (_selectedProfile != null) {
       result = SizePredictionResult(
-        shirtSize: _selectedProfile!.recommendedSize ?? _sizeFromChest(_selectedProfile!.chest),
+        shirtSize:
+            _selectedProfile!.recommendedSize ??
+            _sizeFromChest(_selectedProfile!.chest),
         pantSize: _pantSizeFromWaist(_selectedProfile!.waist),
         chestCm: _selectedProfile!.chest,
         waistCm: _selectedProfile!.waist,
@@ -107,19 +203,41 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
         lengthCm: _selectedProfile!.length,
         fit: 'Regular',
         confidence: 0.92,
+        message: 'Best fit based on your saved measurements',
+        reasoning:
+            'Using your saved body scan profile for a more accurate recommendation',
         bodyOutlineHighlights: [
           'Using your saved profile ${_selectedProfile!.label}',
           'Chest and waist are already measured for a stronger fit match',
         ],
       );
     } else {
-      result = _bodyScanService.analyze(
+      final seed = _bodyScanService.analyze(
         BodyScanInput(
           heightCm: _heightCm,
           weightKg: _weightKg,
           bodyFrame: _bodyFrame,
         ),
+        productFit: productFit,
       );
+      if (_backendCommerce.isConfigured) {
+        try {
+          final response = await _backendCommerce.recommendSize(
+            heightCm: _heightCm,
+            weightKg: _weightKg,
+            bodyType: _bodyFrame,
+            productFit: productFit,
+          );
+          final payload = response['data'] is Map
+              ? Map<String, dynamic>.from(response['data'] as Map)
+              : response;
+          result = _mergeRecommendation(seed, payload);
+        } catch (_) {
+          result = seed;
+        }
+      } else {
+        result = seed;
+      }
     }
 
     final variant = widget.product == null
@@ -143,6 +261,7 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
       await _database.saveBodyProfile(user.id, bodyProfile);
       _bodyProfile = bodyProfile;
     }
+    await _saveLocalBodyInputs();
 
     if (!mounted) {
       return;
@@ -223,8 +342,14 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
                               ),
                             )
                           : const Icon(Icons.auto_awesome_rounded),
-                      label: Text(
-                        _isCalculating ? 'Calculating your fit...' : 'Get recommendation',
+                      label: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        child: Text(
+                          _isCalculating
+                              ? 'Finding your best fit...'
+                              : 'Get recommendation',
+                          key: ValueKey(_isCalculating),
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AbzioTheme.accentColor,
@@ -271,7 +396,9 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
             Colors.white,
           ],
         ),
-        border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AbzioTheme.accentColor.withValues(alpha: 0.18),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,14 +439,20 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
               color: const Color(0xFFFFF5DA),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.checkroom_rounded, color: AbzioTheme.accentColor),
+            child: const Icon(
+              Icons.checkroom_rounded,
+              color: AbzioTheme.accentColor,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(product.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(
+                  product.name,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   product.sizes.isEmpty
@@ -383,7 +516,8 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
                   .toList(),
               onChanged: (value) {
                 setState(() {
-                  _selectedProfile = _profiles.firstWhere((item) => item.id == value);
+                  _selectedProfile =
+                      _profiles.firstWhere((item) => item.id == value);
                 });
               },
               decoration: const InputDecoration(
@@ -498,12 +632,15 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
   }
 
   Widget _resultCard(SizePredictionResult result) {
+    final displayedSize = _recommendedVariant ?? result.shirtSize;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.22)),
+        border: Border.all(
+          color: AbzioTheme.accentColor.withValues(alpha: 0.22),
+        ),
         boxShadow: [
           BoxShadow(
             color: AbzioTheme.accentColor.withValues(alpha: 0.08),
@@ -515,34 +652,104 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Your best fit',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AbzioTheme.accentColor,
-                  fontWeight: FontWeight.w800,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Your best fit',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AbzioTheme.accentColor,
+                        fontWeight: FontWeight.w800,
+                      ),
                 ),
+              ),
+              _confidenceBadge(result.confidenceLabel),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
-            _recommendedVariant == null
-                ? '${result.shirtSize} top  •  ${result.pantSize} trouser'
-                : 'Choose $_recommendedVariant for this product',
+            'We suggest size $displayedSize',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
           ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF7DE),
-              borderRadius: BorderRadius.circular(999),
+          if (_recommendedVariant != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Best available match for this product from ${widget.product!.sizes.join(', ')}',
+              style: TextStyle(color: context.abzioSecondaryText),
             ),
-            child: Text(
-              'Confidence ${(result.confidence * 100).round()}%',
-              style: const TextStyle(fontWeight: FontWeight.w800),
+          ],
+          const SizedBox(height: 10),
+          Text(
+            result.message,
+            style: TextStyle(
+              color: context.abzioSecondaryText,
+              height: 1.45,
             ),
           ),
+          if (result.reasoning.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7DE),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.insights_rounded,
+                    size: 18,
+                    color: AbzioTheme.accentColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      result.reasoning,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (widget.product != null && widget.product!.sizes.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: widget.product!.sizes.map((size) {
+                final normalized = size.toUpperCase();
+                final isSelected = normalized == displayedSize.toUpperCase();
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AbzioTheme.accentColor
+                        : const Color(0xFFFFFBF2),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isSelected
+                          ? AbzioTheme.accentColor
+                          : context.abzioBorder,
+                    ),
+                  ),
+                  child: Text(
+                    normalized,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: isSelected ? Colors.black : Colors.black87,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
           const SizedBox(height: 16),
           Wrap(
             spacing: 10,
@@ -563,7 +770,11 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
                 children: [
                   const Padding(
                     padding: EdgeInsets.only(top: 3),
-                    child: Icon(Icons.check_circle_rounded, size: 16, color: AbzioTheme.accentColor),
+                    child: Icon(
+                      Icons.check_circle_rounded,
+                      size: 16,
+                      color: AbzioTheme.accentColor,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(child: Text(item)),
@@ -572,6 +783,35 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _confidenceBadge(String confidenceLabel) {
+    final normalized = confidenceLabel.toLowerCase();
+    final badgeColor = switch (normalized) {
+      'high' => const Color(0xFFE7F7EC),
+      'medium' => const Color(0xFFFFF2D8),
+      _ => const Color(0xFFF3F4F6),
+    };
+    final textColor = switch (normalized) {
+      'high' => const Color(0xFF18794E),
+      'medium' => const Color(0xFFA15C00),
+      _ => const Color(0xFF5B6470),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: badgeColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '${confidenceLabel[0].toUpperCase()}${confidenceLabel.substring(1)} confidence',
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          color: textColor,
+        ),
       ),
     );
   }

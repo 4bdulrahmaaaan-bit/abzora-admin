@@ -32,6 +32,8 @@ class SizePredictionResult {
     required this.fit,
     required this.confidence,
     required this.bodyOutlineHighlights,
+    this.message = 'Best fit based on your body profile',
+    this.reasoning = '',
   });
 
   final String shirtSize;
@@ -45,6 +47,14 @@ class SizePredictionResult {
   final String fit;
   final double confidence;
   final List<String> bodyOutlineHighlights;
+  final String message;
+  final String reasoning;
+
+  String get confidenceLabel {
+    if (confidence >= 0.86) return 'High';
+    if (confidence >= 0.72) return 'Medium';
+    return 'Low';
+  }
 
   MeasurementProfile toMeasurementProfile({
     required String userId,
@@ -72,14 +82,42 @@ class BodyScanService {
   SizePredictionResult analyze(
     BodyScanInput input, {
     PoseRefinementResult? poseRefinement,
+    String? productFit,
   }) {
     final bmi = input.weightKg / math.pow(input.heightCm / 100, 2);
-    final frameBias = switch (input.bodyFrame) {
-      'slim' => -2.5,
-      'heavy' => 3.6,
+    final normalizedFit = (productFit ?? '').trim().toLowerCase();
+    final normalizedFrame = input.bodyFrame.trim().toLowerCase();
+    final reasons = <String>['Base size from weight'];
+    var shirtIndex = _baseShirtIndex(input.weightKg);
+    if (input.heightCm > 180) {
+      shirtIndex += 1;
+      reasons.add('Increased for taller height');
+    } else if (input.heightCm < 165) {
+      shirtIndex -= 1;
+      reasons.add('Reduced for shorter height');
+    }
+    if (normalizedFrame == 'slim') {
+      shirtIndex -= 1;
+      reasons.add('Adjusted down for slim body type');
+    } else if (normalizedFrame == 'heavy') {
+      shirtIndex += 1;
+      reasons.add('Adjusted up for heavy body type');
+    }
+    if (normalizedFit == 'slim') {
+      shirtIndex += 1;
+      reasons.add('Adjusted up for slim-fit product');
+    } else if (normalizedFit == 'oversized') {
+      shirtIndex -= 1;
+      reasons.add('Adjusted down for oversized fit');
+    }
+    shirtIndex = shirtIndex.clamp(0, _shirtOrder.length - 1);
+    final shirtSize = _shirtOrder[shirtIndex];
+    final frameBias = switch (normalizedFrame) {
+      'slim' => -2.0,
+      'heavy' => 3.2,
       'regular' => 0.0,
-      'athletic' => 1.8,
-      'curvy' => 3.6,
+      'athletic' => 1.6,
+      'curvy' => 3.2,
       _ => 0.0,
     };
     final chest = ((input.heightCm * 0.53) + (bmi * 1.45) + frameBias) +
@@ -93,7 +131,6 @@ class BodyScanService {
     final sleeve = (input.heightCm * 0.34) + (frameBias * 0.2);
     final length = (input.heightCm * 0.41) + (frameBias * 0.2);
 
-    final shirtSize = _shirtSizeFor(chest);
     final pantSize = _pantSizeFor(waist);
     final confidence = (_confidenceFor(input, bmi) +
             (poseRefinement?.confidenceBoost ?? 0))
@@ -115,7 +152,10 @@ class BodyScanService {
       lengthCm: length,
       fit: fit,
       confidence: confidence,
+      message: 'Best fit based on your body profile',
+      reasoning: reasons.join(', '),
       bodyOutlineHighlights: [
+        'We suggest size $shirtSize',
         'Shoulder width aligned with a $shirtSize upper-body fit',
         'Waist estimate points to $pantSize trousers',
         if (input.sideImagePath != null && input.sideImagePath!.isNotEmpty)
@@ -123,6 +163,14 @@ class BodyScanService {
         ...?poseRefinement?.highlights,
       ],
     );
+  }
+
+  static const List<String> _shirtOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
+  int _baseShirtIndex(double weightKg) {
+    if (weightKg < 60) return 1;
+    if (weightKg <= 75) return 2;
+    return 3;
   }
 
   String chooseBestProductSize(Product product, SizePredictionResult result) {
@@ -163,15 +211,6 @@ class BodyScanService {
       value -= 0.05;
     }
     return value.clamp(0.74, 0.96);
-  }
-
-  String _shirtSizeFor(double chest) {
-    if (chest < 88) return 'XS';
-    if (chest < 95) return 'S';
-    if (chest < 102) return 'M';
-    if (chest < 110) return 'L';
-    if (chest < 118) return 'XL';
-    return 'XXL';
   }
 
   String _pantSizeFor(double waist) {

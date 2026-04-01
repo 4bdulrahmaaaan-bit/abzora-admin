@@ -75,6 +75,52 @@ class BackendCommerceService {
     return UserMemory.fromMap(map, map['userId']?.toString() ?? memory.userId);
   }
 
+  Future<BodyProfile?> getBodyProfile() async {
+    final payload = await _client.get('/auth/memory', authenticated: true);
+    if (payload == null) {
+      return null;
+    }
+    final map = Map<String, dynamic>.from(payload as Map);
+    final height = map['heightCm'];
+    final weight = map['weightKg'];
+    if (height == null || weight == null) {
+      return null;
+    }
+    return BodyProfile.fromMap(map);
+  }
+
+  Future<BodyProfile> saveBodyProfile(BodyProfile profile) async {
+    final payload = await _client.put(
+      '/auth/memory',
+      authenticated: true,
+      body: {
+        ...profile.toMap(),
+        'size': profile.recommendedSize,
+      },
+    );
+    return BodyProfile.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<Map<String, dynamic>> recommendSize({
+    required double heightCm,
+    required double weightKg,
+    required String bodyType,
+    String? productFit,
+  }) async {
+    final payload = await _client.post(
+      '/ai/recommend-size',
+      authenticated: true,
+      body: {
+        'heightCm': heightCm,
+        'weightKg': weightKg,
+        'bodyType': bodyType,
+        if (productFit != null && productFit.trim().isNotEmpty)
+          'productFit': productFit.trim(),
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
   Future<List<Store>> getStores() async {
     final payload = await _client.get('/stores');
     final items = payload is List ? payload : const [];
