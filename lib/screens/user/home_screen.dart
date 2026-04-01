@@ -1,17 +1,20 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/text_constants.dart';
 import '../../models/banner_model.dart';
 import '../../models/models.dart';
+import '../../models/outfit_recommendation_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/banner_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../services/backend_api_client.dart';
+import '../../services/database_service.dart';
 import '../../theme.dart';
 import '../../widgets/global_skeletons.dart';
 import '../../widgets/home_header.dart';
@@ -301,6 +304,11 @@ class _HomeContentState extends State<HomeContent> {
                               ],
                               const SizedBox(height: 20),
                               const CategorySection(),
+                              const SizedBox(height: 20),
+                              _AiOutfitSection(
+                                user: user,
+                                onOpenAiStylist: widget.onOpenAiStylist,
+                              ),
                               const SizedBox(height: 20),
                               _promoBanner(
                                 copy: AbzoraCopySets.promoBanners[0],
@@ -1658,6 +1666,475 @@ class _HomeBannerState extends State<HomeBanner> {
           ],
         );
       },
+    );
+  }
+}
+
+class _AiOutfitSection extends StatefulWidget {
+  const _AiOutfitSection({
+    required this.user,
+    required this.onOpenAiStylist,
+  });
+
+  final AppUser? user;
+  final VoidCallback onOpenAiStylist;
+
+  @override
+  State<_AiOutfitSection> createState() => _AiOutfitSectionState();
+}
+
+class _AiOutfitSectionState extends State<_AiOutfitSection> {
+  static const List<String> _occasionFilters = [
+    '',
+    'casual',
+    'party',
+    'wedding',
+    'office',
+  ];
+  static const List<String> _budgetFilters = [
+    '',
+    'under_999',
+    'under_1999',
+    'under_2999',
+  ];
+  static const List<String> _styleFilters = [
+    '',
+    'minimal',
+    'streetwear',
+    'formal',
+    'ethnic',
+  ];
+
+  final DatabaseService _db = DatabaseService();
+  final NumberFormat _currencyFormatter = NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 0,
+  );
+
+  late Future<List<OutfitRecommendation>> _outfitsFuture;
+  final Set<String> _dismissedOutfits = <String>{};
+  String _occasion = '';
+  String _budget = '';
+  String _style = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _outfitsFuture = _loadOutfits();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AiOutfitSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user?.id != widget.user?.id) {
+      _refresh();
+    }
+  }
+
+  Future<List<OutfitRecommendation>> _loadOutfits() async {
+    final outfits = await _db.getOutfitRecommendations(
+      user: widget.user,
+      occasion: _occasion.isEmpty ? null : _occasion,
+      budget: _budget.isEmpty ? null : _budget,
+      style: _style.isEmpty ? null : _style,
+      limit: 6,
+    );
+    return outfits
+        .where((outfit) => !_dismissedOutfits.contains(outfit.outfitId))
+        .toList();
+  }
+
+  void _refresh() {
+    setState(() {
+      _outfitsFuture = _loadOutfits();
+    });
+  }
+
+  Future<void> _track(
+    String action,
+    OutfitRecommendation outfit, {
+    Map<String, dynamic> metadata = const {},
+  }) async {
+    await _db.trackOutfitInteraction(
+      action: action,
+      outfitId: outfit.outfitId,
+      itemIds: outfit.items.map((item) => item.id).toList(),
+      filters: {
+        if (_occasion.isNotEmpty) 'occasion': _occasion,
+        if (_budget.isNotEmpty) 'budget': _budget,
+        if (_style.isNotEmpty) 'style': _style,
+      },
+      metadata: metadata,
+    );
+  }
+
+  Future<void> _skipOutfit(OutfitRecommendation outfit) async {
+    setState(() {
+      _dismissedOutfits.add(outfit.outfitId);
+      _outfitsFuture = _loadOutfits();
+    });
+    await _track('skip', outfit, metadata: {'source': 'home_outfit_section'});
+  }
+
+  Future<void> _shopOutfit(OutfitRecommendation outfit) async {
+    if (outfit.items.isEmpty) {
+      return;
+    }
+    await _track('click', outfit, metadata: {'source': 'home_outfit_section'});
+    if (!mounted) {
+      return;
+    }
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductDetailScreen(product: outfit.items.first),
+      ),
+    );
+  }
+
+  String _labelForFilter(String value) {
+    if (value.isEmpty) {
+      return 'All';
+    }
+    if (value.startsWith('under_')) {
+      return value.replaceFirst('under_', 'Under ₹').replaceAll('_', '');
+    }
+    return '${value[0].toUpperCase()}${value.substring(1)}';
+  }
+
+  Widget _filterRow({
+    required String label,
+    required List<String> options,
+    required String selectedValue,
+    required ValueChanged<String> onSelected,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: context.abzioSecondaryText,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 36,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: options.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final option = options[index];
+              final selected = option == selectedValue;
+              return ChoiceChip(
+                label: Text(_labelForFilter(option)),
+                selected: selected,
+                onSelected: (_) {
+                  onSelected(selected ? '' : option);
+                },
+                selectedColor: const Color(0xFFC9A74E),
+                backgroundColor: const Color(0xFFF1F1F1),
+                labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: selected ? Colors.white : const Color(0xFF121212),
+                      fontWeight: FontWeight.w700,
+                    ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                side: BorderSide.none,
+                showCheckmark: false,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _loadingRail() {
+    return SizedBox(
+      height: 292,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: 2,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) => Container(
+          width: 270,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: const Column(
+            children: [
+              Expanded(child: ShimmerBox()),
+              SizedBox(height: 12),
+              SizedBox(height: 16, child: ShimmerBox()),
+              SizedBox(height: 8),
+              SizedBox(height: 14, child: ShimmerBox()),
+              SizedBox(height: 12),
+              SizedBox(height: 40, child: ShimmerBox()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _sectionHeader(
+                title: 'AI Stylist Picks For You',
+                subtitle: 'Complete outfits ranked from your style profile',
+              ),
+            ),
+            const SizedBox(width: 12),
+            TextButton.icon(
+              onPressed: widget.onOpenAiStylist,
+              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+              label: const Text('Refine'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _filterRow(
+          label: 'Occasion',
+          options: _occasionFilters,
+          selectedValue: _occasion,
+          onSelected: (value) {
+            _occasion = value;
+            _refresh();
+          },
+        ),
+        const SizedBox(height: 12),
+        _filterRow(
+          label: 'Budget',
+          options: _budgetFilters,
+          selectedValue: _budget,
+          onSelected: (value) {
+            _budget = value;
+            _refresh();
+          },
+        ),
+        const SizedBox(height: 12),
+        _filterRow(
+          label: 'Style',
+          options: _styleFilters,
+          selectedValue: _style,
+          onSelected: (value) {
+            _style = value;
+            _refresh();
+          },
+        ),
+        const SizedBox(height: 14),
+        FutureBuilder<List<OutfitRecommendation>>(
+          future: _outfitsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _loadingRail();
+            }
+
+            final outfits = snapshot.data ?? const <OutfitRecommendation>[];
+            if (outfits.isEmpty) {
+              return AbzioEmptyCard(
+                title: 'No outfit edits yet',
+                subtitle:
+                    'Try a different occasion or open AI Stylist to get more personal styling suggestions.',
+                ctaLabel: 'Open AI Stylist',
+                onTap: widget.onOpenAiStylist,
+              );
+            }
+
+            return SizedBox(
+              height: 292,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: outfits.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final outfit = outfits[index];
+                  final items = outfit.items;
+                  return Container(
+                    width: 270,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 22,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 5,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(18),
+                                        child: AbzioNetworkImage(
+                                          imageUrl: items.first.images.isNotEmpty ? items.first.images.first : '',
+                                          fallbackLabel: items.first.name,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Column(
+                                        children: [
+                                          Expanded(
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(16),
+                                              child: AbzioNetworkImage(
+                                                imageUrl: items.length > 1 && items[1].images.isNotEmpty ? items[1].images.first : '',
+                                                fallbackLabel: items.length > 1 ? items[1].name : 'ABZORA',
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Expanded(
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(16),
+                                              child: AbzioNetworkImage(
+                                                imageUrl: items.length > 2 && items[2].images.isNotEmpty ? items[2].images.first : '',
+                                                fallbackLabel: items.length > 2 ? items[2].name : 'ABZORA',
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Positioned(
+                                top: 10,
+                                right: 10,
+                                child: Material(
+                                  color: Colors.white.withValues(alpha: 0.92),
+                                  shape: const CircleBorder(),
+                                  child: InkWell(
+                                    onTap: () => _skipOutfit(outfit),
+                                    customBorder: const CircleBorder(),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(8),
+                                      child: Icon(Icons.close_rounded, size: 18),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: 20,
+                                bottom: 18,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF121212).withValues(alpha: 0.82),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    '${outfit.matchScore}% match',
+                                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                outfit.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${items.length} picks · ${_labelForFilter(outfit.occasion)} · ${_labelForFilter(outfit.style)}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: context.abzioSecondaryText,
+                                    ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _currencyFormatter.format(outfit.totalPrice),
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 40,
+                                    child: FilledButton(
+                                      onPressed: () => _shopOutfit(outfit),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: const Color(0xFFC9A74E),
+                                        foregroundColor: Colors.black,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                      ),
+                                      child: const Text('Shop Outfit'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

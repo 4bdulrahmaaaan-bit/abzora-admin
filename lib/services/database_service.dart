@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -9,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
+import '../models/outfit_recommendation_model.dart';
 import 'backend_commerce_service.dart';
 import 'firebase_database_service.dart';
 import 'kyc_ai_service.dart';
@@ -2594,6 +2596,19 @@ class DatabaseService {
             ),
           ),
         );
+        try {
+          await _backendCommerce.trackOutfitInteraction(
+            action: 'view',
+            productId: product.id,
+            itemIds: [product.id],
+            metadata: {
+              'source': 'product_view',
+              'category': product.category,
+            },
+          );
+        } catch (_) {
+          // Style tracking should never block the product page.
+        }
       }
       return;
     }
@@ -2675,6 +2690,23 @@ class DatabaseService {
 
   Future<void> recordProductCartIntent(Product product, {int quantity = 1}) async {
     if (quantity <= 0) {
+      return;
+    }
+    if (_backendCommerce.isConfigured) {
+      try {
+        await _backendCommerce.trackOutfitInteraction(
+          action: 'cart',
+          productId: product.id,
+          itemIds: List<String>.filled(quantity, product.id),
+          metadata: {
+            'source': 'cart_intent',
+            'quantity': quantity,
+            'category': product.category,
+          },
+        );
+      } catch (_) {
+        // Cart flow should stay responsive even if recommendation tracking fails.
+      }
       return;
     }
     final nowIso = _nowIso();
@@ -2852,6 +2884,29 @@ class DatabaseService {
   }
 
   Future<List<Product>> getCompleteTheLook(Product product) async {
+    if (_backendCommerce.isConfigured) {
+      try {
+        final outfits = await _backendCommerce.getCompleteLook(
+          product.id,
+          userId: FirebaseAuth.instance.currentUser?.uid,
+          authenticated: Firebase.apps.isNotEmpty && FirebaseAuth.instance.currentUser != null,
+        );
+        final seen = <String>{product.id};
+        final items = <Product>[];
+        for (final outfit in outfits) {
+          for (final item in outfit.items) {
+            if (seen.add(item.id)) {
+              items.add(item);
+            }
+            if (items.length >= 3) {
+              return items;
+            }
+          }
+        }
+      } catch (_) {
+        // Fall through to the existing catalog-based logic below.
+      }
+    }
     final products = _backendCommerce.isConfigured
         ? await _backendCommerce.getProducts()
         : (await _productService.fetchAll()).map(_decorateProduct).toList();
@@ -2859,6 +2914,249 @@ class DatabaseService {
         .where((candidate) => candidate.storeId == product.storeId && candidate.id != product.id)
         .take(3)
         .toList();
+  }
+
+  Future<List<OutfitRecommendation>> getOutfitRecommendations({
+    AppUser? user,
+    String? productId,
+    String? occasion,
+    String? budget,
+    String? style,
+    int limit = 6,
+  }) async {
+    if (_backendCommerce.isConfigured) {
+      try {
+        return await _backendCommerce.getOutfits(
+          userId: user?.id,
+          productId: productId,
+          occasion: occasion,
+          budget: budget,
+          style: style,
+          limit: limit,
+          authenticated: Firebase.apps.isNotEmpty && FirebaseAuth.instance.currentUser != null,
+        );
+      } catch (_) {
+        // Use local heuristic fallback below.
+      }
+    }
+
+    final catalog = _backendCommerce.isConfigured
+        ? await _backendCommerce.getProducts()
+        : (await _productService.fetchAll()).map(_decorateProduct).toList();
+    return _fallbackOutfitsFromCatalog(
+      catalog,
+      user: user,
+      productId: productId,
+      occasion: occasion,
+      budget: budget,
+      style: style,
+      limit: limit,
+    );
+  }
+
+  Future<void> trackOutfitInteraction({
+    required String action,
+    String? outfitId,
+    String? productId,
+    List<String> itemIds = const [],
+    Map<String, dynamic> filters = const {},
+    Map<String, dynamic> metadata = const {},
+  }) async {
+    if (!_backendCommerce.isConfigured) {
+      return;
+    }
+    try {
+      await _backendCommerce.trackOutfitInteraction(
+        action: action,
+        outfitId: outfitId,
+        productId: productId,
+        itemIds: itemIds,
+        filters: filters,
+        metadata: metadata,
+      );
+    } catch (_) {
+      // Recommendation feedback is best-effort only.
+    }
+  }
+
+  List<OutfitRecommendation> _fallbackOutfitsFromCatalog(
+    List<Product> catalog, {
+    AppUser? user,
+    String? productId,
+    String? occasion,
+    String? budget,
+    String? style,
+    int limit = 6,
+  }) {
+    final normalizedOccasion = (occasion ?? '').trim().toLowerCase();
+    final normalizedStyle = (style ?? '').trim().toLowerCase();
+    final budgetCap = switch ((budget ?? '').trim().toLowerCase()) {
+      'under ₹999' || 'under_999' => 999.0,
+      'under ₹1999' || 'under_1999' => 1999.0,
+      'under ₹2999' || 'under_2999' => 2999.0,
+      _ => double.infinity,
+    };
+
+    String roleFor(Product product) {
+      final text =
+          '${product.category} ${product.name} ${product.description} ${product.outfitType ?? ''}'
+              .toLowerCase();
+      if (text.contains('shoe') ||
+          text.contains('sneaker') ||
+          text.contains('loafer') ||
+          text.contains('sandal')) {
+        return 'footwear';
+      }
+      if (text.contains('watch') ||
+          text.contains('bag') ||
+          text.contains('belt') ||
+          text.contains('sunglass')) {
+        return 'accessory';
+      }
+      if (text.contains('jeans') ||
+          text.contains('pant') ||
+          text.contains('trouser') ||
+          text.contains('leggings') ||
+          text.contains('churidar')) {
+        return 'bottom';
+      }
+      if (text.contains('dress') ||
+          text.contains('gown') ||
+          text.contains('co-ord') ||
+          text.contains('coord') ||
+          text.contains('set')) {
+        return 'onepiece';
+      }
+      return 'top';
+    }
+
+    String occasionFor(Product product) {
+      final text = '${product.category} ${product.name} ${product.description}'.toLowerCase();
+      if (text.contains('wedding') || text.contains('festive') || text.contains('lehenga') || text.contains('sherwani')) {
+        return 'wedding';
+      }
+      if (text.contains('office') || text.contains('formal') || text.contains('blazer') || text.contains('tailored')) {
+        return 'office';
+      }
+      if (text.contains('party') || text.contains('night') || text.contains('glam')) {
+        return 'party';
+      }
+      return 'casual';
+    }
+
+    String styleFor(Product product) {
+      final text = '${product.category} ${product.name} ${product.description}'.toLowerCase();
+      if (text.contains('streetwear') || text.contains('oversized') || text.contains('cargo')) {
+        return 'streetwear';
+      }
+      if (text.contains('formal') || text.contains('office') || text.contains('tailored')) {
+        return 'formal';
+      }
+      if (text.contains('ethnic') || text.contains('kurta') || text.contains('lehenga') || text.contains('saree')) {
+        return 'ethnic';
+      }
+      return 'minimal';
+    }
+
+    final filtered = catalog.where((product) {
+      if (product.id == productId) {
+        return true;
+      }
+      if (normalizedOccasion.isNotEmpty && occasionFor(product) != normalizedOccasion) {
+        return false;
+      }
+      if (normalizedStyle.isNotEmpty && styleFor(product) != normalizedStyle) {
+        return false;
+      }
+      if (product.price > budgetCap) {
+        return false;
+      }
+      return product.stock > 0 && product.isActive;
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return const [];
+    }
+
+    final byRole = <String, List<Product>>{
+      'top': [],
+      'bottom': [],
+      'footwear': [],
+      'accessory': [],
+      'onepiece': [],
+    };
+    for (final product in filtered) {
+      byRole[roleFor(product)]!.add(product);
+    }
+
+    final bases = productId != null && productId.isNotEmpty
+        ? filtered.where((item) => item.id == productId).take(1).toList()
+        : [...byRole['top']!, ...byRole['onepiece']!];
+
+    final outfits = <OutfitRecommendation>[];
+    final seen = <String>{};
+    for (final base in bases) {
+      final role = roleFor(base);
+      final items = <Product>[base];
+      if (role != 'onepiece') {
+        final bottom = byRole['bottom']!.firstWhere(
+          (item) => item.id != base.id,
+          orElse: () => Product(
+            id: '',
+            storeId: '',
+            name: '',
+            description: '',
+            price: 0,
+            images: const [],
+            sizes: const [],
+            stock: 0,
+            category: '',
+            isActive: false,
+          ),
+        );
+        if (bottom.id.isNotEmpty) {
+          items.add(bottom);
+        }
+      }
+      final footwear = byRole['footwear']!.firstWhere(
+        (item) => items.every((selected) => selected.id != item.id),
+        orElse: () => Product(
+          id: '',
+          storeId: '',
+          name: '',
+          description: '',
+          price: 0,
+          images: const [],
+          sizes: const [],
+          stock: 0,
+          category: '',
+          isActive: false,
+        ),
+      );
+      if (footwear.id.isNotEmpty) {
+        items.add(footwear);
+      }
+      final key = items.map((item) => item.id).join('-');
+      if (items.length < 2 || !seen.add(key)) {
+        continue;
+      }
+      outfits.add(
+        OutfitRecommendation(
+          outfitId: key,
+          title: '${occasionFor(base)[0].toUpperCase()}${occasionFor(base).substring(1)} Style Pick',
+          items: items,
+          totalPrice: items.fold<double>(0, (sum, item) => sum + item.price),
+          matchScore: 72 + max(0, 8 - outfits.length),
+          occasion: occasionFor(base),
+          style: styleFor(base),
+          reasoning: 'Matched from category pairing and availability.',
+        ),
+      );
+      if (outfits.length >= limit) {
+        break;
+      }
+    }
+    return outfits;
   }
 
   Future<List<CustomBrand>> getCustomBrands() async {

@@ -1,6 +1,7 @@
 import '../models/banner_model.dart';
 import '../models/category_management_model.dart';
 import '../models/models.dart';
+import '../models/outfit_recommendation_model.dart';
 import 'backend_api_client.dart';
 
 class BackendCommerceService {
@@ -262,6 +263,77 @@ class BackendCommerceService {
         .whereType<Map>()
         .map((item) => _productFromBackend(Map<String, dynamic>.from(item)))
         .toList();
+  }
+
+  Future<List<OutfitRecommendation>> getOutfits({
+    String? userId,
+    String? productId,
+    String? occasion,
+    String? budget,
+    String? style,
+    int limit = 6,
+    bool authenticated = false,
+  }) async {
+    final payload = await _client.get(
+      '/api/outfits',
+      authenticated: authenticated,
+      queryParameters: {
+        if (userId != null && userId.trim().isNotEmpty) 'userId': userId.trim(),
+        if (productId != null && productId.trim().isNotEmpty) 'productId': productId.trim(),
+        if (occasion != null && occasion.trim().isNotEmpty) 'occasion': occasion.trim(),
+        if (budget != null && budget.trim().isNotEmpty) 'budget': budget.trim(),
+        if (style != null && style.trim().isNotEmpty) 'style': style.trim(),
+        'limit': '$limit',
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => OutfitRecommendation.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<List<OutfitRecommendation>> getCompleteLook(
+    String productId, {
+    String? userId,
+    int limit = 3,
+    bool authenticated = false,
+  }) async {
+    final payload = await _client.get(
+      '/api/outfits/complete-look/$productId',
+      authenticated: authenticated,
+      queryParameters: {
+        if (userId != null && userId.trim().isNotEmpty) 'userId': userId.trim(),
+        'limit': '$limit',
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => OutfitRecommendation.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<void> trackOutfitInteraction({
+    required String action,
+    String? outfitId,
+    String? productId,
+    List<String> itemIds = const [],
+    Map<String, dynamic> filters = const {},
+    Map<String, dynamic> metadata = const {},
+  }) async {
+    await _client.post(
+      '/api/outfits/track',
+      authenticated: true,
+      body: {
+        'action': action,
+        if (outfitId != null && outfitId.trim().isNotEmpty) 'outfitId': outfitId.trim(),
+        if (productId != null && productId.trim().isNotEmpty) 'productId': productId.trim(),
+        'itemIds': itemIds,
+        'filters': filters,
+        'metadata': metadata,
+      },
+    );
   }
 
   Future<List<ReviewModel>> getProductReviews(String productId) async {
