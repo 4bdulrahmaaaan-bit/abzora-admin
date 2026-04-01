@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../models/models.dart';
 import 'app_config.dart';
+import 'backend_commerce_service.dart';
 
 enum StylistIntent {
   outfitSuggestion,
@@ -49,6 +50,7 @@ class AiStylistService {
   static const String _systemPrompt = 'Fashion assistant. Short answers. Helpful.';
   static const int _maxReplyTokens = 140;
   static const int _historyMessageLimit = 4;
+  static final BackendCommerceService _backendCommerce = BackendCommerceService();
 
   String _cleanPrompt(String value) {
     return value
@@ -267,6 +269,24 @@ class AiStylistService {
       focusedProduct: focusedProduct,
     );
 
+    if (_backendCommerce.isConfigured) {
+      try {
+        final backendReply = await _respondWithBackend(
+          prompt: prompt,
+          bodyProfile: bodyProfile,
+          memory: memory,
+          recentHistory: recentHistory,
+          location: location,
+          focusedProduct: focusedProduct,
+        );
+        if (backendReply != null) {
+          return backendReply;
+        }
+      } catch (_) {
+        // Keep the local/openai path available if the backend request fails.
+      }
+    }
+
     if (AppConfig.hasOpenAiConfig) {
       try {
         final openAiReply = await _respondWithOpenAi(
@@ -305,6 +325,86 @@ class AiStylistService {
       intent: intent,
       recommendations: recommendations,
     );
+  }
+
+  Future<StylistReply?> _respondWithBackend({
+    required String prompt,
+    BodyProfile? bodyProfile,
+    UserMemory? memory,
+    List<ConversationMemoryMessage> recentHistory = const [],
+    String? location,
+    Product? focusedProduct,
+  }) async {
+    final payload = await _backendCommerce.getStylistChatResponse(
+      prompt: prompt,
+      focusedProductId: focusedProduct?.id,
+      location: location,
+      bodyProfile: bodyProfile,
+      memory: memory,
+      recentHistory: recentHistory,
+    );
+
+    final text = (payload['message'] ?? '').toString().trim();
+    if (text.isEmpty) {
+      return null;
+    }
+
+    final rawProducts = (payload['rawProducts'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    final productModels = (payload['products'] as List? ?? const [])
+        .whereType<Product>()
+        .toList();
+    final highlightedSize = (payload['highlightedSize'] ?? '').toString().trim().isEmpty
+        ? null
+        : (payload['highlightedSize'] ?? '').toString().trim();
+    final products = <StylistProductCard>[];
+    for (var index = 0; index < productModels.length; index += 1) {
+      final raw = index < rawProducts.length ? rawProducts[index] : const <String, dynamic>{};
+      products.add(
+        StylistProductCard(
+          product: productModels[index],
+          reason: _truncate(
+            (raw['reason'] ?? 'Recommended from your style profile').toString(),
+            maxChars: 90,
+          ),
+          recommendedSize: highlightedSize,
+        ),
+      );
+    }
+
+    final notes = (payload['notes'] as List? ?? const [])
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+    final quickReplies = (payload['quickReplies'] as List? ?? const [])
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+
+    return StylistReply(
+      text: text,
+      quickReplies: quickReplies,
+      lookNotes: notes,
+      highlightedSize: highlightedSize,
+      intent: _intentFromBackend((payload['intent'] ?? '').toString()),
+      products: products,
+    );
+  }
+
+  StylistIntent _intentFromBackend(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'size_help':
+        return StylistIntent.sizeHelp;
+      case 'products':
+        return StylistIntent.productSearch;
+      case 'outfit':
+      case 'color_advice':
+        return StylistIntent.outfitSuggestion;
+      default:
+        return StylistIntent.generalChat;
+    }
   }
 
   Future<StylistReply?> _respondWithOpenAi({

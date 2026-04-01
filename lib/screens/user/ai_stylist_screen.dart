@@ -9,6 +9,7 @@ import '../../theme.dart';
 import '../../widgets/tap_scale.dart';
 import 'ai_stylist_quick_checkout_screen.dart';
 import 'product_detail_screen.dart';
+import 'size_recommendation_screen.dart';
 
 class AiStylistScreen extends StatefulWidget {
   const AiStylistScreen({
@@ -145,6 +146,25 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
             'Will this work for a wedding?',
             'Suggest matching colors',
           ];
+  }
+
+  bool _isSizeShortcut(String prompt) {
+    final normalized = prompt.trim().toLowerCase();
+    return normalized == 'find my size' ||
+        normalized.contains('size') && normalized.contains('find');
+  }
+
+  Future<void> _handleQuickReply(String prompt) async {
+    if (_isSizeShortcut(prompt)) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SizeRecommendationScreen(product: widget.product),
+        ),
+      );
+      return;
+    }
+    await _sendPrompt(prompt);
   }
 
   Future<void> _sendPrompt(String prompt) async {
@@ -426,7 +446,7 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                         .map(
                           (reply) => ActionChip(
                             label: Text(reply),
-                            onPressed: () => _sendPrompt(reply),
+                            onPressed: () => _handleQuickReply(reply),
                           ),
                         )
                         .toList(),

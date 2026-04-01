@@ -122,6 +122,52 @@ class BackendCommerceService {
     return Map<String, dynamic>.from(payload as Map);
   }
 
+  Future<Map<String, dynamic>> getStylistChatResponse({
+    required String prompt,
+    String? focusedProductId,
+    String? location,
+    BodyProfile? bodyProfile,
+    UserMemory? memory,
+    List<ConversationMemoryMessage> recentHistory = const [],
+  }) async {
+    final payload = await _client.post(
+      '/ai/stylist-chat',
+      authenticated: true,
+      body: {
+        'prompt': prompt,
+        if (focusedProductId != null && focusedProductId.trim().isNotEmpty)
+          'focusedProductId': focusedProductId.trim(),
+        if (location != null && location.trim().isNotEmpty) 'location': location.trim(),
+        if (bodyProfile != null) ...{
+          'heightCm': bodyProfile.heightCm,
+          'weightKg': bodyProfile.weightKg,
+          'bodyType': bodyProfile.bodyType,
+          'size': bodyProfile.recommendedSize,
+        },
+        if (memory != null && memory.preferredStyle.trim().isNotEmpty)
+          'preferredStyle': memory.preferredStyle.trim(),
+        if (recentHistory.isNotEmpty)
+          'recentHistory': recentHistory
+              .take(6)
+              .map((entry) => entry.toMap())
+              .toList(),
+      },
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    final rawProducts = (map['products'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    final products = rawProducts
+        .map((item) => _productFromBackend(Map<String, dynamic>.from(item)))
+        .toList();
+    return {
+      ...map,
+      'rawProducts': rawProducts,
+      'products': products,
+    };
+  }
+
   Future<List<Store>> getStores() async {
     final payload = await _client.get('/stores');
     final items = payload is List ? payload : const [];
