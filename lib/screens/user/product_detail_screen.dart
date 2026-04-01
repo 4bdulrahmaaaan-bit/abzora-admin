@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -124,6 +125,28 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   Product get _product => _resolvedProduct ?? widget.product;
 
   _DetailPricing get _pricing => _DetailPricing.fromProduct(_product);
+
+  Color _heroAccentColor(Product product, List<String> images) {
+    final seed = '${product.category}|${images.isEmpty ? product.id : images.first}';
+    final hue = (seed.hashCode.abs() % 360).toDouble();
+    return HSVColor.fromAHSV(1, hue, 0.48, 0.82).toColor();
+  }
+
+  void _openProductSearch() {
+    final provider = context.read<ProductProvider>();
+    final allProducts = provider.searchResults.isNotEmpty
+        ? provider.searchResults
+        : provider.locationProducts;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SearchScreen(
+          allProducts: allProducts,
+          selectedLocation: provider.activeLocation,
+        ),
+      ),
+    );
+  }
 
   Future<void> _openReviewSheet([ReviewModel? existing]) async {
     final auth = context.read<AuthProvider>();
@@ -287,6 +310,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     WishlistProvider wishlist,
   ) {
     const expandedHeight = 380.0;
+    final accentColor = _heroAccentColor(product, images);
     return SliverAppBar(
       pinned: true,
       floating: false,
@@ -302,9 +326,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           final t = ((maxHeight - collapsedHeight) /
                   (expandedHeight - collapsedHeight))
               .clamp(0.0, 1.0);
+          final pullProgress = math.max(0.0, maxHeight - expandedHeight) /
+              expandedHeight;
           final scale = 0.9 + (0.1 * t);
           final topInset = MediaQuery.of(context).padding.top + 8;
           final topOffset = topInset + (t * 14);
+          final imageParallax = -36.0 * (1 - t);
+          final imageScale = 1.0 + (pullProgress * 0.18);
           final headerColor = Color.lerp(
             Colors.white.withValues(alpha: 0.0),
             Colors.white,
@@ -320,20 +348,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             fit: StackFit.expand,
             clipBehavior: Clip.none,
             children: [
-              GestureDetector(
-                key: _heroImageKey,
-                onTap: _openGallery,
-                onLongPress: _openGallery,
-                child: PageView.builder(
-                  controller: _imageController,
-                  itemCount: images.length,
-                  onPageChanged: (value) {
-                    setState(() => _imageIndex = value);
-                  },
-                  itemBuilder: (context, index) => AbzioNetworkImage(
-                    imageUrl: images[index],
-                    fallbackLabel: product.name,
-                    fit: BoxFit.cover,
+              RepaintBoundary(
+                child: Transform.translate(
+                  offset: Offset(0, imageParallax),
+                  child: Transform.scale(
+                    scale: imageScale,
+                    alignment: Alignment.topCenter,
+                    child: GestureDetector(
+                      key: _heroImageKey,
+                      onTap: _openGallery,
+                      onLongPress: _openGallery,
+                      child: PageView.builder(
+                        controller: _imageController,
+                        itemCount: images.length,
+                        onPageChanged: (value) {
+                          setState(() => _imageIndex = value);
+                        },
+                        itemBuilder: (context, index) => AbzioNetworkImage(
+                          imageUrl: images[index],
+                          fallbackLabel: product.name,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -345,7 +382,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withValues(alpha: 0.18 * t),
+                          accentColor.withValues(alpha: 0.16 + (0.18 * t)),
                           Colors.transparent,
                           Colors.black.withValues(alpha: 0.36),
                         ],
@@ -361,120 +398,166 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 child: Transform.scale(
                   scale: scale,
                   alignment: Alignment.topCenter,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: headerColor,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [headerShadow],
-                    ),
-                    child: Row(
-                      children: [
-                        _HeroIconButton(
-                          icon: Icons.arrow_back_ios_new_rounded,
-                          onTap: () => Navigator.pop(context),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(
+                        sigmaX: 14 * t,
+                        sigmaY: 14 * t,
+                      ),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () {
-                              final provider = context.read<ProductProvider>();
-                              final allProducts =
-                                  provider.searchResults.isNotEmpty
-                                      ? provider.searchResults
-                                      : provider.locationProducts;
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => SearchScreen(
-                                    allProducts: allProducts,
-                                    selectedLocation: provider.activeLocation,
+                        decoration: BoxDecoration(
+                          color: t > 0.18
+                              ? Colors.white.withValues(alpha: 0.56)
+                              : headerColor,
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.26 + (0.2 * t)),
+                          ),
+                          boxShadow: [headerShadow],
+                        ),
+                        child: Row(
+                          children: [
+                            _HeroIconButton(
+                              icon: Icons.arrow_back_ios_new_rounded,
+                              onTap: () => Navigator.pop(context),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: InkWell(
+                                onTap: _openProductSearch,
+                                borderRadius: BorderRadius.circular(24),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(
+                                      alpha: t > 0.18 ? 0.32 : 0.08,
+                                    ),
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.search_rounded,
+                                        size: 22,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.6),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: AnimatedSwitcher(
+                                          duration: const Duration(milliseconds: 180),
+                                          child: Text(
+                                            t < 0.2
+                                                ? product.name
+                                                : 'Search, trends, AI stylist',
+                                            key: ValueKey<bool>(t < 0.2),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.copyWith(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface
+                                                      .withValues(alpha: 0.68),
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (t > 0.3)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: accentColor.withValues(alpha: 0.14),
+                                            borderRadius: BorderRadius.circular(999),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.auto_awesome_rounded,
+                                                size: 12,
+                                                color: accentColor,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'AI',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .labelSmall
+                                                    ?.copyWith(
+                                                      color: accentColor,
+                                                      fontWeight: FontWeight.w700,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(24),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.search_rounded,
-                                    size: 22,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.6),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Search in ABZORA',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withValues(alpha: 0.6),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                  ),
-                                ],
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            AnimatedWishlistButton(
+                              isSelected: isWishlisted,
+                              isLoading: isWishlistPending,
+                              size: 40,
+                              iconSize: 20,
+                              backgroundColor: Colors.white.withValues(
+                                alpha: t > 0.18 ? 0.28 : 0.12,
+                              ),
+                              unselectedColor:
+                                  Theme.of(context).colorScheme.onSurface,
+                              onTap: () async {
+                                try {
+                                  await wishlist.toggleWishlist(product);
+                                } catch (error) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        error
+                                            .toString()
+                                            .replaceFirst('Bad state: ', ''),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            AnimatedBuilder(
+                              animation: _cartPulseScale,
+                              builder: (context, child) => Transform.scale(
+                                scale: _cartPulseScale.value,
+                                child: child,
+                              ),
+                              child: _HeroIconButton(
+                                key: _cartIconKey,
+                                icon: Icons.shopping_bag_outlined,
+                                onTap: () => Navigator.pushNamed(context, '/cart'),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        AnimatedWishlistButton(
-                          isSelected: isWishlisted,
-                          isLoading: isWishlistPending,
-                          size: 40,
-                          iconSize: 20,
-                          backgroundColor: Colors.grey.withValues(alpha: 0.12),
-                          unselectedColor:
-                              Theme.of(context).colorScheme.onSurface,
-                          onTap: () async {
-                            try {
-                              await wishlist.toggleWishlist(product);
-                            } catch (error) {
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    error
-                                        .toString()
-                                        .replaceFirst('Bad state: ', ''),
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        AnimatedBuilder(
-                          animation: _cartPulseScale,
-                          builder: (context, child) => Transform.scale(
-                            scale: _cartPulseScale.value,
-                            child: child,
-                          ),
-                          child: _HeroIconButton(
-                            key: _cartIconKey,
-                            icon: Icons.shopping_bag_outlined,
-                            onTap: () => Navigator.pushNamed(context, '/cart'),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -1271,90 +1354,136 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     Product product,
     _DetailPricing pricing,
   ) {
+    final accentColor = _heroAccentColor(
+      product,
+      product.images.isEmpty
+          ? const ['https://via.placeholder.com/600x750']
+          : product.images,
+    );
     return Positioned(
       left: 0,
       right: 0,
       bottom: 0,
-      child: SafeArea(
-        top: false,
-        child: Container(
-          padding: EdgeInsets.fromLTRB(16, 14, 16, width < 360 ? 14 : 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(28),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 24,
-                offset: const Offset(0, -8),
-              ),
-            ],
+      child: TweenAnimationBuilder<Offset>(
+        tween: Tween(begin: const Offset(0, 1), end: Offset.zero),
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+        builder: (context, offset, child) => Transform.translate(
+          offset: Offset(0, offset.dy * 32),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 280),
+            opacity: 1,
+            child: child,
           ),
-          child: width < 360
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _BottomPriceBlock(
-                      pricing: pricing,
-                      isLimitedStock: product.isLimitedStock,
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _handleAddToCartPress,
-                        child: const Text('Add to Cart'),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 48,
-                      child: OutlinedButton(
-                        onPressed: _buyNow,
-                        child: const Text('Buy Now'),
-                      ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Container(
+                padding: EdgeInsets.fromLTRB(16, 14, 16, width < 360 ? 14 : 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.84),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(30),
+                  ),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.34),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 24,
+                      offset: const Offset(0, -8),
                     ),
                   ],
-                )
-              : Row(
-                  children: [
-                    Expanded(
-                      child: _BottomPriceBlock(
-                        pricing: pricing,
-                        isLimitedStock: product.isLimitedStock,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: Row(
+                ),
+                child: width < 360
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 48,
-                              child: ElevatedButton(
-                                onPressed: _handleAddToCartPress,
-                                child: const Text('Add to Cart'),
+                          _BottomPriceBlock(
+                            pricing: pricing,
+                            isLimitedStock: product.isLimitedStock,
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 48,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: accentColor,
+                                foregroundColor: Colors.white,
                               ),
+                              onPressed: _handleAddToCartPress,
+                              child: const Text('Add to Cart'),
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: SizedBox(
-                              height: 48,
-                              child: OutlinedButton(
-                                onPressed: _buyNow,
-                                child: const Text('Buy Now'),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            height: 48,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: accentColor.withValues(alpha: 0.45)),
+                                foregroundColor: accentColor,
                               ),
+                              onPressed: _buyNow,
+                              child: const Text('Buy Now'),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: _BottomPriceBlock(
+                              pricing: pricing,
+                              isLimitedStock: product.isLimitedStock,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: accentColor,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      onPressed: _handleAddToCartPress,
+                                      child: const Text('Add to Cart'),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        side: BorderSide(
+                                          color: accentColor.withValues(alpha: 0.45),
+                                        ),
+                                        foregroundColor: accentColor,
+                                      ),
+                                      onPressed: _buyNow,
+                                      child: const Text('Buy Now'),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
