@@ -278,7 +278,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     );
   }
 
-  Widget _buildHeroSection(
+  Widget _buildHeroSliver(
     BuildContext context,
     Product product,
     List<String> images,
@@ -286,194 +286,202 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     bool isWishlistPending,
     WishlistProvider wishlist,
   ) {
-    final heroHeight = (MediaQuery.of(context).size.height * 0.48).clamp(
-      320.0,
-      440.0,
-    );
-    return SizedBox(
-      height: heroHeight,
-      child: Stack(
-        children: [
-          GestureDetector(
-            key: _heroImageKey,
-            onTap: _openGallery,
-            onLongPress: _openGallery,
-            child: PageView.builder(
-              controller: _imageController,
-              itemCount: images.length,
-              onPageChanged: (value) {
-                setState(() => _imageIndex = value);
-              },
-              itemBuilder: (context, index) => AbzioNetworkImage(
-                imageUrl: images[index],
-                fallbackLabel: product.name,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.12),
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.36),
-                    ],
+    const expandedHeight = 380.0;
+    return SliverAppBar(
+      pinned: true,
+      floating: false,
+      backgroundColor: Colors.white,
+      expandedHeight: expandedHeight,
+      toolbarHeight: 84,
+      elevation: 0,
+      automaticallyImplyLeading: false,
+      flexibleSpace: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxHeight = constraints.maxHeight;
+          final collapsedHeight = kToolbarHeight;
+          final t = ((maxHeight - collapsedHeight) /
+                  (expandedHeight - collapsedHeight))
+              .clamp(0.0, 1.0);
+          final scale = 0.9 + (0.1 * t);
+          final topInset = MediaQuery.of(context).padding.top + 8;
+          final topOffset = topInset + (t * 14);
+          final headerColor = Color.lerp(
+            Colors.white.withValues(alpha: 0.0),
+            Colors.white,
+            1 - t,
+          );
+          final headerShadow = BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12 * (1 - t)),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          );
+
+          return Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.none,
+            children: [
+              GestureDetector(
+                key: _heroImageKey,
+                onTap: _openGallery,
+                onLongPress: _openGallery,
+                child: PageView.builder(
+                  controller: _imageController,
+                  itemCount: images.length,
+                  onPageChanged: (value) {
+                    setState(() => _imageIndex = value);
+                  },
+                  itemBuilder: (context, index) => AbzioNetworkImage(
+                    imageUrl: images[index],
+                    fallbackLabel: product.name,
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
-            ),
-          ),
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  _HeroIconButton(
-                    icon: Icons.arrow_back_ios_new_rounded,
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        final provider = context.read<ProductProvider>();
-                        final allProducts = provider.searchResults.isNotEmpty
-                            ? provider.searchResults
-                            : provider.locationProducts;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => SearchScreen(
-                              allProducts: allProducts,
-                              selectedLocation: provider.activeLocation,
-                            ),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(24),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.search_rounded,
-                              size: 22,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.6),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Search in ABZORA',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.6),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.18 * t),
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.36),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  AnimatedWishlistButton(
-                    isSelected: isWishlisted,
-                    isLoading: isWishlistPending,
-                    size: 40,
-                    iconSize: 20,
-                    backgroundColor: Colors.grey.withValues(alpha: 0.12),
-                    unselectedColor: Theme.of(context).colorScheme.onSurface,
-                    onTap: () async {
-                      try {
-                        await wishlist.toggleWishlist(product);
-                      } catch (error) {
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              error.toString().replaceFirst('Bad state: ', ''),
+                ),
+              ),
+              Positioned(
+                top: topOffset,
+                left: 12,
+                right: 12,
+                child: Transform.scale(
+                  scale: scale,
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: headerColor,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [headerShadow],
+                    ),
+                    child: Row(
+                      children: [
+                        _HeroIconButton(
+                          icon: Icons.arrow_back_ios_new_rounded,
+                          onTap: () => Navigator.pop(context),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              final provider = context.read<ProductProvider>();
+                              final allProducts =
+                                  provider.searchResults.isNotEmpty
+                                      ? provider.searchResults
+                                      : provider.locationProducts;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SearchScreen(
+                                    allProducts: allProducts,
+                                    selectedLocation: provider.activeLocation,
+                                  ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(24),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.search_rounded,
+                                    size: 22,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Search in ABZORA',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.6),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        );
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  AnimatedBuilder(
-                    animation: _cartPulseScale,
-                    builder: (context, child) => Transform.scale(
-                      scale: _cartPulseScale.value,
-                      child: child,
-                    ),
-                    child: _HeroIconButton(
-                      key: _cartIconKey,
-                      icon: Icons.shopping_bag_outlined,
-                      onTap: () => Navigator.pushNamed(context, '/cart'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (images.length > 1)
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 18,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  images.length,
-                  (dotIndex) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    width: _imageIndex == dotIndex ? 18 : 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: _imageIndex == dotIndex
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.48),
-                      borderRadius: BorderRadius.circular(99),
+                        ),
+                        const SizedBox(width: 8),
+                        AnimatedWishlistButton(
+                          isSelected: isWishlisted,
+                          isLoading: isWishlistPending,
+                          size: 40,
+                          iconSize: 20,
+                          backgroundColor: Colors.grey.withValues(alpha: 0.12),
+                          unselectedColor:
+                              Theme.of(context).colorScheme.onSurface,
+                          onTap: () async {
+                            try {
+                              await wishlist.toggleWishlist(product);
+                            } catch (error) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    error
+                                        .toString()
+                                        .replaceFirst('Bad state: ', ''),
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        AnimatedBuilder(
+                          animation: _cartPulseScale,
+                          builder: (context, child) => Transform.scale(
+                            scale: _cartPulseScale.value,
+                            child: child,
+                          ),
+                          child: _HeroIconButton(
+                            key: _cartIconKey,
+                            icon: Icons.shopping_bag_outlined,
+                            onTap: () => Navigator.pushNamed(context, '/cart'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
-            ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -1444,20 +1452,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           backgroundColor: const Color(0xFFF7F7F5),
           body: Stack(
             children: [
-              SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 148),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeroSection(
-                      context,
-                      product,
-                      images,
-                      isWishlisted,
-                      isWishlistPending,
-                      wishlist,
-                    ),
-                    Transform.translate(
+              CustomScrollView(
+                slivers: [
+                  _buildHeroSliver(
+                    context,
+                    product,
+                    images,
+                    isWishlisted,
+                    isWishlistPending,
+                    wishlist,
+                  ),
+                  SliverToBoxAdapter(
+                    child: Transform.translate(
                       offset: const Offset(0, -28),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1482,12 +1488,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                             if (_completeTheLook.isNotEmpty)
                               const SizedBox(height: 20),
                             _buildReviewsSection(context, auth, myReview),
+                            const SizedBox(height: 120),
                           ],
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               _buildBottomActionBar(context, width, product, pricing),
               _buildCartFlightOverlay(product, images),
