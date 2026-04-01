@@ -49,6 +49,7 @@ class AbzioEmptyCard extends StatelessWidget {
   final String subtitle;
   final String? ctaLabel;
   final VoidCallback? onTap;
+  final IconData illustrationIcon;
 
   const AbzioEmptyCard({
     super.key,
@@ -56,19 +57,53 @@ class AbzioEmptyCard extends StatelessWidget {
     required this.subtitle,
     this.ctaLabel,
     this.onTap,
+    this.illustrationIcon = Icons.auto_awesome_rounded,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(color: context.abzioBorder),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AbzioTheme.accentColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Icon(
+                      Icons.star_rounded,
+                      size: 12,
+                      color: AbzioTheme.accentColor.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  Icon(
+                    illustrationIcon,
+                    color: AbzioTheme.accentColor,
+                    size: 24,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
             Text(
               title,
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16),
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16, height: 1.15),
             ),
             const SizedBox(height: 8),
             Text(
@@ -76,10 +111,21 @@ class AbzioEmptyCard extends StatelessWidget {
               style: GoogleFonts.inter(color: context.abzioSecondaryText, height: 1.45),
             ),
             if (ctaLabel != null && onTap != null) ...[
-              const SizedBox(height: 14),
-              ElevatedButton(
+              const SizedBox(height: 16),
+              FilledButton(
                 onPressed: onTap,
-                child: Text(ctaLabel!),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AbzioTheme.accentColor,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: Text(
+                  ctaLabel!,
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ],

@@ -12,6 +12,7 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.onWishlistTap,
     required this.onCartTap,
     required this.onLocationTap,
+    this.isScrolled = false,
   });
 
   final String location;
@@ -19,9 +20,10 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onWishlistTap;
   final VoidCallback onCartTap;
   final VoidCallback onLocationTap;
+  final bool isScrolled;
 
   @override
-  Size get preferredSize => const Size.fromHeight(120);
+  Size get preferredSize => Size.fromHeight(isScrolled ? 102 : 112);
 
   @override
   Widget build(BuildContext context) {
@@ -30,19 +32,22 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
     return Material(
       color: Colors.white,
       elevation: 0,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.fromLTRB(16, isScrolled ? 6 : 8, 16, isScrolled ? 8 : 12),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+              color: Colors.black.withValues(alpha: isScrolled ? 0.07 : 0.04),
+              blurRadius: isScrolled ? 12 : 18,
+              offset: Offset(0, isScrolled ? 3 : 6),
             ),
           ],
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -50,13 +55,15 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                 Expanded(
                   child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        padding: EdgeInsets.all(isScrolled ? 3 : 4),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF7F3E8),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const BrandLogo(size: 34, radius: 8),
+                        child: BrandLogo(size: isScrolled ? 30 : 34, radius: 8),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -70,21 +77,33 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                fontSize: 19,
-                                letterSpacing: 0.8,
+                                fontSize: isScrolled ? 18 : 19,
+                                letterSpacing: 0.7,
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              AbzoraText.brandTagline,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.58),
-                                fontWeight: FontWeight.w600,
+                            AnimatedSize(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeOutCubic,
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 180),
+                                opacity: isScrolled ? 0 : 1,
+                                child: isScrolled
+                                    ? const SizedBox.shrink()
+                                    : Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          AbzoraText.brandTagline,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.58),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
                               ),
                             ),
                           ],
@@ -115,10 +134,16 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            _LocationBar(
-              location: location,
-              onTap: onLocationTap,
+            const SizedBox(height: 10),
+            AnimatedSlide(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              offset: Offset(0, isScrolled ? -0.04 : 0),
+              child: _LocationBar(
+                location: location,
+                onTap: onLocationTap,
+                collapsed: isScrolled,
+              ),
             ),
           ],
         ),
@@ -169,10 +194,12 @@ class _LocationBar extends StatelessWidget {
   const _LocationBar({
     required this.location,
     required this.onTap,
+    this.collapsed = false,
   });
 
   final String location;
   final VoidCallback onTap;
+  final bool collapsed;
 
   @override
   Widget build(BuildContext context) {
@@ -184,16 +211,21 @@ class _LocationBar extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            padding: EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: collapsed ? 10 : 12,
+            ),
             decoration: BoxDecoration(
-              color: const Color(0xFFF3F3F3),
+              color: const Color(0xFFF5F5F3),
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
+                  color: Colors.black.withValues(alpha: collapsed ? 0.015 : 0.02),
+                  blurRadius: collapsed ? 6 : 10,
+                  offset: Offset(0, collapsed ? 2 : 3),
                 ),
               ],
             ),

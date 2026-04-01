@@ -142,11 +142,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         body: IndexedStack(index: _currentIndex, children: _screens()),
         floatingActionButton: keyboardOpen
             ? null
-            : _AiStylistFloatingButton(
-                animation: _pulseController,
-                showTooltip: _showAiTooltip,
-                onTooltipDismissed: () => setState(() => _showAiTooltip = false),
-                onTap: _openAiStylist,
+            : Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).padding.bottom + 10,
+                ),
+                child: _AiStylistFloatingButton(
+                  animation: _pulseController,
+                  showTooltip: _showAiTooltip,
+                  onTooltipDismissed: () => setState(() => _showAiTooltip = false),
+                  onTap: _openAiStylist,
+                ),
               ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         bottomNavigationBar: NavigationBar(
@@ -196,6 +201,7 @@ class HomeContent extends StatefulWidget {
 class _HomeContentState extends State<HomeContent> {
   final _scrollController = ScrollController();
   bool _profileModalShown = false;
+  bool _isHeaderScrolled = false;
 
   @override
   void initState() {
@@ -212,6 +218,10 @@ class _HomeContentState extends State<HomeContent> {
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) {
         return;
+      }
+      final shouldCompressHeader = _scrollController.offset > 18;
+      if (shouldCompressHeader != _isHeaderScrolled && mounted) {
+        setState(() => _isHeaderScrolled = shouldCompressHeader);
       }
       final max = _scrollController.position.maxScrollExtent;
       if (_scrollController.position.pixels > max - 380) {
@@ -241,6 +251,11 @@ class _HomeContentState extends State<HomeContent> {
         final trendingProducts = products.take(4).toList();
         final justForYouProducts = products.skip(4).take(4).toList();
         final recentlyViewedProducts = products.reversed.take(4).toList();
+        final storesSection = _buildStoresSection(
+          context,
+          provider: provider,
+          stores: stores,
+        );
 
         return SafeArea(
           top: true,
@@ -248,6 +263,7 @@ class _HomeContentState extends State<HomeContent> {
           child: Scaffold(
             appBar: HomeHeader(
               location: headline,
+              isScrolled: _isHeaderScrolled,
               onSearchTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -283,7 +299,7 @@ class _HomeContentState extends State<HomeContent> {
                             sliver: SliverList(
                               delegate: SliverChildListDelegate(
                                 [
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 4),
                                   HomeBanner(
                                     fallbackBanners: banners,
                                     onBannerTap: (banner) => _handleBannerTap(
@@ -293,7 +309,7 @@ class _HomeContentState extends State<HomeContent> {
                                       selectedLocation: provider.activeLocation,
                                     ),
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 12),
                                   _tailoringHighlight(
                                     onStart: () => Navigator.push(
                                       context,
@@ -302,25 +318,9 @@ class _HomeContentState extends State<HomeContent> {
                                       ),
                                     ),
                                   ),
-                                  if (widget.showAiDiscoveryCard) ...[
-                                    const SizedBox(height: 14),
-                                    _aiStylistHighlight(
-                                      onTap: widget.onOpenAiStylist,
-                                    ),
-                                  ] else if (widget.showCompactAiCard) ...[
-                                    const SizedBox(height: 14),
-                                    _compactAiStylistCard(
-                                      onTap: widget.onOpenAiStylist,
-                                    ),
-                                  ],
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 16),
                                   const CategorySection(),
-                                  const SizedBox(height: 20),
-                                  _AiOutfitSection(
-                                    user: user,
-                                    onOpenAiStylist: widget.onOpenAiStylist,
-                                  ),
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 16),
                                   _promoBanner(
                                     copy: AbzoraCopySets.promoBanners[0],
                                     onTap: () => Navigator.push(
@@ -330,51 +330,7 @@ class _HomeContentState extends State<HomeContent> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(height: 20),
-                                  _sectionHeader(
-                                    title: AbzoraText.storesNearYou,
-                                    subtitle: AbzoraText.locationSubtext,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  if (provider.isLocationLoading)
-                                    const _StoreSkeletonList()
-                                  else if (stores.isEmpty)
-                                    AbzioEmptyCard(
-                                      title: provider.usingNearestStoreFallback
-                                          ? AbzoraText.storesFallbackTitle
-                                          : AbzoraText.storesEmptyTitle,
-                                      subtitle: provider.usingNearestStoreFallback
-                                          ? AbzoraText.storesFallbackSubtitle
-                                          : '${AbzoraText.storesEmptySubtitle} No stores within ${provider.radiusKm.toInt()} km.',
-                                      ctaLabel: provider.radiusKm < 25
-                                          ? AbzoraText.expandTo25Km
-                                          : AbzoraText.changeLocation,
-                                      onTap: () => provider.radiusKm < 25
-                                          ? provider.setRadiusKm(25)
-                                          : showLocationBottomSheet(context),
-                                    )
-                                  else
-                                    SizedBox(
-                                      height: 192,
-                                      child: ListView.separated(
-                                        scrollDirection: Axis.horizontal,
-                                        itemCount: stores.length,
-                                        separatorBuilder: (context, index) =>
-                                            const SizedBox(width: 12),
-                                        itemBuilder: (context, index) => _storeCard(
-                                          nearby: stores[index],
-                                          onTap: () => Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => StoreDetailScreen(
-                                                store: stores[index].store,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 16),
                                 ],
                               ),
                             ),
@@ -396,7 +352,7 @@ class _HomeContentState extends State<HomeContent> {
                             )
                           else
                             SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 116),
                               sliver: SliverList(
                                 delegate: SliverChildListDelegate(
                                   [
@@ -406,7 +362,7 @@ class _HomeContentState extends State<HomeContent> {
                                       subtitle: AbzoraText.trendingNearYouSubtitle,
                                       products: trendingProducts,
                                     ),
-                                    const SizedBox(height: 20),
+                                    const SizedBox(height: 16),
                                     _promoBanner(
                                       copy: AbzoraCopySets.promoBanners[1],
                                       onTap: () => Navigator.push(
@@ -416,7 +372,7 @@ class _HomeContentState extends State<HomeContent> {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(height: 20),
+                                    const SizedBox(height: 16),
                                     _productSection(
                                       context,
                                       title: AbzoraText.justForYouTitle,
@@ -425,12 +381,12 @@ class _HomeContentState extends State<HomeContent> {
                                           ? trendingProducts
                                           : justForYouProducts,
                                     ),
-                                    const SizedBox(height: 20),
+                                    const SizedBox(height: 16),
                                     _promoBanner(
                                       copy: AbzoraCopySets.promoBanners[2],
                                       onTap: () => showLocationBottomSheet(context),
                                     ),
-                                    const SizedBox(height: 20),
+                                    const SizedBox(height: 16),
                                     _productSection(
                                       context,
                                       title: AbzoraText.recentlyViewedTitle,
@@ -439,6 +395,24 @@ class _HomeContentState extends State<HomeContent> {
                                           ? trendingProducts
                                           : recentlyViewedProducts,
                                     ),
+                                    if (widget.showAiDiscoveryCard) ...[
+                                      const SizedBox(height: 16),
+                                      _aiStylistHighlight(
+                                        onTap: widget.onOpenAiStylist,
+                                      ),
+                                    ] else if (widget.showCompactAiCard) ...[
+                                      const SizedBox(height: 16),
+                                      _compactAiStylistCard(
+                                        onTap: widget.onOpenAiStylist,
+                                      ),
+                                    ],
+                                    const SizedBox(height: 16),
+                                    _AiOutfitSection(
+                                      user: user,
+                                      onOpenAiStylist: widget.onOpenAiStylist,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    storesSection,
                                   ],
                                 ),
                               ),
@@ -597,6 +571,60 @@ class _HomeContentState extends State<HomeContent> {
           ),
         );
     }
+  }
+
+  Widget _buildStoresSection(
+    BuildContext context, {
+    required ProductProvider provider,
+    required List<NearbyStore> stores,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          title: AbzoraText.storesNearYou,
+          subtitle: AbzoraText.locationSubtext,
+        ),
+        const SizedBox(height: 12),
+        if (provider.isLocationLoading)
+          const _StoreSkeletonList()
+        else if (stores.isEmpty)
+          AbzioEmptyCard(
+            title: provider.usingNearestStoreFallback
+                ? AbzoraText.storesFallbackTitle
+                : AbzoraText.storesEmptyTitle,
+            subtitle: provider.usingNearestStoreFallback
+                ? AbzoraText.storesFallbackSubtitle
+                : '${AbzoraText.storesEmptySubtitle} No stores within ${provider.radiusKm.toInt()} km.',
+            ctaLabel: provider.radiusKm < 25
+                ? AbzoraText.expandTo25Km
+                : AbzoraText.changeLocation,
+            onTap: () => provider.radiusKm < 25
+                ? provider.setRadiusKm(25)
+                : showLocationBottomSheet(context),
+          )
+        else
+          SizedBox(
+            height: 192,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: stores.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 12),
+              itemBuilder: (context, index) => _storeCard(
+                nearby: stores[index],
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StoreDetailScreen(
+                      store: stores[index].store,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }
 
@@ -1207,14 +1235,14 @@ class _AiStylistFloatingButton extends StatelessWidget {
           animation: animation,
           builder: (context, child) {
             final glow = 0.16 + (animation.value * 0.12);
-            final scale = 1 + (animation.value * 0.04);
+            final scale = 1 + (animation.value * 0.032);
             return Transform.scale(
               scale: scale,
               child: TapScale(
                 onTap: onTap,
                 child: Container(
-                  width: 62,
-                  height: 62,
+                  width: 58,
+                  height: 58,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: const LinearGradient(
@@ -1237,7 +1265,7 @@ class _AiStylistFloatingButton extends StatelessWidget {
                   child: const Icon(
                     Icons.auto_awesome_rounded,
                     color: Colors.black,
-                    size: 28,
+                    size: 26,
                   ),
                 ),
               ),
@@ -1855,9 +1883,9 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
                 fontWeight: FontWeight.w700,
               ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         SizedBox(
-          height: 36,
+          height: 34,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: options.length,
@@ -1883,6 +1911,8 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
                 side: BorderSide.none,
                 showCheckmark: false,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
               );
             },
           ),
@@ -1949,7 +1979,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         _filterRow(
           label: 'Occasion',
           options: _occasionFilters,
@@ -1959,7 +1989,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
             _refresh();
           },
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _filterRow(
           label: 'Budget',
           options: _budgetFilters,
@@ -1969,7 +1999,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
             _refresh();
           },
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _filterRow(
           label: 'Style',
           options: _styleFilters,
@@ -1979,7 +2009,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
             _refresh();
           },
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         FutureBuilder<List<OutfitRecommendation>>(
           future: _outfitsFuture,
           builder: (context, snapshot) {
@@ -2252,7 +2282,7 @@ Widget _productSection(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _sectionHeader(title: title, subtitle: subtitle),
-      const SizedBox(height: 12),
+      const SizedBox(height: 10),
       ProductGrid(
         products: products,
         shrinkWrap: true,

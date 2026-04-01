@@ -437,28 +437,28 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     WishlistProvider wishlist,
   ) {
     final mediaQuery = MediaQuery.of(context);
-    final expandedHeight = mediaQuery.size.height.clamp(640.0, 920.0) * 0.46;
+    final expandedHeight = mediaQuery.size.height.clamp(640.0, 920.0) * 0.5;
     final accentColor = _effectiveAccentColor(product, images);
     return SliverAppBar(
       pinned: true,
       floating: false,
       backgroundColor: Colors.white,
       expandedHeight: expandedHeight,
-      toolbarHeight: 84,
+      toolbarHeight: 76,
       elevation: 0,
       automaticallyImplyLeading: false,
       flexibleSpace: LayoutBuilder(
         builder: (context, constraints) {
           final maxHeight = constraints.maxHeight;
-          final collapsedHeight = mediaQuery.padding.top + 84;
+          final collapsedHeight = mediaQuery.padding.top + 72;
           final t = ((maxHeight - collapsedHeight) /
                   (expandedHeight - collapsedHeight))
               .clamp(0.0, 1.0);
           final pullProgress = math.max(0.0, maxHeight - expandedHeight) /
               expandedHeight;
-          final scale = 0.9 + (0.1 * t);
-          final topInset = MediaQuery.of(context).padding.top + 8;
-          final topOffset = topInset + (t * 10);
+          final scale = 0.92 + (0.08 * t);
+          final topInset = mediaQuery.padding.top + 6;
+          final topOffset = topInset + (t * 6);
           final imageParallax = -36.0 * (1 - t);
           final imageScale = 1.0 + (pullProgress * 0.18);
           final headerColor = Color.lerp(
@@ -467,9 +467,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             1 - t,
           );
           final headerShadow = BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12 * (1 - t)),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.1 * (1 - t)),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           );
 
           return Stack(
@@ -531,20 +531,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   alignment: Alignment.topCenter,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(30),
-                    child: BackdropFilter(
+                  child: BackdropFilter(
                       filter: ImageFilter.blur(
-                        sigmaX: 14 * t,
-                        sigmaY: 14 * t,
+                        sigmaX: 10 * t,
+                        sigmaY: 10 * t,
                       ),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
-                          vertical: 8,
+                          vertical: 7,
                         ),
                         decoration: BoxDecoration(
                           color: t > 0.18
-                              ? Colors.white.withValues(alpha: 0.56)
+                              ? Colors.white.withValues(alpha: 0.48)
                               : headerColor,
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
@@ -818,6 +818,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   ),
                 ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            pricing.discountPercent > 0
+                ? 'Best price today with premium finish and fast delivery'
+                : 'Premium finish with fast delivery and easy returns',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: context.abzioSecondaryText,
+              fontWeight: FontWeight.w600,
+              height: 1.35,
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -1267,31 +1280,44 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             ),
           ),
           const SizedBox(height: 12),
-          InkWell(
-            borderRadius: BorderRadius.circular(18),
+          TapScale(
             onTap: () => _openLiveTryOn(product, accentColor),
-            child: Container(
+            borderRadius: BorderRadius.circular(20),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: accentColor.withValues(alpha: 0.24)),
-                color: Color.alphaBlend(
-                  accentColor.withValues(alpha: 0.08),
-                  Colors.white,
+                gradient: LinearGradient(
+                  colors: [
+                    accentColor.withValues(alpha: 0.14),
+                    Colors.white,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: accentColor.withValues(alpha: 0.12),
+                    blurRadius: 18,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 34,
-                    height: 34,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(12),
+                      color: accentColor.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(
                       Icons.view_in_ar_rounded,
-                      size: 18,
+                      size: 20,
                       color: AbzioTheme.accentColor,
                     ),
                   ),
@@ -1301,13 +1327,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.72),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            'Immersive preview',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: accentColor,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         Text(
                           'Try Live (AR)',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleMedium?.copyWith(
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: accentColor,
                             fontWeight: FontWeight.w800,
                           ),
@@ -1317,9 +1361,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           'See the fit on your body with live camera tracking',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: context.abzioSecondaryText,
                             height: 1.3,
                           ),
@@ -1328,7 +1370,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.arrow_forward_rounded, size: 18),
+                  ),
                 ],
               ),
             ),
@@ -1609,9 +1659,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final cart = context.watch<CartProvider>();
     final hasSelectedSize = _selectedSize != null && _selectedSize!.trim().isNotEmpty;
     final isInCart = cart.items.any((item) => item.product.id == product.id);
-    const primaryPink = Color(0xFFE91E63);
+    const primaryGold = Color(0xFFC8A95D);
     final canAddToBag = isInCart || hasSelectedSize;
     final canBuyNow = hasSelectedSize;
+    final needsSizeSelection = !hasSelectedSize && !isInCart;
+    final addToBagLabel = isInCart
+        ? 'Go to Cart'
+        : needsSizeSelection
+            ? 'Select Size'
+            : 'Add to Bag';
 
     void showSelectSizeHint() {
       HapticFeedback.selectionClick();
@@ -1636,11 +1692,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         top: false,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: Colors.white,
-            border: Border(
+            border: const Border(
               top: BorderSide(color: Color(0xFFEAEAEA)),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 14,
+                offset: const Offset(0, -4),
+              ),
+            ],
           ),
           child: Row(
             children: [
@@ -1657,7 +1720,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           }
                         : showSelectSizeHint,
                     outlined: true,
-                    accentColor: primaryPink,
+                    accentColor: primaryGold,
                     enabled: canBuyNow,
                   ),
                 ),
@@ -1667,7 +1730,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 child: SizedBox(
                   height: 50,
                   child: _BottomActionButton(
-                    label: isInCart ? 'Go to Cart' : 'Add to Bag',
+                    label: addToBagLabel,
                     icon: Icons.shopping_bag_outlined,
                     onTap: isInCart
                         ? () {
@@ -1681,7 +1744,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                 }
                               : showSelectSizeHint),
                     outlined: false,
-                    accentColor: primaryPink,
+                    accentColor: primaryGold,
                     enabled: isInCart || canAddToBag,
                   ),
                 ),
@@ -3797,25 +3860,25 @@ class _BottomActionButton extends StatelessWidget {
         : (enabled ? Colors.white : Colors.white70);
     final background = outlined
         ? Colors.transparent
-        : (enabled ? accentColor : const Color(0xFFCBCBC7));
+        : (enabled ? accentColor : const Color(0xFFD8D3C4));
     final borderColor = outlined
-        ? (enabled ? accentColor.withValues(alpha: 0.42) : context.abzioBorder)
+        ? (enabled ? accentColor.withValues(alpha: 0.8) : context.abzioBorder)
         : Colors.transparent;
 
     return TapScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(12),
       child: Material(
         color: background,
-        borderRadius: BorderRadius.circular(14),
-        elevation: outlined || !enabled ? 0 : 4,
-        shadowColor: accentColor.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(12),
+        elevation: outlined || !enabled ? 0 : 1,
+        shadowColor: accentColor.withValues(alpha: 0.16),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           child: Ink(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: borderColor),
             ),
             child: Row(
