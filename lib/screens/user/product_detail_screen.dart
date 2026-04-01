@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'dart:math' as math;
@@ -34,6 +35,8 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen>
     with TickerProviderStateMixin {
+  static final Map<String, Color> _accentColorCache = <String, Color>{};
+
   final _db = DatabaseService();
   final _picker = ImagePicker();
   final NumberFormat _currencyFormatter = NumberFormat.currency(
@@ -58,6 +61,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   Offset? _cartFlightEnd;
   Size _cartFlightSize = const Size(88, 112);
   bool _showCartFlight = false;
+  Color? _resolvedAccentColor;
 
   @override
   void initState() {
@@ -85,6 +89,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         weight: 50,
       ),
     ]).animate(_cartPulseController);
+    if (widget.product.images.isNotEmpty) {
+      Future.microtask(() => _resolveAccentColor(widget.product.images));
+    }
     Future.microtask(_loadData);
   }
 
@@ -130,6 +137,114 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final seed = '${product.category}|${images.isEmpty ? product.id : images.first}';
     final hue = (seed.hashCode.abs() % 360).toDouble();
     return HSVColor.fromAHSV(1, hue, 0.48, 0.82).toColor();
+  }
+
+  Color _effectiveAccentColor(Product product, List<String> images) {
+    return _resolvedAccentColor ?? _heroAccentColor(product, images);
+  }
+
+  String _heroTagFor(Product product, int index) =>
+      'product-hero-${product.id}-$index';
+
+  Future<void> _resolveAccentColor(List<String> images) async {
+    final imageUrl = images.isEmpty ? null : images.first;
+    if (imageUrl == null) {
+      return;
+    }
+    if (_accentColorCache.containsKey(imageUrl)) {
+      if (mounted) {
+        setState(() => _resolvedAccentColor = _accentColorCache[imageUrl]);
+      }
+      return;
+    }
+
+    try {
+      final provider = CachedNetworkImageProvider(imageUrl);
+      final stream = provider.resolve(const ImageConfiguration());
+      final completer = Completer<ImageInfo>();
+      late final ImageStreamListener listener;
+      listener = ImageStreamListener(
+        (info, synchronousCall) {
+          stream.removeListener(listener);
+          if (!completer.isCompleted) {
+            completer.complete(info);
+          }
+        },
+        onError: (error, stackTrace) {
+          stream.removeListener(listener);
+          if (!completer.isCompleted) {
+            completer.completeError(error, stackTrace);
+          }
+        },
+      );
+      stream.addListener(listener);
+
+      final imageInfo = await completer.future.timeout(
+        const Duration(seconds: 2),
+      );
+      final byteData = await imageInfo.image.toByteData(
+        format: ImageByteFormat.rawRgba,
+      );
+      if (byteData == null) {
+        return;
+      }
+
+      final pixels = byteData.buffer.asUint8List();
+      final width = imageInfo.image.width;
+      final height = imageInfo.image.height;
+      final stepX = math.max(1, width ~/ 24).toInt();
+      final stepY = math.max(1, height ~/ 24).toInt();
+      double red = 0;
+      double green = 0;
+      double blue = 0;
+      int samples = 0;
+
+      for (var y = 0; y < height; y += stepY) {
+        for (var x = 0; x < width; x += stepX) {
+          final index = (y * width + x) * 4;
+          if (index + 3 >= pixels.length) {
+            continue;
+          }
+          final alpha = pixels[index + 3];
+          if (alpha < 24) {
+            continue;
+          }
+          final pixelRed = pixels[index];
+          final pixelGreen = pixels[index + 1];
+          final pixelBlue = pixels[index + 2];
+          final brightness =
+              (pixelRed + pixelGreen + pixelBlue) / (3 * 255.0);
+          if (brightness < 0.1 || brightness > 0.96) {
+            continue;
+          }
+          red += pixelRed;
+          green += pixelGreen;
+          blue += pixelBlue;
+          samples++;
+        }
+      }
+
+      final fallback = _heroAccentColor(widget.product, images);
+      final averaged = samples == 0
+          ? fallback
+          : Color.fromARGB(
+              255,
+              (red / samples).round().clamp(0, 255),
+              (green / samples).round().clamp(0, 255),
+              (blue / samples).round().clamp(0, 255),
+            );
+      final hsl = HSLColor.fromColor(averaged);
+      final refined = hsl
+          .withSaturation(hsl.saturation.clamp(0.35, 0.78))
+          .withLightness(hsl.lightness.clamp(0.42, 0.62))
+          .toColor();
+      _accentColorCache[imageUrl] = refined;
+      if (mounted) {
+        setState(() => _resolvedAccentColor = refined);
+      }
+    } catch (_) {
+      // Fallback remains in use if extraction fails.
+    }
   }
 
   void _openProductSearch() {
@@ -310,7 +425,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     WishlistProvider wishlist,
   ) {
     const expandedHeight = 380.0;
-    final accentColor = _heroAccentColor(product, images);
+    final accentColor = _effectiveAccentColor(product, images);
     return SliverAppBar(
       pinned: true,
       floating: false,
@@ -364,10 +479,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         onPageChanged: (value) {
                           setState(() => _imageIndex = value);
                         },
-                        itemBuilder: (context, index) => AbzioNetworkImage(
-                          imageUrl: images[index],
-                          fallbackLabel: product.name,
-                          fit: BoxFit.cover,
+                        itemBuilder: (context, index) => Hero(
+                          tag: _heroTagFor(product, index),
+                          child: AbzioNetworkImage(
+                            imageUrl: images[index],
+                            fallbackLabel: product.name,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     ),
@@ -421,138 +539,184 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           ),
                           boxShadow: [headerShadow],
                         ),
-                        child: Row(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            _HeroIconButton(
-                              icon: Icons.arrow_back_ios_new_rounded,
-                              onTap: () => Navigator.pop(context),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: InkWell(
-                                onTap: _openProductSearch,
-                                borderRadius: BorderRadius.circular(24),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(
-                                      alpha: t > 0.18 ? 0.32 : 0.08,
-                                    ),
+                            Row(
+                              children: [
+                                _HeroIconButton(
+                                  icon: Icons.arrow_back_ios_new_rounded,
+                                  onTap: () => Navigator.pop(context),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: _openProductSearch,
                                     borderRadius: BorderRadius.circular(24),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.search_rounded,
-                                        size: 22,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.6),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
                                       ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: AnimatedSwitcher(
-                                          duration: const Duration(milliseconds: 180),
-                                          child: Text(
-                                            t < 0.2
-                                                ? product.name
-                                                : 'Search, trends, AI stylist',
-                                            key: ValueKey<bool>(t < 0.2),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium
-                                                ?.copyWith(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurface
-                                                      .withValues(alpha: 0.68),
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                          ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(
+                                          alpha: t > 0.18 ? 0.34 : 0.08,
                                         ),
+                                        borderRadius: BorderRadius.circular(24),
                                       ),
-                                      if (t > 0.3)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.search_rounded,
+                                            size: 22,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.6),
                                           ),
-                                          decoration: BoxDecoration(
-                                            color: accentColor.withValues(alpha: 0.14),
-                                            borderRadius: BorderRadius.circular(999),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.auto_awesome_rounded,
-                                                size: 12,
-                                                color: accentColor,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                'AI',
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: AnimatedSwitcher(
+                                              duration: const Duration(milliseconds: 180),
+                                              child: Text(
+                                                t < 0.2
+                                                    ? 'Search in ABZORA'
+                                                    : 'Search, trends, AI stylist',
+                                                key: ValueKey<bool>(t < 0.2),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                                 style: Theme.of(context)
                                                     .textTheme
-                                                    .labelSmall
+                                                    .bodyMedium
                                                     ?.copyWith(
-                                                      color: accentColor,
-                                                      fontWeight: FontWeight.w700,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface
+                                                          .withValues(alpha: 0.68),
+                                                      fontWeight: FontWeight.w600,
                                                     ),
                                               ),
-                                            ],
+                                            ),
                                           ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            AnimatedWishlistButton(
-                              isSelected: isWishlisted,
-                              isLoading: isWishlistPending,
-                              size: 40,
-                              iconSize: 20,
-                              backgroundColor: Colors.white.withValues(
-                                alpha: t > 0.18 ? 0.28 : 0.12,
-                              ),
-                              unselectedColor:
-                                  Theme.of(context).colorScheme.onSurface,
-                              onTap: () async {
-                                try {
-                                  await wishlist.toggleWishlist(product);
-                                } catch (error) {
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        error
-                                            .toString()
-                                            .replaceFirst('Bad state: ', ''),
+                                          if (t > 0.3)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: accentColor.withValues(alpha: 0.14),
+                                                borderRadius: BorderRadius.circular(999),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.auto_awesome_rounded,
+                                                    size: 12,
+                                                    color: accentColor,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'AI',
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .labelSmall
+                                                        ?.copyWith(
+                                                          color: accentColor,
+                                                          fontWeight: FontWeight.w700,
+                                                        ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ),
-                                  );
-                                }
-                              },
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                AnimatedWishlistButton(
+                                  isSelected: isWishlisted,
+                                  isLoading: isWishlistPending,
+                                  size: 40,
+                                  iconSize: 20,
+                                  backgroundColor: Colors.white.withValues(
+                                    alpha: t > 0.18 ? 0.28 : 0.12,
+                                  ),
+                                  unselectedColor:
+                                      Theme.of(context).colorScheme.onSurface,
+                                  onTap: () async {
+                                    try {
+                                      await wishlist.toggleWishlist(product);
+                                    } catch (error) {
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            error
+                                                .toString()
+                                                .replaceFirst('Bad state: ', ''),
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                                const SizedBox(width: 8),
+                                AnimatedBuilder(
+                                  animation: _cartPulseScale,
+                                  builder: (context, child) => Transform.scale(
+                                    scale: _cartPulseScale.value,
+                                    child: child,
+                                  ),
+                                  child: _HeroIconButton(
+                                    key: _cartIconKey,
+                                    icon: Icons.shopping_bag_outlined,
+                                    onTap: () => Navigator.pushNamed(context, '/cart'),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            AnimatedBuilder(
-                              animation: _cartPulseScale,
-                              builder: (context, child) => Transform.scale(
-                                scale: _cartPulseScale.value,
-                                child: child,
-                              ),
-                              child: _HeroIconButton(
-                                key: _cartIconKey,
-                                icon: Icons.shopping_bag_outlined,
-                                onTap: () => Navigator.pushNamed(context, '/cart'),
+                            AnimatedOpacity(
+                              duration: const Duration(milliseconds: 180),
+                              opacity: 1 - t,
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        product.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                            ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      product.category.toUpperCase(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            letterSpacing: 0.4,
+                                            color: accentColor,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -578,6 +742,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     String? suggestedSize,
     String deliverySummary,
     String estimatedDelivery,
+    Color accentColor,
   ) {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
@@ -598,7 +763,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           Text(
             product.category.toUpperCase(),
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: AbzioTheme.accentColor,
+              color: accentColor,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.4,
             ),
@@ -682,7 +847,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF4F4F2),
+              color: Color.alphaBlend(
+                accentColor.withValues(alpha: 0.08),
+                const Color(0xFFF4F4F2),
+              ),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Row(
@@ -691,7 +859,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAD9A2),
+                    color: accentColor.withValues(alpha: 0.22),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -897,9 +1065,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F2E3),
+              color: Color.alphaBlend(
+                accentColor.withValues(alpha: 0.11),
+                const Color(0xFFF7F2E3),
+              ),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFE7D39A)),
+              border: Border.all(color: accentColor.withValues(alpha: 0.35)),
             ),
             child: Row(
               children: [
@@ -907,7 +1078,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAD9A2),
+                    color: accentColor.withValues(alpha: 0.22),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -1054,8 +1225,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE6D6A3)),
-                color: const Color(0xFFFFFBF2),
+                border: Border.all(color: accentColor.withValues(alpha: 0.32)),
+                color: Color.alphaBlend(
+                  accentColor.withValues(alpha: 0.06),
+                  const Color(0xFFFFFBF2),
+                ),
               ),
               child: Row(
                 children: [
@@ -1069,7 +1243,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     child: Text(
                       'Ask AI Stylist about this look',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AbzioTheme.accentColor,
+                        color: accentColor,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -1354,7 +1528,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     Product product,
     _DetailPricing pricing,
   ) {
-    final accentColor = _heroAccentColor(
+    final accentColor = _effectiveAccentColor(
       product,
       product.images.isEmpty
           ? const ['https://via.placeholder.com/600x750']
@@ -1554,6 +1728,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final isWishlistPending = wishlist.isPending(widget.product.id);
     final pricing = _pricing;
     final description = product.description.trim();
+    final accentColor = _effectiveAccentColor(product, images);
     final suggestedSize = _selectedSize ??
         (product.sizes.contains('M')
             ? 'M'
@@ -1608,6 +1783,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                               suggestedSize,
                               deliverySummary,
                               estimatedDelivery,
+                              accentColor,
                             ),
                             const SizedBox(height: 20),
                             _buildCompleteTheLookSection(
@@ -1652,6 +1828,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final isWishlistPending = wishlist.isPending(widget.product.id);
     final pricing = _pricing;
     final description = product.description.trim();
+    final accentColor = _effectiveAccentColor(product, images);
     final suggestedSize = _selectedSize ??
         (product.sizes.contains('M')
             ? 'M'
@@ -3141,36 +3318,39 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
                       panEnabled: true,
                       scaleEnabled: true,
                       child: Center(
-                        child: CachedNetworkImage(
-                          imageUrl: widget.images[index],
-                          fit: BoxFit.contain,
-                          fadeInDuration: const Duration(milliseconds: 220),
-                          placeholder: (context, url) => Container(
-                            color: Colors.black,
-                            alignment: Alignment.center,
-                            child: const SizedBox(
-                              width: 28,
-                              height: 28,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.6,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color(0xFFC9A74E),
+                        child: Hero(
+                          tag: 'product-hero-${widget.product.id}-$index',
+                          child: CachedNetworkImage(
+                            imageUrl: widget.images[index],
+                            fit: BoxFit.contain,
+                            fadeInDuration: const Duration(milliseconds: 220),
+                            placeholder: (context, url) => Container(
+                              color: Colors.black,
+                              alignment: Alignment.center,
+                              child: const SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.6,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFFC9A74E),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: Colors.black,
-                            alignment: Alignment.center,
-                            padding: const EdgeInsets.symmetric(horizontal: 32),
-                            child: Text(
-                              widget.product.name,
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w600,
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.black,
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(horizontal: 32),
+                              child: Text(
+                                widget.product.name,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
