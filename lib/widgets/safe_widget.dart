@@ -169,8 +169,13 @@ class AbzioSafeStreamBuilder<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final streamSource = stream;
     return StreamBuilder<T>(
-      stream: stream,
+      stream: streamSource == null
+          ? null
+          : (streamSource.isBroadcast
+              ? streamSource
+              : streamSource.asBroadcastStream()),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return loadingBuilder?.call(context) ??

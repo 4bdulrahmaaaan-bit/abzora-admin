@@ -623,7 +623,23 @@ class Product {
         id: docId,
         storeId: map['storeId'] ?? '',
         name: map['name'] ?? '',
-        brand: map['brand'] ?? '',
+        brand: (() {
+          final candidates = <String?>[
+            map['brand']?.toString(),
+            map['brandName']?.toString(),
+            map['storeName']?.toString(),
+            map['vendorName']?.toString(),
+            map['merchantName']?.toString(),
+            map['store'] is Map ? (map['store']['name']?.toString()) : null,
+          ];
+          for (final candidate in candidates) {
+            final value = candidate?.trim() ?? '';
+            if (value.isNotEmpty) {
+              return value;
+            }
+          }
+          return '';
+        })(),
         description: map['description'] ?? '',
         price: (map['price'] ?? 0.0).toDouble(),
         basePrice: map['basePrice'] == null ? null : (map['basePrice'] as num).toDouble(),

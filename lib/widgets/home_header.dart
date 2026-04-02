@@ -23,7 +23,7 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
   final bool isScrolled;
 
   @override
-  Size get preferredSize => Size.fromHeight(isScrolled ? 102 : 112);
+  Size get preferredSize => const Size.fromHeight(110);
 
   @override
   Widget build(BuildContext context) {
@@ -35,114 +35,79 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        padding: EdgeInsets.fromLTRB(16, isScrolled ? 6 : 8, 16, isScrolled ? 8 : 12),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isScrolled ? 0.07 : 0.04),
-              blurRadius: isScrolled ? 12 : 18,
-              offset: Offset(0, isScrolled ? 3 : 6),
-            ),
-          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                const BrandLogo(
+                  size: 38,
+                  radius: 9,
+                  padding: EdgeInsets.zero,
+                  backgroundColor: Colors.transparent,
+                  shadows: [],
+                  gradient: null,
+                ),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeOutCubic,
-                        padding: EdgeInsets.all(isScrolled ? 3 : 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF7F3E8),
-                          borderRadius: BorderRadius.circular(12),
+                      Text(
+                        AbzoraText.brandName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 19,
+                          letterSpacing: 0.5,
+                          color: const Color(0xFF111111),
                         ),
-                        child: BrandLogo(size: isScrolled ? 30 : 34, radius: 8),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              AbzoraText.brandName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                fontSize: isScrolled ? 18 : 19,
-                                letterSpacing: 0.7,
-                              ),
-                            ),
-                            AnimatedSize(
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeOutCubic,
-                              child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 180),
-                                opacity: isScrolled ? 0 : 1,
-                                child: isScrolled
-                                    ? const SizedBox.shrink()
-                                    : Padding(
-                                        padding: const EdgeInsets.only(top: 2),
-                                        child: Text(
-                                          AbzoraText.brandTagline,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withValues(alpha: 0.58),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                              ),
-                            ),
-                          ],
+                      const SizedBox(height: 1),
+                      Text(
+                        AbzoraText.brandTagline,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF8A8A8A),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _HeaderIconButton(
-                      icon: Icons.search_rounded,
-                      onTap: onSearchTap,
-                    ),
-                    const SizedBox(width: 6),
-                    _HeaderIconButton(
-                      icon: Icons.favorite_border_rounded,
-                      onTap: onWishlistTap,
-                    ),
-                    const SizedBox(width: 6),
-                    _HeaderIconButton(
-                      icon: Icons.shopping_bag_outlined,
-                      onTap: onCartTap,
-                    ),
-                  ],
+                _HeaderIconButton(
+                  icon: Icons.search_rounded,
+                  onTap: onSearchTap,
+                ),
+                const SizedBox(width: 8),
+                _HeaderIconButton(
+                  icon: Icons.favorite_border_rounded,
+                  onTap: onWishlistTap,
+                ),
+                const SizedBox(width: 8),
+                _HeaderIconButton(
+                  icon: Icons.shopping_bag_outlined,
+                  onTap: onCartTap,
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             AnimatedSlide(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
-              offset: Offset(0, isScrolled ? -0.04 : 0),
+              offset: const Offset(0, 0),
               child: _LocationBar(
                 location: location,
                 onTap: onLocationTap,
-                collapsed: isScrolled,
               ),
             ),
           ],
@@ -172,17 +137,14 @@ class _HeaderIconButton extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(999),
           child: Container(
-            padding: const EdgeInsets.all(10),
+            width: 36,
+            height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
+              color: Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              color: Theme.of(context).colorScheme.onSurface,
-              size: 22,
-            ),
+            child: Icon(icon, color: Color(0xFF111111), size: 20),
           ),
         ),
       ),
@@ -194,12 +156,10 @@ class _LocationBar extends StatelessWidget {
   const _LocationBar({
     required this.location,
     required this.onTap,
-    this.collapsed = false,
   });
 
   final String location;
   final VoidCallback onTap;
-  final bool collapsed;
 
   @override
   Widget build(BuildContext context) {
@@ -214,44 +174,49 @@ class _LocationBar extends StatelessWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
-            padding: EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: collapsed ? 10 : 12,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F3),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: collapsed ? 0.015 : 0.02),
-                  blurRadius: collapsed ? 6 : 10,
-                  offset: Offset(0, collapsed ? 2 : 3),
-                ),
-              ],
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFEDEDED)),
             ),
             child: Row(
               children: [
                 const Icon(
                   Icons.location_on_rounded,
-                  size: 18,
-                  color: Color(0xFFC9A74E),
+                  size: 16,
+                  color: Color(0xFFC8A44D),
                 ),
-                const SizedBox(width: 10),
-                Flexible(
+                const SizedBox(width: 8),
+                Expanded(
                   child: Text(
                     location,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF202020),
+                      fontSize: 13,
+                      color: const Color(0xFF1A1A1A),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62),
+                const SizedBox(width: 6),
+                SizedBox(
+                  width: 54,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      'Change',
+                      maxLines: 1,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF6B6B6B),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                    ),
+                  ),
                 ),
               ],
             ),

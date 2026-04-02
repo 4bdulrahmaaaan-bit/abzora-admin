@@ -1242,11 +1242,25 @@ class BackendCommerceService {
   }
 
   Product _productFromBackend(Map<String, dynamic> map) {
+    final resolvedBrand = <String?>[
+      map['brand']?.toString(),
+      map['brandName']?.toString(),
+      map['storeName']?.toString(),
+      map['vendorName']?.toString(),
+      map['merchantName']?.toString(),
+      map['store'] is Map ? map['store']['name']?.toString() : null,
+    ].map((value) => value?.trim() ?? '').firstWhere(
+          (value) => value.isNotEmpty,
+          orElse: () => '',
+        );
+
     return Product.fromMap(
       {
         'storeId': map['storeId'],
         'name': map['name'],
-        'brand': map['brand'] ?? '',
+        'brand': resolvedBrand,
+        'brandName': map['brandName'],
+        'storeName': map['storeName'],
         'description': map['description'] ?? '',
         'price': map['price'] ?? 0,
         'basePrice': map['basePrice'] ?? map['price'],

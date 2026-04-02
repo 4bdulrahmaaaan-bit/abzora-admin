@@ -1286,6 +1286,11 @@ class CategorySection extends StatefulWidget {
 
 class _CategorySectionState extends State<CategorySection> {
   static const _tabs = ['All', 'Men', 'Women', 'Kids'];
+  static const _quickFilters = <String>[
+    'Price Crash',
+    'Top Rated',
+    'Rising Star',
+  ];
 
   static final Map<String, List<_CategorySectionItem>> _categoryMap = {
     'All': [
@@ -1338,6 +1343,47 @@ class _CategorySectionState extends State<CategorySection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        SizedBox(
+          height: 34,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _quickFilters.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final label = _quickFilters[index];
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF6F6F6),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFFE6E6E6)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 14,
+                      color: Color(0xFF8A8A8A),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF3E3E3E),
+                          ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
         SizedBox(
           height: 38,
           child: ListView.separated(
@@ -1404,19 +1450,19 @@ class _CategorySectionState extends State<CategorySection> {
             },
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 260),
           switchInCurve: Curves.easeOutCubic,
           switchOutCurve: Curves.easeInCubic,
           child: SizedBox(
             key: ValueKey(currentTab),
-            height: 98,
+            height: 92,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: categories.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 14),
+              separatorBuilder: (context, index) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final category = categories[index];
                 final isSelected = _selectedCategoryIndex == index;
@@ -1436,20 +1482,20 @@ class _CategorySectionState extends State<CategorySection> {
                     },
                     borderRadius: BorderRadius.circular(20),
                     child: SizedBox(
-                      width: 72,
+                      width: 66,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 220),
                             curve: Curves.easeOutCubic,
-                            width: 60,
-                            height: 60,
+                            width: 56,
+                            height: 56,
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? const Color(0xFFC9A74E).withValues(alpha: 0.16)
                                   : const Color(0xFFF3F3F3),
-                              borderRadius: BorderRadius.circular(20),
+                              shape: BoxShape.circle,
                               border: Border.all(
                                 color: isSelected
                                     ? const Color(0xFFC9A74E)
@@ -1458,24 +1504,25 @@ class _CategorySectionState extends State<CategorySection> {
                             ),
                             child: Icon(
                               category.icon,
-                              size: 26,
+                              size: 22,
                               color: isSelected
                                   ? const Color(0xFFC9A74E)
                                   : AbzioTheme.textPrimary,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Text(
                             category.label,
-                            maxLines: 2,
+                            maxLines: 1,
                             textAlign: TextAlign.center,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  fontSize: 11,
                                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                                   color: isSelected
                                       ? AbzioTheme.textPrimary
                                       : context.abzioSecondaryText,
-                                  height: 1.2,
+                                  height: 1.1,
                                 ),
                           ),
                         ],
@@ -1621,9 +1668,9 @@ class _HomeBannerState extends State<HomeBanner> {
         if (snapshot.connectionState == ConnectionState.waiting &&
             (snapshot.data == null || snapshot.data!.isEmpty)) {
           return ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             child: Container(
-              height: 172,
+              height: 214,
               color: Theme.of(context).cardColor,
               alignment: Alignment.center,
               child: const CircularProgressIndicator(
@@ -1637,7 +1684,7 @@ class _HomeBannerState extends State<HomeBanner> {
         return Column(
           children: [
             SizedBox(
-              height: 172,
+              height: 214,
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: slides.length,
@@ -1645,33 +1692,56 @@ class _HomeBannerState extends State<HomeBanner> {
                 itemBuilder: (context, index) {
                   final slide = slides[index];
                   return ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
                         Image.network(slide.imageUrl, fit: BoxFit.cover),
                         Container(
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              begin: Alignment.topCenter,
+                              begin: Alignment.topLeft,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Color(0x1A000000),
-                                Color(0x66000000),
-                                Color(0xB3000000),
+                                Colors.black.withValues(alpha: 0.10),
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.58),
                               ],
                             ),
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsets.all(18),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.92),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Text(
+                                  'TRENDING NOW',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.4,
+                                    color: Color(0xFF1A1A1A),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
                               Text(
                                 slide.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontSize: 24,
                                   color: Colors.white,
                                   fontWeight: FontWeight.w800,
                                   height: 1.1,
@@ -1680,25 +1750,31 @@ class _HomeBannerState extends State<HomeBanner> {
                               const SizedBox(height: 6),
                               Text(
                                 slide.subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.white70,
-                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white.withValues(alpha: 0.88),
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 12),
                               FilledButton(
                                 onPressed: () => widget.onBannerTap(slide),
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFFC9A74E),
-                                  foregroundColor: const Color(0xFF171717),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF111111),
+                                  visualDensity: VisualDensity.compact,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
                                 child: Text(
                                   slide.ctaText.isEmpty ? 'View Stores' : slide.ctaText,
-                                  style: const TextStyle(fontWeight: FontWeight.w700),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
                             ],
@@ -1710,7 +1786,7 @@ class _HomeBannerState extends State<HomeBanner> {
                 },
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
@@ -1718,8 +1794,8 @@ class _HomeBannerState extends State<HomeBanner> {
                 (index) => AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentIndex == index ? 18 : 8,
-                  height: 8,
+                  width: _currentIndex == index ? 20 : 6,
+                  height: 6,
                   decoration: BoxDecoration(
                     color: _currentIndex == index ? const Color(0xFFC9A74E) : const Color(0xFFD2D2D2),
                     borderRadius: BorderRadius.circular(999),

@@ -28,6 +28,7 @@ class _ProductCardState extends State<ProductCard> {
   @override
   Widget build(BuildContext context) {
     final displayName = _displayName(widget.product);
+    final brandLabel = _brandName(widget.product);
     final imageUrl = widget.product.images.isEmpty
         ? ''
         : widget.product.images[0];
@@ -58,24 +59,24 @@ class _ProductCardState extends State<ProductCard> {
                 child: Ink(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
+                        color: Colors.black.withValues(alpha: 0.035),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          flex: 6,
+                        AspectRatio(
+                          aspectRatio: 0.78,
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(12),
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
@@ -114,12 +115,12 @@ class _ProductCardState extends State<ProductCard> {
                                 ),
                                 if (pricing.discountPercent > 0)
                                   Positioned(
-                                    left: 10,
-                                    top: 10,
+                                    left: 8,
+                                    top: 8,
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 9,
-                                        vertical: 5,
+                                        horizontal: 7,
+                                        vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
                                         color: Colors.white.withValues(
@@ -133,7 +134,7 @@ class _ProductCardState extends State<ProductCard> {
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
                                           color: Color(0xFF159947),
-                                          fontSize: 10,
+                                          fontSize: 9,
                                           fontWeight: FontWeight.w800,
                                           letterSpacing: 0.2,
                                         ),
@@ -141,8 +142,8 @@ class _ProductCardState extends State<ProductCard> {
                                     ),
                                   ),
                                 Positioned(
-                                  top: 10,
-                                  right: 10,
+                                  top: 8,
+                                  right: 8,
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: Colors.white.withValues(
@@ -154,8 +155,8 @@ class _ProductCardState extends State<ProductCard> {
                                           color: Colors.black.withValues(
                                             alpha: 0.08,
                                           ),
-                                          blurRadius: 14,
-                                          offset: const Offset(0, 6),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 3),
                                         ),
                                       ],
                                     ),
@@ -192,29 +193,44 @@ class _ProductCardState extends State<ProductCard> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          _brandName(widget.product),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF8A8A8A),
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.45,
+                        const SizedBox(height: 4),
+                        if (brandLabel.isNotEmpty)
+                          Text(
+                            brandLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 10,
+                              color: const Color(0xFF8A8A8A),
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.35,
+                            ),
                           ),
-                        ),
+                        if (brandLabel.isNotEmpty) const SizedBox(height: 2),
                         const SizedBox(height: 4),
                         Text(
                           displayName,
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 12,
                             color: const Color(0xFF161616),
-                            height: 1.25,
-                            fontWeight: FontWeight.w700,
+                            height: 1.15,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 2),
+                        Text(
+                          _subtitle(widget.product),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 11,
+                            color: const Color(0xFF707070),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
                         Row(
                           children: [
                             Flexible(
@@ -223,12 +239,13 @@ class _ProductCardState extends State<ProductCard> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.titleMedium?.copyWith(
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w800,
                                   color: const Color(0xFF121212),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 4),
                             if (pricing.originalPrice != null)
                               Flexible(
                                 child: Text(
@@ -242,12 +259,8 @@ class _ProductCardState extends State<ProductCard> {
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            if (pricing.discountPercent > 0)
+                            if (pricing.discountPercent > 0) ...[
+                              const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
                                   '${pricing.discountPercent}% OFF',
@@ -255,54 +268,6 @@ class _ProductCardState extends State<ProductCard> {
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: const Color(0xFF159947),
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            if (widget.product.rating > 0) ...[
-                              if (pricing.discountPercent > 0)
-                                const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF4F4F4),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.star_rounded,
-                                      size: 14,
-                                      color: Color(0xFFC9A74E),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      widget.product.rating.toStringAsFixed(1),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: const Color(0xFF1A1A1A),
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            if (widget.product.isLimitedStock) ...[
-                              const Spacer(),
-                              Flexible(
-                                child: Text(
-                                  'LIMITED',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: const Color(0xFFB54708),
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
@@ -326,13 +291,25 @@ class _ProductCardState extends State<ProductCard> {
 String _brandName(Product product) {
   final raw = product.brand.trim();
   if (raw.isEmpty) {
-    return 'ABZORA';
+    return '';
   }
   return raw
       .split(' ')
       .where((part) => part.isNotEmpty)
       .map((part) => '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}')
       .join(' ');
+}
+
+String _subtitle(Product product) {
+  final category = product.category.trim();
+  final fit = product.outfitType?.trim() ?? '';
+  if (category.isEmpty && fit.isEmpty) {
+    return 'Premium style';
+  }
+  if (category.isNotEmpty && fit.isNotEmpty) {
+    return '$category • $fit';
+  }
+  return category.isNotEmpty ? category : fit;
 }
 
 String _displayName(Product product) {
