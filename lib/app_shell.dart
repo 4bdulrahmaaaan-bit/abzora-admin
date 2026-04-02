@@ -74,7 +74,14 @@ Future<void> bootstrapAndRunWithInitialRoute(
         providers: [
           ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => BannerProvider()),
-        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, CartProvider>(
+          create: (_) => CartProvider(),
+          update: (_, authProvider, cartProvider) {
+            final provider = cartProvider ?? CartProvider();
+            unawaited(provider.syncUser(authProvider.user));
+            return provider;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => LocationProvider()),
         ChangeNotifierProvider(
           create: (_) => NetworkProvider()..initialize(),

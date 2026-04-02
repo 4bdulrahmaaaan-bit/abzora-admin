@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
+import '../services/backend_commerce_service.dart';
 import '../services/database_service.dart';
 
 class CartItem {
@@ -18,6 +21,26 @@ class CartItem {
     required this.size,
     this.quantity = 1,
   });
+
+  Map<String, dynamic> toMap() => {
+        'product': product.toMap(),
+        'productId': product.id,
+        'size': size,
+        'quantity': quantity,
+      };
+
+  factory CartItem.fromMap(Map<String, dynamic> map) {
+    final productMap = Map<String, dynamic>.from((map['product'] as Map?) ?? const {});
+    final productId = (map['productId'] ?? productMap['id'] ?? '').toString();
+    if (productId.isNotEmpty) {
+      productMap['id'] = productId;
+    }
+    return CartItem(
+      product: Product.fromMap(productMap, productId),
+      size: (map['size'] ?? '').toString(),
+      quantity: ((map['quantity'] ?? 1) as num).toInt(),
+    );
+  }
 }
 
 enum CartAddResult {
@@ -27,14 +50,20 @@ enum CartAddResult {
 }
 
 class CartProvider with ChangeNotifier {
-  CartProvider({DatabaseService? databaseService}) : _db = databaseService ?? DatabaseService();
+  CartProvider({DatabaseService? databaseService}) : _db = databaseService ?? DatabaseService() {
+    unawaited(_restoreCart());
+  }
 
   final DatabaseService _db;
+  final BackendCommerceService _backendCommerce = BackendCommerceService();
+  static const String _cartStorageKey = 'abzora_local_cart_v1';
   final List<CartItem> _items = [];
   String? _appliedCoupon;
   double _discountPercentage = 0.0;
   double _fixedDiscountAmount = 0.0;
   DateTime? _lastInteractionAt;
+  String? _syncedUserId;
+  bool _syncingRemoteCart = false;
 
   List<CartItem> get items => _items;
   String? get appliedCoupon => _appliedCoupon;
@@ -52,6 +81,82 @@ class CartProvider with ChangeNotifier {
   double get totalAmount => subtotal - discountAmount;
 
   String? get activeStoreId => _items.isEmpty ? null : _items.first.product.storeId;
+
+  Future<void> _restoreCart() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_cartStorageKey);
+      if (raw == null || raw.trim().isEmpty) {
+        return;
+      }
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        return;
+      }
+      final restoredItems = decoded
+          .whereType<Map>()
+          .map((entry) => CartItem.fromMap(Map<String, dynamic>.from(entry)))
+          .where((item) => item.product.id.isNotEmpty)
+          .toList();
+      _items
+        ..clear()
+        ..addAll(restoredItems);
+      notifyListeners();
+    } catch (_) {
+      // Ignore local cart restore failures and continue with an empty cart.
+    }
+  }
+
+  Future<void> _persistCart() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final payload = jsonEncode(_items.map((item) => item.toMap()).toList());
+      await prefs.setString(_cartStorageKey, payload);
+      if (_backendCommerce.isConfigured && _syncedUserId != null && !_syncingRemoteCart) {
+        await _backendCommerce.saveCartItems(_items.map((item) => item.toMap()).toList());
+      }
+    } catch (_) {
+      // Keep cart UX responsive even if local persistence fails.
+    }
+  }
+
+  Future<void> syncUser(AppUser? user) async {
+    final nextUserId = user?.id;
+    if (nextUserId == null || nextUserId.isEmpty) {
+      _syncedUserId = null;
+      return;
+    }
+    if (_syncedUserId == nextUserId) {
+      return;
+    }
+    _syncedUserId = nextUserId;
+    if (!_backendCommerce.isConfigured) {
+      return;
+    }
+    _syncingRemoteCart = true;
+    try {
+      final remoteItems = await _backendCommerce.getSavedCartItems();
+      if (remoteItems.isEmpty) {
+        if (_items.isNotEmpty) {
+          await _backendCommerce.saveCartItems(_items.map((item) => item.toMap()).toList());
+        }
+        return;
+      }
+      final restoredItems = remoteItems
+          .map(CartItem.fromMap)
+          .where((item) => item.product.id.isNotEmpty)
+          .toList();
+      _items
+        ..clear()
+        ..addAll(restoredItems);
+      await _persistCart();
+      notifyListeners();
+    } catch (_) {
+      // Fall back to local cart if backend cart sync is unavailable.
+    } finally {
+      _syncingRemoteCart = false;
+    }
+  }
 
   List<OrderItem> _asOrderItems() {
     return _items
@@ -117,6 +222,7 @@ class CartProvider with ChangeNotifier {
       _lastInteractionAt = DateTime.now();
       unawaited(_recordProductCartIntentSafely(product));
       unawaited(_track('updated'));
+      unawaited(_persistCart());
       notifyListeners();
       return CartAddResult.updated;
     } else {
@@ -124,6 +230,7 @@ class CartProvider with ChangeNotifier {
       _lastInteractionAt = DateTime.now();
       unawaited(_recordProductCartIntentSafely(product));
       unawaited(_track('added'));
+      unawaited(_persistCart());
       notifyListeners();
       return CartAddResult.added;
     }
@@ -141,6 +248,7 @@ class CartProvider with ChangeNotifier {
       }
       _lastInteractionAt = DateTime.now();
       unawaited(_track('quantity_changed'));
+      unawaited(_persistCart());
       notifyListeners();
     }
   }
@@ -156,6 +264,7 @@ class CartProvider with ChangeNotifier {
       _fixedDiscountAmount = fixedDiscountAmount ?? 0.0;
       _lastInteractionAt = DateTime.now();
       unawaited(_track('coupon_applied'));
+      unawaited(_persistCart());
       notifyListeners();
       return true;
     }
@@ -165,6 +274,7 @@ class CartProvider with ChangeNotifier {
       _fixedDiscountAmount = 0.0;
       _lastInteractionAt = DateTime.now();
       unawaited(_track('coupon_applied'));
+      unawaited(_persistCart());
       notifyListeners();
       return true;
     }
@@ -174,6 +284,7 @@ class CartProvider with ChangeNotifier {
       _fixedDiscountAmount = 0.0;
       _lastInteractionAt = DateTime.now();
       unawaited(_track('coupon_applied'));
+      unawaited(_persistCart());
       notifyListeners();
       return true;
     }
@@ -186,6 +297,7 @@ class CartProvider with ChangeNotifier {
     _fixedDiscountAmount = 0.0;
     _lastInteractionAt = DateTime.now();
     unawaited(_track('coupon_removed'));
+    unawaited(_persistCart());
     notifyListeners();
   }
 
@@ -193,6 +305,7 @@ class CartProvider with ChangeNotifier {
     _items.removeWhere((item) => item.product.id == productId && item.size == size);
     _lastInteractionAt = DateTime.now();
     unawaited(_track('removed'));
+    unawaited(_persistCart());
     notifyListeners();
   }
 
@@ -205,6 +318,7 @@ class CartProvider with ChangeNotifier {
     if (trackActivity) {
       unawaited(_track('cleared'));
     }
+    unawaited(_persistCart());
     notifyListeners();
   }
 }

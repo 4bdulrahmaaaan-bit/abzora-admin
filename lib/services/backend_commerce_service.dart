@@ -90,6 +90,33 @@ class BackendCommerceService {
     return BodyProfile.fromMap(map);
   }
 
+  Future<List<Map<String, dynamic>>> getSavedCartItems() async {
+    final payload = await _client.get('/auth/memory', authenticated: true);
+    if (payload == null) {
+      return const [];
+    }
+    final map = Map<String, dynamic>.from(payload as Map);
+    final items = map['cartItems'];
+    if (items is! List) {
+      return const [];
+    }
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<void> saveCartItems(List<Map<String, dynamic>> items) async {
+    await _client.put(
+      '/auth/memory',
+      authenticated: true,
+      body: {
+        'cartItems': items,
+        'cartUpdatedAt': DateTime.now().toIso8601String(),
+      },
+    );
+  }
+
   Future<BodyProfile> saveBodyProfile(BodyProfile profile) async {
     final payload = await _client.put(
       '/auth/memory',
