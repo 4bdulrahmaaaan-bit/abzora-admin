@@ -627,10 +627,8 @@ class Product {
           final candidates = <String?>[
             map['brand']?.toString(),
             map['brandName']?.toString(),
-            map['storeName']?.toString(),
             map['vendorName']?.toString(),
             map['merchantName']?.toString(),
-            map['store'] is Map ? (map['store']['name']?.toString()) : null,
           ];
           for (final candidate in candidates) {
             final value = candidate?.trim() ?? '';
