@@ -783,7 +783,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFBF5),
         appBar: AppBar(
-          title: const Text('Checkout'),
+          scrolledUnderElevation: 0,
+          titleSpacing: 0,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Checkout'),
+              Text(
+                'Secure ABZORA finish',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.abzioSecondaryText,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
+          ),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
             onPressed: _goBack,
@@ -943,7 +957,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           child: Container(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFFEFDFC),
+                  Colors.white,
+                ],
+              ),
               border: Border(top: BorderSide(color: context.abzioBorder)),
               boxShadow: [
                 BoxShadow(
@@ -962,6 +983,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     final totalBlock = Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF7F1DF),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            'Secure total',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: const Color(0xFF8D6D20),
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.2,
+                                ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         Text(
                           'Total amount',
                           style: Theme.of(context).textTheme.bodyMedium,
@@ -985,11 +1022,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         ),
                         borderRadius: BorderRadius.circular(18),
                       ),
-                      child: ElevatedButton(
-                        onPressed: _processing ? null : () => _placeOrder(cart),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
+                        child: ElevatedButton(
+                          onPressed: _processing ? null : () => _placeOrder(cart),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
                           minimumSize: const Size.fromHeight(54),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(18),
@@ -1009,28 +1046,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     ),
                                   ),
                                   SizedBox(width: 10),
-                                  Flexible(
-                                    child: Text(
-                                      'Processing...',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                  Text(
+                                    'Processing...',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ],
                               )
-                            : Text(
-                                _ctaLabel(cart, currency),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
-                                ),
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.lock_rounded, size: 18, color: Colors.white),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      _ctaLabel(cart, currency),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                       ),
                     );

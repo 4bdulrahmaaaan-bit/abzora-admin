@@ -1715,9 +1715,16 @@ class _BagFooter extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFEFDFC),
+              Colors.white,
+            ],
+          ),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           border: Border(top: BorderSide(color: const Color(0xFFF0ECE2))),
           boxShadow: [
@@ -1735,6 +1742,24 @@ class _BagFooter extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F1DF),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Bag total',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF8D6D20),
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Text(
                   amountLabel,
                   maxLines: 1,
@@ -1747,14 +1772,29 @@ class _BagFooter extends StatelessWidget {
                 const SizedBox(height: 2),
                 InkWell(
                   onTap: onViewDetails,
-                  child: Text(
-                    'View Details',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF6A655A),
-                          fontWeight: FontWeight.w700,
+                  borderRadius: BorderRadius.circular(999),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'View Details',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF6A655A),
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.keyboard_arrow_up_rounded,
+                          size: 16,
+                          color: Color(0xFF6A655A),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -1781,8 +1821,21 @@ class _BagFooter extends StatelessWidget {
                   shadowColor: Colors.transparent,
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(54),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
                 ),
-                child: const Text('PLACE ORDER'),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.lock_rounded, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'PLACE ORDER',
+                      style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.2),
+                    ),
+                  ],
+                ),
               ),
             );
 

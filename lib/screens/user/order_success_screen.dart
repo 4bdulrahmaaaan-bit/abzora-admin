@@ -90,16 +90,46 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 88,
-                      height: 88,
+                      width: 96,
+                      height: 96,
                       decoration: BoxDecoration(
-                        color: AbzioTheme.accentColor.withValues(alpha: 0.14),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AbzioTheme.accentColor.withValues(alpha: 0.14),
+                            AbzioTheme.accentColor.withValues(alpha: 0.24),
+                          ],
+                        ),
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AbzioTheme.accentColor.withValues(alpha: 0.16),
+                            blurRadius: 24,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
                       child: const Icon(
                         Icons.check_rounded,
                         color: AbzioTheme.accentColor,
-                        size: 46,
+                        size: 50,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F1DF),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        'Order placed successfully',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF8D6D20),
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -117,6 +147,63 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                         height: 1.45,
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFFFFF8E7),
+                            AbzioTheme.accentColor.withValues(alpha: 0.12),
+                            Colors.white,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: AbzioTheme.accentColor.withValues(alpha: 0.18),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(
+                              Icons.local_shipping_outlined,
+                              color: AbzioTheme.accentColor,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _deliveryHeadline(),
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'We will keep you posted as your package moves.',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: context.abzioSecondaryText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     Container(
                       width: double.infinity,
@@ -125,6 +212,13 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(color: context.abzioBorder),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 18,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
                       child: Column(
                         children: [
@@ -150,7 +244,14 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _trackOrder,
-                        child: const Text('Track Order'),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.route_rounded, size: 18),
+                            SizedBox(width: 8),
+                            Text('Track Order'),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
