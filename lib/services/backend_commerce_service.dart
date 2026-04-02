@@ -1246,10 +1246,6 @@ class BackendCommerceService {
     final resolvedBrand = <String?>[
       map['brand']?.toString(),
       map['brandName']?.toString(),
-      map['vendorName']?.toString(),
-      map['merchantName']?.toString(),
-      map['storeName']?.toString(),
-      map['store'] is Map ? map['store']['name']?.toString() : null,
     ].map((value) => value?.trim() ?? '').firstWhere(
           (value) => value.isNotEmpty,
           orElse: () => '',
