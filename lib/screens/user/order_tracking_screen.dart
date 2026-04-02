@@ -23,6 +23,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> with TickerPr
   late final TrackingAnimationController _trackingAnimation;
   final DatabaseService _database = DatabaseService();
   String? _selectedOrderId;
+  String? _activeUserId;
+  Stream<List<OrderModel>>? _ordersStream;
+  int? _lastAnimatedStepIndex;
 
   @override
   void initState() {
@@ -40,6 +43,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> with TickerPr
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
     if (user == null) {
+      _activeUserId = null;
+      _ordersStream = null;
+      _lastAnimatedStepIndex = null;
       return const AbzioThemeScope.light(
         child: Scaffold(
           body: Center(
@@ -55,11 +61,17 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> with TickerPr
       );
     }
 
+    if (_activeUserId != user.id || _ordersStream == null) {
+      _activeUserId = user.id;
+      _ordersStream = _database.getUserOrders(user.id);
+      _lastAnimatedStepIndex = null;
+    }
+
     return AbzioThemeScope.light(
       child: Scaffold(
         appBar: AppBar(title: const Text('Track Order')),
         body: StreamBuilder<List<OrderModel>>(
-          stream: _database.getUserOrders(user.id),
+          stream: _ordersStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const AbzioLoadingView(
@@ -85,11 +97,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> with TickerPr
 
             final selectedOrder = _resolveSelectedOrder(orders);
             final currentStepIndex = _currentStepIndex(selectedOrder);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                _trackingAnimation.animateToStep(currentStepIndex);
-              }
-            });
+            if (_lastAnimatedStepIndex != currentStepIndex) {
+              _lastAnimatedStepIndex = currentStepIndex;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _trackingAnimation.animateToStep(currentStepIndex);
+                }
+              });
+            }
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),

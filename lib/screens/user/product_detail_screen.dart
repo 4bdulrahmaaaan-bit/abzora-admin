@@ -1814,49 +1814,49 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         _cartFlightEnd == null) {
       return const SizedBox.shrink();
     }
-    return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: _cartFlightController,
-        child: Material(
-          elevation: 8,
-          color: Colors.transparent,
+    return AnimatedBuilder(
+      animation: _cartFlightController,
+      child: Material(
+        elevation: 8,
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: SizedBox(
-              width: _cartFlightSize.width,
-              height: _cartFlightSize.height,
-              child: AbzioNetworkImage(
-                imageUrl: images.first,
-                fallbackLabel: product.name,
-              ),
+          child: SizedBox(
+            width: _cartFlightSize.width,
+            height: _cartFlightSize.height,
+            child: AbzioNetworkImage(
+              imageUrl: images.first,
+              fallbackLabel: product.name,
             ),
           ),
         ),
-        builder: (context, child) {
-          final progress = _cartFlightController.value;
-          final curved = Curves.easeInOutCubic.transform(progress);
-          final current = Offset.lerp(
-            _cartFlightStart,
-            _cartFlightEnd,
-            curved,
-          )!;
-          final scale = lerpDouble(1, 0.28, curved)!;
-          final opacity = lerpDouble(
-            1,
-            0.0,
-            Curves.easeIn.transform(progress),
-          )!;
-          return Positioned(
-            left: current.dx,
-            top: current.dy,
+      ),
+      builder: (context, child) {
+        final progress = _cartFlightController.value;
+        final curved = Curves.easeInOutCubic.transform(progress);
+        final current = Offset.lerp(
+          _cartFlightStart,
+          _cartFlightEnd,
+          curved,
+        )!;
+        final scale = lerpDouble(1, 0.28, curved)!;
+        final opacity = lerpDouble(
+          1,
+          0.0,
+          Curves.easeIn.transform(progress),
+        )!;
+        return Positioned(
+          left: current.dx,
+          top: current.dy,
+          child: IgnorePointer(
             child: Opacity(
               opacity: opacity,
               child: Transform.scale(scale: scale, child: child),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -3109,34 +3109,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             ),
           ),
           if (_showCartFlight && _cartFlightStart != null && _cartFlightEnd != null)
-            IgnorePointer(
-              child: AnimatedBuilder(
-                animation: _cartFlightController,
-                child: Material(
-                  elevation: 8,
-                  color: Colors.transparent,
+            AnimatedBuilder(
+              animation: _cartFlightController,
+              child: Material(
+                elevation: 8,
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+                child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: SizedBox(
-                      width: _cartFlightSize.width,
-                      height: _cartFlightSize.height,
-                      child: AbzioNetworkImage(
-                        imageUrl: images.first,
-                        fallbackLabel: product.name,
-                      ),
+                  child: SizedBox(
+                    width: _cartFlightSize.width,
+                    height: _cartFlightSize.height,
+                    child: AbzioNetworkImage(
+                      imageUrl: images.first,
+                      fallbackLabel: product.name,
                     ),
                   ),
                 ),
-                builder: (context, child) {
-                  final progress = _cartFlightController.value;
-                  final curved = Curves.easeInOutCubic.transform(progress);
-                  final current = Offset.lerp(_cartFlightStart, _cartFlightEnd, curved)!;
-                  final scale = lerpDouble(1, 0.28, curved)!;
-                  final opacity = lerpDouble(1, 0.0, Curves.easeIn.transform(progress))!;
-                  return Positioned(
-                    left: current.dx,
-                    top: current.dy,
+              ),
+              builder: (context, child) {
+                final progress = _cartFlightController.value;
+                final curved = Curves.easeInOutCubic.transform(progress);
+                final current = Offset.lerp(_cartFlightStart, _cartFlightEnd, curved)!;
+                final scale = lerpDouble(1, 0.28, curved)!;
+                final opacity = lerpDouble(1, 0.0, Curves.easeIn.transform(progress))!;
+                return Positioned(
+                  left: current.dx,
+                  top: current.dy,
+                  child: IgnorePointer(
                     child: Opacity(
                       opacity: opacity,
                       child: Transform.scale(
@@ -3144,9 +3144,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         child: child,
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
         ],
       ),

@@ -35,7 +35,7 @@ class CardVaultService {
         await Future<void>.delayed(const Duration(seconds: 20));
         yield await _fetchBackendCards();
       }
-    })();
+    })().asBroadcastStream();
   }
 
   Future<void> saveCardSummary(SavedCardSummary card) async {

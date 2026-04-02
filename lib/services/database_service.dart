@@ -4001,7 +4001,7 @@ class DatabaseService {
           orders.sort((a, b) => b.timestamp.compareTo(a.timestamp));
           yield orders;
         }
-      })();
+      })().asBroadcastStream();
     }
     return _watchQueryCollection(
       _ref('orders').orderByChild('userId').equalTo(userId),

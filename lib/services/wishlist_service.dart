@@ -14,7 +14,7 @@ class WishlistService {
         await Future<void>.delayed(const Duration(seconds: 20));
         yield await _fetchBackendWishlist();
       }
-    })();
+    })().asBroadcastStream();
   }
 
   Future<void> addToWishlist({

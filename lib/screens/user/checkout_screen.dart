@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
+import '../../services/app_config.dart';
 import '../../services/database_service.dart';
 import '../../services/payment_service.dart';
 import '../../theme.dart';
@@ -31,10 +32,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   bool _processing = false;
   bool _loadingAddresses = true;
-  bool _loadingCredits = true;
-  bool _loadingCouponOffer = true;
-  bool _loadingPricing = true;
-  String? _paymentMethod = 'UPI';
+  bool _loadingCredits = false;
+  bool _loadingCouponOffer = false;
+  bool _loadingPricing = false;
+  String? _paymentMethod = 'COD';
   UserAddress? _selectedAddress;
   List<UserAddress> _savedAddresses = const [];
   SmartCreditDecision? _creditDecision;
@@ -51,11 +52,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (!mounted) {
         return;
       }
-      _restorePaymentMethod();
+      _restorePaymentMethod(context.read<CartProvider>());
       _loadAddresses();
-      _loadSmartCredits();
-      _loadBestCouponOffer();
-      _loadMasterPricing();
     });
   }
 
@@ -110,13 +108,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  Future<void> _restorePaymentMethod() async {
+  Future<void> _restorePaymentMethod([CartProvider? cart]) async {
+    final activeCart = cart ?? context.read<CartProvider>();
+    final fallbackMethod = _isCodAvailable(activeCart) ? 'COD' : 'UPI';
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_lastPaymentMethodKey);
-    if (!mounted || saved == null || saved.isEmpty) {
+    if (!mounted) {
       return;
     }
-    setState(() => _paymentMethod = saved);
+
+    final normalized = (saved ?? '').trim().toUpperCase();
+    final resolvedMethod = normalized.isEmpty
+        ? fallbackMethod
+        : (normalized == 'COD' && !_isCodAvailable(activeCart) ? fallbackMethod : normalized);
+
+    if (_paymentMethod == resolvedMethod) {
+      return;
+    }
+    setState(() => _paymentMethod = resolvedMethod);
   }
 
   Future<void> _rememberPaymentMethod(String method) async {
@@ -468,7 +477,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _placeOrder(CartProvider cart) async {
+    debugPrint('ABZORA checkout: place order tapped');
     if (_processing) {
+      debugPrint('ABZORA checkout: ignored because processing is true');
       return;
     }
 
@@ -510,12 +521,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       return;
     }
+    if (_usesOnlinePayment(selectedPaymentMethod) && !AppConfig.hasRazorpayKey) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Online payment is not available right now. Please choose Cash on Delivery.'),
+        ),
+      );
+      return;
+    }
+    if (_usesOnlinePayment(selectedPaymentMethod) &&
+        _database.usesBackendCommerce &&
+        (!AppConfig.hasRazorpayOrderEndpoint || !AppConfig.hasRazorpayVerificationEndpoint)) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Secure online payment is not ready right now. Please choose another payment method.'),
+        ),
+      );
+      return;
+    }
 
     setState(() => _processing = true);
+    debugPrint('ABZORA checkout: processing started with method=$selectedPaymentMethod');
     unawaited(_rememberPaymentMethod(selectedPaymentMethod));
 
     try {
       final payableAmount = _totalAmount(cart);
+      debugPrint('ABZORA checkout: payable amount=$payableAmount items=${cart.items.length}');
       final orderItems = cart.items
           .map(
             (item) => OrderItem(
@@ -539,6 +570,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       late final OrderModel placedOrder;
 
       if (_database.usesBackendCommerce && _usesOnlinePayment(selectedPaymentMethod)) {
+        debugPrint('ABZORA checkout: backend commerce online payment branch');
         final pendingOrder = await _database.placeOrdersForCart(
           actor: currentUser,
           items: orderItems,
@@ -553,8 +585,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           isPaymentVerified: false,
         );
         if (!mounted) {
+          debugPrint('ABZORA checkout: unmounted after pending order creation');
           return;
         }
+        debugPrint('ABZORA checkout: pending order created id=${pendingOrder.id}');
         final paymentResult = await PaymentService().processCheckout(
           context: context,
           userId: currentUser.id,
@@ -566,6 +600,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           description: cart.hasCustomTailoring ? 'Custom clothing checkout' : 'Marketplace checkout',
         );
         if (!paymentResult.success) {
+          debugPrint('ABZORA checkout: payment failed or cancelled');
           if (mounted) {
             messenger.showSnackBar(
               const SnackBar(content: Text('Payment was not completed.')),
@@ -575,12 +610,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
         paymentReference = paymentResult.paymentId ?? paymentResult.externalWallet ?? paymentResult.orderId;
         paymentVerified = paymentResult.isVerified;
+        debugPrint('ABZORA checkout: payment success verified=$paymentVerified ref=$paymentReference');
         final refreshedOrders = await _database.getUserOrdersOnce(currentUser.id);
         placedOrder = refreshedOrders.cast<OrderModel?>().firstWhere(
               (item) => item?.id == pendingOrder.id,
               orElse: () => pendingOrder,
             )!;
       } else {
+        debugPrint('ABZORA checkout: direct order branch online=${_usesOnlinePayment(selectedPaymentMethod)}');
         if (_usesOnlinePayment(selectedPaymentMethod)) {
           final paymentResult = await PaymentService().processCheckout(
             context: context,
@@ -592,6 +629,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             description: cart.hasCustomTailoring ? 'Custom clothing checkout' : 'Marketplace checkout',
           );
           if (!paymentResult.success) {
+            debugPrint('ABZORA checkout: direct payment failed or cancelled');
             if (mounted) {
               messenger.showSnackBar(
                 const SnackBar(content: Text('Payment was not completed.')),
@@ -601,6 +639,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           }
           paymentReference = paymentResult.paymentId ?? paymentResult.externalWallet ?? paymentResult.orderId;
           paymentVerified = paymentResult.isVerified;
+          debugPrint('ABZORA checkout: direct payment success verified=$paymentVerified ref=$paymentReference');
         }
 
         placedOrder = await _database.placeOrdersForCart(
@@ -618,45 +657,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       }
 
-      final appliedCoupon = cart.appliedCoupon;
-      if (appliedCoupon != null) {
-        unawaited(
-          _database.markGrowthOfferClaimed(
-            userId: currentUser.id,
-            code: appliedCoupon,
-          ),
-        );
-      }
-      final pricingDecision = _pricingDecision;
-      if (pricingDecision != null) {
-        unawaited(
-          _database.logMasterPricingDecision(
-            user: currentUser,
-            decision: pricingDecision,
-            orderId: placedOrder.id,
-          ),
-        );
-      }
-
-      cart.clear();
+      debugPrint('ABZORA checkout: placed order id=${placedOrder.id}');
 
       if (!mounted) {
+        debugPrint('ABZORA checkout: unmounted before success navigation');
         return;
       }
 
+      debugPrint('ABZORA checkout: navigating to success screen');
       navigator.pushReplacement(
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 320),
-          pageBuilder: (context, animation, secondaryAnimation) => FadeTransition(
-            opacity: animation,
-            child: OrderSuccessScreen(
-              orderId: placedOrder.invoiceNumber.isEmpty ? placedOrder.id : placedOrder.invoiceNumber,
-              estimatedDelivery: _estimateDeliveryDate(placedOrder),
-            ),
+        MaterialPageRoute(
+          builder: (_) => OrderSuccessScreen(
+            orderId: placedOrder.invoiceNumber.isEmpty ? placedOrder.id : placedOrder.invoiceNumber,
+            estimatedDelivery: _estimateDeliveryDate(placedOrder),
           ),
         ),
       );
     } catch (error) {
+      debugPrint('ABZORA checkout: exception=$error');
       if (!mounted) {
         return;
       }
@@ -669,6 +687,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
     } finally {
       if (mounted) {
+        debugPrint('ABZORA checkout: processing finished');
         setState(() => _processing = false);
       }
     }
@@ -937,9 +956,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Column(
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final stackVertically = constraints.maxWidth < 340;
+                    final totalBlock = Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
@@ -949,80 +969,115 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         const SizedBox(height: 2),
                         Text(
                           currency.format(total),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
                         ),
                       ],
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFE1C768), AbzioTheme.accentColor],
-                          ),
-                          borderRadius: BorderRadius.circular(18),
+                    );
+
+                    final actionButton = DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFE1C768), AbzioTheme.accentColor],
                         ),
-                        child: ElevatedButton(
-                          onPressed: _processing ? null : () => _placeOrder(cart),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            minimumSize: const Size.fromHeight(58),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
-                            ),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: ElevatedButton(
+                        onPressed: _processing ? null : () => _placeOrder(cart),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          minimumSize: const Size.fromHeight(54),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
                           ),
-                          child: _processing
-                              ? const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      height: 18,
-                                      width: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.2,
-                                        color: Colors.white,
-                                      ),
+                        ),
+                        child: _processing
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    height: 18,
+                                    width: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      color: Colors.white,
                                     ),
-                                    SizedBox(width: 12),
-                                    Text(
+                                  ),
+                                  SizedBox(width: 10),
+                                  Flexible(
+                                    child: Text(
                                       'Processing...',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                  ],
-                                )
-                              : Text(
-                                  _ctaLabel(cart, currency),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 15,
                                   ),
+                                ],
+                              )
+                            : Text(
+                                _ctaLabel(cart, currency),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
                                 ),
-                        ),
+                              ),
                       ),
-                    ),
-                  ],
+                    );
+
+                    if (stackVertically) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          totalBlock,
+                          const SizedBox(height: 12),
+                          actionButton,
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        Flexible(
+                          flex: 4,
+                          child: totalBlock,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 6,
+                          child: actionButton,
+                        ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.lock_outline_rounded, size: 16, color: context.abzioSecondaryText),
                     const SizedBox(width: 8),
-                      Text(
+                    Expanded(
+                      child: Text(
                         _isCodAvailable(cart)
                             ? '100% secure payments | COD available | Easy returns'
                             : '100% secure payments | Fast delivery | Easy returns',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: context.abzioSecondaryText,
                               fontWeight: FontWeight.w600,
-                          ),
+                            ),
+                      ),
                     ),
                   ],
                 ),

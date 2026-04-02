@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -14,6 +12,7 @@ import '../../providers/wishlist_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
 import '../../widgets/state_views.dart';
+import 'checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -36,6 +35,7 @@ class _CartScreenState extends State<CartScreen> {
   final Set<String> _animatingAddIds = <String>{};
   int? _selectedDonation;
   bool _offersExpanded = false;
+  bool _openingCheckout = false;
 
   @override
   void didChangeDependencies() {
@@ -169,6 +169,20 @@ class _CartScreenState extends State<CartScreen> {
     return cart.totalAmount + _platformFee(cart) + _deliveryFee(cart);
   }
 
+  Future<void> _openCheckout() async {
+    if (_openingCheckout || !mounted) {
+      return;
+    }
+    _openingCheckout = true;
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const CheckoutScreen()),
+      );
+    } finally {
+      _openingCheckout = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -194,175 +208,178 @@ class _CartScreenState extends State<CartScreen> {
             final completeLookFuture =
                 _completeTheLookFuture ?? Future<List<Product>>.value(const []);
 
-            return Stack(
-              children: [
-                CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: _BagHeader(
-                        savingsLabel: _currency.format(totalSavings),
-                        onBack: () => Navigator.pop(context),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-                      sliver: SliverList(
-                        delegate: SliverChildListDelegate(
-                          [
-                            _AddressCard(
-                              user: auth.user,
-                              deliveryEstimate: _deliveryEstimate(cart),
-                              addressLine: _addressLine(auth.user),
+            return CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: _BagHeader(
+                    savingsLabel: _currency.format(totalSavings),
+                    onBack: () => Navigator.pop(context),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate(
+                      [
+                        _AddressCard(
+                          user: auth.user,
+                          deliveryEstimate: _deliveryEstimate(cart),
+                          addressLine: _addressLine(auth.user),
+                        ),
+                        const SizedBox(height: 16),
+                        FutureBuilder<List<Product>>(
+                          future: dealsFuture,
+                          builder: (context, snapshot) {
+                            final products = (snapshot.data ?? const <Product>[])
+                                .where((product) => !cart.items.any(
+                                      (item) => item.product.id == product.id,
+                                    ))
+                                .take(6)
+                                .toList();
+                            return _DealsUnlockSection(
+                              amountLeft: (500 - cart.subtotal)
+                                  .clamp(0.0, double.infinity),
+                              products: products,
+                              currency: _currency,
+                              animatingIds: _animatingAddIds,
+                              onAdd: _addSuggestionToCart,
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        ...cart.items.map(
+                          (item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: _CartLineItem(
+                              item: item,
+                              currency: _currency,
+                              onDecrease: () => cart.updateQuantity(
+                                item.product.id,
+                                item.size,
+                                -1,
+                              ),
+                              onIncrease: () => cart.updateQuantity(
+                                item.product.id,
+                                item.size,
+                                1,
+                              ),
+                              onRemove: () => cart.removeFromCart(
+                                item.product.id,
+                                item.size,
+                              ),
+                              onMoveToWishlist: () => _moveToWishlist(item),
+                              onSelectSize: (size) =>
+                                  _changeSize(cart, item, size),
                             ),
-                            const SizedBox(height: 16),
-                            FutureBuilder<List<Product>>(
-                              future: dealsFuture,
-                              builder: (context, snapshot) {
-                                final products = (snapshot.data ?? const <Product>[])
-                                    .where((product) => !cart.items.any(
-                                          (item) => item.product.id == product.id,
-                                        ))
-                                    .take(6)
-                                    .toList();
-                                return _DealsUnlockSection(
-                                  amountLeft: (500 - cart.subtotal)
-                                      .clamp(0.0, double.infinity),
-                                  products: products,
-                                  currency: _currency,
-                                  animatingIds: _animatingAddIds,
-                                  onAdd: _addSuggestionToCart,
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            ...cart.items.map(
-                              (item) => Padding(
-                                padding: const EdgeInsets.only(bottom: 14),
-                                child: _CartLineItem(
-                                  item: item,
-                                  currency: _currency,
-                                  onDecrease: () => cart.updateQuantity(
-                                    item.product.id,
-                                    item.size,
-                                    -1,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _OffersSection(
+                          expanded: _offersExpanded,
+                          onToggle: () => setState(
+                            () => _offersExpanded = !_offersExpanded,
+                          ),
+                          appliedCoupon: cart.appliedCoupon,
+                        ),
+                        const SizedBox(height: 16),
+                        _DonationSection(
+                          selectedAmount: _selectedDonation,
+                          onSelect: (value) =>
+                              setState(() => _selectedDonation = value),
+                        ),
+                        const SizedBox(height: 16),
+                        FutureBuilder<List<Product>>(
+                          future: completeLookFuture,
+                          builder: (context, snapshot) {
+                            final fallback = productProvider.trendingProducts
+                                .where((product) => !cart.items.any(
+                                      (item) => item.product.id == product.id,
+                                    ))
+                                .take(6)
+                                .toList();
+                            final suggestions = (snapshot.data?.isNotEmpty ?? false)
+                                ? snapshot.data!
+                                : fallback;
+                            return _RecommendationsSection(
+                              title: 'You may also like',
+                              products: suggestions,
+                              currency: _currency,
+                              animatingIds: _animatingAddIds,
+                              onAdd: _addSuggestionToCart,
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _PriceDetailsCard(
+                          currency: _currency,
+                          totalMrp: _originalMrp(cart),
+                          discount: _totalSavings(cart),
+                          deliveryFee: _deliveryFee(cart),
+                          platformFee: _platformFee(cart),
+                          totalAmount: totalAmount,
+                        ),
+                        const SizedBox(height: 12),
+                        _ReminderButton(
+                          onTap: () async {
+                            final user = auth.user;
+                            if (user == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Sign in to save a reminder for this bag.',
                                   ),
-                                  onIncrease: () => cart.updateQuantity(
-                                    item.product.id,
-                                    item.size,
-                                    1,
+                                ),
+                              );
+                              return;
+                            }
+                            final items = cart.items
+                                .map(
+                                  (item) => OrderItem(
+                                    productId: item.product.id,
+                                    productName: item.product.name,
+                                    quantity: item.quantity,
+                                    price: item.product.effectivePrice,
+                                    size: item.size,
+                                    imageUrl: item.product.images.isNotEmpty
+                                        ? item.product.images.first
+                                        : '',
                                   ),
-                                  onRemove: () => cart.removeFromCart(
-                                    item.product.id,
-                                    item.size,
-                                  ),
-                                  onMoveToWishlist: () => _moveToWishlist(item),
-                                  onSelectSize: (size) =>
-                                      _changeSize(cart, item, size),
+                                )
+                                .toList();
+                            await _database.createAbandonedCartReminder(
+                              user: user,
+                              items: items,
+                            );
+                            if (!context.mounted) {
+                              return;
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'We will remind you to come back to your bag.',
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            _OffersSection(
-                              expanded: _offersExpanded,
-                              onToggle: () => setState(
-                                () => _offersExpanded = !_offersExpanded,
-                              ),
-                              appliedCoupon: cart.appliedCoupon,
-                            ),
-                            const SizedBox(height: 16),
-                            _DonationSection(
-                              selectedAmount: _selectedDonation,
-                              onSelect: (value) =>
-                                  setState(() => _selectedDonation = value),
-                            ),
-                            const SizedBox(height: 16),
-                            FutureBuilder<List<Product>>(
-                              future: completeLookFuture,
-                              builder: (context, snapshot) {
-                                final fallback = productProvider.trendingProducts
-                                    .where((product) => !cart.items.any(
-                                          (item) => item.product.id == product.id,
-                                        ))
-                                    .take(6)
-                                    .toList();
-                                final suggestions = (snapshot.data?.isNotEmpty ?? false)
-                                    ? snapshot.data!
-                                    : fallback;
-                                return _RecommendationsSection(
-                                  title: 'You may also like',
-                                  products: suggestions,
-                                  currency: _currency,
-                                  animatingIds: _animatingAddIds,
-                                  onAdd: _addSuggestionToCart,
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            _PriceDetailsCard(
-                              currency: _currency,
-                              totalMrp: _originalMrp(cart),
-                              discount: _totalSavings(cart),
-                              deliveryFee: _deliveryFee(cart),
-                              platformFee: _platformFee(cart),
-                              totalAmount: totalAmount,
-                            ),
-                            const SizedBox(height: 12),
-                            _ReminderButton(
-                              onTap: () async {
-                                final user = auth.user;
-                                if (user == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Sign in to save a reminder for this bag.',
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
-                                final items = cart.items
-                                    .map(
-                                      (item) => OrderItem(
-                                        productId: item.product.id,
-                                        productName: item.product.name,
-                                        quantity: item.quantity,
-                                        price: item.product.effectivePrice,
-                                        size: item.size,
-                                        imageUrl: item.product.images.isNotEmpty
-                                            ? item.product.images.first
-                                            : '',
-                                      ),
-                                    )
-                                    .toList();
-                                await _database.createAbandonedCartReminder(
-                                  user: user,
-                                  items: items,
-                                );
-                                if (!context.mounted) {
-                                  return;
-                                }
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'We will remind you to come back to your bag.',
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
+                            );
+                          },
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-                _BagFooter(
-                  amountLabel: _currency.format(totalAmount),
-                  onViewDetails: () {},
-                  onPlaceOrder: () => Navigator.pushNamed(context, '/checkout'),
+                  ),
                 ),
               ],
+            );
+          },
+        ),
+        bottomNavigationBar: Consumer<CartProvider>(
+          builder: (context, cart, _) {
+            if (cart.items.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return _BagFooter(
+              amountLabel: _currency.format(_totalAmount(cart)),
+              onViewDetails: () {},
+              onPlaceOrder: _openCheckout,
             );
           },
         ),
@@ -505,38 +522,44 @@ class _StepperDot extends StatelessWidget {
         : const Color(0xFFCAC7BF);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Column(
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: active || complete
-                  ? dotColor.withValues(alpha: 0.16)
-                  : const Color(0xFFF0EFEB),
-              shape: BoxShape.circle,
-              border: Border.all(color: dotColor, width: 1.2),
+      child: SizedBox(
+        width: 54,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: active || complete
+                    ? dotColor.withValues(alpha: 0.16)
+                    : const Color(0xFFF0EFEB),
+                shape: BoxShape.circle,
+                border: Border.all(color: dotColor, width: 1.2),
+              ),
+              child: Icon(
+                complete ? Icons.check_rounded : Icons.circle,
+                size: complete ? 16 : 8,
+                color: dotColor,
+              ),
             ),
-            child: Icon(
-              complete ? Icons.check_rounded : Icons.circle,
-              size: complete ? 16 : 8,
-              color: dotColor,
+            const SizedBox(height: 6),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    color: active || complete
+                        ? const Color(0xFF403A2C)
+                        : const Color(0xFF8C877A),
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: active || complete
-                      ? const Color(0xFF403A2C)
-                      : const Color(0xFF8C877A),
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -964,14 +987,15 @@ class _CartLineItem extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 10),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
                   children: [
                     _InlineAction(
                       icon: Icons.delete_outline_rounded,
                       label: 'Remove',
                       onTap: onRemove,
                     ),
-                    const SizedBox(width: 8),
                     _InlineAction(
                       icon: Icons.favorite_border_rounded,
                       label: 'Move to wishlist',
@@ -1688,91 +1712,99 @@ class _BagFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: SafeArea(
-        top: false,
-        child: ClipRRect(
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          border: Border(top: BorderSide(color: const Color(0xFFF0ECE2))),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 18,
+              offset: const Offset(0, -6),
+            ),
+          ],
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final stackVertically = constraints.maxWidth < 340;
+            final amountBlock = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  amountLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: const Color(0xFF201F1B),
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                InkWell(
+                  onTap: onViewDetails,
+                  child: Text(
+                    'View Details',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF6A655A),
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+              ],
+            );
+
+            final actionButton = DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.55)),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFD6B76F), Color(0xFFBC9543)],
+                ),
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 26,
-                    offset: const Offset(0, -8),
+                    color: const Color(0xFFC8A95D).withValues(alpha: 0.25),
+                    blurRadius: 14,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
-              child: Row(
+              child: ElevatedButton(
+                onPressed: onPlaceOrder,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(54),
+                ),
+                child: const Text('PLACE ORDER'),
+              ),
+            );
+
+            if (stackVertically) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          amountLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                color: const Color(0xFF201F1B),
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        const SizedBox(height: 2),
-                        InkWell(
-                          onTap: onViewDetails,
-                          child: Text(
-                            'View Details',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: const Color(0xFF6A655A),
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFD6B76F), Color(0xFFBC9543)],
-                        ),
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFC8A95D).withValues(alpha: 0.34),
-                            blurRadius: 18,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: ElevatedButton(
-                        onPressed: onPlaceOrder,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.fromHeight(54),
-                        ),
-                        child: const Text('PLACE ORDER'),
-                      ),
-                    ),
-                  ),
+                  amountBlock,
+                  const SizedBox(height: 12),
+                  actionButton,
                 ],
-              ),
-            ),
-          ),
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: amountBlock),
+                const SizedBox(width: 14),
+                Expanded(child: actionButton),
+              ],
+            );
+          },
         ),
       ),
     );

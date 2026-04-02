@@ -215,60 +215,63 @@ class _AbzioImageFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.surface,
-            Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
-            Theme.of(context).inputDecorationTheme.fillColor ?? Theme.of(context).cardColor,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AbzioTheme.accentColor.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(99),
-                border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.36)),
-              ),
-              child: Text(
-                'PREMIUM EDIT',
-                style: GoogleFonts.poppins(
-                  color: AbzioTheme.accentColor,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    height: 1.1,
-                  ),
-                ),
+    final theme = Theme.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final shortestSide = constraints.biggest.shortestSide;
+        final compact = shortestSide < 64;
+        final ultraCompact = shortestSide < 40;
+        final iconSize = ultraCompact ? 14.0 : (compact ? 18.0 : 28.0);
+        final labelText = label.trim().isEmpty ? 'ABZORA' : label.trim();
+
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.colorScheme.surface,
+                theme.colorScheme.surface.withValues(alpha: 0.92),
+                theme.inputDecorationTheme.fillColor ?? theme.cardColor,
               ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ],
-        ),
-      ),
+          ),
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(ultraCompact ? 4 : (compact ? 8 : 16)),
+              child: compact
+                  ? Icon(
+                      Icons.image_outlined,
+                      size: iconSize,
+                      color: AbzioTheme.accentColor.withValues(alpha: 0.78),
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.image_outlined,
+                          size: iconSize,
+                          color: AbzioTheme.accentColor.withValues(alpha: 0.82),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          labelText,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            color: theme.colorScheme.onSurface,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -196,13 +196,15 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void clear() {
+  void clear({bool trackActivity = true}) {
     _items.clear();
     _appliedCoupon = null;
     _discountPercentage = 0.0;
     _fixedDiscountAmount = 0.0;
     _lastInteractionAt = null;
-    unawaited(_track('cleared'));
+    if (trackActivity) {
+      unawaited(_track('cleared'));
+    }
     notifyListeners();
   }
 }
