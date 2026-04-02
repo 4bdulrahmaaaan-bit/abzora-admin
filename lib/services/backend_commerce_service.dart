@@ -1181,6 +1181,7 @@ class BackendCommerceService {
     return {
       if (includeStoreId) 'storeId': product.storeId,
       'name': product.name,
+      'brand': product.brand,
       'price': product.price,
       'description': product.description,
       'stock': product.stock,
@@ -1247,6 +1248,8 @@ class BackendCommerceService {
       map['brandName']?.toString(),
       map['vendorName']?.toString(),
       map['merchantName']?.toString(),
+      map['storeName']?.toString(),
+      map['store'] is Map ? map['store']['name']?.toString() : null,
     ].map((value) => value?.trim() ?? '').firstWhere(
           (value) => value.isNotEmpty,
           orElse: () => '',
@@ -1258,6 +1261,7 @@ class BackendCommerceService {
         'name': map['name'],
         'brand': resolvedBrand,
         'brandName': map['brandName'],
+        'storeName': map['storeName'],
         'description': map['description'] ?? '',
         'price': map['price'] ?? 0,
         'basePrice': map['basePrice'] ?? map['price'],
