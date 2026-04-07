@@ -107,25 +107,34 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> with TickerPr
             }
 
             return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
                 _OrderHeroCard(order: selectedOrder),
-                const SizedBox(height: 16),
-                _CurrentStatusCard(order: selectedOrder),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: context.abzioBorder),
-                    boxShadow: context.abzioShadow,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Tracking Timeline', style: Theme.of(context).textTheme.titleLarge),
-                      const SizedBox(height: 18),
+                      Text(
+                        'Order Status',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
                       TrackingTimeline(
                         steps: _buildSteps(selectedOrder),
                         progressAnimation: _trackingAnimation.progress,
@@ -134,44 +143,33 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> with TickerPr
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                FutureBuilder<AppUser?>(
-                  future: _riderFor(selectedOrder),
-                  builder: (context, riderSnapshot) {
-                    return _RiderDetailsCard(
-                      order: selectedOrder,
-                      rider: riderSnapshot.data,
-                      onCall: () => _handleCallAction(riderSnapshot.data),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                _DeliveryDetailsCard(order: selectedOrder),
+                const SizedBox(height: 12),
                 _ProductSummaryCard(order: selectedOrder),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 _ActionPanel(
+                  actor: user,
                   order: selectedOrder,
                   refundRequestFuture: _database.getRefundRequestForOrder(selectedOrder.id, actor: user),
                   returnRequestFuture: _database.getReturnRequestForOrder(selectedOrder.id, actor: user),
                   canCancel: _canCancel(selectedOrder),
-                  onCall: () async {
-                    final rider = await _riderFor(selectedOrder);
-                    if (!mounted) {
-                      return;
-                    }
-                    _handleCallAction(rider);
-                  },
+                  onSupport: () => _toast('Support is ready to help with delivery and order updates.'),
                   onCancel: () => _cancelOrder(selectedOrder),
-                  onRequestReturn: () => _requestReturn(selectedOrder, user),
-                  onRequestRefund: () => _requestRefund(selectedOrder, user),
-                  onHelp: () => _toast('AI Assistant can help with returns, refunds, and delivery updates.'),
+                  onReorder: () => Navigator.popUntil(context, (route) => route.isFirst),
                 ),
                 if (selectedOrder.trackingId.isEmpty) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   _TrackingEmptyHint(order: selectedOrder),
                 ],
                 if (orders.length > 1) ...[
-                  const SizedBox(height: 20),
-                  Text('Your Recent Orders', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Recent Orders',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
                   const SizedBox(height: 12),
                   ...orders.map(
                     (order) => Padding(
@@ -200,13 +198,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> with TickerPr
     final resolved = selected ?? orders.first;
     _selectedOrderId ??= resolved.id;
     return resolved;
-  }
-
-  Future<AppUser?> _riderFor(OrderModel order) async {
-    if (order.riderId == null || order.riderId!.isEmpty) {
-      return null;
-    }
-    return _database.getUser(order.riderId!);
   }
 
   int _currentStepIndex(OrderModel order) {
@@ -334,155 +325,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> with TickerPr
     _toast('Your order has been cancelled.');
   }
 
-  Future<void> _requestRefund(OrderModel order, AppUser user) async {
-    final controller = TextEditingController();
-    try {
-      final reason = await showDialog<String>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Request refund'),
-          content: TextField(
-            controller: controller,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              hintText: 'Tell us what went wrong with this order',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text),
-              child: const Text('Submit request'),
-            ),
-          ],
-        ),
-      );
-
-      if ((reason ?? '').trim().isEmpty) {
-        return;
-      }
-
-      final refund = await _database.createRefundRequest(
-        orderId: order.id,
-        reason: reason!.trim(),
-        actor: user,
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {});
-      if (refund.status.toLowerCase() == 'rejected') {
-        _toast(refund.rejectionReason ?? 'This refund request was blocked for safety reasons.');
-      } else if (refund.fraudDecision.toLowerCase() == 'review') {
-        _toast('Refund request submitted for manual review.');
-      } else {
-        _toast('Refund request submitted successfully.');
-      }
-    } on StateError catch (error) {
-      if (!mounted) {
-        return;
-      }
-      _toast(error.message.toString());
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      _toast('Refund request could not be submitted right now.');
-    } finally {
-      controller.dispose();
-    }
-  }
-
-  Future<void> _requestReturn(OrderModel order, AppUser user) async {
-    final reasonController = TextEditingController();
-    final imageController = TextEditingController();
-    try {
-      final payload = await showDialog<Map<String, String>>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Return item'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: reasonController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  hintText: 'Tell us why you want to return this item',
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: imageController,
-                decoration: const InputDecoration(
-                  hintText: 'Optional image URL',
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop({
-                'reason': reasonController.text,
-                'imageUrl': imageController.text,
-              }),
-              child: const Text('Submit return'),
-            ),
-          ],
-        ),
-      );
-
-      final reason = (payload?['reason'] ?? '').trim();
-      if (reason.isEmpty) {
-        return;
-      }
-
-      final request = await _database.createReturnRequest(
-        orderId: order.id,
-        reason: reason,
-        actor: user,
-        imageUrl: (payload?['imageUrl'] ?? '').trim(),
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {});
-      _toast(
-        request.status.toLowerCase() == 'assigned'
-            ? 'Pickup has been scheduled for your return.'
-            : 'Return request submitted successfully. Pickup will be scheduled.',
-      );
-    } on StateError catch (error) {
-      if (!mounted) {
-        return;
-      }
-      _toast(error.message.toString());
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      _toast('Return request could not be submitted right now.');
-    } finally {
-      reasonController.dispose();
-      imageController.dispose();
-    }
-  }
-
-  void _handleCallAction(AppUser? rider) {
-    if (rider?.phone != null && rider!.phone!.trim().isNotEmpty) {
-      _toast('Call ${rider.phone}');
-      return;
-    }
-    _toast('Delivery partner contact will appear once assigned.');
-  }
-
   void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
@@ -497,192 +339,46 @@ class _OrderHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final eta = DateFormat('dd MMM').format(
+    final eta = DateFormat('EEE, dd MMM').format(
       order.timestamp.add(Duration(days: order.orderType == 'custom_tailoring' ? 6 : 3)),
     );
     final orderLabel = order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AbzioTheme.accentColor.withValues(alpha: 0.18),
-            Colors.white,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.4)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.abzioBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Arriving by $eta', style: Theme.of(context).textTheme.displayMedium?.copyWith(fontSize: 28)),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 18,
-            runSpacing: 10,
-            children: [
-              _MetaBlock(label: 'Order ID', value: orderLabel),
-              _MetaBlock(label: 'Order date', value: DateFormat('dd MMM yyyy').format(order.timestamp)),
-              _MetaBlock(label: 'Delivery ETA', value: DateFormat('dd MMM yyyy').format(order.timestamp.add(Duration(days: order.orderType == 'custom_tailoring' ? 6 : 3)))),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetaBlock extends StatelessWidget {
-  const _MetaBlock({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.bodyMedium),
-        const SizedBox(height: 4),
-        Text(value, style: Theme.of(context).textTheme.titleMedium),
-      ],
-    );
-  }
-}
-
-class _CurrentStatusCard extends StatelessWidget {
-  const _CurrentStatusCard({required this.order});
-
-  final OrderModel order;
-
-  @override
-  Widget build(BuildContext context) {
-    final normalized = (order.deliveryStatus.isNotEmpty ? order.deliveryStatus : order.status).trim();
-    final title = normalized.isEmpty ? 'Tracking not available yet' : normalized;
-    final lower = normalized.toLowerCase();
-    String subtitle;
-    if (lower == 'out for delivery' || lower == 'shipped') {
-      subtitle = 'Your order is on the way and should arrive soon.';
-    } else if (lower == 'delivered') {
-      subtitle = 'Your order has arrived successfully.';
-    } else if (lower == 'packed') {
-      subtitle = 'Your items are packed and preparing for dispatch.';
-    } else if (lower == 'confirmed') {
-      subtitle = 'Your order has been confirmed by the store.';
-    } else if (lower == 'cancelled') {
-      subtitle = 'This order has been cancelled.';
-    } else {
-      subtitle = 'Your order is confirmed and being prepared.';
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: context.abzioBorder),
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 54,
-            width: 54,
-            decoration: BoxDecoration(
-              color: AbzioTheme.accentColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(Icons.local_shipping_outlined, color: AbzioTheme.accentColor),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 4),
-                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RiderDetailsCard extends StatelessWidget {
-  const _RiderDetailsCard({
-    required this.order,
-    required this.rider,
-    required this.onCall,
-  });
-
-  final OrderModel order;
-  final AppUser? rider;
-  final VoidCallback onCall;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasRider = rider != null || order.assignedDeliveryPartner != 'Unassigned';
-    final riderName = rider?.name ?? order.assignedDeliveryPartner;
-    final riderPhone = rider?.phone;
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: context.abzioBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Delivery Partner', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 14),
-          if (!hasRider)
-            Text(
-              'A delivery partner will be assigned once your order is ready to move.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            )
-          else
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: AbzioTheme.accentColor.withValues(alpha: 0.16),
-                  child: Text(
-                    riderName.isEmpty ? 'A' : riderName.substring(0, 1).toUpperCase(),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AbzioTheme.accentColor),
-                  ),
+          Text(
+            'Order #$orderLabel',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(riderName, style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 4),
-                      Text(
-                        riderPhone?.trim().isNotEmpty == true ? riderPhone! : 'Phone will appear once available',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Arriving by $eta',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: context.abzioSecondaryText,
+                  fontWeight: FontWeight.w600,
                 ),
-                FilledButton.icon(
-                  onPressed: onCall,
-                  icon: const Icon(Icons.call_outlined),
-                  label: const Text('Call'),
-                ),
-              ],
-            ),
+          ),
         ],
       ),
     );
@@ -697,35 +393,40 @@ class _ProductSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.abzioBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Order Summary', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 14),
+          Text(
+            'Product Summary',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 10),
           ...order.items.map(
             (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 10),
               child: Row(
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: item.imageUrl.isEmpty
                         ? Container(
-                            height: 74,
-                            width: 74,
+                            height: 72,
+                            width: 72,
                             color: context.abzioMuted,
                             child: Icon(Icons.checkroom_outlined, color: context.abzioSecondaryText),
                           )
                         : CachedNetworkImage(
                             imageUrl: item.imageUrl,
-                            height: 74,
-                            width: 74,
+                            height: 72,
+                            width: 72,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => Container(color: context.abzioMuted),
                             errorWidget: (context, url, error) => Container(
@@ -734,24 +435,35 @@ class _ProductSummaryCard extends StatelessWidget {
                             ),
                           ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(item.productName, style: Theme.of(context).textTheme.titleMedium),
+                        Text(
+                          item.productName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           'Qty ${item.quantity}${item.size.trim().isNotEmpty ? ' • Size ${item.size}' : ''}',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: context.abzioSecondaryText,
+                              ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Text(
                     'Rs ${(item.price * item.quantity).toStringAsFixed(0)}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ],
               ),
@@ -763,174 +475,442 @@ class _ProductSummaryCard extends StatelessWidget {
   }
 }
 
+class _DeliveryDetailsCard extends StatelessWidget {
+  const _DeliveryDetailsCard({required this.order});
+
+  final OrderModel order;
+
+  @override
+  Widget build(BuildContext context) {
+    final recipient = order.shippingLabel.trim().isEmpty ? 'ABZORA Member' : order.shippingLabel.trim();
+    final address = order.shippingAddress.trim().isEmpty
+        ? 'Delivery address will appear here once available.'
+        : order.shippingAddress.trim();
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.abzioBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AbzioTheme.accentColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.location_on_outlined, size: 18, color: AbzioTheme.accentColor),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  recipient,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  address,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: context.abzioSecondaryText,
+                        height: 1.25,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ActionPanel extends StatelessWidget {
   const _ActionPanel({
+    required this.actor,
     required this.order,
     required this.refundRequestFuture,
     required this.returnRequestFuture,
     required this.canCancel,
-    required this.onCall,
+    required this.onSupport,
     required this.onCancel,
-    required this.onRequestReturn,
-    required this.onRequestRefund,
-    required this.onHelp,
+    required this.onReorder,
   });
 
+  final AppUser actor;
   final OrderModel order;
   final Future<RefundRequest?> refundRequestFuture;
   final Future<ReturnRequest?> returnRequestFuture;
   final bool canCancel;
-  final VoidCallback onCall;
+  final VoidCallback onSupport;
   final VoidCallback onCancel;
-  final VoidCallback onRequestReturn;
-  final VoidCallback onRequestRefund;
-  final VoidCallback onHelp;
+  final VoidCallback onReorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ActionPanelBody(
+      actor: actor,
+      order: order,
+      refundRequestFuture: refundRequestFuture,
+      returnRequestFuture: returnRequestFuture,
+      canCancel: canCancel,
+      onSupport: onSupport,
+      onCancel: onCancel,
+      onReorder: onReorder,
+    );
+  }
+}
+
+class _ActionPanelBody extends StatefulWidget {
+  const _ActionPanelBody({
+    required this.actor,
+    required this.order,
+    required this.refundRequestFuture,
+    required this.returnRequestFuture,
+    required this.canCancel,
+    required this.onSupport,
+    required this.onCancel,
+    required this.onReorder,
+  });
+
+  final AppUser actor;
+  final OrderModel order;
+  final Future<RefundRequest?> refundRequestFuture;
+  final Future<ReturnRequest?> returnRequestFuture;
+  final bool canCancel;
+  final VoidCallback onSupport;
+  final VoidCallback onCancel;
+  final VoidCallback onReorder;
+
+  @override
+  State<_ActionPanelBody> createState() => _ActionPanelBodyState();
+}
+
+class _ActionPanelBodyState extends State<_ActionPanelBody> {
+  final DatabaseService _database = DatabaseService();
+  RefundRequest? _refundRequest;
+  ReturnRequest? _returnRequest;
+  bool _loading = true;
+  bool _submittingRefund = false;
+  bool _submittingReturn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRequests();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ActionPanelBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.order.id != widget.order.id) {
+      _loadRequests();
+    }
+  }
+
+  Future<void> _loadRequests() async {
+    setState(() => _loading = true);
+    final results = await Future.wait<Object?>([
+      widget.refundRequestFuture,
+      widget.returnRequestFuture,
+    ]);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _refundRequest = results[0] as RefundRequest?;
+      _returnRequest = results[1] as ReturnRequest?;
+      _loading = false;
+    });
+  }
+
+  bool get _canRequestRefund {
+    final paymentMethod = widget.order.paymentMethod.trim().toUpperCase();
+    final refundState = (_refundRequest?.status ?? widget.order.refundStatus).trim().toLowerCase();
+    return paymentMethod != 'COD' &&
+        widget.order.isPaymentVerified &&
+        !['requested', 'pending', 'approved', 'refunded'].contains(refundState);
+  }
+
+  bool get _canRequestReturn {
+    final status = widget.order.status.trim().toLowerCase();
+    final returnState = (_returnRequest?.status ?? widget.order.returnStatus).trim().toLowerCase();
+    final isCustom = widget.order.orderType == 'custom_tailoring' ||
+        widget.order.items.any((item) => item.isCustomTailoring);
+    return status == 'delivered' &&
+        !isCustom &&
+        !['requested', 'approved', 'assigned', 'picked', 'completed'].contains(returnState);
+  }
+
+  Future<String?> _askReason({
+    required BuildContext context,
+    required String title,
+    required String hint,
+  }) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 3,
+          decoration: InputDecoration(
+            hintText: hint,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return result;
+  }
+
+  Future<void> _submitRefund() async {
+    final reason = await _askReason(
+      context: context,
+      title: 'Request Refund',
+      hint: 'Tell us why you want a refund',
+    );
+    if (reason == null || reason.trim().isEmpty) {
+      return;
+    }
+    setState(() => _submittingRefund = true);
+    try {
+      final refund = await _database.createRefundRequest(
+        orderId: widget.order.id,
+        reason: reason,
+        actor: widget.actor,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _refundRequest = refund);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Refund request submitted.')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _submittingRefund = false);
+      }
+    }
+  }
+
+  Future<void> _submitReturn() async {
+    final reason = await _askReason(
+      context: context,
+      title: 'Request Return',
+      hint: 'Tell us why you want to return this item',
+    );
+    if (reason == null || reason.trim().isEmpty) {
+      return;
+    }
+    setState(() => _submittingReturn = true);
+    try {
+      final request = await _database.createReturnRequest(
+        orderId: widget.order.id,
+        reason: reason,
+        actor: widget.actor,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _returnRequest = request);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Return request submitted.')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _submittingReturn = false);
+      }
+    }
+  }
+
+  String get _refundLabel {
+    if (widget.order.refundStatus.toLowerCase() == 'refunded') {
+      return 'Refund status: Refunded';
+    }
+    if (_refundRequest == null) {
+      return 'Online orders can be refunded from here when eligible.';
+    }
+    final status = _refundRequest!.status.toLowerCase();
+    if (status == 'approved') {
+      return 'Refund status: Approved';
+    }
+    if (status == 'rejected') {
+      return 'Refund status: Rejected';
+    }
+    return 'Refund status: Pending review';
+  }
+
+  String get _returnLabel {
+    final status = (_returnRequest?.status ?? widget.order.returnStatus).trim().toLowerCase();
+    if (status.isEmpty) {
+      return 'Returns are available within 3 days of delivery for non-custom items.';
+    }
+    if (status == 'requested') {
+      return 'Return status: Requested';
+    }
+    if (status == 'approved') {
+      return 'Return status: Approved for pickup';
+    }
+    if (status == 'assigned') {
+      return 'Return status: Pickup assigned';
+    }
+    if (status == 'picked') {
+      return 'Return status: Picked and awaiting quality check';
+    }
+    if (status == 'completed') {
+      return 'Return status: Completed';
+    }
+    if (status == 'rejected') {
+      return 'Return status: Rejected';
+    }
+    return 'Return status: ${status[0].toUpperCase()}${status.substring(1)}';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.abzioBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Quick Actions', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 14),
-          FutureBuilder<List<Object?>>(
-            future: Future.wait<Object?>([
-              refundRequestFuture,
-              returnRequestFuture,
-            ]),
-            builder: (context, snapshot) {
-              final refundRequest = snapshot.data?[0] as RefundRequest?;
-              final returnRequest = snapshot.data?[1] as ReturnRequest?;
-              final canRequestRefund = order.isPaymentVerified &&
-                  order.paymentMethod.toUpperCase() != 'COD' &&
-                  order.refundStatus.toLowerCase() != 'refunded' &&
-                  order.returnStatus.toLowerCase() != 'completed' &&
-                  (refundRequest == null || refundRequest.status.toLowerCase() == 'rejected') &&
-                  ['delivered', 'cancelled', 'out for delivery'].contains(order.status.toLowerCase());
-              final canRequestReturn = order.returnStatus.toLowerCase() != 'completed' &&
-                  (returnRequest == null || returnRequest.status.toLowerCase() == 'rejected') &&
-                  (order.isDelivered || order.status.toLowerCase() == 'delivered') &&
-                  order.orderType != 'custom_tailoring' &&
-                  !order.items.any((item) => item.isCustomTailoring);
-              final refundLabel = () {
-                if (order.refundStatus.toLowerCase() == 'refunded') {
-                  return 'Refund status: Refunded';
-                }
-                if (refundRequest == null) {
-                  return 'Online orders can be refunded from here when eligible.';
-                }
-                final status = refundRequest.status.toLowerCase();
-                if (status == 'approved') {
-                  return 'Refund status: Approved';
-                }
-                if (status == 'rejected') {
-                  return 'Refund status: Rejected';
-                }
-                return 'Refund status: Pending review';
-              }();
-              final returnLabel = () {
-                final status = (returnRequest?.status ?? order.returnStatus).trim().toLowerCase();
-                if (status.isEmpty) {
-                  return 'Returns are available within 3 days of delivery for non-custom items.';
-                }
-                if (status == 'requested') {
-                  return 'Return status: Requested';
-                }
-                if (status == 'approved') {
-                  return 'Return status: Approved for pickup';
-                }
-                if (status == 'assigned') {
-                  return 'Return status: Pickup assigned';
-                }
-                if (status == 'picked') {
-                  return 'Return status: Picked and awaiting quality check';
-                }
-                if (status == 'completed') {
-                  return 'Return status: Completed';
-                }
-                if (status == 'rejected') {
-                  return 'Return status: Rejected';
-                }
-                return 'Return status: ${status[0].toUpperCase()}${status.substring(1)}';
-              }();
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: onCall,
-                        icon: const Icon(Icons.call_outlined),
-                        label: const Text('Call Delivery Partner'),
+          Text(
+            'Actions',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 10),
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: LinearProgressIndicator(minHeight: 2),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: widget.onSupport,
+                      icon: const Icon(Icons.support_agent_outlined, size: 18),
+                      label: const Text('Contact Support'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: widget.canCancel ? widget.onCancel : null,
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      label: const Text('Cancel Order'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: widget.onReorder,
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: const Text('Reorder'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: (_canRequestReturn && !_submittingReturn) ? _submitReturn : null,
+                      icon: _submittingReturn
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.assignment_return_outlined, size: 18),
+                      label: const Text('Request Return'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: (_canRequestRefund && !_submittingRefund) ? _submitRefund : null,
+                      icon: _submittingRefund
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.payments_outlined, size: 18),
+                      label: const Text('Request Refund'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _returnLabel,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: context.abzioSecondaryText,
                       ),
-                      OutlinedButton.icon(
-                        onPressed: canCancel ? onCancel : null,
-                        icon: const Icon(Icons.close_rounded),
-                        label: const Text('Cancel Order'),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _refundLabel,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: context.abzioSecondaryText,
                       ),
-                      OutlinedButton.icon(
-                        onPressed: canRequestReturn ? onRequestReturn : null,
-                        icon: const Icon(Icons.assignment_return_outlined),
-                        label: const Text('Return Item'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: canRequestRefund ? onRequestRefund : null,
-                        icon: const Icon(Icons.currency_rupee_rounded),
-                        label: const Text('Request Refund'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: onHelp,
-                        icon: const Icon(Icons.support_agent_outlined),
-                        label: const Text('Help / Support'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    returnLabel,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: context.abzioSecondaryText,
-                        ),
-                  ),
+                ),
+                if ((_returnRequest?.rejectionReason ?? '').trim().isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
-                    refundLabel,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    'Return note: ${_returnRequest!.rejectionReason}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: context.abzioSecondaryText,
                         ),
                   ),
-                  if ((returnRequest?.rejectionReason ?? '').trim().isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      'Return note: ${returnRequest!.rejectionReason}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: context.abzioSecondaryText,
-                          ),
-                    ),
-                  ],
-                  if ((refundRequest?.rejectionReason ?? '').trim().isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      'Reason: ${refundRequest!.rejectionReason}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: context.abzioSecondaryText,
-                          ),
-                    ),
-                  ],
                 ],
-              );
-            },
-          ),
+                if ((_refundRequest?.rejectionReason ?? '').trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Reason: ${_refundRequest!.rejectionReason}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: context.abzioSecondaryText,
+                        ),
+                  ),
+                ],
+              ],
+            ),
         ],
       ),
     );

@@ -1857,6 +1857,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
   String _occasion = '';
   String _budget = '';
   String _style = '';
+  bool _showFilters = false;
 
   @override
   void initState() {
@@ -1949,48 +1950,57 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
     required String selectedValue,
     required ValueChanged<String> onSelected,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: context.abzioSecondaryText,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        const SizedBox(height: 6),
         SizedBox(
-          height: 34,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: options.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final option = options[index];
-              final selected = option == selectedValue;
-              return ChoiceChip(
-                label: Text(_labelForFilter(option)),
-                selected: selected,
-                onSelected: (_) {
-                  onSelected(selected ? '' : option);
-                },
-                selectedColor: const Color(0xFFC9A74E),
-                backgroundColor: const Color(0xFFF1F1F1),
-                labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: selected ? Colors.white : const Color(0xFF121212),
-                      fontWeight: FontWeight.w700,
-                    ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(999),
+          width: 62,
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: context.abzioSecondaryText,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
                 ),
-                side: BorderSide.none,
-                showCheckmark: false,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-              );
-            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SizedBox(
+            height: 34,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: options.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final option = options[index];
+                final selected = option == selectedValue;
+                return ChoiceChip(
+                  label: Text(_labelForFilter(option)),
+                  selected: selected,
+                  onSelected: (_) {
+                    onSelected(selected ? '' : option);
+                  },
+                  selectedColor: const Color(0xFFC9A74E),
+                  backgroundColor: const Color(0xFFF1F1F1),
+                  labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: selected ? Colors.white : const Color(0xFF121212),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  side: BorderSide.none,
+                  showCheckmark: false,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: const VisualDensity(horizontal: -2, vertical: -3),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                );
+              },
+            ),
           ),
         ),
       ],
@@ -1999,37 +2009,212 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
 
   Widget _loadingRail() {
     return SizedBox(
-      height: 292,
+      height: 112,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: 2,
         separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (context, index) => Container(
-          width: 270,
-          padding: const EdgeInsets.all(12),
+          width: 232,
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
-          child: const Column(
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: ShimmerBox()),
-              SizedBox(height: 12),
-              SizedBox(height: 16, child: ShimmerBox()),
-              SizedBox(height: 8),
-              SizedBox(height: 14, child: ShimmerBox()),
-              SizedBox(height: 12),
-              SizedBox(height: 40, child: ShimmerBox()),
+              SizedBox(
+                width: 80,
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: ShimmerBox(borderRadius: BorderRadius.all(Radius.circular(12))),
+                ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(height: 12, child: ShimmerBox()),
+                    SizedBox(height: 4),
+                    SizedBox(height: 12, child: ShimmerBox()),
+                    SizedBox(height: 6),
+                    SizedBox(height: 12, width: 72, child: ShimmerBox()),
+                    SizedBox(height: 10),
+                    SizedBox(height: 32, width: 88, child: ShimmerBox(borderRadius: BorderRadius.all(Radius.circular(10)))),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCompactOutfitRail(List<OutfitRecommendation> outfits) {
+    return SizedBox(
+      height: 112,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: outfits.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final outfit = outfits[index];
+          final items = outfit.items;
+          return Container(
+            width: 236,
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 80,
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          AbzioNetworkImage(
+                            imageUrl: items.first.images.isNotEmpty ? items.first.images.first : '',
+                            fallbackLabel: items.first.name,
+                            fit: BoxFit.cover,
+                          ),
+                          Positioned(
+                            left: 6,
+                            bottom: 6,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF121212).withValues(alpha: 0.82),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '${outfit.matchScore}% match',
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 9,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              outfit.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+                              onPressed: () => _skipOutfit(outfit),
+                              icon: const Icon(Icons.close_rounded, size: 14),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${items.length} picks · ${_labelForFilter(outfit.occasion)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontSize: 12,
+                              color: context.abzioSecondaryText,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _currencyFormatter.format(outfit.totalPrice),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            height: 32,
+                            child: FilledButton(
+                              onPressed: () => _shopOutfit(outfit),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: const Color(0xFFC9A74E),
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: const VisualDensity(horizontal: -2, vertical: -3),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: const Text(
+                                'Shop',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -2039,53 +2224,115 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _sectionHeader(
-                title: 'AI Stylist Picks For You',
-                subtitle: 'Complete outfits ranked from your style profile',
+        Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => setState(() => _showFilters = !_showFilters),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFC9A74E).withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 16,
+                      color: Color(0xFFC9A74E),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'AI Stylist',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Curated looks from your style profile',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontSize: 12,
+                                color: context.abzioSecondaryText,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: widget.onOpenAiStylist,
+                    icon: const Icon(Icons.tune_rounded, size: 14),
+                    label: const Text('Open'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: const VisualDensity(horizontal: -2, vertical: -3),
+                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    _showFilters ? Icons.expand_less_rounded : Icons.chevron_right_rounded,
+                    size: 20,
+                    color: const Color(0xFF4A4A4A),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            TextButton.icon(
-              onPressed: widget.onOpenAiStylist,
-              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-              label: const Text('Refine'),
-            ),
-          ],
+          ),
         ),
-        const SizedBox(height: 12),
-        _filterRow(
-          label: 'Occasion',
-          options: _occasionFilters,
-          selectedValue: _occasion,
-          onSelected: (value) {
-            _occasion = value;
-            _refresh();
-          },
-        ),
-        const SizedBox(height: 10),
-        _filterRow(
-          label: 'Budget',
-          options: _budgetFilters,
-          selectedValue: _budget,
-          onSelected: (value) {
-            _budget = value;
-            _refresh();
-          },
-        ),
-        const SizedBox(height: 10),
-        _filterRow(
-          label: 'Style',
-          options: _styleFilters,
-          selectedValue: _style,
-          onSelected: (value) {
-            _style = value;
-            _refresh();
-          },
-        ),
-        const SizedBox(height: 12),
+        if (_showFilters) ...[
+          const SizedBox(height: 8),
+          _filterRow(
+            label: 'Occasion',
+            options: _occasionFilters,
+            selectedValue: _occasion,
+            onSelected: (value) {
+              _occasion = value;
+              _refresh();
+            },
+          ),
+          const SizedBox(height: 8),
+          _filterRow(
+            label: 'Budget',
+            options: _budgetFilters,
+            selectedValue: _budget,
+            onSelected: (value) {
+              _budget = value;
+              _refresh();
+            },
+          ),
+          const SizedBox(height: 8),
+          _filterRow(
+            label: 'Style',
+            options: _styleFilters,
+            selectedValue: _style,
+            onSelected: (value) {
+              _style = value;
+              _refresh();
+            },
+          ),
+        ],
+        const SizedBox(height: 8),
         FutureBuilder<List<OutfitRecommendation>>(
           future: _outfitsFuture,
           builder: (context, snapshot) {
@@ -2104,8 +2351,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
               );
             }
 
-            return SizedBox(
-              height: 292,
+            return _buildCompactOutfitRail(outfits); /*
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: outfits.length,
@@ -2273,7 +2519,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
                   );
                 },
               ),
-            );
+            ); */
           },
         ),
       ],

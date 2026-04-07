@@ -129,6 +129,129 @@ class BackendCommerceService {
     return BodyProfile.fromMap(Map<String, dynamic>.from(payload as Map));
   }
 
+  Future<List<MeasurementProfile>> getMeasurementProfiles() async {
+    final payload = await _client.get('/auth/measurements', authenticated: true);
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return MeasurementProfile.fromMap(map, map['id']?.toString() ?? '');
+        })
+        .toList();
+  }
+
+  Future<MeasurementProfile> saveMeasurementProfile(MeasurementProfile profile) async {
+    final payload = await _client.post(
+      '/auth/measurements',
+      authenticated: true,
+      body: {
+        'id': profile.id,
+        ...profile.toMap(),
+      },
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return MeasurementProfile.fromMap(map, map['id']?.toString() ?? profile.id);
+  }
+
+  Future<void> deleteMeasurementProfile(String profileId) async {
+    await _client.delete('/auth/measurements/$profileId', authenticated: true);
+  }
+
+  Future<ReferralDashboardData> getReferralDashboard() async {
+    final payload = await _client.get('/auth/referrals/dashboard', authenticated: true);
+    final map = Map<String, dynamic>.from(payload as Map);
+    final history = (map['history'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) {
+          final referralMap = Map<String, dynamic>.from(item);
+          return ReferralRecord.fromMap(referralMap, referralMap['id']?.toString() ?? '');
+        })
+        .toList();
+    return ReferralDashboardData(
+      referralCode: map['referralCode']?.toString() ?? '',
+      invitedCount: ((map['invitedCount'] ?? 0) as num).toInt(),
+      completedCount: ((map['completedCount'] ?? 0) as num).toInt(),
+      pendingCount: ((map['pendingCount'] ?? 0) as num).toInt(),
+      earnedCredits: ((map['earnedCredits'] ?? 0) as num).toDouble(),
+      walletBalance: ((map['walletBalance'] ?? 0) as num).toDouble(),
+      tier: map['tier']?.toString() ?? 'Bronze',
+      nextTierProgress: ((map['nextTierProgress'] ?? 0) as num).toDouble(),
+      invitesToNextTier: ((map['invitesToNextTier'] ?? 0) as num).toInt(),
+      history: history,
+    );
+  }
+
+  Future<List<ReferralRecord>> getReferralHistory() async {
+    final payload = await _client.get('/auth/referrals/history', authenticated: true);
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return ReferralRecord.fromMap(map, map['id']?.toString() ?? '');
+        })
+        .toList();
+  }
+
+  Future<bool> applyReferralCode(String code) async {
+    final payload = await _client.post(
+      '/auth/referrals/apply',
+      authenticated: true,
+      body: {'code': code},
+    );
+    return payload != null;
+  }
+
+  Future<List<GrowthOffer>> getGrowthOffers() async {
+    final payload = await _client.get('/auth/growth-offers', authenticated: true);
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return GrowthOffer.fromMap(map, map['id']?.toString() ?? '');
+        })
+        .toList();
+  }
+
+  Future<GrowthOffer> saveGrowthOffer(GrowthOffer offer) async {
+    final payload = await _client.post(
+      '/auth/growth-offers',
+      authenticated: true,
+      body: offer.toMap(),
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return GrowthOffer.fromMap(map, map['id']?.toString() ?? offer.id);
+  }
+
+  Future<GrowthOffer?> validateGrowthOffer({
+    required String code,
+    required double cartValue,
+  }) async {
+    final payload = await _client.post(
+      '/auth/growth-offers/validate',
+      authenticated: true,
+      body: {
+        'code': code,
+        'cartValue': cartValue,
+      },
+    );
+    if (payload == null) {
+      return null;
+    }
+    final map = Map<String, dynamic>.from(payload as Map);
+    return GrowthOffer.fromMap(map, map['id']?.toString() ?? '');
+  }
+
+  Future<void> claimGrowthOffer(String code) async {
+    await _client.post(
+      '/auth/growth-offers/claim',
+      authenticated: true,
+      body: {'code': code},
+    );
+  }
+
   Future<Map<String, dynamic>> recommendSize({
     required double heightCm,
     required double weightKg,
@@ -1082,6 +1205,8 @@ class BackendCommerceService {
         'isActive': map['isActive'] ?? true,
         'storeId': map['storeId'],
         'walletBalance': map['walletBalance'] ?? 0,
+        'referralCode': map['referralCode'] ?? '',
+        'referredBy': map['referredBy'] ?? '',
         'roles': map['roles'] ?? const {},
         'riderApprovalStatus': map['riderApprovalStatus'] ?? 'pending',
         'riderVehicleType': map['riderVehicleType'],

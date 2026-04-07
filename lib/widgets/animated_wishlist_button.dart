@@ -11,7 +11,7 @@ class AnimatedWishlistButton extends StatefulWidget {
     this.iconSize = 19,
     this.selectedColor = const Color(0xFFE64553),
     this.unselectedColor = const Color(0xFF2D2D2D),
-    this.backgroundColor = const Color(0xF0FFFFFF),
+    this.backgroundColor,
   });
 
   final bool isSelected;
@@ -21,7 +21,7 @@ class AnimatedWishlistButton extends StatefulWidget {
   final double iconSize;
   final Color selectedColor;
   final Color unselectedColor;
-  final Color backgroundColor;
+  final Color? backgroundColor;
 
   @override
   State<AnimatedWishlistButton> createState() => _AnimatedWishlistButtonState();
@@ -88,43 +88,40 @@ class _AnimatedWishlistButtonState extends State<AnimatedWishlistButton>
               child: child,
             );
           },
-          child: Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: BoxDecoration(
-              color: widget.backgroundColor,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Center(
-              child: widget.isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 180),
-                      transitionBuilder: (child, animation) {
-                        return ScaleTransition(scale: animation, child: child);
-                      },
-                      child: Icon(
-                        widget.isSelected
-                            ? Icons.favorite_rounded
-                            : Icons.favorite_border_rounded,
-                        key: ValueKey<bool>(widget.isSelected),
-                        color: widget.isSelected
-                            ? widget.selectedColor
-                            : widget.unselectedColor,
-                        size: widget.iconSize,
+          child: DecoratedBox(
+            decoration: widget.backgroundColor == null
+                ? const BoxDecoration()
+                : BoxDecoration(
+                    color: widget.backgroundColor,
+                    shape: BoxShape.circle,
+                  ),
+            child: SizedBox(
+              width: widget.size,
+              height: widget.size,
+              child: Center(
+                child: widget.isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 180),
+                        transitionBuilder: (child, animation) {
+                          return ScaleTransition(scale: animation, child: child);
+                        },
+                        child: Icon(
+                          widget.isSelected
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          key: ValueKey<bool>(widget.isSelected),
+                          color: widget.isSelected
+                              ? widget.selectedColor
+                              : widget.unselectedColor,
+                          size: widget.iconSize,
+                        ),
                       ),
-                    ),
+              ),
             ),
           ),
         ),

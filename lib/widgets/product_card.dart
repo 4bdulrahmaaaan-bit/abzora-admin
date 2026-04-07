@@ -144,49 +144,32 @@ class _ProductCardState extends State<ProductCard> {
                                 Positioned(
                                   top: 8,
                                   right: 8,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.94,
-                                      ),
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.08,
-                                          ),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 3),
-                                        ),
-                                      ],
-                                    ),
-                                    child: AnimatedWishlistButton(
-                                      isSelected: isWishlisted,
-                                      isLoading: isPending,
-                                      onTap: () async {
-                                        try {
-                                          await wishlist.toggleWishlist(
-                                            widget.product,
-                                          );
-                                        } catch (error) {
-                                          if (!context.mounted) {
-                                            return;
-                                          }
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                error.toString().replaceFirst(
-                                                  'Bad state: ',
-                                                  '',
-                                                ),
+                                  child: AnimatedWishlistButton(
+                                    isSelected: isWishlisted,
+                                    isLoading: isPending,
+                                    onTap: () async {
+                                      try {
+                                        await wishlist.toggleWishlist(
+                                          widget.product,
+                                        );
+                                      } catch (error) {
+                                        if (!context.mounted) {
+                                          return;
+                                        }
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              error.toString().replaceFirst(
+                                                'Bad state: ',
+                                                '',
                                               ),
                                             ),
-                                          );
-                                        }
-                                      },
-                                    ),
+                                          ),
+                                        );
+                                      }
+                                    },
                                   ),
                                 ),
                               ],

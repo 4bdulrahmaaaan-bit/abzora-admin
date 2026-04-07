@@ -136,15 +136,12 @@ class _HeaderIconButton extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(999),
-          child: Container(
+          child: SizedBox(
             width: 36,
             height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(12),
+            child: Center(
+              child: Icon(icon, color: const Color(0xFF111111), size: 22),
             ),
-            child: Icon(icon, color: Color(0xFF111111), size: 20),
           ),
         ),
       ),

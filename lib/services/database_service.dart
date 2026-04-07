@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -432,12 +433,8 @@ class DatabaseService {
 
   Future<String> ensureReferralCode(AppUser user) async {
     if (_backendCommerce.isConfigured) {
-      final existing = (user.referralCode ?? '').trim();
-      if (existing.isNotEmpty) {
-        return existing;
-      }
-      final seed = '${(user.phone ?? user.id).replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase()}ABZ';
-      return seed.length > 10 ? seed.substring(0, 10) : seed.padRight(8, 'X');
+      final dashboard = await _backendCommerce.getReferralDashboard();
+      return dashboard.referralCode;
     }
     final ref = _ref('users/${user.id}/growth/referralCode');
     final existing = await ref.get();
@@ -568,7 +565,7 @@ class DatabaseService {
     required String code,
   }) async {
     if (_backendCommerce.isConfigured) {
-      return false;
+      return _backendCommerce.applyReferralCode(code);
     }
     final normalized = code.trim().toUpperCase();
     if (normalized.isEmpty) {
@@ -625,7 +622,7 @@ class DatabaseService {
 
   Future<List<ReferralRecord>> getReferralHistory(String userId) async {
     if (_backendCommerce.isConfigured) {
-      return const <ReferralRecord>[];
+      return _backendCommerce.getReferralHistory();
     }
     final items = await _fetchCollection(
       'referrals/$userId',
@@ -637,20 +634,7 @@ class DatabaseService {
 
   Future<ReferralDashboardData> getReferralDashboard(AppUser user) async {
     if (_backendCommerce.isConfigured) {
-      final code = await ensureReferralCode(user);
-      const completedCount = 0;
-      return ReferralDashboardData(
-        referralCode: code,
-        invitedCount: 0,
-        completedCount: completedCount,
-        pendingCount: 0,
-        earnedCredits: 0,
-        walletBalance: user.walletBalance,
-        tier: _referralTierForCompletedInvites(completedCount),
-        nextTierProgress: _referralProgress(completedCount),
-        invitesToNextTier: _invitesToNextReferralTier(completedCount),
-        history: const <ReferralRecord>[],
-      );
+      return _backendCommerce.getReferralDashboard();
     }
     final code = await ensureReferralCode(user);
     final history = await getReferralHistory(user.id);
@@ -755,6 +739,7 @@ class DatabaseService {
 
   Future<void> _saveGrowthOffer(GrowthOffer offer) async {
     if (_backendCommerce.isConfigured) {
+      await _backendCommerce.saveGrowthOffer(offer);
       return;
     }
     await _ref('offers/${offer.userId}/${offer.id}').set(offer.toMap());
@@ -788,7 +773,7 @@ class DatabaseService {
 
   Future<List<GrowthOffer>> getGrowthOffersForUser(AppUser user) async {
     if (_backendCommerce.isConfigured) {
-      return const <GrowthOffer>[];
+      return _backendCommerce.getGrowthOffers();
     }
     final offers = await _fetchCollection(
       'offers/${user.id}',
@@ -936,6 +921,12 @@ class DatabaseService {
     if (normalized.isEmpty) {
       return null;
     }
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.validateGrowthOffer(
+        code: normalized,
+        cartValue: cartValue,
+      );
+    }
     final offers = await getGrowthOffersForUser(user);
     for (final offer in offers) {
       if (offer.code.toUpperCase() == normalized && _isGrowthOfferActiveForCart(offer, cartValue)) {
@@ -949,6 +940,10 @@ class DatabaseService {
     required String userId,
     required String code,
   }) async {
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.claimGrowthOffer(code);
+      return;
+    }
     final offers = await _fetchCollection(
       'offers/$userId',
       (map, id) => GrowthOffer.fromMap(map, id),
@@ -1926,13 +1921,11 @@ class DatabaseService {
 
   Stream<List<Product>> watchAllProducts() {
     if (_backendCommerce.isConfigured) {
-      return (() async* {
-        yield await _backendCommerce.getProducts();
-        while (true) {
-          await Future<void>.delayed(const Duration(seconds: 20));
-          yield await _backendCommerce.getProducts();
-        }
-      })();
+      return _backendPollingStream<List<Product>>(
+        loader: _backendCommerce.getProducts,
+        interval: const Duration(seconds: 20),
+        backgroundInterval: const Duration(seconds: 45),
+      );
     }
     return _productService.watchAll().map(
       (products) => products.map(_decorateProduct).toList(),
@@ -2000,6 +1993,72 @@ class DatabaseService {
       return 0;
     }
     return end.difference(start).inMinutes / 60.0;
+  }
+
+  Stream<T> _backendPollingStream<T>({
+    required Future<T> Function() loader,
+    required Duration interval,
+    Duration backgroundInterval = const Duration(seconds: 30),
+    Duration initialBackoff = const Duration(seconds: 2),
+    Duration maxBackoff = const Duration(seconds: 60),
+  }) {
+    late final StreamController<T> controller;
+    Timer? timer;
+    var closed = false;
+    var failureCount = 0;
+
+    Duration nextDelay() {
+      final lifecycle = WidgetsBinding.instance.lifecycleState;
+      final base = lifecycle == null || lifecycle == AppLifecycleState.resumed
+          ? interval
+          : backgroundInterval;
+      if (failureCount <= 0) {
+        return base;
+      }
+      final multiplier = pow(2, failureCount - 1).toInt();
+      final backoff = Duration(
+        milliseconds: initialBackoff.inMilliseconds * multiplier,
+      );
+      if (backoff > maxBackoff) {
+        return maxBackoff > base ? maxBackoff : base;
+      }
+      return backoff > base ? backoff : base;
+    }
+
+    Future<void> pump() async {
+      if (closed) {
+        return;
+      }
+      try {
+        final result = await loader();
+        if (closed) {
+          return;
+        }
+        failureCount = 0;
+        controller.add(result);
+      } catch (error, stackTrace) {
+        if (closed) {
+          return;
+        }
+        failureCount += 1;
+        controller.addError(error, stackTrace);
+      } finally {
+        if (!closed) {
+          timer = Timer(nextDelay(), pump);
+        }
+      }
+    }
+
+    controller = StreamController<T>.broadcast(
+      onListen: pump,
+      onCancel: () {
+        if (!controller.hasListener) {
+          closed = true;
+          timer?.cancel();
+        }
+      },
+    );
+    return controller.stream;
   }
 
   double _reviewSentimentScore(List<ReviewModel> reviews) {
@@ -3288,7 +3347,7 @@ class DatabaseService {
 
   Future<List<MeasurementProfile>> getMeasurementProfiles(String userId) async {
     if (_backendCommerce.isConfigured) {
-      return const <MeasurementProfile>[];
+      return _backendCommerce.getMeasurementProfiles();
     }
     try {
       final scopedProfiles = await _fetchCollection(
@@ -3314,6 +3373,7 @@ class DatabaseService {
 
   Future<void> saveMeasurementProfile(MeasurementProfile profile) async {
     if (_backendCommerce.isConfigured) {
+      await _backendCommerce.saveMeasurementProfile(profile);
       return;
     }
     final resolvedProfile = MeasurementProfile(
@@ -3459,6 +3519,10 @@ class DatabaseService {
   }
 
   Future<void> deleteMeasurementProfile(String userId, String profileId) async {
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.deleteMeasurementProfile(profileId);
+      return;
+    }
     await _ref('measurements/$userId/$profileId').remove();
   }
 
@@ -3977,15 +4041,14 @@ class DatabaseService {
 
   Stream<List<BookingModel>> getUserBookings(String userId) {
     if (_backendCommerce.isConfigured) {
-      return (() async* {
-        final initial = await _backendCommerce.getMyBookings();
-        yield initial.where((booking) => booking.userId == userId).toList();
-        while (true) {
-          await Future<void>.delayed(const Duration(seconds: 10));
+      return _backendPollingStream<List<BookingModel>>(
+        loader: () async {
           final bookings = await _backendCommerce.getMyBookings();
-          yield bookings.where((booking) => booking.userId == userId).toList();
-        }
-      })();
+          return bookings.where((booking) => booking.userId == userId).toList();
+        },
+        interval: const Duration(seconds: 10),
+        backgroundInterval: const Duration(seconds: 30),
+      );
     }
     return _watchCollection('bookings', (map, id) => BookingModel.fromMap(map, id))
         .map((bookings) => bookings.where((booking) => booking.userId == userId).toList());
@@ -3993,15 +4056,15 @@ class DatabaseService {
 
   Stream<List<OrderModel>> getUserOrders(String userId) {
     if (_backendCommerce.isConfigured) {
-      return (() async* {
-        yield await _backendCommerce.getUserOrders();
-        while (true) {
-          await Future<void>.delayed(const Duration(seconds: 10));
+      return _backendPollingStream<List<OrderModel>>(
+        loader: () async {
           final orders = await _backendCommerce.getUserOrders();
           orders.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-          yield orders;
-        }
-      })().asBroadcastStream();
+          return orders;
+        },
+        interval: const Duration(seconds: 10),
+        backgroundInterval: const Duration(seconds: 25),
+      );
     }
     return _watchQueryCollection(
       _ref('orders').orderByChild('userId').equalTo(userId),
@@ -4639,15 +4702,15 @@ class DatabaseService {
 
   Stream<List<OrderModel>> getVendorOrders(String storeId, {AppUser? actor}) {
     if (_backendCommerce.isConfigured) {
-      return (() async* {
-        yield await _backendCommerce.getStoreOrders(storeId);
-        while (true) {
-          await Future<void>.delayed(const Duration(seconds: 15));
+      return _backendPollingStream<List<OrderModel>>(
+        loader: () async {
           final orders = await _backendCommerce.getStoreOrders(storeId);
           orders.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
-          yield orders;
-        }
-      })();
+          return orders;
+        },
+        interval: const Duration(seconds: 15),
+        backgroundInterval: const Duration(seconds: 35),
+      );
     }
     _requireStoreAccess(actor, storeId);
     return _watchQueryCollection(
@@ -5691,15 +5754,15 @@ class DatabaseService {
 
   Stream<List<OrderModel>> getRiderOrders(AppUser actor) {
     if (_backendCommerce.isConfigured) {
-      return (() async* {
-        yield await _backendCommerce.getAssignedDeliveries();
-        while (true) {
-          await Future<void>.delayed(const Duration(seconds: 15));
+      return _backendPollingStream<List<OrderModel>>(
+        loader: () async {
           final orders = await _backendCommerce.getAssignedDeliveries();
           orders.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
-          yield orders;
-        }
-      })();
+          return orders;
+        },
+        interval: const Duration(seconds: 15),
+        backgroundInterval: const Duration(seconds: 35),
+      );
     }
     if (!isRider(actor) && !isSuperAdmin(actor)) {
       throw StateError('Rider access denied.');
@@ -5715,15 +5778,15 @@ class DatabaseService {
 
   Stream<List<OrderModel>> watchAvailableDeliveryOrders() {
     if (_backendCommerce.isConfigured) {
-      return (() async* {
-        yield await _backendCommerce.getAvailableDeliveries();
-        while (true) {
-          await Future<void>.delayed(const Duration(seconds: 15));
+      return _backendPollingStream<List<OrderModel>>(
+        loader: () async {
           final orders = await _backendCommerce.getAvailableDeliveries();
           orders.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
-          yield orders;
-        }
-      })();
+          return orders;
+        },
+        interval: const Duration(seconds: 15),
+        backgroundInterval: const Duration(seconds: 35),
+      );
     }
     return _watchCollection('orders', (map, id) => OrderModel.fromMap(map, id)).map((orders) {
       final filtered = orders.where(_isOrderAvailableForRider).toList()
@@ -6831,15 +6894,15 @@ class DatabaseService {
 
   Stream<List<SupportChat>> watchSupportChatsForUser({required AppUser actor}) {
     if (_backendCommerce.isConfigured) {
-      return (() async* {
-        yield await _backendCommerce.getSupportChats();
-        while (true) {
-          await Future<void>.delayed(const Duration(seconds: 10));
+      return _backendPollingStream<List<SupportChat>>(
+        loader: () async {
           final chats = await _backendCommerce.getSupportChats();
           chats.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-          yield chats;
-        }
-      })().asBroadcastStream();
+          return chats;
+        },
+        interval: const Duration(seconds: 10),
+        backgroundInterval: const Duration(seconds: 25),
+      );
     }
     if (isSuperAdmin(actor)) {
       return _watchCollection(
@@ -6923,15 +6986,15 @@ class DatabaseService {
     int limit = 20,
   }) {
     if (_backendCommerce.isConfigured) {
-      return (() async* {
-        yield await _backendCommerce.getSupportMessages(chatId, limit: limit);
-        while (true) {
-          await Future<void>.delayed(const Duration(seconds: 4));
+      return _backendPollingStream<List<SupportMessage>>(
+        loader: () async {
           final messages = await _backendCommerce.getSupportMessages(chatId, limit: limit);
           messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-          yield messages;
-        }
-      })().asBroadcastStream();
+          return messages;
+        },
+        interval: const Duration(seconds: 4),
+        backgroundInterval: const Duration(seconds: 12),
+      );
     }
     return Stream.fromFuture(getSupportChatById(chatId: chatId, actor: actor)).asyncExpand((chat) {
       if (chat == null) {

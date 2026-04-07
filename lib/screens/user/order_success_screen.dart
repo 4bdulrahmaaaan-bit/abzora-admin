@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/cart_provider.dart';
 import '../../theme.dart';
+import '../../widgets/state_views.dart';
 import 'order_tracking_screen.dart';
 
 class OrderSuccessScreen extends StatefulWidget {
@@ -12,10 +13,12 @@ class OrderSuccessScreen extends StatefulWidget {
     super.key,
     required this.orderId,
     required this.estimatedDelivery,
+    this.paymentMethod,
   });
 
   final String orderId;
   final DateTime estimatedDelivery;
+  final String? paymentMethod;
 
   @override
   State<OrderSuccessScreen> createState() => _OrderSuccessScreenState();
@@ -23,12 +26,14 @@ class OrderSuccessScreen extends StatefulWidget {
 
 class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
   bool _navigated = false;
+  late final List<CartItem> _orderPreviewItems;
 
   @override
   void initState() {
     super.initState();
     debugPrint('ABZORA success: initState orderId=${widget.orderId}');
     HapticFeedback.mediumImpact();
+    _orderPreviewItems = List<CartItem>.from(context.read<CartProvider>().items);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -53,29 +58,31 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
-  String _deliveryHeadline() {
-    final today = DateTime.now();
-    final deliveryDate = DateTime(
-      widget.estimatedDelivery.year,
-      widget.estimatedDelivery.month,
-      widget.estimatedDelivery.day,
-    );
-    final todayDate = DateTime(today.year, today.month, today.day);
-    final difference = deliveryDate.difference(todayDate).inDays;
-    if (difference <= 0) {
-      return 'Arriving today';
+  void _viewDetails() {
+    _trackOrder();
+  }
+
+  String _paymentLabel() {
+    switch ((widget.paymentMethod ?? '').toUpperCase()) {
+      case 'UPI':
+        return 'UPI';
+      case 'CARDS':
+      case 'RAZORPAY':
+        return 'Card / UPI';
+      case 'COD':
+        return 'Cash on Delivery';
+      default:
+        return 'Confirmed';
     }
-    if (difference == 1) {
-      return 'Arriving by tomorrow';
-    }
-    return 'Arriving by ${DateFormat('EEE, d MMM').format(widget.estimatedDelivery)}';
   }
 
   @override
   Widget build(BuildContext context) {
     debugPrint('ABZORA success: build orderId=${widget.orderId}');
     final theme = Theme.of(context);
-    final deliveryLabel = DateFormat('dd MMM yyyy').format(widget.estimatedDelivery);
+    final deliveryLabel = DateFormat('EEE, dd MMM').format(widget.estimatedDelivery);
+    final previewItem = _orderPreviewItems.isNotEmpty ? _orderPreviewItems.first : null;
+    final extraItems = _orderPreviewItems.length > 1 ? _orderPreviewItems.length - 1 : 0;
 
     return AbzioThemeScope.light(
       child: Scaffold(
@@ -83,167 +90,137 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
         body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 460),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 96,
-                      height: 96,
+                      width: 76,
+                      height: 76,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AbzioTheme.accentColor.withValues(alpha: 0.14),
-                            AbzioTheme.accentColor.withValues(alpha: 0.24),
-                          ],
-                        ),
+                        color: AbzioTheme.accentColor.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AbzioTheme.accentColor.withValues(alpha: 0.16),
-                            blurRadius: 24,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
                       ),
                       child: const Icon(
                         Icons.check_rounded,
                         color: AbzioTheme.accentColor,
-                        size: 50,
+                        size: 40,
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF7F1DF),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        'Order placed successfully',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF8D6D20),
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     Text(
                       'Order Confirmed',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.displayMedium?.copyWith(fontSize: 30),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                     Text(
-                      'Your order has been placed successfully.',
+                      'Your payment was successful and your order is now confirmed.',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyLarge?.copyWith(
+                      style: theme.textTheme.bodyMedium?.copyWith(
                         color: context.abzioSecondaryText,
-                        height: 1.45,
+                        height: 1.35,
                       ),
                     ),
                     const SizedBox(height: 16),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            const Color(0xFFFFF8E7),
-                            AbzioTheme.accentColor.withValues(alpha: 0.12),
-                            Colors.white,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: AbzioTheme.accentColor.withValues(alpha: 0.18),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Icon(
-                              Icons.local_shipping_outlined,
-                              color: AbzioTheme.accentColor,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _deliveryHeadline(),
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'We will keep you posted as your package moves.',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: context.abzioSecondaryText,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: context.abzioBorder),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 18,
-                            offset: const Offset(0, 10),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
                       child: Column(
                         children: [
                           _InfoRow(label: 'Order ID', value: widget.orderId),
-                          const SizedBox(height: 14),
-                          _InfoRow(label: 'Estimated delivery', value: deliveryLabel),
-                          const SizedBox(height: 14),
-                          _InfoRow(label: 'Status', value: _deliveryHeadline()),
+                          const SizedBox(height: 10),
+                          _InfoRow(label: 'Delivery', value: deliveryLabel),
+                          const SizedBox(height: 10),
+                          _InfoRow(label: 'Payment', value: _paymentLabel()),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    Text(
-                      'Track your order anytime using the button below.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: context.abzioSecondaryText,
-                        fontWeight: FontWeight.w600,
+                    if (previewItem != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: context.abzioBorder),
+                        ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: SizedBox(
+                                width: 72,
+                                height: 72,
+                                child: AbzioNetworkImage(
+                                  imageUrl: previewItem.product.images.isNotEmpty
+                                      ? previewItem.product.images.first
+                                      : '',
+                                  fallbackLabel: previewItem.product.name,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    previewItem.product.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: AbzioTheme.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    extraItems > 0 ? '+$extraItems more item${extraItems == 1 ? '' : 's'}' : 'Ready to ship',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: context.abzioSecondaryText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                     const SizedBox(height: 18),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _trackOrder,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -254,13 +231,35 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: _continueShopping,
-                        child: const Text('Continue Shopping'),
-                      ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _continueShopping,
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('Continue Shopping'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _viewDetails,
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('View Details'),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -13,8 +13,7 @@ import '../../services/app_config.dart';
 import '../../services/database_service.dart';
 import '../../services/payment_service.dart';
 import '../../theme.dart';
-import '../../widgets/address_card.dart';
-import '../../widgets/order_summary_widget.dart';
+import '../../widgets/state_views.dart';
 import 'address_screen.dart';
 import 'order_success_screen.dart';
 
@@ -35,6 +34,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _loadingCredits = false;
   bool _loadingCouponOffer = false;
   bool _loadingPricing = false;
+  bool _couponExpanded = false;
   String? _paymentMethod = 'COD';
   UserAddress? _selectedAddress;
   List<UserAddress> _savedAddresses = const [];
@@ -670,6 +670,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           builder: (_) => OrderSuccessScreen(
             orderId: placedOrder.invoiceNumber.isEmpty ? placedOrder.id : placedOrder.invoiceNumber,
             estimatedDelivery: _estimateDeliveryDate(placedOrder),
+            paymentMethod: selectedPaymentMethod,
           ),
         ),
       );
@@ -788,12 +789,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Checkout'),
+              Text(
+                'Checkout',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
               Text(
                 'Secure ABZORA finish',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: context.abzioSecondaryText,
                       fontWeight: FontWeight.w600,
+                      fontSize: 11,
                     ),
               ),
             ],
@@ -804,83 +812,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 150),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 128),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFFFFF8E7),
-                      AbzioTheme.accentColor.withValues(alpha: 0.16),
-                      Colors.white,
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 24,
-                      offset: const Offset(0, 14),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Checkout',
-                      style: Theme.of(context).textTheme.displayMedium?.copyWith(fontSize: 30),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'A fast, secure ABZORA finish with premium delivery and flexible payment options.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        _TrustChip(icon: Icons.local_shipping_outlined, label: _deliveryEta(cart)),
-                        const _TrustChip(icon: Icons.lock_outline_rounded, label: '100% secure payments'),
-                        const _TrustChip(icon: Icons.autorenew_rounded, label: 'Easy returns'),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 22),
+              _CompactHeroRow(deliveryLabel: _deliveryEta(cart)),
+              const SizedBox(height: 12),
               _SectionShell(
                 title: 'Delivery Address',
                 actionLabel: _selectedAddress == null ? 'Add' : 'Change',
                 onAction: _showAddressSheet,
                 child: _loadingAddresses
                     ? const _LoadingCard()
-                    : Column(
-                        children: [
-                          AddressCard(
-                            address: _selectedAddress,
-                            onChange: _showAddressSheet,
-                          ),
-                          if (_selectedAddress != null) ...[
-                            const SizedBox(height: 12),
-                            _EtaBanner(label: _deliveryEta(cart)),
-                          ],
-                        ],
+                    : _CompactAddressCard(
+                        address: _selectedAddress,
+                        onChange: _showAddressSheet,
                       ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               _SectionShell(
                 title: 'Order Summary',
                 subtitle: '${cart.items.length} item${cart.items.length == 1 ? '' : 's'} in your bag',
-                child: OrderSummaryWidget(items: cart.items),
+                child: _CompactOrderSummary(
+                  items: cart.items,
+                  formatter: currency,
+                ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               _SectionShell(
                 title: 'Offers & Coupons',
                 subtitle: cart.appliedCoupon == null ? 'Best offer ready for this order' : 'Savings applied to your bag',
@@ -889,6 +847,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     _CouponCard(
                       controller: _couponController,
                       appliedCoupon: cart.appliedCoupon,
+                      expanded: _couponExpanded,
+                      onToggle: () => setState(() => _couponExpanded = !_couponExpanded),
                       onApply: () => _applyCoupon(cart),
                       onRemove: () {
                         _couponController.clear();
@@ -897,7 +857,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         unawaited(_loadBestCouponOffer());
                       },
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     _BestOfferBanner(
                       loading: _loadingCouponOffer,
                       title: _bestCouponOffer?.title ?? 'Special offer for you',
@@ -910,7 +870,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               : '${_bestCouponOffer!.discountPercent.toStringAsFixed(0)}% off for this order',
                       onApply: cart.appliedCoupon != null ? null : () => _applyBestOffer(cart),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     _ReferralCreditCard(
                       loading: _loadingCredits,
                       decision: _creditDecision,
@@ -923,7 +883,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
                 _SectionShell(
                   title: 'Payment Method',
                   subtitle: 'UPI is recommended for the fastest secure checkout.',
@@ -933,7 +893,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     onChanged: (value) => _changePaymentMethod(value, cart),
                   ),
                 ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               _SectionShell(
                 title: 'Price Breakdown',
                 child: _loadingPricing
@@ -955,7 +915,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         bottomNavigationBar: SafeArea(
           top: false,
           child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topCenter,
@@ -982,9 +942,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     final stackVertically = constraints.maxWidth < 340;
                     final totalBlock = Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF7F1DF),
                             borderRadius: BorderRadius.circular(999),
@@ -995,20 +956,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   color: const Color(0xFF8D6D20),
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.2,
-                                ),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
-                          'Total amount',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          'Secure total',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontSize: 11,
+                              ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           currency.format(total),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
                         ),
@@ -1020,16 +983,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         gradient: const LinearGradient(
                           colors: [Color(0xFFE1C768), AbzioTheme.accentColor],
                         ),
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                         child: ElevatedButton(
                           onPressed: _processing ? null : () => _placeOrder(cart),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,
-                          minimumSize: const Size.fromHeight(54),
+                          minimumSize: const Size.fromHeight(48),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: _processing
@@ -1106,24 +1069,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.lock_outline_rounded, size: 16, color: context.abzioSecondaryText),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _isCodAvailable(cart)
-                            ? '100% secure payments | COD available | Easy returns'
-                            : '100% secure payments | Fast delivery | Easy returns',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: context.abzioSecondaryText,
-                              fontWeight: FontWeight.w600,
-                            ),
+                Text(
+                  _isCodAvailable(cart)
+                      ? '100% secure payments • COD available'
+                      : '100% secure payments • Fast delivery',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: context.abzioSecondaryText,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
                       ),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -1152,16 +1108,16 @@ class _SectionShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: context.abzioBorder),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -1175,13 +1131,20 @@ class _SectionShell extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
                     if (subtitle != null) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         subtitle!,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: context.abzioSecondaryText,
+                              fontSize: 12,
                             ),
                       ),
                     ],
@@ -1195,7 +1158,7 @@ class _SectionShell extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           child,
         ],
       ),
@@ -1203,43 +1166,251 @@ class _SectionShell extends StatelessWidget {
   }
 }
 
-class _EtaBanner extends StatelessWidget {
-  const _EtaBanner({required this.label});
+class _CompactHeroRow extends StatelessWidget {
+  const _CompactHeroRow({required this.deliveryLabel});
+
+  final String deliveryLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.abzioBorder),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.local_shipping_outlined, size: 18, color: AbzioTheme.accentColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              deliveryLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AbzioTheme.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 4,
+            height: 4,
+            decoration: const BoxDecoration(
+              color: Color(0xFFB8B2A6),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.lock_outline_rounded, size: 16, color: AbzioTheme.accentColor),
+          const SizedBox(width: 6),
+          Text(
+            '100% secure',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactAddressCard extends StatelessWidget {
+  const _CompactAddressCard({
+    required this.address,
+    required this.onChange,
+  });
+
+  final UserAddress? address;
+  final VoidCallback onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    if (address == null) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton(
+          onPressed: onChange,
+          child: const Text('Add address'),
+        ),
+      );
+    }
+
+    final locationLine = [
+      if (address!.houseDetails.trim().isNotEmpty) address!.houseDetails.trim(),
+      if (address!.addressLine.trim().isNotEmpty) address!.addressLine.trim(),
+      if (address!.locality.trim().isNotEmpty) address!.locality.trim(),
+      if (address!.city.trim().isNotEmpty) address!.city.trim(),
+      if (address!.pincode.trim().isNotEmpty) address!.pincode.trim(),
+    ].join(', ');
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${address!.name} • ${address!.phone}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AbzioTheme.textPrimary,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                locationLine,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.abzioSecondaryText,
+                      height: 1.25,
+                    ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        TextButton(
+          onPressed: onChange,
+          style: TextButton.styleFrom(
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          ),
+          child: const Text('Change'),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompactOrderSummary extends StatelessWidget {
+  const _CompactOrderSummary({
+    required this.items,
+    required this.formatter,
+  });
+
+  final List<CartItem> items;
+  final NumberFormat formatter;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: items
+          .map(
+            (item) => Padding(
+              padding: EdgeInsets.only(bottom: item == items.last ? 0 : 10),
+              child: _CompactOrderRow(
+                item: item,
+                formatter: formatter,
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _CompactOrderRow extends StatelessWidget {
+  const _CompactOrderRow({
+    required this.item,
+    required this.formatter,
+  });
+
+  final CartItem item;
+  final NumberFormat formatter;
+
+  @override
+  Widget build(BuildContext context) {
+    final product = item.product;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            width: 70,
+            height: 70,
+            child: AbzioNetworkImage(
+              imageUrl: product.images.isNotEmpty ? product.images.first : '',
+              fallbackLabel: product.name,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                product.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AbzioTheme.textPrimary,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  _SummaryChip(label: 'Qty ${item.quantity}'),
+                  _SummaryChip(label: 'Size ${item.size}'),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                formatter.format(product.effectivePrice * item.quantity),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip({required this.label});
 
   final String label;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E9),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.18)),
+        color: const Color(0xFFF8F6F0),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: context.abzioBorder),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AbzioTheme.accentColor.withValues(alpha: 0.14),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
-            child: const Icon(Icons.local_shipping_outlined, size: 18, color: Colors.black),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              '$label - Premium express dispatch for your ABZORA order.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AbzioTheme.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1265,7 +1436,7 @@ class _BestOfferBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -1273,43 +1444,53 @@ class _BestOfferBanner extends StatelessWidget {
             AbzioTheme.accentColor.withValues(alpha: 0.12),
           ],
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.18)),
       ),
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.auto_awesome_rounded, color: AbzioTheme.accentColor),
+            child: const Icon(Icons.auto_awesome_rounded, size: 18, color: AbzioTheme.accentColor),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   loading ? 'Finding your best offer' : title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   loading
                       ? 'Checking your activity, cart value, and recent behavior.'
                       : subtitle == null || subtitle!.trim().isEmpty
                           ? '$code suggested for you. $discountLabel'
                           : '$subtitle $discountLabel',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           OutlinedButton(
             onPressed: loading ? null : onApply,
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(72, 34),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
             child: Text(loading ? 'Loading' : onApply == null ? 'Applied' : 'Apply'),
           ),
         ],
@@ -1342,7 +1523,7 @@ class _PremiumPaymentSelector extends StatelessWidget {
           enabled: true,
           onTap: () => onChanged('UPI'),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _PaymentMethodTile(
           icon: Icons.credit_card_rounded,
           title: 'Cards',
@@ -1351,7 +1532,7 @@ class _PremiumPaymentSelector extends StatelessWidget {
           enabled: true,
           onTap: () => onChanged('CARDS'),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _PaymentMethodTile(
           icon: Icons.payments_outlined,
           title: 'Cash on Delivery',
@@ -1362,7 +1543,7 @@ class _PremiumPaymentSelector extends StatelessWidget {
           enabled: codAvailable,
           onTap: () => onChanged('COD'),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _PaymentMethodTile(
           icon: Icons.account_balance_wallet_outlined,
           title: 'ABZORA Credit',
@@ -1401,13 +1582,13 @@ class _PaymentMethodTile extends StatelessWidget {
       opacity: enabled ? 1 : 0.55,
       child: InkWell(
         onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: selected ? const Color(0xFFFFFBF0) : Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: selected ? AbzioTheme.accentColor : context.abzioBorder,
               width: selected ? 1.5 : 1,
@@ -1416,27 +1597,37 @@ class _PaymentMethodTile extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   color: selected
                       ? AbzioTheme.accentColor.withValues(alpha: 0.16)
                       : context.abzioMuted,
                 ),
-                child: Icon(icon, color: selected ? AbzioTheme.accentColor : context.abzioSecondaryText),
+                child: Icon(icon, size: 18, color: selected ? AbzioTheme.accentColor : context.abzioSecondaryText),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       children: [
-                        Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)),
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
                         if (badge != null)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
                               color: AbzioTheme.accentColor.withValues(alpha: 0.14),
                               borderRadius: BorderRadius.circular(999),
@@ -1446,19 +1637,26 @@ class _PaymentMethodTile extends StatelessWidget {
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: AbzioTheme.textPrimary,
                                     fontWeight: FontWeight.w700,
+                                    fontSize: 11,
                                   ),
                             ),
                           ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Icon(
                 selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                size: 20,
                 color: selected ? AbzioTheme.accentColor : context.abzioSecondaryText,
               ),
             ],
@@ -1473,63 +1671,104 @@ class _CouponCard extends StatelessWidget {
   const _CouponCard({
     required this.controller,
     required this.appliedCoupon,
+    required this.expanded,
+    required this.onToggle,
     required this.onApply,
     required this.onRemove,
   });
 
   final TextEditingController controller;
   final String? appliedCoupon;
+  final bool expanded;
+  final VoidCallback onToggle;
   final VoidCallback onApply;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.abzioBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Apply Coupon', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter coupon code',
+          InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(12),
+            child: Row(
+              children: [
+                const Icon(Icons.local_offer_outlined, size: 18, color: AbzioTheme.accentColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Apply Coupon',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
                 ),
+                Icon(
+                  expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_right_rounded,
+                  color: context.abzioSecondaryText,
+                ),
+              ],
+            ),
+          ),
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 180),
+            crossFadeState: expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 40,
+                      child: TextField(
+                        controller: controller,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: const InputDecoration(
+                          hintText: 'Enter coupon code',
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 40,
+                    child: ElevatedButton(
+                      onPressed: onApply,
+                      child: const Text('Apply'),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: onApply,
-                child: const Text('Apply'),
-              ),
-            ],
+            ),
           ),
           if (appliedCoupon != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 color: AbzioTheme.accentColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.local_offer_outlined, size: 18, color: AbzioTheme.accentColor),
+                  const Icon(Icons.local_offer_outlined, size: 16, color: AbzioTheme.accentColor),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '$appliedCoupon applied',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: AbzioTheme.textPrimary,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1567,10 +1806,10 @@ class _ReferralCreditCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (loading) {
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: context.abzioBorder),
         ),
         child: const Row(
@@ -1594,10 +1833,10 @@ class _ReferralCreditCard extends StatelessWidget {
     final highlight = current.appliedCredits > 0;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 260),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: highlight ? const Color(0xFFFFFBF0) : Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: highlight
               ? AbzioTheme.accentColor.withValues(alpha: 0.24)
@@ -1607,15 +1846,15 @@ class _ReferralCreditCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: AbzioTheme.accentColor.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.account_balance_wallet_outlined, color: AbzioTheme.accentColor),
+            child: const Icon(Icons.account_balance_wallet_outlined, size: 18, color: AbzioTheme.accentColor),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1628,11 +1867,12 @@ class _ReferralCreditCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   'Available credits: Rs ${current.availableCredits.toStringAsFixed(0)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: context.abzioSecondaryText,
+                        fontSize: 11,
                       ),
                 ),
               ],
@@ -1675,17 +1915,17 @@ class _PriceBreakdownCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.abzioBorder),
       ),
       child: Column(
         children: [
           _PriceLine(label: 'Base Price', value: formatter.format(originalSubtotal)),
           if ((dynamicSubtotal - originalSubtotal).abs() > 0.01) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             _PriceLine(
               label: 'Dynamic Price',
               value: formatter.format(dynamicSubtotal),
@@ -1693,17 +1933,17 @@ class _PriceBreakdownCard extends StatelessWidget {
             ),
           ],
           if ((dynamicSubtotal - originalSubtotal).abs() <= 0.01) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             _PriceLine(label: 'Subtotal', value: formatter.format(dynamicSubtotal)),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           const _PriceLine(label: 'Delivery fee', value: 'Free'),
           if (customCharge > 0) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             _PriceLine(label: 'Custom fit service', value: formatter.format(customCharge)),
           ],
           if (discount > 0) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             _PriceLine(
               label: 'Discount',
               value: '- ${formatter.format(discount)}',
@@ -1711,17 +1951,17 @@ class _PriceBreakdownCard extends StatelessWidget {
             ),
           ],
           if (walletCredit > 0) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             _PriceLine(
               label: 'ABZORA Credits',
               value: '- ${formatter.format(walletCredit)}',
               valueColor: const Color(0xFF218B5B),
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           _PriceLine(label: 'Taxes', value: formatter.format(tax)),
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 14),
+            padding: EdgeInsets.symmetric(vertical: 10),
             child: Divider(height: 1),
           ),
           _PriceLine(
@@ -1752,39 +1992,24 @@ class _PriceLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = isTotal
         ? Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)
-        : Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600);
+        : Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: style),
-        Text(value, style: style?.copyWith(color: valueColor)),
-      ],
-    );
-  }
-}
-
-class _TrustChip extends StatelessWidget {
-  const _TrustChip({
-    required this.icon,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: context.abzioSecondaryText),
-        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          ),
+        ),
+        const SizedBox(width: 12),
         Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontSize: 12,
-                color: context.abzioSecondaryText,
-              ),
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: style?.copyWith(color: valueColor),
         ),
       ],
     );
