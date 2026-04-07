@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../models/models.dart';
+import '../../config/product_attribute_config.dart';
 import '../../services/database_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/image_url_service.dart';
@@ -31,16 +32,47 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _descriptionController = TextEditingController();
   final _stockController = TextEditingController();
   final _imageUrlsController = TextEditingController();
+  final _subcategoryController = TextEditingController();
   String _selectedCategory = 'MEN';
   bool _isActive = true;
   bool _isUploading = false;
   final _picker = ImagePicker();
+  late final Map<String, TextEditingController> _attributeControllers;
 
   final List<String> _categories = ['MEN', 'WOMEN', 'WEDDING', 'ACCESSORIES', 'FORMAL', 'SHOES'];
+  static const Map<String, String> _attributeHints = {
+    'upper_material': 'Mesh, knit, leather',
+    'sole_material': 'Rubber, EVA',
+    'closure': 'Lace-up, buckle, zip',
+    'occasion': 'Running, casual, office',
+    'cushioning': 'High, medium, responsive',
+    'fit_type': 'Regular, snug, relaxed',
+    'fabric': 'Cotton, satin, linen',
+    'fit': 'Regular, slim, oversized',
+    'pattern': 'Solid, striped, printed',
+    'sleeve_type': 'Full sleeve, sleeveless',
+    'dial_shape': 'Round, rectangular',
+    'strap_material': 'Leather, stainless steel',
+    'movement': 'Quartz, automatic',
+    'water_resistance': '50m, splash resistant',
+    'material': 'Leather, vegan leather, canvas',
+    'capacity': '20L, fits 15-inch laptop',
+    'strap_type': 'Single strap, dual strap',
+    'usage': 'Travel, office, daily wear',
+  };
+  static final List<String> _allAttributeKeys = {
+    ...genericAttributeFields,
+    for (final config in productAttributeConfig.values)
+      for (final section in config.sections) ...section.fields,
+  }.toList()
+    ..sort();
 
   @override
   void initState() {
     super.initState();
+    _attributeControllers = {
+      for (final key in _allAttributeKeys) key: TextEditingController(),
+    };
     final product = widget.existingProduct;
     if (product != null) {
       _nameController.text = product.name;
@@ -50,8 +82,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _descriptionController.text = product.description;
       _stockController.text = product.stock.toString();
       _imageUrlsController.text = product.images.join('\n');
+      _subcategoryController.text = product.subcategory;
       _selectedCategory = product.category;
       _isActive = product.isActive;
+      for (final entry in product.attributes.entries) {
+        _attributeControllers[entry.key]?.text = entry.value;
+      }
+      if ((product.attributes['fabric'] ?? '').isEmpty && (product.fabric ?? '').isNotEmpty) {
+        _attributeControllers['fabric']?.text = product.fabric!;
+      }
     }
   }
 
@@ -64,6 +103,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _descriptionController.dispose();
     _stockController.dispose();
     _imageUrlsController.dispose();
+    _subcategoryController.dispose();
+    for (final controller in _attributeControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -141,6 +184,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 child: Text(c, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
               )).toList(),
               onChanged: (val) => setState(() => _selectedCategory = val!),
+            ),
+            const SizedBox(height: 20),
+
+            _buildLabel('Subcategory / Product Type'),
+            TextField(
+              controller: _subcategoryController,
+              onChanged: (_) => setState(() {}),
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                hintText: _subcategoryHint,
+                helperText: _attributeHelperText,
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -222,6 +277,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
               decoration: const InputDecoration(hintText: 'Describe your product in detail...'),
             ),
 
+            const SizedBox(height: 20),
+            _buildAttributeEditor(),
+
             const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
@@ -272,6 +330,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     setState(() => _isUploading = true);
 
     final existing = widget.existingProduct;
+    final attributes = _collectAttributes();
     final product = Product(
       id: existing?.id ?? '',
       storeId: widget.storeId,
@@ -284,13 +343,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
       sizes: existing?.sizes ?? ['S', 'M', 'L', 'XL'],
       stock: int.tryParse(_stockController.text) ?? 0,
       category: _selectedCategory,
+      subcategory: _subcategoryController.text.trim(),
       isActive: _isActive,
       createdAt: existing?.createdAt ?? DateTime.now().toIso8601String(),
       rating: existing?.rating ?? 0,
       reviewCount: existing?.reviewCount ?? 0,
       isCustomTailoring: existing?.isCustomTailoring ?? false,
       outfitType: existing?.outfitType,
-      fabric: existing?.fabric,
+      fabric: attributes['fabric'] ?? existing?.fabric,
+      attributes: attributes,
       customizations: existing?.customizations ?? const {},
       measurements: existing?.measurements ?? const {},
       addons: existing?.addons ?? const [],
@@ -416,5 +477,127 @@ class _AddProductScreenState extends State<AddProductScreen> {
       return <String>[];
     }
     return ImageUrlService.optimizeAll(urls.take(5));
+  }
+
+  String get _resolvedAttributeCategory {
+    final subcategory = normalizeProductCategory(_subcategoryController.text);
+    if (productAttributeConfig.containsKey(subcategory)) {
+      return subcategory;
+    }
+    switch (_selectedCategory.toUpperCase()) {
+      case 'SHOES':
+        return 'shoes';
+      case 'MEN':
+      case 'WOMEN':
+      case 'WEDDING':
+      case 'FORMAL':
+        return 'clothing';
+      default:
+        final normalized = normalizeProductCategory(_selectedCategory);
+        return productAttributeConfig.containsKey(normalized) ? normalized : '';
+    }
+  }
+
+  List<ProductAttributeSectionConfig> get _attributeSections {
+    final config = productAttributeConfig[_resolvedAttributeCategory];
+    if (config != null) {
+      return config.sections;
+    }
+    return const [
+      ProductAttributeSectionConfig(
+        title: 'Product Details',
+        fields: genericAttributeFields,
+      ),
+    ];
+  }
+
+  String get _subcategoryHint {
+    switch (_selectedCategory.toUpperCase()) {
+      case 'SHOES':
+        return 'Running shoes, sneakers, loafers';
+      case 'ACCESSORIES':
+        return 'Watch, handbag, backpack';
+      default:
+        return 'Shirt, dress, kurta, blazer';
+    }
+  }
+
+  String get _attributeHelperText {
+    final resolved = _resolvedAttributeCategory;
+    if (resolved.isEmpty) {
+      return 'Add a specific product type to unlock category-based specifications.';
+    }
+    return 'Showing ${resolved.toUpperCase()} specifications based on category and subcategory.';
+  }
+
+  Map<String, String> _collectAttributes() {
+    final keys = {
+      for (final section in _attributeSections) ...section.fields,
+    };
+    final attributes = <String, String>{};
+    for (final key in keys) {
+      final value = _attributeControllers[key]?.text.trim() ?? '';
+      if (value.isNotEmpty) {
+        attributes[key] = value;
+      }
+    }
+    return attributes;
+  }
+
+  Widget _buildAttributeEditor() {
+    final sections = _attributeSections;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AbzioTheme.grey100,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Product Specifications',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'These details power the correct specs on customer product pages.',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: AbzioTheme.grey500,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          for (var index = 0; index < sections.length; index++) ...[
+            if (index > 0) const SizedBox(height: 18),
+            Text(
+              sections[index].title,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 12),
+            for (final field in sections[index].fields) ...[
+              TextField(
+                controller: _attributeControllers[field],
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                decoration: InputDecoration(
+                  hintText: _attributeHints[field] ?? humanizeAttributeLabel(field),
+                  labelText: humanizeAttributeLabel(field),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+        ],
+      ),
+    );
   }
 }
