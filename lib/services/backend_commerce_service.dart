@@ -1179,6 +1179,164 @@ class BackendCommerceService {
     return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
   }
 
+  Future<RefundRequest?> getRefundRequestForOrder(String orderId) async {
+    final payload = await _client.get('/orders/$orderId/refund-request', authenticated: true);
+    if (payload == null) {
+      return null;
+    }
+    final map = Map<String, dynamic>.from(payload as Map);
+    final id = map['id']?.toString() ?? '';
+    if (id.isEmpty) {
+      return null;
+    }
+    return RefundRequest.fromMap(map, id);
+  }
+
+  Future<List<RefundRequest>> getRefundRequests({String status = 'all'}) async {
+    final payload = await _client.get(
+      '/orders/refund-requests',
+      authenticated: true,
+      queryParameters: {'status': status},
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return RefundRequest.fromMap(map, map['id']?.toString() ?? '');
+        })
+        .toList();
+  }
+
+  Future<RefundRequest> createRefundRequest({
+    required String orderId,
+    required String reason,
+  }) async {
+    final payload = await _client.post(
+      '/orders/$orderId/refund-request',
+      authenticated: true,
+      body: {'reason': reason},
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return RefundRequest.fromMap(map, map['id']?.toString() ?? '');
+  }
+
+  Future<RefundRequest> approveRefundRequest(String refundId) async {
+    final payload = await _client.post(
+      '/orders/refund-requests/$refundId/approve',
+      authenticated: true,
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return RefundRequest.fromMap(map, map['id']?.toString() ?? refundId);
+  }
+
+  Future<RefundRequest> rejectRefundRequest({
+    required String refundId,
+    required String reason,
+  }) async {
+    final payload = await _client.post(
+      '/orders/refund-requests/$refundId/reject',
+      authenticated: true,
+      body: {'reason': reason},
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return RefundRequest.fromMap(map, map['id']?.toString() ?? refundId);
+  }
+
+  Future<ReturnRequest?> getReturnRequestForOrder(String orderId) async {
+    final payload = await _client.get('/orders/$orderId/return-request', authenticated: true);
+    if (payload == null) {
+      return null;
+    }
+    final map = Map<String, dynamic>.from(payload as Map);
+    final id = map['id']?.toString() ?? '';
+    if (id.isEmpty) {
+      return null;
+    }
+    return ReturnRequest.fromMap(map, id);
+  }
+
+  Future<List<ReturnRequest>> getReturnRequests({String status = 'all'}) async {
+    final payload = await _client.get(
+      '/orders/return-requests',
+      authenticated: true,
+      queryParameters: {'status': status},
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return ReturnRequest.fromMap(map, map['id']?.toString() ?? '');
+        })
+        .toList();
+  }
+
+  Future<ReturnRequest> createReturnRequest({
+    required String orderId,
+    required String reason,
+    String imageUrl = '',
+  }) async {
+    final payload = await _client.post(
+      '/orders/$orderId/return-request',
+      authenticated: true,
+      body: {
+        'reason': reason,
+        if (imageUrl.trim().isNotEmpty) 'imageUrl': imageUrl.trim(),
+      },
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return ReturnRequest.fromMap(map, map['id']?.toString() ?? '');
+  }
+
+  Future<ReturnRequest> approveReturnRequest(String returnId) async {
+    final payload = await _client.post(
+      '/orders/return-requests/$returnId/approve',
+      authenticated: true,
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return ReturnRequest.fromMap(map, map['id']?.toString() ?? returnId);
+  }
+
+  Future<ReturnRequest> rejectReturnRequest({
+    required String returnId,
+    required String reason,
+  }) async {
+    final payload = await _client.post(
+      '/orders/return-requests/$returnId/reject',
+      authenticated: true,
+      body: {'reason': reason},
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return ReturnRequest.fromMap(map, map['id']?.toString() ?? returnId);
+  }
+
+  Future<ReturnRequest> markReturnPicked(String returnId) async {
+    final payload = await _client.post(
+      '/orders/return-requests/$returnId/picked',
+      authenticated: true,
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return ReturnRequest.fromMap(map, map['id']?.toString() ?? returnId);
+  }
+
+  Future<ReturnRequest> completeReturnRequest({
+    required String returnId,
+    bool qualityApproved = true,
+    String rejectionReason = '',
+  }) async {
+    final payload = await _client.post(
+      '/orders/return-requests/$returnId/complete',
+      authenticated: true,
+      body: {
+        'qualityApproved': qualityApproved,
+        if (rejectionReason.trim().isNotEmpty) 'rejectionReason': rejectionReason.trim(),
+      },
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    return ReturnRequest.fromMap(map, map['id']?.toString() ?? returnId);
+  }
+
   Future<OrderModel> createOrder({
     required List<OrderItem> items,
     required String paymentMethod,
@@ -1385,8 +1543,8 @@ class BackendCommerceService {
         'isDelivered': (map['orderStatus']?.toString() ?? '') == 'delivered',
         'paymentReference': map['razorpay']?['paymentId'] ?? map['razorpay']?['orderId'],
         'isPaymentVerified': (map['paymentStatus']?.toString() ?? '') == 'paid',
-        'refundStatus': '',
-        'returnStatus': '',
+        'refundStatus': map['refundStatus'] ?? 'none',
+        'returnStatus': map['returnStatus'] ?? 'none',
         'walletCreditUsed': 0,
       },
       map['id']?.toString() ?? '',

@@ -4264,6 +4264,16 @@ class DatabaseService {
     String orderId, {
     AppUser? actor,
   }) async {
+    if (_backendCommerce.isConfigured) {
+      final refund = await _backendCommerce.getRefundRequestForOrder(orderId);
+      if (refund == null) {
+        return null;
+      }
+      if (actor != null && !isSuperAdmin(actor) && refund.userId != actor.id) {
+        throw StateError('Refund access denied.');
+      }
+      return refund;
+    }
     final requests = await _fetchQueryCollection(
       _ref('refundRequests').orderByChild('orderId').equalTo(orderId),
       (map, id) => RefundRequest.fromMap(map, id),
@@ -4283,6 +4293,9 @@ class DatabaseService {
     required AppUser actor,
     String status = 'all',
   }) async {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getRefundRequests(status: status);
+    }
     final requests = isSuperAdmin(actor)
         ? await _fetchCollection('refundRequests', (map, id) => RefundRequest.fromMap(map, id))
         : await _fetchQueryCollection(
@@ -4300,6 +4313,16 @@ class DatabaseService {
     String orderId, {
     AppUser? actor,
   }) async {
+    if (_backendCommerce.isConfigured) {
+      final request = await _backendCommerce.getReturnRequestForOrder(orderId);
+      if (request == null) {
+        return null;
+      }
+      if (actor != null && !isSuperAdmin(actor) && request.userId != actor.id) {
+        throw StateError('Return access denied.');
+      }
+      return request;
+    }
     final requests = await _fetchQueryCollection(
       _ref('returnRequests').orderByChild('orderId').equalTo(orderId),
       (map, id) => ReturnRequest.fromMap(map, id),
@@ -4319,6 +4342,9 @@ class DatabaseService {
     required AppUser actor,
     String status = 'all',
   }) async {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getReturnRequests(status: status);
+    }
     final requests = isSuperAdmin(actor)
         ? await _fetchCollection('returnRequests', (map, id) => ReturnRequest.fromMap(map, id))
         : await _fetchQueryCollection(
@@ -4430,6 +4456,13 @@ class DatabaseService {
     required AppUser actor,
     String imageUrl = '',
   }) async {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.createReturnRequest(
+        orderId: orderId,
+        reason: reason,
+        imageUrl: imageUrl,
+      );
+    }
     final trimmedReason = reason.trim();
     if (trimmedReason.isEmpty) {
       throw StateError('Tell us why you want to return this item.');
@@ -4534,6 +4567,12 @@ class DatabaseService {
     required String reason,
     required AppUser actor,
   }) async {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.createRefundRequest(
+        orderId: orderId,
+        reason: reason,
+      );
+    }
     final trimmedReason = reason.trim();
     if (trimmedReason.isEmpty) {
       throw StateError('Tell us why you want a refund.');
@@ -5176,6 +5215,11 @@ class DatabaseService {
   }
 
   Future<void> approveRefundRequest(String refundId, {required AppUser actor}) async {
+    if (_backendCommerce.isConfigured) {
+      _requireSuperAdmin(actor);
+      await _backendCommerce.approveRefundRequest(refundId);
+      return;
+    }
     _requireSuperAdmin(actor);
     final refund = await _fetchDocument('refundRequests/$refundId', (map, id) => RefundRequest.fromMap(map, id));
     if (refund == null) {
@@ -5284,6 +5328,11 @@ class DatabaseService {
     required String reason,
     required AppUser actor,
   }) async {
+    if (_backendCommerce.isConfigured) {
+      _requireSuperAdmin(actor);
+      await _backendCommerce.rejectRefundRequest(refundId: refundId, reason: reason);
+      return;
+    }
     _requireSuperAdmin(actor);
     final trimmedReason = reason.trim();
     if (trimmedReason.isEmpty) {
@@ -5336,6 +5385,11 @@ class DatabaseService {
   }
 
   Future<void> approveReturnRequest(String returnId, {required AppUser actor}) async {
+    if (_backendCommerce.isConfigured) {
+      _requireSuperAdmin(actor);
+      await _backendCommerce.approveReturnRequest(returnId);
+      return;
+    }
     _requireSuperAdmin(actor);
     final request = await _fetchDocument('returnRequests/$returnId', (map, id) => ReturnRequest.fromMap(map, id));
     if (request == null) {
@@ -5374,6 +5428,10 @@ class DatabaseService {
   }
 
   Future<void> markReturnPicked(String returnId, {required AppUser actor}) async {
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.markReturnPicked(returnId);
+      return;
+    }
     final request = await _fetchDocument('returnRequests/$returnId', (map, id) => ReturnRequest.fromMap(map, id));
     if (request == null) {
       throw StateError('Return request not found.');
@@ -5410,6 +5468,14 @@ class DatabaseService {
     bool qualityApproved = true,
     String rejectionReason = '',
   }) async {
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.completeReturnRequest(
+        returnId: returnId,
+        qualityApproved: qualityApproved,
+        rejectionReason: rejectionReason,
+      );
+      return;
+    }
     final request = await _fetchDocument('returnRequests/$returnId', (map, id) => ReturnRequest.fromMap(map, id));
     if (request == null) {
       throw StateError('Return request not found.');
