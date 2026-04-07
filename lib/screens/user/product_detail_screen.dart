@@ -18,6 +18,7 @@ import '../../providers/wishlist_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
 import '../../widgets/animated_wishlist_button.dart';
+import '../../widgets/product_attributes.dart';
 import '../../widgets/tap_scale.dart';
 import '../../widgets/state_views.dart';
 import 'ai_stylist_screen.dart';
@@ -1209,98 +1210,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     Product product,
     String description,
   ) {
-    final fabric = product.fabric?.trim().isNotEmpty == true
-        ? product.fabric!.trim()
-        : 'Cotton';
-    final fit = product.outfitType?.trim().isNotEmpty == true
-        ? product.outfitType!.trim()
-        : 'Regular';
-    final cleanDescription = description.trim();
-
-    Widget specTile(String title, String value) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF4B4B4B),
-                ),
-          ),
-        ],
+    final attributes = Map<String, String>.from(product.attributes);
+    if (attributes.isEmpty) {
+      final fallbackAttributes = <String, String>{};
+      if ((product.fabric ?? '').trim().isNotEmpty) {
+        fallbackAttributes['fabric'] = product.fabric!.trim();
+      }
+      if ((product.outfitType ?? '').trim().isNotEmpty) {
+        fallbackAttributes['fit'] = product.outfitType!.trim();
+      }
+      final trimmedDescription = description.trim();
+      if (trimmedDescription.isNotEmpty) {
+        fallbackAttributes['usage'] = trimmedDescription.split('.').first.trim();
+      }
+      if (fallbackAttributes.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      return ProductAttributes(
+        category: product.category,
+        attributes: fallbackAttributes,
       );
     }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE8E8E8)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: specTile('Weave Pattern', product.category)),
-              const SizedBox(width: 14),
-              Expanded(child: specTile('Transparency', 'Opaque')),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: specTile('Fit', fit)),
-              const SizedBox(width: 14),
-              Expanded(child: specTile('Sustainable', 'Regular')),
-            ],
-          ),
-          const SizedBox(height: 12),
-          specTile('Fabrics', fabric),
-          const SizedBox(height: 12),
-          Text(
-            'Product Details',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            cleanDescription,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  height: 1.35,
-                  color: const Color(0xFF3D3D3D),
-                ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Material & Care',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$fabric, Machine wash',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF3D3D3D),
-                ),
-          ),
-        ],
-      ),
+    return ProductAttributes(
+      category: product.category,
+      attributes: attributes,
     );
   }
 
@@ -3490,17 +3423,15 @@ class _HeroIconButton extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.color,
-    this.backgroundColor,
   });
 
   final IconData icon;
   final VoidCallback onTap;
   final Color? color;
-  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
-    final fill = backgroundColor ?? const Color.fromRGBO(255, 255, 255, 0.6);
+    const fill = Color.fromRGBO(255, 255, 255, 0.6);
     return Material(
       color: Colors.transparent,
       elevation: 0,

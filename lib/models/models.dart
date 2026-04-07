@@ -534,6 +534,7 @@ class Product {
   final List<String> sizes;
   final int stock;
   final String category;
+  final String subcategory;
   final bool isActive;
   final String? createdAt;
   final double rating;
@@ -542,6 +543,7 @@ class Product {
   final bool isCustomTailoring;
   final String? outfitType;
   final String? fabric;
+  final Map<String, String> attributes;
   final Map<String, String> customizations;
   final Map<String, double> measurements;
   final List<String> addons;
@@ -568,6 +570,7 @@ class Product {
     required this.sizes,
     required this.stock,
     required this.category,
+    this.subcategory = '',
     this.isActive = true,
     this.createdAt,
     this.rating = 0,
@@ -576,6 +579,7 @@ class Product {
     this.isCustomTailoring = false,
     this.outfitType,
     this.fabric,
+    this.attributes = const {},
     this.customizations = const {},
     this.measurements = const {},
     this.addons = const [],
@@ -602,6 +606,7 @@ class Product {
         'sizes': sizes,
         'stock': stock,
         'category': category,
+        'subcategory': subcategory,
         'isActive': isActive,
         'createdAt': createdAt,
         'rating': rating,
@@ -610,6 +615,7 @@ class Product {
         'isCustomTailoring': isCustomTailoring,
         'outfitType': outfitType,
         'fabric': fabric,
+        'attributes': attributes,
         'customizations': customizations,
         'measurements': measurements,
         'addons': addons,
@@ -649,6 +655,7 @@ class Product {
         sizes: List<String>.from(map['sizes'] ?? []),
         stock: map['stock'] ?? 0,
         category: map['category'] ?? '',
+        subcategory: map['subcategory'] ?? '',
         isActive: map['isActive'] ?? true,
         createdAt: map['createdAt'],
         rating: (map['rating'] ?? 0.0).toDouble(),
@@ -657,6 +664,9 @@ class Product {
         isCustomTailoring: map['isCustomTailoring'] ?? false,
         outfitType: map['outfitType'],
         fabric: map['fabric'],
+        attributes: Map<String, String>.from((map['attributes'] as Map? ?? const {}).map(
+          (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
+        )),
         customizations: Map<String, String>.from(map['customizations'] ?? const {}),
         measurements: (map['measurements'] as Map? ?? const {}).map(
           (key, value) => MapEntry(key.toString(), (value as num).toDouble()),

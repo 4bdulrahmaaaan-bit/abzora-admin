@@ -1507,7 +1507,9 @@ class BackendCommerceService {
       'description': product.description,
       'stock': product.stock,
       'category': product.category,
+      'subcategory': product.subcategory,
       'images': product.images,
+      'attributes': product.attributes,
       'isActive': product.isActive,
     };
   }
@@ -1592,6 +1594,7 @@ class BackendCommerceService {
         'sizes': map['sizes'] ?? const ['S', 'M', 'L'],
         'stock': map['stock'] ?? 0,
         'category': map['category'] ?? '',
+        'subcategory': map['subcategory'] ?? '',
         'isActive': map['isActive'] ?? true,
         'createdAt': map['createdAt'],
         'rating': map['rating'] ?? 0,
@@ -1600,6 +1603,7 @@ class BackendCommerceService {
         'isCustomTailoring': map['isCustomTailoring'] ?? false,
         'outfitType': map['outfitType'],
         'fabric': map['fabric'],
+        'attributes': map['attributes'] ?? const {},
         'customizations': map['customizations'] ?? const {},
         'measurements': map['measurements'] ?? const {},
         'addons': map['addons'] ?? const [],
