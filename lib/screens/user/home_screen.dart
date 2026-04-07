@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ import '../../services/database_service.dart';
 import '../../theme.dart';
 import '../../widgets/global_skeletons.dart';
 import '../../widgets/home_header.dart';
+import '../../widgets/product_card.dart';
 import '../../widgets/product_grid.dart';
 import '../../widgets/shimmer_box.dart';
 import '../../widgets/state_views.dart';
@@ -39,54 +41,41 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   static const String _hasUsedAiKey = 'abzora_has_used_ai_stylist';
-  static const String _appOpenCountKey = 'abzora_ai_app_open_count';
 
-  late final AnimationController _pulseController;
   bool _hasUsedAi = false;
-  int _appOpenCount = 0;
-  bool _showAiTooltip = false;
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    )..repeat(reverse: true);
     _restoreAiDiscoveryState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
-      final auth = context.read<AuthProvider>();
-      context.read<ProductProvider>().fetchHomeData(user: auth.user);
+      unawaited(
+        Future<void>.delayed(const Duration(milliseconds: 220), () async {
+          if (!mounted) {
+            return;
+          }
+          final auth = context.read<AuthProvider>();
+          await context.read<ProductProvider>().fetchHomeData(user: auth.user);
+        }),
+      );
     });
   }
 
   Future<void> _restoreAiDiscoveryState() async {
     final prefs = await SharedPreferences.getInstance();
-    final nextOpenCount = (prefs.getInt(_appOpenCountKey) ?? 0) + 1;
     final hasUsedAi = prefs.getBool(_hasUsedAiKey) ?? false;
-    await prefs.setInt(_appOpenCountKey, nextOpenCount);
     if (!mounted) {
       return;
     }
     setState(() {
-      _appOpenCount = nextOpenCount;
       _hasUsedAi = hasUsedAi;
-      _showAiTooltip = !hasUsedAi && nextOpenCount == 1;
     });
-    if (_showAiTooltip) {
-      Future<void>.delayed(const Duration(seconds: 4), () {
-        if (!mounted) {
-          return;
-        }
-        setState(() => _showAiTooltip = false);
-      });
-    }
   }
 
   Future<void> _markAiUsed() async {
@@ -96,11 +85,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       if (mounted) {
         setState(() {
           _hasUsedAi = true;
-          _showAiTooltip = false;
         });
       }
-    } else if (_showAiTooltip && mounted) {
-      setState(() => _showAiTooltip = false);
     }
   }
 
@@ -118,8 +104,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   List<Widget> _screens() {
     return [
       HomeContent(
-        showAiDiscoveryCard: !_hasUsedAi && _appOpenCount <= 3,
-        showCompactAiCard: _hasUsedAi || _appOpenCount > 3,
         onOpenAiStylist: _openAiStylist,
       ),
       const CustomBrandFlowScreen(),
@@ -129,53 +113,65 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   @override
-  void dispose() {
-    _pulseController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     return AbzioThemeScope.light(
       child: Scaffold(
         body: IndexedStack(index: _currentIndex, children: _screens()),
-        floatingActionButton: keyboardOpen
-            ? null
-            : Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).padding.bottom + 10,
-                ),
-                child: _AiStylistFloatingButton(
-                  animation: _pulseController,
-                  showTooltip: _showAiTooltip,
-                  onTooltipDismissed: () => setState(() => _showAiTooltip = false),
-                  onTap: _openAiStylist,
-                ),
+        bottomNavigationBar: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, -4),
               ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-        bottomNavigationBar: NavigationBar(
-          height: 68,
-          selectedIndex: _currentIndex,
-          onDestinationSelected: (index) => setState(() => _currentIndex = index),
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded, size: 26), label: 'Home'),
-            NavigationDestination(
-              icon: Icon(Icons.design_services_outlined),
-              selectedIcon: Icon(Icons.design_services_rounded, size: 26),
-              label: AbzoraText.customNavLabel,
+            ],
+          ),
+          child: NavigationBarTheme(
+            data: NavigationBarThemeData(
+              height: 66,
+              backgroundColor: Colors.white,
+              indicatorColor: AbzioTheme.accentColor.withValues(alpha: 0.16),
+              labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                final selected = states.contains(WidgetState.selected);
+                return TextStyle(
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  color: selected ? const Color(0xFF1A1A1A) : const Color(0xFF707070),
+                );
+              }),
+              iconTheme: WidgetStateProperty.resolveWith((states) {
+                final selected = states.contains(WidgetState.selected);
+                return IconThemeData(
+                  color: selected ? AbzioTheme.accentColor : const Color(0xFF6A6A6A),
+                  size: selected ? 24 : 22,
+                );
+              }),
             ),
-            NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long_rounded, size: 26),
-              label: 'Orders',
+            child: NavigationBar(
+              selectedIndex: _currentIndex,
+              onDestinationSelected: (index) => setState(() => _currentIndex = index),
+              destinations: const [
+                NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
+                NavigationDestination(
+                  icon: Icon(Icons.design_services_outlined),
+                  selectedIcon: Icon(Icons.design_services_rounded),
+                  label: AbzoraText.customNavLabel,
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(Icons.receipt_long_rounded),
+                  label: 'Orders',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.person_outline_rounded),
+                  selectedIcon: Icon(Icons.person_rounded),
+                  label: 'Profile',
+                ),
+              ],
             ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded, size: 26),
-              label: 'Profile',
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -185,13 +181,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 class HomeContent extends StatefulWidget {
   const HomeContent({
     super.key,
-    required this.showAiDiscoveryCard,
-    required this.showCompactAiCard,
     required this.onOpenAiStylist,
   });
 
-  final bool showAiDiscoveryCard;
-  final bool showCompactAiCard;
   final VoidCallback onOpenAiStylist;
 
   @override
@@ -255,6 +247,7 @@ class _HomeContentState extends State<HomeContent> {
           context,
           provider: provider,
           stores: stores,
+          products: products,
         );
 
         return SafeArea(
@@ -309,7 +302,11 @@ class _HomeContentState extends State<HomeContent> {
                                       selectedLocation: provider.activeLocation,
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 10),
+                                  _compactAiStylistStrip(
+                                    onTap: widget.onOpenAiStylist,
+                                  ),
+                                  const SizedBox(height: 10),
                                   _tailoringHighlight(
                                     onStart: () => Navigator.push(
                                       context,
@@ -318,9 +315,9 @@ class _HomeContentState extends State<HomeContent> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 12),
                                   const CategorySection(),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 12),
                                   _promoBanner(
                                     copy: AbzoraCopySets.promoBanners[0],
                                     onTap: () => Navigator.push(
@@ -330,7 +327,7 @@ class _HomeContentState extends State<HomeContent> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 12),
                                 ],
                               ),
                             ),
@@ -362,7 +359,7 @@ class _HomeContentState extends State<HomeContent> {
                                       subtitle: AbzoraText.trendingNearYouSubtitle,
                                       products: trendingProducts,
                                     ),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 12),
                                     _promoBanner(
                                       copy: AbzoraCopySets.promoBanners[1],
                                       onTap: () => Navigator.push(
@@ -372,7 +369,7 @@ class _HomeContentState extends State<HomeContent> {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 12),
                                     _productSection(
                                       context,
                                       title: AbzoraText.justForYouTitle,
@@ -381,12 +378,12 @@ class _HomeContentState extends State<HomeContent> {
                                           ? trendingProducts
                                           : justForYouProducts,
                                     ),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 12),
                                     _promoBanner(
                                       copy: AbzoraCopySets.promoBanners[2],
                                       onTap: () => showLocationBottomSheet(context),
                                     ),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 12),
                                     _productSection(
                                       context,
                                       title: AbzoraText.recentlyViewedTitle,
@@ -395,23 +392,7 @@ class _HomeContentState extends State<HomeContent> {
                                           ? trendingProducts
                                           : recentlyViewedProducts,
                                     ),
-                                    if (widget.showAiDiscoveryCard) ...[
-                                      const SizedBox(height: 16),
-                                      _aiStylistHighlight(
-                                        onTap: widget.onOpenAiStylist,
-                                      ),
-                                    ] else if (widget.showCompactAiCard) ...[
-                                      const SizedBox(height: 16),
-                                      _compactAiStylistCard(
-                                        onTap: widget.onOpenAiStylist,
-                                      ),
-                                    ],
-                                    const SizedBox(height: 16),
-                                    _AiOutfitSection(
-                                      user: user,
-                                      onOpenAiStylist: widget.onOpenAiStylist,
-                                    ),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 12),
                                     storesSection,
                                   ],
                                 ),
@@ -577,7 +558,9 @@ class _HomeContentState extends State<HomeContent> {
     BuildContext context, {
     required ProductProvider provider,
     required List<NearbyStore> stores,
+    required List<Product> products,
   }) {
+    final fallbackProducts = products.take(4).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -585,23 +568,14 @@ class _HomeContentState extends State<HomeContent> {
           title: AbzoraText.storesNearYou,
           subtitle: AbzoraText.locationSubtext,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         if (provider.isLocationLoading)
           const _StoreSkeletonList()
         else if (stores.isEmpty)
-          AbzioEmptyCard(
-            title: provider.usingNearestStoreFallback
-                ? AbzoraText.storesFallbackTitle
-                : AbzoraText.storesEmptyTitle,
-            subtitle: provider.usingNearestStoreFallback
-                ? AbzoraText.storesFallbackSubtitle
-                : '${AbzoraText.storesEmptySubtitle} No stores within ${provider.radiusKm.toInt()} km.',
-            ctaLabel: provider.radiusKm < 25
-                ? AbzoraText.expandTo25Km
-                : AbzoraText.changeLocation,
-            onTap: () => provider.radiusKm < 25
-                ? provider.setRadiusKm(25)
-                : showLocationBottomSheet(context),
+          _storesFallbackSection(
+            context,
+            provider: provider,
+            products: fallbackProducts,
           )
         else
           SizedBox(
@@ -635,20 +609,22 @@ class _HomeSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
           ShimmerCard(height: 68),
-          SizedBox(height: 16),
+          SizedBox(height: 12),
+          ShimmerCard(height: 56),
+          SizedBox(height: 12),
           ShimmerBannerBlock(),
-          SizedBox(height: 16),
-          ShimmerCard(height: 120),
-          SizedBox(height: 16),
+          SizedBox(height: 12),
+          ShimmerCard(height: 108),
+          SizedBox(height: 12),
           ShimmerCategoryRow(),
-          SizedBox(height: 18),
+          SizedBox(height: 12),
           ShimmerBannerBlock(),
-          SizedBox(height: 18),
+          SizedBox(height: 12),
           ShimmerProductGrid(),
         ],
       ),
@@ -1039,6 +1015,7 @@ Widget _tailoringHighlight({required VoidCallback onStart}) {
   );
 }
 
+// ignore: unused_element
 Widget _aiStylistHighlight({required VoidCallback onTap}) {
   return Builder(
     builder: (context) => TapScale(
@@ -1129,6 +1106,7 @@ Widget _aiStylistHighlight({required VoidCallback onTap}) {
   );
 }
 
+// ignore: unused_element
 Widget _compactAiStylistCard({required VoidCallback onTap}) {
   return Builder(
     builder: (context) => TapScale(
@@ -1183,6 +1161,7 @@ Widget _compactAiStylistCard({required VoidCallback onTap}) {
   );
 }
 
+// ignore: unused_element
 class _AiStylistFloatingButton extends StatelessWidget {
   const _AiStylistFloatingButton({
     required this.animation,
@@ -1344,16 +1323,16 @@ class _CategorySectionState extends State<CategorySection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 34,
+          height: 32,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             itemCount: _quickFilters.length,
             separatorBuilder: (context, index) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               final label = _quickFilters[index];
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF6F6F6),
                   borderRadius: BorderRadius.circular(999),
@@ -1383,12 +1362,12 @@ class _CategorySectionState extends State<CategorySection> {
             },
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         SizedBox(
           height: 38,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             itemCount: _tabs.length,
             separatorBuilder: (context, index) => const SizedBox(width: 20),
             itemBuilder: (context, index) {
@@ -1450,7 +1429,7 @@ class _CategorySectionState extends State<CategorySection> {
             },
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 260),
           switchInCurve: Curves.easeOutCubic,
@@ -1460,9 +1439,9 @@ class _CategorySectionState extends State<CategorySection> {
             height: 92,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               itemCount: categories.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 12),
+              separatorBuilder: (context, index) => const SizedBox(width: 10),
               itemBuilder: (context, index) {
                 final category = categories[index];
                 final isSelected = _selectedCategoryIndex == index;
@@ -1482,20 +1461,20 @@ class _CategorySectionState extends State<CategorySection> {
                     },
                     borderRadius: BorderRadius.circular(20),
                     child: SizedBox(
-                      width: 66,
+                      width: 76,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 220),
                             curve: Curves.easeOutCubic,
-                            width: 56,
-                            height: 56,
+                            width: 60,
+                            height: 60,
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? const Color(0xFFC9A74E).withValues(alpha: 0.16)
-                                  : const Color(0xFFF3F3F3),
-                              shape: BoxShape.circle,
+                                  : const Color(0xFFF6F4EE),
+                              borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: isSelected
                                     ? const Color(0xFFC9A74E)
@@ -1504,7 +1483,7 @@ class _CategorySectionState extends State<CategorySection> {
                             ),
                             child: Icon(
                               category.icon,
-                              size: 22,
+                              size: 26,
                               color: isSelected
                                   ? const Color(0xFFC9A74E)
                                   : AbzioTheme.textPrimary,
@@ -1518,7 +1497,7 @@ class _CategorySectionState extends State<CategorySection> {
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   fontSize: 11,
-                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
                                   color: isSelected
                                       ? AbzioTheme.textPrimary
                                       : context.abzioSecondaryText,
@@ -1558,12 +1537,202 @@ Widget _sectionHeader({
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(
           subtitle,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.abzioSecondaryText),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: context.abzioSecondaryText,
+                fontSize: 13,
+              ),
         ),
       ],
+    ),
+  );
+}
+
+Widget _storesFallbackSection(
+  BuildContext context, {
+  required ProductProvider provider,
+  required List<Product> products,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFECE5D4)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: AbzioTheme.accentColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.storefront_rounded,
+                color: AbzioTheme.accentColor,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Top sellers delivering to you',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    provider.radiusKm < 25
+                        ? 'No nearby stores yet. We found popular online picks instead.'
+                        : 'Explore online stores and trending fashion that ships to your location.',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: context.abzioSecondaryText,
+                          height: 1.3,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: () => provider.radiusKm < 25
+                  ? provider.setRadiusKm(25)
+                  : showLocationBottomSheet(context),
+              child: Text(
+                provider.radiusKm < 25 ? 'Expand' : 'Change',
+              ),
+            ),
+          ],
+        ),
+      ),
+      if (products.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 214,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: products.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 10),
+            itemBuilder: (context, index) => SizedBox(
+              width: 150,
+              child: ProductCard(
+                product: products[index],
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProductDetailScreen(product: products[index]),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
+Widget _compactAiStylistStrip({required VoidCallback onTap}) {
+  return Builder(
+    builder: (context) => TapScale(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.16)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.035),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AbzioTheme.accentColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: AbzioTheme.accentColor,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI Stylist',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Fit help, outfit ideas, and styling in one tap',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: context.abzioSecondaryText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: AbzioTheme.accentColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Open',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }
@@ -2604,7 +2773,7 @@ Widget _productSection(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _sectionHeader(title: title, subtitle: subtitle),
-      const SizedBox(height: 10),
+      const SizedBox(height: 8),
       ProductGrid(
         products: products,
         shrinkWrap: true,

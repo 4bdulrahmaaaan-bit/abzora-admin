@@ -59,24 +59,25 @@ class _ProductCardState extends State<ProductCard> {
                 child: Ink(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.035),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
                       ),
                     ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 5),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         AspectRatio(
-                          aspectRatio: 0.78,
+                          aspectRatio: 0.74,
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
@@ -176,7 +177,7 @@ class _ProductCardState extends State<ProductCard> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         if (brandLabel.isNotEmpty)
                           Text(
                             brandLabel,
@@ -189,20 +190,20 @@ class _ProductCardState extends State<ProductCard> {
                               letterSpacing: 0.35,
                             ),
                           ),
-                        if (brandLabel.isNotEmpty) const SizedBox(height: 2),
-                        const SizedBox(height: 4),
+                        if (brandLabel.isNotEmpty) const SizedBox(height: 1),
+                        const SizedBox(height: 2),
                         Text(
                           displayName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 12,
+                            fontSize: 13,
                             color: const Color(0xFF161616),
                             height: 1.15,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 1),
                         Text(
                           _subtitle(widget.product),
                           maxLines: 1,
@@ -213,12 +214,12 @@ class _ProductCardState extends State<ProductCard> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Row(
                           children: [
                             Flexible(
                               child: Text(
-                                _currency(widget.product.price),
+                                _currency(widget.product.effectivePrice),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.titleMedium?.copyWith(

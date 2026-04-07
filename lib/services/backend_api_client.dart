@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
@@ -47,6 +48,38 @@ class BackendApiClient {
     final base = AppConfig.backendBaseUrl;
     final normalizedPath = path.startsWith('/') ? path : '/$path';
     return Uri.parse('$base$normalizedPath').replace(queryParameters: queryParameters);
+  }
+
+  bool _isTransientNetworkError(Object error) {
+    if (error is TimeoutException) {
+      return true;
+    }
+    final asText = error.toString().toLowerCase();
+    return error is SocketException ||
+        asText.contains('failed host lookup') ||
+        asText.contains('software caused connection abort') ||
+        asText.contains('connection closed');
+  }
+
+  Future<T> withRetry<T>(
+    Future<T> Function() action, {
+    int maxAttempts = 3,
+    Duration initialDelay = const Duration(milliseconds: 700),
+  }) async {
+    var attempt = 0;
+    var delay = initialDelay;
+    while (true) {
+      attempt += 1;
+      try {
+        return await action();
+      } catch (error) {
+        if (attempt >= maxAttempts || !_isTransientNetworkError(error)) {
+          rethrow;
+        }
+        await Future<void>.delayed(delay);
+        delay *= 2;
+      }
+    }
   }
 
   dynamic _extractPayload(http.Response response) {

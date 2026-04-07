@@ -45,17 +45,17 @@ class ProductGrid extends StatelessWidget {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final isCompact = width <= 380;
-        final ratio = isCompact ? 0.54 : 0.58;
+        final ratio = isCompact ? 0.49 : 0.53;
 
         return GridView.builder(
           shrinkWrap: shrinkWrap,
           physics: physics ?? const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
           itemCount: products.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
+            crossAxisSpacing: 10,
             childAspectRatio: ratio,
           ),
           itemBuilder: (context, index) {

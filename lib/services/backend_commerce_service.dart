@@ -1156,31 +1156,33 @@ class BackendCommerceService {
   }
 
   Future<void> syncUserProfile(AppUser user) async {
-    await _client.post(
-      '/auth/sync-profile',
-      authenticated: true,
-      body: {
-        'name': user.name,
-        'email': user.email,
-        'phone': user.phone ?? '',
-        'profileImageUrl': user.profileImageUrl ?? '',
-        'address': user.address ?? '',
-        'area': user.area ?? '',
-        'city': user.city ?? '',
-        'latitude': user.latitude,
-        'longitude': user.longitude,
-        'deliveryRadiusKm': user.deliveryRadiusKm,
-        'locationUpdatedAt': user.locationUpdatedAt ?? '',
-        'role': user.role,
-        'isActive': user.isActive,
-        'storeId': user.storeId ?? '',
-        'walletBalance': user.walletBalance,
-        'roles': user.roles,
-        'riderApprovalStatus': user.riderApprovalStatus,
-        'riderVehicleType': user.riderVehicleType ?? '',
-        'riderLicenseNumber': user.riderLicenseNumber ?? '',
-        'riderCity': user.riderCity ?? '',
-      },
+    await _client.withRetry(
+      () => _client.post(
+        '/auth/sync-profile',
+        authenticated: true,
+        body: {
+          'name': user.name,
+          'email': user.email,
+          'phone': user.phone ?? '',
+          'profileImageUrl': user.profileImageUrl ?? '',
+          'address': user.address ?? '',
+          'area': user.area ?? '',
+          'city': user.city ?? '',
+          'latitude': user.latitude,
+          'longitude': user.longitude,
+          'deliveryRadiusKm': user.deliveryRadiusKm,
+          'locationUpdatedAt': user.locationUpdatedAt ?? '',
+          'role': user.role,
+          'isActive': user.isActive,
+          'storeId': user.storeId ?? '',
+          'walletBalance': user.walletBalance,
+          'roles': user.roles,
+          'riderApprovalStatus': user.riderApprovalStatus,
+          'riderVehicleType': user.riderVehicleType ?? '',
+          'riderLicenseNumber': user.riderLicenseNumber ?? '',
+          'riderCity': user.riderCity ?? '',
+        },
+      ),
     );
   }
 

@@ -250,9 +250,16 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     _didRoute = true;
 
     if (user != null) {
-      NotificationService().syncToken(user);
       Navigator.of(context).pushReplacementNamed(
         routeForUserInMode(user, widget.mode),
+      );
+      unawaited(
+        Future<void>.delayed(const Duration(milliseconds: 900), () async {
+          if (!mounted) {
+            return;
+          }
+          await NotificationService().syncToken(user);
+        }),
       );
       return;
     }

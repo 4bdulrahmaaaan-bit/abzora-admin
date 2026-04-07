@@ -208,26 +208,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     }
   }
 
-  int _currentStepIndex(OrderModel order) {
-    final status = _normalizeStatus(order);
-    switch (status) {
-      case 'delivered':
-        return 4;
-      case 'out for delivery':
-      case 'shipped':
-      case 'assigned':
-        return 3;
-      case 'packed':
-        return 2;
-      case 'confirmed':
-        return 1;
-      case 'cancelled':
-        return 0;
-      default:
-        return 0;
-    }
-  }
-
   String _normalizeStatus(OrderModel order) {
     final value = (order.deliveryStatus.isNotEmpty ? order.deliveryStatus : order.status).trim().toLowerCase();
     if (value == 'placed' || value == 'pending') {
@@ -901,9 +881,10 @@ class _OrderDetailsPage extends StatelessWidget {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: recommendedProducts.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        separatorBuilder: (_, index) => const SizedBox(width: 10),
                         itemBuilder: (context, index) {
                           final product = recommendedProducts[index];
+                          final previewImage = product.images.isNotEmpty ? product.images.first : '';
                           return InkWell(
                             borderRadius: BorderRadius.circular(18),
                             onTap: () => Navigator.of(context).pushNamed('/product-detail', arguments: product),
@@ -914,23 +895,30 @@ class _OrderDetailsPage extends StatelessWidget {
                                 children: [
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(16),
-                                    child: CachedNetworkImage(
-                                      imageUrl: product.primaryImage,
-                                      height: 148,
-                                      width: 132,
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) => Container(
-                                        height: 148,
-                                        width: 132,
-                                        color: context.abzioMuted,
-                                      ),
-                                      errorWidget: (context, url, error) => Container(
-                                        height: 148,
-                                        width: 132,
-                                        color: context.abzioMuted,
-                                        child: Icon(Icons.broken_image_outlined, color: context.abzioSecondaryText),
-                                      ),
-                                    ),
+                                    child: previewImage.isEmpty
+                                        ? Container(
+                                            height: 148,
+                                            width: 132,
+                                            color: context.abzioMuted,
+                                            child: Icon(Icons.broken_image_outlined, color: context.abzioSecondaryText),
+                                          )
+                                        : CachedNetworkImage(
+                                            imageUrl: previewImage,
+                                            height: 148,
+                                            width: 132,
+                                            fit: BoxFit.cover,
+                                            placeholder: (context, url) => Container(
+                                              height: 148,
+                                              width: 132,
+                                              color: context.abzioMuted,
+                                            ),
+                                            errorWidget: (context, url, error) => Container(
+                                              height: 148,
+                                              width: 132,
+                                              color: context.abzioMuted,
+                                              child: Icon(Icons.broken_image_outlined, color: context.abzioSecondaryText),
+                                            ),
+                                          ),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(

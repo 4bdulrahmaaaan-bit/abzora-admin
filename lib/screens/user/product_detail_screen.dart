@@ -105,10 +105,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   Future<void> _loadData() async {
     final currentUser = context.read<AuthProvider>().user;
     await _db.recordProductView(widget.product, user: currentUser);
-    final dynamicProduct = await _db.getDynamicPrice(
-      widget.product,
-      user: currentUser,
-    );
     final results = await Future.wait([
       _db.getProductReviews(widget.product.id),
       _db.getCompleteTheLook(widget.product),
@@ -117,7 +113,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     setState(() {
       _reviews = results[0] as List<ReviewModel>;
       _completeTheLook = results[1] as List<Product>;
-      _resolvedProduct = dynamicProduct;
+      _resolvedProduct = widget.product;
       _loading = false;
     });
   }
@@ -409,188 +405,178 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     WishlistProvider wishlist,
   ) {
     final mediaQuery = MediaQuery.of(context);
-    final expandedHeight = (mediaQuery.size.height * 0.4).clamp(320.0, 380.0);
-    final collapsedHeight = mediaQuery.padding.top + 56;
-    final heroImageTopInset = mediaQuery.padding.top + 6;
-
-    return SliverLayoutBuilder(
-      builder: (context, constraints) {
-        // totalScroll reserved for future easing tweaks; currently unused by design.
-        final isCollapsed = constraints.scrollOffset > 50;
-        final backgroundColor = isCollapsed ? Colors.white : Colors.transparent;
-        const foregroundColor = Colors.black;
-        const iconBackground = Color(0xFFEFEFEF);
-
-        return SliverAppBar(
-          pinned: true,
-          floating: false,
-          elevation: 0,
-          backgroundColor: Colors.white,
-          foregroundColor: foregroundColor,
-          expandedHeight: expandedHeight,
-          toolbarHeight: 56,
-          collapsedHeight: collapsedHeight,
-          automaticallyImplyLeading: false,
-          leading: _HeroIconButton(
-            icon: Icons.arrow_back_ios_new_rounded,
-            onTap: () => Navigator.pop(context),
-            color: const Color(0xFF1A1A1A),
-            backgroundColor: iconBackground,
-          ),
-          titleSpacing: 2,
-          centerTitle: false,
-          title: _buildHeaderSearchBar(context, isCollapsed),
-          actionsPadding: const EdgeInsets.only(right: 4),
-          actions: [
-            AnimatedWishlistButton(
-              isSelected: isWishlisted,
-              isLoading: isWishlistPending,
-              size: 38,
-              iconSize: 18,
-              backgroundColor: iconBackground,
-              selectedColor: const Color(0xFFC8A44D),
-              unselectedColor: const Color(0xFF1A1A1A),
-              onTap: () async {
-                try {
-                  await wishlist.toggleWishlist(product);
-                } catch (error) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        error.toString().replaceFirst('Bad state: ', ''),
-                      ),
-                    ),
-                  );
-                }
-              },
-            ),
-            const SizedBox(width: 4),
-            AnimatedBuilder(
-              animation: _cartPulseScale,
-              builder: (context, child) => Transform.scale(
-                scale: _cartPulseScale.value,
-                child: child,
-              ),
-              child: _HeroIconButton(
-                key: _cartIconKey,
-                icon: Icons.shopping_bag_outlined,
-                onTap: () => Navigator.pushNamed(context, '/cart'),
-                color: const Color(0xFF1A1A1A),
-                backgroundColor: iconBackground,
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          flexibleSpace: FlexibleSpaceBar(
-            collapseMode: CollapseMode.parallax,
-            background: Stack(
-              fit: StackFit.expand,
-              children: [
-                Positioned.fill(
-                  top: heroImageTopInset,
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(18),
-                    ),
-                    child: GestureDetector(
-                      key: _heroImageKey,
-                      onTap: _openGallery,
-                      onLongPress: _openGallery,
-                      child: PageView.builder(
-                        controller: _imageController,
-                        itemCount: images.length,
-                        onPageChanged: (value) {
-                          setState(() => _imageIndex = value);
-                        },
-                        itemBuilder: (context, index) => Hero(
-                          tag: _heroTagFor(product, index),
-                          child: AbzioNetworkImage(
-                            imageUrl: images[index],
-                            fallbackLabel: product.name,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+    final heroHeight = (mediaQuery.size.height * 0.48).clamp(380.0, 500.0);
+    return SliverToBoxAdapter(
+      child: SizedBox(
+        height: heroHeight,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            DecoratedBox(
+              decoration: const BoxDecoration(color: Colors.white),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(18),
+                ),
+                child: GestureDetector(
+                  key: _heroImageKey,
+                  onTap: _openGallery,
+                  onLongPress: _openGallery,
+                  child: PageView.builder(
+                    controller: _imageController,
+                    itemCount: images.length,
+                    onPageChanged: (value) {
+                      setState(() => _imageIndex = value);
+                    },
+                    itemBuilder: (context, index) => Hero(
+                      tag: _heroTagFor(product, index),
+                      child: AbzioNetworkImage(
+                        imageUrl: images[index],
+                        fallbackLabel: product.name,
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
                 ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: 112,
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: Container(
+                  height: 112,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.28),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 12,
+              bottom: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text(
+                  'View Similar',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+            if (images.length > 1)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 14,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    images.length,
+                    (dotIndex) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: _imageIndex == dotIndex ? 16 : 6,
+                      height: 6,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.28),
-                          ],
+                        color: _imageIndex == dotIndex
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.42),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFixedTopHeader(
+    BuildContext context,
+    Product product,
+    bool isWishlisted,
+    bool isWishlistPending,
+    WishlistProvider wishlist,
+  ) {
+    final topInset = MediaQuery.of(context).padding.top;
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.only(top: topInset),
+      child: SizedBox(
+        height: 52,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+          child: Row(
+            children: [
+              _HeroIconButton(
+                icon: Icons.arrow_back_ios_new_rounded,
+                onTap: () => Navigator.pop(context),
+                color: const Color(0xFF1A1A1A),
+              ),
+              const SizedBox(width: 6),
+              Expanded(child: _buildHeaderSearchBar(context, true)),
+              const SizedBox(width: 8),
+              AnimatedWishlistButton(
+                isSelected: isWishlisted,
+                isLoading: isWishlistPending,
+                size: 38,
+                iconSize: 18,
+                backgroundColor: Colors.transparent,
+                selectedColor: const Color(0xFFC8A44D),
+                unselectedColor: const Color(0xFF1A1A1A),
+                onTap: () async {
+                  try {
+                    await wishlist.toggleWishlist(product);
+                  } catch (error) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          error.toString().replaceFirst('Bad state: ', ''),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(width: 2),
+              AnimatedBuilder(
+                animation: _cartPulseScale,
+                builder: (context, child) => Transform.scale(
+                  scale: _cartPulseScale.value,
+                  child: child,
                 ),
-                Positioned(
-                  left: 12,
-                  bottom: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Text(
-                      'View Similar',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
+                child: _HeroIconButton(
+                  key: _cartIconKey,
+                  icon: Icons.shopping_bag_outlined,
+                  onTap: () => Navigator.pushNamed(context, '/cart'),
+                  color: const Color(0xFF1A1A1A),
                 ),
-                if (images.length > 1)
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 14,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        images.length,
-                        (dotIndex) => AnimatedContainer(
-                          duration: const Duration(milliseconds: 220),
-                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                          width: _imageIndex == dotIndex ? 16 : 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: _imageIndex == dotIndex
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.42),
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                IgnorePointer(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    color: backgroundColor,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -1612,6 +1598,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             : (product.sizes.isNotEmpty
                 ? product.sizes[product.sizes.length ~/ 2]
                 : null));
+    final fixedHeaderHeight = MediaQuery.of(context).padding.top + 52;
     final deliverySummary = _resolveDeliverySummary(auth);
     final estimatedDelivery = DateFormat(
       'EEE, dd MMM',
@@ -1637,6 +1624,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           children: [
             CustomScrollView(
               slivers: [
+                SliverToBoxAdapter(
+                  child: SizedBox(height: fixedHeaderHeight),
+                ),
                 _buildHeroSliver(
                   context,
                   product,
@@ -1676,6 +1666,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   ),
                 ),
               ],
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _buildFixedTopHeader(
+                context,
+                product,
+                isWishlisted,
+                isWishlistPending,
+                wishlist,
+              ),
             ),
             _buildCartFlightOverlay(product, images),
           ],
