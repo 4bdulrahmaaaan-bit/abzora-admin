@@ -155,7 +155,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> with TickerPr
                   returnRequestFuture: _database.getReturnRequestForOrder(selectedOrder.id, actor: user),
                   canCancel: _canCancel(selectedOrder),
                   onSupport: () => _toast('Support is ready to help with delivery and order updates.'),
-                  onCancel: () => _cancelOrder(selectedOrder),
+                  onCancel: () => _cancelOrder(selectedOrder, user),
                   onReorder: () => Navigator.popUntil(context, (route) => route.isFirst),
                 ),
                 if (selectedOrder.trackingId.isEmpty) ...[
@@ -301,7 +301,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> with TickerPr
         status != 'cancelled';
   }
 
-  Future<void> _cancelOrder(OrderModel order) async {
+  Future<void> _cancelOrder(OrderModel order, AppUser actor) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -318,7 +318,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> with TickerPr
       return;
     }
 
-    await _database.updateOrderStatus(order.id, 'Cancelled');
+    await _database.updateOrderStatus(order.id, 'Cancelled', actor: actor);
     if (!mounted) {
       return;
     }

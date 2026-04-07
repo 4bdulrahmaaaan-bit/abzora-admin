@@ -1304,6 +1304,14 @@ class BackendCommerceService {
     return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
   }
 
+  Future<OrderModel> cancelOrder(String orderId) async {
+    final payload = await _client.post(
+      '/orders/$orderId/cancel',
+      authenticated: true,
+    );
+    return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
+  }
+
   Future<RefundRequest?> getRefundRequestForOrder(String orderId) async {
     final payload = await _client.get('/orders/$orderId/refund-request', authenticated: true);
     if (payload == null) {

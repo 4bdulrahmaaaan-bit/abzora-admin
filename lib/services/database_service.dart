@@ -5184,7 +5184,17 @@ class DatabaseService {
 
   Future<void> updateOrderStatus(String orderId, String status, {AppUser? actor}) async {
     if (_backendCommerce.isConfigured) {
-      await _backendCommerce.updateOrderStatus(orderId, status);
+      final normalizedStatus = status.trim().toLowerCase();
+      final isStoreManagedActor = actor != null &&
+          (actor.role == 'vendor' ||
+              actor.role == riderRole ||
+              actor.role == 'admin' ||
+              actor.role == 'super_admin');
+      if (normalizedStatus == 'cancelled' && !isStoreManagedActor) {
+        await _backendCommerce.cancelOrder(orderId);
+      } else {
+        await _backendCommerce.updateOrderStatus(orderId, status);
+      }
       return;
     }
     final existing = await _fetchDocument('orders/$orderId', (map, id) => OrderModel.fromMap(map, id));
