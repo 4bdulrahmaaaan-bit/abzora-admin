@@ -1196,6 +1196,7 @@ class BackendCommerceService {
               (item) => {
                 'productId': item.productId,
                 'quantity': item.quantity,
+                'size': item.size,
               },
             )
             .toList(),
@@ -1348,7 +1349,7 @@ class BackendCommerceService {
                 'productName': item['name'] ?? '',
                 'quantity': item['quantity'] ?? 1,
                 'price': item['price'] ?? 0,
-                'size': '',
+                'size': item['size'] ?? '',
                 'imageUrl': item['image'] ?? '',
               },
             )
@@ -1361,7 +1362,7 @@ class BackendCommerceService {
         'platformCommission': 0,
         'vendorEarnings': 0,
         'payoutStatus': 'Pending',
-        'trackingId': map['razorpay']?['orderId'] ?? '',
+        'trackingId': map['trackingId'] ?? map['razorpay']?['orderId'] ?? '',
         'deliveryStatus': _frontendDeliveryStatus(
           map['deliveryStatus']?.toString(),
           map['orderStatus']?.toString(),
@@ -1369,12 +1370,17 @@ class BackendCommerceService {
         'assignedDeliveryPartner': map['assignedDeliveryPartner'] ?? 'Unassigned',
         'invoiceNumber': map['id'] ?? '',
         'orderType': 'marketplace',
-        'trackingTimestamps': const <String, String>{},
+        'trackingTimestamps': Map<String, String>.from(
+          (map['trackingTimestamps'] as Map? ?? const {}).map(
+            (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
+          ),
+        ),
         'riderLatitude': map['riderLatitude'],
         'riderLongitude': map['riderLongitude'],
         'riderLocationUpdatedAt': map['riderLocationUpdatedAt'],
         'createdAt': map['createdAt'],
         'updatedAt': map['updatedAt'],
+        'deliveredAt': (map['trackingTimestamps'] as Map?)?['Delivered'],
         'isConfirmed': (map['orderStatus']?.toString() ?? '') == 'confirmed',
         'isDelivered': (map['orderStatus']?.toString() ?? '') == 'delivered',
         'paymentReference': map['razorpay']?['paymentId'] ?? map['razorpay']?['orderId'],
