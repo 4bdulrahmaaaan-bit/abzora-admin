@@ -398,6 +398,50 @@ class BackendCommerceService {
     return Map<String, dynamic>.from(payload as Map);
   }
 
+  Future<Map<String, dynamic>> getAiSpecConfig({
+    required String category,
+    String? subcategory,
+  }) async {
+    final payload = await _client.get(
+      '/ai/specs/config',
+      authenticated: true,
+      queryParameters: {
+        'category': category,
+        if (subcategory != null && subcategory.trim().isNotEmpty) 'subcategory': subcategory.trim(),
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> generateAiProductSpecs({
+    String? productId,
+    String? name,
+    String? brand,
+    String? category,
+    String? subcategory,
+    String? description,
+    Map<String, dynamic>? attributes,
+  }) async {
+    final body = <String, dynamic>{};
+    final normalizedProductId = productId?.trim();
+    body['productId'] = (normalizedProductId == null || normalizedProductId.isEmpty)
+        ? null
+        : normalizedProductId;
+    body['name'] = name;
+    body['brand'] = brand;
+    body['category'] = category;
+    body['subcategory'] = subcategory;
+    body['description'] = description;
+    body['attributes'] = attributes;
+    body.removeWhere((key, value) => value == null);
+    final payload = await _client.post(
+      '/ai/specs',
+      authenticated: true,
+      body: Map<String, dynamic>.from(body),
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
   Future<List<Store>> getStores() async {
     final payload = await _client.get('/stores');
     final items = payload is List ? payload : const [];
@@ -1019,7 +1063,13 @@ class BackendCommerceService {
   }
 
   Future<VendorAnalytics> getVendorDashboard() async {
-    final payload = await _client.get('/vendor/dashboard', authenticated: true);
+    dynamic payload;
+    try {
+      payload = await _client.get('/finance/vendor/dashboard', authenticated: true);
+    } on BackendApiException catch (error) {
+      if (error.statusCode != 404) rethrow;
+      payload = await _client.get('/vendor/dashboard', authenticated: true);
+    }
     final map = Map<String, dynamic>.from(payload as Map);
     final wallet = Map<String, dynamic>.from(map['wallet'] as Map? ?? const {});
     final transactions = ((map['transactions'] as List?) ?? const [])
@@ -1073,7 +1123,13 @@ class BackendCommerceService {
   }
 
   Future<RiderAnalytics> getRiderDashboard() async {
-    final payload = await _client.get('/rider/dashboard', authenticated: true);
+    dynamic payload;
+    try {
+      payload = await _client.get('/finance/rider/dashboard', authenticated: true);
+    } on BackendApiException catch (error) {
+      if (error.statusCode != 404) rethrow;
+      payload = await _client.get('/rider/dashboard', authenticated: true);
+    }
     final map = Map<String, dynamic>.from(payload as Map);
     final transactions = ((map['transactions'] as List?) ?? const [])
         .whereType<Map>()
@@ -1205,7 +1261,13 @@ class BackendCommerceService {
   }
 
   Future<WalletSummary> getVendorWallet() async {
-    final payload = await _client.get('/vendor/wallet', authenticated: true);
+    dynamic payload;
+    try {
+      payload = await _client.get('/wallet/vendor', authenticated: true);
+    } on BackendApiException catch (error) {
+      if (error.statusCode != 404) rethrow;
+      payload = await _client.get('/vendor/wallet', authenticated: true);
+    }
     return _walletSummaryFromPayload(
       Map<String, dynamic>.from(payload as Map),
       kind: 'vendor',
@@ -1213,11 +1275,21 @@ class BackendCommerceService {
   }
 
   Future<WalletSummary> requestVendorWithdraw(double amount) async {
-    final payload = await _client.post(
-      '/vendor/withdraw',
-      authenticated: true,
-      body: {'amount': amount},
-    );
+    dynamic payload;
+    try {
+      payload = await _client.post(
+        '/wallet/vendor/withdraw',
+        authenticated: true,
+        body: {'amount': amount},
+      );
+    } on BackendApiException catch (error) {
+      if (error.statusCode != 404) rethrow;
+      payload = await _client.post(
+        '/vendor/withdraw',
+        authenticated: true,
+        body: {'amount': amount},
+      );
+    }
     return _walletSummaryFromPayload(
       Map<String, dynamic>.from(payload as Map),
       kind: 'vendor',
@@ -1225,7 +1297,13 @@ class BackendCommerceService {
   }
 
   Future<WalletSummary> getRiderWallet() async {
-    final payload = await _client.get('/rider/wallet', authenticated: true);
+    dynamic payload;
+    try {
+      payload = await _client.get('/wallet/rider', authenticated: true);
+    } on BackendApiException catch (error) {
+      if (error.statusCode != 404) rethrow;
+      payload = await _client.get('/rider/wallet', authenticated: true);
+    }
     return _walletSummaryFromPayload(
       Map<String, dynamic>.from(payload as Map),
       kind: 'rider',
@@ -1233,11 +1311,21 @@ class BackendCommerceService {
   }
 
   Future<WalletSummary> requestRiderWithdraw(double amount) async {
-    final payload = await _client.post(
-      '/rider/withdraw',
-      authenticated: true,
-      body: {'amount': amount},
-    );
+    dynamic payload;
+    try {
+      payload = await _client.post(
+        '/wallet/rider/withdraw',
+        authenticated: true,
+        body: {'amount': amount},
+      );
+    } on BackendApiException catch (error) {
+      if (error.statusCode != 404) rethrow;
+      payload = await _client.post(
+        '/rider/withdraw',
+        authenticated: true,
+        body: {'amount': amount},
+      );
+    }
     return _walletSummaryFromPayload(
       Map<String, dynamic>.from(payload as Map),
       kind: 'rider',
@@ -1315,7 +1403,13 @@ class BackendCommerceService {
   }
 
   Future<AdminFinanceSummary> getAdminFinance() async {
-    final payload = await _client.get('/admin/finance', authenticated: true);
+    dynamic payload;
+    try {
+      payload = await _client.get('/finance/overview', authenticated: true);
+    } on BackendApiException catch (error) {
+      if (error.statusCode != 404) rethrow;
+      payload = await _client.get('/admin/finance', authenticated: true);
+    }
     final map = Map<String, dynamic>.from(payload as Map);
     final adminWallet = Map<String, dynamic>.from(
       map['adminWallet'] as Map? ?? const {},

@@ -1219,6 +1219,12 @@ class _EarningsSection extends StatelessWidget {
             profile: payoutProfile,
             onManage: onManagePayoutAccount ?? () {},
           ),
+          const SizedBox(height: 10),
+          _PayoutCycleCard(
+            pendingPayouts: pendingPayouts,
+            lastPayoutAt: lastPayoutAt,
+            formatCurrency: formatCurrency,
+          ),
           const SizedBox(height: 14),
           Row(
             children: [
@@ -1314,52 +1320,10 @@ class _EarningsSection extends StatelessWidget {
             const SizedBox(height: 14),
           ],
           if (transactions.isNotEmpty) ...[
-            Text(
-              'Recent finance activity',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+            _TransactionHistoryPanel(
+              transactions: transactions,
+              formatCurrency: formatCurrency,
             ),
-            const SizedBox(height: 8),
-            ...transactions
-                .take(3)
-                .map(
-                  (transaction) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.payments_outlined,
-                          size: 18,
-                          color: Color(0xFF6B6B6B),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            transaction.note.isEmpty
-                                ? transaction.status
-                                : transaction.note,
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: const Color(0xFF555555),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          formatCurrency(transaction.amount.abs()),
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
             const SizedBox(height: 6),
           ],
           Align(
@@ -1372,6 +1336,227 @@ class _EarningsSection extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PayoutCycleCard extends StatelessWidget {
+  const _PayoutCycleCard({
+    required this.pendingPayouts,
+    required this.lastPayoutAt,
+    required this.formatCurrency,
+  });
+
+  final double pendingPayouts;
+  final String lastPayoutAt;
+  final String Function(double amount) formatCurrency;
+
+  DateTime _nextPayoutDate() {
+    final now = DateTime.now();
+    final dayStart = DateTime(now.year, now.month, now.day);
+    final daysUntilMonday = (DateTime.monday - dayStart.weekday + 7) % 7;
+    final addDays = daysUntilMonday == 0 ? 7 : daysUntilMonday;
+    return dayStart.add(Duration(days: addDays));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nextPayout = _nextPayoutDate();
+    final nextPayoutLabel = DateFormat('EEE, d MMM').format(nextPayout);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9F7F1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEADAA7)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.calendar_month_outlined, size: 18, color: Color(0xFF8A6C19)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Settlement cycle: Weekly (Monday) • Next payout: $nextPayoutLabel',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF5D4A13),
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                pendingPayouts > 0 ? formatCurrency(pendingPayouts) : 'Clear',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF7A5A00),
+                ),
+              ),
+              if (lastPayoutAt.trim().isNotEmpty)
+                Text(
+                  'Last: $lastPayoutAt',
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    color: const Color(0xFF8B8B8B),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TransactionHistoryPanel extends StatefulWidget {
+  const _TransactionHistoryPanel({
+    required this.transactions,
+    required this.formatCurrency,
+  });
+
+  final List<WalletTransaction> transactions;
+  final String Function(double amount) formatCurrency;
+
+  @override
+  State<_TransactionHistoryPanel> createState() => _TransactionHistoryPanelState();
+}
+
+class _TransactionHistoryPanelState extends State<_TransactionHistoryPanel> {
+  String _selected = 'all';
+
+  List<WalletTransaction> _filteredTransactions() {
+    if (_selected == 'all') {
+      return widget.transactions;
+    }
+    return widget.transactions.where((transaction) {
+      final type = transaction.type.toLowerCase();
+      switch (_selected) {
+        case 'earnings':
+          return type == 'order' || type == 'escrow' || type == 'commission';
+        case 'payouts':
+          return type == 'payout';
+        case 'refunds':
+          return type == 'refund';
+        default:
+          return true;
+      }
+    }).toList();
+  }
+
+  String _dateLabel(String value) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) {
+      return value;
+    }
+    return DateFormat('d MMM, hh:mm a').format(parsed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = _filteredTransactions();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Transaction history',
+          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: const [
+            ('all', 'All'),
+            ('earnings', 'Earnings'),
+            ('payouts', 'Payouts'),
+            ('refunds', 'Refunds'),
+          ].map((entry) {
+            return ChoiceChip(
+              label: Text(entry.$2),
+              selected: _selected == entry.$1,
+              onSelected: (selected) {
+                if (!selected) {
+                  return;
+                }
+                setState(() {
+                  _selected = entry.$1;
+                });
+              },
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 10),
+        if (filtered.isEmpty)
+          Text(
+            'No transactions in this filter yet.',
+            style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF777777)),
+          ),
+        ...filtered.take(8).map((transaction) {
+          final isCredit = transaction.amount >= 0;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAFA),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isCredit ? Icons.south_west_rounded : Icons.north_east_rounded,
+                  size: 16,
+                  color: isCredit ? const Color(0xFF1D8B4D) : const Color(0xFFD35454),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        transaction.note.isEmpty ? transaction.type : transaction.note,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF333333),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${transaction.status} • ${_dateLabel(transaction.createdAt)}',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: const Color(0xFF777777),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  widget.formatCurrency(transaction.amount.abs()),
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: isCredit ? const Color(0xFF1D8B4D) : const Color(0xFFD35454),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 }
