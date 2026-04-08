@@ -321,7 +321,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                                     ? 'Sign in to save'
                                     : _isSaving
                                         ? 'Saving...'
-                                        : 'Save Measurements',
+                                        : 'Save & Continue',
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AbzioTheme.accentColor,

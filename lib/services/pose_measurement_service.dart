@@ -76,6 +76,7 @@ class PoseRefinementResult {
     required this.hipCm,
     required this.bodyRatio,
     required this.usedSideScan,
+    required this.confidencePercent,
   });
 
   final double chestAdjustment;
@@ -93,12 +94,22 @@ class PoseRefinementResult {
   final double hipCm;
   final double bodyRatio;
   final bool usedSideScan;
+  final int confidencePercent;
 
   Map<String, double> toMeasurementCm() {
     return {
       'chest': chestCm,
       'waist': waistCm,
       'hips': hipCm,
+    };
+  }
+
+  Map<String, dynamic> toMeasurementOutput() {
+    return {
+      'chest': chestCm,
+      'waist': waistCm,
+      'hips': hipCm,
+      'confidence': confidencePercent,
     };
   }
 
@@ -143,6 +154,10 @@ class PoseRefinementResult {
       hipCm: improvedHip,
       bodyRatio: bodyRatio,
       usedSideScan: true,
+      confidencePercent: (((front.confidencePercent * 0.65) + (side.confidencePercent * 0.35))
+              .round()
+              .clamp(72, 98))
+          .toInt(),
     );
   }
 
@@ -150,15 +165,24 @@ class PoseRefinementResult {
     if (results.isEmpty) {
       return null;
     }
+    final trimmed = _discardOutliers(results);
+    final effective = trimmed.isEmpty ? results : trimmed;
     double sum(double Function(PoseRefinementResult item) picker) =>
-        results.fold<double>(0, (total, item) => total + picker(item));
-    final count = results.length.toDouble();
+        effective.fold<double>(0, (total, item) => total + picker(item));
+    final count = effective.length.toDouble();
     final avgChest = sum((item) => item.chestCm) / count;
     final avgWaist = sum((item) => item.waistCm) / count;
     final avgHip = sum((item) => item.hipCm) / count;
     final avgShoulder = sum((item) => item.shoulderWidthCm) / count;
     final avgRatio = avgWaist <= 0 ? 1.0 : avgChest / avgWaist;
     final bodyType = PoseMeasurementService._bodyTypeFromRatio(avgRatio);
+    final spread = _relativeSpread(effective);
+    final sampleScore = (effective.length / 10).clamp(0.0, 1.0);
+    final stabilityScore = (1 - spread).clamp(0.0, 1.0);
+    final confidencePercent = ((56 + (sampleScore * 24) + (stabilityScore * 20))
+            .round()
+            .clamp(56, 98))
+        .toInt();
     return PoseRefinementResult(
       chestAdjustment: sum((item) => item.chestAdjustment) / count,
       waistAdjustment: sum((item) => item.waistAdjustment) / count,
@@ -167,9 +191,15 @@ class PoseRefinementResult {
       confidenceBoost: (sum((item) => item.confidenceBoost) / count)
           .clamp(0.04, 0.16),
       highlights: [
-        'Averaged ${results.length} pose frames for smoother measurements',
+        'Averaged ${effective.length} pose frames for smoother measurements',
+        if (effective.length < results.length)
+          'Outlier frames were discarded to reduce noise and jitter',
       ],
-      accuracyLabel: results.length >= 8 ? 'High' : 'Medium',
+      accuracyLabel: confidencePercent >= 88
+          ? 'High'
+          : confidencePercent >= 72
+              ? 'Medium'
+              : 'Low',
       detectedBodyType: bodyType.$1,
       bodyTypeConfidence: bodyType.$2,
       shoulderWidthCm: avgShoulder,
@@ -177,8 +207,74 @@ class PoseRefinementResult {
       waistCm: avgWaist,
       hipCm: avgHip,
       bodyRatio: avgRatio,
-      usedSideScan: results.any((item) => item.usedSideScan),
+      usedSideScan: effective.any((item) => item.usedSideScan),
+      confidencePercent: confidencePercent,
     );
+  }
+
+  static List<PoseRefinementResult> _discardOutliers(
+    List<PoseRefinementResult> rows,
+  ) {
+    if (rows.length < 5) {
+      return rows;
+    }
+    final chestMedian = _median(rows.map((e) => e.chestCm).toList());
+    final waistMedian = _median(rows.map((e) => e.waistCm).toList());
+    final hipMedian = _median(rows.map((e) => e.hipCm).toList());
+
+    const tolerance = 0.12; // 12% median relative error tolerance
+    final kept = rows.where((row) {
+      final chestRel = _relativeDelta(row.chestCm, chestMedian);
+      final waistRel = _relativeDelta(row.waistCm, waistMedian);
+      final hipRel = _relativeDelta(row.hipCm, hipMedian);
+      return chestRel <= tolerance && waistRel <= tolerance && hipRel <= tolerance;
+    }).toList();
+    return kept.length >= 4 ? kept : rows;
+  }
+
+  static double _relativeSpread(List<PoseRefinementResult> rows) {
+    if (rows.length <= 1) {
+      return 0;
+    }
+    final chestSpread = _coefficientOfVariation(rows.map((e) => e.chestCm).toList());
+    final waistSpread = _coefficientOfVariation(rows.map((e) => e.waistCm).toList());
+    final hipSpread = _coefficientOfVariation(rows.map((e) => e.hipCm).toList());
+    return ((chestSpread + waistSpread + hipSpread) / 3).clamp(0.0, 1.0);
+  }
+
+  static double _coefficientOfVariation(List<double> values) {
+    if (values.isEmpty) {
+      return 0;
+    }
+    final mean = values.reduce((a, b) => a + b) / values.length;
+    if (mean.abs() < 0.0001) {
+      return 0;
+    }
+    final variance = values.fold<double>(
+              0,
+              (sum, v) => sum + math.pow(v - mean, 2).toDouble(),
+            ) /
+            values.length;
+    return (math.sqrt(variance) / mean.abs()).clamp(0.0, 1.0);
+  }
+
+  static double _median(List<double> values) {
+    if (values.isEmpty) {
+      return 0;
+    }
+    final sorted = [...values]..sort();
+    final mid = sorted.length ~/ 2;
+    if (sorted.length.isOdd) {
+      return sorted[mid];
+    }
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+
+  static double _relativeDelta(double value, double baseline) {
+    if (baseline.abs() < 0.0001) {
+      return 0;
+    }
+    return ((value - baseline).abs() / baseline.abs()).clamp(0.0, 10.0);
   }
 }
 
@@ -327,6 +423,29 @@ class PoseMeasurementService {
       nose: nose,
     );
 
+    final keyVisibility = <double>[
+      leftShoulder.visibility,
+      rightShoulder.visibility,
+      leftHip.visibility,
+      rightHip.visibility,
+      leftKnee.visibility,
+      rightKnee.visibility,
+      leftAnkle.visibility,
+      rightAnkle.visibility,
+      nose.visibility,
+    ];
+    final avgVisibility =
+        keyVisibility.reduce((a, b) => a + b) / keyVisibility.length;
+    if (avgVisibility < 0.42) {
+      return PoseFrameFeedback(
+        state: PoseGuideState.detecting,
+        message: 'Re-align body',
+        progress: 0.26,
+        skeletonSegments: skeleton,
+        alignmentHint: 'Improve lighting and step into frame',
+      );
+    }
+
     final shoulderSlope =
         ((leftShoulder.y - rightShoulder.y).abs() / 220).clamp(0.0, 1.0);
     final hipSlope = ((leftHip.y - rightHip.y).abs() / 240).clamp(0.0, 1.0);
@@ -350,31 +469,27 @@ class PoseMeasurementService {
     if (alignmentScore >= 0.82) {
       return PoseFrameFeedback(
         state: PoseGuideState.aligned,
-        message: 'Perfect alignment',
+        message: 'Hold still',
         progress: 1.0,
         skeletonSegments: skeleton,
-        alignmentHint: 'Hold still and capture now',
+        alignmentHint: 'Hold still',
       );
     }
     if (alignmentScore >= 0.52) {
       return PoseFrameFeedback(
         state: PoseGuideState.adjust,
-        message: 'Adjust position',
+        message: 'Align shoulders',
         progress: 0.62,
         skeletonSegments: skeleton,
-        alignmentHint: shoulderSlope > hipSlope
-            ? 'Align shoulders inside frame'
-            : 'Center your body and keep knees visible',
+        alignmentHint: 'Align shoulders',
       );
     }
     return PoseFrameFeedback(
       state: PoseGuideState.detecting,
-      message: 'Detecting...',
+      message: 'Move back',
       progress: 0.34,
       skeletonSegments: skeleton,
-      alignmentHint: isSideView
-          ? 'Turn sideways and keep your full profile visible'
-          : 'Step back and keep your full body inside the guide',
+      alignmentHint: 'Move back',
     );
   }
 
@@ -420,6 +535,19 @@ class PoseMeasurementService {
       rightAnkle,
       nose,
     ];
+    final avgVisibility =
+        allPoints.map((point) => point.visibility).reduce((a, b) => a + b) /
+        allPoints.length;
+    final coreVisibility = [
+      leftShoulder.visibility,
+      rightShoulder.visibility,
+      leftHip.visibility,
+      rightHip.visibility,
+    ].reduce((a, b) => a + b) /
+        4;
+    if (avgVisibility < 0.4 || coreVisibility < 0.5) {
+      return null;
+    }
     final minX = allPoints.map((point) => point.x).reduce(math.min);
     final maxX = allPoints.map((point) => point.x).reduce(math.max);
     final minY = allPoints.map((point) => point.y).reduce(math.min);
@@ -516,7 +644,7 @@ class PoseMeasurementService {
       ankleMid.x,
       ankleMid.y,
     ).clamp(1.0, 9999.0);
-    final cmPerPixel = heightCm / bodyPixelHeight;
+    final cmPerPixel = (heightCm / bodyPixelHeight).clamp(0.05, 0.9);
 
     final shoulderWidthPx = _distance(
       leftShoulder.x,
@@ -568,6 +696,7 @@ class PoseMeasurementService {
       hipCm: hipCm,
       bodyRatio: bodyRatio,
       usedSideScan: isSideView,
+      confidencePercent: isSideView ? 86 : 78,
     );
   }
 

@@ -44,6 +44,8 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
   bool _isCapturing = false;
   bool _isProcessingFrame = false;
   int _frameCounter = 0;
+  int _alignedFrameStreak = 0;
+  bool _autoCaptureTriggered = false;
   String? _error;
   PoseFrameFeedback? _poseFeedback;
   final List<PoseRefinementResult> _recentRefinements = <PoseRefinementResult>[];
@@ -151,6 +153,20 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
       setState(() {
         _poseFeedback = feedback;
       });
+      if (feedback.isAligned) {
+        _alignedFrameStreak += 1;
+      } else {
+        _alignedFrameStreak = 0;
+      }
+      if (!_autoCaptureTriggered &&
+          feedback.isAligned &&
+          _alignedFrameStreak >= 6 &&
+          _recentRefinements.length >= 5 &&
+          !_isCapturing) {
+        _autoCaptureTriggered = true;
+        await _capture();
+        return;
+      }
       if (!wasAligned && feedback.isAligned) {
         HapticFeedback.selectionClick();
       }
@@ -176,8 +192,8 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
         isSideView: !widget.isFrontView,
       );
       final smoothedRefinement = PoseRefinementResult.average(
-        _recentRefinements.length > 5
-            ? _recentRefinements.sublist(_recentRefinements.length - 5)
+        _recentRefinements.length > 10
+            ? _recentRefinements.sublist(_recentRefinements.length - 10)
             : _recentRefinements,
       );
       final refinement = PoseRefinementResult.merge(
@@ -275,17 +291,16 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        widget.title,
+                                        'Stand straight and fit inside the frame',
                                         style: const TextStyle(
                                           color: Colors.white,
-                                          fontSize: 22,
+                                          fontSize: 18,
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        feedback?.message ??
-                                            'Detecting your pose in real time',
+                                        'Keep phone at chest level',
                                         style: TextStyle(
                                           color: Colors.white.withValues(
                                             alpha: 0.78,
@@ -359,8 +374,7 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
                                       ),
                                       const SizedBox(height: 12),
                                       Text(
-                                        feedback?.alignmentHint ??
-                                            'Align shoulders inside frame',
+                                        feedback?.alignmentHint ?? 'Move back',
                                         style: const TextStyle(
                                           color: Colors.white,
                                           height: 1.45,
@@ -409,8 +423,8 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
                                           ),
                                           _CameraHintChip(
                                             label: feedback?.isAligned == true
-                                                ? 'Perfect alignment'
-                                                : 'Adjust pose',
+                                                ? 'Hold still'
+                                                : (feedback?.message ?? 'Move back'),
                                           ),
                                         ],
                                       ),
@@ -512,6 +526,18 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
                                     ),
                                   ),
                                 ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _isCapturing
+                                      ? 'Analyzing your body...'
+                                      : (feedback?.isAligned == true
+                                          ? 'Auto-capturing... or tap Scan Now'
+                                          : 'Scan Now'),
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.82),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -531,19 +557,19 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
         return AbzioTheme.accentColor;
       case PoseGuideState.detecting:
       case null:
-        return Colors.white;
+        return const Color(0xFFFF5B5B);
     }
   }
 
   String _statusLabel(PoseGuideState? state) {
     switch (state) {
       case PoseGuideState.aligned:
-        return 'Perfect alignment';
+        return 'Hold still';
       case PoseGuideState.adjust:
-        return 'Adjust position';
+        return 'Align shoulders';
       case PoseGuideState.detecting:
       case null:
-        return 'Detecting';
+        return 'Move back';
     }
   }
 
@@ -615,6 +641,30 @@ class _BodySilhouettePainter extends CustomPainter {
     canvas.restore();
     canvas.drawRRect(guide, guidePaint);
 
+    // Shoulder / waist / leg bands for premium guided framing.
+    final markerPaint = Paint()
+      ..color = _guideColor().withValues(alpha: 0.24)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final shoulderY = guideRect.top + (guideRect.height * 0.20);
+    final waistY = guideRect.top + (guideRect.height * 0.48);
+    final legY = guideRect.top + (guideRect.height * 0.80);
+    canvas.drawLine(
+      Offset(guideRect.left + 12, shoulderY),
+      Offset(guideRect.right - 12, shoulderY),
+      markerPaint,
+    );
+    canvas.drawLine(
+      Offset(guideRect.left + 18, waistY),
+      Offset(guideRect.right - 18, waistY),
+      markerPaint,
+    );
+    canvas.drawLine(
+      Offset(guideRect.left + 24, legY),
+      Offset(guideRect.right - 24, legY),
+      markerPaint,
+    );
+
     final segments = feedback?.skeletonSegments ?? const [];
     if (segments.isEmpty) {
       return;
@@ -666,7 +716,7 @@ class _BodySilhouettePainter extends CustomPainter {
         return AbzioTheme.accentColor;
       case PoseGuideState.detecting:
       case null:
-        return Colors.white;
+        return const Color(0xFFFF5B5B);
     }
   }
 

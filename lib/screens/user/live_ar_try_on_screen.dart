@@ -6,6 +6,7 @@ import 'package:camera/camera.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image/image.dart' as img;
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -83,9 +84,9 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
   List<OutfitRecommendation> _outfits = const [];
   OutfitRecommendation? _selectedOutfit;
   bool _isLoading = true;
-  bool _isLoadingIntelligence = true;
   bool _isProcessingFrame = false;
   bool _isCapturing = false;
+  bool _showCaptureFlash = false;
   bool _useFrontCamera = true;
   int _lastProcessedFrameMs = 0;
   int _poseFrameCounter = 0;
@@ -94,8 +95,13 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
   double _minZoomLevel = 1;
   double _maxZoomLevel = 1;
   double _fitAdjustment = 0;
+  double _sceneLuma = 0.5;
   String? _lastCapturePath;
   String? _selectedSizeOverride;
+  bool _showOverlay = true;
+  double _overlayEntryScale = 0.965;
+  Product? _selectedProductOverride;
+  final List<TryOnPoseFrame> _recentPoseFrames = <TryOnPoseFrame>[];
   _TryOnMode _mode = _TryOnMode.single;
 
   @override
@@ -104,6 +110,12 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
     _garment = _tryOnService.metadataFor(widget.product);
     _initializeCamera();
     Future.microtask(_loadIntelligence);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _overlayEntryScale = 1.0);
+    });
   }
 
   @override
@@ -197,14 +209,12 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
         _savedBodyProfile = profile;
         _outfits = outfits;
         _selectedOutfit = outfits.isNotEmpty ? outfits.first : null;
-        _isLoadingIntelligence = false;
       });
       _refreshFitSummary();
     } catch (_) {
       if (!mounted) {
         return;
       }
-      setState(() => _isLoadingIntelligence = false);
       _refreshFitSummary();
     }
   }
@@ -251,6 +261,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       waistAdjustment: 0,
       hipAdjustment: 0,
       shoulderAdjustment: 0,
+      confidencePercent: frame != null ? 90 : (profile != null ? 74 : 56),
       confidenceBoost: frame != null ? 0.16 : 0.02,
       highlights: <String>[
         if (frame != null)
@@ -360,6 +371,9 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
   }
 
   ArGarmentMetadata get _garmentForMode {
+    if (_selectedProductOverride != null) {
+      return _tryOnService.metadataFor(_selectedProductOverride!);
+    }
     if (_mode != _TryOnMode.outfit || _selectedOutfit == null) {
       return _garment;
     }
@@ -393,40 +407,6 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       }
     }
     return outfit.items.isNotEmpty ? outfit.items.first : null;
-  }
-
-  List<Product> _secondaryOutfitItems(OutfitRecommendation outfit) {
-    final primary = _primaryOutfitItem(outfit);
-    return outfit.items
-        .where((item) => item.id != primary?.id)
-        .take(2)
-        .toList();
-  }
-
-  List<Widget> _buildSecondaryOutfitOverlays({
-    required OutfitRecommendation outfit,
-    required Rect guideRect,
-    required Size canvasSize,
-  }) {
-    if (_trackingFrame == null) {
-      return const [];
-    }
-    return _secondaryOutfitItems(outfit).map((item) {
-      final metadata = _tryOnService.metadataFor(item);
-      final layout = _tryOnService.buildLayout(
-        canvasSize: canvasSize,
-        guideRect: guideRect,
-        frame: _trackingFrame,
-        metadata: metadata,
-        fitAdjustment: _effectiveFitAdjustment(),
-      );
-      return _GarmentOverlay(
-        product: item,
-        metadata: metadata,
-        layout: layout,
-        accentColor: widget.accentColor,
-      );
-    }).toList();
   }
 
   CameraDescription _selectCamera(
@@ -467,6 +447,8 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       if (jpeg == null) {
         return;
       }
+      final sampledLuma = _estimateSceneLuma(image);
+      _sceneLuma = ((_sceneLuma * 0.82) + (sampledLuma * 0.18)).clamp(0.0, 1.0);
       final inputFrame = MediaPipePoseFrameInput(
         jpegBytes: jpeg,
         width: image.width,
@@ -479,6 +461,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
         inputFrame,
         isSideView: false,
       );
+      final smoothedFrame = _smoothTryOnFrame(nextFrame);
       if (!mounted) {
         return;
       }
@@ -489,7 +472,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
           : _tryOnService.buildLayout(
               canvasSize: canvas,
               guideRect: _guideRectFor(canvas),
-              frame: nextFrame,
+              frame: smoothedFrame,
               metadata: _garmentForMode,
               fitAdjustment: _effectiveFitAdjustment(),
               previous: _overlayLayout,
@@ -497,16 +480,16 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
 
       final wasAligned = _trackingFrame?.feedback.isAligned ?? false;
       setState(() {
-        _trackingFrame = nextFrame;
+        _trackingFrame = smoothedFrame;
         _overlayLayout = nextLayout;
         _fitSummary = _buildFitSummary(
-          frame: nextFrame,
+          frame: smoothedFrame,
           profile: _savedBodyProfile,
           selectedSizeOverride: _selectedSizeOverride,
         );
         _selectedSizeOverride ??= _fitSummary?.wearingSize;
       });
-      final isAligned = nextFrame?.feedback.isAligned ?? false;
+      final isAligned = smoothedFrame?.feedback.isAligned ?? false;
       if (!wasAligned && isAligned) {
         HapticFeedback.selectionClick();
       }
@@ -521,6 +504,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
     if (_cameras.length < 2 || _isCapturing) {
       return;
     }
+    await HapticFeedback.selectionClick();
     await _initializeCamera(useFrontCamera: !_useFrontCamera);
   }
 
@@ -546,15 +530,17 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
     try {
       await controller.stopImageStream();
       final file = await controller.takePicture();
-      await _persistCapture(file.path);
+      await _triggerCaptureFlash();
+      final watermarkedPath = await _applyCaptureWatermark(file.path);
+      await _persistCapture(watermarkedPath);
       await _syncBodyProfileFromFitSummary();
       if (!mounted) {
         return;
       }
       HapticFeedback.mediumImpact();
-      setState(() => _lastCapturePath = file.path);
+      setState(() => _lastCapturePath = watermarkedPath);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Try-on capture saved to your profile.')),
+        const SnackBar(content: Text('Try-on capture saved with ABZORA mark.')),
       );
     } catch (error) {
       if (!mounted) {
@@ -575,11 +561,95 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
     }
   }
 
+  Future<void> _triggerCaptureFlash() async {
+    if (!mounted) {
+      return;
+    }
+    setState(() => _showCaptureFlash = true);
+    await Future<void>.delayed(const Duration(milliseconds: 110));
+    if (!mounted) {
+      return;
+    }
+    setState(() => _showCaptureFlash = false);
+  }
+
   Future<void> _persistCapture(String path) async {
     final prefs = await SharedPreferences.getInstance();
     final existing = prefs.getStringList(_profileCaptureKey) ?? <String>[];
     final next = <String>[path, ...existing.where((item) => item != path)];
     await prefs.setStringList(_profileCaptureKey, next.take(12).toList());
+  }
+
+  Future<String> _applyCaptureWatermark(String sourcePath) async {
+    try {
+      final sourceBytes = await File(sourcePath).readAsBytes();
+      final decoded = img.decodeImage(sourceBytes);
+      if (decoded == null) {
+        return sourcePath;
+      }
+
+      final width = decoded.width;
+      final height = decoded.height;
+      final badgeWidth = (width * 0.24).round().clamp(90, 220);
+      final badgeHeight = (height * 0.048).round().clamp(24, 52);
+      final pad = (width * 0.03).round().clamp(10, 28);
+      final x1 = width - badgeWidth - pad;
+      final y1 = height - badgeHeight - pad;
+      final x2 = x1 + badgeWidth;
+      final y2 = y1 + badgeHeight;
+
+      img.fillRect(
+        decoded,
+        x1: x1,
+        y1: y1,
+        x2: x2,
+        y2: y2,
+        color: img.ColorRgba8(16, 16, 16, 150),
+      );
+      img.drawRect(
+        decoded,
+        x1: x1,
+        y1: y1,
+        x2: x2,
+        y2: y2,
+        color: img.ColorRgba8(232, 199, 107, 215),
+      );
+
+      final emblemCenterX = x1 + (badgeHeight ~/ 2) + 5;
+      final emblemCenterY = y1 + (badgeHeight ~/ 2);
+      img.fillCircle(
+        decoded,
+        x: emblemCenterX,
+        y: emblemCenterY,
+        radius: (badgeHeight * 0.28).round().clamp(6, 12),
+        color: img.ColorRgba8(232, 199, 107, 230),
+      );
+      img.drawLine(
+        decoded,
+        x1: emblemCenterX - 3,
+        y1: emblemCenterY + 4,
+        x2: emblemCenterX,
+        y2: emblemCenterY - 5,
+        color: img.ColorRgba8(25, 25, 25, 255),
+      );
+      img.drawLine(
+        decoded,
+        x1: emblemCenterX + 3,
+        y1: emblemCenterY + 4,
+        x2: emblemCenterX,
+        y2: emblemCenterY - 5,
+        color: img.ColorRgba8(25, 25, 25, 255),
+      );
+
+      final encoded = img.encodeJpg(decoded, quality: 92);
+      if (encoded.isEmpty) {
+        return sourcePath;
+      }
+      await File(sourcePath).writeAsBytes(encoded, flush: true);
+      return sourcePath;
+    } catch (_) {
+      return sourcePath;
+    }
   }
 
   Future<void> _syncBodyProfileFromFitSummary() async {
@@ -613,6 +683,10 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
   }
 
   Future<void> _shareLastCapture() async {
+    await HapticFeedback.selectionClick();
+    if (!mounted) {
+      return;
+    }
     final path = _lastCapturePath;
     if (path == null || !File(path).existsSync()) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -640,12 +714,241 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
     }
     final feedback = _trackingFrame?.feedback;
     if (feedback == null) {
-      return 'Detecting shoulders and torso...';
+      if (_overlayLayout != null) {
+        return 'Adjust position';
+      }
+      return 'Adjust position';
     }
     if (feedback.isAligned) {
-      return 'Perfect alignment';
+      return 'Aligned';
     }
-    return feedback.alignmentHint ?? feedback.message;
+    return 'Adjust position';
+  }
+
+  String? _lightingHintText() {
+    final feedback = _trackingFrame?.feedback;
+    if (feedback == null) {
+      return null;
+    }
+    final hint = (feedback.alignmentHint ?? feedback.message).toLowerCase();
+    if (hint.contains('lighting') || hint.contains('light')) {
+      return 'Improve lighting';
+    }
+    return null;
+  }
+
+  TryOnPoseFrame? _smoothTryOnFrame(TryOnPoseFrame? frame) {
+    if (frame == null) {
+      _recentPoseFrames.clear();
+      return null;
+    }
+    _recentPoseFrames.add(frame);
+    if (_recentPoseFrames.length > 6) {
+      _recentPoseFrames.removeAt(0);
+    }
+    if (_recentPoseFrames.length < 3) {
+      return frame;
+    }
+
+    final widths = _recentPoseFrames.map((item) => item.shoulderWidth).toList()
+      ..sort();
+    final medianWidth = widths[widths.length ~/ 2];
+    final filtered = _recentPoseFrames
+        .where(
+          (item) =>
+              (item.shoulderWidth - medianWidth).abs() <= (medianWidth * 0.28),
+        )
+        .toList();
+    final source = filtered.isEmpty ? _recentPoseFrames : filtered;
+    double avg(double Function(TryOnPoseFrame item) pick) =>
+        source.map(pick).reduce((a, b) => a + b) / source.length;
+
+    NormalizedLandmarkPoint avgPoint(
+      NormalizedLandmarkPoint Function(TryOnPoseFrame item) pick,
+    ) {
+      final x = avg((item) => pick(item).x);
+      final y = avg((item) => pick(item).y);
+      return NormalizedLandmarkPoint(x, y);
+    }
+
+    return TryOnPoseFrame(
+      feedback: frame.feedback,
+      leftShoulder: avgPoint((item) => item.leftShoulder),
+      rightShoulder: avgPoint((item) => item.rightShoulder),
+      leftHip: avgPoint((item) => item.leftHip),
+      rightHip: avgPoint((item) => item.rightHip),
+      shoulderCenter: avgPoint((item) => item.shoulderCenter),
+      hipCenter: avgPoint((item) => item.hipCenter),
+      shoulderWidth: avg((item) => item.shoulderWidth),
+      torsoHeight: avg((item) => item.torsoHeight),
+      rotationRadians: avg((item) => item.rotationRadians),
+    );
+  }
+
+  double _estimateSceneLuma(CameraImage image) {
+    if (image.planes.isEmpty || image.planes.first.bytes.isEmpty) {
+      return 0.5;
+    }
+    final yBytes = image.planes.first.bytes;
+    final step = (yBytes.length ~/ 720).clamp(24, 320);
+    var sum = 0;
+    var count = 0;
+    for (var i = 0; i < yBytes.length; i += step) {
+      sum += yBytes[i];
+      count++;
+    }
+    if (count == 0) {
+      return 0.5;
+    }
+    return (sum / count) / 255.0;
+  }
+
+  List<Product> _availableTryOnProducts() {
+    final byId = <String, Product>{widget.product.id: widget.product};
+    for (final outfit in _outfits) {
+      for (final item in outfit.items) {
+        byId.putIfAbsent(item.id, () => item);
+      }
+    }
+    return byId.values.toList();
+  }
+
+  Future<void> _openProductPicker() async {
+    await HapticFeedback.selectionClick();
+    if (!mounted) {
+      return;
+    }
+    final products = _availableTryOnProducts();
+    if (products.isEmpty) {
+      return;
+    }
+    final selected = await showModalBottomSheet<Product>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: Container(
+            color: const Color(0xFF121212),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Change product',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: products.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final product = products[index];
+                        final selectedProduct =
+                            _selectedProductOverride ?? widget.product;
+                        final isSelected = selectedProduct.id == product.id;
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => Navigator.of(context).pop(product),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Colors.white.withValues(alpha: 0.14)
+                                  : Colors.white.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AbzioTheme.accentColor
+                                    : Colors.white12,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: SizedBox(
+                                    width: 44,
+                                    height: 44,
+                                    child: product.images.isNotEmpty
+                                        ? CachedNetworkImage(
+                                            imageUrl: product.images.first,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : const ColoredBox(
+                                            color: Colors.white10,
+                                            child: Icon(
+                                              Icons.checkroom_rounded,
+                                              color: Colors.white54,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    product.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: AbzioTheme.accentColor,
+                                    size: 18,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _selectedProductOverride = selected.id == widget.product.id
+          ? null
+          : selected;
+      _mode = _TryOnMode.single;
+      _overlayLayout = null;
+    });
   }
 
   @override
@@ -668,11 +971,14 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
                       constraints.maxHeight,
                     );
                     final fitSummary = _fitSummary;
+                    final lightingHint = _lightingHintText();
                     final activeOutfit = _selectedOutfit;
                     final activePrimaryProduct =
-                        _mode == _TryOnMode.outfit && activeOutfit != null
-                        ? (_primaryOutfitItem(activeOutfit) ?? widget.product)
-                        : widget.product;
+                        _selectedProductOverride ??
+                        (_mode == _TryOnMode.outfit && activeOutfit != null
+                            ? (_primaryOutfitItem(activeOutfit) ??
+                                  widget.product)
+                            : widget.product);
                     final activePrimaryMetadata = _tryOnService.metadataFor(
                       activePrimaryProduct,
                     );
@@ -734,6 +1040,15 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
                         ),
                         Positioned.fill(
                           child: IgnorePointer(
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 130),
+                              opacity: _showCaptureFlash ? 0.26 : 0,
+                              child: const ColoredBox(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: IgnorePointer(
                             child: CustomPaint(
                               painter: _TryOnGuidePainter(
                                 guideRect: guideRect,
@@ -744,17 +1059,17 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
                             ),
                           ),
                         ),
-                        _GarmentOverlay(
-                          product: activePrimaryProduct,
-                          metadata: activePrimaryMetadata,
-                          layout: overlayLayout,
-                          accentColor: widget.accentColor,
-                        ),
-                        if (_mode == _TryOnMode.outfit && activeOutfit != null)
-                          ..._buildSecondaryOutfitOverlays(
-                            outfit: activeOutfit,
-                            guideRect: guideRect,
-                            canvasSize: canvasSize,
+                        if (_showOverlay)
+                          _GarmentOverlay(
+                            product: activePrimaryProduct,
+                            metadata: activePrimaryMetadata,
+                            layout: overlayLayout,
+                            accentColor: widget.accentColor,
+                            sceneLuma: _sceneLuma,
+                            entryScale: _overlayEntryScale,
+                            occlusionEnabled:
+                                (_trackingFrame?.feedback.isAligned ?? false) &&
+                                (_trackingFrame?.shoulderWidth ?? 0) > 0.08,
                           ),
                         Positioned(
                           top: 12,
@@ -762,57 +1077,19 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
                           right: 16,
                           child: _TopControls(
                             onBack: () => Navigator.pop(context),
-                            onShare: _shareLastCapture,
-                            onSwitchCamera: _switchCamera,
-                            canSwitchCamera: _cameras.length > 1,
-                            title: 'Live AR Try-On',
-                            subtitle: widget.product.name,
+                            title: activePrimaryProduct.name,
                             fitSummary: fitSummary == null
                                 ? null
                                 : 'Wearing Size ${fitSummary.wearingSize} · ${fitSummary.fitConfidence}% fit',
                           ),
                         ),
-                        if (_outfits.isNotEmpty || _isLoadingIntelligence)
+                        if (lightingHint != null)
                           Positioned(
+                            top: 86,
                             left: 16,
-                            right: 16,
-                            bottom: 246,
-                            child: _SmartOutfitRail(
-                              isLoading: _isLoadingIntelligence,
-                              mode: _mode,
-                              outfits: _outfits,
-                              selectedOutfitId: _selectedOutfit?.outfitId,
-                              onModeChanged: (mode) {
-                                setState(() {
-                                  _mode = mode;
-                                  _overlayLayout = _tryOnService.buildLayout(
-                                    canvasSize: canvasSize,
-                                    guideRect: guideRect,
-                                    frame: _trackingFrame,
-                                    metadata: _garmentForMode,
-                                    fitAdjustment: _effectiveFitAdjustment(
-                                      summary: fitSummary,
-                                    ),
-                                    previous: _overlayLayout,
-                                  );
-                                });
-                              },
-                              onSelectOutfit: (outfit) {
-                                setState(() {
-                                  _selectedOutfit = outfit;
-                                  _mode = _TryOnMode.outfit;
-                                  _overlayLayout = _tryOnService.buildLayout(
-                                    canvasSize: canvasSize,
-                                    guideRect: guideRect,
-                                    frame: _trackingFrame,
-                                    metadata: _garmentForMode,
-                                    fitAdjustment: _effectiveFitAdjustment(
-                                      summary: fitSummary,
-                                    ),
-                                    previous: _overlayLayout,
-                                  );
-                                });
-                              },
+                            child: _GuidanceChip(
+                              icon: Icons.wb_incandescent_rounded,
+                              label: lightingHint,
                             ),
                           ),
                         Positioned(
@@ -831,7 +1108,33 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
                             onZoomChanged: _setZoom,
                             onCapture: _capturePhoto,
                             onShare: _shareLastCapture,
+                            canSwitchCamera: _cameras.length > 1,
+                            onSwitchCamera: _switchCamera,
+                            onChangeProduct: _openProductPicker,
+                            showOverlay: _showOverlay,
+                            onToggleBeforeAfter: () {
+                              HapticFeedback.selectionClick();
+                              setState(() {
+                                final next = !_showOverlay;
+                                _showOverlay = next;
+                                if (next) {
+                                  _overlayEntryScale = 0.965;
+                                }
+                              });
+                              if (_showOverlay) {
+                                Future<void>.delayed(
+                                  const Duration(milliseconds: 16),
+                                  () {
+                                    if (!mounted) {
+                                      return;
+                                    }
+                                    setState(() => _overlayEntryScale = 1.0);
+                                  },
+                                );
+                              }
+                            },
                             onSelectSize: (size) {
+                              HapticFeedback.selectionClick();
                               setState(() {
                                 _selectedSizeOverride = size;
                                 _fitSummary = _buildFitSummary(
@@ -852,6 +1155,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
                               });
                             },
                             onFitChanged: (value) {
+                              HapticFeedback.selectionClick();
                               setState(() {
                                 _fitAdjustment = value;
                                 _fitSummary = _buildFitSummary(
@@ -886,20 +1190,12 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
 class _TopControls extends StatelessWidget {
   const _TopControls({
     required this.onBack,
-    required this.onShare,
-    required this.onSwitchCamera,
-    required this.canSwitchCamera,
     required this.title,
-    required this.subtitle,
     this.fitSummary,
   });
 
   final VoidCallback onBack;
-  final VoidCallback onShare;
-  final VoidCallback onSwitchCamera;
-  final bool canSwitchCamera;
   final String title;
-  final String subtitle;
   final String? fitSummary;
 
   @override
@@ -936,7 +1232,7 @@ class _TopControls extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      subtitle,
+                      'AR Try-On',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -964,217 +1260,7 @@ class _TopControls extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        if (canSwitchCamera) ...[
-          _GlassIconButton(
-            icon: Icons.flip_camera_android_rounded,
-            onTap: onSwitchCamera,
-          ),
-          const SizedBox(width: 8),
-        ],
-        _GlassIconButton(icon: Icons.share_outlined, onTap: onShare),
       ],
-    );
-  }
-}
-
-class _SmartOutfitRail extends StatelessWidget {
-  const _SmartOutfitRail({
-    required this.isLoading,
-    required this.mode,
-    required this.outfits,
-    required this.selectedOutfitId,
-    required this.onModeChanged,
-    required this.onSelectOutfit,
-  });
-
-  final bool isLoading;
-  final _TryOnMode mode;
-  final List<OutfitRecommendation> outfits;
-  final String? selectedOutfitId;
-  final ValueChanged<_TryOnMode> onModeChanged;
-  final ValueChanged<OutfitRecommendation> onSelectOutfit;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.34),
-            borderRadius: BorderRadius.circular(26),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  _ModeChip(
-                    label: 'Single Item',
-                    selected: mode == _TryOnMode.single,
-                    onTap: () => onModeChanged(_TryOnMode.single),
-                  ),
-                  const SizedBox(width: 8),
-                  _ModeChip(
-                    label: 'Full Outfit',
-                    selected: mode == _TryOnMode.outfit,
-                    onTap: () => onModeChanged(_TryOnMode.outfit),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'AI outfit suggestions',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (isLoading)
-                const SizedBox(
-                  height: 92,
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AbzioTheme.accentColor,
-                    ),
-                  ),
-                )
-              else
-                SizedBox(
-                  height: 96,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: outfits.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      final outfit = outfits[index];
-                      final selected = outfit.outfitId == selectedOutfitId;
-                      return InkWell(
-                        borderRadius: BorderRadius.circular(18),
-                        onTap: () => onSelectOutfit(outfit),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          width: 188,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? Colors.white.withValues(alpha: 0.16)
-                                : Colors.white.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: selected
-                                  ? AbzioTheme.accentColor
-                                  : Colors.white.withValues(alpha: 0.08),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              ...outfit.items.take(3).map(
-                                (item) => Padding(
-                                  padding: const EdgeInsets.only(right: 6),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: SizedBox(
-                                      width: 40,
-                                      height: 64,
-                                      child: item.images.isNotEmpty
-                                          ? CachedNetworkImage(
-                                              imageUrl: item.images.first,
-                                              fit: BoxFit.cover,
-                                            )
-                                          : Container(
-                                              color: Colors.white12,
-                                              alignment: Alignment.center,
-                                              child: const Icon(
-                                                Icons.checkroom_rounded,
-                                                color: Colors.white54,
-                                              ),
-                                            ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      outfit.title,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      'Try Full Look',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: AbzioTheme.accentColor,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ModeChip extends StatelessWidget {
-  const _ModeChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected
-              ? AbzioTheme.accentColor
-              : Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.black : Colors.white,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1192,6 +1278,11 @@ class _BottomControls extends StatelessWidget {
     required this.onZoomChanged,
     required this.onCapture,
     required this.onShare,
+    required this.canSwitchCamera,
+    required this.onSwitchCamera,
+    required this.onChangeProduct,
+    required this.showOverlay,
+    required this.onToggleBeforeAfter,
     required this.onSelectSize,
     required this.onFitChanged,
   });
@@ -1207,6 +1298,11 @@ class _BottomControls extends StatelessWidget {
   final ValueChanged<double> onZoomChanged;
   final VoidCallback onCapture;
   final VoidCallback onShare;
+  final bool canSwitchCamera;
+  final VoidCallback onSwitchCamera;
+  final VoidCallback onChangeProduct;
+  final bool showOverlay;
+  final VoidCallback onToggleBeforeAfter;
   final ValueChanged<String> onSelectSize;
   final ValueChanged<double> onFitChanged;
 
@@ -1321,14 +1417,20 @@ class _BottomControls extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
               ],
-              Text(
-                statusText,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child: Text(
+                  statusText,
+                  key: ValueKey<String>(statusText),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -1381,6 +1483,63 @@ class _BottomControls extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
+                  if (canSwitchCamera)
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onSwitchCamera,
+                        icon: const Icon(Icons.flip_camera_android_rounded),
+                        label: const Text('Switch'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (canSwitchCamera) const SizedBox(width: 8),
+                  Expanded(
+                    child: AnimatedScale(
+                      duration: const Duration(milliseconds: 160),
+                      curve: Curves.easeOut,
+                      scale: isCapturing ? 0.98 : 1,
+                      child: ElevatedButton.icon(
+                        onPressed: isCapturing ? null : onCapture,
+                        icon: isCapturing
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.camera_alt_rounded),
+                        label: Text(isCapturing ? 'Capturing' : 'Capture'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AbzioTheme.accentColor,
+                          foregroundColor: Colors.black,
+                          minimumSize: const Size.fromHeight(42),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onChangeProduct,
+                      icon: const Icon(Icons.checkroom_rounded),
+                      label: const Text('Product'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: onShare,
@@ -1394,25 +1553,22 @@ class _BottomControls extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    height: 58,
-                    width: 58,
-                    child: ElevatedButton(
-                      onPressed: isCapturing ? null : onCapture,
-                      style: ElevatedButton.styleFrom(
-                        shape: const CircleBorder(),
-                        backgroundColor: AbzioTheme.accentColor,
-                        foregroundColor: Colors.black,
-                        padding: EdgeInsets.zero,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onToggleBeforeAfter,
+                      icon: Icon(
+                        showOverlay
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                       ),
-                      child: isCapturing
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2.2),
-                            )
-                          : const Icon(Icons.camera_alt_rounded),
+                      label: Text(showOverlay ? 'Before' : 'After'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -1431,12 +1587,18 @@ class _GarmentOverlay extends StatelessWidget {
     required this.metadata,
     required this.layout,
     required this.accentColor,
+    required this.sceneLuma,
+    required this.entryScale,
+    this.occlusionEnabled = false,
   });
 
   final Product product;
   final ArGarmentMetadata metadata;
   final ArOverlayLayout layout;
   final Color accentColor;
+  final double sceneLuma;
+  final double entryScale;
+  final bool occlusionEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -1465,6 +1627,17 @@ class _GarmentOverlay extends StatelessWidget {
               ),
             ),
           );
+    final exposureDelta = ((sceneLuma - 0.5) * 0.24).clamp(-0.1, 0.1);
+    final brightnessShift = 255 * exposureDelta;
+    final colorMatchedGarment = ColorFiltered(
+      colorFilter: ColorFilter.matrix([
+        1, 0, 0, 0, brightnessShift,
+        0, 1, 0, 0, brightnessShift,
+        0, 0, 1, 0, brightnessShift,
+        0, 0, 0, 1, 0,
+      ]),
+      child: garmentChild,
+    );
 
     return Positioned(
       left: layout.center.dx - (layout.size.width / 2),
@@ -1472,13 +1645,18 @@ class _GarmentOverlay extends StatelessWidget {
       child: IgnorePointer(
         child: Transform.rotate(
           angle: layout.rotationRadians,
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 120),
-            opacity: layout.opacity,
-            child: SizedBox(
-              width: layout.size.width,
-              height: layout.size.height,
-              child: Stack(
+          child: AnimatedScale(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            scale: entryScale,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              opacity: layout.opacity,
+              child: SizedBox(
+                width: layout.size.width,
+                height: layout.size.height,
+                child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Positioned(
@@ -1491,7 +1669,7 @@ class _GarmentOverlay extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.26),
+                            color: Colors.black.withValues(alpha: 0.16),
                             blurRadius: 22,
                             spreadRadius: 1,
                           ),
@@ -1512,7 +1690,30 @@ class _GarmentOverlay extends StatelessWidget {
                         stops: const [0.0, 0.88, 1.0],
                       ).createShader(bounds),
                       blendMode: BlendMode.dstIn,
-                      child: garmentChild,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Opacity(
+                            opacity: 0.16,
+                            child: ImageFiltered(
+                              imageFilter: ImageFilter.blur(
+                                sigmaX: 1.0,
+                                sigmaY: 1.0,
+                              ),
+                              child: colorMatchedGarment,
+                            ),
+                          ),
+                          if (occlusionEnabled &&
+                              _supportsFakeOcclusion(metadata.type))
+                            CustomPaint(
+                              foregroundPainter:
+                                  const _ArmOcclusionCutoutPainter(),
+                              child: colorMatchedGarment,
+                            )
+                          else
+                            colorMatchedGarment,
+                        ],
+                      ),
                     ),
                   ),
                   Positioned.fill(
@@ -1537,6 +1738,7 @@ class _GarmentOverlay extends StatelessWidget {
                     ),
                   ),
                 ],
+                ),
               ),
             ),
           ),
@@ -1544,6 +1746,77 @@ class _GarmentOverlay extends StatelessWidget {
       ),
     );
   }
+
+  bool _supportsFakeOcclusion(ArGarmentType type) {
+    return type == ArGarmentType.shirt ||
+        type == ArGarmentType.top ||
+        type == ArGarmentType.jacket ||
+        type == ArGarmentType.dress;
+  }
+}
+
+class _ArmOcclusionCutoutPainter extends CustomPainter {
+  const _ArmOcclusionCutoutPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) {
+      return;
+    }
+    final maskPaint = Paint()
+      ..blendMode = BlendMode.dstOut
+      ..color = Colors.black
+      ..maskFilter = MaskFilter.blur(
+        BlurStyle.normal,
+        size.shortestSide * 0.022,
+      );
+
+    final leftArm = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            size.width * 0.02,
+            size.height * 0.12,
+            size.width * 0.26,
+            size.height * 0.42,
+          ),
+          Radius.circular(size.width * 0.16),
+        ),
+      );
+    final rightArm = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            size.width * 0.72,
+            size.height * 0.12,
+            size.width * 0.26,
+            size.height * 0.42,
+          ),
+          Radius.circular(size.width * 0.16),
+        ),
+      );
+    final torsoCut = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            size.width * 0.34,
+            size.height * 0.06,
+            size.width * 0.32,
+            size.height * 0.12,
+          ),
+          Radius.circular(size.width * 0.1),
+        ),
+      );
+
+    canvas.saveLayer(Offset.zero & size, Paint());
+    canvas.drawPath(leftArm, maskPaint);
+    canvas.drawPath(rightArm, maskPaint);
+    canvas.drawPath(torsoCut, maskPaint);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArmOcclusionCutoutPainter oldDelegate) => false;
 }
 
 class _FabricNoisePainter extends CustomPainter {
@@ -1613,6 +1886,48 @@ class _FallbackTryOnPreview extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _GuidanceChip extends StatelessWidget {
+  const _GuidanceChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.42),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: AbzioTheme.accentColor, size: 14),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

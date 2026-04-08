@@ -63,6 +63,11 @@ class MediaPipePoseBridge {
 
   bool _initialized = false;
   bool _callbackBound = false;
+  final Map<String, MediaPipePoseLandmark> _previousByType =
+      <String, MediaPipePoseLandmark>{};
+
+  static const double _visibilityThreshold = 0.35;
+  static const double _smoothingT = 0.28;
 
   Stream<List<MediaPipePoseLandmark>> get landmarksStream =>
       _landmarksController.stream;
@@ -109,12 +114,11 @@ class MediaPipePoseBridge {
       frame.toMap(),
     );
     if (raw == null || raw.isEmpty) {
-      return const [];
+      return _handlePoseLoss();
     }
-    return raw
-        .whereType<Map>()
-        .map(MediaPipePoseLandmark.fromMap)
-        .toList(growable: false);
+    return _optimizeLandmarks(
+      raw.whereType<Map>().map(MediaPipePoseLandmark.fromMap).toList(),
+    );
   }
 
   Future<List<MediaPipePoseLandmark>> processImagePath(
@@ -130,12 +134,11 @@ class MediaPipePoseBridge {
       },
     );
     if (raw == null || raw.isEmpty) {
-      return const [];
+      return _handlePoseLoss();
     }
-    return raw
-        .whereType<Map>()
-        .map(MediaPipePoseLandmark.fromMap)
-        .toList(growable: false);
+    return _optimizeLandmarks(
+      raw.whereType<Map>().map(MediaPipePoseLandmark.fromMap).toList(),
+    );
   }
 
   Future<void> dispose() async {
@@ -156,8 +159,80 @@ class MediaPipePoseBridge {
         .whereType<Map>()
         .map(MediaPipePoseLandmark.fromMap)
         .toList(growable: false);
+    final optimized = mapped.isEmpty ? _handlePoseLoss() : _optimizeLandmarks(mapped);
     if (!_landmarksController.isClosed) {
-      _landmarksController.add(mapped);
+      _landmarksController.add(optimized);
     }
   }
+
+  List<MediaPipePoseLandmark> _optimizeLandmarks(
+    List<MediaPipePoseLandmark> incoming,
+  ) {
+    final nextByType = <String, MediaPipePoseLandmark>{};
+    for (final landmark in incoming) {
+      final key = landmark.type.trim().toLowerCase();
+      if (key.isEmpty) {
+        continue;
+      }
+      final previous = _previousByType[key];
+      if (landmark.visibility < _visibilityThreshold) {
+        if (previous != null) {
+          nextByType[key] = MediaPipePoseLandmark(
+            type: previous.type,
+            x: previous.x,
+            y: previous.y,
+            z: previous.z,
+            visibility: previous.visibility * 0.9,
+          );
+        }
+        continue;
+      }
+      if (previous == null) {
+        nextByType[key] = landmark;
+      } else {
+        nextByType[key] = MediaPipePoseLandmark(
+          type: landmark.type,
+          x: _lerp(previous.x, landmark.x, _smoothingT),
+          y: _lerp(previous.y, landmark.y, _smoothingT),
+          z: _lerp(previous.z, landmark.z, _smoothingT),
+          visibility: _lerp(previous.visibility, landmark.visibility, 0.4),
+        );
+      }
+    }
+    _previousByType
+      ..clear()
+      ..addAll(nextByType);
+
+    final ordered = nextByType.values.toList(growable: false)
+      ..sort((a, b) => a.type.compareTo(b.type));
+    return ordered;
+  }
+
+  List<MediaPipePoseLandmark> _handlePoseLoss() {
+    if (_previousByType.isEmpty) {
+      return const [];
+    }
+    final decayed = <String, MediaPipePoseLandmark>{};
+    for (final entry in _previousByType.entries) {
+      final value = entry.value;
+      final nextVisibility = value.visibility * 0.78;
+      if (nextVisibility < 0.12) {
+        continue;
+      }
+      decayed[entry.key] = MediaPipePoseLandmark(
+        type: value.type,
+        x: value.x,
+        y: value.y,
+        z: value.z,
+        visibility: nextVisibility,
+      );
+    }
+    _previousByType
+      ..clear()
+      ..addAll(decayed);
+    return decayed.values.toList(growable: false)
+      ..sort((a, b) => a.type.compareTo(b.type));
+  }
+
+  double _lerp(double a, double b, double t) => a + ((b - a) * t);
 }

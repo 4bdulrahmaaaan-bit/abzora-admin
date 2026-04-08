@@ -189,18 +189,27 @@ class ArTryOnService {
     ArOverlayLayout? previous,
   }) {
     if (frame == null) {
+      if (previous != null) {
+        // Pose-loss fallback: freeze last transform and softly dim.
+        return ArOverlayLayout(
+          center: previous.center,
+          size: previous.size,
+          rotationRadians: previous.rotationRadians,
+          opacity: (previous.opacity * 0.92).clamp(0.0, 0.68),
+          usingFallbackArt: previous.usingFallbackArt,
+        );
+      }
       final fallbackCenter = Offset(
         guideRect.center.dx,
         guideRect.top + (guideRect.height * 0.34),
       );
-      final fallback = ArOverlayLayout(
+      return ArOverlayLayout(
         center: fallbackCenter,
         size: Size(guideRect.width * 0.56, guideRect.height * 0.46),
         rotationRadians: 0,
-        opacity: 0.54,
+        opacity: 0.46,
         usingFallbackArt: true,
       );
-      return ArOverlayLayout.lerp(previous, fallback, t: 0.18);
     }
 
     final leftShoulder = Offset(
@@ -227,19 +236,34 @@ class ArTryOnService {
     final shoulderDistance = _distance(leftShoulder, rightShoulder);
     final torsoDistance = _distance(shoulderMid, hipMid);
 
-    final fitScale = (1 + fitAdjustment).clamp(0.82, 1.22);
-    final scaleFactor = (metadata.widthMultiplier * fitScale).clamp(0.88, 1.75);
-    final width = (shoulderDistance * scaleFactor)
+    // Body-aware width:
+    // 1) shoulder-driven base fit (+10% for natural cloth drape)
+    // 2) chest/fit adjustment widens for broader build, narrows for slimmer build
+    // 3) category multiplier keeps tops/jackets/dresses distinct
+    final baseWidth = shoulderDistance * 1.1;
+    final fitWidthScale = (1 + (fitAdjustment * 0.45)).clamp(0.9, 1.18);
+    final categoryWidthScale = (metadata.widthMultiplier / 1.4).clamp(0.78, 1.28);
+    final width = (baseWidth * fitWidthScale * categoryWidthScale)
         .clamp(guideRect.width * 0.24, guideRect.width * 0.95);
-    final height = (torsoDistance * 1.5 * metadata.heightMultiplier * 0.88)
+
+    // Torso-driven dynamic height.
+    final baseHeight = torsoDistance * 1.5;
+    final categoryHeightScale = (metadata.heightMultiplier / 1.68).clamp(0.82, 1.34);
+    final height = (baseHeight * categoryHeightScale)
         .clamp(guideRect.height * 0.2, guideRect.height * 0.95);
 
     final targetRotation = math.atan2(
       rightShoulder.dy - leftShoulder.dy,
       rightShoulder.dx - leftShoulder.dx,
     ).clamp(-0.42, 0.42);
+    final verticalOffset = ((height * 0.05) +
+            (torsoDistance * metadata.verticalBias * 0.32))
+        .clamp(
+      -guideRect.height * 0.08,
+      guideRect.height * 0.22,
+    );
     final next = ArOverlayLayout(
-      center: shoulderMid,
+      center: Offset(shoulderMid.dx, shoulderMid.dy + verticalOffset),
       size: Size(width, height),
       rotationRadians: targetRotation.toDouble(),
       opacity: frame.feedback.isAligned ? 0.94 : 0.82,
