@@ -6369,6 +6369,7 @@ class DatabaseService {
         linkedId: '',
         balance: 0,
         pendingAmount: 0,
+        reservedAmount: 0,
         totalEarnings: 0,
         totalWithdrawn: 0,
         lastSettlementDate: '',
@@ -6385,6 +6386,7 @@ class DatabaseService {
       linkedId: store.id,
       balance: store.walletBalance,
       pendingAmount: pendingAmount,
+      reservedAmount: 0,
       totalEarnings: totalEarnings,
       totalWithdrawn: 0,
       lastSettlementDate: '',
@@ -6418,6 +6420,7 @@ class DatabaseService {
       linkedId: actor.id,
       balance: actor.walletBalance,
       pendingAmount: 0,
+      reservedAmount: 0,
       totalEarnings: actor.walletBalance,
       totalWithdrawn: 0,
       lastSettlementDate: '',
@@ -6453,8 +6456,10 @@ class DatabaseService {
       payoutsDone: payouts.fold<double>(0, (sum, item) => sum + item.amount),
       vendorSettlementsDone: payouts.fold<double>(0, (sum, item) => sum + item.amount),
       riderSettlementsDone: 0,
+      failedSettlements: 0,
       vendorPending: vendorPending,
       riderPending: 0,
+      pendingWithdrawalAmount: 0,
     );
   }
 
@@ -6471,6 +6476,43 @@ class DatabaseService {
       );
     }
     throw StateError('Rider settlements are only supported in backend mode.');
+  }
+
+  Future<WithdrawalRequestSummary> approveWithdrawalRequest({
+    required String requestId,
+    required AppUser actor,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.approveWithdrawalRequest(requestId);
+    }
+    throw StateError('Withdrawal approvals are only supported in backend mode.');
+  }
+
+  Future<WithdrawalRequestSummary> rejectWithdrawalRequest({
+    required String requestId,
+    required String reason,
+    required AppUser actor,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.rejectWithdrawalRequest(
+        requestId: requestId,
+        reason: reason,
+      );
+    }
+    throw StateError('Withdrawal approvals are only supported in backend mode.');
+  }
+
+  Future<Map<String, dynamic>> runScheduledSettlements({
+    required String walletType,
+    required AppUser actor,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.runScheduledSettlements(walletType);
+    }
+    throw StateError('Scheduled settlements are only supported in backend mode.');
   }
 
   Future<VendorKycRequest?> getVendorKycRequestForUser(String userId) {

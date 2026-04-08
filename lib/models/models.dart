@@ -2920,17 +2920,71 @@ class WalletTransaction {
       );
 }
 
+class WithdrawalRequestSummary {
+  final String id;
+  final String walletType;
+  final String status;
+  final String userId;
+  final String storeId;
+  final String riderId;
+  final double amount;
+  final String note;
+  final String requestedAt;
+  final String processedAt;
+  final String processedBy;
+  final String rejectionReason;
+  final List<String> auditOrderIds;
+  final Map<String, dynamic> metadata;
+
+  const WithdrawalRequestSummary({
+    required this.id,
+    required this.walletType,
+    required this.status,
+    required this.userId,
+    required this.storeId,
+    required this.riderId,
+    required this.amount,
+    required this.note,
+    required this.requestedAt,
+    required this.processedAt,
+    required this.processedBy,
+    required this.rejectionReason,
+    this.auditOrderIds = const [],
+    this.metadata = const {},
+  });
+
+  factory WithdrawalRequestSummary.fromMap(Map<String, dynamic> map) =>
+      WithdrawalRequestSummary(
+        id: map['id'] ?? '',
+        walletType: map['walletType'] ?? 'vendor',
+        status: map['status'] ?? 'pending',
+        userId: map['userId'] ?? '',
+        storeId: map['storeId'] ?? '',
+        riderId: map['riderId'] ?? '',
+        amount: ((map['amount'] ?? 0) as num).toDouble(),
+        note: map['note'] ?? '',
+        requestedAt: map['requestedAt'] ?? '',
+        processedAt: map['processedAt'] ?? '',
+        processedBy: map['processedBy'] ?? '',
+        rejectionReason: map['rejectionReason'] ?? '',
+        auditOrderIds: List<String>.from(map['auditOrderIds'] ?? const []),
+        metadata: Map<String, dynamic>.from(map['metadata'] ?? const {}),
+      );
+}
+
 class WalletSummary {
   final String id;
   final String kind;
   final String linkedId;
   final double balance;
   final double pendingAmount;
+  final double reservedAmount;
   final double totalEarnings;
   final double totalWithdrawn;
   final String lastSettlementDate;
   final double? commissionRate;
   final List<WalletTransaction> transactions;
+  final List<WithdrawalRequestSummary> withdrawalRequests;
 
   const WalletSummary({
     required this.id,
@@ -2938,11 +2992,13 @@ class WalletSummary {
     required this.linkedId,
     required this.balance,
     required this.pendingAmount,
+    required this.reservedAmount,
     required this.totalEarnings,
     required this.totalWithdrawn,
     required this.lastSettlementDate,
     this.commissionRate,
     this.transactions = const [],
+    this.withdrawalRequests = const [],
   });
 }
 
@@ -2952,11 +3008,14 @@ class AdminFinanceSummary {
   final double payoutsDone;
   final double vendorSettlementsDone;
   final double riderSettlementsDone;
+  final double failedSettlements;
   final double vendorPending;
   final double riderPending;
+  final double pendingWithdrawalAmount;
   final List<WalletSummary> vendorWallets;
   final List<WalletSummary> riderWallets;
   final List<WalletTransaction> transactions;
+  final List<WithdrawalRequestSummary> withdrawalRequests;
 
   const AdminFinanceSummary({
     required this.totalCommission,
@@ -2964,11 +3023,14 @@ class AdminFinanceSummary {
     required this.payoutsDone,
     required this.vendorSettlementsDone,
     required this.riderSettlementsDone,
+    required this.failedSettlements,
     required this.vendorPending,
     required this.riderPending,
+    required this.pendingWithdrawalAmount,
     this.vendorWallets = const [],
     this.riderWallets = const [],
     this.transactions = const [],
+    this.withdrawalRequests = const [],
   });
 }
 

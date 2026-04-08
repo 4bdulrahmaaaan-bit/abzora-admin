@@ -612,6 +612,7 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                                 weeklyEarnings: _weeklyRevenue(orders),
                                 pendingPayouts: wallet?.pendingAmount ?? pendingPayouts,
                                 availableBalance: wallet?.balance ?? analytics?.availableBalance ?? store.walletBalance,
+                                reservedWithdrawals: wallet?.reservedAmount ?? 0,
                                 commissionRate: wallet?.commissionRate ?? store.commissionRate,
                                 formatCurrency: _money,
                                 onWithdraw: () => _requestVendorWithdrawal(actor),
@@ -861,6 +862,7 @@ class _EarningsSection extends StatelessWidget {
     required this.weeklyEarnings,
     required this.pendingPayouts,
     required this.availableBalance,
+    required this.reservedWithdrawals,
     required this.commissionRate,
     required this.formatCurrency,
     this.onWithdraw,
@@ -870,6 +872,7 @@ class _EarningsSection extends StatelessWidget {
   final double weeklyEarnings;
   final double pendingPayouts;
   final double availableBalance;
+  final double reservedWithdrawals;
   final double? commissionRate;
   final String Function(double amount) formatCurrency;
   final VoidCallback? onWithdraw;
@@ -899,7 +902,7 @@ class _EarningsSection extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Available ${formatCurrency(availableBalance)} • Commission ${((commissionRate ?? 0.12) * 100).toStringAsFixed(0)}%',
+            'Available ${formatCurrency(availableBalance)} • Reserved ${formatCurrency(reservedWithdrawals)} • Commission ${((commissionRate ?? 0.12) * 100).toStringAsFixed(0)}%',
             style: GoogleFonts.inter(color: AbzioTheme.grey500, fontSize: 12),
           ),
           const SizedBox(height: 14),

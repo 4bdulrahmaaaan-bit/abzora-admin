@@ -113,6 +113,7 @@ class RiderDashboard extends StatelessWidget {
                 return _RiderWalletCard(
                   balance: wallet?.balance ?? actor.walletBalance,
                   pendingAmount: wallet?.pendingAmount ?? 0,
+                  reservedAmount: wallet?.reservedAmount ?? 0,
                   totalEarnings: wallet?.totalEarnings ?? actor.walletBalance,
                   onWithdraw: () => _requestWithdrawal(context, actor),
                 );
@@ -412,12 +413,14 @@ class _RiderWalletCard extends StatelessWidget {
   const _RiderWalletCard({
     required this.balance,
     required this.pendingAmount,
+    required this.reservedAmount,
     required this.totalEarnings,
     required this.onWithdraw,
   });
 
   final double balance;
   final double pendingAmount;
+  final double reservedAmount;
   final double totalEarnings;
   final VoidCallback onWithdraw;
 
@@ -466,6 +469,14 @@ class _RiderWalletCard extends StatelessWidget {
                   label: 'Pending',
                   value: _money(pendingAmount),
                   tint: const Color(0xFFD97A00),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _RiderMoneyTile(
+                  label: 'Reserved',
+                  value: _money(reservedAmount),
+                  tint: const Color(0xFF8B5CF6),
                 ),
               ),
               const SizedBox(width: 12),

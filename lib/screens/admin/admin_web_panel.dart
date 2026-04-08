@@ -454,6 +454,92 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     await _load();
   }
 
+  Future<void> _runScheduledSettlements(String walletType) async {
+    final actor = _actor;
+    if (actor == null) {
+      return;
+    }
+    final result = await _db.runScheduledSettlements(walletType: walletType, actor: actor);
+    if (!mounted) {
+      return;
+    }
+    final successes = (result['successes'] as List? ?? const []).length;
+    final failures = (result['failures'] as List? ?? const []).length;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$walletType settlements finished. $successes success, $failures failed.',
+        ),
+      ),
+    );
+    await _load();
+  }
+
+  Future<void> _approveWithdrawal(WithdrawalRequestSummary request) async {
+    final actor = _actor;
+    if (actor == null) {
+      return;
+    }
+    await _db.approveWithdrawalRequest(requestId: request.id, actor: actor);
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Withdrawal approved.')),
+    );
+    await _load();
+  }
+
+  Future<void> _rejectWithdrawal(WithdrawalRequestSummary request) async {
+    final actor = _actor;
+    if (actor == null) {
+      return;
+    }
+    final controller = TextEditingController();
+    try {
+      final reason = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Reject withdrawal'),
+          content: TextField(
+            controller: controller,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              hintText: 'Add a short reason',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()),
+              child: const Text('Reject'),
+            ),
+          ],
+        ),
+      );
+      if ((reason ?? '').isEmpty) {
+        return;
+      }
+      await _db.rejectWithdrawalRequest(
+        requestId: request.id,
+        reason: reason!,
+        actor: actor,
+      );
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Withdrawal rejected.')),
+      );
+      await _load();
+    } finally {
+      controller.dispose();
+    }
+  }
+
   Future<void> _approveRefund(RefundRequest request) async {
     final actor = _actor;
     if (actor == null) {
@@ -2653,8 +2739,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             payoutsDone: 0,
             vendorSettlementsDone: 0,
             riderSettlementsDone: 0,
+            failedSettlements: 0,
             vendorPending: 0,
             riderPending: 0,
+            pendingWithdrawalAmount: 0,
           )) : _db.getAdminFinance(actor: _actor!),
           builder: (context, financeSnapshot) {
             final finance = financeSnapshot.data;
@@ -2663,6 +2751,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             final totalCommission = finance?.totalCommission ?? 0;
             final payoutsDone = finance?.payoutsDone ?? _payouts.fold<double>(0, (sum, payout) => sum + payout.amount);
             final transactions = finance?.transactions ?? const <WalletTransaction>[];
+            final withdrawalRequests = finance?.withdrawalRequests ?? const <WithdrawalRequestSummary>[];
+            final failedSettlements = finance?.failedSettlements ?? 0;
+            final pendingWithdrawalAmount = finance?.pendingWithdrawalAmount ?? 0;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -2673,22 +2764,34 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     _MetricCard(title: 'Processed Payouts', value: '${_payouts.length}'),
                     _MetricCard(title: 'Vendor Pending', value: _formatCurrency(vendorPending)),
                     _MetricCard(title: 'Rider Pending', value: _formatCurrency(riderPending)),
+                    _MetricCard(title: 'Pending Withdrawals', value: _formatCurrency(pendingWithdrawalAmount)),
                     _MetricCard(title: 'Commission Earned', value: _formatCurrency(totalCommission)),
                     _MetricCard(title: 'Settlements Done', value: _formatCurrency(payoutsDone)),
+                    _MetricCard(title: 'Failed Settlements', value: failedSettlements.toStringAsFixed(0)),
                   ],
                 ),
                 const SizedBox(height: 16),
                 _Panel(
                   title: 'Finance actions',
-                  subtitle: 'Run vendor and rider settlements from one place.',
+                  subtitle: 'Run automated settlements and review withdrawal approvals.',
                   child: Wrap(
                     spacing: 12,
                     runSpacing: 12,
                     children: [
                       ElevatedButton.icon(
+                        onPressed: () => _runScheduledSettlements('vendor'),
+                        icon: const Icon(Icons.storefront_outlined),
+                        label: const Text('Run vendor settlements'),
+                      ),
+                      ElevatedButton.icon(
                         onPressed: _settleRiderPayouts,
                         icon: const Icon(Icons.delivery_dining_outlined),
                         label: const Text('Settle rider payouts'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => _runScheduledSettlements('rider'),
+                        icon: const Icon(Icons.schedule_outlined),
+                        label: const Text('Retry rider cron run'),
                       ),
                       if (transactions.isNotEmpty)
                         Chip(
@@ -2699,6 +2802,49 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                if (withdrawalRequests.isNotEmpty)
+                  _Panel(
+                    title: 'Pending withdrawal approvals',
+                    subtitle: 'Approve or reject vendor and rider cash-out requests.',
+                    child: Column(
+                      children: withdrawalRequests.map((request) {
+                        final subject = request.walletType == 'vendor'
+                            ? (request.storeId.isEmpty ? request.userId : request.storeId)
+                            : request.riderId;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            request.walletType == 'vendor'
+                                ? Icons.storefront_outlined
+                                : Icons.delivery_dining_outlined,
+                          ),
+                          title: Text(
+                            '${request.walletType.toUpperCase()} • ${_formatCurrency(request.amount)}',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                          ),
+                          subtitle: Text(
+                            '${request.note.isEmpty ? 'Awaiting approval' : request.note}\n$subject',
+                            style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                          ),
+                          isThreeLine: true,
+                          trailing: Wrap(
+                            spacing: 8,
+                            children: [
+                              TextButton(
+                                onPressed: () => _rejectWithdrawal(request),
+                                child: const Text('Reject'),
+                              ),
+                              FilledButton(
+                                onPressed: () => _approveWithdrawal(request),
+                                child: const Text('Approve'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                if (withdrawalRequests.isNotEmpty) const SizedBox(height: 16),
                 if (transactions.isNotEmpty)
                   _Panel(
                     title: 'Recent finance activity',

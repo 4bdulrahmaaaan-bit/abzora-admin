@@ -963,6 +963,10 @@ class BackendCommerceService {
         .whereType<Map>()
         .map((item) => WalletTransaction.fromMap(Map<String, dynamic>.from(item)))
         .toList();
+    final withdrawalRequests = (map['withdrawalRequests'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => WithdrawalRequestSummary.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
     final linkedId = kind == 'vendor'
         ? map['storeId']?.toString() ?? ''
         : map['riderId']?.toString() ?? '';
@@ -972,11 +976,13 @@ class BackendCommerceService {
       linkedId: linkedId,
       balance: ((map['balance'] ?? 0) as num).toDouble(),
       pendingAmount: ((map['pendingAmount'] ?? 0) as num).toDouble(),
+      reservedAmount: ((map['reservedAmount'] ?? 0) as num).toDouble(),
       totalEarnings: ((map['totalEarnings'] ?? 0) as num).toDouble(),
       totalWithdrawn: ((map['totalWithdrawn'] ?? 0) as num).toDouble(),
       lastSettlementDate: map['lastSettlementDate']?.toString() ?? '',
       commissionRate: map['commissionRate'] == null ? null : (map['commissionRate'] as num).toDouble(),
       transactions: transactions,
+      withdrawalRequests: withdrawalRequests,
     );
   }
 
@@ -1024,17 +1030,24 @@ class BackendCommerceService {
         .whereType<Map>()
         .map((item) => WalletTransaction.fromMap(Map<String, dynamic>.from(item)))
         .toList();
+    final withdrawalRequests = (map['withdrawalRequests'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => WithdrawalRequestSummary.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
     return AdminFinanceSummary(
       totalCommission: ((adminWallet['totalCommission'] ?? 0) as num).toDouble(),
       totalRevenue: ((adminWallet['totalRevenue'] ?? 0) as num).toDouble(),
       payoutsDone: ((adminWallet['payoutsDone'] ?? 0) as num).toDouble(),
       vendorSettlementsDone: ((adminWallet['vendorSettlementsDone'] ?? 0) as num).toDouble(),
       riderSettlementsDone: ((adminWallet['riderSettlementsDone'] ?? 0) as num).toDouble(),
+      failedSettlements: ((adminWallet['failedSettlements'] ?? 0) as num).toDouble(),
       vendorPending: ((map['vendorPending'] ?? 0) as num).toDouble(),
       riderPending: ((map['riderPending'] ?? 0) as num).toDouble(),
+      pendingWithdrawalAmount: ((map['pendingWithdrawalAmount'] ?? 0) as num).toDouble(),
       vendorWallets: vendorWallets,
       riderWallets: riderWallets,
       transactions: transactions,
+      withdrawalRequests: withdrawalRequests,
     );
   }
 
@@ -1072,6 +1085,35 @@ class BackendCommerceService {
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList();
+  }
+
+  Future<WithdrawalRequestSummary> approveWithdrawalRequest(String requestId) async {
+    final payload = await _client.post(
+      '/admin/finance/withdrawals/$requestId/approve',
+      authenticated: true,
+    );
+    return WithdrawalRequestSummary.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<WithdrawalRequestSummary> rejectWithdrawalRequest({
+    required String requestId,
+    required String reason,
+  }) async {
+    final payload = await _client.post(
+      '/admin/finance/withdrawals/$requestId/reject',
+      authenticated: true,
+      body: {'reason': reason},
+    );
+    return WithdrawalRequestSummary.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<Map<String, dynamic>> runScheduledSettlements(String walletType) async {
+    final payload = await _client.post(
+      '/admin/finance/settlements/run',
+      authenticated: true,
+      body: {'walletType': walletType},
+    );
+    return Map<String, dynamic>.from(payload as Map);
   }
 
   Future<List<DisputeRecord>> getAdminDisputes() async {
