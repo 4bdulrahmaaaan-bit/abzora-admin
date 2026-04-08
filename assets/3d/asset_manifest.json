@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "updatedAt": "2026-04-08T00:00:00Z",
+  "items": [
+    {
+      "id": "shirt_001",
+      "model": "https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb",
+      "category": "topwear",
+      "fit": "regular",
+      "sizeScale": {
+        "S": 0.94,
+        "M": 1.0,
+        "L": 1.06,
+        "XL": 1.12
+      }
+    },
+    {
+      "id": "pants_001",
+      "model": "https://modelviewer.dev/shared-assets/models/RobotExpressive.glb",
+      "category": "bottomwear",
+      "fit": "regular",
+      "sizeScale": {
+        "S": 0.95,
+        "M": 1.0,
+        "L": 1.07,
+        "XL": 1.13
+      }
+    },
+    {
+      "id": "jacket_001",
+      "model": "https://modelviewer.dev/shared-assets/models/ShopifyModels/Chair.glb",
+      "category": "outerwear",
+      "fit": "regular",
+      "sizeScale": {
+        "S": 0.93,
+        "M": 1.0,
+        "L": 1.08,
+        "XL": 1.14
+      }
+    }
+  ]
+}

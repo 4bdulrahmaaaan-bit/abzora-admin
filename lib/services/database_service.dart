@@ -95,7 +95,9 @@ class DatabaseService {
     );
   }
 
-  List<MapEntry<String, Map<String, dynamic>>> _asCollectionEntries(Object? value) {
+  List<MapEntry<String, Map<String, dynamic>>> _asCollectionEntries(
+    Object? value,
+  ) {
     final map = _asMap(value);
     if (map == null) {
       return const [];
@@ -136,20 +138,26 @@ class DatabaseService {
     String path,
     T Function(Map<String, dynamic> map, String id) mapper,
   ) async {
-    final snapshot = await _ref(path)
-        .get()
-        .timeout(const Duration(seconds: 10), onTimeout: () => throw TimeoutException('$path request timed out.'));
-    return _asCollectionEntries(snapshot.value).map((entry) => mapper(entry.value, entry.key)).toList();
+    final snapshot = await _ref(path).get().timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => throw TimeoutException('$path request timed out.'),
+    );
+    return _asCollectionEntries(
+      snapshot.value,
+    ).map((entry) => mapper(entry.value, entry.key)).toList();
   }
 
   Future<List<T>> _fetchQueryCollection<T>(
     Query query,
     T Function(Map<String, dynamic> map, String id) mapper,
   ) async {
-    final snapshot = await query
-        .get()
-        .timeout(const Duration(seconds: 10), onTimeout: () => throw TimeoutException('Query request timed out.'));
-    return _asCollectionEntries(snapshot.value).map((entry) => mapper(entry.value, entry.key)).toList();
+    final snapshot = await query.get().timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => throw TimeoutException('Query request timed out.'),
+    );
+    return _asCollectionEntries(
+      snapshot.value,
+    ).map((entry) => mapper(entry.value, entry.key)).toList();
   }
 
   Stream<List<T>> _watchCollection<T>(
@@ -157,7 +165,9 @@ class DatabaseService {
     T Function(Map<String, dynamic> map, String id) mapper,
   ) {
     return _ref(path).onValue.map(
-      (event) => _asCollectionEntries(event.snapshot.value).map((entry) => mapper(entry.value, entry.key)).toList(),
+      (event) => _asCollectionEntries(
+        event.snapshot.value,
+      ).map((entry) => mapper(entry.value, entry.key)).toList(),
     );
   }
 
@@ -166,7 +176,9 @@ class DatabaseService {
     T Function(Map<String, dynamic> map, String id) mapper,
   ) {
     return query.onValue.map(
-      (event) => _asCollectionEntries(event.snapshot.value).map((entry) => mapper(entry.value, entry.key)).toList(),
+      (event) => _asCollectionEntries(
+        event.snapshot.value,
+      ).map((entry) => mapper(entry.value, entry.key)).toList(),
     );
   }
 
@@ -174,9 +186,10 @@ class DatabaseService {
     String path,
     T Function(Map<String, dynamic> map, String id) mapper,
   ) async {
-    final snapshot = await _ref(path)
-        .get()
-        .timeout(const Duration(seconds: 10), onTimeout: () => throw TimeoutException('$path request timed out.'));
+    final snapshot = await _ref(path).get().timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => throw TimeoutException('$path request timed out.'),
+    );
     final map = _asMap(snapshot.value);
     if (map == null) {
       return null;
@@ -184,9 +197,12 @@ class DatabaseService {
     return mapper(map, snapshot.key ?? path.split('/').last);
   }
 
-  int _orderTimestampValue(OrderModel order) => order.timestamp.millisecondsSinceEpoch;
+  int _orderTimestampValue(OrderModel order) =>
+      order.timestamp.millisecondsSinceEpoch;
 
-  List<AppNotification> _sortedNotifications(Iterable<AppNotification> notifications) {
+  List<AppNotification> _sortedNotifications(
+    Iterable<AppNotification> notifications,
+  ) {
     final deduped = <String, AppNotification>{};
     for (final notification in notifications) {
       deduped[notification.id] = notification;
@@ -244,7 +260,9 @@ class DatabaseService {
     final memory = await getUserMemory(user.id);
     final summary = await getUserActivitySummary(user.id);
     final preferredStyle = memory?.preferredStyle.trim() ?? '';
-    final category = preferredStyle.isNotEmpty ? null : summary.favoriteCategory;
+    final category = preferredStyle.isNotEmpty
+        ? null
+        : summary.favoriteCategory;
     final catalog = await getStylistCatalog(limit: 20, category: category);
     final personalized = await personalizeProductsForUser(catalog, user: user);
     return personalized.take(3).toList();
@@ -265,17 +283,13 @@ class DatabaseService {
       'lastOrderId': latestOrder?.id,
       'productIds': products.map((item) => item.id).toList(),
       'productNames': products.map((item) => item.name).toList(),
-      'deepLink':
-          products.isEmpty ? null : '/product/${products.first.id}',
+      'deepLink': products.isEmpty ? null : '/product/${products.first.id}',
     };
   }
 
   Future<UserActivitySummary> getUserActivitySummary(String userId) async {
     if (_backendCommerce.isConfigured) {
-      return UserActivitySummary(
-        userId: userId,
-        segment: 'active',
-      );
+      return UserActivitySummary(userId: userId, segment: 'active');
     }
     final summary = await _fetchDocument(
       'userActivity/$userId/summary',
@@ -325,17 +339,12 @@ class DatabaseService {
       ),
     );
     await _saveUserActivitySummary(
-      updated.copyWith(
-        behaviorFlags: _behaviorFlagsFor(updated),
-      ),
+      updated.copyWith(behaviorFlags: _behaviorFlagsFor(updated)),
     );
     await _logUserActivityEvent(
       userId: user.id,
       type: 'login',
-      payload: {
-        'phone': user.phone,
-        'city': user.city,
-      },
+      payload: {'phone': user.phone, 'city': user.city},
     );
     unawaited(runGrowthAutomationForUser(user));
   }
@@ -365,9 +374,7 @@ class DatabaseService {
       ),
     );
     await _saveUserActivitySummary(
-      updated.copyWith(
-        behaviorFlags: _behaviorFlagsFor(updated),
-      ),
+      updated.copyWith(behaviorFlags: _behaviorFlagsFor(updated)),
     );
     await _logUserActivityEvent(
       userId: user.id,
@@ -394,11 +401,10 @@ class DatabaseService {
     final favoriteCategory = order.items.isEmpty
         ? existing.favoriteCategory
         : (await _fetchDocument(
-              'products/${order.items.first.productId}',
-              (map, id) => Product.fromMap(map, id),
-            ))
-                ?.category ??
-            existing.favoriteCategory;
+                'products/${order.items.first.productId}',
+                (map, id) => Product.fromMap(map, id),
+              ))?.category ??
+              existing.favoriteCategory;
     final updated = existing.copyWith(
       orderCount: existing.orderCount + 1,
       totalSpend: existing.totalSpend + order.totalAmount,
@@ -415,9 +421,7 @@ class DatabaseService {
       ),
     );
     await _saveUserActivitySummary(
-      updated.copyWith(
-        behaviorFlags: _behaviorFlagsFor(updated),
-      ),
+      updated.copyWith(behaviorFlags: _behaviorFlagsFor(updated)),
     );
     await _logUserActivityEvent(
       userId: user.id,
@@ -443,8 +447,11 @@ class DatabaseService {
       await _ref('users/${user.id}/referralCode').set(code);
       return code;
     }
-    final seed = '${(user.phone ?? user.id).replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase()}ABZ';
-    final generated = seed.length > 10 ? seed.substring(0, 10) : seed.padRight(8, 'X');
+    final seed =
+        '${(user.phone ?? user.id).replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase()}ABZ';
+    final generated = seed.length > 10
+        ? seed.substring(0, 10)
+        : seed.padRight(8, 'X');
     await _ref('').update({
       'users/${user.id}/growth/referralCode': generated,
       'users/${user.id}/referralCode': generated,
@@ -518,8 +525,9 @@ class DatabaseService {
 
     final summary = await getUserActivitySummary(user.id);
     final lastOrderAt = DateTime.tryParse(summary.lastOrderAt ?? '');
-    final inactiveDays =
-        lastOrderAt == null ? 999 : DateTime.now().difference(lastOrderAt).inDays;
+    final inactiveDays = lastOrderAt == null
+        ? 999
+        : DateTime.now().difference(lastOrderAt).inDays;
     final isNewUser = summary.orderCount == 0 || summary.segment == 'new';
     final isRepeatInactive = summary.orderCount > 0 && inactiveDays >= 7;
 
@@ -546,7 +554,8 @@ class DatabaseService {
         appliedCredits: 0,
         autoApplied: false,
         eligible: true,
-        message: 'You can keep your Rs ${availableCredits.toStringAsFixed(0)} credits for a smaller order.',
+        message:
+            'You can keep your Rs ${availableCredits.toStringAsFixed(0)} credits for a smaller order.',
       );
     }
     return SmartCreditDecision(
@@ -572,10 +581,15 @@ class DatabaseService {
       throw StateError('Enter a valid referral code.');
     }
     if ((actor.referredBy ?? '').trim().isNotEmpty) {
-      throw StateError('A referral code has already been applied to this account.');
+      throw StateError(
+        'A referral code has already been applied to this account.',
+      );
     }
 
-    final users = await _fetchCollection('users', (map, _) => AppUser.fromMap(map));
+    final users = await _fetchCollection(
+      'users',
+      (map, _) => AppUser.fromMap(map),
+    );
     AppUser? referrer;
     for (final candidate in users) {
       final candidateCode = (candidate.referralCode ?? '').trim().toUpperCase();
@@ -592,7 +606,9 @@ class DatabaseService {
     }
     if ((referrer.phone ?? '').trim().isNotEmpty &&
         (referrer.phone ?? '').trim() == (actor.phone ?? '').trim()) {
-      throw StateError('This referral cannot be applied to the same phone number.');
+      throw StateError(
+        'This referral cannot be applied to the same phone number.',
+      );
     }
 
     final existing = await _fetchDocument(
@@ -646,7 +662,10 @@ class DatabaseService {
       invitedCount: history.length,
       completedCount: completedCount,
       pendingCount: pending.length,
-      earnedCredits: completed.fold<double>(0, (sum, item) => sum + item.referrerReward),
+      earnedCredits: completed.fold<double>(
+        0,
+        (sum, item) => sum + item.referrerReward,
+      ),
       walletBalance: user.walletBalance,
       tier: _referralTierForCompletedInvites(completedCount),
       nextTierProgress: _referralProgress(completedCount),
@@ -688,21 +707,22 @@ class DatabaseService {
         'same_phone',
     ];
     if (fraudFlags.isNotEmpty) {
-      final blockedRecord = (existing ??
-              ReferralRecord(
-                id: actor.id,
-                referrerId: referrerId,
-                referredUserId: actor.id,
-                referralCode: referrer.referralCode ?? '',
-                createdAt: nowIso,
-              ))
-          .toMap()
-        ..addAll({
-          'status': 'blocked',
-          'fraudFlags': fraudFlags,
-          'qualifyingOrderId': order.id,
-          'qualifyingOrderAmount': order.totalAmount,
-        });
+      final blockedRecord =
+          (existing ??
+                  ReferralRecord(
+                    id: actor.id,
+                    referrerId: referrerId,
+                    referredUserId: actor.id,
+                    referralCode: referrer.referralCode ?? '',
+                    createdAt: nowIso,
+                  ))
+              .toMap()
+            ..addAll({
+              'status': 'blocked',
+              'fraudFlags': fraudFlags,
+              'qualifyingOrderId': order.id,
+              'qualifyingOrderAmount': order.totalAmount,
+            });
       await _ref('referrals/$referrerId/${actor.id}').set(blockedRecord);
       return;
     }
@@ -711,8 +731,9 @@ class DatabaseService {
     }
 
     final completedBefore = await getReferralHistory(referrerId);
-    final referrerReward =
-        _referrerRewardForCompletedInvites(completedBefore.where((item) => item.rewardGiven).length + 1);
+    final referrerReward = _referrerRewardForCompletedInvites(
+      completedBefore.where((item) => item.rewardGiven).length + 1,
+    );
     const friendReward = 75.0;
     final updatedRecord = ReferralRecord(
       id: actor.id,
@@ -731,7 +752,8 @@ class DatabaseService {
     );
 
     await _ref('').update({
-      'users/$referrerId/walletBalance': referrer.walletBalance + referrerReward,
+      'users/$referrerId/walletBalance':
+          referrer.walletBalance + referrerReward,
       'users/${actor.id}/walletBalance': actor.walletBalance + friendReward,
       'referrals/$referrerId/${actor.id}': updatedRecord.toMap(),
     });
@@ -767,7 +789,9 @@ class DatabaseService {
     final cutoff = DateTime.now().subtract(window);
     return triggers.any((trigger) {
       final createdAt = DateTime.tryParse(trigger.createdAt);
-      return trigger.type == type && createdAt != null && createdAt.isAfter(cutoff);
+      return trigger.type == type &&
+          createdAt != null &&
+          createdAt.isAfter(cutoff);
     });
   }
 
@@ -825,10 +849,16 @@ class DatabaseService {
     required double cartValue,
   }) async {
     final offers = await getGrowthOffersForUser(user);
-    final eligible = offers
-        .where((offer) => _isGrowthOfferActiveForCart(offer, cartValue))
-        .toList()
-      ..sort((a, b) => _effectiveOfferValue(b, cartValue).compareTo(_effectiveOfferValue(a, cartValue)));
+    final eligible =
+        offers
+            .where((offer) => _isGrowthOfferActiveForCart(offer, cartValue))
+            .toList()
+          ..sort(
+            (a, b) => _effectiveOfferValue(
+              b,
+              cartValue,
+            ).compareTo(_effectiveOfferValue(a, cartValue)),
+          );
     return eligible.isEmpty ? null : eligible.first;
   }
 
@@ -840,7 +870,10 @@ class DatabaseService {
       return null;
     }
 
-    final existing = await _findExistingEligibleCoupon(user: user, cartValue: cartValue);
+    final existing = await _findExistingEligibleCoupon(
+      user: user,
+      cartValue: cartValue,
+    );
     if (existing != null) {
       return existing;
     }
@@ -848,9 +881,12 @@ class DatabaseService {
     final summary = await getUserActivitySummary(user.id);
     final now = DateTime.now();
     final lastOrderAt = DateTime.tryParse(summary.lastOrderAt ?? '');
-    final daysSinceLastOrder = lastOrderAt == null ? 999 : now.difference(lastOrderAt).inDays;
+    final daysSinceLastOrder = lastOrderAt == null
+        ? 999
+        : now.difference(lastOrderAt).inDays;
     final isNewUser = summary.orderCount == 0 || summary.segment == 'new';
-    final isHighValueUser = summary.orderCount >= 5 || summary.totalSpend >= 15000;
+    final isHighValueUser =
+        summary.orderCount >= 5 || summary.totalSpend >= 15000;
 
     String? type;
     String title = '';
@@ -901,7 +937,9 @@ class DatabaseService {
       minOrderValue: minOrderValue,
       autoApply: autoApply,
       createdAt: now.toIso8601String(),
-      expiresAt: now.add(Duration(hours: type == 'new_user' ? 48 : 24)).toIso8601String(),
+      expiresAt: now
+          .add(Duration(hours: type == 'new_user' ? 48 : 24))
+          .toIso8601String(),
       metadata: {
         'engine': 'ai_coupon',
         'cartValue': cartValue,
@@ -929,7 +967,8 @@ class DatabaseService {
     }
     final offers = await getGrowthOffersForUser(user);
     for (final offer in offers) {
-      if (offer.code.toUpperCase() == normalized && _isGrowthOfferActiveForCart(offer, cartValue)) {
+      if (offer.code.toUpperCase() == normalized &&
+          _isGrowthOfferActiveForCart(offer, cartValue)) {
         return offer;
       }
     }
@@ -948,7 +987,9 @@ class DatabaseService {
       'offers/$userId',
       (map, id) => GrowthOffer.fromMap(map, id),
     );
-    final match = offers.where((offer) => offer.code.toUpperCase() == code.trim().toUpperCase()).toList();
+    final match = offers
+        .where((offer) => offer.code.toUpperCase() == code.trim().toUpperCase())
+        .toList();
     if (match.isEmpty) {
       return;
     }
@@ -972,7 +1013,9 @@ class DatabaseService {
         'products/${item.productId}',
         (map, id) => Product.fromMap(map, id),
       );
-      final effectivePrice = product == null ? item.price : _decorateProduct(product).effectivePrice;
+      final effectivePrice = product == null
+          ? item.price
+          : _decorateProduct(product).effectivePrice;
       dynamicPrice += effectivePrice * item.quantity;
     }
 
@@ -1005,21 +1048,31 @@ class DatabaseService {
       }
     }
 
-    var couponAmount = coupon == null ? manualCouponAmount : _effectiveOfferValue(coupon, dynamicPrice);
+    var couponAmount = coupon == null
+        ? manualCouponAmount
+        : _effectiveOfferValue(coupon, dynamicPrice);
     final creditDecision = await getSmartCreditDecision(
       user: user,
       cartValue: dynamicPrice,
     );
-    var creditsApplied = useReferralCredits ? creditDecision.appliedCredits : 0.0;
+    var creditsApplied = useReferralCredits
+        ? creditDecision.appliedCredits
+        : 0.0;
 
     final totalRequestedDiscount = couponAmount + creditsApplied;
     if (totalRequestedDiscount > maxDiscountCap) {
       final allowedDiscount = maxDiscountCap;
       couponAmount = min(couponAmount, allowedDiscount);
-      creditsApplied = min(creditsApplied, max(0.0, allowedDiscount - couponAmount));
+      creditsApplied = min(
+        creditsApplied,
+        max(0.0, allowedDiscount - couponAmount),
+      );
     }
 
-    final discountedSubtotal = max(0.0, dynamicPrice - couponAmount - creditsApplied);
+    final discountedSubtotal = max(
+      0.0,
+      dynamicPrice - couponAmount - creditsApplied,
+    );
     final taxAmount = discountedSubtotal * 0.05;
     final finalPrice = discountedSubtotal + taxAmount + extraCharges;
 
@@ -1035,7 +1088,8 @@ class DatabaseService {
       extraCharges: extraCharges,
       finalPrice: finalPrice,
       maxDiscountCap: maxDiscountCap,
-      summary: 'Base ${originalPrice.toStringAsFixed(0)}, dynamic ${dynamicPrice.toStringAsFixed(0)}, credits ${creditsApplied.toStringAsFixed(0)}, coupon ${couponAmount.toStringAsFixed(0)}',
+      summary:
+          'Base ${originalPrice.toStringAsFixed(0)}, dynamic ${dynamicPrice.toStringAsFixed(0)}, credits ${creditsApplied.toStringAsFixed(0)}, coupon ${couponAmount.toStringAsFixed(0)}',
     );
   }
 
@@ -1076,9 +1130,15 @@ class DatabaseService {
       final local = prefs.getString(_paymentPreferenceKey(userId))?.trim();
       return (local == null || local.isEmpty) ? null : local;
     }
-    final snapshot = await _ref('users/$userId/preferences/preferredPaymentMethod')
-        .get()
-        .timeout(const Duration(seconds: 8), onTimeout: () => throw TimeoutException('Preferred payment method request timed out.'));
+    final snapshot =
+        await _ref(
+          'users/$userId/preferences/preferredPaymentMethod',
+        ).get().timeout(
+          const Duration(seconds: 8),
+          onTimeout: () => throw TimeoutException(
+            'Preferred payment method request timed out.',
+          ),
+        );
     final value = snapshot.value?.toString().trim();
     if (value == null || value.isEmpty) {
       return null;
@@ -1093,7 +1153,9 @@ class DatabaseService {
       await prefs.setString(_paymentPreferenceKey(userId), normalized);
       return;
     }
-    await _ref('users/$userId/preferences/preferredPaymentMethod').set(normalized);
+    await _ref(
+      'users/$userId/preferences/preferredPaymentMethod',
+    ).set(normalized);
   }
 
   Future<void> trackAiStylistConversion({
@@ -1131,30 +1193,43 @@ class DatabaseService {
     final summary = await getUserActivitySummary(user.id);
     final now = DateTime.now();
     final lastActive = DateTime.tryParse(summary.lastActiveAt ?? '');
-    final lastCartActivity = DateTime.tryParse(summary.lastCartActivityAt ?? '');
-    final isInactive = lastActive == null || now.difference(lastActive).inDays >= 7;
-    final hasAbandonedCart = summary.cartAbandoned &&
+    final lastCartActivity = DateTime.tryParse(
+      summary.lastCartActivityAt ?? '',
+    );
+    final isInactive =
+        lastActive == null || now.difference(lastActive).inDays >= 7;
+    final hasAbandonedCart =
+        summary.cartAbandoned &&
         summary.cartItemCount > 0 &&
         lastCartActivity != null &&
         now.difference(lastCartActivity).inHours >= 2;
-    final isFrequentBuyer = summary.orderCount >= 3 || summary.totalSpend >= 8000;
+    final isFrequentBuyer =
+        summary.orderCount >= 3 || summary.totalSpend >= 8000;
     final marketingContext = await _marketingContextForUser(user);
-    final recommendedNames =
-        List<String>.from(marketingContext['productNames'] as List? ?? const []);
-    final recommendedIds =
-        List<String>.from(marketingContext['productIds'] as List? ?? const []);
+    final recommendedNames = List<String>.from(
+      marketingContext['productNames'] as List? ?? const [],
+    );
+    final recommendedIds = List<String>.from(
+      marketingContext['productIds'] as List? ?? const [],
+    );
     final deepLink = marketingContext['deepLink']?.toString();
-    final leadingProductName =
-        recommendedNames.isEmpty ? 'new arrivals' : recommendedNames.first;
+    final leadingProductName = recommendedNames.isEmpty
+        ? 'new arrivals'
+        : recommendedNames.first;
 
     if (summary.orderCount == 0 &&
-        !await _hasRecentGrowthTrigger(user.id, 'welcome_offer', window: const Duration(days: 7))) {
+        !await _hasRecentGrowthTrigger(
+          user.id,
+          'welcome_offer',
+          window: const Duration(days: 7),
+        )) {
       final offer = GrowthOffer(
         id: 'offer-welcome-${now.millisecondsSinceEpoch}',
         userId: user.id,
         type: 'welcome',
         title: 'Welcome to ABZORA',
-        subtitle: 'Start with a premium first-order saving curated for your style.',
+        subtitle:
+            'Start with a premium first-order saving curated for your style.',
         code: _generatePersonalizedCouponCode('new_user'),
         discountPercent: 0,
         discountAmount: 100,
@@ -1162,10 +1237,7 @@ class DatabaseService {
         autoApply: true,
         createdAt: now.toIso8601String(),
         expiresAt: now.add(const Duration(days: 5)).toIso8601String(),
-        metadata: {
-          'productIds': recommendedIds,
-          'deepLink': deepLink,
-        },
+        metadata: {'productIds': recommendedIds, 'deepLink': deepLink},
       );
       await _saveGrowthOffer(offer);
       await _saveGrowthTrigger(
@@ -1189,7 +1261,8 @@ class DatabaseService {
         AppNotification(
           id: 'growth-welcome-${now.millisecondsSinceEpoch}',
           title: 'Your first look deserves a reward',
-          body: 'Use ${offer.code} on $leadingProductName and get Rs 100 off your first eligible order.',
+          body:
+              'Use ${offer.code} on $leadingProductName and get Rs 100 off your first eligible order.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -1199,7 +1272,8 @@ class DatabaseService {
       );
     }
 
-    if (hasAbandonedCart && !await _hasRecentGrowthTrigger(user.id, 'cart_abandonment')) {
+    if (hasAbandonedCart &&
+        !await _hasRecentGrowthTrigger(user.id, 'cart_abandonment')) {
       final offer = GrowthOffer(
         id: 'offer-cart-${now.millisecondsSinceEpoch}',
         userId: user.id,
@@ -1213,10 +1287,7 @@ class DatabaseService {
         autoApply: true,
         createdAt: now.toIso8601String(),
         expiresAt: now.add(const Duration(days: 2)).toIso8601String(),
-        metadata: {
-          'productIds': recommendedIds,
-          'deepLink': deepLink,
-        },
+        metadata: {'productIds': recommendedIds, 'deepLink': deepLink},
       );
       await _saveGrowthOffer(offer);
       await _saveGrowthTrigger(
@@ -1241,7 +1312,8 @@ class DatabaseService {
         AppNotification(
           id: 'growth-cart-${now.millisecondsSinceEpoch}',
           title: 'Your bag is waiting',
-          body: 'Finish checkout with ${offer.code} and save Rs 75 on picks like $leadingProductName.',
+          body:
+              'Finish checkout with ${offer.code} and save Rs 75 on picks like $leadingProductName.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -1251,7 +1323,12 @@ class DatabaseService {
       );
     }
 
-    if (isInactive && !await _hasRecentGrowthTrigger(user.id, 'inactive_user', window: const Duration(days: 3))) {
+    if (isInactive &&
+        !await _hasRecentGrowthTrigger(
+          user.id,
+          'inactive_user',
+          window: const Duration(days: 3),
+        )) {
       final offer = GrowthOffer(
         id: 'offer-winback-${now.millisecondsSinceEpoch}',
         userId: user.id,
@@ -1264,10 +1341,7 @@ class DatabaseService {
         minOrderValue: 499,
         createdAt: now.toIso8601String(),
         expiresAt: now.add(const Duration(days: 3)).toIso8601String(),
-        metadata: {
-          'productIds': recommendedIds,
-          'deepLink': deepLink,
-        },
+        metadata: {'productIds': recommendedIds, 'deepLink': deepLink},
       );
       await _saveGrowthOffer(offer);
       await _saveGrowthTrigger(
@@ -1291,7 +1365,8 @@ class DatabaseService {
         AppNotification(
           id: 'growth-winback-${now.millisecondsSinceEpoch}',
           title: 'New looks are waiting',
-          body: 'Come back to ABZORA, explore $leadingProductName, and use ${offer.code} for Rs 50 off.',
+          body:
+              'Come back to ABZORA, explore $leadingProductName, and use ${offer.code} for Rs 50 off.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -1302,7 +1377,11 @@ class DatabaseService {
     }
 
     if (isFrequentBuyer &&
-        !await _hasRecentGrowthTrigger(user.id, 'referral_offer', window: const Duration(days: 5))) {
+        !await _hasRecentGrowthTrigger(
+          user.id,
+          'referral_offer',
+          window: const Duration(days: 5),
+        )) {
       final referralCode = await ensureReferralCode(user);
       final vipOffer = GrowthOffer(
         id: 'offer-vip-${now.millisecondsSinceEpoch}',
@@ -1316,10 +1395,7 @@ class DatabaseService {
         minOrderValue: 499,
         createdAt: now.toIso8601String(),
         expiresAt: now.add(const Duration(days: 4)).toIso8601String(),
-        metadata: {
-          'productIds': recommendedIds,
-          'deepLink': deepLink,
-        },
+        metadata: {'productIds': recommendedIds, 'deepLink': deepLink},
       );
       await _saveGrowthOffer(vipOffer);
       await _saveGrowthTrigger(
@@ -1344,7 +1420,8 @@ class DatabaseService {
         AppNotification(
           id: 'growth-referral-${now.millisecondsSinceEpoch}',
           title: 'VIP reward unlocked',
-          body: 'Use ${vipOffer.code} on $leadingProductName for Rs 30 off, then invite friends with $referralCode to reward both wardrobes.',
+          body:
+              'Use ${vipOffer.code} on $leadingProductName for Rs 30 off, then invite friends with $referralCode to reward both wardrobes.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -1356,7 +1433,11 @@ class DatabaseService {
 
     if ((summary.lastViewedProductId ?? '').trim().isNotEmpty &&
         !hasAbandonedCart &&
-        !await _hasRecentGrowthTrigger(user.id, 'product_interest', window: const Duration(days: 2))) {
+        !await _hasRecentGrowthTrigger(
+          user.id,
+          'product_interest',
+          window: const Duration(days: 2),
+        )) {
       final offer = GrowthOffer(
         id: 'offer-interest-${now.millisecondsSinceEpoch}',
         userId: user.id,
@@ -1367,10 +1448,7 @@ class DatabaseService {
         discountPercent: summary.segment == 'vip' ? 12 : 8,
         createdAt: now.toIso8601String(),
         expiresAt: now.add(const Duration(days: 2)).toIso8601String(),
-        metadata: {
-          'productIds': recommendedIds,
-          'deepLink': deepLink,
-        },
+        metadata: {'productIds': recommendedIds, 'deepLink': deepLink},
       );
       await _saveGrowthOffer(offer);
       await _saveGrowthTrigger(
@@ -1394,7 +1472,8 @@ class DatabaseService {
         AppNotification(
           id: 'growth-interest-${now.millisecondsSinceEpoch}',
           title: 'Based on what you viewed',
-          body: 'You might love $leadingProductName. Use ${offer.code} while it lasts.',
+          body:
+              'You might love $leadingProductName. Use ${offer.code} while it lasts.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -1406,7 +1485,10 @@ class DatabaseService {
   }
 
   Future<void> runMarketingAutomationSweep() async {
-    final users = await _fetchCollection('users', (map, _) => AppUser.fromMap(map));
+    final users = await _fetchCollection(
+      'users',
+      (map, _) => AppUser.fromMap(map),
+    );
     for (final user in users.where((item) => item.isActive)) {
       await runGrowthAutomationForUser(user);
     }
@@ -1425,7 +1507,9 @@ class DatabaseService {
       final orderedCategories = <String>{};
       for (final order in recentOrders.take(5)) {
         for (final item in order.items) {
-          final matched = products.where((product) => product.id == item.productId);
+          final matched = products.where(
+            (product) => product.id == item.productId,
+          );
           if (matched.isNotEmpty && matched.first.category.isNotEmpty) {
             orderedCategories.add(matched.first.category.toLowerCase());
           }
@@ -1437,7 +1521,8 @@ class DatabaseService {
         total += (product.purchaseCount * 2);
         total += (product.rating * 5).round();
         if (summary.favoriteCategory != null &&
-            product.category.toLowerCase() == summary.favoriteCategory!.toLowerCase()) {
+            product.category.toLowerCase() ==
+                summary.favoriteCategory!.toLowerCase()) {
           total += 25;
         }
         if (orderedCategories.contains(product.category.toLowerCase())) {
@@ -1449,11 +1534,14 @@ class DatabaseService {
         return total;
       }
 
-      final ranked = [...products]..sort((a, b) => score(b).compareTo(score(a)));
+      final ranked = [...products]
+        ..sort((a, b) => score(b).compareTo(score(a)));
       return ranked;
     }
     final summary = await getUserActivitySummary(user.id);
-    final viewMap = _asMap((await _ref('users/${user.id}/productViews').get()).value) ?? const <String, dynamic>{};
+    final viewMap =
+        _asMap((await _ref('users/${user.id}/productViews').get()).value) ??
+        const <String, dynamic>{};
     final recentOrders = await getUserOrdersOnce(user.id);
     final orderedCategories = <String>{};
     for (final order in recentOrders.take(5)) {
@@ -1475,7 +1563,8 @@ class DatabaseService {
       total += (product.purchaseCount * 2);
       total += (product.rating * 5).round();
       if (summary.favoriteCategory != null &&
-          product.category.toLowerCase() == summary.favoriteCategory!.toLowerCase()) {
+          product.category.toLowerCase() ==
+              summary.favoriteCategory!.toLowerCase()) {
         total += 25;
       }
       if (orderedCategories.contains(product.category.toLowerCase())) {
@@ -1494,7 +1583,8 @@ class DatabaseService {
     return ranked;
   }
 
-  bool isSuperAdmin(AppUser? actor) => actor != null && (actor.role == superAdminRole || actor.role == 'admin');
+  bool isSuperAdmin(AppUser? actor) =>
+      actor != null && (actor.role == superAdminRole || actor.role == 'admin');
   bool isRider(AppUser? actor) => actor != null && actor.role == riderRole;
 
   bool canAccessStore(AppUser? actor, String storeId) {
@@ -1607,7 +1697,9 @@ class DatabaseService {
 
   String _buildInvoiceNumber(String storeId) {
     final date = DateFormat('yyMMdd').format(DateTime.now());
-    final suffix = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
+    final suffix = DateTime.now().millisecondsSinceEpoch.toString().substring(
+      8,
+    );
     return 'INV-$date-${storeId.toUpperCase()}-$suffix';
   }
 
@@ -1622,7 +1714,9 @@ class DatabaseService {
     if (normalized == 'packed') {
       return 'Packed';
     }
-    if (normalized == 'shipped' || normalized == 'out for delivery' || normalized == 'assigned') {
+    if (normalized == 'shipped' ||
+        normalized == 'out for delivery' ||
+        normalized == 'assigned') {
       return 'Out for Delivery';
     }
     if (normalized == 'delivered') {
@@ -1641,14 +1735,20 @@ class DatabaseService {
   }
 
   String _buildDeterministicOrderId(String storeId, String idempotencyKey) {
-    final encoded = base64Url.encode(utf8.encode(idempotencyKey)).replaceAll('=', '');
+    final encoded = base64Url
+        .encode(utf8.encode(idempotencyKey))
+        .replaceAll('=', '');
     final cleaned = encoded.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '');
     final length = cleaned.length > 24 ? 24 : cleaned.length;
     final safe = cleaned.substring(0, length);
     return 'ord-$storeId-$safe';
   }
 
-  Future<void> _ensurePaymentReferenceAvailable(String userId, String? paymentReference, {String? orderId}) async {
+  Future<void> _ensurePaymentReferenceAvailable(
+    String userId,
+    String? paymentReference, {
+    String? orderId,
+  }) async {
     final reference = paymentReference?.trim();
     if (reference == null || reference.isEmpty) {
       return;
@@ -1659,7 +1759,8 @@ class DatabaseService {
     if (existing != null) {
       final existingUserId = existing['userId']?.toString();
       final existingOrderId = existing['orderId']?.toString();
-      if (existingUserId != userId || (existingOrderId != null && existingOrderId != orderId)) {
+      if (existingUserId != userId ||
+          (existingOrderId != null && existingOrderId != orderId)) {
         throw StateError('This payment reference has already been used.');
       }
       if (existingOrderId == null && orderId == null) {
@@ -1669,7 +1770,10 @@ class DatabaseService {
     }
   }
 
-  Future<OrderModel?> _findOrderByIdempotencyKey(String userId, String idempotencyKey) async {
+  Future<OrderModel?> _findOrderByIdempotencyKey(
+    String userId,
+    String idempotencyKey,
+  ) async {
     final claim = await _fetchDocument(
       'idempotencyClaims/$userId/${Uri.encodeComponent(idempotencyKey)}',
       (map, _) => map,
@@ -1678,10 +1782,17 @@ class DatabaseService {
     if (orderId == null || orderId.isEmpty) {
       return null;
     }
-    return _fetchDocument('orders/$orderId', (map, id) => OrderModel.fromMap(map, id));
+    return _fetchDocument(
+      'orders/$orderId',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
   }
 
-  Map<String, String> _trackingTimestampsForStatus(OrderModel order, String status, String timestamp) {
+  Map<String, String> _trackingTimestampsForStatus(
+    OrderModel order,
+    String status,
+    String timestamp,
+  ) {
     final timestamps = Map<String, String>.from(order.trackingTimestamps);
     timestamps[_trackingKeyForStatus(status)] = timestamp;
     return timestamps;
@@ -1713,19 +1824,21 @@ class DatabaseService {
     updates['activityLogs/${entry.id}'] = payload;
     updates['logs/${entry.id}'] = payload;
     if (isSuperAdmin(actor)) {
-      updates['adminLogs/${entry.id}'] = {
-        ...payload,
-        'userId': actor.id,
-      };
+      updates['adminLogs/${entry.id}'] = {...payload, 'userId': actor.id};
     }
   }
 
   String _occasionFor(Product product) {
-    final text = '${product.name} ${product.description} ${product.category}'.toLowerCase();
-    if (text.contains('wedding') || text.contains('sherwani') || text.contains('tuxedo')) {
+    final text = '${product.name} ${product.description} ${product.category}'
+        .toLowerCase();
+    if (text.contains('wedding') ||
+        text.contains('sherwani') ||
+        text.contains('tuxedo')) {
       return 'Wedding';
     }
-    if (text.contains('formal') || text.contains('office') || text.contains('blazer')) {
+    if (text.contains('formal') ||
+        text.contains('office') ||
+        text.contains('blazer')) {
       return 'Formal';
     }
     if (text.contains('party') || text.contains('evening')) {
@@ -1739,7 +1852,9 @@ class DatabaseService {
       unawaited(_backendCommerce.createAdminNotification(notification));
       return;
     }
-    unawaited(_ref('notifications/${notification.id}').set(notification.toMap()));
+    unawaited(
+      _ref('notifications/${notification.id}').set(notification.toMap()),
+    );
   }
 
   String _kycFingerprint(String value) {
@@ -1800,15 +1915,19 @@ class DatabaseService {
       );
       if (!reserved) {
         duplicateDetected = true;
-      flags.add('PAN is already linked to another partner account.');
-      duplicateMatches.add('pan');
+        flags.add('PAN is already linked to another partner account.');
+        duplicateMatches.add('pan');
       }
     }
 
-    final gpsValid = request.latitude.abs() > 0.01 && request.longitude.abs() > 0.01;
+    final gpsValid =
+        request.latitude.abs() > 0.01 && request.longitude.abs() > 0.01;
     final normalizedOwnerName = request.ownerName.trim().toLowerCase();
-    final normalizedExtractedName = verification.extractedName.trim().toLowerCase();
-    final nameMatch = normalizedOwnerName.isNotEmpty &&
+    final normalizedExtractedName = verification.extractedName
+        .trim()
+        .toLowerCase();
+    final nameMatch =
+        normalizedOwnerName.isNotEmpty &&
         normalizedExtractedName.isNotEmpty &&
         (normalizedOwnerName == normalizedExtractedName ||
             normalizedOwnerName.contains(normalizedExtractedName) ||
@@ -1816,7 +1935,9 @@ class DatabaseService {
     final addressMatch =
         request.address.trim().isNotEmpty && request.city.trim().isNotEmpty;
     final suspiciousBehavior =
-        verification.selfieRetryCount >= 3 || actor.createdAt == null || actor.createdAt!.isEmpty;
+        verification.selfieRetryCount >= 3 ||
+        actor.createdAt == null ||
+        actor.createdAt!.isEmpty;
     final multipleAccounts = duplicateMatches.length > 1;
 
     var riskScore = 0;
@@ -1837,7 +1958,9 @@ class DatabaseService {
       riskScore += 15;
       riskReasons.add('Uploaded name matches extracted document name.');
     } else {
-      riskReasons.add('Document name did not fully match the submitted owner name.');
+      riskReasons.add(
+        'Document name did not fully match the submitted owner name.',
+      );
     }
     if (verification.faceVerified && verification.matchScore > 90) {
       riskScore += 25;
@@ -1871,7 +1994,9 @@ class DatabaseService {
     }
     if (multipleAccounts) {
       riskScore -= 30;
-      riskReasons.add('Multiple accounts were linked to the same device or identity.');
+      riskReasons.add(
+        'Multiple accounts were linked to the same device or identity.',
+      );
     }
     if (suspiciousBehavior) {
       riskScore -= 20;
@@ -1882,26 +2007,28 @@ class DatabaseService {
     final riskDecision = riskScore >= 85
         ? 'approved'
         : riskScore >= 60
-            ? 'review'
-            : 'rejected';
+        ? 'review'
+        : 'rejected';
 
     final autoReviewStatus = duplicateDetected
         ? 'fraud_flagged'
         : verification.confidenceScore >= 85 &&
-                verification.aadhaarValid &&
-                verification.panValid &&
-                verification.livenessPassed &&
-                verification.faceVerified &&
-                verification.matchScore >= 85
-            ? 'auto_verified'
-            : 'pending_review';
+              verification.aadhaarValid &&
+              verification.panValid &&
+              verification.livenessPassed &&
+              verification.faceVerified &&
+              verification.matchScore >= 85
+        ? 'auto_verified'
+        : 'pending_review';
 
     final reviewSummary = switch (autoReviewStatus) {
-      'fraud_flagged' => 'Documents were flagged for duplicate or suspicious details.',
+      'fraud_flagged' =>
+        'Documents were flagged for duplicate or suspicious details.',
       'auto_verified' => 'Documents look strong for fast approval.',
-      _ => riskDecision == 'rejected'
-          ? 'Documents failed automated approval and should be rejected or re-submitted.'
-          : 'Documents need manual review before approval.',
+      _ =>
+        riskDecision == 'rejected'
+            ? 'Documents failed automated approval and should be rejected or re-submitted.'
+            : 'Documents need manual review before approval.',
     };
 
     return verification.copyWith(
@@ -1962,10 +2089,7 @@ class DatabaseService {
       'logs/${entry.id}': payload,
     };
     if (isSuperAdmin(actor)) {
-      updates['adminLogs/${entry.id}'] = {
-        ...payload,
-        'userId': actor.id,
-      };
+      updates['adminLogs/${entry.id}'] = {...payload, 'userId': actor.id};
     }
     await _ref('').update(updates);
   }
@@ -1974,7 +2098,10 @@ class DatabaseService {
     if (reviews.isEmpty) {
       return 0;
     }
-    final total = reviews.fold<double>(0, (runningTotal, review) => runningTotal + review.rating);
+    final total = reviews.fold<double>(
+      0,
+      (runningTotal, review) => runningTotal + review.rating,
+    );
     return total / reviews.length;
   }
 
@@ -2103,8 +2230,8 @@ class DatabaseService {
       var score = review.rating >= 4
           ? 0.75
           : review.rating <= 2
-              ? 0.25
-              : 0.5;
+          ? 0.25
+          : 0.5;
       for (final word in positiveWords) {
         if (normalized.contains(word)) {
           score += 0.05;
@@ -2129,10 +2256,13 @@ class DatabaseService {
     final completedOrders = storeOrders.where((order) {
       final status = order.status.trim().toLowerCase();
       final delivery = order.deliveryStatus.trim().toLowerCase();
-      return order.isDelivered || status == 'delivered' || delivery == 'delivered';
+      return order.isDelivered ||
+          status == 'delivered' ||
+          delivery == 'delivered';
     }).length;
-    final cancelledOrders =
-        storeOrders.where((order) => order.status.trim().toLowerCase() == 'cancelled').length;
+    final cancelledOrders = storeOrders
+        .where((order) => order.status.trim().toLowerCase() == 'cancelled')
+        .length;
     final returnedOrders = storeOrders.where((order) {
       final status = order.returnStatus.trim().toLowerCase();
       return status.isNotEmpty && status != 'rejected';
@@ -2144,8 +2274,13 @@ class DatabaseService {
     var totalRevenue = 0.0;
 
     for (final order in storeOrders) {
-      customerFrequency.update(order.userId, (value) => value + 1, ifAbsent: () => 1);
-      final delivered = order.isDelivered ||
+      customerFrequency.update(
+        order.userId,
+        (value) => value + 1,
+        ifAbsent: () => 1,
+      );
+      final delivered =
+          order.isDelivered ||
           order.status.trim().toLowerCase() == 'delivered' ||
           order.deliveryStatus.trim().toLowerCase() == 'delivered';
       if (delivered) {
@@ -2154,8 +2289,10 @@ class DatabaseService {
 
       final placedAt = order.timestamp;
       final deliveredAt =
-          _parseInstant(order.deliveredAt) ?? _parseInstant(order.trackingTimestamps['Delivered']);
-      final firstResponseAt = _parseInstant(order.trackingTimestamps['Confirmed']) ??
+          _parseInstant(order.deliveredAt) ??
+          _parseInstant(order.trackingTimestamps['Delivered']);
+      final firstResponseAt =
+          _parseInstant(order.trackingTimestamps['Confirmed']) ??
           _parseInstant(order.trackingTimestamps['Packed']) ??
           _parseInstant(order.trackingTimestamps['Ready for pickup']) ??
           _parseInstant(order.updatedAt);
@@ -2171,19 +2308,25 @@ class DatabaseService {
       }
     }
 
-    final repeatCustomers = customerFrequency.values.where((count) => count > 1).length;
-    final repeatCustomerRate =
-        customerFrequency.isEmpty ? 0.0 : repeatCustomers / customerFrequency.length;
+    final repeatCustomers = customerFrequency.values
+        .where((count) => count > 1)
+        .length;
+    final repeatCustomerRate = customerFrequency.isEmpty
+        ? 0.0
+        : repeatCustomers / customerFrequency.length;
 
-    double average(List<double> values) =>
-        values.isEmpty ? 0.0 : values.reduce((left, right) => left + right) / values.length;
+    double average(List<double> values) => values.isEmpty
+        ? 0.0
+        : values.reduce((left, right) => left + right) / values.length;
 
     return VendorPerformanceMetrics(
       totalOrders: totalOrders,
       completedOrders: completedOrders,
       cancellationRate: totalOrders == 0 ? 0.0 : cancelledOrders / totalOrders,
       returnRate: totalOrders == 0 ? 0.0 : returnedOrders / totalOrders,
-      averageRating: storeReviews.isEmpty ? store.rating : _averageRating(storeReviews),
+      averageRating: storeReviews.isEmpty
+          ? store.rating
+          : _averageRating(storeReviews),
       reviewSentiment: _reviewSentimentScore(storeReviews),
       averageDeliveryHours: average(deliveryHours),
       averageResponseHours: average(responseHours),
@@ -2194,8 +2337,9 @@ class DatabaseService {
   }
 
   int _calculateVendorScore(VendorPerformanceMetrics metrics) {
-    final completionRate =
-        metrics.totalOrders == 0 ? 0.0 : metrics.completedOrders / metrics.totalOrders;
+    final completionRate = metrics.totalOrders == 0
+        ? 0.0
+        : metrics.completedOrders / metrics.totalOrders;
     var score = 0.0;
 
     score += _clampUnit(completionRate) * 30;
@@ -2232,42 +2376,61 @@ class DatabaseService {
   }
 
   Future<void> refreshVendorRankings() async {
-    final stores = await _fetchCollection('stores', (map, id) => Store.fromMap(map, id));
+    final stores = await _fetchCollection(
+      'stores',
+      (map, id) => Store.fromMap(map, id),
+    );
     if (stores.isEmpty) {
       return;
     }
 
     final orders = await getAllOrders();
-    final reviews = await _fetchCollection('reviews', (map, id) => ReviewModel.fromMap(map, id));
-    final scoredStores = stores.map((store) {
-      final storeOrders = orders.where((order) => order.storeId == store.id).toList();
-      final storeReviews = reviews
-          .where((review) => review.targetType == 'store' && review.targetId == store.id)
-          .toList();
-      final metrics = _buildVendorPerformanceMetrics(store, storeOrders, storeReviews);
-      final vendorScore = _calculateVendorScore(metrics);
-      return store.copyWith(
-        vendorScore: vendorScore.toDouble(),
-        vendorVisibility: _vendorVisibilityForScore(vendorScore),
-        performanceMetrics: metrics,
-      );
-    }).toList()
-      ..sort((left, right) {
-        final scoreCompare = right.vendorScore.compareTo(left.vendorScore);
-        if (scoreCompare != 0) {
-          return scoreCompare;
-        }
-        return right.performanceMetrics.totalRevenue.compareTo(left.performanceMetrics.totalRevenue);
-      });
+    final reviews = await _fetchCollection(
+      'reviews',
+      (map, id) => ReviewModel.fromMap(map, id),
+    );
+    final scoredStores =
+        stores.map((store) {
+          final storeOrders = orders
+              .where((order) => order.storeId == store.id)
+              .toList();
+          final storeReviews = reviews
+              .where(
+                (review) =>
+                    review.targetType == 'store' && review.targetId == store.id,
+              )
+              .toList();
+          final metrics = _buildVendorPerformanceMetrics(
+            store,
+            storeOrders,
+            storeReviews,
+          );
+          final vendorScore = _calculateVendorScore(metrics);
+          return store.copyWith(
+            vendorScore: vendorScore.toDouble(),
+            vendorVisibility: _vendorVisibilityForScore(vendorScore),
+            performanceMetrics: metrics,
+          );
+        }).toList()..sort((left, right) {
+          final scoreCompare = right.vendorScore.compareTo(left.vendorScore);
+          if (scoreCompare != 0) {
+            return scoreCompare;
+          }
+          return right.performanceMetrics.totalRevenue.compareTo(
+            left.performanceMetrics.totalRevenue,
+          );
+        });
 
     final updates = <String, dynamic>{};
     for (var index = 0; index < scoredStores.length; index++) {
       final rankedStore = scoredStores[index].copyWith(vendorRank: index + 1);
       updates['stores/${rankedStore.id}/vendorScore'] = rankedStore.vendorScore;
       updates['stores/${rankedStore.id}/vendorRank'] = rankedStore.vendorRank;
-      updates['stores/${rankedStore.id}/vendorVisibility'] = rankedStore.vendorVisibility;
-      updates['stores/${rankedStore.id}/performanceMetrics'] =
-          rankedStore.performanceMetrics.toMap();
+      updates['stores/${rankedStore.id}/vendorVisibility'] =
+          rankedStore.vendorVisibility;
+      updates['stores/${rankedStore.id}/performanceMetrics'] = rankedStore
+          .performanceMetrics
+          .toMap();
       updates['vendorRankings/${rankedStore.id}'] = {
         'vendorId': rankedStore.id,
         'vendorScore': rankedStore.vendorScore,
@@ -2320,6 +2483,7 @@ class DatabaseService {
       isCustomTailoring: product.isCustomTailoring,
       outfitType: product.outfitType,
       fabric: product.fabric,
+      model3d: product.model3d,
       customizations: product.customizations,
       measurements: product.measurements,
       addons: product.addons,
@@ -2332,7 +2496,9 @@ class DatabaseService {
 
   double _normalizedDemandScore(Product product) {
     final weightedDemand =
-        (product.viewCount * 0.2) + (product.cartCount * 0.3) + (product.purchaseCount * 0.5);
+        (product.viewCount * 0.2) +
+        (product.cartCount * 0.3) +
+        (product.purchaseCount * 0.5);
     return (weightedDemand.clamp(0.0, 100.0)).toDouble();
   }
 
@@ -2361,7 +2527,8 @@ class DatabaseService {
     if (category.contains('summer') && month >= 3 && month <= 6) {
       return 0.04;
     }
-    if (category.contains('winter') && (month == 11 || month == 12 || month == 1)) {
+    if (category.contains('winter') &&
+        (month == 11 || month == 12 || month == 1)) {
       return 0.04;
     }
     return 0.0;
@@ -2385,24 +2552,36 @@ class DatabaseService {
     double vendorScore = 0,
   }) {
     final basePrice = product.basePrice ?? product.price;
-    final demandScore =
-        product.demandScore > 0 ? product.demandScore : _normalizedDemandScore(product);
+    final demandScore = product.demandScore > 0
+        ? product.demandScore
+        : _normalizedDemandScore(product);
     final highDemandIncrease = demandScore >= 85
         ? 0.15
         : demandScore >= 70
-            ? 0.1
-            : demandScore >= 55
-                ? 0.05
-                : 0.0;
-    final lowDemandDiscount = demandScore <= 20 ? 0.10 : demandScore <= 35 ? 0.05 : 0.0;
+        ? 0.1
+        : demandScore >= 55
+        ? 0.05
+        : 0.0;
+    final lowDemandDiscount = demandScore <= 20
+        ? 0.10
+        : demandScore <= 35
+        ? 0.05
+        : 0.0;
     final stockIncrease = product.stock <= 5 ? 0.05 : 0.0;
-    final vendorBoost = vendorScore >= 85 ? 0.03 : vendorScore >= 70 ? 0.01 : 0.0;
+    final vendorBoost = vendorScore >= 85
+        ? 0.03
+        : vendorScore >= 70
+        ? 0.01
+        : 0.0;
     final newUserDiscount = user != null && _isNewUser(user) ? 0.10 : 0.0;
-    final returningUserDiscount = user != null && _isReturningUser(user) ? 0.05 : 0.0;
+    final returningUserDiscount = user != null && _isReturningUser(user)
+        ? 0.05
+        : 0.0;
     final repeatViewDiscount = userViewCount >= 4 ? 0.05 : 0.0;
     final seasonalAdjustment = _seasonalTrendMultiplier(product);
     final timeAdjustment = _timeOfDayMultiplier();
-    final rawMultiplier = 1 +
+    final rawMultiplier =
+        1 +
         highDemandIncrease +
         stockIncrease +
         vendorBoost +
@@ -2413,10 +2592,12 @@ class DatabaseService {
         repeatViewDiscount -
         lowDemandDiscount;
     final clampedMultiplier = rawMultiplier.clamp(0.8, 1.2).toDouble();
-    final currentMultiplier =
-        (product.dynamicPrice ?? basePrice) <= 0 ? 1.0 : (product.dynamicPrice ?? basePrice) / basePrice;
+    final currentMultiplier = (product.dynamicPrice ?? basePrice) <= 0
+        ? 1.0
+        : (product.dynamicPrice ?? basePrice) / basePrice;
     final smoothedMultiplier =
-        (currentMultiplier + clampedMultiplier) / (product.dynamicPrice == null ? 1 : 2);
+        (currentMultiplier + clampedMultiplier) /
+        (product.dynamicPrice == null ? 1 : 2);
     final boundedMultiplier = smoothedMultiplier.clamp(0.8, 1.2).toDouble();
     final dynamicPrice = _roundPriceForDisplay(basePrice * boundedMultiplier);
     final comparisonPrice = dynamicPrice < basePrice
@@ -2500,8 +2681,14 @@ class DatabaseService {
       final stores = await _backendCommerce.getStores();
       return stores.map(_decorateStore).toList();
     }
-    final stores = await _fetchCollection('stores', (map, id) => Store.fromMap(map, id));
-    return stores.where((store) => store.isApproved && store.isActive).map(_decorateStore).toList()
+    final stores = await _fetchCollection(
+      'stores',
+      (map, id) => Store.fromMap(map, id),
+    );
+    return stores
+        .where((store) => store.isApproved && store.isActive)
+        .map(_decorateStore)
+        .toList()
       ..sort((left, right) {
         final visibilityOrder = <String, int>{
           'boosted': 0,
@@ -2526,7 +2713,10 @@ class DatabaseService {
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.getAdminStores();
     }
-    final stores = await _fetchCollection('stores', (map, id) => Store.fromMap(map, id));
+    final stores = await _fetchCollection(
+      'stores',
+      (map, id) => Store.fromMap(map, id),
+    );
     return stores.map(_decorateStore).toList()
       ..sort((left, right) => left.vendorRank.compareTo(right.vendorRank));
   }
@@ -2547,14 +2737,21 @@ class DatabaseService {
   Future<List<Product>> getProductsByStore(String storeId) async {
     if (_backendCommerce.isConfigured) {
       final products = await _backendCommerce.getProducts();
-      return products.where((product) => product.storeId == storeId).map(_decorateProduct).toList();
+      return products
+          .where((product) => product.storeId == storeId)
+          .map(_decorateProduct)
+          .toList();
     }
-    final products = (await _productService.fetchAll()).map(_decorateProduct).toList();
+    final products = (await _productService.fetchAll())
+        .map(_decorateProduct)
+        .toList();
     return products.where((product) => product.storeId == storeId).toList();
   }
 
   Future<List<Product>> getTrendingProducts() async {
-    final products = (await _productService.fetchAll()).map(_decorateProduct).toList();
+    final products = (await _productService.fetchAll())
+        .map(_decorateProduct)
+        .toList();
     return products.take(10).toList();
   }
 
@@ -2562,16 +2759,28 @@ class DatabaseService {
     int limit = 60,
     String? category,
   }) async {
-    final products = (await _productService.fetchAll())
-        .map(_decorateProduct)
-        .where((product) => product.isActive && product.stock > 0)
-        .where((product) => category == null || category.isEmpty || product.category == category)
-        .toList()
-      ..sort((a, b) {
-        final left = (b.demandScore * 100).round() + (b.purchaseCount * 4) + (b.rating * 10).round();
-        final right = (a.demandScore * 100).round() + (a.purchaseCount * 4) + (a.rating * 10).round();
-        return left.compareTo(right);
-      });
+    final products =
+        (await _productService.fetchAll())
+            .map(_decorateProduct)
+            .where((product) => product.isActive && product.stock > 0)
+            .where(
+              (product) =>
+                  category == null ||
+                  category.isEmpty ||
+                  product.category == category,
+            )
+            .toList()
+          ..sort((a, b) {
+            final left =
+                (b.demandScore * 100).round() +
+                (b.purchaseCount * 4) +
+                (b.rating * 10).round();
+            final right =
+                (a.demandScore * 100).round() +
+                (a.purchaseCount * 4) +
+                (a.rating * 10).round();
+            return left.compareTo(right);
+          });
     if (products.length <= limit) {
       return products;
     }
@@ -2583,7 +2792,9 @@ class DatabaseService {
     String? startAfterKey,
   }) async {
     if (_backendCommerce.isConfigured) {
-      final products = (await _backendCommerce.getProducts()).map(_decorateProduct).toList();
+      final products = (await _backendCommerce.getProducts())
+          .map(_decorateProduct)
+          .toList();
       final startIndex = startAfterKey == null
           ? 0
           : products.indexWhere((item) => item.id == startAfterKey) + 1;
@@ -2597,7 +2808,10 @@ class DatabaseService {
         hasMore: hasMore,
       );
     }
-    final page = await _productService.fetchPage(limit: limit, startAfterKey: startAfterKey);
+    final page = await _productService.fetchPage(
+      limit: limit,
+      startAfterKey: startAfterKey,
+    );
     return ProductPageResult(
       items: page.items.map(_decorateProduct).toList(),
       lastKey: page.lastKey,
@@ -2606,7 +2820,9 @@ class DatabaseService {
   }
 
   Future<int> _userViewCountForProduct(String userId, String productId) async {
-    final snapshot = await _ref('users/$userId/productViews/$productId/count').get();
+    final snapshot = await _ref(
+      'users/$userId/productViews/$productId/count',
+    ).get();
     if (!snapshot.exists) {
       return 0;
     }
@@ -2626,9 +2842,13 @@ class DatabaseService {
         vendorScore: store?.vendorScore ?? 0,
       );
     }
-    final userViewCount =
-        user == null ? 0 : await _userViewCountForProduct(user.id, product.id);
-    final store = await _fetchDocument('stores/${product.storeId}', (map, id) => Store.fromMap(map, id));
+    final userViewCount = user == null
+        ? 0
+        : await _userViewCountForProduct(user.id, product.id);
+    final store = await _fetchDocument(
+      'stores/${product.storeId}',
+      (map, id) => Store.fromMap(map, id),
+    );
     return _dynamicProductForViewer(
       _decorateProduct(product),
       user: user,
@@ -2647,7 +2867,9 @@ class DatabaseService {
             lastProductViewAt: _nowIso(),
             lastActiveAt: _nowIso(),
             lastViewedProductId: product.id,
-            favoriteCategory: product.category.isNotEmpty ? product.category : summary.favoriteCategory,
+            favoriteCategory: product.category.isNotEmpty
+                ? product.category
+                : summary.favoriteCategory,
             segment: _growthSegmentFor(
               orderCount: summary.orderCount,
               totalSpend: summary.totalSpend,
@@ -2660,10 +2882,7 @@ class DatabaseService {
             action: 'view',
             productId: product.id,
             itemIds: [product.id],
-            metadata: {
-              'source': 'product_view',
-              'category': product.category,
-            },
+            metadata: {'source': 'product_view', 'category': product.category},
           );
         } catch (_) {
           // Style tracking should never block the product page.
@@ -2682,7 +2901,9 @@ class DatabaseService {
       basePrice: product.basePrice ?? product.price,
       dynamicPrice: product.dynamicPrice,
       originalPrice: product.originalPrice,
-      demandScore: product.demandScore > 0 ? product.demandScore : _normalizedDemandScore(product),
+      demandScore: product.demandScore > 0
+          ? product.demandScore
+          : _normalizedDemandScore(product),
       viewCount: product.viewCount + 1,
       cartCount: product.cartCount,
       purchaseCount: product.purchaseCount,
@@ -2727,7 +2948,9 @@ class DatabaseService {
         lastProductViewAt: nowIso,
         lastActiveAt: nowIso,
         lastViewedProductId: product.id,
-        favoriteCategory: product.category.isNotEmpty ? product.category : summary.favoriteCategory,
+        favoriteCategory: product.category.isNotEmpty
+            ? product.category
+            : summary.favoriteCategory,
         segment: _growthSegmentFor(
           orderCount: summary.orderCount,
           totalSpend: summary.totalSpend,
@@ -2747,7 +2970,10 @@ class DatabaseService {
     unawaited(refreshDynamicPrice(updatedProduct));
   }
 
-  Future<void> recordProductCartIntent(Product product, {int quantity = 1}) async {
+  Future<void> recordProductCartIntent(
+    Product product, {
+    int quantity = 1,
+  }) async {
     if (quantity <= 0) {
       return;
     }
@@ -2779,7 +3005,9 @@ class DatabaseService {
       basePrice: product.basePrice ?? product.price,
       dynamicPrice: product.dynamicPrice,
       originalPrice: product.originalPrice,
-      demandScore: product.demandScore > 0 ? product.demandScore : _normalizedDemandScore(product),
+      demandScore: product.demandScore > 0
+          ? product.demandScore
+          : _normalizedDemandScore(product),
       viewCount: product.viewCount,
       cartCount: product.cartCount + quantity,
       purchaseCount: product.purchaseCount,
@@ -2811,7 +3039,10 @@ class DatabaseService {
     if (_backendCommerce.isConfigured) {
       return;
     }
-    final store = await _fetchDocument('stores/${product.storeId}', (map, id) => Store.fromMap(map, id));
+    final store = await _fetchDocument(
+      'stores/${product.storeId}',
+      (map, id) => Store.fromMap(map, id),
+    );
     final refreshed = _dynamicProductForViewer(
       _decorateProduct(product),
       vendorScore: store?.vendorScore ?? 0,
@@ -2855,7 +3086,9 @@ class DatabaseService {
   }
 
   Future<void> refreshDynamicPricingForCatalog() async {
-    final products = (await _productService.fetchAll()).map(_decorateProduct).toList();
+    final products = (await _productService.fetchAll())
+        .map(_decorateProduct)
+        .toList();
     final orders = await getAllOrders();
     final users = await getUsers();
     final purchaseCounts = <String, int>{};
@@ -2881,7 +3114,11 @@ class DatabaseService {
         if (count <= 0) {
           continue;
         }
-        userViewTotals.update(entry.key, (value) => value + count, ifAbsent: () => count);
+        userViewTotals.update(
+          entry.key,
+          (value) => value + count,
+          ifAbsent: () => count,
+        );
       }
     }
     for (final product in products) {
@@ -2926,16 +3163,32 @@ class DatabaseService {
   Future<List<Product>> searchProducts(SearchFilter filter) async {
     final products = (await _productService.fetchAll())
         .map(_decorateProduct)
-        .where((product) => product.effectivePrice >= filter.priceRange.start && product.effectivePrice <= filter.priceRange.end)
-        .where((product) => filter.category == 'All' || product.category == filter.category)
-        .where((product) => filter.storeId == 'All' || product.storeId == filter.storeId)
-        .where((product) => filter.occasion == 'All' || _occasionFor(product) == filter.occasion)
+        .where(
+          (product) =>
+              product.effectivePrice >= filter.priceRange.start &&
+              product.effectivePrice <= filter.priceRange.end,
+        )
+        .where(
+          (product) =>
+              filter.category == 'All' || product.category == filter.category,
+        )
+        .where(
+          (product) =>
+              filter.storeId == 'All' || product.storeId == filter.storeId,
+        )
+        .where(
+          (product) =>
+              filter.occasion == 'All' ||
+              _occasionFor(product) == filter.occasion,
+        )
         .where((product) {
           final query = filter.query.trim().toLowerCase();
           if (query.isEmpty) {
             return true;
           }
-          return '${product.name} ${product.description} ${product.category}'.toLowerCase().contains(query);
+          return '${product.name} ${product.description} ${product.category}'
+              .toLowerCase()
+              .contains(query);
         })
         .toList();
     products.sort((a, b) => b.rating.compareTo(a.rating));
@@ -2948,7 +3201,9 @@ class DatabaseService {
         final outfits = await _backendCommerce.getCompleteLook(
           product.id,
           userId: FirebaseAuth.instance.currentUser?.uid,
-          authenticated: Firebase.apps.isNotEmpty && FirebaseAuth.instance.currentUser != null,
+          authenticated:
+              Firebase.apps.isNotEmpty &&
+              FirebaseAuth.instance.currentUser != null,
         );
         final seen = <String>{product.id};
         final items = <Product>[];
@@ -2970,7 +3225,11 @@ class DatabaseService {
         ? await _backendCommerce.getProducts()
         : (await _productService.fetchAll()).map(_decorateProduct).toList();
     return products
-        .where((candidate) => candidate.storeId == product.storeId && candidate.id != product.id)
+        .where(
+          (candidate) =>
+              candidate.storeId == product.storeId &&
+              candidate.id != product.id,
+        )
         .take(3)
         .toList();
   }
@@ -2992,7 +3251,9 @@ class DatabaseService {
           budget: budget,
           style: style,
           limit: limit,
-          authenticated: Firebase.apps.isNotEmpty && FirebaseAuth.instance.currentUser != null,
+          authenticated:
+              Firebase.apps.isNotEmpty &&
+              FirebaseAuth.instance.currentUser != null,
         );
       } catch (_) {
         // Use local heuristic fallback below.
@@ -3090,28 +3351,45 @@ class DatabaseService {
     }
 
     String occasionFor(Product product) {
-      final text = '${product.category} ${product.name} ${product.description}'.toLowerCase();
-      if (text.contains('wedding') || text.contains('festive') || text.contains('lehenga') || text.contains('sherwani')) {
+      final text = '${product.category} ${product.name} ${product.description}'
+          .toLowerCase();
+      if (text.contains('wedding') ||
+          text.contains('festive') ||
+          text.contains('lehenga') ||
+          text.contains('sherwani')) {
         return 'wedding';
       }
-      if (text.contains('office') || text.contains('formal') || text.contains('blazer') || text.contains('tailored')) {
+      if (text.contains('office') ||
+          text.contains('formal') ||
+          text.contains('blazer') ||
+          text.contains('tailored')) {
         return 'office';
       }
-      if (text.contains('party') || text.contains('night') || text.contains('glam')) {
+      if (text.contains('party') ||
+          text.contains('night') ||
+          text.contains('glam')) {
         return 'party';
       }
       return 'casual';
     }
 
     String styleFor(Product product) {
-      final text = '${product.category} ${product.name} ${product.description}'.toLowerCase();
-      if (text.contains('streetwear') || text.contains('oversized') || text.contains('cargo')) {
+      final text = '${product.category} ${product.name} ${product.description}'
+          .toLowerCase();
+      if (text.contains('streetwear') ||
+          text.contains('oversized') ||
+          text.contains('cargo')) {
         return 'streetwear';
       }
-      if (text.contains('formal') || text.contains('office') || text.contains('tailored')) {
+      if (text.contains('formal') ||
+          text.contains('office') ||
+          text.contains('tailored')) {
         return 'formal';
       }
-      if (text.contains('ethnic') || text.contains('kurta') || text.contains('lehenga') || text.contains('saree')) {
+      if (text.contains('ethnic') ||
+          text.contains('kurta') ||
+          text.contains('lehenga') ||
+          text.contains('saree')) {
         return 'ethnic';
       }
       return 'minimal';
@@ -3121,7 +3399,8 @@ class DatabaseService {
       if (product.id == productId) {
         return true;
       }
-      if (normalizedOccasion.isNotEmpty && occasionFor(product) != normalizedOccasion) {
+      if (normalizedOccasion.isNotEmpty &&
+          occasionFor(product) != normalizedOccasion) {
         return false;
       }
       if (normalizedStyle.isNotEmpty && styleFor(product) != normalizedStyle) {
@@ -3202,7 +3481,8 @@ class DatabaseService {
       outfits.add(
         OutfitRecommendation(
           outfitId: key,
-          title: '${occasionFor(base)[0].toUpperCase()}${occasionFor(base).substring(1)} Style Pick',
+          title:
+              '${occasionFor(base)[0].toUpperCase()}${occasionFor(base).substring(1)} Style Pick',
           items: items,
           totalPrice: items.fold<double>(0, (sum, item) => sum + item.price),
           matchScore: 72 + max(0, 8 - outfits.length),
@@ -3219,7 +3499,10 @@ class DatabaseService {
   }
 
   Future<List<CustomBrand>> getCustomBrands() async {
-    final brands = await _fetchCollection('brands', (map, id) => CustomBrand.fromMap(map, id));
+    final brands = await _fetchCollection(
+      'brands',
+      (map, id) => CustomBrand.fromMap(map, id),
+    );
     brands.removeWhere((brand) => brand.type != 'custom_clothing');
     return brands;
   }
@@ -3235,7 +3518,9 @@ class DatabaseService {
     products.removeWhere((product) => product.brandId != brandId);
     if (category != null && category.trim().isNotEmpty) {
       final normalized = category.trim().toLowerCase();
-      products.removeWhere((product) => product.category.toLowerCase() != normalized);
+      products.removeWhere(
+        (product) => product.category.toLowerCase() != normalized,
+      );
     }
     return products;
   }
@@ -3270,8 +3555,9 @@ class DatabaseService {
           'size': 'CUSTOM',
           'imageUrl': '',
           'isCustomTailoring': true,
-          'measurementProfileLabel': customizationData['measurement_mode'] ?? 'custom',
-        }
+          'measurementProfileLabel':
+              customizationData['measurement_mode'] ?? 'custom',
+        },
       ],
       'storeId': brand.id,
       'shippingLabel': user.name,
@@ -3295,8 +3581,14 @@ class DatabaseService {
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.getProductReviews(productId);
     }
-    final reviews = await _fetchCollection('reviews', (map, id) => ReviewModel.fromMap(map, id));
-    reviews.removeWhere((review) => review.targetId != productId || review.targetType != 'product');
+    final reviews = await _fetchCollection(
+      'reviews',
+      (map, id) => ReviewModel.fromMap(map, id),
+    );
+    reviews.removeWhere(
+      (review) =>
+          review.targetId != productId || review.targetType != 'product',
+    );
     reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return reviews;
   }
@@ -3305,8 +3597,13 @@ class DatabaseService {
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.getStoreReviews(storeId);
     }
-    final reviews = await _fetchCollection('reviews', (map, id) => ReviewModel.fromMap(map, id));
-    reviews.removeWhere((review) => review.targetId != storeId || review.targetType != 'store');
+    final reviews = await _fetchCollection(
+      'reviews',
+      (map, id) => ReviewModel.fromMap(map, id),
+    );
+    reviews.removeWhere(
+      (review) => review.targetId != storeId || review.targetType != 'store',
+    );
     reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return reviews;
   }
@@ -3317,7 +3614,9 @@ class DatabaseService {
       return;
     }
     final resolvedReview = ReviewModel(
-      id: review.id.isEmpty ? 'rev-${DateTime.now().millisecondsSinceEpoch}' : review.id,
+      id: review.id.isEmpty
+          ? 'rev-${DateTime.now().millisecondsSinceEpoch}'
+          : review.id,
       userId: review.userId,
       userName: review.userName,
       targetId: review.targetId,
@@ -3338,7 +3637,10 @@ class DatabaseService {
       await _backendCommerce.deleteReview(reviewId);
       return;
     }
-    final existing = await _fetchDocument('reviews/$reviewId', (map, id) => ReviewModel.fromMap(map, id));
+    final existing = await _fetchDocument(
+      'reviews/$reviewId',
+      (map, id) => ReviewModel.fromMap(map, id),
+    );
     await _ref('reviews/$reviewId').remove();
     if (existing?.targetType == 'store') {
       unawaited(refreshVendorRankings());
@@ -3361,10 +3663,14 @@ class DatabaseService {
         'measurementProfiles',
         (map, id) => MeasurementProfile.fromMap(map, id),
       );
-      return legacyProfiles.where((profile) => profile.userId == userId).toList();
+      return legacyProfiles
+          .where((profile) => profile.userId == userId)
+          .toList();
     } on FirebaseException catch (error) {
       if (error.code == 'permission-denied') {
-        debugPrint('Measurement profiles unavailable for $userId: ${error.message}');
+        debugPrint(
+          'Measurement profiles unavailable for $userId: ${error.message}',
+        );
         return const <MeasurementProfile>[];
       }
       rethrow;
@@ -3377,7 +3683,9 @@ class DatabaseService {
       return;
     }
     final resolvedProfile = MeasurementProfile(
-      id: profile.id.isEmpty ? 'mp-${DateTime.now().millisecondsSinceEpoch}' : profile.id,
+      id: profile.id.isEmpty
+          ? 'mp-${DateTime.now().millisecondsSinceEpoch}'
+          : profile.id,
       userId: profile.userId,
       label: profile.label,
       method: profile.method,
@@ -3391,7 +3699,9 @@ class DatabaseService {
       recommendedSize: profile.recommendedSize,
       sourceProfileId: profile.sourceProfileId,
     );
-    await _ref('measurements/${resolvedProfile.userId}/${resolvedProfile.id}').set(resolvedProfile.toMap());
+    await _ref(
+      'measurements/${resolvedProfile.userId}/${resolvedProfile.id}',
+    ).set(resolvedProfile.toMap());
   }
 
   Future<BodyProfile?> getBodyProfile(String userId) async {
@@ -3416,24 +3726,22 @@ class DatabaseService {
           : profile.updatedAt,
     );
     final existingMemory = await getUserMemory(userId);
-    final memory = (existingMemory ??
-            UserMemory(
-              userId: userId,
+    final memory =
+        (existingMemory ??
+                UserMemory(userId: userId, updatedAt: resolved.updatedAt))
+            .copyWith(
+              size: resolved.recommendedSize,
+              fitPreference: resolved.fitPreference,
+              shoulderCm: resolved.shoulderCm,
+              chestCm: resolved.chestCm,
+              waistCm: resolved.waistCm,
+              hipCm: resolved.hipCm,
+              armLengthCm: resolved.armLengthCm,
+              inseamCm: resolved.inseamCm,
+              scanFrameCount: resolved.scanFrameCount,
+              scanSource: resolved.scanSource,
               updatedAt: resolved.updatedAt,
-            ))
-        .copyWith(
-          size: resolved.recommendedSize,
-          fitPreference: resolved.fitPreference,
-          shoulderCm: resolved.shoulderCm,
-          chestCm: resolved.chestCm,
-          waistCm: resolved.waistCm,
-          hipCm: resolved.hipCm,
-          armLengthCm: resolved.armLengthCm,
-          inseamCm: resolved.inseamCm,
-          scanFrameCount: resolved.scanFrameCount,
-          scanSource: resolved.scanSource,
-          updatedAt: resolved.updatedAt,
-        );
+            );
     if (_backendCommerce.isConfigured) {
       await _backendCommerce.saveBodyProfile(resolved);
       return;
@@ -3476,10 +3784,9 @@ class DatabaseService {
       await _backendCommerce.clearChatHistory();
       return;
     }
-    await _ref('').update({
-      'userMemory/$userId': null,
-      'chatHistory/$userId': null,
-    });
+    await _ref(
+      '',
+    ).update({'userMemory/$userId': null, 'chatHistory/$userId': null});
   }
 
   Future<List<ConversationMemoryMessage>> getChatHistory(
@@ -3488,14 +3795,17 @@ class DatabaseService {
     int limit = 15,
   }) async {
     if (_backendCommerce.isConfigured) {
-      final messages = await _backendCommerce.getChatHistory(chatId, limit: limit);
+      final messages = await _backendCommerce.getChatHistory(
+        chatId,
+        limit: limit,
+      );
       messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
       return messages;
     }
     final messages = await _fetchQueryCollection(
-      _ref('chatHistory/$userId/$chatId')
-          .orderByChild('timestamp')
-          .limitToLast(limit),
+      _ref(
+        'chatHistory/$userId/$chatId',
+      ).orderByChild('timestamp').limitToLast(limit),
       (map, id) => ConversationMemoryMessage.fromMap(map, id),
     );
     messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
@@ -3508,7 +3818,10 @@ class DatabaseService {
     required ConversationMemoryMessage entry,
   }) async {
     if (_backendCommerce.isConfigured) {
-      await _backendCommerce.appendChatHistoryEntry(chatId: chatId, entry: entry);
+      await _backendCommerce.appendChatHistoryEntry(
+        chatId: chatId,
+        entry: entry,
+      );
       return;
     }
     await _ref('chatHistory/$userId/$chatId/${entry.id}').set(entry.toMap());
@@ -3541,7 +3854,9 @@ class DatabaseService {
       return;
     }
     _requireStoreAccess(actor, product.storeId);
-    final productId = product.id.isEmpty ? 'p${DateTime.now().millisecondsSinceEpoch}' : product.id;
+    final productId = product.id.isEmpty
+        ? 'p${DateTime.now().millisecondsSinceEpoch}'
+        : product.id;
     final resolvedProduct = Product(
       id: productId,
       storeId: product.storeId,
@@ -3552,7 +3867,9 @@ class DatabaseService {
       basePrice: product.basePrice ?? product.price,
       dynamicPrice: product.dynamicPrice ?? product.price,
       originalPrice: product.originalPrice,
-      demandScore: product.demandScore > 0 ? product.demandScore : _normalizedDemandScore(product),
+      demandScore: product.demandScore > 0
+          ? product.demandScore
+          : _normalizedDemandScore(product),
       viewCount: product.viewCount,
       cartCount: product.cartCount,
       purchaseCount: product.purchaseCount,
@@ -3576,15 +3893,14 @@ class DatabaseService {
       tailoringDeliveryMode: product.tailoringDeliveryMode,
       tailoringExtraCost: product.tailoringExtraCost,
     );
-    await _productService.save(
-      resolvedProduct,
-    );
+    await _productService.save(resolvedProduct);
     if (actor != null) {
       await logActivity(
         action: 'add_product',
         targetType: 'product',
         targetId: resolvedProduct.id,
-        message: 'Added product ${resolvedProduct.name} for store ${resolvedProduct.storeId}.',
+        message:
+            'Added product ${resolvedProduct.name} for store ${resolvedProduct.storeId}.',
         actor: actor,
       );
     }
@@ -3600,7 +3916,10 @@ class DatabaseService {
       final existing = (await _productService.fetchAll())
           .map(_decorateProduct)
           .cast<Product?>()
-          .firstWhere((item) => item?.id == updatedProduct.id, orElse: () => null);
+          .firstWhere(
+            (item) => item?.id == updatedProduct.id,
+            orElse: () => null,
+          );
       if (existing == null) {
         await _productService.update(updatedProduct);
         return;
@@ -3612,10 +3931,15 @@ class DatabaseService {
         brand: updatedProduct.brand,
         description: updatedProduct.description,
         price: updatedProduct.price,
-        basePrice: updatedProduct.basePrice ?? existing.basePrice ?? updatedProduct.price,
+        basePrice:
+            updatedProduct.basePrice ??
+            existing.basePrice ??
+            updatedProduct.price,
         dynamicPrice: updatedProduct.dynamicPrice ?? updatedProduct.price,
         originalPrice: updatedProduct.originalPrice,
-        demandScore: updatedProduct.demandScore > 0 ? updatedProduct.demandScore : existing.demandScore,
+        demandScore: updatedProduct.demandScore > 0
+            ? updatedProduct.demandScore
+            : existing.demandScore,
         viewCount: existing.viewCount,
         cartCount: existing.cartCount,
         purchaseCount: existing.purchaseCount,
@@ -3631,6 +3955,7 @@ class DatabaseService {
         isCustomTailoring: updatedProduct.isCustomTailoring,
         outfitType: updatedProduct.outfitType,
         fabric: updatedProduct.fabric,
+        model3d: updatedProduct.model3d,
         customizations: updatedProduct.customizations,
         measurements: updatedProduct.measurements,
         addons: updatedProduct.addons,
@@ -3644,7 +3969,8 @@ class DatabaseService {
         action: 'update_product',
         targetType: 'product',
         targetId: sanitized.id,
-        message: 'Updated product ${sanitized.name} for store ${sanitized.storeId}.',
+        message:
+            'Updated product ${sanitized.name} for store ${sanitized.storeId}.',
         actor: actor,
       );
       return;
@@ -3655,7 +3981,8 @@ class DatabaseService {
         action: 'update_product',
         targetType: 'product',
         targetId: updatedProduct.id,
-        message: 'Updated product ${updatedProduct.name} for store ${updatedProduct.storeId}.',
+        message:
+            'Updated product ${updatedProduct.name} for store ${updatedProduct.storeId}.',
         actor: actor,
       );
     }
@@ -3666,8 +3993,13 @@ class DatabaseService {
       await _backendCommerce.deleteProduct(productId);
       return;
     }
-    final allProducts = (await _productService.fetchAll()).map(_decorateProduct).toList();
-    final product = allProducts.cast<Product?>().firstWhere((item) => item?.id == productId, orElse: () => null);
+    final allProducts = (await _productService.fetchAll())
+        .map(_decorateProduct)
+        .toList();
+    final product = allProducts.cast<Product?>().firstWhere(
+      (item) => item?.id == productId,
+      orElse: () => null,
+    );
     if (product == null) {
       return;
     }
@@ -3689,14 +4021,26 @@ class DatabaseService {
   }
 
   Future<void> placeOrder(OrderModel order) async {
-    final resolvedOrderId = order.id.isEmpty ? 'ord-${DateTime.now().millisecondsSinceEpoch}' : order.id;
+    final resolvedOrderId = order.id.isEmpty
+        ? 'ord-${DateTime.now().millisecondsSinceEpoch}'
+        : order.id;
     await _ensureOrderIdAvailable(resolvedOrderId);
-    if (order.paymentMethod.toUpperCase() != 'COD' && (order.paymentReference?.trim().isEmpty ?? true)) {
-      throw StateError('A valid payment reference is required for online payments.');
+    if (order.paymentMethod.toUpperCase() != 'COD' &&
+        (order.paymentReference?.trim().isEmpty ?? true)) {
+      throw StateError(
+        'A valid payment reference is required for online payments.',
+      );
     }
-    await _ensurePaymentReferenceAvailable(order.userId, order.paymentReference, orderId: resolvedOrderId);
-    if (order.paymentMethod.toUpperCase() != 'COD' && !order.isPaymentVerified) {
-      throw StateError('Online payment must be verified before creating the order.');
+    await _ensurePaymentReferenceAvailable(
+      order.userId,
+      order.paymentReference,
+      orderId: resolvedOrderId,
+    );
+    if (order.paymentMethod.toUpperCase() != 'COD' &&
+        !order.isPaymentVerified) {
+      throw StateError(
+        'Online payment must be verified before creating the order.',
+      );
     }
     final nowIso = _nowIso();
     final resolved = OrderModel(
@@ -3741,7 +4085,8 @@ class DatabaseService {
     final notification = AppNotification(
       id: 'n-${DateTime.now().millisecondsSinceEpoch}',
       title: 'Order Placed',
-      body: 'Your order ${resolved.invoiceNumber.isEmpty ? '#${resolved.id}' : resolved.invoiceNumber} has been placed successfully.',
+      body:
+          'Your order ${resolved.invoiceNumber.isEmpty ? '#${resolved.id}' : resolved.invoiceNumber} has been placed successfully.',
       type: 'order',
       isRead: false,
       timestamp: DateTime.now(),
@@ -3754,21 +4099,25 @@ class DatabaseService {
       'orders/${resolved.id}': resolved.toMap(),
       'notifications/${notification.id}': notification.toMap(),
     };
-    if (resolved.idempotencyKey != null && resolved.idempotencyKey!.trim().isNotEmpty) {
-      updates['idempotencyClaims/${resolved.userId}/${Uri.encodeComponent(resolved.idempotencyKey!)}'] = {
-        'orderId': resolved.id,
-        'idempotencyKey': resolved.idempotencyKey,
-        'createdAt': nowIso,
-      };
+    if (resolved.idempotencyKey != null &&
+        resolved.idempotencyKey!.trim().isNotEmpty) {
+      updates['idempotencyClaims/${resolved.userId}/${Uri.encodeComponent(resolved.idempotencyKey!)}'] =
+          {
+            'orderId': resolved.id,
+            'idempotencyKey': resolved.idempotencyKey,
+            'createdAt': nowIso,
+          };
     }
-    if (resolved.paymentReference != null && resolved.paymentReference!.trim().isNotEmpty) {
-      updates['paymentClaims/${Uri.encodeComponent(resolved.paymentReference!)}'] = {
-        'userId': resolved.userId,
-        'paymentReference': resolved.paymentReference,
-        'orderId': resolved.id,
-        'createdAt': nowIso,
-        'updatedAt': nowIso,
-      };
+    if (resolved.paymentReference != null &&
+        resolved.paymentReference!.trim().isNotEmpty) {
+      updates['paymentClaims/${Uri.encodeComponent(resolved.paymentReference!)}'] =
+          {
+            'userId': resolved.userId,
+            'paymentReference': resolved.paymentReference,
+            'orderId': resolved.id,
+            'createdAt': nowIso,
+            'updatedAt': nowIso,
+          };
     }
 
     await _ref('').update(updates);
@@ -3776,39 +4125,49 @@ class DatabaseService {
   }
 
   Future<OrderModel> placeOrdersForCart({
-      required AppUser actor,
-      required List<OrderItem> items,
-      required String paymentMethod,
-      required String shippingLabel,
-      required String shippingAddress,
-      required double extraCharges,
-      double discountAmount = 0,
-      double walletCreditUsed = 0,
-      String? paymentReference,
-      required String idempotencyKey,
-      bool isPaymentVerified = false,
-    }) async {
-      if (_backendCommerce.isConfigured) {
-        return _backendCommerce.createOrder(
-          items: items,
-          paymentMethod: paymentMethod,
-          shippingLabel: shippingLabel,
-          shippingAddress: shippingAddress,
-        );
-      }
-      if (walletCreditUsed < 0) {
-        throw StateError('Wallet credit cannot be negative.');
-      }
-      if (walletCreditUsed > 75) {
-        throw StateError('A maximum of Rs 75 referral credit can be used per order.');
-      }
-      if (paymentMethod.toUpperCase() != 'COD' && (paymentReference?.trim().isEmpty ?? true)) {
-        throw StateError('A valid payment reference is required for online payments.');
-      }
-    if (paymentMethod.toUpperCase() != 'COD' && !isPaymentVerified) {
-      throw StateError('Online payment must be verified before placing the order.');
+    required AppUser actor,
+    required List<OrderItem> items,
+    required String paymentMethod,
+    required String shippingLabel,
+    required String shippingAddress,
+    required double extraCharges,
+    double discountAmount = 0,
+    double walletCreditUsed = 0,
+    String? paymentReference,
+    required String idempotencyKey,
+    bool isPaymentVerified = false,
+  }) async {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.createOrder(
+        items: items,
+        paymentMethod: paymentMethod,
+        shippingLabel: shippingLabel,
+        shippingAddress: shippingAddress,
+      );
     }
-    final existingForKey = await _findOrderByIdempotencyKey(actor.id, idempotencyKey);
+    if (walletCreditUsed < 0) {
+      throw StateError('Wallet credit cannot be negative.');
+    }
+    if (walletCreditUsed > 75) {
+      throw StateError(
+        'A maximum of Rs 75 referral credit can be used per order.',
+      );
+    }
+    if (paymentMethod.toUpperCase() != 'COD' &&
+        (paymentReference?.trim().isEmpty ?? true)) {
+      throw StateError(
+        'A valid payment reference is required for online payments.',
+      );
+    }
+    if (paymentMethod.toUpperCase() != 'COD' && !isPaymentVerified) {
+      throw StateError(
+        'Online payment must be verified before placing the order.',
+      );
+    }
+    final existingForKey = await _findOrderByIdempotencyKey(
+      actor.id,
+      idempotencyKey,
+    );
     if (existingForKey != null) {
       return existingForKey;
     }
@@ -3837,41 +4196,52 @@ class DatabaseService {
     OrderModel? placedOrder;
 
     for (final entry in grouped.entries) {
-      final fetchedStore = await _fetchDocument('stores/${entry.key}', (map, id) => Store.fromMap(map, id));
+      final fetchedStore = await _fetchDocument(
+        'stores/${entry.key}',
+        (map, id) => Store.fromMap(map, id),
+      );
       if (fetchedStore != null) {
         liveStores[entry.key] = fetchedStore;
       }
       final store = liveStores[entry.key];
       if (store == null) {
-        throw StateError('Store ${entry.key} could not be found for this order.');
+        throw StateError(
+          'Store ${entry.key} could not be found for this order.',
+        );
       }
       final subtotal = entry.value.fold<double>(0, (runningTotal, item) {
         final liveProduct = liveProducts[item.productId];
         if (liveProduct == null) {
-          throw StateError('Missing product ${item.productId} in Realtime Database.');
+          throw StateError(
+            'Missing product ${item.productId} in Realtime Database.',
+          );
         }
         return runningTotal + (liveProduct.effectivePrice * item.quantity);
       });
-      final extraTailoring = entry.value.fold<double>(
-        0,
-        (runningTotal, item) {
-          final product = liveProducts[item.productId];
-          if (product == null) {
-            throw StateError('Missing product ${item.productId} in Realtime Database.');
-          }
-          return runningTotal + (product.tailoringExtraCost * item.quantity);
-        },
-        );
-        final discountedSubtotal = (subtotal - discountAmount).clamp(0.0, double.infinity).toDouble();
-        final taxAmount = discountedSubtotal * 0.05;
-        final preCreditTotal = discountedSubtotal + taxAmount + extraTailoring;
-        final appliedWalletCredit =
-            (preCreditTotal >= 499 ? walletCreditUsed : 0).clamp(0.0, actor.walletBalance).toDouble();
-        final total = (preCreditTotal - appliedWalletCredit).clamp(0.0, double.infinity).toDouble();
-        final commission = discountedSubtotal * store.commissionRate;
-        final vendorEarnings = preCreditTotal - commission;
-        final hasCustom = entry.value.any((item) => item.isCustomTailoring);
-      
+      final extraTailoring = entry.value.fold<double>(0, (runningTotal, item) {
+        final product = liveProducts[item.productId];
+        if (product == null) {
+          throw StateError(
+            'Missing product ${item.productId} in Realtime Database.',
+          );
+        }
+        return runningTotal + (product.tailoringExtraCost * item.quantity);
+      });
+      final discountedSubtotal = (subtotal - discountAmount)
+          .clamp(0.0, double.infinity)
+          .toDouble();
+      final taxAmount = discountedSubtotal * 0.05;
+      final preCreditTotal = discountedSubtotal + taxAmount + extraTailoring;
+      final appliedWalletCredit = (preCreditTotal >= 499 ? walletCreditUsed : 0)
+          .clamp(0.0, actor.walletBalance)
+          .toDouble();
+      final total = (preCreditTotal - appliedWalletCredit)
+          .clamp(0.0, double.infinity)
+          .toDouble();
+      final commission = discountedSubtotal * store.commissionRate;
+      final vendorEarnings = preCreditTotal - commission;
+      final hasCustom = entry.value.any((item) => item.isCustomTailoring);
+
       final liveItems = entry.value.map((item) {
         final liveProduct = liveProducts[item.productId]!;
         return OrderItem(
@@ -3888,20 +4258,30 @@ class DatabaseService {
         );
       }).toList();
 
-        final orderId = _buildDeterministicOrderId(entry.key, idempotencyKey);
-        final existingOrder = await _fetchDocument('orders/$orderId', (map, id) => OrderModel.fromMap(map, id));
-        if (existingOrder != null) {
-          if (existingOrder.userId != actor.id || existingOrder.idempotencyKey != idempotencyKey) {
-            throw StateError('A conflicting order already exists for this checkout attempt.');
-          }
-          return existingOrder;
+      final orderId = _buildDeterministicOrderId(entry.key, idempotencyKey);
+      final existingOrder = await _fetchDocument(
+        'orders/$orderId',
+        (map, id) => OrderModel.fromMap(map, id),
+      );
+      if (existingOrder != null) {
+        if (existingOrder.userId != actor.id ||
+            existingOrder.idempotencyKey != idempotencyKey) {
+          throw StateError(
+            'A conflicting order already exists for this checkout attempt.',
+          );
         }
-        final createdAt = DateTime.now();
-        await _ensureOrderIdAvailable(orderId);
-        await _ensurePaymentReferenceAvailable(actor.id, paymentReference, orderId: orderId);
-        final order = OrderModel(
-          id: orderId,
-          userId: actor.id,
+        return existingOrder;
+      }
+      final createdAt = DateTime.now();
+      await _ensureOrderIdAvailable(orderId);
+      await _ensurePaymentReferenceAvailable(
+        actor.id,
+        paymentReference,
+        orderId: orderId,
+      );
+      final order = OrderModel(
+        id: orderId,
+        userId: actor.id,
         storeId: entry.key,
         totalAmount: total,
         status: 'Placed',
@@ -3922,9 +4302,7 @@ class DatabaseService {
         assignedDeliveryPartner: 'Abzora Dispatch',
         invoiceNumber: _buildInvoiceNumber(entry.key),
         orderType: hasCustom ? 'custom_tailoring' : 'marketplace',
-        trackingTimestamps: {
-          'Order Placed': createdAt.toIso8601String(),
-        },
+        trackingTimestamps: {'Order Placed': createdAt.toIso8601String()},
         riderLatitude: null,
         riderLongitude: null,
         riderLocationUpdatedAt: null,
@@ -3933,11 +4311,13 @@ class DatabaseService {
         isConfirmed: false,
         isDelivered: false,
         payoutProcessed: false,
-          paymentReference: paymentReference,
-          idempotencyKey: idempotencyKey,
-          isPaymentVerified: paymentMethod.toUpperCase() == 'COD' ? false : isPaymentVerified,
-          walletCreditUsed: appliedWalletCredit,
-        );
+        paymentReference: paymentReference,
+        idempotencyKey: idempotencyKey,
+        isPaymentVerified: paymentMethod.toUpperCase() == 'COD'
+            ? false
+            : isPaymentVerified,
+        walletCreditUsed: appliedWalletCredit,
+      );
 
       final notifId = 'n-${DateTime.now().millisecondsSinceEpoch}-${entry.key}';
       final notification = AppNotification(
@@ -3953,11 +4333,12 @@ class DatabaseService {
 
       updates['orders/$orderId'] = order.toMap();
       updates['notifications/$notifId'] = notification.toMap();
-      updates['idempotencyClaims/${actor.id}/${Uri.encodeComponent(idempotencyKey)}'] = {
-        'orderId': orderId,
-        'idempotencyKey': idempotencyKey,
-        'createdAt': createdAt.toIso8601String(),
-      };
+      updates['idempotencyClaims/${actor.id}/${Uri.encodeComponent(idempotencyKey)}'] =
+          {
+            'orderId': orderId,
+            'idempotencyKey': idempotencyKey,
+            'createdAt': createdAt.toIso8601String(),
+          };
       if (paymentReference != null && paymentReference.trim().isNotEmpty) {
         updates['paymentClaims/${Uri.encodeComponent(paymentReference)}'] = {
           'userId': actor.id,
@@ -3966,29 +4347,30 @@ class DatabaseService {
           'createdAt': createdAt.toIso8601String(),
           'updatedAt': createdAt.toIso8601String(),
         };
-        }
-        placedOrder = order;
       }
+      placedOrder = order;
+    }
 
-      if (walletCreditUsed > 0) {
-        updates['users/${actor.id}/walletBalance'] = (actor.walletBalance - walletCreditUsed)
-            .clamp(0.0, double.infinity)
-            .toDouble();
-      }
+    if (walletCreditUsed > 0) {
+      updates['users/${actor.id}/walletBalance'] =
+          (actor.walletBalance - walletCreditUsed)
+              .clamp(0.0, double.infinity)
+              .toDouble();
+    }
 
-      if (updates.isNotEmpty) {
-        await _ref('').update(updates);
+    if (updates.isNotEmpty) {
+      await _ref('').update(updates);
+    }
+    if (placedOrder == null) {
+      throw StateError('No order could be created for this cart.');
+    }
+    await trackOrderPlacedForGrowth(user: actor, order: placedOrder);
+    await _processReferralRewardIfEligible(actor: actor, order: placedOrder);
+    for (final item in placedOrder.items) {
+      final product = liveProducts[item.productId];
+      if (product == null) {
+        continue;
       }
-      if (placedOrder == null) {
-        throw StateError('No order could be created for this cart.');
-      }
-      await trackOrderPlacedForGrowth(user: actor, order: placedOrder);
-      await _processReferralRewardIfEligible(actor: actor, order: placedOrder);
-      for (final item in placedOrder.items) {
-        final product = liveProducts[item.productId];
-        if (product == null) {
-          continue;
-        }
       final updatedProduct = Product(
         id: product.id,
         storeId: product.storeId,
@@ -3999,7 +4381,9 @@ class DatabaseService {
         basePrice: product.basePrice ?? product.price,
         dynamicPrice: product.dynamicPrice,
         originalPrice: product.originalPrice,
-        demandScore: product.demandScore > 0 ? product.demandScore : _normalizedDemandScore(product),
+        demandScore: product.demandScore > 0
+            ? product.demandScore
+            : _normalizedDemandScore(product),
         viewCount: product.viewCount,
         cartCount: product.cartCount,
         purchaseCount: product.purchaseCount + item.quantity,
@@ -4035,7 +4419,9 @@ class DatabaseService {
       return;
     }
     final resolved = BookingModel(
-      id: booking.id.isEmpty ? 'bk-${DateTime.now().millisecondsSinceEpoch}' : booking.id,
+      id: booking.id.isEmpty
+          ? 'bk-${DateTime.now().millisecondsSinceEpoch}'
+          : booking.id,
       userId: booking.userId,
       tailorId: booking.tailorId,
       tailorName: booking.tailorName,
@@ -4059,8 +4445,13 @@ class DatabaseService {
         backgroundInterval: const Duration(seconds: 30),
       );
     }
-    return _watchCollection('bookings', (map, id) => BookingModel.fromMap(map, id))
-        .map((bookings) => bookings.where((booking) => booking.userId == userId).toList());
+    return _watchCollection(
+      'bookings',
+      (map, id) => BookingModel.fromMap(map, id),
+    ).map(
+      (bookings) =>
+          bookings.where((booking) => booking.userId == userId).toList(),
+    );
   }
 
   Stream<List<OrderModel>> getUserOrders(String userId) {
@@ -4079,7 +4470,9 @@ class DatabaseService {
       _ref('orders').orderByChild('userId').equalTo(userId),
       (map, id) => OrderModel.fromMap(map, id),
     ).map((orders) {
-      orders.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
+      orders.sort(
+        (a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+      );
       return orders;
     });
   }
@@ -4087,7 +4480,9 @@ class DatabaseService {
   bool _isRefundEligible(OrderModel order) {
     final paymentMethod = order.paymentMethod.trim().toUpperCase();
     final hasOnlinePayment =
-        paymentMethod != 'COD' && order.isPaymentVerified && (order.paymentReference?.trim().isNotEmpty ?? false);
+        paymentMethod != 'COD' &&
+        order.isPaymentVerified &&
+        (order.paymentReference?.trim().isNotEmpty ?? false);
     if (!hasOnlinePayment) {
       return false;
     }
@@ -4099,12 +4494,14 @@ class DatabaseService {
   }
 
   bool _isReturnEligible(OrderModel order) {
-    final delivered = order.isDelivered || order.status.trim().toLowerCase() == 'delivered';
+    final delivered =
+        order.isDelivered || order.status.trim().toLowerCase() == 'delivered';
     if (!delivered) {
       return false;
     }
     final customOrder =
-        order.orderType == 'custom_tailoring' || order.items.any((item) => item.isCustomTailoring);
+        order.orderType == 'custom_tailoring' ||
+        order.items.any((item) => item.isCustomTailoring);
     if (customOrder) {
       return false;
     }
@@ -4115,7 +4512,8 @@ class DatabaseService {
         returnState == 'completed') {
       return false;
     }
-    final deliveredAt = DateTime.tryParse(order.deliveredAt ?? '') ??
+    final deliveredAt =
+        DateTime.tryParse(order.deliveredAt ?? '') ??
         DateTime.tryParse(order.trackingTimestamps['Delivered'] ?? '');
     if (deliveredAt == null) {
       return false;
@@ -4188,10 +4586,20 @@ class DatabaseService {
     riders.sort((a, b) {
       final aDistance = (a.latitude == null || a.longitude == null)
           ? double.infinity
-          : _distanceKm(a.latitude!, a.longitude!, destinationLat, destinationLng);
+          : _distanceKm(
+              a.latitude!,
+              a.longitude!,
+              destinationLat,
+              destinationLng,
+            );
       final bDistance = (b.latitude == null || b.longitude == null)
           ? double.infinity
-          : _distanceKm(b.latitude!, b.longitude!, destinationLat, destinationLng);
+          : _distanceKm(
+              b.latitude!,
+              b.longitude!,
+              destinationLat,
+              destinationLng,
+            );
       return aDistance.compareTo(bDistance);
     });
     return riders.first;
@@ -4208,7 +4616,9 @@ class DatabaseService {
     var score = 0;
 
     final accountCreated = DateTime.tryParse(user.createdAt ?? '');
-    final accountAgeDays = accountCreated == null ? 30 : DateTime.now().difference(accountCreated).inDays;
+    final accountAgeDays = accountCreated == null
+        ? 30
+        : DateTime.now().difference(accountCreated).inDays;
     if (accountAgeDays < 7) {
       score += 25;
     } else if (accountAgeDays < 30) {
@@ -4283,7 +4693,9 @@ class DatabaseService {
           created.month == now.month &&
           created.day == now.day;
     }).length;
-    final ordersLast30Days = orders.where((item) => item.timestamp.isAfter(last30Days)).length;
+    final ordersLast30Days = orders
+        .where((item) => item.timestamp.isAfter(last30Days))
+        .length;
     final score = calculateFraudScore(
       order: order,
       user: user,
@@ -4295,7 +4707,9 @@ class DatabaseService {
 
     final reasons = <String>[];
     final accountCreated = DateTime.tryParse(user.createdAt ?? '');
-    final accountAgeDays = accountCreated == null ? 30 : now.difference(accountCreated).inDays;
+    final accountAgeDays = accountCreated == null
+        ? 30
+        : now.difference(accountCreated).inDays;
     if (accountAgeDays < 7) {
       reasons.add('Very new account requesting a refund.');
     } else if (accountAgeDays < 30) {
@@ -4304,7 +4718,8 @@ class DatabaseService {
     if (order.totalAmount >= 5000) {
       reasons.add('High-value order refund.');
     }
-    if (order.status.toLowerCase() != 'delivered' && order.status.toLowerCase() != 'cancelled') {
+    if (order.status.toLowerCase() != 'delivered' &&
+        order.status.toLowerCase() != 'cancelled') {
       reasons.add('Refund requested before final order completion.');
     }
     if (refundsLast30Days >= 2) {
@@ -4323,8 +4738,8 @@ class DatabaseService {
     final decision = score > 60
         ? 'reject'
         : score >= 30
-            ? 'review'
-            : 'approve';
+        ? 'review'
+        : 'approve';
     return _RefundFraudAssessment(
       score: score,
       decision: decision,
@@ -4369,14 +4784,22 @@ class DatabaseService {
       return _backendCommerce.getRefundRequests(status: status);
     }
     final requests = isSuperAdmin(actor)
-        ? await _fetchCollection('refundRequests', (map, id) => RefundRequest.fromMap(map, id))
+        ? await _fetchCollection(
+            'refundRequests',
+            (map, id) => RefundRequest.fromMap(map, id),
+          )
         : await _fetchQueryCollection(
             _ref('refundRequests').orderByChild('userId').equalTo(actor.id),
             (map, id) => RefundRequest.fromMap(map, id),
           );
     final filtered = status == 'all'
         ? requests
-        : requests.where((request) => request.status.toLowerCase() == status.toLowerCase()).toList();
+        : requests
+              .where(
+                (request) =>
+                    request.status.toLowerCase() == status.toLowerCase(),
+              )
+              .toList();
     filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return filtered;
   }
@@ -4418,14 +4841,22 @@ class DatabaseService {
       return _backendCommerce.getReturnRequests(status: status);
     }
     final requests = isSuperAdmin(actor)
-        ? await _fetchCollection('returnRequests', (map, id) => ReturnRequest.fromMap(map, id))
+        ? await _fetchCollection(
+            'returnRequests',
+            (map, id) => ReturnRequest.fromMap(map, id),
+          )
         : await _fetchQueryCollection(
             _ref('returnRequests').orderByChild('userId').equalTo(actor.id),
             (map, id) => ReturnRequest.fromMap(map, id),
           );
     final filtered = status == 'all'
         ? requests
-        : requests.where((request) => request.status.toLowerCase() == status.toLowerCase()).toList();
+        : requests
+              .where(
+                (request) =>
+                    request.status.toLowerCase() == status.toLowerCase(),
+              )
+              .toList();
     filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return filtered;
   }
@@ -4438,14 +4869,20 @@ class DatabaseService {
     if (actor != null && !isSuperAdmin(actor)) {
       throw StateError('Only admins can assign pickup riders.');
     }
-    final request = await _fetchDocument('returnRequests/$returnId', (map, id) => ReturnRequest.fromMap(map, id));
+    final request = await _fetchDocument(
+      'returnRequests/$returnId',
+      (map, id) => ReturnRequest.fromMap(map, id),
+    );
     if (request == null) {
       throw StateError('Return request not found.');
     }
     if (request.status.toLowerCase() == 'completed') {
       throw StateError('This return is already completed.');
     }
-    final order = await _fetchDocument('orders/${request.orderId}', (map, id) => OrderModel.fromMap(map, id));
+    final order = await _fetchDocument(
+      'orders/${request.orderId}',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (order == null) {
       throw StateError('Order not found.');
     }
@@ -4508,11 +4945,15 @@ class DatabaseService {
     required double longitude,
     required AppUser actor,
   }) async {
-    final request = await _fetchDocument('returnRequests/$returnId', (map, id) => ReturnRequest.fromMap(map, id));
+    final request = await _fetchDocument(
+      'returnRequests/$returnId',
+      (map, id) => ReturnRequest.fromMap(map, id),
+    );
     if (request == null) {
       throw StateError('Return request not found.');
     }
-    if (!isSuperAdmin(actor) && (!isRider(actor) || request.riderId != actor.id)) {
+    if (!isSuperAdmin(actor) &&
+        (!isRider(actor) || request.riderId != actor.id)) {
       throw StateError('Pickup tracking access denied.');
     }
     await _ref('returnRequests/$returnId').update({
@@ -4540,7 +4981,10 @@ class DatabaseService {
       throw StateError('Tell us why you want to return this item.');
     }
 
-    final order = await _fetchDocument('orders/$orderId', (map, id) => OrderModel.fromMap(map, id));
+    final order = await _fetchDocument(
+      'orders/$orderId',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (order == null) {
       throw StateError('Order not found.');
     }
@@ -4564,9 +5008,13 @@ class DatabaseService {
     final nowIso = now.toIso8601String();
     final pickupAddress = order.shippingAddress.trim().isNotEmpty
         ? order.shippingAddress.trim()
-        : (user.address?.trim().isNotEmpty == true ? user.address!.trim() : 'Pickup address unavailable');
+        : (user.address?.trim().isNotEmpty == true
+              ? user.address!.trim()
+              : 'Pickup address unavailable');
     final rider = await _nearestAvailableRiderForUser(user);
-    final pickupTaskId = rider == null ? null : 'pickup-${now.millisecondsSinceEpoch}';
+    final pickupTaskId = rider == null
+        ? null
+        : 'pickup-${now.millisecondsSinceEpoch}';
     final request = ReturnRequest(
       id: 'return-${now.millisecondsSinceEpoch}',
       orderId: orderId,
@@ -4584,7 +5032,8 @@ class DatabaseService {
     final notification = AppNotification(
       id: 'return-request-${now.millisecondsSinceEpoch}',
       title: 'Return request received',
-      body: 'We received your return request for $label and will review it shortly.',
+      body:
+          'We received your return request for $label and will review it shortly.',
       type: 'return',
       isRead: false,
       timestamp: now,
@@ -4622,11 +5071,10 @@ class DatabaseService {
         createdAt: nowIso,
         updatedAt: nowIso,
       ).toMap();
-      updates['tasks/${_taskIdForReturn(request.id)}'] = _returnTaskPayloadForRequest(
-        request,
-        riderId: rider.id,
-      );
-      updates['notifications/${riderNotification!.id}'] = riderNotification.toMap();
+      updates['tasks/${_taskIdForReturn(request.id)}'] =
+          _returnTaskPayloadForRequest(request, riderId: rider.id);
+      updates['notifications/${riderNotification!.id}'] = riderNotification
+          .toMap();
     }
 
     await _ref('').update(updates);
@@ -4650,7 +5098,10 @@ class DatabaseService {
       throw StateError('Tell us why you want a refund.');
     }
 
-    final order = await _fetchDocument('orders/$orderId', (map, id) => OrderModel.fromMap(map, id));
+    final order = await _fetchDocument(
+      'orders/$orderId',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (order == null) {
       throw StateError('Order not found.');
     }
@@ -4714,7 +5165,10 @@ class DatabaseService {
       return _backendPollingStream<List<OrderModel>>(
         loader: () async {
           final orders = await _backendCommerce.getStoreOrders(storeId);
-          orders.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
+          orders.sort(
+            (a, b) =>
+                _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+          );
           return orders;
         },
         interval: const Duration(seconds: 15),
@@ -4726,7 +5180,9 @@ class DatabaseService {
       _ref('orders').orderByChild('storeId').equalTo(storeId),
       (map, id) => OrderModel.fromMap(map, id),
     ).map((orders) {
-      orders.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
+      orders.sort(
+        (a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+      );
       return orders;
     });
   }
@@ -4755,7 +5211,9 @@ class DatabaseService {
 
   Future<void> saveUserAddress(UserAddress address) async {
     final resolved = UserAddress(
-      id: address.id.isEmpty ? 'addr-${DateTime.now().millisecondsSinceEpoch}' : address.id,
+      id: address.id.isEmpty
+          ? 'addr-${DateTime.now().millisecondsSinceEpoch}'
+          : address.id,
       userId: address.userId,
       name: address.name,
       phone: address.phone,
@@ -4775,7 +5233,9 @@ class DatabaseService {
       await _backendCommerce.saveUserAddress(resolved);
       return;
     }
-    await _ref('users/${resolved.userId}/addresses/${resolved.id}').set(resolved.toMap());
+    await _ref(
+      'users/${resolved.userId}/addresses/${resolved.id}',
+    ).set(resolved.toMap());
   }
 
   Future<void> deleteUserAddress(String userId, String addressId) async {
@@ -4803,12 +5263,25 @@ class DatabaseService {
     if (_backendCommerce.isConfigured) {
       final users = await _backendCommerce.getAdminUsers();
       return users
-          .where((user) => user.role == riderRole && user.isActive && user.riderApprovalStatus == 'approved')
+          .where(
+            (user) =>
+                user.role == riderRole &&
+                user.isActive &&
+                user.riderApprovalStatus == 'approved',
+          )
           .toList();
     }
-    final users = await _fetchCollection('users', (map, _) => AppUser.fromMap(map));
+    final users = await _fetchCollection(
+      'users',
+      (map, _) => AppUser.fromMap(map),
+    );
     return users
-        .where((user) => user.role == riderRole && user.isActive && user.riderApprovalStatus == 'approved')
+        .where(
+          (user) =>
+              user.role == riderRole &&
+              user.isActive &&
+              user.riderApprovalStatus == 'approved',
+        )
         .toList();
   }
 
@@ -4826,9 +5299,11 @@ class DatabaseService {
       (map, id) => ReturnRequest.fromMap(map, id),
     );
     return requests
-        .where((request) =>
-            request.status == 'requested' &&
-            (request.riderId ?? '').trim().isEmpty)
+        .where(
+          (request) =>
+              request.status == 'requested' &&
+              (request.riderId ?? '').trim().isEmpty,
+        )
         .toList();
   }
 
@@ -4848,14 +5323,17 @@ class DatabaseService {
     final assignedReturnIds = <String>{};
 
     for (final rider in riders) {
-      var capacity = maxTasksPerRider - await _activeTaskCountForRider(rider.id);
+      var capacity =
+          maxTasksPerRider - await _activeTaskCountForRider(rider.id);
       if (capacity <= 0) {
         continue;
       }
 
       OrderModel? anchorOrder;
       if (availableOrders.isNotEmpty) {
-        final candidates = availableOrders.where((order) => !assignedOrderIds.contains(order.id)).toList();
+        final candidates = availableOrders
+            .where((order) => !assignedOrderIds.contains(order.id))
+            .toList();
         if (candidates.isNotEmpty) {
           anchorOrder = candidates.first;
           await assignRiderToOrder(anchorOrder.id, rider, actor: actor);
@@ -4868,7 +5346,9 @@ class DatabaseService {
         continue;
       }
 
-      final anchorUser = anchorOrder == null ? null : await getUser(anchorOrder.userId);
+      final anchorUser = anchorOrder == null
+          ? null
+          : await getUser(anchorOrder.userId);
       final anchorLat = anchorUser?.latitude ?? rider.latitude;
       final anchorLng = anchorUser?.longitude ?? rider.longitude;
 
@@ -4879,7 +5359,12 @@ class DatabaseService {
         if (anchorLat != null && anchorLng != null) {
           final user = await getUser(request.userId);
           if (user?.latitude != null && user?.longitude != null) {
-            final distance = _distanceKm(anchorLat, anchorLng, user!.latitude!, user.longitude!);
+            final distance = _distanceKm(
+              anchorLat,
+              anchorLng,
+              user!.latitude!,
+              user.longitude!,
+            );
             if (distance > bundleDistanceKm) {
               continue;
             }
@@ -4966,7 +5451,10 @@ class DatabaseService {
       } catch (_) {}
       return null;
     }
-    return _fetchDocument('orders/$orderId', (map, id) => OrderModel.fromMap(map, id));
+    return _fetchDocument(
+      'orders/$orderId',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
   }
 
   Future<void> updateUser(AppUser user, {AppUser? actor}) async {
@@ -4979,49 +5467,57 @@ class DatabaseService {
         action: 'update_user',
         targetType: 'user',
         targetId: user.id,
-        message: 'Updated ${user.name} with role ${user.role} and active=${user.isActive}.',
+        message:
+            'Updated ${user.name} with role ${user.role} and active=${user.isActive}.',
         actor: actor,
       );
     }
   }
 
   Future<void> updateUserProfile({
-      required String userId,
-      String? name,
-      String? phone,
+    required String userId,
+    String? name,
+    String? phone,
     String? profileImageUrl,
     String? address,
     String? area,
     String? city,
     double? latitude,
-      double? longitude,
-    }) async {
-      if (_backendCommerce.isConfigured) {
-        final current = await _backendCommerce.getCurrentUserProfile();
-        if (current.id != userId) {
-          throw StateError('Cross-user profile updates are not allowed.');
-        }
-        await _backendCommerce.syncUserProfile(
-          current.copyWith(
-            name: name != null ? (name.trim().isEmpty ? 'ABZORA Member' : name.trim()) : current.name,
-            phone: phone != null ? phone.trim() : current.phone,
-            profileImageUrl: profileImageUrl != null ? profileImageUrl.trim() : current.profileImageUrl,
-            address: address != null ? address.trim() : current.address,
-            area: area != null ? area.trim() : current.area,
-            city: city != null ? city.trim() : current.city,
-            latitude: latitude ?? current.latitude,
-            longitude: longitude ?? current.longitude,
-            locationUpdatedAt: (latitude != null || longitude != null || address != null || area != null || city != null)
-                ? _nowIso()
-                : current.locationUpdatedAt,
-          ),
-        );
-        return;
+    double? longitude,
+  }) async {
+    if (_backendCommerce.isConfigured) {
+      final current = await _backendCommerce.getCurrentUserProfile();
+      if (current.id != userId) {
+        throw StateError('Cross-user profile updates are not allowed.');
       }
-      final nowIso = _nowIso();
-      final updates = <String, dynamic>{
-        'updatedAt': nowIso,
-      };
+      await _backendCommerce.syncUserProfile(
+        current.copyWith(
+          name: name != null
+              ? (name.trim().isEmpty ? 'ABZORA Member' : name.trim())
+              : current.name,
+          phone: phone != null ? phone.trim() : current.phone,
+          profileImageUrl: profileImageUrl != null
+              ? profileImageUrl.trim()
+              : current.profileImageUrl,
+          address: address != null ? address.trim() : current.address,
+          area: area != null ? area.trim() : current.area,
+          city: city != null ? city.trim() : current.city,
+          latitude: latitude ?? current.latitude,
+          longitude: longitude ?? current.longitude,
+          locationUpdatedAt:
+              (latitude != null ||
+                  longitude != null ||
+                  address != null ||
+                  area != null ||
+                  city != null)
+              ? _nowIso()
+              : current.locationUpdatedAt,
+        ),
+      );
+      return;
+    }
+    final nowIso = _nowIso();
+    final updates = <String, dynamic>{'updatedAt': nowIso};
     if (name != null) {
       updates['name'] = name.trim().isEmpty ? 'ABZORA Member' : name.trim();
     }
@@ -5047,7 +5543,11 @@ class DatabaseService {
     if (longitude != null) {
       updates['longitude'] = longitude;
     }
-    if (latitude != null || longitude != null || address != null || area != null || city != null) {
+    if (latitude != null ||
+        longitude != null ||
+        address != null ||
+        area != null ||
+        city != null) {
       updates['locationUpdatedAt'] = nowIso;
     }
     await _ref('users/$userId').update(updates);
@@ -5068,12 +5568,21 @@ class DatabaseService {
       await _backendCommerce.saveStore(store);
       return;
     }
-    if (actor != null && !isSuperAdmin(actor) && actor.storeId != store.id && actor.id != store.ownerId) {
+    if (actor != null &&
+        !isSuperAdmin(actor) &&
+        actor.storeId != store.id &&
+        actor.id != store.ownerId) {
       throw StateError('Cross-store access denied.');
     }
     Store resolvedStore;
-    if (actor != null && !isSuperAdmin(actor) && actor.role == 'vendor' && store.id.isNotEmpty) {
-      final existing = await _fetchDocument('stores/${store.id}', (map, id) => Store.fromMap(map, id));
+    if (actor != null &&
+        !isSuperAdmin(actor) &&
+        actor.role == 'vendor' &&
+        store.id.isNotEmpty) {
+      final existing = await _fetchDocument(
+        'stores/${store.id}',
+        (map, id) => Store.fromMap(map, id),
+      );
       if (existing == null) {
         throw StateError('Store does not exist.');
       }
@@ -5087,7 +5596,9 @@ class DatabaseService {
       );
     } else {
       resolvedStore = Store(
-        id: store.id.isEmpty ? 's${DateTime.now().millisecondsSinceEpoch}' : store.id,
+        id: store.id.isEmpty
+            ? 's${DateTime.now().millisecondsSinceEpoch}'
+            : store.id,
         storeId: store.storeId,
         ownerId: store.ownerId,
         name: store.name,
@@ -5121,7 +5632,8 @@ class DatabaseService {
         action: 'save_store',
         targetType: 'store',
         targetId: resolvedStore.id,
-        message: 'Saved store ${resolvedStore.name}. Status=${resolvedStore.approvalStatus}, approved=${resolvedStore.isApproved}, active=${resolvedStore.isActive}.',
+        message:
+            'Saved store ${resolvedStore.name}. Status=${resolvedStore.approvalStatus}, approved=${resolvedStore.isApproved}, active=${resolvedStore.isActive}.',
         actor: actor,
       );
     }
@@ -5178,7 +5690,10 @@ class DatabaseService {
       }
       return _backendCommerce.getAdminOrders();
     }
-    final orders = await _fetchCollection('orders', (map, id) => OrderModel.fromMap(map, id));
+    final orders = await _fetchCollection(
+      'orders',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (actor != null && !isSuperAdmin(actor)) {
       if (actor.role == 'vendor' && actor.storeId != null) {
         return orders.where((order) => order.storeId == actor.storeId).toList();
@@ -5191,10 +5706,15 @@ class DatabaseService {
     return orders;
   }
 
-  Future<void> updateOrderStatus(String orderId, String status, {AppUser? actor}) async {
+  Future<void> updateOrderStatus(
+    String orderId,
+    String status, {
+    AppUser? actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       final normalizedStatus = status.trim().toLowerCase();
-      final isStoreManagedActor = actor != null &&
+      final isStoreManagedActor =
+          actor != null &&
           (actor.role == 'vendor' ||
               actor.role == riderRole ||
               actor.role == 'admin' ||
@@ -5206,14 +5726,18 @@ class DatabaseService {
       }
       return;
     }
-    final existing = await _fetchDocument('orders/$orderId', (map, id) => OrderModel.fromMap(map, id));
+    final existing = await _fetchDocument(
+      'orders/$orderId',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (existing == null) {
       throw StateError('Order not found.');
     }
     if (actor != null && !isSuperAdmin(actor)) {
       _requireStoreAccess(actor, existing.storeId);
     }
-    final normalizedStatus = actor != null && actor.role == 'vendor' && !isSuperAdmin(actor)
+    final normalizedStatus =
+        actor != null && actor.role == 'vendor' && !isSuperAdmin(actor)
         ? _normalizeVendorStatus(status)
         : status;
     if (existing.status == normalizedStatus) {
@@ -5221,14 +5745,16 @@ class DatabaseService {
     }
 
     final updates = <String, dynamic>{};
-    final validatedStatus = actor != null && actor.role == 'vendor' && !isSuperAdmin(actor)
+    final validatedStatus =
+        actor != null && actor.role == 'vendor' && !isSuperAdmin(actor)
         ? _validatedVendorOrderStatus(existing.status, status)
         : status;
     final nowIso = _nowIso();
     updates['orders/$orderId/status'] = validatedStatus;
     updates['orders/$orderId/deliveryStatus'] = validatedStatus;
     updates['orders/$orderId/updatedAt'] = nowIso;
-    updates['orders/$orderId/trackingTimestamps'] = _trackingTimestampsForStatus(existing, validatedStatus, nowIso);
+    updates['orders/$orderId/trackingTimestamps'] =
+        _trackingTimestampsForStatus(existing, validatedStatus, nowIso);
     if (validatedStatus == 'Confirmed') {
       updates['orders/$orderId/isConfirmed'] = true;
     }
@@ -5242,15 +5768,25 @@ class DatabaseService {
         updates['orders/$orderId/payoutStatus'] = 'Ready';
       }
       if (existing.payoutStatus != 'Ready' && existing.payoutStatus != 'Paid') {
-        final store = await _fetchDocument('stores/${existing.storeId}', (map, id) => Store.fromMap(map, id));
+        final store = await _fetchDocument(
+          'stores/${existing.storeId}',
+          (map, id) => Store.fromMap(map, id),
+        );
         if (store != null) {
-          updates['stores/${store.id}/walletBalance'] = store.walletBalance + existing.vendorEarnings;
+          updates['stores/${store.id}/walletBalance'] =
+              store.walletBalance + existing.vendorEarnings;
         }
       }
     }
-    if ((validatedStatus == 'Packed' || validatedStatus == 'Ready for pickup') && existing.riderId == null) {
-      final riderNotifId = 'n-${DateTime.now().millisecondsSinceEpoch}-delivery-ready';
-      final store = await _fetchDocument('stores/${existing.storeId}', (map, id) => Store.fromMap(map, id));
+    if ((validatedStatus == 'Packed' ||
+            validatedStatus == 'Ready for pickup') &&
+        existing.riderId == null) {
+      final riderNotifId =
+          'n-${DateTime.now().millisecondsSinceEpoch}-delivery-ready';
+      final store = await _fetchDocument(
+        'stores/${existing.storeId}',
+        (map, id) => Store.fromMap(map, id),
+      );
       final riderNotification = AppNotification(
         id: riderNotifId,
         title: 'New delivery available',
@@ -5268,7 +5804,8 @@ class DatabaseService {
       final notification = AppNotification(
         id: notifId,
         title: 'Order Delivered',
-        body: 'Order ${existing.invoiceNumber.isEmpty ? '#$orderId' : existing.invoiceNumber} has been delivered.',
+        body:
+            'Order ${existing.invoiceNumber.isEmpty ? '#$orderId' : existing.invoiceNumber} has been delivered.',
         type: 'order',
         isRead: false,
         timestamp: DateTime.now(),
@@ -5296,14 +5833,20 @@ class DatabaseService {
     }
   }
 
-  Future<void> approveRefundRequest(String refundId, {required AppUser actor}) async {
+  Future<void> approveRefundRequest(
+    String refundId, {
+    required AppUser actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       _requireSuperAdmin(actor);
       await _backendCommerce.approveRefundRequest(refundId);
       return;
     }
     _requireSuperAdmin(actor);
-    final refund = await _fetchDocument('refundRequests/$refundId', (map, id) => RefundRequest.fromMap(map, id));
+    final refund = await _fetchDocument(
+      'refundRequests/$refundId',
+      (map, id) => RefundRequest.fromMap(map, id),
+    );
     if (refund == null) {
       throw StateError('Refund request not found.');
     }
@@ -5311,7 +5854,10 @@ class DatabaseService {
       throw StateError('This refund request has already been processed.');
     }
 
-    final order = await _fetchDocument('orders/${refund.orderId}', (map, id) => OrderModel.fromMap(map, id));
+    final order = await _fetchDocument(
+      'orders/${refund.orderId}',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (order == null) {
       throw StateError('Order not found.');
     }
@@ -5358,7 +5904,9 @@ class DatabaseService {
     }
     final paymentId = order.paymentReference?.trim();
     if (paymentId == null || paymentId.isEmpty) {
-      throw StateError('A valid online payment reference is required before refunding.');
+      throw StateError(
+        'A valid online payment reference is required before refunding.',
+      );
     }
 
     final refundResult = await _paymentService.refundPayment(
@@ -5412,7 +5960,10 @@ class DatabaseService {
   }) async {
     if (_backendCommerce.isConfigured) {
       _requireSuperAdmin(actor);
-      await _backendCommerce.rejectRefundRequest(refundId: refundId, reason: reason);
+      await _backendCommerce.rejectRefundRequest(
+        refundId: refundId,
+        reason: reason,
+      );
       return;
     }
     _requireSuperAdmin(actor);
@@ -5420,14 +5971,20 @@ class DatabaseService {
     if (trimmedReason.isEmpty) {
       throw StateError('Add a reason before rejecting this refund.');
     }
-    final refund = await _fetchDocument('refundRequests/$refundId', (map, id) => RefundRequest.fromMap(map, id));
+    final refund = await _fetchDocument(
+      'refundRequests/$refundId',
+      (map, id) => RefundRequest.fromMap(map, id),
+    );
     if (refund == null) {
       throw StateError('Refund request not found.');
     }
     if (refund.status.toLowerCase() != 'pending') {
       throw StateError('This refund request has already been processed.');
     }
-    final order = await _fetchDocument('orders/${refund.orderId}', (map, id) => OrderModel.fromMap(map, id));
+    final order = await _fetchDocument(
+      'orders/${refund.orderId}',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (order == null) {
       throw StateError('Order not found.');
     }
@@ -5438,7 +5995,8 @@ class DatabaseService {
     final notification = AppNotification(
       id: 'refund-rejected-${now.millisecondsSinceEpoch}',
       title: 'Refund request updated',
-      body: 'Your refund request for $label was not approved. Reason: $trimmedReason',
+      body:
+          'Your refund request for $label was not approved. Reason: $trimmedReason',
       type: 'refund',
       isRead: false,
       timestamp: now,
@@ -5466,21 +6024,30 @@ class DatabaseService {
     );
   }
 
-  Future<void> approveReturnRequest(String returnId, {required AppUser actor}) async {
+  Future<void> approveReturnRequest(
+    String returnId, {
+    required AppUser actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       _requireSuperAdmin(actor);
       await _backendCommerce.approveReturnRequest(returnId);
       return;
     }
     _requireSuperAdmin(actor);
-    final request = await _fetchDocument('returnRequests/$returnId', (map, id) => ReturnRequest.fromMap(map, id));
+    final request = await _fetchDocument(
+      'returnRequests/$returnId',
+      (map, id) => ReturnRequest.fromMap(map, id),
+    );
     if (request == null) {
       throw StateError('Return request not found.');
     }
     if (request.status.toLowerCase() != 'requested') {
       throw StateError('This return request has already been processed.');
     }
-    final order = await _fetchDocument('orders/${request.orderId}', (map, id) => OrderModel.fromMap(map, id));
+    final order = await _fetchDocument(
+      'orders/${request.orderId}',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (order == null) {
       throw StateError('Order not found.');
     }
@@ -5490,7 +6057,8 @@ class DatabaseService {
     final notification = AppNotification(
       id: 'return-approved-${now.millisecondsSinceEpoch}',
       title: 'Return approved',
-      body: 'Your return for $label has been approved and pickup will be arranged.',
+      body:
+          'Your return for $label has been approved and pickup will be arranged.',
       type: 'return',
       isRead: false,
       timestamp: now,
@@ -5499,26 +6067,37 @@ class DatabaseService {
       storeId: order.storeId,
     );
     await _ref('').update({
-      'returnRequests/$returnId/status': request.riderId == null ? 'requested' : 'assigned',
+      'returnRequests/$returnId/status': request.riderId == null
+          ? 'requested'
+          : 'assigned',
       'returnRequests/$returnId/approvedAt': nowIso,
       'returnRequests/$returnId/updatedAt': nowIso,
       'returnRequests/$returnId/processedBy': actor.id,
-      'orders/${order.id}/returnStatus': request.riderId == null ? 'requested' : 'assigned',
+      'orders/${order.id}/returnStatus': request.riderId == null
+          ? 'requested'
+          : 'assigned',
       'orders/${order.id}/updatedAt': nowIso,
       'notifications/${notification.id}': notification.toMap(),
     });
   }
 
-  Future<void> markReturnPicked(String returnId, {required AppUser actor}) async {
+  Future<void> markReturnPicked(
+    String returnId, {
+    required AppUser actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       await _backendCommerce.markReturnPicked(returnId);
       return;
     }
-    final request = await _fetchDocument('returnRequests/$returnId', (map, id) => ReturnRequest.fromMap(map, id));
+    final request = await _fetchDocument(
+      'returnRequests/$returnId',
+      (map, id) => ReturnRequest.fromMap(map, id),
+    );
     if (request == null) {
       throw StateError('Return request not found.');
     }
-    final canManage = isSuperAdmin(actor) || (isRider(actor) && request.riderId == actor.id);
+    final canManage =
+        isSuperAdmin(actor) || (isRider(actor) && request.riderId == actor.id);
     if (!canManage) {
       throw StateError('Pickup access denied.');
     }
@@ -5558,18 +6137,26 @@ class DatabaseService {
       );
       return;
     }
-    final request = await _fetchDocument('returnRequests/$returnId', (map, id) => ReturnRequest.fromMap(map, id));
+    final request = await _fetchDocument(
+      'returnRequests/$returnId',
+      (map, id) => ReturnRequest.fromMap(map, id),
+    );
     if (request == null) {
       throw StateError('Return request not found.');
     }
-    final canManage = isSuperAdmin(actor) || (isRider(actor) && request.riderId == actor.id);
+    final canManage =
+        isSuperAdmin(actor) || (isRider(actor) && request.riderId == actor.id);
     if (!canManage) {
       throw StateError('Return completion access denied.');
     }
-    if (request.status.toLowerCase() != 'picked' && request.status.toLowerCase() != 'approved') {
+    if (request.status.toLowerCase() != 'picked' &&
+        request.status.toLowerCase() != 'approved') {
       throw StateError('This return is not ready for completion.');
     }
-    final order = await _fetchDocument('orders/${request.orderId}', (map, id) => OrderModel.fromMap(map, id));
+    final order = await _fetchDocument(
+      'orders/${request.orderId}',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (order == null) {
       throw StateError('Order not found.');
     }
@@ -5602,7 +6189,8 @@ class DatabaseService {
     String? refundRequestId = request.refundRequestId;
     if (_isRefundEligible(order)) {
       final existingRefund = await getRefundRequestForOrder(order.id);
-      if (existingRefund != null && existingRefund.status.toLowerCase() != 'rejected') {
+      if (existingRefund != null &&
+          existingRefund.status.toLowerCase() != 'rejected') {
         refundRequestId = existingRefund.id;
         if (existingRefund.status.toLowerCase() == 'pending') {
           await approveRefundRequest(existingRefund.id, actor: actor);
@@ -5644,15 +6232,24 @@ class DatabaseService {
       'notifications/${notification.id}': notification.toMap(),
       'tasks/${_taskIdForReturn(returnId)}/status': 'completed',
       'tasks/${_taskIdForReturn(returnId)}/updatedAt': nowIso,
-      if ((request.pickupTaskId ?? '').trim().isNotEmpty) 'pickupTasks/${request.pickupTaskId}/status': 'delivered',
-      if ((request.pickupTaskId ?? '').trim().isNotEmpty) 'pickupTasks/${request.pickupTaskId}/updatedAt': nowIso,
+      if ((request.pickupTaskId ?? '').trim().isNotEmpty)
+        'pickupTasks/${request.pickupTaskId}/status': 'delivered',
+      if ((request.pickupTaskId ?? '').trim().isNotEmpty)
+        'pickupTasks/${request.pickupTaskId}/updatedAt': nowIso,
     });
     unawaited(refreshVendorRankings());
   }
 
-  Future<void> assignRiderToOrder(String orderId, AppUser rider, {required AppUser actor}) async {
+  Future<void> assignRiderToOrder(
+    String orderId,
+    AppUser rider, {
+    required AppUser actor,
+  }) async {
     _requireSuperAdmin(actor);
-    final existing = await _fetchDocument('orders/$orderId', (map, id) => OrderModel.fromMap(map, id));
+    final existing = await _fetchDocument(
+      'orders/$orderId',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (existing == null) {
       throw StateError('Order not found.');
     }
@@ -5666,7 +6263,11 @@ class DatabaseService {
       'orders/$orderId/assignedDeliveryPartner': rider.name,
       'orders/$orderId/deliveryStatus': 'Assigned',
       'orders/$orderId/updatedAt': nowIso,
-      'orders/$orderId/trackingTimestamps': _trackingTimestampsForStatus(existing, 'Assigned', nowIso),
+      'orders/$orderId/trackingTimestamps': _trackingTimestampsForStatus(
+        existing,
+        'Assigned',
+        nowIso,
+      ),
     };
     final user = await getUser(existing.userId);
     updates['tasks/${_taskIdForDelivery(orderId)}'] = UnifiedRiderTask(
@@ -5676,7 +6277,9 @@ class DatabaseService {
       userId: existing.userId,
       address: existing.shippingAddress.trim().isNotEmpty
           ? existing.shippingAddress.trim()
-          : (user?.address?.trim().isNotEmpty == true ? user!.address!.trim() : 'Address unavailable'),
+          : (user?.address?.trim().isNotEmpty == true
+                ? user!.address!.trim()
+                : 'Address unavailable'),
       status: 'assigned',
       riderId: rider.id,
       createdAt: existing.createdAt ?? nowIso,
@@ -5693,7 +6296,8 @@ class DatabaseService {
       audienceRole: 'rider',
       userId: rider.id,
     );
-    updates['notifications/${riderNotification.id}'] = riderNotification.toMap();
+    updates['notifications/${riderNotification.id}'] = riderNotification
+        .toMap();
 
     await _queueActivityLogWrite(
       updates,
@@ -5726,9 +6330,11 @@ class DatabaseService {
       _ref('tasks').orderByChild('riderId').equalTo(actor.id),
       (map, id) => UnifiedRiderTask.fromMap(map, id),
     ).map((tasks) {
-      tasks.sort((a, b) => a.status == b.status
-          ? b.updatedAt.compareTo(a.updatedAt)
-          : a.status.compareTo(b.status));
+      tasks.sort(
+        (a, b) => a.status == b.status
+            ? b.updatedAt.compareTo(a.updatedAt)
+            : a.status.compareTo(b.status),
+      );
       return tasks;
     });
   }
@@ -5736,26 +6342,34 @@ class DatabaseService {
   Future<List<UnifiedRiderTask>> getRiderTasks(AppUser actor) async {
     if (_backendCommerce.isConfigured) {
       final orders = await _backendCommerce.getAssignedDeliveries();
-      final tasks = orders
-          .map(
-            (order) => UnifiedRiderTask(
-              id: 'delivery-${order.id}',
-              type: 'delivery',
-              orderId: order.id,
-              userId: order.userId,
-              address: order.shippingAddress,
-              status: order.deliveryStatus == 'Delivered'
-                  ? 'completed'
-                  : (order.deliveryStatus == 'Picked up' || order.deliveryStatus == 'Out for delivery'
-                      ? 'in_progress'
-                      : 'assigned'),
-              riderId: actor.id,
-              createdAt: order.createdAt ?? order.timestamp.toIso8601String(),
-              updatedAt: order.updatedAt ?? order.timestamp.toIso8601String(),
-            ),
-          )
-          .toList()
-        ..sort((a, b) => a.status == b.status ? b.updatedAt.compareTo(a.updatedAt) : a.status.compareTo(b.status));
+      final tasks =
+          orders
+              .map(
+                (order) => UnifiedRiderTask(
+                  id: 'delivery-${order.id}',
+                  type: 'delivery',
+                  orderId: order.id,
+                  userId: order.userId,
+                  address: order.shippingAddress,
+                  status: order.deliveryStatus == 'Delivered'
+                      ? 'completed'
+                      : (order.deliveryStatus == 'Picked up' ||
+                                order.deliveryStatus == 'Out for delivery'
+                            ? 'in_progress'
+                            : 'assigned'),
+                  riderId: actor.id,
+                  createdAt:
+                      order.createdAt ?? order.timestamp.toIso8601String(),
+                  updatedAt:
+                      order.updatedAt ?? order.timestamp.toIso8601String(),
+                ),
+              )
+              .toList()
+            ..sort(
+              (a, b) => a.status == b.status
+                  ? b.updatedAt.compareTo(a.updatedAt)
+                  : a.status.compareTo(b.status),
+            );
       return tasks;
     }
     if (!isRider(actor) && !isSuperAdmin(actor)) {
@@ -5765,9 +6379,11 @@ class DatabaseService {
       _ref('tasks').orderByChild('riderId').equalTo(actor.id),
       (map, id) => UnifiedRiderTask.fromMap(map, id),
     );
-    tasks.sort((a, b) => a.status == b.status
-        ? b.updatedAt.compareTo(a.updatedAt)
-        : a.status.compareTo(b.status));
+    tasks.sort(
+      (a, b) => a.status == b.status
+          ? b.updatedAt.compareTo(a.updatedAt)
+          : a.status.compareTo(b.status),
+    );
     return tasks;
   }
 
@@ -5776,7 +6392,10 @@ class DatabaseService {
       return _backendPollingStream<List<OrderModel>>(
         loader: () async {
           final orders = await _backendCommerce.getAssignedDeliveries();
-          orders.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
+          orders.sort(
+            (a, b) =>
+                _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+          );
           return orders;
         },
         interval: const Duration(seconds: 15),
@@ -5790,7 +6409,9 @@ class DatabaseService {
       _ref('orders').orderByChild('riderId').equalTo(actor.id),
       (map, id) => OrderModel.fromMap(map, id),
     ).map((orders) {
-      orders.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
+      orders.sort(
+        (a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+      );
       return orders;
     });
   }
@@ -5800,16 +6421,24 @@ class DatabaseService {
       return _backendPollingStream<List<OrderModel>>(
         loader: () async {
           final orders = await _backendCommerce.getAvailableDeliveries();
-          orders.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
+          orders.sort(
+            (a, b) =>
+                _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+          );
           return orders;
         },
         interval: const Duration(seconds: 15),
         backgroundInterval: const Duration(seconds: 35),
       );
     }
-    return _watchCollection('orders', (map, id) => OrderModel.fromMap(map, id)).map((orders) {
+    return _watchCollection(
+      'orders',
+      (map, id) => OrderModel.fromMap(map, id),
+    ).map((orders) {
       final filtered = orders.where(_isOrderAvailableForRider).toList()
-        ..sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
+        ..sort(
+          (a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+        );
       return filtered;
     });
   }
@@ -5817,20 +6446,33 @@ class DatabaseService {
   Future<List<OrderModel>> getAvailableDeliveryOrders() async {
     if (_backendCommerce.isConfigured) {
       final orders = await _backendCommerce.getAvailableDeliveries();
-      orders.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
+      orders.sort(
+        (a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+      );
       return orders;
     }
-    final orders = await _fetchCollection('orders', (map, id) => OrderModel.fromMap(map, id));
+    final orders = await _fetchCollection(
+      'orders',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     final filtered = orders.where(_isOrderAvailableForRider).toList();
-    filtered.sort((a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)));
+    filtered.sort(
+      (a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+    );
     return filtered;
   }
 
   bool _isOrderAvailableForRider(OrderModel order) {
     final status = order.status.trim().toLowerCase();
     final delivery = order.deliveryStatus.trim().toLowerCase();
-    final readyForPickup = status == 'packed' || status == 'confirmed' || delivery == 'ready for pickup';
-    final closed = status == 'delivered' || status == 'cancelled' || delivery == 'delivered';
+    final readyForPickup =
+        status == 'packed' ||
+        status == 'confirmed' ||
+        delivery == 'ready for pickup';
+    final closed =
+        status == 'delivered' ||
+        status == 'cancelled' ||
+        delivery == 'delivered';
     return order.riderId == null && readyForPickup && !closed;
   }
 
@@ -5843,16 +6485,25 @@ class DatabaseService {
       throw StateError('Only riders can accept delivery requests.');
     }
     if (!isSuperAdmin(actor) && actor.riderApprovalStatus != 'approved') {
-      throw StateError('Rider approval is required before accepting deliveries.');
+      throw StateError(
+        'Rider approval is required before accepting deliveries.',
+      );
     }
-    final existing = await _fetchDocument('orders/$orderId', (map, id) => OrderModel.fromMap(map, id));
+    final existing = await _fetchDocument(
+      'orders/$orderId',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (existing == null) {
       throw StateError('Order not found.');
     }
-    if (!_isOrderAvailableForRider(existing) && existing.riderId != actor.id && !isSuperAdmin(actor)) {
+    if (!_isOrderAvailableForRider(existing) &&
+        existing.riderId != actor.id &&
+        !isSuperAdmin(actor)) {
       throw StateError('This delivery is not available for pickup.');
     }
-    if (existing.riderId != null && existing.riderId != actor.id && !isSuperAdmin(actor)) {
+    if (existing.riderId != null &&
+        existing.riderId != actor.id &&
+        !isSuperAdmin(actor)) {
       throw StateError('Delivery already accepted by another rider.');
     }
     final now = DateTime.now();
@@ -5864,7 +6515,11 @@ class DatabaseService {
       'orders/$orderId/assignedDeliveryPartner': actor.name,
       'orders/$orderId/deliveryStatus': 'Assigned',
       'orders/$orderId/updatedAt': nowIso,
-      'orders/$orderId/trackingTimestamps': _trackingTimestampsForStatus(existing, 'Assigned', nowIso),
+      'orders/$orderId/trackingTimestamps': _trackingTimestampsForStatus(
+        existing,
+        'Assigned',
+        nowIso,
+      ),
       'tasks/${_taskIdForDelivery(orderId)}': UnifiedRiderTask(
         id: _taskIdForDelivery(orderId),
         type: 'delivery',
@@ -5894,10 +6549,10 @@ class DatabaseService {
         isRead: false,
         timestamp: now,
         audienceRole: 'user',
-          userId: existing.userId,
-          storeId: existing.storeId,
-        ).toMap(),
-      };
+        userId: existing.userId,
+        storeId: existing.storeId,
+      ).toMap(),
+    };
     await _queueActivityLogWrite(
       updates,
       action: 'accept_delivery',
@@ -5910,12 +6565,19 @@ class DatabaseService {
     await _ref('').update(updates);
   }
 
-  Future<void> updateDeliveryStatus(String orderId, String deliveryStatus, {required AppUser actor}) async {
+  Future<void> updateDeliveryStatus(
+    String orderId,
+    String deliveryStatus, {
+    required AppUser actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       await _backendCommerce.updateDeliveryStatus(orderId, deliveryStatus);
       return;
     }
-    final existing = await _fetchDocument('orders/$orderId', (map, id) => OrderModel.fromMap(map, id));
+    final existing = await _fetchDocument(
+      'orders/$orderId',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (existing == null) {
       throw StateError('Order not found.');
     }
@@ -5923,24 +6585,37 @@ class DatabaseService {
       _requireRiderAccess(actor, existing);
     }
     if (!isSuperAdmin(actor) && actor.riderApprovalStatus != 'approved') {
-      throw StateError('Rider approval is required before updating delivery status.');
+      throw StateError(
+        'Rider approval is required before updating delivery status.',
+      );
     }
-    final normalizedDeliveryStatus = _normalizeRiderDeliveryStatus(deliveryStatus);
+    final normalizedDeliveryStatus = _normalizeRiderDeliveryStatus(
+      deliveryStatus,
+    );
     if (existing.deliveryStatus == normalizedDeliveryStatus) {
       return;
     }
-    final validatedDeliveryStatus = _validatedRiderDeliveryStatus(existing, deliveryStatus);
+    final validatedDeliveryStatus = _validatedRiderDeliveryStatus(
+      existing,
+      deliveryStatus,
+    );
     final nowIso = _nowIso();
 
     final updates = <String, dynamic>{
       'orders/$orderId/deliveryStatus': validatedDeliveryStatus,
       'orders/$orderId/updatedAt': nowIso,
-      'orders/$orderId/trackingTimestamps': _trackingTimestampsForStatus(existing, validatedDeliveryStatus, nowIso),
-      'tasks/${_taskIdForDelivery(orderId)}/status': validatedDeliveryStatus == 'Delivered'
+      'orders/$orderId/trackingTimestamps': _trackingTimestampsForStatus(
+        existing,
+        validatedDeliveryStatus,
+        nowIso,
+      ),
+      'tasks/${_taskIdForDelivery(orderId)}/status':
+          validatedDeliveryStatus == 'Delivered'
           ? 'completed'
-          : (validatedDeliveryStatus == 'Picked up' || validatedDeliveryStatus == 'Out for delivery'
-              ? 'in_progress'
-              : 'assigned'),
+          : (validatedDeliveryStatus == 'Picked up' ||
+                    validatedDeliveryStatus == 'Out for delivery'
+                ? 'in_progress'
+                : 'assigned'),
       'tasks/${_taskIdForDelivery(orderId)}/updatedAt': nowIso,
     };
 
@@ -5962,9 +6637,13 @@ class DatabaseService {
       }
 
       if (existing.payoutStatus != 'Ready' && existing.payoutStatus != 'Paid') {
-        final store = await _fetchDocument('stores/${existing.storeId}', (map, id) => Store.fromMap(map, id));
+        final store = await _fetchDocument(
+          'stores/${existing.storeId}',
+          (map, id) => Store.fromMap(map, id),
+        );
         if (store != null) {
-          updates['stores/${store.id}/walletBalance'] = store.walletBalance + existing.vendorEarnings;
+          updates['stores/${store.id}/walletBalance'] =
+              store.walletBalance + existing.vendorEarnings;
         }
       }
 
@@ -5972,7 +6651,8 @@ class DatabaseService {
       final notification = AppNotification(
         id: notifId,
         title: 'Order Delivered',
-        body: 'Order ${existing.invoiceNumber.isEmpty ? '#$orderId' : existing.invoiceNumber} has been delivered.',
+        body:
+            'Order ${existing.invoiceNumber.isEmpty ? '#$orderId' : existing.invoiceNumber} has been delivered.',
         type: 'order',
         isRead: false,
         timestamp: DateTime.now(),
@@ -5985,13 +6665,13 @@ class DatabaseService {
 
     await _queueActivityLogWrite(
       updates,
-        action: 'update_delivery_status',
-        targetType: 'order',
-        targetId: orderId,
-        message: 'Updated delivery status to $validatedDeliveryStatus.',
-        actor: actor,
-        timestamp: nowIso,
-      );
+      action: 'update_delivery_status',
+      targetType: 'order',
+      targetId: orderId,
+      message: 'Updated delivery status to $validatedDeliveryStatus.',
+      actor: actor,
+      timestamp: nowIso,
+    );
 
     await _ref('').update(updates);
   }
@@ -6010,7 +6690,10 @@ class DatabaseService {
       );
       return;
     }
-    final existing = await _fetchDocument('orders/$orderId', (map, id) => OrderModel.fromMap(map, id));
+    final existing = await _fetchDocument(
+      'orders/$orderId',
+      (map, id) => OrderModel.fromMap(map, id),
+    );
     if (existing == null) {
       throw StateError('Order not found.');
     }
@@ -6018,7 +6701,9 @@ class DatabaseService {
       _requireRiderAccess(actor, existing);
     }
     if (!isSuperAdmin(actor) && actor.riderApprovalStatus != 'approved') {
-      throw StateError('Rider approval is required before sharing live location.');
+      throw StateError(
+        'Rider approval is required before sharing live location.',
+      );
     }
     await _ref('orders/$orderId').update({
       'riderLatitude': latitude,
@@ -6032,21 +6717,30 @@ class DatabaseService {
     if (_backendCommerce.isConfigured) {
       return (await _backendCommerce.getAdminUsers()).length;
     }
-    return (await _fetchCollection('users', (map, _) => AppUser.fromMap(map))).length;
+    return (await _fetchCollection(
+      'users',
+      (map, _) => AppUser.fromMap(map),
+    )).length;
   }
 
   Future<int> getStoresCount() async {
     if (_backendCommerce.isConfigured) {
       return (await _backendCommerce.getAdminStores()).length;
     }
-    return (await _fetchCollection('stores', (map, id) => Store.fromMap(map, id))).length;
+    return (await _fetchCollection(
+      'stores',
+      (map, id) => Store.fromMap(map, id),
+    )).length;
   }
 
   Future<int> getOrdersCount() async {
     if (_backendCommerce.isConfigured) {
       return (await _backendCommerce.getAdminOrders()).length;
     }
-    return (await _fetchCollection('orders', (map, id) => OrderModel.fromMap(map, id))).length;
+    return (await _fetchCollection(
+      'orders',
+      (map, id) => OrderModel.fromMap(map, id),
+    )).length;
   }
 
   Future<List<AppNotification>> getNotificationsFor(AppUser? actor) async {
@@ -6056,7 +6750,9 @@ class DatabaseService {
     }
     if (_backendCommerce.isConfigured) {
       if (isSuperAdmin(user)) {
-        return _sortedNotifications(await _backendCommerce.getAdminNotifications());
+        return _sortedNotifications(
+          await _backendCommerce.getAdminNotifications(),
+        );
       }
       return [];
     }
@@ -6070,16 +6766,23 @@ class DatabaseService {
           _ref('notifications').orderByChild('audienceRole').equalTo('all'),
           (map, _) => AppNotification.fromMap(map),
         );
-        return _sortedNotifications([...adminNotifications, ...globalNotifications]);
+        return _sortedNotifications([
+          ...adminNotifications,
+          ...globalNotifications,
+        ]);
       }
 
-      if (user.role == 'vendor' && user.storeId != null && user.storeId!.isNotEmpty) {
+      if (user.role == 'vendor' &&
+          user.storeId != null &&
+          user.storeId!.isNotEmpty) {
         final vendorNotifications = await _fetchQueryCollection(
           _ref('notifications').orderByChild('storeId').equalTo(user.storeId),
           (map, _) => AppNotification.fromMap(map),
         );
         return _sortedNotifications(
-          vendorNotifications.where((notification) => notification.audienceRole == 'vendor'),
+          vendorNotifications.where(
+            (notification) => notification.audienceRole == 'vendor',
+          ),
         );
       }
 
@@ -6093,14 +6796,15 @@ class DatabaseService {
           _ref('notifications').orderByChild('audienceRole').equalTo('rider'),
           (map, _) => AppNotification.fromMap(map),
         );
-        return _sortedNotifications(
-          [
-            ...scopedUserNotifications.where((notification) => notification.audienceRole == 'rider'),
-            ...riderBroadcastNotifications.where(
-              (notification) => notification.userId == null || notification.userId == user.id,
-            ),
-          ],
-        );
+        return _sortedNotifications([
+          ...scopedUserNotifications.where(
+            (notification) => notification.audienceRole == 'rider',
+          ),
+          ...riderBroadcastNotifications.where(
+            (notification) =>
+                notification.userId == null || notification.userId == user.id,
+          ),
+        ]);
       }
 
       final globalNotifications = await _fetchQueryCollection(
@@ -6109,13 +6813,17 @@ class DatabaseService {
       );
       return _sortedNotifications([
         ...scopedUserNotifications.where(
-          (notification) => notification.audienceRole == 'user' || notification.audienceRole == 'customer',
+          (notification) =>
+              notification.audienceRole == 'user' ||
+              notification.audienceRole == 'customer',
         ),
         ...globalNotifications,
       ]);
     } on FirebaseException catch (error) {
       if (error.code == 'permission-denied') {
-        debugPrint('Notifications unavailable for ${user.id}: ${error.message}');
+        debugPrint(
+          'Notifications unavailable for ${user.id}: ${error.message}',
+        );
         return const <AppNotification>[];
       }
       rethrow;
@@ -6143,11 +6851,14 @@ class DatabaseService {
     if (items.isEmpty) {
       return;
     }
-    await _ref('notifications/n-abandoned-${DateTime.now().millisecondsSinceEpoch}').set(
+    await _ref(
+      'notifications/n-abandoned-${DateTime.now().millisecondsSinceEpoch}',
+    ).set(
       AppNotification(
         id: 'n-abandoned-${DateTime.now().millisecondsSinceEpoch}',
         title: 'Complete your order now',
-        body: 'Your ${items.first.productName} is still waiting in the bag. Use $offerCode to finish checkout.',
+        body:
+            'Your ${items.first.productName} is still waiting in the bag. Use $offerCode to finish checkout.',
         type: 'abandoned_cart',
         isRead: false,
         timestamp: DateTime.now(),
@@ -6164,125 +6875,186 @@ class DatabaseService {
     final orders = await getAllOrders();
     final payouts = await getPayouts();
     final stores = await getAdminStores();
-    final delivered = orders.where((order) => order.status == 'Delivered' || order.status == 'Shipped').toList();
-    final totalRevenue = delivered.fold<double>(0, (sum, order) => sum + order.totalAmount);
-    final commissionRevenue = delivered.fold<double>(0, (sum, order) => sum + order.platformCommission);
+    final delivered = orders
+        .where(
+          (order) => order.status == 'Delivered' || order.status == 'Shipped',
+        )
+        .toList();
+    final totalRevenue = delivered.fold<double>(
+      0,
+      (sum, order) => sum + order.totalAmount,
+    );
+    final commissionRevenue = delivered.fold<double>(
+      0,
+      (sum, order) => sum + order.platformCommission,
+    );
     final storeTotals = <String, double>{};
     for (final order in delivered) {
-      storeTotals.update(order.storeId, (value) => value + order.totalAmount, ifAbsent: () => order.totalAmount);
+      storeTotals.update(
+        order.storeId,
+        (value) => value + order.totalAmount,
+        ifAbsent: () => order.totalAmount,
+      );
     }
     final topStores = stores.toList()
-      ..sort((a, b) => (storeTotals[b.id] ?? 0).compareTo(storeTotals[a.id] ?? 0));
+      ..sort(
+        (a, b) => (storeTotals[b.id] ?? 0).compareTo(storeTotals[a.id] ?? 0),
+      );
     final dailySales = List.generate(7, (index) {
       final day = DateTime.now().subtract(Duration(days: 6 - index));
       final value = delivered
-          .where((order) =>
-              order.timestamp.year == day.year && order.timestamp.month == day.month && order.timestamp.day == day.day)
+          .where(
+            (order) =>
+                order.timestamp.year == day.year &&
+                order.timestamp.month == day.month &&
+                order.timestamp.day == day.day,
+          )
           .fold<double>(0, (sum, order) => sum + order.totalAmount);
-      return AnalyticsPoint(label: DateFormat('dd MMM').format(day), value: value);
+      return AnalyticsPoint(
+        label: DateFormat('dd MMM').format(day),
+        value: value,
+      );
     });
     final weeklySales = List.generate(4, (index) {
-      final weekStart = DateTime.now().subtract(Duration(days: (3 - index) * 7));
+      final weekStart = DateTime.now().subtract(
+        Duration(days: (3 - index) * 7),
+      );
       final weekEnd = weekStart.add(const Duration(days: 6));
       final value = delivered
-          .where((order) => !order.timestamp.isBefore(weekStart) && !order.timestamp.isAfter(weekEnd))
+          .where(
+            (order) =>
+                !order.timestamp.isBefore(weekStart) &&
+                !order.timestamp.isAfter(weekEnd),
+          )
           .fold<double>(0, (sum, order) => sum + order.totalAmount);
       return AnalyticsPoint(label: 'W${index + 1}', value: value);
     });
-      return AdminAnalytics(
-        totalRevenue: totalRevenue,
-        platformCommissionRevenue: commissionRevenue,
-        vendorPayouts: payouts.fold<double>(0, (sum, item) => sum + item.amount),
-        riderPayouts: 0,
-        totalOrders: orders.length,
-        ordersToday: orders
-            .where((order) {
-              final now = DateTime.now();
-              return order.timestamp.year == now.year &&
-                  order.timestamp.month == now.month &&
-                  order.timestamp.day == now.day;
-            })
-            .length,
-        topStores: topStores.take(3).toList(),
-        dailySales: dailySales,
-        weeklySales: weeklySales,
-      );
-    }
+    return AdminAnalytics(
+      totalRevenue: totalRevenue,
+      platformCommissionRevenue: commissionRevenue,
+      vendorPayouts: payouts.fold<double>(0, (sum, item) => sum + item.amount),
+      riderPayouts: 0,
+      totalOrders: orders.length,
+      ordersToday: orders.where((order) {
+        final now = DateTime.now();
+        return order.timestamp.year == now.year &&
+            order.timestamp.month == now.month &&
+            order.timestamp.day == now.day;
+      }).length,
+      topStores: topStores.take(3).toList(),
+      dailySales: dailySales,
+      weeklySales: weeklySales,
+    );
+  }
 
-  Future<VendorAnalytics> getVendorAnalytics(String storeId, {AppUser? actor}) async {
+  Future<VendorAnalytics> getVendorAnalytics(
+    String storeId, {
+    AppUser? actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.getVendorDashboard();
     }
     _requireStoreAccess(actor, storeId);
-    final orders = (await getAllOrders()).where((order) => order.storeId == storeId).toList();
-    final totalSales = orders.fold<double>(0, (sum, order) => sum + order.totalAmount);
-    final totalEarnings = orders.fold<double>(0, (sum, order) => sum + order.vendorEarnings);
-    final store = (await getAdminStores()).firstWhere((candidate) => candidate.id == storeId);
+    final orders = (await getAllOrders())
+        .where((order) => order.storeId == storeId)
+        .toList();
+    final totalSales = orders.fold<double>(
+      0,
+      (sum, order) => sum + order.totalAmount,
+    );
+    final totalEarnings = orders.fold<double>(
+      0,
+      (sum, order) => sum + order.vendorEarnings,
+    );
+    final store = (await getAdminStores()).firstWhere(
+      (candidate) => candidate.id == storeId,
+    );
     final productUnits = <String, int>{};
     for (final order in orders) {
       for (final item in order.items) {
-        productUnits.update(item.productId, (value) => value + item.quantity, ifAbsent: () => item.quantity);
+        productUnits.update(
+          item.productId,
+          (value) => value + item.quantity,
+          ifAbsent: () => item.quantity,
+        );
       }
     }
     final bestSellingProducts = await getProductsByStore(storeId)
-      ..sort((a, b) => (productUnits[b.id] ?? 0).compareTo(productUnits[a.id] ?? 0));
+      ..sort(
+        (a, b) => (productUnits[b.id] ?? 0).compareTo(productUnits[a.id] ?? 0),
+      );
     final salesTrend = List.generate(7, (index) {
       final day = DateTime.now().subtract(Duration(days: 6 - index));
       final value = orders
-          .where((order) =>
-              order.timestamp.year == day.year && order.timestamp.month == day.month && order.timestamp.day == day.day)
+          .where(
+            (order) =>
+                order.timestamp.year == day.year &&
+                order.timestamp.month == day.month &&
+                order.timestamp.day == day.day,
+          )
           .fold<double>(0, (sum, order) => sum + order.vendorEarnings);
       return AnalyticsPoint(label: DateFormat('dd').format(day), value: value);
     });
-      return VendorAnalytics(
-        todayEarnings: orders
-            .where((order) {
-              final now = DateTime.now();
-              return order.timestamp.year == now.year &&
-                  order.timestamp.month == now.month &&
-                  order.timestamp.day == now.day;
-            })
-            .fold<double>(0, (sum, order) => sum + order.vendorEarnings),
-        totalSales: totalSales,
-        availableBalance: store.walletBalance,
-        totalEarnings: totalEarnings,
-        pendingAmount: orders
-            .where((order) => !order.payoutProcessed)
-            .fold<double>(0, (sum, order) => sum + order.vendorEarnings),
-        reservedAmount: 0,
-        lastPayoutAmount: 0,
-        lastPayoutAt: '',
-        orders: orders.length,
-        ordersCompleted: orders.where((order) => order.status == 'Delivered').length,
-        ordersToday: orders.where((order) {
-          final now = DateTime.now();
-          return order.timestamp.year == now.year &&
-              order.timestamp.month == now.month &&
-              order.timestamp.day == now.day;
-        }).length,
-        bestSellingProducts: bestSellingProducts.take(3).toList(),
-        salesTrend: salesTrend,
-        transactions: const [],
-      );
-    }
+    return VendorAnalytics(
+      todayEarnings: orders
+          .where((order) {
+            final now = DateTime.now();
+            return order.timestamp.year == now.year &&
+                order.timestamp.month == now.month &&
+                order.timestamp.day == now.day;
+          })
+          .fold<double>(0, (sum, order) => sum + order.vendorEarnings),
+      totalSales: totalSales,
+      availableBalance: store.walletBalance,
+      totalEarnings: totalEarnings,
+      pendingAmount: orders
+          .where((order) => !order.payoutProcessed)
+          .fold<double>(0, (sum, order) => sum + order.vendorEarnings),
+      reservedAmount: 0,
+      lastPayoutAmount: 0,
+      lastPayoutAt: '',
+      orders: orders.length,
+      ordersCompleted: orders
+          .where((order) => order.status == 'Delivered')
+          .length,
+      ordersToday: orders.where((order) {
+        final now = DateTime.now();
+        return order.timestamp.year == now.year &&
+            order.timestamp.month == now.month &&
+            order.timestamp.day == now.day;
+      }).length,
+      bestSellingProducts: bestSellingProducts.take(3).toList(),
+      salesTrend: salesTrend,
+      transactions: const [],
+    );
+  }
 
   Future<RiderAnalytics> getRiderAnalytics({required AppUser actor}) async {
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.getRiderDashboard();
     }
     final assigned = await getAllOrders(actor: actor);
-    final delivered = assigned.where((order) => order.status == 'Delivered').toList();
+    final delivered = assigned
+        .where((order) => order.status == 'Delivered')
+        .toList();
     final now = DateTime.now();
     final todayDelivered = delivered.where((order) {
       return order.timestamp.year == now.year &&
           order.timestamp.month == now.month &&
           order.timestamp.day == now.day;
     }).toList();
-    double riderPayoutFor(OrderModel order) => order.extraCharges > 0 ? order.extraCharges : 0;
+    double riderPayoutFor(OrderModel order) =>
+        order.extraCharges > 0 ? order.extraCharges : 0;
     return RiderAnalytics(
       todayDeliveries: todayDelivered.length,
-      earningsToday: todayDelivered.fold<double>(0, (sum, order) => sum + riderPayoutFor(order)),
-      totalEarnings: delivered.fold<double>(0, (sum, order) => sum + riderPayoutFor(order)),
+      earningsToday: todayDelivered.fold<double>(
+        0,
+        (sum, order) => sum + riderPayoutFor(order),
+      ),
+      totalEarnings: delivered.fold<double>(
+        0,
+        (sum, order) => sum + riderPayoutFor(order),
+      ),
       pendingPayout: delivered
           .where((order) => order.payoutStatus != 'Paid')
           .fold<double>(0, (sum, order) => sum + riderPayoutFor(order)),
@@ -6300,7 +7072,10 @@ class DatabaseService {
     yield* Stream.periodic(interval).asyncMap((_) => loader());
   }
 
-  Future<List<PayoutModel>> getPayouts({AppUser? actor, String? storeId}) async {
+  Future<List<PayoutModel>> getPayouts({
+    AppUser? actor,
+    String? storeId,
+  }) async {
     if (_backendCommerce.isConfigured) {
       if (actor != null && !isSuperAdmin(actor)) {
         _requireStoreAccess(actor, storeId ?? actor.storeId ?? '');
@@ -6320,7 +7095,10 @@ class DatabaseService {
             _ref('payouts').orderByChild('storeId').equalTo(storeId),
             (map, id) => PayoutModel.fromMap(map, id),
           )
-        : await _fetchCollection('payouts', (map, id) => PayoutModel.fromMap(map, id));
+        : await _fetchCollection(
+            'payouts',
+            (map, id) => PayoutModel.fromMap(map, id),
+          );
     payouts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return payouts;
   }
@@ -6341,7 +7119,8 @@ class DatabaseService {
           AppNotification(
             id: 'n-payout-${DateTime.now().millisecondsSinceEpoch}',
             title: 'Payout processed',
-            body: 'Vendor payout of Rs ${payout.amount.toInt()} has been processed.',
+            body:
+                'Vendor payout of Rs ${payout.amount.toInt()} has been processed.',
             type: 'payout',
             isRead: false,
             timestamp: DateTime.now(),
@@ -6354,7 +7133,9 @@ class DatabaseService {
     }
     _requireSuperAdmin(actor);
     final readyOrders = (await getAllOrders()).where((order) {
-      return order.storeId == storeId && order.payoutStatus == 'Ready' && !order.payoutProcessed;
+      return order.storeId == storeId &&
+          order.payoutStatus == 'Ready' &&
+          !order.payoutProcessed;
     }).toList();
     if (readyOrders.isEmpty) {
       return null;
@@ -6364,17 +7145,24 @@ class DatabaseService {
       id: 'pay-${now.millisecondsSinceEpoch}',
       storeId: storeId,
       processedBy: actor.id,
-      amount: readyOrders.fold<double>(0, (sum, order) => sum + order.vendorEarnings),
+      amount: readyOrders.fold<double>(
+        0,
+        (sum, order) => sum + order.vendorEarnings,
+      ),
       periodLabel: periodLabel,
       createdAt: now,
       orderIds: readyOrders.map((order) => order.id).toList(),
     );
-    final updates = <String, dynamic>{
-      'payouts/${payout.id}': payout.toMap(),
-    };
-    final store = await _fetchDocument('stores/$storeId', (map, id) => Store.fromMap(map, id));
+    final updates = <String, dynamic>{'payouts/${payout.id}': payout.toMap()};
+    final store = await _fetchDocument(
+      'stores/$storeId',
+      (map, id) => Store.fromMap(map, id),
+    );
     if (store != null) {
-      updates['stores/$storeId/walletBalance'] = (store.walletBalance - payout.amount).clamp(0, double.infinity).toDouble();
+      updates['stores/$storeId/walletBalance'] =
+          (store.walletBalance - payout.amount)
+              .clamp(0, double.infinity)
+              .toDouble();
     }
     for (final order in readyOrders) {
       updates['orders/${order.id}/payoutStatus'] = 'Paid';
@@ -6387,7 +7175,8 @@ class DatabaseService {
       action: 'process_payout',
       targetType: 'payout',
       targetId: payout.id,
-      message: 'Processed payout ${payout.id} for store $storeId covering ${readyOrders.length} orders.',
+      message:
+          'Processed payout ${payout.id} for store $storeId covering ${readyOrders.length} orders.',
       actor: actor,
       timestamp: now.toIso8601String(),
     );
@@ -6396,7 +7185,8 @@ class DatabaseService {
       AppNotification(
         id: 'n-payout-${now.millisecondsSinceEpoch}',
         title: 'Payout processed',
-        body: 'Vendor payout of Rs ${payout.amount.toInt()} has been processed.',
+        body:
+            'Vendor payout of Rs ${payout.amount.toInt()} has been processed.',
         type: 'payout',
         isRead: false,
         timestamp: now,
@@ -6416,23 +7206,28 @@ class DatabaseService {
     }
     final store = await getStoreByOwner(actor.id);
     if (store == null) {
-        return const WalletSummary(
-          id: 'vendor',
-          kind: 'vendor',
-          linkedId: '',
-          balance: 0,
-          pendingAmount: 0,
-          reservedAmount: 0,
-          totalEarnings: 0,
-          totalWithdrawn: 0,
-          lastSettlementDate: '',
-        );
+      return const WalletSummary(
+        id: 'vendor',
+        kind: 'vendor',
+        linkedId: '',
+        balance: 0,
+        pendingAmount: 0,
+        reservedAmount: 0,
+        totalEarnings: 0,
+        totalWithdrawn: 0,
+        lastSettlementDate: '',
+      );
     }
-    final orders = (await getAllOrders()).where((order) => order.storeId == store.id).toList();
+    final orders = (await getAllOrders())
+        .where((order) => order.storeId == store.id)
+        .toList();
     final pendingAmount = orders
         .where((order) => !order.payoutProcessed)
         .fold<double>(0, (sum, order) => sum + order.vendorEarnings);
-    final totalEarnings = orders.fold<double>(0, (sum, order) => sum + order.vendorEarnings);
+    final totalEarnings = orders.fold<double>(
+      0,
+      (sum, order) => sum + order.vendorEarnings,
+    );
     return WalletSummary(
       id: store.id,
       kind: 'vendor',
@@ -6467,18 +7262,18 @@ class DatabaseService {
       }
       return _backendCommerce.getRiderWallet();
     }
-      return WalletSummary(
-        id: actor.id,
-        kind: 'rider',
-        linkedId: actor.id,
-        balance: actor.walletBalance,
+    return WalletSummary(
+      id: actor.id,
+      kind: 'rider',
+      linkedId: actor.id,
+      balance: actor.walletBalance,
       pendingAmount: 0,
       reservedAmount: 0,
       totalEarnings: actor.walletBalance,
       totalWithdrawn: 0,
-        lastSettlementDate: '',
-      );
-    }
+      lastSettlementDate: '',
+    );
+  }
 
   Future<WalletSummary> requestRiderWithdraw({
     required double amount,
@@ -6493,14 +7288,18 @@ class DatabaseService {
     throw StateError('Rider withdrawals are only supported in backend mode.');
   }
 
-  Future<PayoutProfileSummary> getVendorPayoutProfile({required AppUser actor}) async {
+  Future<PayoutProfileSummary> getVendorPayoutProfile({
+    required AppUser actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       if (actor.role != 'vendor') {
         throw StateError('Vendor access required.');
       }
       return _backendCommerce.getVendorPayoutProfile();
     }
-    throw StateError('Vendor payout accounts are only supported in backend mode.');
+    throw StateError(
+      'Vendor payout accounts are only supported in backend mode.',
+    );
   }
 
   Future<PayoutProfileSummary> saveVendorPayoutProfile({
@@ -6525,17 +7324,23 @@ class DatabaseService {
         bankName: bankName,
       );
     }
-    throw StateError('Vendor payout accounts are only supported in backend mode.');
+    throw StateError(
+      'Vendor payout accounts are only supported in backend mode.',
+    );
   }
 
-  Future<PayoutProfileSummary> getRiderPayoutProfile({required AppUser actor}) async {
+  Future<PayoutProfileSummary> getRiderPayoutProfile({
+    required AppUser actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       if (!isRider(actor)) {
         throw StateError('Rider access required.');
       }
       return _backendCommerce.getRiderPayoutProfile();
     }
-    throw StateError('Rider payout accounts are only supported in backend mode.');
+    throw StateError(
+      'Rider payout accounts are only supported in backend mode.',
+    );
   }
 
   Future<PayoutProfileSummary> saveRiderPayoutProfile({
@@ -6560,7 +7365,9 @@ class DatabaseService {
         bankName: bankName,
       );
     }
-    throw StateError('Rider payout accounts are only supported in backend mode.');
+    throw StateError(
+      'Rider payout accounts are only supported in backend mode.',
+    );
   }
 
   Future<AdminFinanceSummary> getAdminFinance({required AppUser actor}) async {
@@ -6574,10 +7381,19 @@ class DatabaseService {
         .where((order) => !order.payoutProcessed)
         .fold<double>(0, (sum, order) => sum + order.vendorEarnings);
     return AdminFinanceSummary(
-      totalCommission: orders.fold<double>(0, (sum, order) => sum + order.platformCommission),
-      totalRevenue: orders.fold<double>(0, (sum, order) => sum + order.totalAmount),
+      totalCommission: orders.fold<double>(
+        0,
+        (sum, order) => sum + order.platformCommission,
+      ),
+      totalRevenue: orders.fold<double>(
+        0,
+        (sum, order) => sum + order.totalAmount,
+      ),
       payoutsDone: payouts.fold<double>(0, (sum, item) => sum + item.amount),
-      vendorSettlementsDone: payouts.fold<double>(0, (sum, item) => sum + item.amount),
+      vendorSettlementsDone: payouts.fold<double>(
+        0,
+        (sum, item) => sum + item.amount,
+      ),
       riderSettlementsDone: 0,
       failedSettlements: 0,
       vendorPending: vendorPending,
@@ -6609,7 +7425,9 @@ class DatabaseService {
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.approveWithdrawalRequest(requestId);
     }
-    throw StateError('Withdrawal approvals are only supported in backend mode.');
+    throw StateError(
+      'Withdrawal approvals are only supported in backend mode.',
+    );
   }
 
   Future<WithdrawalRequestSummary> rejectWithdrawalRequest({
@@ -6624,7 +7442,9 @@ class DatabaseService {
         reason: reason,
       );
     }
-    throw StateError('Withdrawal approvals are only supported in backend mode.');
+    throw StateError(
+      'Withdrawal approvals are only supported in backend mode.',
+    );
   }
 
   Future<FraudAlertSummary> updateFraudAlertStatus({
@@ -6650,7 +7470,9 @@ class DatabaseService {
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.runScheduledSettlements(walletType);
     }
-    throw StateError('Scheduled settlements are only supported in backend mode.');
+    throw StateError(
+      'Scheduled settlements are only supported in backend mode.',
+    );
   }
 
   Future<VendorKycRequest?> getVendorKycRequestForUser(String userId) {
@@ -6673,7 +7495,9 @@ class DatabaseService {
     );
   }
 
-  Future<List<VendorKycRequest>> getVendorKycRequests({required AppUser actor}) async {
+  Future<List<VendorKycRequest>> getVendorKycRequests({
+    required AppUser actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       _requireSuperAdmin(actor);
       return _backendCommerce.getVendorKycRequests();
@@ -6687,7 +7511,9 @@ class DatabaseService {
     return requests;
   }
 
-  Future<List<RiderKycRequest>> getRiderKycRequests({required AppUser actor}) async {
+  Future<List<RiderKycRequest>> getRiderKycRequests({
+    required AppUser actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       _requireSuperAdmin(actor);
       return _backendCommerce.getRiderKycRequests();
@@ -6701,7 +7527,10 @@ class DatabaseService {
     return requests;
   }
 
-  Future<VendorKycRequest> submitVendorKycRequest(VendorKycRequest request, {required AppUser actor}) async {
+  Future<VendorKycRequest> submitVendorKycRequest(
+    VendorKycRequest request, {
+    required AppUser actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       if (actor.id != request.userId) {
         throw StateError('You can only submit KYC for your own account.');
@@ -6744,7 +7573,9 @@ class DatabaseService {
     final resolved = request.copyWith(
       id: 'vendor-${request.userId}',
       status: 'pending',
-      createdAt: existing?.createdAt.isNotEmpty == true ? existing!.createdAt : nowIso,
+      createdAt: existing?.createdAt.isNotEmpty == true
+          ? existing!.createdAt
+          : nowIso,
       updatedAt: nowIso,
       rejectionReason: '',
       reviewedBy: '',
@@ -6780,11 +7611,16 @@ class DatabaseService {
       'gpsValid': verification.gpsValid,
       'nameMatch': verification.nameMatch,
       'addressMatch': verification.addressMatch,
-      'createdAt': existing?.createdAt.isNotEmpty == true ? existing!.createdAt : nowIso,
+      'createdAt': existing?.createdAt.isNotEmpty == true
+          ? existing!.createdAt
+          : nowIso,
       'updatedAt': nowIso,
     });
-    if (verification.duplicateDetected || verification.autoReviewStatus == 'fraud_flagged') {
-      await _ref('kycFraudLogs/${resolved.id}-${DateTime.now().millisecondsSinceEpoch}').set({
+    if (verification.duplicateDetected ||
+        verification.autoReviewStatus == 'fraud_flagged') {
+      await _ref(
+        'kycFraudLogs/${resolved.id}-${DateTime.now().millisecondsSinceEpoch}',
+      ).set({
         'userId': actor.id,
         'requestId': resolved.id,
         'requestType': 'vendor',
@@ -6802,8 +7638,8 @@ class DatabaseService {
         body: verification.autoReviewStatus == 'auto_verified'
             ? '${request.ownerName} submitted vendor verification for ${request.storeName} with strong AI confidence.'
             : verification.autoReviewStatus == 'fraud_flagged'
-                ? '${request.ownerName} submitted vendor verification for ${request.storeName}; the request was flagged for review.'
-                : '${request.ownerName} submitted vendor verification for ${request.storeName}.',
+            ? '${request.ownerName} submitted vendor verification for ${request.storeName}; the request was flagged for review.'
+            : '${request.ownerName} submitted vendor verification for ${request.storeName}.',
         type: 'kyc',
         isRead: false,
         timestamp: DateTime.now(),
@@ -6821,7 +7657,10 @@ class DatabaseService {
     return resolved;
   }
 
-  Future<void> submitRiderKycRequest(RiderKycRequest request, {required AppUser actor}) async {
+  Future<void> submitRiderKycRequest(
+    RiderKycRequest request, {
+    required AppUser actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       if (actor.id != request.userId) {
         throw StateError('You can only submit KYC for your own account.');
@@ -6840,7 +7679,9 @@ class DatabaseService {
     final resolved = request.copyWith(
       id: 'rider-${request.userId}',
       status: 'pending',
-      createdAt: existing?.createdAt.isNotEmpty == true ? existing!.createdAt : nowIso,
+      createdAt: existing?.createdAt.isNotEmpty == true
+          ? existing!.createdAt
+          : nowIso,
       updatedAt: nowIso,
       rejectionReason: '',
       reviewedBy: '',
@@ -6853,7 +7694,9 @@ class DatabaseService {
           actorId: actor.id,
           actorName: actor.name,
           timestamp: nowIso,
-          note: existing == null ? 'Initial rider KYC submission.' : 'Rider KYC re-submitted with updated documents.',
+          note: existing == null
+              ? 'Initial rider KYC submission.'
+              : 'Rider KYC re-submitted with updated documents.',
         ),
       ],
     );
@@ -6862,7 +7705,8 @@ class DatabaseService {
       AppNotification(
         id: 'rider-kyc-${DateTime.now().millisecondsSinceEpoch}',
         title: 'New rider KYC request',
-        body: '${request.name} submitted rider verification for ${request.city}.',
+        body:
+            '${request.name} submitted rider verification for ${request.city}.',
         type: 'kyc',
         isRead: false,
         timestamp: DateTime.now(),
@@ -6905,7 +7749,8 @@ class DatabaseService {
     }
     final nowIso = DateTime.now().toIso8601String();
     final existingStore = await getStoreByOwner(request.userId);
-    final storeId = existingStore?.id ?? 'store-${DateTime.now().millisecondsSinceEpoch}';
+    final storeId =
+        existingStore?.id ?? 'store-${DateTime.now().millisecondsSinceEpoch}';
     final roles = Map<String, bool>.from(user.roles)
       ..['customer'] = true
       ..['vendor'] = true;
@@ -6915,11 +7760,13 @@ class DatabaseService {
         id: storeId,
         ownerId: request.userId,
         name: request.storeName,
-        description: existingStore?.description ?? 'Approved vendor storefront on ABZORA.',
+        description:
+            existingStore?.description ??
+            'Approved vendor storefront on ABZORA.',
         imageUrl: request.kyc.storeImageUrl.isNotEmpty
             ? request.kyc.storeImageUrl
             : (existingStore?.imageUrl ??
-                'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=400'),
+                  'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=400'),
         rating: existingStore?.rating ?? 0,
         reviewCount: existingStore?.reviewCount ?? 0,
         address: request.address,
@@ -6929,7 +7776,8 @@ class DatabaseService {
         isFeatured: existingStore?.isFeatured ?? false,
         approvalStatus: 'approved',
         logoUrl: existingStore?.logoUrl ?? request.kyc.ownerPhotoUrl,
-        bannerImageUrl: existingStore?.bannerImageUrl ?? request.kyc.storeImageUrl,
+        bannerImageUrl:
+            existingStore?.bannerImageUrl ?? request.kyc.storeImageUrl,
         tagline: existingStore?.tagline ?? '',
         commissionRate: existingStore?.commissionRate ?? 0.12,
         walletBalance: existingStore?.walletBalance ?? 0,
@@ -6940,7 +7788,8 @@ class DatabaseService {
         vendorRank: existingStore?.vendorRank ?? 0,
         vendorVisibility: existingStore?.vendorVisibility ?? 'normal',
         performanceMetrics:
-            existingStore?.performanceMetrics ?? const VendorPerformanceMetrics(),
+            existingStore?.performanceMetrics ??
+            const VendorPerformanceMetrics(),
       ),
       actor: actor,
     );
@@ -6981,7 +7830,8 @@ class DatabaseService {
       AppNotification(
         id: 'vendor-kyc-approved-${DateTime.now().millisecondsSinceEpoch}',
         title: 'Vendor KYC approved',
-        body: 'Your vendor application for ${request.storeName} is approved. You can now manage your store.',
+        body:
+            'Your vendor application for ${request.storeName} is approved. You can now manage your store.',
         type: 'kyc',
         isRead: false,
         timestamp: DateTime.now(),
@@ -7021,29 +7871,30 @@ class DatabaseService {
     if (request == null) {
       throw StateError('Vendor request not found.');
     }
-      await _ref('vendorRequests/$requestId').update({
-        'status': 'rejected',
-        'updatedAt': DateTime.now().toIso8601String(),
-        'rejectionReason': reason.trim(),
-        'reviewedBy': actor.id,
-        'reviewedByName': actor.name,
-        'reviewedAt': DateTime.now().toIso8601String(),
-        'actionHistory': [
-          ...request.actionHistory.map((entry) => entry.toMap()),
-          KycActionEntry(
-            action: 'rejected',
-            actorId: actor.id,
-            actorName: actor.name,
-            timestamp: DateTime.now().toIso8601String(),
-            note: reason.trim(),
-          ).toMap(),
-        ],
-      });
+    await _ref('vendorRequests/$requestId').update({
+      'status': 'rejected',
+      'updatedAt': DateTime.now().toIso8601String(),
+      'rejectionReason': reason.trim(),
+      'reviewedBy': actor.id,
+      'reviewedByName': actor.name,
+      'reviewedAt': DateTime.now().toIso8601String(),
+      'actionHistory': [
+        ...request.actionHistory.map((entry) => entry.toMap()),
+        KycActionEntry(
+          action: 'rejected',
+          actorId: actor.id,
+          actorName: actor.name,
+          timestamp: DateTime.now().toIso8601String(),
+          note: reason.trim(),
+        ).toMap(),
+      ],
+    });
     _addNotification(
       AppNotification(
         id: 'vendor-kyc-rejected-${DateTime.now().millisecondsSinceEpoch}',
         title: 'Vendor KYC rejected',
-        body: 'Your vendor application needs updated documents. Reason: ${reason.trim()}',
+        body:
+            'Your vendor application needs updated documents. Reason: ${reason.trim()}',
         type: 'kyc',
         isRead: false,
         timestamp: DateTime.now(),
@@ -7101,29 +7952,30 @@ class DatabaseService {
       ),
       actor: actor,
     );
-      await _ref('riderRequests/$requestId').update({
-        'status': 'approved',
-        'updatedAt': DateTime.now().toIso8601String(),
-        'rejectionReason': '',
-        'reviewedBy': actor.id,
-        'reviewedByName': actor.name,
-        'reviewedAt': DateTime.now().toIso8601String(),
-        'actionHistory': [
-          ...request.actionHistory.map((entry) => entry.toMap()),
-          KycActionEntry(
-            action: 'approved',
-            actorId: actor.id,
-            actorName: actor.name,
-            timestamp: DateTime.now().toIso8601String(),
-            note: 'Rider KYC approved and rider role activated.',
-          ).toMap(),
-        ],
-      });
+    await _ref('riderRequests/$requestId').update({
+      'status': 'approved',
+      'updatedAt': DateTime.now().toIso8601String(),
+      'rejectionReason': '',
+      'reviewedBy': actor.id,
+      'reviewedByName': actor.name,
+      'reviewedAt': DateTime.now().toIso8601String(),
+      'actionHistory': [
+        ...request.actionHistory.map((entry) => entry.toMap()),
+        KycActionEntry(
+          action: 'approved',
+          actorId: actor.id,
+          actorName: actor.name,
+          timestamp: DateTime.now().toIso8601String(),
+          note: 'Rider KYC approved and rider role activated.',
+        ).toMap(),
+      ],
+    });
     _addNotification(
       AppNotification(
         id: 'rider-kyc-approved-${DateTime.now().millisecondsSinceEpoch}',
         title: 'Rider KYC approved',
-        body: 'Your rider application is approved. Delivery requests are now available in your dashboard.',
+        body:
+            'Your rider application is approved. Delivery requests are now available in your dashboard.',
         type: 'kyc',
         isRead: false,
         timestamp: DateTime.now(),
@@ -7162,29 +8014,30 @@ class DatabaseService {
     if (request == null) {
       throw StateError('Rider request not found.');
     }
-      await _ref('riderRequests/$requestId').update({
-        'status': 'rejected',
-        'updatedAt': DateTime.now().toIso8601String(),
-        'rejectionReason': reason.trim(),
-        'reviewedBy': actor.id,
-        'reviewedByName': actor.name,
-        'reviewedAt': DateTime.now().toIso8601String(),
-        'actionHistory': [
-          ...request.actionHistory.map((entry) => entry.toMap()),
-          KycActionEntry(
-            action: 'rejected',
-            actorId: actor.id,
-            actorName: actor.name,
-            timestamp: DateTime.now().toIso8601String(),
-            note: reason.trim(),
-          ).toMap(),
-        ],
-      });
+    await _ref('riderRequests/$requestId').update({
+      'status': 'rejected',
+      'updatedAt': DateTime.now().toIso8601String(),
+      'rejectionReason': reason.trim(),
+      'reviewedBy': actor.id,
+      'reviewedByName': actor.name,
+      'reviewedAt': DateTime.now().toIso8601String(),
+      'actionHistory': [
+        ...request.actionHistory.map((entry) => entry.toMap()),
+        KycActionEntry(
+          action: 'rejected',
+          actorId: actor.id,
+          actorName: actor.name,
+          timestamp: DateTime.now().toIso8601String(),
+          note: reason.trim(),
+        ).toMap(),
+      ],
+    });
     _addNotification(
       AppNotification(
         id: 'rider-kyc-rejected-${DateTime.now().millisecondsSinceEpoch}',
         title: 'Rider KYC rejected',
-        body: 'Your rider application needs updated documents. Reason: ${reason.trim()}',
+        body:
+            'Your rider application needs updated documents. Reason: ${reason.trim()}',
         type: 'kyc',
         isRead: false,
         timestamp: DateTime.now(),
@@ -7241,13 +8094,16 @@ class DatabaseService {
     String? type,
   }) async {
     if (_backendCommerce.isConfigured) {
-      final chats = await _backendCommerce.getSupportChats(status: status, type: type);
+      final chats = await _backendCommerce.getSupportChats(
+        status: status,
+        type: type,
+      );
       final filtered = chats.where((chat) {
-        final matchesStatus = status == null || status == 'all' || chat.status == status;
+        final matchesStatus =
+            status == null || status == 'all' || chat.status == status;
         final matchesType = type == null || type == 'all' || chat.type == type;
         return matchesStatus && matchesType;
-      }).toList()
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      }).toList()..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       return filtered;
     }
     final chats = isSuperAdmin(actor)
@@ -7261,11 +8117,11 @@ class DatabaseService {
           );
 
     final filtered = chats.where((chat) {
-      final matchesStatus = status == null || status == 'all' || chat.status == status;
+      final matchesStatus =
+          status == null || status == 'all' || chat.status == status;
       final matchesType = type == null || type == 'all' || chat.type == type;
       return matchesStatus && matchesType;
-    }).toList()
-      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    }).toList()..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return filtered;
   }
 
@@ -7297,7 +8153,10 @@ class DatabaseService {
     if (_backendCommerce.isConfigured) {
       return _backendPollingStream<List<SupportMessage>>(
         loader: () async {
-          final messages = await _backendCommerce.getSupportMessages(chatId, limit: limit);
+          final messages = await _backendCommerce.getSupportMessages(
+            chatId,
+            limit: limit,
+          );
           messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
           return messages;
         },
@@ -7305,11 +8164,15 @@ class DatabaseService {
         backgroundInterval: const Duration(seconds: 12),
       );
     }
-    return Stream.fromFuture(getSupportChatById(chatId: chatId, actor: actor)).asyncExpand((chat) {
+    return Stream.fromFuture(
+      getSupportChatById(chatId: chatId, actor: actor),
+    ).asyncExpand((chat) {
       if (chat == null) {
         return Stream.value(const <SupportMessage>[]);
       }
-      final query = _ref('messages/$chatId').orderByChild('timestamp').limitToLast(limit);
+      final query = _ref(
+        'messages/$chatId',
+      ).orderByChild('timestamp').limitToLast(limit);
       return _watchQueryCollection(
         query,
         (map, id) => SupportMessage.fromMap(map, id),
@@ -7337,10 +8200,9 @@ class DatabaseService {
       return messages;
     }
     await getSupportChatById(chatId: chatId, actor: actor);
-    final query = _ref('messages/$chatId')
-        .orderByChild('timestamp')
-        .endAt(beforeTimestamp)
-        .limitToLast(limit + 1);
+    final query = _ref(
+      'messages/$chatId',
+    ).orderByChild('timestamp').endAt(beforeTimestamp).limitToLast(limit + 1);
     final messages = await _fetchQueryCollection(
       query,
       (map, id) => SupportMessage.fromMap(map, id),
@@ -7359,17 +8221,20 @@ class DatabaseService {
         FaqItem(
           id: 'faq-delivery',
           question: 'How long does delivery take?',
-          answer: 'Most orders are delivered within 2-5 business days based on your city.',
+          answer:
+              'Most orders are delivered within 2-5 business days based on your city.',
         ),
         FaqItem(
           id: 'faq-payment',
           question: 'Which payment methods are supported?',
-          answer: 'UPI, cards, and Cash on Delivery are supported based on checkout eligibility.',
+          answer:
+              'UPI, cards, and Cash on Delivery are supported based on checkout eligibility.',
         ),
         FaqItem(
           id: 'faq-returns',
           question: 'How do I request a return or refund?',
-          answer: 'Open your order details and choose return/refund if the order is eligible.',
+          answer:
+              'Open your order details and choose return/refund if the order is eligible.',
         ),
       ];
     }
@@ -7377,7 +8242,9 @@ class DatabaseService {
       'faq',
       (map, id) => FaqItem.fromMap(map, id),
     );
-    faqs.sort((a, b) => a.question.toLowerCase().compareTo(b.question.toLowerCase()));
+    faqs.sort(
+      (a, b) => a.question.toLowerCase().compareTo(b.question.toLowerCase()),
+    );
     return faqs;
   }
 
@@ -7471,14 +8338,19 @@ class DatabaseService {
     return 'Order #${order.id} is ${order.status.toLowerCase()} with delivery status ${order.deliveryStatus.toLowerCase()}. ${_etaForOrder(order)}';
   }
 
-  Future<OrderModel?> _resolveOrderForPrompt(AppUser actor, String prompt) async {
+  Future<OrderModel?> _resolveOrderForPrompt(
+    AppUser actor,
+    String prompt,
+  ) async {
     final orders = await getUserOrdersOnce(actor.id);
     if (orders.isEmpty) {
       return null;
     }
 
-    final idMatch = RegExp(r'(ord-[a-zA-Z0-9-]+|cbo-\d+)', caseSensitive: false)
-        .firstMatch(prompt);
+    final idMatch = RegExp(
+      r'(ord-[a-zA-Z0-9-]+|cbo-\d+)',
+      caseSensitive: false,
+    ).firstMatch(prompt);
     if (idMatch != null) {
       final matchedId = idMatch.group(0)?.toLowerCase();
       for (final order in orders) {
@@ -7516,7 +8388,9 @@ class DatabaseService {
     try {
       final refund = await createRefundRequest(
         orderId: order.id,
-        reason: reason?.trim().isNotEmpty == true ? reason!.trim() : 'Requested from AI assistant support.',
+        reason: reason?.trim().isNotEmpty == true
+            ? reason!.trim()
+            : 'Requested from AI assistant support.',
         actor: actor,
       );
       final nowIso = _nowIso();
@@ -7546,7 +8420,9 @@ class DatabaseService {
     try {
       final request = await createReturnRequest(
         orderId: order.id,
-        reason: reason?.trim().isNotEmpty == true ? reason!.trim() : 'Requested from AI assistant support.',
+        reason: reason?.trim().isNotEmpty == true
+            ? reason!.trim()
+            : 'Requested from AI assistant support.',
         actor: actor,
       );
       final nowIso = _nowIso();
@@ -7593,8 +8469,7 @@ class DatabaseService {
 
   bool _messageLooksLikeRefundHelp(String prompt) {
     final text = prompt.toLowerCase();
-    return text.contains('refund') ||
-        text.contains('money back');
+    return text.contains('refund') || text.contains('money back');
   }
 
   bool _messageLooksLikeReturnHelp(String prompt) {
@@ -7644,9 +8519,7 @@ class DatabaseService {
     return _isPremiumAiUser(actor) ? 9999 : 8;
   }
 
-  Future<String?> _advancedAiBlockReason({
-    required AppUser actor,
-  }) async {
+  Future<String?> _advancedAiBlockReason({required AppUser actor}) async {
     final settings = await getPlatformSettings();
     if (!settings.aiAssistantEnabled) {
       return 'ai_disabled';
@@ -7654,10 +8527,23 @@ class DatabaseService {
     final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final daily = _backendCommerce.isConfigured
         ? (await _backendCommerce.getAiDailyStats())
-            .cast<AiDailyStat?>()
-            .firstWhere((item) => item?.date == todayKey, orElse: () => null) ??
-            AiDailyStat(date: todayKey, totalRequests: 0, totalCost: 0, aiRequests: 0, logicRequests: 0)
-        : AiDailyStat.fromMap(_asMap((await _ref('aiDailyStats/$todayKey').get()).value) ?? const {}, todayKey);
+                  .cast<AiDailyStat?>()
+                  .firstWhere(
+                    (item) => item?.date == todayKey,
+                    orElse: () => null,
+                  ) ??
+              AiDailyStat(
+                date: todayKey,
+                totalRequests: 0,
+                totalCost: 0,
+                aiRequests: 0,
+                logicRequests: 0,
+              )
+        : AiDailyStat.fromMap(
+            _asMap((await _ref('aiDailyStats/$todayKey').get()).value) ??
+                const {},
+            todayKey,
+          );
     if (daily.totalCost >= settings.aiDailyCostLimit) {
       return 'daily_cost_limit_reached';
     }
@@ -7683,9 +8569,9 @@ class DatabaseService {
       return true;
     }
     try {
-      final result = await InternetAddress.lookup('example.com').timeout(
-        const Duration(seconds: 2),
-      );
+      final result = await InternetAddress.lookup(
+        'example.com',
+      ).timeout(const Duration(seconds: 2));
       return result.isNotEmpty && result.first.rawAddress.isNotEmpty;
     } on SocketException {
       return false;
@@ -7723,9 +8609,7 @@ class DatabaseService {
     });
   }
 
-  String _aiFailureFallbackMessage({
-    required bool offline,
-  }) {
+  String _aiFailureFallbackMessage({required bool offline}) {
     return offline
         ? 'You’re offline. Showing basic help.'
         : 'I\'m having trouble right now, but I can still help with basic things 👍';
@@ -7742,7 +8626,9 @@ class DatabaseService {
     required String prompt,
   }) async {
     if (_backendCommerce.isConfigured) {
-      return _backendCommerce.getSupportResponseCache(_supportCacheKey(chat, prompt));
+      return _backendCommerce.getSupportResponseCache(
+        _supportCacheKey(chat, prompt),
+      );
     }
     final snapshot = await _ref(
       'supportResponseCache/${actor.id}/${_supportCacheKey(chat, prompt)}',
@@ -7874,7 +8760,10 @@ class DatabaseService {
 
     final userSnapshot = await _ref('userAIUsage/${actor.id}').get();
     final userExisting = _asMap(userSnapshot.value);
-    final userUsage = UserAiUsageStat.fromMap(userExisting ?? const {}, actor.id);
+    final userUsage = UserAiUsageStat.fromMap(
+      userExisting ?? const {},
+      actor.id,
+    );
 
     await _ref('').update({
       'aiUsageLogs/$logId': entry.toMap(),
@@ -7890,8 +8779,11 @@ class DatabaseService {
         totalMessages: userUsage.totalMessages + 1,
         aiMessages: userUsage.aiMessages + (usedAi ? 1 : 0),
         lastUsed: nowIso,
-        dailyUsage: dateKey == DateFormat('yyyy-MM-dd').format(
-                DateTime.tryParse(userUsage.lastUsed) ?? now)
+        dailyUsage:
+            dateKey ==
+                DateFormat(
+                  'yyyy-MM-dd',
+                ).format(DateTime.tryParse(userUsage.lastUsed) ?? now)
             ? userUsage.dailyUsage + 1
             : 1,
       ).toMap(),
@@ -7955,7 +8847,8 @@ class DatabaseService {
     required SupportChat chat,
     required String prompt,
   }) {
-    final looksLikeReturn = _messageLooksLikeReturnHelp(prompt) || chat.type == 'return';
+    final looksLikeReturn =
+        _messageLooksLikeReturnHelp(prompt) || chat.type == 'return';
     final plan = _supportAi.planActionFallback(
       chat: chat,
       looksLikeCancellation: _messageLooksLikeCancellation(prompt),
@@ -8060,7 +8953,9 @@ class DatabaseService {
       if (normalized.isEmpty) {
         continue;
       }
-      if (!merged.any((entry) => entry.toLowerCase() == normalized.toLowerCase())) {
+      if (!merged.any(
+        (entry) => entry.toLowerCase() == normalized.toLowerCase(),
+      )) {
         merged.add(normalized);
       }
     }
@@ -8075,14 +8970,16 @@ class DatabaseService {
     final style = lowered.contains('black')
         ? 'black / dark'
         : lowered.contains('casual')
-            ? 'casual'
-            : lowered.contains('formal')
-                ? 'formal'
-                : lowered.contains('streetwear')
-                    ? 'streetwear'
-                    : '';
-    final sizeMatch = RegExp(r'\b(xl|xs|s|m|l|xxl)\b', caseSensitive: false)
-        .firstMatch(userMessage);
+        ? 'casual'
+        : lowered.contains('formal')
+        ? 'formal'
+        : lowered.contains('streetwear')
+        ? 'streetwear'
+        : '';
+    final sizeMatch = RegExp(
+      r'\b(xl|xs|s|m|l|xxl)\b',
+      caseSensitive: false,
+    ).firstMatch(userMessage);
     final issues = <String>[
       if (lowered.contains('refund')) 'refund',
       if (lowered.contains('size')) 'size issue',
@@ -8093,8 +8990,9 @@ class DatabaseService {
       'preferredStyle': style,
       'size': sizeMatch?.group(0)?.toUpperCase() ?? '',
       'addPastIssues': issues,
-      'lastConversationSummary':
-          userMessage.trim().isEmpty ? '' : 'Recent request: ${userMessage.trim()}',
+      'lastConversationSummary': userMessage.trim().isEmpty
+          ? ''
+          : 'Recent request: ${userMessage.trim()}',
     };
   }
 
@@ -8123,7 +9021,8 @@ class DatabaseService {
     Map<String, dynamic> extracted;
     if (allowAiMemory) {
       try {
-        extracted = await _supportAi.extractMemoryWithOpenAi(
+        extracted =
+            await _supportAi.extractMemoryWithOpenAi(
               actor: actor,
               userMessage: userMessage,
               assistantReply: assistantReply,
@@ -8147,7 +9046,8 @@ class DatabaseService {
     String summary;
     if (allowAiMemory) {
       try {
-        summary = await _supportAi.summarizeConversationWithOpenAi(
+        summary =
+            await _supportAi.summarizeConversationWithOpenAi(
               actor: actor,
               recentHistory: recentHistory,
               currentMemory: existingMemory,
@@ -8166,29 +9066,29 @@ class DatabaseService {
     } else {
       summary = (extracted['lastConversationSummary'] ?? '').toString();
     }
-    final updatedMemory = (existingMemory ??
-            UserMemory(
-              userId: actor.id,
-              name: actor.name,
-            ))
-        .copyWith(
-          name: actor.name.isEmpty ? existingMemory?.name ?? '' : actor.name,
-          preferredStyle: (extracted['preferredStyle'] ?? '').toString().trim().isEmpty
-              ? existingMemory?.preferredStyle ?? ''
-              : (extracted['preferredStyle'] ?? '').toString().trim(),
-          size: (extracted['size'] ?? '').toString().trim().isEmpty
-              ? existingMemory?.size ?? ''
-              : (extracted['size'] ?? '').toString().trim().toUpperCase(),
-          pastIssues: _mergePastIssues(
-            existingMemory?.pastIssues ?? const [],
-            ((extracted['addPastIssues'] as List?) ?? const [])
-                .map((item) => item.toString())
-                .toList(),
-          ),
-          lastOrderId: order?.id ?? existingMemory?.lastOrderId ?? '',
-          lastConversationSummary: summary.trim(),
-          updatedAt: _nowIso(),
-        );
+    final updatedMemory =
+        (existingMemory ?? UserMemory(userId: actor.id, name: actor.name))
+            .copyWith(
+              name: actor.name.isEmpty
+                  ? existingMemory?.name ?? ''
+                  : actor.name,
+              preferredStyle:
+                  (extracted['preferredStyle'] ?? '').toString().trim().isEmpty
+                  ? existingMemory?.preferredStyle ?? ''
+                  : (extracted['preferredStyle'] ?? '').toString().trim(),
+              size: (extracted['size'] ?? '').toString().trim().isEmpty
+                  ? existingMemory?.size ?? ''
+                  : (extracted['size'] ?? '').toString().trim().toUpperCase(),
+              pastIssues: _mergePastIssues(
+                existingMemory?.pastIssues ?? const [],
+                ((extracted['addPastIssues'] as List?) ?? const [])
+                    .map((item) => item.toString())
+                    .toList(),
+              ),
+              lastOrderId: order?.id ?? existingMemory?.lastOrderId ?? '',
+              lastConversationSummary: summary.trim(),
+              updatedAt: _nowIso(),
+            );
     await saveUserMemory(actor.id, updatedMemory);
   }
 
@@ -8226,14 +9126,14 @@ class DatabaseService {
         onlineForAi;
     final plan = shouldUseAi
         ? (await _planSupportActionWithOpenAi(
-              actor: actor,
-              chat: chat,
-              prompt: trimmedPrompt,
-              order: order,
-              memory: userMemory,
-              recentHistory: recentHistory,
-            )) ??
-            _planSupportActionFallback(chat: chat, prompt: trimmedPrompt)
+                actor: actor,
+                chat: chat,
+                prompt: trimmedPrompt,
+                order: order,
+                memory: userMemory,
+                recentHistory: recentHistory,
+              )) ??
+              _planSupportActionFallback(chat: chat, prompt: trimmedPrompt)
         : _planSupportActionFallback(chat: chat, prompt: trimmedPrompt);
     if (intent == _SupportIntent.aiNeeded && blockedReason != null) {
       await _logBlockedAiRequest(
@@ -8258,13 +9158,17 @@ class DatabaseService {
     );
     final measurementProfiles =
         plan.action == _SupportActionType.customHelp || chat.type == 'custom'
-            ? await getMeasurementProfiles(actor.id)
-            : const <MeasurementProfile>[];
-    final latestProfile =
-        measurementProfiles.isEmpty ? null : measurementProfiles.first;
+        ? await getMeasurementProfiles(actor.id)
+        : const <MeasurementProfile>[];
+    final latestProfile = measurementProfiles.isEmpty
+        ? null
+        : measurementProfiles.first;
     String? actionSummary;
 
-    Future<String> finalizeResponse(String response, {required bool usedAi}) async {
+    Future<String> finalizeResponse(
+      String response, {
+      required bool usedAi,
+    }) async {
       await _cacheSupportResponse(
         actor: actor,
         chat: chat,
@@ -8376,7 +9280,8 @@ class DatabaseService {
     }
 
     if (plan.action == _SupportActionType.updateAddress) {
-      final requestedAddress = plan.address ?? _extractAddressFromPrompt(trimmedPrompt);
+      final requestedAddress =
+          plan.address ?? _extractAddressFromPrompt(trimmedPrompt);
       if (requestedAddress != null) {
         final updated = await _updateSavedAddressForAssistant(
           actor: actor,
@@ -8399,7 +9304,8 @@ class DatabaseService {
                   actionSummary: actionSummary,
                 )
               : null;
-          final response = aiReply ??
+          final response =
+              aiReply ??
               'Done. I updated your saved address for future orders. If you want the current order tracked too, I can help with that here.';
           return finalizeResponse(response, usedAi: shouldUseAi);
         }
@@ -8426,14 +9332,20 @@ class DatabaseService {
     if (faqs.isNotEmpty) {
       final lowered = trimmedPrompt.toLowerCase();
       for (final faq in faqs) {
-        final haystack = '${faq.question} ${faq.answer} ${faq.category}'.toLowerCase();
-        if (haystack.contains(lowered) || lowered.split(' ').any((token) => token.length > 4 && haystack.contains(token))) {
+        final haystack = '${faq.question} ${faq.answer} ${faq.category}'
+            .toLowerCase();
+        if (haystack.contains(lowered) ||
+            lowered
+                .split(' ')
+                .any((token) => token.length > 4 && haystack.contains(token))) {
           return faq.answer;
         }
       }
     }
 
-    final firstName = actor.name.trim().isEmpty ? 'there' : actor.name.trim().split(' ').first;
+    final firstName = actor.name.trim().isEmpty
+        ? 'there'
+        : actor.name.trim().split(' ').first;
     if (resolvedOrder != null && shouldUseAi) {
       final aiReply = await _generateOpenAiSupportReply(
         actor: actor,
@@ -8447,7 +9359,8 @@ class DatabaseService {
         actionSummary:
             'Latest order is #${resolvedOrder.id}, status ${resolvedOrder.status.toLowerCase()}.',
       );
-      final response = aiReply ??
+      final response =
+          aiReply ??
           'Hi $firstName, I can help with that. Your latest order is #${resolvedOrder.id}, currently ${resolvedOrder.status.toLowerCase()}. You can ask me to track it, explain the payment, or help with your custom fit preferences.';
       await _incrementTodayAiUsage(actor.id);
       return finalizeResponse(response, usedAi: true);
@@ -8462,7 +9375,8 @@ class DatabaseService {
         memory: userMemory,
         recentHistory: recentHistory,
       );
-      final response = aiReply ??
+      final response =
+          aiReply ??
           'Hi $firstName, I am your ABZORA Assistant. I can help with orders, payments, returns, address guidance, and custom clothing questions. Try asking "Where is my order?" or "Help with custom fitting".';
       await _incrementTodayAiUsage(actor.id);
       return finalizeResponse(response, usedAi: true);
@@ -8473,7 +9387,8 @@ class DatabaseService {
         usedAi: false,
       );
     }
-    if (blockedReason == 'daily_cost_limit_reached' || blockedReason == 'ai_disabled') {
+    if (blockedReason == 'daily_cost_limit_reached' ||
+        blockedReason == 'ai_disabled') {
       return finalizeResponse(
         'AI is currently busy. Please try again later.',
         usedAi: false,
@@ -8499,9 +9414,10 @@ class DatabaseService {
       return _backendCommerce.createSupportChat(issueType.trim().toLowerCase());
     }
     final normalizedType = issueType.trim().toLowerCase();
-    final existing = (await getSupportChats(actor: actor, type: normalizedType))
-        .where((chat) => chat.status != 'closed')
-        .toList();
+    final existing = (await getSupportChats(
+      actor: actor,
+      type: normalizedType,
+    )).where((chat) => chat.status != 'closed').toList();
     if (existing.isNotEmpty) {
       return existing.first;
     }
@@ -8521,9 +9437,7 @@ class DatabaseService {
       userName: actor.name,
       userPhone: actor.phone ?? '',
       ticketId: ticketId,
-      participantIds: {
-        actor.id: true,
-      },
+      participantIds: {actor.id: true},
     );
     final ticket = SupportTicket(
       id: ticketId,
@@ -8535,12 +9449,14 @@ class DatabaseService {
     );
     final welcomeMessage = _assistantWelcomeMessage(actor, normalizedType);
     await _ref('').update({
-      'supportChats/$chatId': chat.copyWith(
-        lastMessage: welcomeMessage,
-        lastMessageAt: nowIso,
-        lastSenderId: 'abzora-assistant',
-        lastSenderRole: 'assistant',
-      ).toMap(),
+      'supportChats/$chatId': chat
+          .copyWith(
+            lastMessage: welcomeMessage,
+            lastMessageAt: nowIso,
+            lastSenderId: 'abzora-assistant',
+            lastSenderRole: 'assistant',
+          )
+          .toMap(),
       'supportTickets/$ticketId': ticket.toMap(),
       'messages/$chatId/msg-$timestampSeed': SupportMessage(
         id: 'msg-$timestampSeed',
@@ -8555,7 +9471,9 @@ class DatabaseService {
   }
 
   String _assistantWelcomeMessage(AppUser actor, String issueType) {
-    final firstName = actor.name.trim().isEmpty ? 'there' : actor.name.trim().split(' ').first;
+    final firstName = actor.name.trim().isEmpty
+        ? 'there'
+        : actor.name.trim().split(' ').first;
     switch (issueType) {
       case 'order':
         return 'Hi $firstName, I can track your latest order, explain the delivery stage, or help cancel it if it is still eligible.';
@@ -8600,7 +9518,11 @@ class DatabaseService {
       }
       final isAdminActor = isSuperAdmin(actor);
       final assistantReply = !isAdminActor
-          ? await _buildAssistantReply(actor: actor, chat: chat, prompt: trimmedText)
+          ? await _buildAssistantReply(
+              actor: actor,
+              chat: chat,
+              prompt: trimmedText,
+            )
           : null;
       final nextStatus = await _nextSupportStatusForPrompt(
         prompt: trimmedText,
@@ -8625,12 +9547,15 @@ class DatabaseService {
         text: trimmedText,
         imageUrl: imageUrl.trim(),
         assistantReplyText: assistantReply?.trim(),
-        assistantTimestamp: assistantReply == null || assistantReply.trim().isEmpty
+        assistantTimestamp:
+            assistantReply == null || assistantReply.trim().isEmpty
             ? null
             : now.add(const Duration(milliseconds: 450)).toIso8601String(),
         status: nextStatus,
       );
-      if (!isAdminActor && assistantReply != null && assistantReply.trim().isNotEmpty) {
+      if (!isAdminActor &&
+          assistantReply != null &&
+          assistantReply.trim().isNotEmpty) {
         await _saveChatHistoryEntry(
           userId: actor.id,
           chatId: chatId,
@@ -8638,7 +9563,9 @@ class DatabaseService {
             id: 'msg-${now.millisecondsSinceEpoch + 1}',
             role: 'assistant',
             text: assistantReply.trim(),
-            timestamp: now.add(const Duration(milliseconds: 450)).toIso8601String(),
+            timestamp: now
+                .add(const Duration(milliseconds: 450))
+                .toIso8601String(),
           ),
         );
         final latestOrder = await _resolveOrderForPrompt(actor, trimmedText);
@@ -8666,7 +9593,11 @@ class DatabaseService {
     final messageId = 'msg-${now.millisecondsSinceEpoch}';
     final senderRole = isAdminActor ? 'admin' : 'user';
     final assistantReply = !isAdminActor
-        ? await _buildAssistantReply(actor: actor, chat: chat, prompt: trimmedText)
+        ? await _buildAssistantReply(
+            actor: actor,
+            chat: chat,
+            prompt: trimmedText,
+          )
         : null;
     final nextStatus = await _nextSupportStatusForPrompt(
       prompt: trimmedText,
@@ -8684,19 +9615,31 @@ class DatabaseService {
         timestamp: nowIso,
         read: false,
       ).toMap(),
-      'supportChats/$chatId/lastMessage': trimmedText.isNotEmpty ? trimmedText : 'Attachment shared',
+      'supportChats/$chatId/lastMessage': trimmedText.isNotEmpty
+          ? trimmedText
+          : 'Attachment shared',
       'supportChats/$chatId/lastMessageAt': nowIso,
       'supportChats/$chatId/lastSenderId': actor.id,
       'supportChats/$chatId/lastSenderRole': senderRole,
       'supportChats/$chatId/updatedAt': nowIso,
       'supportChats/$chatId/status': nextStatus,
-      'supportChats/$chatId/unreadCountAdmin': isAdminActor ? 0 : chat.unreadCountAdmin + 1,
-      'supportChats/$chatId/unreadCountUser': isAdminActor ? chat.unreadCountUser + 1 : 0,
+      'supportChats/$chatId/unreadCountAdmin': isAdminActor
+          ? 0
+          : chat.unreadCountAdmin + 1,
+      'supportChats/$chatId/unreadCountUser': isAdminActor
+          ? chat.unreadCountUser + 1
+          : 0,
       'supportTickets/${chat.ticketId}/status': ticketStatus,
-      'supportTickets/${chat.ticketId}/resolvedAt': nextStatus == 'closed' ? nowIso : null,
+      'supportTickets/${chat.ticketId}/resolvedAt': nextStatus == 'closed'
+          ? nowIso
+          : null,
     };
-    if (!isAdminActor && assistantReply != null && assistantReply.trim().isNotEmpty) {
-      final assistantTimestamp = now.add(const Duration(milliseconds: 450)).toIso8601String();
+    if (!isAdminActor &&
+        assistantReply != null &&
+        assistantReply.trim().isNotEmpty) {
+      final assistantTimestamp = now
+          .add(const Duration(milliseconds: 450))
+          .toIso8601String();
       final assistantId = 'msg-${now.millisecondsSinceEpoch + 1}';
       updates.addAll({
         'messages/$chatId/$assistantId': SupportMessage(
@@ -8736,7 +9679,9 @@ class DatabaseService {
             id: 'msg-${now.millisecondsSinceEpoch + 1}',
             role: 'assistant',
             text: assistantReply.trim(),
-            timestamp: now.add(const Duration(milliseconds: 450)).toIso8601String(),
+            timestamp: now
+                .add(const Duration(milliseconds: 450))
+                .toIso8601String(),
           ),
         );
         final latestOrder = await _resolveOrderForPrompt(actor, trimmedText);
@@ -8754,7 +9699,9 @@ class DatabaseService {
         AppNotification(
           id: 'support-reply-${now.millisecondsSinceEpoch}',
           title: 'Support replied to your query',
-          body: trimmedText.isNotEmpty ? trimmedText : 'Support shared an attachment.',
+          body: trimmedText.isNotEmpty
+              ? trimmedText
+              : 'Support shared an attachment.',
           type: 'support',
           isRead: false,
           timestamp: now,
@@ -8784,9 +9731,9 @@ class DatabaseService {
     if (chat == null) {
       return;
     }
-    await _ref('supportChats/$chatId').update({
-      isSuperAdmin(actor) ? 'unreadCountAdmin' : 'unreadCountUser': 0,
-    });
+    await _ref(
+      'supportChats/$chatId',
+    ).update({isSuperAdmin(actor) ? 'unreadCountAdmin' : 'unreadCountUser': 0});
   }
 
   Future<void> saveAiStylistConversationTurn({
@@ -8796,8 +9743,9 @@ class DatabaseService {
   }) async {
     final now = DateTime.now();
     final userTimestamp = now.toIso8601String();
-    final assistantTimestamp =
-        now.add(const Duration(milliseconds: 400)).toIso8601String();
+    final assistantTimestamp = now
+        .add(const Duration(milliseconds: 400))
+        .toIso8601String();
     await _saveChatHistoryEntry(
       userId: actor.id,
       chatId: 'stylist',
@@ -8822,7 +9770,8 @@ class DatabaseService {
     final latestOrder = await getLatestUserOrder(actor.id);
     Map<String, dynamic> extracted;
     try {
-      extracted = await _supportAi.extractMemoryWithOpenAi(
+      extracted =
+          await _supportAi.extractMemoryWithOpenAi(
             actor: actor,
             userMessage: userMessage,
             assistantReply: assistantReply,
@@ -8842,7 +9791,8 @@ class DatabaseService {
     final recentHistory = await getChatHistory(actor.id, 'stylist', limit: 8);
     String summary;
     try {
-      summary = await _supportAi.summarizeConversationWithOpenAi(
+      summary =
+          await _supportAi.summarizeConversationWithOpenAi(
             actor: actor,
             recentHistory: recentHistory,
             currentMemory: currentMemory,
@@ -8858,29 +9808,27 @@ class DatabaseService {
       );
       summary = (extracted['lastConversationSummary'] ?? '').toString();
     }
-    final updated = (currentMemory ??
-            UserMemory(
-              userId: actor.id,
-              name: actor.name,
-            ))
-        .copyWith(
-          name: actor.name.isEmpty ? currentMemory?.name ?? '' : actor.name,
-          preferredStyle: (extracted['preferredStyle'] ?? '').toString().trim().isEmpty
-              ? currentMemory?.preferredStyle ?? ''
-              : (extracted['preferredStyle'] ?? '').toString().trim(),
-          size: (extracted['size'] ?? '').toString().trim().isEmpty
-              ? currentMemory?.size ?? ''
-              : (extracted['size'] ?? '').toString().trim().toUpperCase(),
-          pastIssues: _mergePastIssues(
-            currentMemory?.pastIssues ?? const [],
-            ((extracted['addPastIssues'] as List?) ?? const [])
-                .map((item) => item.toString())
-                .toList(),
-          ),
-          lastOrderId: latestOrder?.id ?? currentMemory?.lastOrderId ?? '',
-          lastConversationSummary: summary.trim(),
-          updatedAt: _nowIso(),
-        );
+    final updated =
+        (currentMemory ?? UserMemory(userId: actor.id, name: actor.name))
+            .copyWith(
+              name: actor.name.isEmpty ? currentMemory?.name ?? '' : actor.name,
+              preferredStyle:
+                  (extracted['preferredStyle'] ?? '').toString().trim().isEmpty
+                  ? currentMemory?.preferredStyle ?? ''
+                  : (extracted['preferredStyle'] ?? '').toString().trim(),
+              size: (extracted['size'] ?? '').toString().trim().isEmpty
+                  ? currentMemory?.size ?? ''
+                  : (extracted['size'] ?? '').toString().trim().toUpperCase(),
+              pastIssues: _mergePastIssues(
+                currentMemory?.pastIssues ?? const [],
+                ((extracted['addPastIssues'] as List?) ?? const [])
+                    .map((item) => item.toString())
+                    .toList(),
+              ),
+              lastOrderId: latestOrder?.id ?? currentMemory?.lastOrderId ?? '',
+              lastConversationSummary: summary.trim(),
+              updatedAt: _nowIso(),
+            );
     await saveUserMemory(actor.id, updated);
   }
 
@@ -8910,7 +9858,8 @@ class DatabaseService {
       AppNotification(
         id: 'support-closed-${now.millisecondsSinceEpoch}',
         title: 'Support ticket closed',
-        body: 'Your ${chat.type.replaceAll('_', ' ')} request has been marked as resolved.',
+        body:
+            'Your ${chat.type.replaceAll('_', ' ')} request has been marked as resolved.',
         type: 'support',
         isRead: false,
         timestamp: now,
@@ -8958,10 +9907,15 @@ class DatabaseService {
   }
 
   Future<void> migrateDemoDataToFirestore({required AppUser actor}) async {
-    throw StateError('Demo seeding has been removed. Realtime Database is the source of truth.');
+    throw StateError(
+      'Demo seeding has been removed. Realtime Database is the source of truth.',
+    );
   }
 
-  Future<void> updateFcmToken({required String userId, required String token}) async {
+  Future<void> updateFcmToken({
+    required String userId,
+    required String token,
+  }) async {
     if (_backendCommerce.isConfigured) {
       return;
     }
@@ -8975,11 +9929,17 @@ class DatabaseService {
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.getPlatformSettings();
     }
-    final settings = await _fetchDocument('platform/settings', (map, _) => PlatformSettings.fromMap(map));
+    final settings = await _fetchDocument(
+      'platform/settings',
+      (map, _) => PlatformSettings.fromMap(map),
+    );
     return settings ?? const PlatformSettings();
   }
 
-  Future<void> savePlatformSettings(PlatformSettings settings, {required AppUser actor}) async {
+  Future<void> savePlatformSettings(
+    PlatformSettings settings, {
+    required AppUser actor,
+  }) async {
     _requireSuperAdmin(actor);
     if (_backendCommerce.isConfigured) {
       await _backendCommerce.savePlatformSettings(settings);
@@ -8987,7 +9947,8 @@ class DatabaseService {
         action: 'update_platform_settings',
         targetType: 'platform',
         targetId: 'settings',
-        message: 'Updated feature toggles, city availability, or admin security settings.',
+        message:
+            'Updated feature toggles, city availability, or admin security settings.',
         actor: actor,
       );
       return;
@@ -8997,7 +9958,8 @@ class DatabaseService {
       action: 'update_platform_settings',
       targetType: 'platform',
       targetId: 'settings',
-      message: 'Updated feature toggles, city availability, or admin security settings.',
+      message:
+          'Updated feature toggles, city availability, or admin security settings.',
       actor: actor,
     );
   }
@@ -9011,12 +9973,18 @@ class DatabaseService {
       disputes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return disputes;
     }
-    final disputes = await _fetchCollection('disputes', (map, id) => DisputeRecord.fromMap(map, id));
+    final disputes = await _fetchCollection(
+      'disputes',
+      (map, id) => DisputeRecord.fromMap(map, id),
+    );
     disputes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return disputes;
   }
 
-  Future<void> updateDispute(DisputeRecord dispute, {required AppUser actor}) async {
+  Future<void> updateDispute(
+    DisputeRecord dispute, {
+    required AppUser actor,
+  }) async {
     _requireSuperAdmin(actor);
     if (_backendCommerce.isConfigured) {
       await _backendCommerce.updateAdminDispute(dispute);
@@ -9024,7 +9992,8 @@ class DatabaseService {
         action: 'update_dispute',
         targetType: 'dispute',
         targetId: dispute.id,
-        message: 'Marked ${dispute.type.toLowerCase()} ${dispute.id} as ${dispute.status}.',
+        message:
+            'Marked ${dispute.type.toLowerCase()} ${dispute.id} as ${dispute.status}.',
         actor: actor,
       );
       return;
@@ -9034,7 +10003,8 @@ class DatabaseService {
       action: 'update_dispute',
       targetType: 'dispute',
       targetId: dispute.id,
-      message: 'Marked ${dispute.type.toLowerCase()} ${dispute.id} as ${dispute.status}.',
+      message:
+          'Marked ${dispute.type.toLowerCase()} ${dispute.id} as ${dispute.status}.',
       actor: actor,
     );
   }
@@ -9045,13 +10015,19 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     _requireSuperAdmin(actor);
-    final store = (await getAdminStores()).firstWhere((item) => item.id == storeId);
-    await saveStore(store.copyWith(commissionRate: commissionRate), actor: actor);
+    final store = (await getAdminStores()).firstWhere(
+      (item) => item.id == storeId,
+    );
+    await saveStore(
+      store.copyWith(commissionRate: commissionRate),
+      actor: actor,
+    );
     await logActivity(
       action: 'adjust_commission',
       targetType: 'store',
       targetId: storeId,
-      message: 'Adjusted commission for $storeId to ${(commissionRate * 100).toStringAsFixed(0)}%.',
+      message:
+          'Adjusted commission for $storeId to ${(commissionRate * 100).toStringAsFixed(0)}%.',
       actor: actor,
     );
   }
@@ -9062,43 +10038,71 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     _requireSuperAdmin(actor);
-    final store = (await getAdminStores()).firstWhere((item) => item.id == storeId);
-    await saveStore(store.copyWith(walletBalance: store.walletBalance + delta), actor: actor);
+    final store = (await getAdminStores()).firstWhere(
+      (item) => item.id == storeId,
+    );
+    await saveStore(
+      store.copyWith(walletBalance: store.walletBalance + delta),
+      actor: actor,
+    );
     await logActivity(
       action: 'adjust_wallet',
       targetType: 'store',
       targetId: storeId,
-      message: 'Adjusted wallet for $storeId by Rs ${delta.toStringAsFixed(0)}.',
+      message:
+          'Adjusted wallet for $storeId by Rs ${delta.toStringAsFixed(0)}.',
       actor: actor,
     );
   }
 
-  Future<GlobalSearchResults> runGlobalAdminSearch(String query, {required AppUser actor}) async {
+  Future<GlobalSearchResults> runGlobalAdminSearch(
+    String query, {
+    required AppUser actor,
+  }) async {
     _requireSuperAdmin(actor);
     final normalized = query.trim().toLowerCase();
     if (normalized.isEmpty) {
       return const GlobalSearchResults();
     }
     final users = (await getUsers(actor: actor))
-        .where((user) => '${user.name} ${user.email} ${user.phone ?? ''} ${user.role}'.toLowerCase().contains(normalized))
+        .where(
+          (user) =>
+              '${user.name} ${user.email} ${user.phone ?? ''} ${user.role}'
+                  .toLowerCase()
+                  .contains(normalized),
+        )
         .toList();
     final stores = (await getAdminStores())
-        .where((store) => '${store.name} ${store.address} ${store.id}'.toLowerCase().contains(normalized))
+        .where(
+          (store) => '${store.name} ${store.address} ${store.id}'
+              .toLowerCase()
+              .contains(normalized),
+        )
         .toList();
     final orders = (await getAllOrders(actor: actor))
-        .where((order) => '${order.id} ${order.storeId} ${order.userId} ${order.invoiceNumber}'.toLowerCase().contains(normalized))
+        .where(
+          (order) =>
+              '${order.id} ${order.storeId} ${order.userId} ${order.invoiceNumber}'
+                  .toLowerCase()
+                  .contains(normalized),
+        )
         .toList();
     return GlobalSearchResults(users: users, stores: stores, orders: orders);
   }
 
-  Future<List<ActivityLogEntry>> getActivityLogs({required AppUser actor}) async {
+  Future<List<ActivityLogEntry>> getActivityLogs({
+    required AppUser actor,
+  }) async {
     _requireSuperAdmin(actor);
     if (_backendCommerce.isConfigured) {
       final logs = await _backendCommerce.getAdminActivityLogs();
       logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       return logs;
     }
-    final logs = await _fetchCollection('activityLogs', (map, id) => ActivityLogEntry.fromMap(map, id));
+    final logs = await _fetchCollection(
+      'activityLogs',
+      (map, id) => ActivityLogEntry.fromMap(map, id),
+    );
     logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return logs;
   }
@@ -9154,7 +10158,10 @@ class DatabaseService {
     return 'windows-desktop';
   }
 
-  Future<bool> isAdminDeviceAuthorized({required AppUser user, String? deviceLabel}) async {
+  Future<bool> isAdminDeviceAuthorized({
+    required AppUser user,
+    String? deviceLabel,
+  }) async {
     if (!isSuperAdmin(user)) {
       return true;
     }
@@ -9167,7 +10174,8 @@ class DatabaseService {
     if (!isSuperAdmin(user)) {
       return;
     }
-    final message = 'Admin login detected from ${getCurrentDeviceLabel()} at ${DateFormat('dd MMM, hh:mm a').format(DateTime.now())}.';
+    final message =
+        'Admin login detected from ${getCurrentDeviceLabel()} at ${DateFormat('dd MMM, hh:mm a').format(DateTime.now())}.';
     _addNotification(
       AppNotification(
         id: 'admin-login-${DateTime.now().millisecondsSinceEpoch}',

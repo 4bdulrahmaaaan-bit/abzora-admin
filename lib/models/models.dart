@@ -55,59 +55,65 @@ class AppUser {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'name': name,
-        'email': email,
-        'profileImageUrl': profileImageUrl,
-        'phone': phone,
-        'phone_number': phone,
-        'address': address,
-        'area': area,
-        'city': city,
-        'latitude': latitude,
-        'longitude': longitude,
-        'deliveryRadiusKm': deliveryRadiusKm,
-        'locationUpdatedAt': locationUpdatedAt,
-        'created_at': createdAt,
-        'role': role,
-        'isActive': isActive,
-          'storeId': storeId,
-          'walletBalance': walletBalance,
-          'roles': roles,
-        'riderApprovalStatus': riderApprovalStatus,
-        'riderVehicleType': riderVehicleType,
-        'riderLicenseNumber': riderLicenseNumber,
-        'riderCity': riderCity,
-        'referralCode': referralCode,
-        'referredBy': referredBy,
-      };
+    'id': id,
+    'name': name,
+    'email': email,
+    'profileImageUrl': profileImageUrl,
+    'phone': phone,
+    'phone_number': phone,
+    'address': address,
+    'area': area,
+    'city': city,
+    'latitude': latitude,
+    'longitude': longitude,
+    'deliveryRadiusKm': deliveryRadiusKm,
+    'locationUpdatedAt': locationUpdatedAt,
+    'created_at': createdAt,
+    'role': role,
+    'isActive': isActive,
+    'storeId': storeId,
+    'walletBalance': walletBalance,
+    'roles': roles,
+    'riderApprovalStatus': riderApprovalStatus,
+    'riderVehicleType': riderVehicleType,
+    'riderLicenseNumber': riderLicenseNumber,
+    'riderCity': riderCity,
+    'referralCode': referralCode,
+    'referredBy': referredBy,
+  };
 
   factory AppUser.fromMap(Map<String, dynamic> map) => AppUser(
-        id: map['id'] ?? '',
-        name: map['name'] ?? '',
-        email: map['email'] ?? '',
-        profileImageUrl: map['profileImageUrl'],
-        phone: map['phone'] ?? map['phone_number'],
-        address: map['address'],
-        area: map['area'],
-        city: map['city'],
-        latitude: map['latitude'] == null ? null : (map['latitude'] as num).toDouble(),
-        longitude: map['longitude'] == null ? null : (map['longitude'] as num).toDouble(),
-        deliveryRadiusKm: (map['deliveryRadiusKm'] ?? 10).toDouble(),
-        locationUpdatedAt: map['locationUpdatedAt'],
-        createdAt: map['created_at'],
-        role: map['role'] ?? 'user',
-        isActive: map['isActive'] ?? true,
-          storeId: map['storeId'],
-          walletBalance: (map['walletBalance'] ?? 0.0).toDouble(),
-        roles: Map<String, bool>.from((map['roles'] as Map?) ?? const {}),
-        riderApprovalStatus: map['riderApprovalStatus'] ?? 'pending',
-        riderVehicleType: map['riderVehicleType'],
-        riderLicenseNumber: map['riderLicenseNumber'],
-        riderCity: map['riderCity'],
-        referralCode: map['referralCode'] ?? (map['growth'] is Map ? (map['growth']['referralCode']) : null),
-        referredBy: map['referredBy'],
-      );
+    id: map['id'] ?? '',
+    name: map['name'] ?? '',
+    email: map['email'] ?? '',
+    profileImageUrl: map['profileImageUrl'],
+    phone: map['phone'] ?? map['phone_number'],
+    address: map['address'],
+    area: map['area'],
+    city: map['city'],
+    latitude: map['latitude'] == null
+        ? null
+        : (map['latitude'] as num).toDouble(),
+    longitude: map['longitude'] == null
+        ? null
+        : (map['longitude'] as num).toDouble(),
+    deliveryRadiusKm: (map['deliveryRadiusKm'] ?? 10).toDouble(),
+    locationUpdatedAt: map['locationUpdatedAt'],
+    createdAt: map['created_at'],
+    role: map['role'] ?? 'user',
+    isActive: map['isActive'] ?? true,
+    storeId: map['storeId'],
+    walletBalance: (map['walletBalance'] ?? 0.0).toDouble(),
+    roles: Map<String, bool>.from((map['roles'] as Map?) ?? const {}),
+    riderApprovalStatus: map['riderApprovalStatus'] ?? 'pending',
+    riderVehicleType: map['riderVehicleType'],
+    riderLicenseNumber: map['riderLicenseNumber'],
+    riderCity: map['riderCity'],
+    referralCode:
+        map['referralCode'] ??
+        (map['growth'] is Map ? (map['growth']['referralCode']) : null),
+    referredBy: map['referredBy'],
+  );
 
   AppUser copyWith({
     String? id,
@@ -125,8 +131,8 @@ class AppUser {
     String? createdAt,
     String? role,
     bool? isActive,
-      String? storeId,
-      double? walletBalance,
+    String? storeId,
+    double? walletBalance,
     Map<String, bool>? roles,
     String? riderApprovalStatus,
     String? riderVehicleType,
@@ -151,9 +157,9 @@ class AppUser {
       createdAt: createdAt ?? this.createdAt,
       role: role ?? this.role,
       isActive: isActive ?? this.isActive,
-        storeId: storeId ?? this.storeId,
-        walletBalance: walletBalance ?? this.walletBalance,
-        roles: roles ?? this.roles,
+      storeId: storeId ?? this.storeId,
+      walletBalance: walletBalance ?? this.walletBalance,
+      roles: roles ?? this.roles,
       riderApprovalStatus: riderApprovalStatus ?? this.riderApprovalStatus,
       riderVehicleType: riderVehicleType ?? this.riderVehicleType,
       riderLicenseNumber: riderLicenseNumber ?? this.riderLicenseNumber,
@@ -222,64 +228,70 @@ class Store {
   }) : storeId = storeId ?? id;
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'store_id': storeId,
-        'ownerId': ownerId,
-        'name': name,
-        'description': description,
-        'imageUrl': imageUrl,
-        'rating': rating,
-        'reviewCount': reviewCount,
-        'address': address,
-        'city': city,
-        'isApproved': isApproved,
-        'isActive': isActive,
-        'isFeatured': isFeatured,
-        'approvalStatus': approvalStatus,
-        'logoUrl': logoUrl,
-        'bannerImageUrl': bannerImageUrl,
-        'tagline': tagline,
-        'commissionRate': commissionRate,
-        'walletBalance': walletBalance,
-        'latitude': latitude,
-        'longitude': longitude,
-        'category': category,
-        'vendorScore': vendorScore,
-        'vendorRank': vendorRank,
-        'vendorVisibility': vendorVisibility,
-        'performanceMetrics': performanceMetrics.toMap(),
-      };
+    'id': id,
+    'store_id': storeId,
+    'ownerId': ownerId,
+    'name': name,
+    'description': description,
+    'imageUrl': imageUrl,
+    'rating': rating,
+    'reviewCount': reviewCount,
+    'address': address,
+    'city': city,
+    'isApproved': isApproved,
+    'isActive': isActive,
+    'isFeatured': isFeatured,
+    'approvalStatus': approvalStatus,
+    'logoUrl': logoUrl,
+    'bannerImageUrl': bannerImageUrl,
+    'tagline': tagline,
+    'commissionRate': commissionRate,
+    'walletBalance': walletBalance,
+    'latitude': latitude,
+    'longitude': longitude,
+    'category': category,
+    'vendorScore': vendorScore,
+    'vendorRank': vendorRank,
+    'vendorVisibility': vendorVisibility,
+    'performanceMetrics': performanceMetrics.toMap(),
+  };
 
   factory Store.fromMap(Map<String, dynamic> map, String docId) => Store(
-        id: docId,
-        storeId: map['store_id'] ?? map['id'] ?? docId,
-        ownerId: map['ownerId'] ?? '',
-        name: map['name'] ?? '',
-        description: map['description'] ?? '',
-        imageUrl: map['imageUrl'] ?? '',
-        rating: (map['rating'] ?? 0.0).toDouble(),
-        reviewCount: map['reviewCount'] ?? 0,
-        address: map['address'] ?? map['location'] ?? '',
-        city: map['city'] ?? '',
-        isApproved: map['isApproved'] ?? true,
-        isActive: map['isActive'] ?? true,
-        isFeatured: map['isFeatured'] ?? false,
-        approvalStatus: map['approvalStatus'] ?? ((map['isApproved'] ?? true) ? 'approved' : 'pending'),
-        logoUrl: map['logoUrl'] ?? '',
-        bannerImageUrl: map['bannerImageUrl'] ?? '',
-        tagline: map['tagline'] ?? '',
-        commissionRate: (map['commissionRate'] ?? 0.12).toDouble(),
-        walletBalance: (map['walletBalance'] ?? 0.0).toDouble(),
-        latitude: map['latitude'] == null ? null : (map['latitude'] as num).toDouble(),
-        longitude: map['longitude'] == null ? null : (map['longitude'] as num).toDouble(),
-        category: map['category'] ?? '',
-        vendorScore: (map['vendorScore'] ?? 0.0).toDouble(),
-        vendorRank: map['vendorRank'] ?? 0,
-        vendorVisibility: map['vendorVisibility'] ?? 'normal',
-        performanceMetrics: VendorPerformanceMetrics.fromMap(
-          Map<String, dynamic>.from(map['performanceMetrics'] ?? const {}),
-        ),
-      );
+    id: docId,
+    storeId: map['store_id'] ?? map['id'] ?? docId,
+    ownerId: map['ownerId'] ?? '',
+    name: map['name'] ?? '',
+    description: map['description'] ?? '',
+    imageUrl: map['imageUrl'] ?? '',
+    rating: (map['rating'] ?? 0.0).toDouble(),
+    reviewCount: map['reviewCount'] ?? 0,
+    address: map['address'] ?? map['location'] ?? '',
+    city: map['city'] ?? '',
+    isApproved: map['isApproved'] ?? true,
+    isActive: map['isActive'] ?? true,
+    isFeatured: map['isFeatured'] ?? false,
+    approvalStatus:
+        map['approvalStatus'] ??
+        ((map['isApproved'] ?? true) ? 'approved' : 'pending'),
+    logoUrl: map['logoUrl'] ?? '',
+    bannerImageUrl: map['bannerImageUrl'] ?? '',
+    tagline: map['tagline'] ?? '',
+    commissionRate: (map['commissionRate'] ?? 0.12).toDouble(),
+    walletBalance: (map['walletBalance'] ?? 0.0).toDouble(),
+    latitude: map['latitude'] == null
+        ? null
+        : (map['latitude'] as num).toDouble(),
+    longitude: map['longitude'] == null
+        ? null
+        : (map['longitude'] as num).toDouble(),
+    category: map['category'] ?? '',
+    vendorScore: (map['vendorScore'] ?? 0.0).toDouble(),
+    vendorRank: map['vendorRank'] ?? 0,
+    vendorVisibility: map['vendorVisibility'] ?? 'normal',
+    performanceMetrics: VendorPerformanceMetrics.fromMap(
+      Map<String, dynamic>.from(map['performanceMetrics'] ?? const {}),
+    ),
+  );
 
   Store copyWith({
     String? id,
@@ -368,20 +380,21 @@ class VendorPerformanceMetrics {
   });
 
   Map<String, dynamic> toMap() => {
-        'totalOrders': totalOrders,
-        'completedOrders': completedOrders,
-        'cancellationRate': cancellationRate,
-        'returnRate': returnRate,
-        'averageRating': averageRating,
-        'reviewSentiment': reviewSentiment,
-        'averageDeliveryHours': averageDeliveryHours,
-        'averageResponseHours': averageResponseHours,
-        'totalRevenue': totalRevenue,
-        'repeatCustomerRate': repeatCustomerRate,
-        'updatedAt': updatedAt,
-      };
+    'totalOrders': totalOrders,
+    'completedOrders': completedOrders,
+    'cancellationRate': cancellationRate,
+    'returnRate': returnRate,
+    'averageRating': averageRating,
+    'reviewSentiment': reviewSentiment,
+    'averageDeliveryHours': averageDeliveryHours,
+    'averageResponseHours': averageResponseHours,
+    'totalRevenue': totalRevenue,
+    'repeatCustomerRate': repeatCustomerRate,
+    'updatedAt': updatedAt,
+  };
 
-  factory VendorPerformanceMetrics.fromMap(Map<String, dynamic> map) => VendorPerformanceMetrics(
+  factory VendorPerformanceMetrics.fromMap(Map<String, dynamic> map) =>
+      VendorPerformanceMetrics(
         totalOrders: map['totalOrders'] ?? 0,
         completedOrders: map['completedOrders'] ?? 0,
         cancellationRate: (map['cancellationRate'] ?? 0.0).toDouble(),
@@ -400,10 +413,7 @@ class NearbyStore {
   final Store store;
   final double distanceKm;
 
-  const NearbyStore({
-    required this.store,
-    required this.distanceKm,
-  });
+  const NearbyStore({required this.store, required this.distanceKm});
 }
 
 class WishlistItem {
@@ -424,13 +434,13 @@ class WishlistItem {
   });
 
   Map<String, dynamic> toMap() => {
-        'productId': productId,
-        'storeId': storeId,
-        'name': name,
-        'price': price,
-        'image': image,
-        'addedAt': addedAt.toIso8601String(),
-      };
+    'productId': productId,
+    'storeId': storeId,
+    'name': name,
+    'price': price,
+    'image': image,
+    'addedAt': addedAt.toIso8601String(),
+  };
 
   factory WishlistItem.fromMap(Map<String, dynamic> map, String id) {
     return WishlistItem(
@@ -480,24 +490,25 @@ class UserAddress {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'userId': userId,
-        'name': name,
-        'phone': phone,
-        'addressLine': addressLine,
-        'city': city,
-        'state': state,
-        'pincode': pincode,
-        'houseDetails': houseDetails,
-        'landmark': landmark,
-        'locality': locality,
-        'latitude': latitude,
-        'longitude': longitude,
-        'type': type,
-        'createdAt': createdAt,
-      };
+    'id': id,
+    'userId': userId,
+    'name': name,
+    'phone': phone,
+    'addressLine': addressLine,
+    'city': city,
+    'state': state,
+    'pincode': pincode,
+    'houseDetails': houseDetails,
+    'landmark': landmark,
+    'locality': locality,
+    'latitude': latitude,
+    'longitude': longitude,
+    'type': type,
+    'createdAt': createdAt,
+  };
 
-  factory UserAddress.fromMap(Map<String, dynamic> map, String id) => UserAddress(
+  factory UserAddress.fromMap(Map<String, dynamic> map, String id) =>
+      UserAddress(
         id: id,
         userId: map['userId'] ?? '',
         name: map['name'] ?? '',
@@ -509,8 +520,12 @@ class UserAddress {
         houseDetails: map['houseDetails'] ?? '',
         landmark: map['landmark'] ?? '',
         locality: map['locality'] ?? '',
-        latitude: map['latitude'] == null ? null : (map['latitude'] as num).toDouble(),
-        longitude: map['longitude'] == null ? null : (map['longitude'] as num).toDouble(),
+        latitude: map['latitude'] == null
+            ? null
+            : (map['latitude'] as num).toDouble(),
+        longitude: map['longitude'] == null
+            ? null
+            : (map['longitude'] as num).toDouble(),
         type: map['type'] ?? 'home',
         createdAt: map['createdAt'] ?? DateTime.now().toIso8601String(),
       );
@@ -543,6 +558,7 @@ class Product {
   final bool isCustomTailoring;
   final String? outfitType;
   final String? fabric;
+  final String? model3d;
   final Map<String, String> attributes;
   final Map<String, String> customizations;
   final Map<String, double> measurements;
@@ -579,6 +595,7 @@ class Product {
     this.isCustomTailoring = false,
     this.outfitType,
     this.fabric,
+    this.model3d,
     this.attributes = const {},
     this.customizations = const {},
     this.measurements = const {},
@@ -590,99 +607,119 @@ class Product {
   });
 
   Map<String, dynamic> toMap() => {
-        'storeId': storeId,
-        'name': name,
-        'brand': brand,
-        'description': description,
-        'price': price,
-        'basePrice': basePrice,
-        'dynamicPrice': dynamicPrice,
-        'originalPrice': originalPrice,
-        'demandScore': demandScore,
-        'viewCount': viewCount,
-        'cartCount': cartCount,
-        'purchaseCount': purchaseCount,
-        'images': images,
-        'sizes': sizes,
-        'stock': stock,
-        'category': category,
-        'subcategory': subcategory,
-        'isActive': isActive,
-        'createdAt': createdAt,
-        'rating': rating,
-        'reviewCount': reviewCount,
-        'lastPriceUpdated': lastPriceUpdated,
-        'isCustomTailoring': isCustomTailoring,
-        'outfitType': outfitType,
-        'fabric': fabric,
-        'attributes': attributes,
-        'customizations': customizations,
-        'measurements': measurements,
-        'addons': addons,
-        'measurementProfileLabel': measurementProfileLabel,
-        'neededBy': neededBy?.toIso8601String(),
-        'tailoringDeliveryMode': tailoringDeliveryMode,
-        'tailoringExtraCost': tailoringExtraCost,
-      };
+    'storeId': storeId,
+    'name': name,
+    'brand': brand,
+    'description': description,
+    'price': price,
+    'basePrice': basePrice,
+    'dynamicPrice': dynamicPrice,
+    'originalPrice': originalPrice,
+    'demandScore': demandScore,
+    'viewCount': viewCount,
+    'cartCount': cartCount,
+    'purchaseCount': purchaseCount,
+    'images': images,
+    'sizes': sizes,
+    'stock': stock,
+    'category': category,
+    'subcategory': subcategory,
+    'isActive': isActive,
+    'createdAt': createdAt,
+    'rating': rating,
+    'reviewCount': reviewCount,
+    'lastPriceUpdated': lastPriceUpdated,
+    'isCustomTailoring': isCustomTailoring,
+    'outfitType': outfitType,
+    'fabric': fabric,
+    'model3d': model3d,
+    'attributes': attributes,
+    'customizations': customizations,
+    'measurements': measurements,
+    'addons': addons,
+    'measurementProfileLabel': measurementProfileLabel,
+    'neededBy': neededBy?.toIso8601String(),
+    'tailoringDeliveryMode': tailoringDeliveryMode,
+    'tailoringExtraCost': tailoringExtraCost,
+  };
 
   factory Product.fromMap(Map<String, dynamic> map, String docId) => Product(
-        id: docId,
-        storeId: map['storeId'] ?? '',
-        name: map['name'] ?? '',
-        brand: (() {
-          final candidates = <String?>[
-            map['brand']?.toString(),
-            map['brandName']?.toString(),
-          ];
-          for (final candidate in candidates) {
-            final value = candidate?.trim() ?? '';
-            if (value.isNotEmpty) {
-              return value;
-            }
-          }
-          return '';
-        })(),
-        description: map['description'] ?? '',
-        price: (map['price'] ?? 0.0).toDouble(),
-        basePrice: map['basePrice'] == null ? null : (map['basePrice'] as num).toDouble(),
-        dynamicPrice: map['dynamicPrice'] == null ? null : (map['dynamicPrice'] as num).toDouble(),
-        originalPrice: map['originalPrice'] == null ? null : (map['originalPrice'] as num).toDouble(),
-        demandScore: (map['demandScore'] ?? 0.0).toDouble(),
-        viewCount: map['viewCount'] ?? 0,
-        cartCount: map['cartCount'] ?? 0,
-        purchaseCount: map['purchaseCount'] ?? 0,
-        images: ImageUrlService.normalizeStoredImages(map['images'] as List? ?? const []),
-        sizes: List<String>.from(map['sizes'] ?? []),
-        stock: map['stock'] ?? 0,
-        category: map['category'] ?? '',
-        subcategory: map['subcategory'] ?? '',
-        isActive: map['isActive'] ?? true,
-        createdAt: map['createdAt'],
-        rating: (map['rating'] ?? 0.0).toDouble(),
-        reviewCount: map['reviewCount'] ?? 0,
-        lastPriceUpdated: map['lastPriceUpdated'],
-        isCustomTailoring: map['isCustomTailoring'] ?? false,
-        outfitType: map['outfitType'],
-        fabric: map['fabric'],
-        attributes: Map<String, String>.from((map['attributes'] as Map? ?? const {}).map(
-          (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
-        )),
-        customizations: Map<String, String>.from(map['customizations'] ?? const {}),
-        measurements: (map['measurements'] as Map? ?? const {}).map(
-          (key, value) => MapEntry(key.toString(), (value as num).toDouble()),
-        ),
-        addons: List<String>.from(map['addons'] ?? const []),
-        measurementProfileLabel: map['measurementProfileLabel'],
-        neededBy: map['neededBy'] != null ? DateTime.tryParse(map['neededBy']) : null,
-        tailoringDeliveryMode: map['tailoringDeliveryMode'],
-        tailoringExtraCost: (map['tailoringExtraCost'] ?? 0.0).toDouble(),
-      );
+    id: docId,
+    storeId: map['storeId'] ?? '',
+    name: map['name'] ?? '',
+    brand: (() {
+      final candidates = <String?>[
+        map['brand']?.toString(),
+        map['brandName']?.toString(),
+      ];
+      for (final candidate in candidates) {
+        final value = candidate?.trim() ?? '';
+        if (value.isNotEmpty) {
+          return value;
+        }
+      }
+      return '';
+    })(),
+    description: map['description'] ?? '',
+    price: (map['price'] ?? 0.0).toDouble(),
+    basePrice: map['basePrice'] == null
+        ? null
+        : (map['basePrice'] as num).toDouble(),
+    dynamicPrice: map['dynamicPrice'] == null
+        ? null
+        : (map['dynamicPrice'] as num).toDouble(),
+    originalPrice: map['originalPrice'] == null
+        ? null
+        : (map['originalPrice'] as num).toDouble(),
+    demandScore: (map['demandScore'] ?? 0.0).toDouble(),
+    viewCount: map['viewCount'] ?? 0,
+    cartCount: map['cartCount'] ?? 0,
+    purchaseCount: map['purchaseCount'] ?? 0,
+    images: ImageUrlService.normalizeStoredImages(
+      map['images'] as List? ?? const [],
+    ),
+    sizes: List<String>.from(map['sizes'] ?? []),
+    stock: map['stock'] ?? 0,
+    category: map['category'] ?? '',
+    subcategory: map['subcategory'] ?? '',
+    isActive: map['isActive'] ?? true,
+    createdAt: map['createdAt'],
+    rating: (map['rating'] ?? 0.0).toDouble(),
+    reviewCount: map['reviewCount'] ?? 0,
+    lastPriceUpdated: map['lastPriceUpdated'],
+    isCustomTailoring: map['isCustomTailoring'] ?? false,
+    outfitType: map['outfitType'],
+    fabric: map['fabric'],
+    model3d: (map['model3d']?.toString().trim().isNotEmpty ?? false)
+        ? map['model3d'].toString().trim()
+        : (() {
+            final raw =
+                (map['attributes'] as Map?)?['model3d']?.toString().trim() ??
+                '';
+            return raw.isEmpty ? null : raw;
+          })(),
+    attributes: Map<String, String>.from(
+      (map['attributes'] as Map? ?? const {}).map(
+        (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
+      ),
+    ),
+    customizations: Map<String, String>.from(map['customizations'] ?? const {}),
+    measurements: (map['measurements'] as Map? ?? const {}).map(
+      (key, value) => MapEntry(key.toString(), (value as num).toDouble()),
+    ),
+    addons: List<String>.from(map['addons'] ?? const []),
+    measurementProfileLabel: map['measurementProfileLabel'],
+    neededBy: map['neededBy'] != null
+        ? DateTime.tryParse(map['neededBy'])
+        : null,
+    tailoringDeliveryMode: map['tailoringDeliveryMode'],
+    tailoringExtraCost: (map['tailoringExtraCost'] ?? 0.0).toDouble(),
+  );
 
   double get effectivePrice => dynamicPrice ?? price;
 
   bool get hasDynamicDiscount =>
-      basePrice != null &&
-      effectivePrice < (basePrice ?? effectivePrice);
+      basePrice != null && effectivePrice < (basePrice ?? effectivePrice);
 
   bool get isLimitedStock => stock > 0 && stock <= 5;
 }
@@ -764,54 +801,55 @@ class OrderModel {
     this.payoutProcessed = false,
     this.paymentReference,
     this.idempotencyKey,
-      this.isPaymentVerified = false,
-      this.refundStatus = '',
-      this.returnStatus = '',
-      this.walletCreditUsed = 0,
-    });
+    this.isPaymentVerified = false,
+    this.refundStatus = '',
+    this.returnStatus = '',
+    this.walletCreditUsed = 0,
+  });
 
   Map<String, dynamic> toMap() => {
-        'userId': userId,
-        'storeId': storeId,
-        'riderId': riderId,
-        'totalAmount': totalAmount,
-        'status': status,
-        'paymentMethod': paymentMethod,
-        'timestamp': timestamp.toIso8601String(),
-        'items': items.map((item) => item.toMap()).toList(),
-        'shippingLabel': shippingLabel,
-        'shippingAddress': shippingAddress,
-        'extraCharges': extraCharges,
-        'subtotal': subtotal,
-        'taxAmount': taxAmount,
-        'platformCommission': platformCommission,
-        'vendorEarnings': vendorEarnings,
-        'payoutStatus': payoutStatus,
-        'payoutId': payoutId,
-        'trackingId': trackingId,
-        'deliveryStatus': deliveryStatus,
-        'assignedDeliveryPartner': assignedDeliveryPartner,
-        'invoiceNumber': invoiceNumber,
-        'orderType': orderType,
-          'trackingTimestamps': trackingTimestamps,
-          'riderLatitude': riderLatitude,
-          'riderLongitude': riderLongitude,
-          'riderLocationUpdatedAt': riderLocationUpdatedAt,
-          'createdAt': createdAt,
-          'updatedAt': updatedAt,
-          'deliveredAt': deliveredAt,
-          'isConfirmed': isConfirmed,
-          'isDelivered': isDelivered,
-          'payoutProcessed': payoutProcessed,
-          'paymentReference': paymentReference,
-          'idempotencyKey': idempotencyKey,
-            'isPaymentVerified': isPaymentVerified,
-            'refundStatus': refundStatus,
-            'returnStatus': returnStatus,
-            'walletCreditUsed': walletCreditUsed,
-          };
+    'userId': userId,
+    'storeId': storeId,
+    'riderId': riderId,
+    'totalAmount': totalAmount,
+    'status': status,
+    'paymentMethod': paymentMethod,
+    'timestamp': timestamp.toIso8601String(),
+    'items': items.map((item) => item.toMap()).toList(),
+    'shippingLabel': shippingLabel,
+    'shippingAddress': shippingAddress,
+    'extraCharges': extraCharges,
+    'subtotal': subtotal,
+    'taxAmount': taxAmount,
+    'platformCommission': platformCommission,
+    'vendorEarnings': vendorEarnings,
+    'payoutStatus': payoutStatus,
+    'payoutId': payoutId,
+    'trackingId': trackingId,
+    'deliveryStatus': deliveryStatus,
+    'assignedDeliveryPartner': assignedDeliveryPartner,
+    'invoiceNumber': invoiceNumber,
+    'orderType': orderType,
+    'trackingTimestamps': trackingTimestamps,
+    'riderLatitude': riderLatitude,
+    'riderLongitude': riderLongitude,
+    'riderLocationUpdatedAt': riderLocationUpdatedAt,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+    'deliveredAt': deliveredAt,
+    'isConfirmed': isConfirmed,
+    'isDelivered': isDelivered,
+    'payoutProcessed': payoutProcessed,
+    'paymentReference': paymentReference,
+    'idempotencyKey': idempotencyKey,
+    'isPaymentVerified': isPaymentVerified,
+    'refundStatus': refundStatus,
+    'returnStatus': returnStatus,
+    'walletCreditUsed': walletCreditUsed,
+  };
 
-  factory OrderModel.fromMap(Map<String, dynamic> map, String docId) => OrderModel(
+  factory OrderModel.fromMap(Map<String, dynamic> map, String docId) =>
+      OrderModel(
         id: docId,
         userId: map['userId'] ?? '',
         storeId: map['storeId'] ?? '',
@@ -819,8 +857,12 @@ class OrderModel {
         totalAmount: (map['totalAmount'] ?? 0.0).toDouble(),
         status: map['status'] ?? 'Placed',
         paymentMethod: map['paymentMethod'] ?? 'COD',
-        timestamp: DateTime.parse(map['timestamp'] ?? DateTime.now().toIso8601String()),
-        items: (map['items'] as List? ?? const []).map((item) => OrderItem.fromMap(item)).toList(),
+        timestamp: DateTime.parse(
+          map['timestamp'] ?? DateTime.now().toIso8601String(),
+        ),
+        items: (map['items'] as List? ?? const [])
+            .map((item) => OrderItem.fromMap(item))
+            .toList(),
         shippingLabel: map['shippingLabel'] ?? '',
         shippingAddress: map['shippingAddress'] ?? '',
         extraCharges: (map['extraCharges'] ?? 0.0).toDouble(),
@@ -835,24 +877,30 @@ class OrderModel {
         assignedDeliveryPartner: map['assignedDeliveryPartner'] ?? 'Unassigned',
         invoiceNumber: map['invoiceNumber'] ?? '',
         orderType: map['orderType'] ?? 'marketplace',
-          trackingTimestamps: Map<String, String>.from(map['trackingTimestamps'] ?? const {}),
-          riderLatitude: map['riderLatitude'] == null ? null : (map['riderLatitude'] as num).toDouble(),
-          riderLongitude: map['riderLongitude'] == null ? null : (map['riderLongitude'] as num).toDouble(),
-          riderLocationUpdatedAt: map['riderLocationUpdatedAt'],
-          createdAt: map['createdAt'],
-          updatedAt: map['updatedAt'],
-          deliveredAt: map['deliveredAt'],
-          isConfirmed: map['isConfirmed'] ?? false,
-          isDelivered: map['isDelivered'] ?? false,
-          payoutProcessed: map['payoutProcessed'] ?? false,
-          paymentReference: map['paymentReference'],
-          idempotencyKey: map['idempotencyKey'],
+        trackingTimestamps: Map<String, String>.from(
+          map['trackingTimestamps'] ?? const {},
+        ),
+        riderLatitude: map['riderLatitude'] == null
+            ? null
+            : (map['riderLatitude'] as num).toDouble(),
+        riderLongitude: map['riderLongitude'] == null
+            ? null
+            : (map['riderLongitude'] as num).toDouble(),
+        riderLocationUpdatedAt: map['riderLocationUpdatedAt'],
+        createdAt: map['createdAt'],
+        updatedAt: map['updatedAt'],
+        deliveredAt: map['deliveredAt'],
+        isConfirmed: map['isConfirmed'] ?? false,
+        isDelivered: map['isDelivered'] ?? false,
+        payoutProcessed: map['payoutProcessed'] ?? false,
+        paymentReference: map['paymentReference'],
+        idempotencyKey: map['idempotencyKey'],
         isPaymentVerified: map['isPaymentVerified'] ?? false,
         refundStatus: map['refundStatus'] ?? '',
         returnStatus: map['returnStatus'] ?? '',
         walletCreditUsed: ((map['walletCreditUsed'] ?? 0) as num).toDouble(),
       );
-  }
+}
 
 class OrderItem {
   final String productId;
@@ -880,30 +928,32 @@ class OrderItem {
   });
 
   Map<String, dynamic> toMap() => {
-        'productId': productId,
-        'productName': productName,
-        'quantity': quantity,
-        'price': price,
-        'size': size,
-        'imageUrl': imageUrl,
-        'isCustomTailoring': isCustomTailoring,
-        'neededBy': neededBy?.toIso8601String(),
-        'tailoringDeliveryMode': tailoringDeliveryMode,
-        'measurementProfileLabel': measurementProfileLabel,
-      };
+    'productId': productId,
+    'productName': productName,
+    'quantity': quantity,
+    'price': price,
+    'size': size,
+    'imageUrl': imageUrl,
+    'isCustomTailoring': isCustomTailoring,
+    'neededBy': neededBy?.toIso8601String(),
+    'tailoringDeliveryMode': tailoringDeliveryMode,
+    'measurementProfileLabel': measurementProfileLabel,
+  };
 
   factory OrderItem.fromMap(Map<String, dynamic> map) => OrderItem(
-        productId: map['productId'] ?? '',
-        productName: map['productName'] ?? '',
-        quantity: map['quantity'] ?? 1,
-        price: (map['price'] ?? 0.0).toDouble(),
-        size: map['size'] ?? '',
-        imageUrl: map['imageUrl'] ?? '',
-        isCustomTailoring: map['isCustomTailoring'] ?? false,
-        neededBy: map['neededBy'] != null ? DateTime.tryParse(map['neededBy']) : null,
-        tailoringDeliveryMode: map['tailoringDeliveryMode'],
-        measurementProfileLabel: map['measurementProfileLabel'],
-      );
+    productId: map['productId'] ?? '',
+    productName: map['productName'] ?? '',
+    quantity: map['quantity'] ?? 1,
+    price: (map['price'] ?? 0.0).toDouble(),
+    size: map['size'] ?? '',
+    imageUrl: map['imageUrl'] ?? '',
+    isCustomTailoring: map['isCustomTailoring'] ?? false,
+    neededBy: map['neededBy'] != null
+        ? DateTime.tryParse(map['neededBy'])
+        : null,
+    tailoringDeliveryMode: map['tailoringDeliveryMode'],
+    measurementProfileLabel: map['measurementProfileLabel'],
+  );
 }
 
 class RefundRequest {
@@ -938,22 +988,23 @@ class RefundRequest {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'orderId': orderId,
-        'userId': userId,
-        'reason': reason,
-        'status': status,
-        'createdAt': createdAt,
-        'processedAt': processedAt,
-        'processedBy': processedBy,
-        'rejectionReason': rejectionReason,
-        'gatewayRefundId': gatewayRefundId,
-        'fraudScore': fraudScore,
-        'fraudDecision': fraudDecision,
-        'fraudReasons': fraudReasons,
-      };
+    'id': id,
+    'orderId': orderId,
+    'userId': userId,
+    'reason': reason,
+    'status': status,
+    'createdAt': createdAt,
+    'processedAt': processedAt,
+    'processedBy': processedBy,
+    'rejectionReason': rejectionReason,
+    'gatewayRefundId': gatewayRefundId,
+    'fraudScore': fraudScore,
+    'fraudDecision': fraudDecision,
+    'fraudReasons': fraudReasons,
+  };
 
-  factory RefundRequest.fromMap(Map<String, dynamic> map, String id) => RefundRequest(
+  factory RefundRequest.fromMap(Map<String, dynamic> map, String id) =>
+      RefundRequest(
         id: id,
         orderId: map['orderId'] ?? '',
         userId: map['userId'] ?? '',
@@ -966,7 +1017,9 @@ class RefundRequest {
         gatewayRefundId: map['gatewayRefundId'],
         fraudScore: map['fraudScore'] ?? 0,
         fraudDecision: map['fraudDecision'] ?? 'approve',
-        fraudReasons: List<String>.from((map['fraudReasons'] as List?) ?? const []),
+        fraudReasons: List<String>.from(
+          (map['fraudReasons'] as List?) ?? const [],
+        ),
       );
 
   RefundRequest copyWith({
@@ -1042,26 +1095,27 @@ class ReturnRequest {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'orderId': orderId,
-        'userId': userId,
-        'address': address,
-        'reason': reason,
-        'status': status,
-        'createdAt': createdAt,
-        'updatedAt': updatedAt,
-        'riderId': riderId,
-        'pickupTaskId': pickupTaskId,
-        'approvedAt': approvedAt,
-        'pickedAt': pickedAt,
-        'completedAt': completedAt,
-        'processedBy': processedBy,
-        'imageUrl': imageUrl,
-        'rejectionReason': rejectionReason,
-        'refundRequestId': refundRequestId,
-      };
+    'id': id,
+    'orderId': orderId,
+    'userId': userId,
+    'address': address,
+    'reason': reason,
+    'status': status,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+    'riderId': riderId,
+    'pickupTaskId': pickupTaskId,
+    'approvedAt': approvedAt,
+    'pickedAt': pickedAt,
+    'completedAt': completedAt,
+    'processedBy': processedBy,
+    'imageUrl': imageUrl,
+    'rejectionReason': rejectionReason,
+    'refundRequestId': refundRequestId,
+  };
 
-  factory ReturnRequest.fromMap(Map<String, dynamic> map, String id) => ReturnRequest(
+  factory ReturnRequest.fromMap(Map<String, dynamic> map, String id) =>
+      ReturnRequest(
         id: id,
         orderId: map['orderId'] ?? '',
         userId: map['userId'] ?? '',
@@ -1142,24 +1196,24 @@ class PickupTask {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'returnId': returnId,
-        'riderId': riderId,
-        'status': status,
-        'pickupLocation': pickupLocation,
-        'createdAt': createdAt,
-        'updatedAt': updatedAt,
-      };
+    'id': id,
+    'returnId': returnId,
+    'riderId': riderId,
+    'status': status,
+    'pickupLocation': pickupLocation,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+  };
 
   factory PickupTask.fromMap(Map<String, dynamic> map, String id) => PickupTask(
-        id: id,
-        returnId: map['returnId'] ?? '',
-        riderId: map['riderId'] ?? '',
-        status: map['status'] ?? 'assigned',
-        pickupLocation: map['pickupLocation'] ?? '',
-        createdAt: map['createdAt'] ?? '',
-        updatedAt: map['updatedAt'] ?? map['createdAt'] ?? '',
-      );
+    id: id,
+    returnId: map['returnId'] ?? '',
+    riderId: map['riderId'] ?? '',
+    status: map['status'] ?? 'assigned',
+    pickupLocation: map['pickupLocation'] ?? '',
+    createdAt: map['createdAt'] ?? '',
+    updatedAt: map['updatedAt'] ?? map['createdAt'] ?? '',
+  );
 }
 
 class UnifiedRiderTask {
@@ -1188,19 +1242,20 @@ class UnifiedRiderTask {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'type': type,
-        'orderId': orderId,
-        'returnId': returnId,
-        'userId': userId,
-        'address': address,
-        'status': status,
-        'riderId': riderId,
-        'createdAt': createdAt,
-        'updatedAt': updatedAt,
-      };
+    'id': id,
+    'type': type,
+    'orderId': orderId,
+    'returnId': returnId,
+    'userId': userId,
+    'address': address,
+    'status': status,
+    'riderId': riderId,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+  };
 
-  factory UnifiedRiderTask.fromMap(Map<String, dynamic> map, String id) => UnifiedRiderTask(
+  factory UnifiedRiderTask.fromMap(Map<String, dynamic> map, String id) =>
+      UnifiedRiderTask(
         id: id,
         type: map['type'] ?? 'delivery',
         orderId: map['orderId'],
@@ -1236,17 +1291,18 @@ class RefundFraudLog {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'refundId': refundId,
-        'orderId': orderId,
-        'userId': userId,
-        'riskScore': riskScore,
-        'decision': decision,
-        'reasons': reasons,
-        'createdAt': createdAt,
-      };
+    'id': id,
+    'refundId': refundId,
+    'orderId': orderId,
+    'userId': userId,
+    'riskScore': riskScore,
+    'decision': decision,
+    'reasons': reasons,
+    'createdAt': createdAt,
+  };
 
-  factory RefundFraudLog.fromMap(Map<String, dynamic> map, String id) => RefundFraudLog(
+  factory RefundFraudLog.fromMap(Map<String, dynamic> map, String id) =>
+      RefundFraudLog(
         id: id,
         refundId: map['refundId'] ?? '',
         orderId: map['orderId'] ?? '',
@@ -1282,23 +1338,26 @@ class BookingModel {
   });
 
   Map<String, dynamic> toMap() => {
-        'userId': userId,
-        'tailorId': tailorId,
-        'tailorName': tailorName,
-        'outfitType': outfitType,
-        'appointmentDate': appointmentDate.toIso8601String(),
-        'timeSlot': timeSlot,
-        'status': status,
-        'notes': notes,
-      };
+    'userId': userId,
+    'tailorId': tailorId,
+    'tailorName': tailorName,
+    'outfitType': outfitType,
+    'appointmentDate': appointmentDate.toIso8601String(),
+    'timeSlot': timeSlot,
+    'status': status,
+    'notes': notes,
+  };
 
-  factory BookingModel.fromMap(Map<String, dynamic> map, String docId) => BookingModel(
+  factory BookingModel.fromMap(Map<String, dynamic> map, String docId) =>
+      BookingModel(
         id: docId,
         userId: map['userId'] ?? '',
         tailorId: map['tailorId'] ?? '',
         tailorName: map['tailorName'] ?? '',
         outfitType: map['outfitType'] ?? '',
-        appointmentDate: DateTime.parse(map['appointmentDate'] ?? DateTime.now().toIso8601String()),
+        appointmentDate: DateTime.parse(
+          map['appointmentDate'] ?? DateTime.now().toIso8601String(),
+        ),
         timeSlot: map['timeSlot'] ?? '',
         status: map['status'] ?? 'Pending',
         notes: map['notes'] ?? '',
@@ -1337,21 +1396,22 @@ class MeasurementProfile {
   });
 
   Map<String, dynamic> toMap() => {
-        'userId': userId,
-        'label': label,
-        'method': method,
-        'unit': unit,
-        'chest': chest,
-        'shoulder': shoulder,
-        'waist': waist,
-        'sleeve': sleeve,
-        'length': length,
-        'standardSize': standardSize,
-        'recommendedSize': recommendedSize,
-        'sourceProfileId': sourceProfileId,
-      };
+    'userId': userId,
+    'label': label,
+    'method': method,
+    'unit': unit,
+    'chest': chest,
+    'shoulder': shoulder,
+    'waist': waist,
+    'sleeve': sleeve,
+    'length': length,
+    'standardSize': standardSize,
+    'recommendedSize': recommendedSize,
+    'sourceProfileId': sourceProfileId,
+  };
 
-  factory MeasurementProfile.fromMap(Map<String, dynamic> map, String docId) => MeasurementProfile(
+  factory MeasurementProfile.fromMap(Map<String, dynamic> map, String docId) =>
+      MeasurementProfile(
         id: docId,
         userId: map['userId'] ?? '',
         label: map['label'] ?? '',
@@ -1406,59 +1466,54 @@ class BodyProfile {
   });
 
   Map<String, dynamic> toMap() => {
-        'heightCm': heightCm,
-        'weightKg': weightKg,
-        'bodyType': bodyType,
-        'size': recommendedSize,
-        'recommendedSize': recommendedSize,
-        'pantSize': pantSize,
-        'fitPreference': fitPreference,
-        'shoulderCm': shoulderCm,
-        'chestCm': chestCm,
-        'waistCm': waistCm,
-        'hipCm': hipCm,
-        'armLengthCm': armLengthCm,
-        'inseamCm': inseamCm,
-        'confidence': confidence,
-        'scanFrameCount': scanFrameCount,
-        'scanSource': scanSource,
-        'updatedAt': updatedAt,
-      };
+    'heightCm': heightCm,
+    'weightKg': weightKg,
+    'bodyType': bodyType,
+    'size': recommendedSize,
+    'recommendedSize': recommendedSize,
+    'pantSize': pantSize,
+    'fitPreference': fitPreference,
+    'shoulderCm': shoulderCm,
+    'chestCm': chestCm,
+    'waistCm': waistCm,
+    'hipCm': hipCm,
+    'armLengthCm': armLengthCm,
+    'inseamCm': inseamCm,
+    'confidence': confidence,
+    'scanFrameCount': scanFrameCount,
+    'scanSource': scanSource,
+    'updatedAt': updatedAt,
+  };
 
   factory BodyProfile.fromMap(Map<String, dynamic> map) => BodyProfile(
-        heightCm: (map['heightCm'] ?? map['height'] ?? 0.0).toDouble(),
-        weightKg: (map['weightKg'] ?? map['weight'] ?? 0.0).toDouble(),
-        bodyType: map['bodyType'] ?? 'regular',
-        recommendedSize:
-            (map['recommendedSize'] ?? map['size'] ?? '').toString(),
-        pantSize: (map['pantSize'] ?? '').toString(),
-        fitPreference: (map['fitPreference'] ?? 'regular').toString(),
-        shoulderCm: map['shoulderCm'] == null
-            ? null
-            : (map['shoulderCm'] as num).toDouble(),
-        chestCm: map['chestCm'] == null
-            ? null
-            : (map['chestCm'] as num).toDouble(),
-        waistCm: map['waistCm'] == null
-            ? null
-            : (map['waistCm'] as num).toDouble(),
-        hipCm: map['hipCm'] == null ? null : (map['hipCm'] as num).toDouble(),
-        armLengthCm: map['armLengthCm'] == null
-            ? null
-            : (map['armLengthCm'] as num).toDouble(),
-        inseamCm: map['inseamCm'] == null
-            ? null
-            : (map['inseamCm'] as num).toDouble(),
-        confidence: map['confidence'] == null
-            ? null
-            : (map['confidence'] as num).toDouble(),
-        scanFrameCount: map['scanFrameCount'] == null
-            ? null
-            : (map['scanFrameCount'] as num).toInt(),
-        scanSource: map['scanSource']?.toString(),
-        updatedAt:
-            (map['updatedAt'] ?? DateTime.now().toIso8601String()).toString(),
-      );
+    heightCm: (map['heightCm'] ?? map['height'] ?? 0.0).toDouble(),
+    weightKg: (map['weightKg'] ?? map['weight'] ?? 0.0).toDouble(),
+    bodyType: map['bodyType'] ?? 'regular',
+    recommendedSize: (map['recommendedSize'] ?? map['size'] ?? '').toString(),
+    pantSize: (map['pantSize'] ?? '').toString(),
+    fitPreference: (map['fitPreference'] ?? 'regular').toString(),
+    shoulderCm: map['shoulderCm'] == null
+        ? null
+        : (map['shoulderCm'] as num).toDouble(),
+    chestCm: map['chestCm'] == null ? null : (map['chestCm'] as num).toDouble(),
+    waistCm: map['waistCm'] == null ? null : (map['waistCm'] as num).toDouble(),
+    hipCm: map['hipCm'] == null ? null : (map['hipCm'] as num).toDouble(),
+    armLengthCm: map['armLengthCm'] == null
+        ? null
+        : (map['armLengthCm'] as num).toDouble(),
+    inseamCm: map['inseamCm'] == null
+        ? null
+        : (map['inseamCm'] as num).toDouble(),
+    confidence: map['confidence'] == null
+        ? null
+        : (map['confidence'] as num).toDouble(),
+    scanFrameCount: map['scanFrameCount'] == null
+        ? null
+        : (map['scanFrameCount'] as num).toInt(),
+    scanSource: map['scanSource']?.toString(),
+    updatedAt: (map['updatedAt'] ?? DateTime.now().toIso8601String())
+        .toString(),
+  );
 
   BodyProfile copyWith({
     double? heightCm,
@@ -1523,17 +1578,18 @@ class ReviewModel {
   });
 
   Map<String, dynamic> toMap() => {
-        'userId': userId,
-        'userName': userName,
-        'targetId': targetId,
-        'targetType': targetType,
-        'rating': rating,
-        'comment': comment,
-        'imagePath': imagePath,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'userId': userId,
+    'userName': userName,
+    'targetId': targetId,
+    'targetType': targetType,
+    'rating': rating,
+    'comment': comment,
+    'imagePath': imagePath,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
-  factory ReviewModel.fromMap(Map<String, dynamic> map, String docId) => ReviewModel(
+  factory ReviewModel.fromMap(Map<String, dynamic> map, String docId) =>
+      ReviewModel(
         id: docId,
         userId: map['userId'] ?? '',
         userName: map['userName'] ?? '',
@@ -1542,7 +1598,9 @@ class ReviewModel {
         rating: (map['rating'] ?? 0.0).toDouble(),
         comment: map['comment'] ?? '',
         imagePath: map['imagePath'],
-        createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
+        createdAt: DateTime.parse(
+          map['createdAt'] ?? DateTime.now().toIso8601String(),
+        ),
       );
 }
 
@@ -1570,28 +1628,30 @@ class AppNotification {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'title': title,
-        'body': body,
-        'type': type,
-        'isRead': isRead,
-        'timestamp': timestamp.toIso8601String(),
-        'audienceRole': audienceRole,
-        'userId': userId,
-        'storeId': storeId,
-      };
+    'id': id,
+    'title': title,
+    'body': body,
+    'type': type,
+    'isRead': isRead,
+    'timestamp': timestamp.toIso8601String(),
+    'audienceRole': audienceRole,
+    'userId': userId,
+    'storeId': storeId,
+  };
 
   factory AppNotification.fromMap(Map<String, dynamic> map) => AppNotification(
-        id: map['id'] ?? '',
-        title: map['title'] ?? '',
-        body: map['body'] ?? '',
-        type: map['type'] ?? 'general',
-        isRead: map['isRead'] ?? false,
-        timestamp: DateTime.parse(map['timestamp'] ?? DateTime.now().toIso8601String()),
-        audienceRole: map['audienceRole'] ?? 'user',
-        userId: map['userId'],
-        storeId: map['storeId'],
-      );
+    id: map['id'] ?? '',
+    title: map['title'] ?? '',
+    body: map['body'] ?? '',
+    type: map['type'] ?? 'general',
+    isRead: map['isRead'] ?? false,
+    timestamp: DateTime.parse(
+      map['timestamp'] ?? DateTime.now().toIso8601String(),
+    ),
+    audienceRole: map['audienceRole'] ?? 'user',
+    userId: map['userId'],
+    storeId: map['storeId'],
+  );
 }
 
 class UserActivitySummary {
@@ -1634,44 +1694,47 @@ class UserActivitySummary {
   });
 
   Map<String, dynamic> toMap() => {
-        'userId': userId,
-        'loginCount': loginCount,
-        'productViewCount': productViewCount,
-        'cartItemCount': cartItemCount,
-        'orderCount': orderCount,
-        'totalSpend': totalSpend,
-        'lastLoginAt': lastLoginAt,
-        'lastActiveAt': lastActiveAt,
-        'lastProductViewAt': lastProductViewAt,
-        'lastCartActivityAt': lastCartActivityAt,
-        'lastOrderAt': lastOrderAt,
-        'cartAbandonedAt': cartAbandonedAt,
-        'lastViewedProductId': lastViewedProductId,
-        'cartAbandoned': cartAbandoned,
-        'segment': segment,
-        'favoriteCategory': favoriteCategory,
-        'behaviorFlags': behaviorFlags,
-      };
+    'userId': userId,
+    'loginCount': loginCount,
+    'productViewCount': productViewCount,
+    'cartItemCount': cartItemCount,
+    'orderCount': orderCount,
+    'totalSpend': totalSpend,
+    'lastLoginAt': lastLoginAt,
+    'lastActiveAt': lastActiveAt,
+    'lastProductViewAt': lastProductViewAt,
+    'lastCartActivityAt': lastCartActivityAt,
+    'lastOrderAt': lastOrderAt,
+    'cartAbandonedAt': cartAbandonedAt,
+    'lastViewedProductId': lastViewedProductId,
+    'cartAbandoned': cartAbandoned,
+    'segment': segment,
+    'favoriteCategory': favoriteCategory,
+    'behaviorFlags': behaviorFlags,
+  };
 
-  factory UserActivitySummary.fromMap(Map<String, dynamic> map, String userId) => UserActivitySummary(
-        userId: map['userId'] ?? userId,
-        loginCount: ((map['loginCount'] ?? 0) as num).toInt(),
-        productViewCount: ((map['productViewCount'] ?? 0) as num).toInt(),
-        cartItemCount: ((map['cartItemCount'] ?? 0) as num).toInt(),
-        orderCount: ((map['orderCount'] ?? 0) as num).toInt(),
-        totalSpend: ((map['totalSpend'] ?? 0) as num).toDouble(),
-        lastLoginAt: map['lastLoginAt'],
-        lastActiveAt: map['lastActiveAt'],
-        lastProductViewAt: map['lastProductViewAt'],
-        lastCartActivityAt: map['lastCartActivityAt'],
-        lastOrderAt: map['lastOrderAt'],
-        cartAbandonedAt: map['cartAbandonedAt'],
-        lastViewedProductId: map['lastViewedProductId'],
-        cartAbandoned: map['cartAbandoned'] ?? false,
-        segment: map['segment'] ?? 'new',
-        favoriteCategory: map['favoriteCategory'],
-        behaviorFlags: List<String>.from(map['behaviorFlags'] ?? const []),
-      );
+  factory UserActivitySummary.fromMap(
+    Map<String, dynamic> map,
+    String userId,
+  ) => UserActivitySummary(
+    userId: map['userId'] ?? userId,
+    loginCount: ((map['loginCount'] ?? 0) as num).toInt(),
+    productViewCount: ((map['productViewCount'] ?? 0) as num).toInt(),
+    cartItemCount: ((map['cartItemCount'] ?? 0) as num).toInt(),
+    orderCount: ((map['orderCount'] ?? 0) as num).toInt(),
+    totalSpend: ((map['totalSpend'] ?? 0) as num).toDouble(),
+    lastLoginAt: map['lastLoginAt'],
+    lastActiveAt: map['lastActiveAt'],
+    lastProductViewAt: map['lastProductViewAt'],
+    lastCartActivityAt: map['lastCartActivityAt'],
+    lastOrderAt: map['lastOrderAt'],
+    cartAbandonedAt: map['cartAbandonedAt'],
+    lastViewedProductId: map['lastViewedProductId'],
+    cartAbandoned: map['cartAbandoned'] ?? false,
+    segment: map['segment'] ?? 'new',
+    favoriteCategory: map['favoriteCategory'],
+    behaviorFlags: List<String>.from(map['behaviorFlags'] ?? const []),
+  );
 
   UserActivitySummary copyWith({
     String? userId,
@@ -1740,19 +1803,20 @@ class GrowthTrigger {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'userId': userId,
-        'type': type,
-        'status': status,
-        'title': title,
-        'message': message,
-        'actionType': actionType,
-        'createdAt': createdAt,
-        'scheduledAt': scheduledAt,
-        'metadata': metadata,
-      };
+    'id': id,
+    'userId': userId,
+    'type': type,
+    'status': status,
+    'title': title,
+    'message': message,
+    'actionType': actionType,
+    'createdAt': createdAt,
+    'scheduledAt': scheduledAt,
+    'metadata': metadata,
+  };
 
-  factory GrowthTrigger.fromMap(Map<String, dynamic> map, String id) => GrowthTrigger(
+  factory GrowthTrigger.fromMap(Map<String, dynamic> map, String id) =>
+      GrowthTrigger(
         id: map['id'] ?? id,
         userId: map['userId'] ?? '',
         type: map['type'] ?? 'generic',
@@ -1762,7 +1826,9 @@ class GrowthTrigger {
         actionType: map['actionType'] ?? 'notify',
         createdAt: map['createdAt'] ?? '',
         scheduledAt: map['scheduledAt'],
-        metadata: Map<String, dynamic>.from((map['metadata'] as Map?) ?? const {}),
+        metadata: Map<String, dynamic>.from(
+          (map['metadata'] as Map?) ?? const {},
+        ),
       );
 }
 
@@ -1800,23 +1866,24 @@ class GrowthOffer {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'userId': userId,
-        'type': type,
-        'title': title,
-        'subtitle': subtitle,
-        'code': code,
-        'discountPercent': discountPercent,
-        'discountAmount': discountAmount,
-        'minOrderValue': minOrderValue,
-        'autoApply': autoApply,
-        'isClaimed': isClaimed,
-        'createdAt': createdAt,
-        'expiresAt': expiresAt,
-        'metadata': metadata,
-      };
+    'id': id,
+    'userId': userId,
+    'type': type,
+    'title': title,
+    'subtitle': subtitle,
+    'code': code,
+    'discountPercent': discountPercent,
+    'discountAmount': discountAmount,
+    'minOrderValue': minOrderValue,
+    'autoApply': autoApply,
+    'isClaimed': isClaimed,
+    'createdAt': createdAt,
+    'expiresAt': expiresAt,
+    'metadata': metadata,
+  };
 
-  factory GrowthOffer.fromMap(Map<String, dynamic> map, String id) => GrowthOffer(
+  factory GrowthOffer.fromMap(Map<String, dynamic> map, String id) =>
+      GrowthOffer(
         id: map['id'] ?? id,
         userId: map['userId'] ?? '',
         type: map['type'] ?? 'discount',
@@ -1830,9 +1897,11 @@ class GrowthOffer {
         isClaimed: map['isClaimed'] ?? false,
         createdAt: map['createdAt'] ?? '',
         expiresAt: map['expiresAt'],
-        metadata: Map<String, dynamic>.from((map['metadata'] as Map?) ?? const {}),
-        );
-  }
+        metadata: Map<String, dynamic>.from(
+          (map['metadata'] as Map?) ?? const {},
+        ),
+      );
+}
 
 class ReferralRecord {
   final String id;
@@ -1866,22 +1935,23 @@ class ReferralRecord {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'referrerId': referrerId,
-        'referredUserId': referredUserId,
-        'referralCode': referralCode,
-        'status': status,
-        'rewardGiven': rewardGiven,
-        'referrerReward': referrerReward,
-        'friendReward': friendReward,
-        'createdAt': createdAt,
-        'completedAt': completedAt,
-        'qualifyingOrderId': qualifyingOrderId,
-        'qualifyingOrderAmount': qualifyingOrderAmount,
-        'fraudFlags': fraudFlags,
-      };
+    'id': id,
+    'referrerId': referrerId,
+    'referredUserId': referredUserId,
+    'referralCode': referralCode,
+    'status': status,
+    'rewardGiven': rewardGiven,
+    'referrerReward': referrerReward,
+    'friendReward': friendReward,
+    'createdAt': createdAt,
+    'completedAt': completedAt,
+    'qualifyingOrderId': qualifyingOrderId,
+    'qualifyingOrderAmount': qualifyingOrderAmount,
+    'fraudFlags': fraudFlags,
+  };
 
-  factory ReferralRecord.fromMap(Map<String, dynamic> map, String id) => ReferralRecord(
+  factory ReferralRecord.fromMap(Map<String, dynamic> map, String id) =>
+      ReferralRecord(
         id: map['id'] ?? id,
         referrerId: map['referrerId'] ?? '',
         referredUserId: map['referredUserId'] ?? '',
@@ -1893,9 +1963,12 @@ class ReferralRecord {
         createdAt: map['createdAt'] ?? '',
         completedAt: map['completedAt'],
         qualifyingOrderId: map['qualifyingOrderId'],
-        qualifyingOrderAmount:
-            map['qualifyingOrderAmount'] == null ? null : (map['qualifyingOrderAmount'] as num).toDouble(),
-        fraudFlags: List<String>.from((map['fraudFlags'] as List?) ?? const <String>[]),
+        qualifyingOrderAmount: map['qualifyingOrderAmount'] == null
+            ? null
+            : (map['qualifyingOrderAmount'] as num).toDouble(),
+        fraudFlags: List<String>.from(
+          (map['fraudFlags'] as List?) ?? const <String>[],
+        ),
       );
 }
 
@@ -1971,19 +2044,19 @@ class MasterPricingDecision {
   });
 
   Map<String, dynamic> toMap() => {
-        'originalPrice': originalPrice,
-        'dynamicPrice': dynamicPrice,
-        'dynamicAdjustment': dynamicAdjustment,
-        'couponAmount': couponAmount,
-        'couponCode': couponCode,
-        'creditsApplied': creditsApplied,
-        'discountedSubtotal': discountedSubtotal,
-        'taxAmount': taxAmount,
-        'extraCharges': extraCharges,
-        'finalPrice': finalPrice,
-        'maxDiscountCap': maxDiscountCap,
-        'summary': summary,
-      };
+    'originalPrice': originalPrice,
+    'dynamicPrice': dynamicPrice,
+    'dynamicAdjustment': dynamicAdjustment,
+    'couponAmount': couponAmount,
+    'couponCode': couponCode,
+    'creditsApplied': creditsApplied,
+    'discountedSubtotal': discountedSubtotal,
+    'taxAmount': taxAmount,
+    'extraCharges': extraCharges,
+    'finalPrice': finalPrice,
+    'maxDiscountCap': maxDiscountCap,
+    'summary': summary,
+  };
 }
 
 class SupportChat {
@@ -2026,26 +2099,27 @@ class SupportChat {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'userId': userId,
-        'type': type,
-        'status': status,
-        'createdAt': createdAt,
-        'updatedAt': updatedAt,
-        'lastMessage': lastMessage,
-        'lastMessageAt': lastMessageAt,
-        'lastSenderId': lastSenderId,
-        'lastSenderRole': lastSenderRole,
-        'userName': userName,
-        'userPhone': userPhone,
-        'ticketId': ticketId,
-        'orderId': orderId,
-        'unreadCountUser': unreadCountUser,
-        'unreadCountAdmin': unreadCountAdmin,
-        'participantIds': participantIds,
-      };
+    'id': id,
+    'userId': userId,
+    'type': type,
+    'status': status,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+    'lastMessage': lastMessage,
+    'lastMessageAt': lastMessageAt,
+    'lastSenderId': lastSenderId,
+    'lastSenderRole': lastSenderRole,
+    'userName': userName,
+    'userPhone': userPhone,
+    'ticketId': ticketId,
+    'orderId': orderId,
+    'unreadCountUser': unreadCountUser,
+    'unreadCountAdmin': unreadCountAdmin,
+    'participantIds': participantIds,
+  };
 
-  factory SupportChat.fromMap(Map<String, dynamic> map, String id) => SupportChat(
+  factory SupportChat.fromMap(Map<String, dynamic> map, String id) =>
+      SupportChat(
         id: id,
         userId: map['userId'] ?? '',
         type: map['type'] ?? 'general',
@@ -2062,7 +2136,9 @@ class SupportChat {
         orderId: map['orderId'],
         unreadCountUser: map['unreadCountUser'] ?? 0,
         unreadCountAdmin: map['unreadCountAdmin'] ?? 0,
-        participantIds: Map<String, bool>.from((map['participantIds'] as Map?) ?? const {}),
+        participantIds: Map<String, bool>.from(
+          (map['participantIds'] as Map?) ?? const {},
+        ),
       );
 
   SupportChat copyWith({
@@ -2126,16 +2202,17 @@ class SupportMessage {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'senderId': senderId,
-        'senderRole': senderRole,
-        'text': text,
-        'imageUrl': imageUrl,
-        'timestamp': timestamp,
-        'read': read,
-      };
+    'id': id,
+    'senderId': senderId,
+    'senderRole': senderRole,
+    'text': text,
+    'imageUrl': imageUrl,
+    'timestamp': timestamp,
+    'read': read,
+  };
 
-  factory SupportMessage.fromMap(Map<String, dynamic> map, String id) => SupportMessage(
+  factory SupportMessage.fromMap(Map<String, dynamic> map, String id) =>
+      SupportMessage(
         id: id,
         senderId: map['senderId'] ?? '',
         senderRole: map['senderRole'] ?? 'user',
@@ -2186,16 +2263,17 @@ class SupportTicket {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'chatId': chatId,
-        'userId': userId,
-        'issueType': issueType,
-        'status': status,
-        'createdAt': createdAt,
-        'resolvedAt': resolvedAt,
-      };
+    'id': id,
+    'chatId': chatId,
+    'userId': userId,
+    'issueType': issueType,
+    'status': status,
+    'createdAt': createdAt,
+    'resolvedAt': resolvedAt,
+  };
 
-  factory SupportTicket.fromMap(Map<String, dynamic> map, String id) => SupportTicket(
+  factory SupportTicket.fromMap(Map<String, dynamic> map, String id) =>
+      SupportTicket(
         id: id,
         chatId: map['chatId'] ?? '',
         userId: map['userId'] ?? '',
@@ -2266,63 +2344,58 @@ class UserMemory {
   });
 
   Map<String, dynamic> toMap() => {
-        'userId': userId,
-        'name': name,
-        'preferredStyle': preferredStyle,
-        'size': size,
-        'fitPreference': fitPreference,
-        'shoulderCm': shoulderCm,
-        'chestCm': chestCm,
-        'waistCm': waistCm,
-        'hipCm': hipCm,
-        'armLengthCm': armLengthCm,
-        'inseamCm': inseamCm,
-        'scanFrameCount': scanFrameCount,
-        'scanSource': scanSource,
-        'pastIssues': pastIssues,
-        'lastOrderId': lastOrderId,
-        'lastConversationSummary': lastConversationSummary,
-        'updatedAt': updatedAt,
-      };
+    'userId': userId,
+    'name': name,
+    'preferredStyle': preferredStyle,
+    'size': size,
+    'fitPreference': fitPreference,
+    'shoulderCm': shoulderCm,
+    'chestCm': chestCm,
+    'waistCm': waistCm,
+    'hipCm': hipCm,
+    'armLengthCm': armLengthCm,
+    'inseamCm': inseamCm,
+    'scanFrameCount': scanFrameCount,
+    'scanSource': scanSource,
+    'pastIssues': pastIssues,
+    'lastOrderId': lastOrderId,
+    'lastConversationSummary': lastConversationSummary,
+    'updatedAt': updatedAt,
+  };
 
-  factory UserMemory.fromMap(Map<String, dynamic> map, String userId) =>
-      UserMemory(
-        userId: userId,
-        name: (map['name'] ?? '').toString(),
-        preferredStyle: (map['preferredStyle'] ?? '').toString(),
-        size: (map['size'] ?? '').toString(),
-        fitPreference: (map['fitPreference'] ?? 'regular').toString(),
-        shoulderCm: map['shoulderCm'] == null
-            ? null
-            : (map['shoulderCm'] as num).toDouble(),
-        chestCm: map['chestCm'] == null
-            ? null
-            : (map['chestCm'] as num).toDouble(),
-        waistCm: map['waistCm'] == null
-            ? null
-            : (map['waistCm'] as num).toDouble(),
-        hipCm: map['hipCm'] == null
-            ? null
-            : (map['hipCm'] as num).toDouble(),
-        armLengthCm: map['armLengthCm'] == null
-            ? null
-            : (map['armLengthCm'] as num).toDouble(),
-        inseamCm: map['inseamCm'] == null
-            ? null
-            : (map['inseamCm'] as num).toDouble(),
-        scanFrameCount: map['scanFrameCount'] == null
-            ? null
-            : (map['scanFrameCount'] as num).toInt(),
-        scanSource: (map['scanSource'] ?? '').toString(),
-        pastIssues: ((map['pastIssues'] as List?) ?? const [])
-            .map((item) => item.toString())
-            .where((item) => item.trim().isNotEmpty)
-            .toList(),
-        lastOrderId: (map['lastOrderId'] ?? '').toString(),
-        lastConversationSummary:
-            (map['lastConversationSummary'] ?? '').toString(),
-        updatedAt: (map['updatedAt'] ?? '').toString(),
-      );
+  factory UserMemory.fromMap(
+    Map<String, dynamic> map,
+    String userId,
+  ) => UserMemory(
+    userId: userId,
+    name: (map['name'] ?? '').toString(),
+    preferredStyle: (map['preferredStyle'] ?? '').toString(),
+    size: (map['size'] ?? '').toString(),
+    fitPreference: (map['fitPreference'] ?? 'regular').toString(),
+    shoulderCm: map['shoulderCm'] == null
+        ? null
+        : (map['shoulderCm'] as num).toDouble(),
+    chestCm: map['chestCm'] == null ? null : (map['chestCm'] as num).toDouble(),
+    waistCm: map['waistCm'] == null ? null : (map['waistCm'] as num).toDouble(),
+    hipCm: map['hipCm'] == null ? null : (map['hipCm'] as num).toDouble(),
+    armLengthCm: map['armLengthCm'] == null
+        ? null
+        : (map['armLengthCm'] as num).toDouble(),
+    inseamCm: map['inseamCm'] == null
+        ? null
+        : (map['inseamCm'] as num).toDouble(),
+    scanFrameCount: map['scanFrameCount'] == null
+        ? null
+        : (map['scanFrameCount'] as num).toInt(),
+    scanSource: (map['scanSource'] ?? '').toString(),
+    pastIssues: ((map['pastIssues'] as List?) ?? const [])
+        .map((item) => item.toString())
+        .where((item) => item.trim().isNotEmpty)
+        .toList(),
+    lastOrderId: (map['lastOrderId'] ?? '').toString(),
+    lastConversationSummary: (map['lastConversationSummary'] ?? '').toString(),
+    updatedAt: (map['updatedAt'] ?? '').toString(),
+  );
 
   UserMemory copyWith({
     String? userId,
@@ -2380,13 +2453,16 @@ class ConversationMemoryMessage {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'role': role,
-        'text': text,
-        'timestamp': timestamp,
-      };
+    'id': id,
+    'role': role,
+    'text': text,
+    'timestamp': timestamp,
+  };
 
-  factory ConversationMemoryMessage.fromMap(Map<String, dynamic> map, String id) {
+  factory ConversationMemoryMessage.fromMap(
+    Map<String, dynamic> map,
+    String id,
+  ) {
     return ConversationMemoryMessage(
       id: id,
       role: (map['role'] ?? 'user').toString(),
@@ -2410,18 +2486,18 @@ class FaqItem {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'question': question,
-        'answer': answer,
-        'category': category,
-      };
+    'id': id,
+    'question': question,
+    'answer': answer,
+    'category': category,
+  };
 
   factory FaqItem.fromMap(Map<String, dynamic> map, String id) => FaqItem(
-        id: id,
-        question: map['question'] ?? '',
-        answer: map['answer'] ?? '',
-        category: map['category'] ?? 'general',
-      );
+    id: id,
+    question: map['question'] ?? '',
+    answer: map['answer'] ?? '',
+    category: map['category'] ?? 'general',
+  );
 }
 
 class KycDocuments {
@@ -2444,24 +2520,24 @@ class KycDocuments {
   });
 
   Map<String, dynamic> toMap() => {
-        'ownerPhotoUrl': ownerPhotoUrl,
-        'storeImageUrl': storeImageUrl,
-        'aadhaarUrl': aadhaarUrl,
-        'panUrl': panUrl,
-        'selfieUrl': selfieUrl,
-        'profilePhotoUrl': profilePhotoUrl,
-        'licenseUrl': licenseUrl,
-      };
+    'ownerPhotoUrl': ownerPhotoUrl,
+    'storeImageUrl': storeImageUrl,
+    'aadhaarUrl': aadhaarUrl,
+    'panUrl': panUrl,
+    'selfieUrl': selfieUrl,
+    'profilePhotoUrl': profilePhotoUrl,
+    'licenseUrl': licenseUrl,
+  };
 
   factory KycDocuments.fromMap(Map<String, dynamic> map) => KycDocuments(
-        ownerPhotoUrl: map['ownerPhotoUrl'] ?? '',
-        storeImageUrl: map['storeImageUrl'] ?? '',
-        aadhaarUrl: map['aadhaarUrl'] ?? '',
-        panUrl: map['panUrl'] ?? '',
-        selfieUrl: map['selfieUrl'] ?? '',
-        profilePhotoUrl: map['profilePhotoUrl'] ?? '',
-        licenseUrl: map['licenseUrl'] ?? '',
-      );
+    ownerPhotoUrl: map['ownerPhotoUrl'] ?? '',
+    storeImageUrl: map['storeImageUrl'] ?? '',
+    aadhaarUrl: map['aadhaarUrl'] ?? '',
+    panUrl: map['panUrl'] ?? '',
+    selfieUrl: map['selfieUrl'] ?? '',
+    profilePhotoUrl: map['profilePhotoUrl'] ?? '',
+    licenseUrl: map['licenseUrl'] ?? '',
+  );
 
   KycDocuments copyWith({
     String? ownerPhotoUrl,
@@ -2500,20 +2576,20 @@ class KycActionEntry {
   });
 
   Map<String, dynamic> toMap() => {
-        'action': action,
-        'actorId': actorId,
-        'actorName': actorName,
-        'timestamp': timestamp,
-        'note': note,
-      };
+    'action': action,
+    'actorId': actorId,
+    'actorName': actorName,
+    'timestamp': timestamp,
+    'note': note,
+  };
 
   factory KycActionEntry.fromMap(Map<String, dynamic> map) => KycActionEntry(
-        action: map['action'] ?? '',
-        actorId: map['actorId'] ?? '',
-        actorName: map['actorName'] ?? '',
-        timestamp: map['timestamp'] ?? '',
-        note: map['note'] ?? '',
-      );
+    action: map['action'] ?? '',
+    actorId: map['actorId'] ?? '',
+    actorName: map['actorName'] ?? '',
+    timestamp: map['timestamp'] ?? '',
+    note: map['note'] ?? '',
+  );
 }
 
 class KycVerificationSummary {
@@ -2572,32 +2648,32 @@ class KycVerificationSummary {
   });
 
   Map<String, dynamic> toMap() => {
-        'extractedName': extractedName,
-        'aadhaarNumber': aadhaarNumber,
-        'panNumber': panNumber,
-        'confidenceScore': confidenceScore,
-        'aadhaarValid': aadhaarValid,
-        'panValid': panValid,
-        'autoReviewStatus': autoReviewStatus,
-        'duplicateDetected': duplicateDetected,
-        'duplicateMatches': duplicateMatches,
-        'flags': flags,
-        'provider': provider,
-        'analyzedAt': analyzedAt,
-        'reviewSummary': reviewSummary,
-        'livenessPassed': livenessPassed,
-        'faceVerified': faceVerified,
-        'matchScore': matchScore,
-        'livenessMode': livenessMode,
-        'selfieRetryCount': selfieRetryCount,
-        'selfieVerifiedAt': selfieVerifiedAt,
-        'riskScore': riskScore,
-        'riskDecision': riskDecision,
-        'riskReasons': riskReasons,
-        'gpsValid': gpsValid,
-        'nameMatch': nameMatch,
-        'addressMatch': addressMatch,
-      };
+    'extractedName': extractedName,
+    'aadhaarNumber': aadhaarNumber,
+    'panNumber': panNumber,
+    'confidenceScore': confidenceScore,
+    'aadhaarValid': aadhaarValid,
+    'panValid': panValid,
+    'autoReviewStatus': autoReviewStatus,
+    'duplicateDetected': duplicateDetected,
+    'duplicateMatches': duplicateMatches,
+    'flags': flags,
+    'provider': provider,
+    'analyzedAt': analyzedAt,
+    'reviewSummary': reviewSummary,
+    'livenessPassed': livenessPassed,
+    'faceVerified': faceVerified,
+    'matchScore': matchScore,
+    'livenessMode': livenessMode,
+    'selfieRetryCount': selfieRetryCount,
+    'selfieVerifiedAt': selfieVerifiedAt,
+    'riskScore': riskScore,
+    'riskDecision': riskDecision,
+    'riskReasons': riskReasons,
+    'gpsValid': gpsValid,
+    'nameMatch': nameMatch,
+    'addressMatch': addressMatch,
+  };
 
   factory KycVerificationSummary.fromMap(Map<String, dynamic> map) =>
       KycVerificationSummary(
@@ -2609,8 +2685,9 @@ class KycVerificationSummary {
         panValid: map['panValid'] ?? false,
         autoReviewStatus: map['autoReviewStatus'] ?? 'pending_review',
         duplicateDetected: map['duplicateDetected'] ?? false,
-        duplicateMatches:
-            List<String>.from((map['duplicateMatches'] as List?) ?? const []),
+        duplicateMatches: List<String>.from(
+          (map['duplicateMatches'] as List?) ?? const [],
+        ),
         flags: List<String>.from((map['flags'] as List?) ?? const []),
         provider: map['provider'] ?? 'local',
         analyzedAt: map['analyzedAt'] ?? '',
@@ -2623,7 +2700,9 @@ class KycVerificationSummary {
         selfieVerifiedAt: map['selfieVerifiedAt'] ?? '',
         riskScore: map['riskScore'] ?? 0,
         riskDecision: map['riskDecision'] ?? 'review',
-        riskReasons: List<String>.from((map['riskReasons'] as List?) ?? const []),
+        riskReasons: List<String>.from(
+          (map['riskReasons'] as List?) ?? const [],
+        ),
         gpsValid: map['gpsValid'] ?? false,
         nameMatch: map['nameMatch'] ?? false,
         addressMatch: map['addressMatch'] ?? false,
@@ -2730,52 +2809,60 @@ class VendorKycRequest {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'userId': userId,
-        'storeName': storeName,
-        'ownerName': ownerName,
-        'phone': phone,
-        'address': address,
-        'city': city,
-        'latitude': latitude,
-        'longitude': longitude,
-        'kyc': kyc.toMap(),
-        'status': status,
-          'createdAt': createdAt,
-          'updatedAt': updatedAt,
-          'rejectionReason': rejectionReason,
-          'reviewedBy': reviewedBy,
-          'reviewedByName': reviewedByName,
-          'reviewedAt': reviewedAt,
-          'actionHistory': actionHistory.map((entry) => entry.toMap()).toList(),
-          'verification': verification.toMap(),
-        };
+    'id': id,
+    'userId': userId,
+    'storeName': storeName,
+    'ownerName': ownerName,
+    'phone': phone,
+    'address': address,
+    'city': city,
+    'latitude': latitude,
+    'longitude': longitude,
+    'kyc': kyc.toMap(),
+    'status': status,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+    'rejectionReason': rejectionReason,
+    'reviewedBy': reviewedBy,
+    'reviewedByName': reviewedByName,
+    'reviewedAt': reviewedAt,
+    'actionHistory': actionHistory.map((entry) => entry.toMap()).toList(),
+    'verification': verification.toMap(),
+  };
 
-  factory VendorKycRequest.fromMap(Map<String, dynamic> map, String id) => VendorKycRequest(
-        id: id,
-        userId: map['userId'] ?? '',
-        storeName: map['storeName'] ?? '',
-        ownerName: map['ownerName'] ?? '',
-        phone: map['phone'] ?? '',
-        address: map['address'] ?? '',
-        city: map['city'] ?? '',
-        latitude: (map['latitude'] ?? 0).toDouble(),
-        longitude: (map['longitude'] ?? 0).toDouble(),
-        kyc: KycDocuments.fromMap(Map<String, dynamic>.from((map['kyc'] as Map?) ?? const {})),
-          status: map['status'] ?? 'pending',
-          createdAt: map['createdAt'] ?? '',
-          updatedAt: map['updatedAt'] ?? map['createdAt'] ?? '',
-          rejectionReason: map['rejectionReason'] ?? '',
-          reviewedBy: map['reviewedBy'] ?? '',
-          reviewedByName: map['reviewedByName'] ?? '',
-          reviewedAt: map['reviewedAt'] ?? '',
-          actionHistory: ((map['actionHistory'] as List?) ?? const [])
-              .map((entry) => KycActionEntry.fromMap(Map<String, dynamic>.from(entry as Map)))
-              .toList(),
-          verification: KycVerificationSummary.fromMap(
-            Map<String, dynamic>.from((map['verification'] as Map?) ?? const {}),
-          ),
-        );
+  factory VendorKycRequest.fromMap(
+    Map<String, dynamic> map,
+    String id,
+  ) => VendorKycRequest(
+    id: id,
+    userId: map['userId'] ?? '',
+    storeName: map['storeName'] ?? '',
+    ownerName: map['ownerName'] ?? '',
+    phone: map['phone'] ?? '',
+    address: map['address'] ?? '',
+    city: map['city'] ?? '',
+    latitude: (map['latitude'] ?? 0).toDouble(),
+    longitude: (map['longitude'] ?? 0).toDouble(),
+    kyc: KycDocuments.fromMap(
+      Map<String, dynamic>.from((map['kyc'] as Map?) ?? const {}),
+    ),
+    status: map['status'] ?? 'pending',
+    createdAt: map['createdAt'] ?? '',
+    updatedAt: map['updatedAt'] ?? map['createdAt'] ?? '',
+    rejectionReason: map['rejectionReason'] ?? '',
+    reviewedBy: map['reviewedBy'] ?? '',
+    reviewedByName: map['reviewedByName'] ?? '',
+    reviewedAt: map['reviewedAt'] ?? '',
+    actionHistory: ((map['actionHistory'] as List?) ?? const [])
+        .map(
+          (entry) =>
+              KycActionEntry.fromMap(Map<String, dynamic>.from(entry as Map)),
+        )
+        .toList(),
+    verification: KycVerificationSummary.fromMap(
+      Map<String, dynamic>.from((map['verification'] as Map?) ?? const {}),
+    ),
+  );
 
   VendorKycRequest copyWith({
     String? id,
@@ -2789,15 +2876,15 @@ class VendorKycRequest {
     double? longitude,
     KycDocuments? kyc,
     String? status,
-      String? createdAt,
-      String? updatedAt,
-      String? rejectionReason,
-      String? reviewedBy,
-      String? reviewedByName,
-      String? reviewedAt,
-      List<KycActionEntry>? actionHistory,
-      KycVerificationSummary? verification,
-    }) {
+    String? createdAt,
+    String? updatedAt,
+    String? rejectionReason,
+    String? reviewedBy,
+    String? reviewedByName,
+    String? reviewedAt,
+    List<KycActionEntry>? actionHistory,
+    KycVerificationSummary? verification,
+  }) {
     return VendorKycRequest(
       id: id ?? this.id,
       userId: userId ?? this.userId,
@@ -2810,17 +2897,17 @@ class VendorKycRequest {
       longitude: longitude ?? this.longitude,
       kyc: kyc ?? this.kyc,
       status: status ?? this.status,
-        createdAt: createdAt ?? this.createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-        rejectionReason: rejectionReason ?? this.rejectionReason,
-        reviewedBy: reviewedBy ?? this.reviewedBy,
-        reviewedByName: reviewedByName ?? this.reviewedByName,
-        reviewedAt: reviewedAt ?? this.reviewedAt,
-        actionHistory: actionHistory ?? this.actionHistory,
-        verification: verification ?? this.verification,
-      );
-    }
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      reviewedBy: reviewedBy ?? this.reviewedBy,
+      reviewedByName: reviewedByName ?? this.reviewedByName,
+      reviewedAt: reviewedAt ?? this.reviewedAt,
+      actionHistory: actionHistory ?? this.actionHistory,
+      verification: verification ?? this.verification,
+    );
   }
+}
 
 class RiderKycRequest {
   final String id;
@@ -2858,42 +2945,50 @@ class RiderKycRequest {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'userId': userId,
-        'name': name,
-        'phone': phone,
-        'vehicle': vehicle,
-        'city': city,
-        'kyc': kyc.toMap(),
-        'status': status,
-          'createdAt': createdAt,
-          'updatedAt': updatedAt,
-          'rejectionReason': rejectionReason,
-          'reviewedBy': reviewedBy,
-          'reviewedByName': reviewedByName,
-          'reviewedAt': reviewedAt,
-          'actionHistory': actionHistory.map((entry) => entry.toMap()).toList(),
-        };
+    'id': id,
+    'userId': userId,
+    'name': name,
+    'phone': phone,
+    'vehicle': vehicle,
+    'city': city,
+    'kyc': kyc.toMap(),
+    'status': status,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+    'rejectionReason': rejectionReason,
+    'reviewedBy': reviewedBy,
+    'reviewedByName': reviewedByName,
+    'reviewedAt': reviewedAt,
+    'actionHistory': actionHistory.map((entry) => entry.toMap()).toList(),
+  };
 
-  factory RiderKycRequest.fromMap(Map<String, dynamic> map, String id) => RiderKycRequest(
-        id: id,
-        userId: map['userId'] ?? '',
-        name: map['name'] ?? '',
-        phone: map['phone'] ?? '',
-        vehicle: map['vehicle'] ?? '',
-        city: map['city'] ?? '',
-        kyc: KycDocuments.fromMap(Map<String, dynamic>.from((map['kyc'] as Map?) ?? const {})),
-          status: map['status'] ?? 'pending',
-          createdAt: map['createdAt'] ?? '',
-          updatedAt: map['updatedAt'] ?? map['createdAt'] ?? '',
-          rejectionReason: map['rejectionReason'] ?? '',
-          reviewedBy: map['reviewedBy'] ?? '',
-          reviewedByName: map['reviewedByName'] ?? '',
-          reviewedAt: map['reviewedAt'] ?? '',
-          actionHistory: ((map['actionHistory'] as List?) ?? const [])
-              .map((entry) => KycActionEntry.fromMap(Map<String, dynamic>.from(entry as Map)))
-              .toList(),
-        );
+  factory RiderKycRequest.fromMap(
+    Map<String, dynamic> map,
+    String id,
+  ) => RiderKycRequest(
+    id: id,
+    userId: map['userId'] ?? '',
+    name: map['name'] ?? '',
+    phone: map['phone'] ?? '',
+    vehicle: map['vehicle'] ?? '',
+    city: map['city'] ?? '',
+    kyc: KycDocuments.fromMap(
+      Map<String, dynamic>.from((map['kyc'] as Map?) ?? const {}),
+    ),
+    status: map['status'] ?? 'pending',
+    createdAt: map['createdAt'] ?? '',
+    updatedAt: map['updatedAt'] ?? map['createdAt'] ?? '',
+    rejectionReason: map['rejectionReason'] ?? '',
+    reviewedBy: map['reviewedBy'] ?? '',
+    reviewedByName: map['reviewedByName'] ?? '',
+    reviewedAt: map['reviewedAt'] ?? '',
+    actionHistory: ((map['actionHistory'] as List?) ?? const [])
+        .map(
+          (entry) =>
+              KycActionEntry.fromMap(Map<String, dynamic>.from(entry as Map)),
+        )
+        .toList(),
+  );
 
   RiderKycRequest copyWith({
     String? id,
@@ -2904,14 +2999,14 @@ class RiderKycRequest {
     String? city,
     KycDocuments? kyc,
     String? status,
-      String? createdAt,
-      String? updatedAt,
-      String? rejectionReason,
-      String? reviewedBy,
-      String? reviewedByName,
-      String? reviewedAt,
-      List<KycActionEntry>? actionHistory,
-    }) {
+    String? createdAt,
+    String? updatedAt,
+    String? rejectionReason,
+    String? reviewedBy,
+    String? reviewedByName,
+    String? reviewedAt,
+    List<KycActionEntry>? actionHistory,
+  }) {
     return RiderKycRequest(
       id: id ?? this.id,
       userId: userId ?? this.userId,
@@ -2921,16 +3016,16 @@ class RiderKycRequest {
       city: city ?? this.city,
       kyc: kyc ?? this.kyc,
       status: status ?? this.status,
-        createdAt: createdAt ?? this.createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-        rejectionReason: rejectionReason ?? this.rejectionReason,
-        reviewedBy: reviewedBy ?? this.reviewedBy,
-        reviewedByName: reviewedByName ?? this.reviewedByName,
-        reviewedAt: reviewedAt ?? this.reviewedAt,
-        actionHistory: actionHistory ?? this.actionHistory,
-      );
-    }
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      reviewedBy: reviewedBy ?? this.reviewedBy,
+      reviewedByName: reviewedByName ?? this.reviewedByName,
+      reviewedAt: reviewedAt ?? this.reviewedAt,
+      actionHistory: actionHistory ?? this.actionHistory,
+    );
   }
+}
 
 class PayoutModel {
   final String id;
@@ -2954,17 +3049,18 @@ class PayoutModel {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'storeId': storeId,
-        'processedBy': processedBy,
-        'amount': amount,
-        'periodLabel': periodLabel,
-        'createdAt': createdAt.toIso8601String(),
-        'orderIds': orderIds,
-        'status': status,
-      };
+    'id': id,
+    'storeId': storeId,
+    'processedBy': processedBy,
+    'amount': amount,
+    'periodLabel': periodLabel,
+    'createdAt': createdAt.toIso8601String(),
+    'orderIds': orderIds,
+    'status': status,
+  };
 
-  factory PayoutModel.fromMap(Map<String, dynamic> map, String docId) => PayoutModel(
+  factory PayoutModel.fromMap(Map<String, dynamic> map, String docId) =>
+      PayoutModel(
         id: docId,
         storeId: map['storeId'] ?? '',
         processedBy: map['processedBy'] ?? '',
@@ -3007,7 +3103,8 @@ class WalletTransaction {
     this.metadata = const {},
   });
 
-  factory WalletTransaction.fromMap(Map<String, dynamic> map) => WalletTransaction(
+  factory WalletTransaction.fromMap(Map<String, dynamic> map) =>
+      WalletTransaction(
         id: map['id'] ?? '',
         type: map['type'] ?? 'order',
         userType: map['userType'] ?? 'vendor',
@@ -3050,16 +3147,16 @@ class PayoutProfileSummary {
   });
 
   const PayoutProfileSummary.empty()
-      : methodType = '',
-        accountHolderName = '',
-        upiId = '',
-        bankAccountNumber = '',
-        bankIfsc = '',
-        bankName = '',
-        razorpayContactId = '',
-        razorpayFundAccountId = '',
-        lastSyncedAt = '',
-        isConfigured = false;
+    : methodType = '',
+      accountHolderName = '',
+      upiId = '',
+      bankAccountNumber = '',
+      bankIfsc = '',
+      bankName = '',
+      razorpayContactId = '',
+      razorpayFundAccountId = '',
+      lastSyncedAt = '',
+      isConfigured = false;
 
   factory PayoutProfileSummary.fromMap(Map<String, dynamic> map) =>
       PayoutProfileSummary(
@@ -3095,7 +3192,8 @@ class PayoutProfileSummary {
       bankIfsc: bankIfsc ?? this.bankIfsc,
       bankName: bankName ?? this.bankName,
       razorpayContactId: razorpayContactId ?? this.razorpayContactId,
-      razorpayFundAccountId: razorpayFundAccountId ?? this.razorpayFundAccountId,
+      razorpayFundAccountId:
+          razorpayFundAccountId ?? this.razorpayFundAccountId,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       isConfigured: isConfigured ?? this.isConfigured,
     );
@@ -3234,7 +3332,8 @@ class FraudAlertSummary {
     this.createdAt = '',
   });
 
-  factory FraudAlertSummary.fromMap(Map<String, dynamic> map) => FraudAlertSummary(
+  factory FraudAlertSummary.fromMap(Map<String, dynamic> map) =>
+      FraudAlertSummary(
         id: map['id'] ?? '',
         type: map['type'] ?? 'order',
         severity: map['severity'] ?? 'medium',
@@ -3328,10 +3427,7 @@ class AnalyticsPoint {
   final String label;
   final double value;
 
-  AnalyticsPoint({
-    required this.label,
-    required this.value,
-  });
+  AnalyticsPoint({required this.label, required this.value});
 }
 
 class AiUsageLogEntry {
@@ -3360,17 +3456,17 @@ class AiUsageLogEntry {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'userId': userId,
-        'message': message,
-        'responseLength': responseLength,
-        'tokensUsed': tokensUsed,
-        'cost': cost,
-        'costPerRequest': costPerRequest,
-        'timestamp': timestamp,
-        'intentType': intentType,
-        'usedAi': usedAi,
-      };
+    'id': id,
+    'userId': userId,
+    'message': message,
+    'responseLength': responseLength,
+    'tokensUsed': tokensUsed,
+    'cost': cost,
+    'costPerRequest': costPerRequest,
+    'timestamp': timestamp,
+    'intentType': intentType,
+    'usedAi': usedAi,
+  };
 
   factory AiUsageLogEntry.fromMap(Map<String, dynamic> map, String id) {
     return AiUsageLogEntry(
@@ -3404,12 +3500,12 @@ class AiDailyStat {
   });
 
   Map<String, dynamic> toMap() => {
-        'date': date,
-        'totalRequests': totalRequests,
-        'totalCost': totalCost,
-        'aiRequests': aiRequests,
-        'logicRequests': logicRequests,
-      };
+    'date': date,
+    'totalRequests': totalRequests,
+    'totalCost': totalCost,
+    'aiRequests': aiRequests,
+    'logicRequests': logicRequests,
+  };
 
   factory AiDailyStat.fromMap(Map<String, dynamic> map, String date) {
     return AiDailyStat(
@@ -3438,12 +3534,12 @@ class UserAiUsageStat {
   });
 
   Map<String, dynamic> toMap() => {
-        'userId': userId,
-        'totalMessages': totalMessages,
-        'aiMessages': aiMessages,
-        'lastUsed': lastUsed,
-        'dailyUsage': dailyUsage,
-      };
+    'userId': userId,
+    'totalMessages': totalMessages,
+    'aiMessages': aiMessages,
+    'lastUsed': lastUsed,
+    'dailyUsage': dailyUsage,
+  };
 
   factory UserAiUsageStat.fromMap(Map<String, dynamic> map, String userId) {
     return UserAiUsageStat(
@@ -3590,18 +3686,19 @@ class DisputeRecord {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'orderId': orderId,
-        'userId': userId,
-        'storeId': storeId,
-        'type': type,
-        'status': status,
-        'amount': amount,
-        'reason': reason,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'orderId': orderId,
+    'userId': userId,
+    'storeId': storeId,
+    'type': type,
+    'status': status,
+    'amount': amount,
+    'reason': reason,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
-  factory DisputeRecord.fromMap(Map<String, dynamic> map, String docId) => DisputeRecord(
+  factory DisputeRecord.fromMap(Map<String, dynamic> map, String docId) =>
+      DisputeRecord(
         id: docId,
         orderId: map['orderId'] ?? '',
         userId: map['userId'] ?? '',
@@ -3636,17 +3733,18 @@ class ActivityLogEntry {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'actorId': actorId,
-        'actorRole': actorRole,
-        'action': action,
-        'targetType': targetType,
-        'targetId': targetId,
-        'message': message,
-        'timestamp': timestamp.toIso8601String(),
-      };
+    'id': id,
+    'actorId': actorId,
+    'actorRole': actorRole,
+    'action': action,
+    'targetType': targetType,
+    'targetId': targetId,
+    'message': message,
+    'timestamp': timestamp.toIso8601String(),
+  };
 
-  factory ActivityLogEntry.fromMap(Map<String, dynamic> map, String docId) => ActivityLogEntry(
+  factory ActivityLogEntry.fromMap(Map<String, dynamic> map, String docId) =>
+      ActivityLogEntry(
         id: docId,
         actorId: map['actorId'] ?? '',
         actorRole: map['actorRole'] ?? '',
@@ -3704,22 +3802,22 @@ class PlatformSettings {
   });
 
   Map<String, dynamic> toMap() => {
-        'customTailoringEnabled': customTailoringEnabled,
-        'reelsEnabled': reelsEnabled,
-        'offersEnabled': offersEnabled,
-        'checkoutEnabled': checkoutEnabled,
-        'marketplaceEnabled': marketplaceEnabled,
-        'riderDispatchEnabled': riderDispatchEnabled,
-        'cities': cities,
-        'regionVendorAvailability': regionVendorAvailability,
-        'allowedAdminDevices': allowedAdminDevices,
-        'adminIdleTimeoutMinutes': adminIdleTimeoutMinutes,
-        'adminPinEnabled': adminPinEnabled,
-        'adminPin': adminPin,
-        'aiDailyCostAlertThreshold': aiDailyCostAlertThreshold,
-        'aiDailyCostLimit': aiDailyCostLimit,
-        'aiAssistantEnabled': aiAssistantEnabled,
-      };
+    'customTailoringEnabled': customTailoringEnabled,
+    'reelsEnabled': reelsEnabled,
+    'offersEnabled': offersEnabled,
+    'checkoutEnabled': checkoutEnabled,
+    'marketplaceEnabled': marketplaceEnabled,
+    'riderDispatchEnabled': riderDispatchEnabled,
+    'cities': cities,
+    'regionVendorAvailability': regionVendorAvailability,
+    'allowedAdminDevices': allowedAdminDevices,
+    'adminIdleTimeoutMinutes': adminIdleTimeoutMinutes,
+    'adminPinEnabled': adminPinEnabled,
+    'adminPin': adminPin,
+    'aiDailyCostAlertThreshold': aiDailyCostAlertThreshold,
+    'aiDailyCostLimit': aiDailyCostLimit,
+    'aiAssistantEnabled': aiAssistantEnabled,
+  };
 
   PlatformSettings copyWith({
     bool? customTailoringEnabled,
@@ -3739,16 +3837,19 @@ class PlatformSettings {
     bool? aiAssistantEnabled,
   }) {
     return PlatformSettings(
-      customTailoringEnabled: customTailoringEnabled ?? this.customTailoringEnabled,
+      customTailoringEnabled:
+          customTailoringEnabled ?? this.customTailoringEnabled,
       reelsEnabled: reelsEnabled ?? this.reelsEnabled,
       offersEnabled: offersEnabled ?? this.offersEnabled,
       checkoutEnabled: checkoutEnabled ?? this.checkoutEnabled,
       marketplaceEnabled: marketplaceEnabled ?? this.marketplaceEnabled,
       riderDispatchEnabled: riderDispatchEnabled ?? this.riderDispatchEnabled,
       cities: cities ?? this.cities,
-      regionVendorAvailability: regionVendorAvailability ?? this.regionVendorAvailability,
+      regionVendorAvailability:
+          regionVendorAvailability ?? this.regionVendorAvailability,
       allowedAdminDevices: allowedAdminDevices ?? this.allowedAdminDevices,
-      adminIdleTimeoutMinutes: adminIdleTimeoutMinutes ?? this.adminIdleTimeoutMinutes,
+      adminIdleTimeoutMinutes:
+          adminIdleTimeoutMinutes ?? this.adminIdleTimeoutMinutes,
       adminPinEnabled: adminPinEnabled ?? this.adminPinEnabled,
       adminPin: adminPin ?? this.adminPin,
       aiDailyCostAlertThreshold:
@@ -3758,33 +3859,41 @@ class PlatformSettings {
     );
   }
 
-  factory PlatformSettings.fromMap(Map<String, dynamic> map) => PlatformSettings(
+  factory PlatformSettings.fromMap(Map<String, dynamic> map) =>
+      PlatformSettings(
         customTailoringEnabled: map['customTailoringEnabled'] ?? true,
         reelsEnabled: map['reelsEnabled'] ?? true,
         offersEnabled: map['offersEnabled'] ?? true,
         checkoutEnabled: map['checkoutEnabled'] ?? true,
         marketplaceEnabled: map['marketplaceEnabled'] ?? true,
         riderDispatchEnabled: map['riderDispatchEnabled'] ?? true,
-        cities: Map<String, bool>.from(map['cities'] ?? const {
-          'Mumbai': true,
-          'Delhi': true,
-          'Bangalore': true,
-          'Hyderabad': true,
-        }),
-        regionVendorAvailability: Map<String, bool>.from(map['regionVendorAvailability'] ?? const {
-          'Mumbai': true,
-          'Delhi': true,
-          'Bangalore': true,
-          'Hyderabad': true,
-        }),
-        allowedAdminDevices: List<String>.from(map['allowedAdminDevices'] ?? const ['web-chrome', 'windows-desktop']),
+        cities: Map<String, bool>.from(
+          map['cities'] ??
+              const {
+                'Mumbai': true,
+                'Delhi': true,
+                'Bangalore': true,
+                'Hyderabad': true,
+              },
+        ),
+        regionVendorAvailability: Map<String, bool>.from(
+          map['regionVendorAvailability'] ??
+              const {
+                'Mumbai': true,
+                'Delhi': true,
+                'Bangalore': true,
+                'Hyderabad': true,
+              },
+        ),
+        allowedAdminDevices: List<String>.from(
+          map['allowedAdminDevices'] ?? const ['web-chrome', 'windows-desktop'],
+        ),
         adminIdleTimeoutMinutes: map['adminIdleTimeoutMinutes'] ?? 10,
         adminPinEnabled: map['adminPinEnabled'] ?? false,
         adminPin: map['adminPin'] ?? '1234',
         aiDailyCostAlertThreshold:
             ((map['aiDailyCostAlertThreshold'] ?? 1.0) as num).toDouble(),
-        aiDailyCostLimit:
-            ((map['aiDailyCostLimit'] ?? 500) as num).toDouble(),
+        aiDailyCostLimit: ((map['aiDailyCostLimit'] ?? 500) as num).toDouble(),
         aiAssistantEnabled: map['aiAssistantEnabled'] ?? true,
       );
 }
@@ -3821,15 +3930,16 @@ class CustomBrand {
   });
 
   Map<String, dynamic> toMap() => {
-        'name': name,
-        'logo_url': logoUrl,
-        'banner_url': bannerUrl,
-        'type': type,
-        'is_premium': isPremium,
-        'categories': categories,
-      };
+    'name': name,
+    'logo_url': logoUrl,
+    'banner_url': bannerUrl,
+    'type': type,
+    'is_premium': isPremium,
+    'categories': categories,
+  };
 
-  factory CustomBrand.fromMap(Map<String, dynamic> map, String id) => CustomBrand(
+  factory CustomBrand.fromMap(Map<String, dynamic> map, String id) =>
+      CustomBrand(
         id: id,
         name: map['name'] ?? '',
         logoUrl: map['logo_url'] ?? '',
@@ -3856,13 +3966,14 @@ class CustomBrandProduct {
   });
 
   Map<String, dynamic> toMap() => {
-        'brand_id': brandId,
-        'name': name,
-        'base_price': basePrice,
-        'category': category,
-      };
+    'brand_id': brandId,
+    'name': name,
+    'base_price': basePrice,
+    'category': category,
+  };
 
-  factory CustomBrandProduct.fromMap(Map<String, dynamic> map, String id) => CustomBrandProduct(
+  factory CustomBrandProduct.fromMap(Map<String, dynamic> map, String id) =>
+      CustomBrandProduct(
         id: id,
         brandId: map['brand_id'] ?? '',
         name: map['name'] ?? '',

@@ -32,6 +32,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _descriptionController = TextEditingController();
   final _stockController = TextEditingController();
   final _imageUrlsController = TextEditingController();
+  final _model3dController = TextEditingController();
   final _subcategoryController = TextEditingController();
   String _selectedCategory = 'MEN';
   bool _isActive = true;
@@ -39,7 +40,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _picker = ImagePicker();
   late final Map<String, TextEditingController> _attributeControllers;
 
-  final List<String> _categories = ['MEN', 'WOMEN', 'WEDDING', 'ACCESSORIES', 'FORMAL', 'SHOES'];
+  final List<String> _categories = [
+    'MEN',
+    'WOMEN',
+    'WEDDING',
+    'ACCESSORIES',
+    'FORMAL',
+    'SHOES',
+  ];
   static const Map<String, String> _attributeHints = {
     'upper_material': 'Mesh, knit, leather',
     'sole_material': 'Rubber, EVA',
@@ -64,8 +72,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     ...genericAttributeFields,
     for (final config in productAttributeConfig.values)
       for (final section in config.sections) ...section.fields,
-  }.toList()
-    ..sort();
+  }.toList()..sort();
 
   @override
   void initState() {
@@ -78,17 +85,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _nameController.text = product.name;
       _brandController.text = product.brand;
       _priceController.text = product.price.toStringAsFixed(0);
-      _originalPriceController.text = product.originalPrice?.toStringAsFixed(0) ?? '';
+      _originalPriceController.text =
+          product.originalPrice?.toStringAsFixed(0) ?? '';
       _descriptionController.text = product.description;
       _stockController.text = product.stock.toString();
       _imageUrlsController.text = product.images.join('\n');
+      _model3dController.text = product.model3d ?? '';
       _subcategoryController.text = product.subcategory;
       _selectedCategory = product.category;
       _isActive = product.isActive;
       for (final entry in product.attributes.entries) {
         _attributeControllers[entry.key]?.text = entry.value;
       }
-      if ((product.attributes['fabric'] ?? '').isEmpty && (product.fabric ?? '').isNotEmpty) {
+      if ((product.attributes['fabric'] ?? '').isEmpty &&
+          (product.fabric ?? '').isNotEmpty) {
         _attributeControllers['fabric']?.text = product.fabric!;
       }
     }
@@ -103,6 +113,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _descriptionController.dispose();
     _stockController.dispose();
     _imageUrlsController.dispose();
+    _model3dController.dispose();
     _subcategoryController.dispose();
     for (final controller in _attributeControllers.values) {
       controller.dispose();
@@ -117,13 +128,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
       appBar: AppBar(
         title: Text(
           widget.existingProduct == null ? 'ADD PRODUCT' : 'EDIT PRODUCT',
-          style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 2, color: Colors.black),
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 2,
+            color: Colors.black,
+          ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.black,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -150,7 +170,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
             const SizedBox(height: 10),
             Text(
               'Use 4 to 5 product images for the best slide experience. Cloudinary uploads save optimized image URLs, and you can still paste public image links when needed.',
-              style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500, height: 1.4),
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AbzioTheme.grey500,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 32),
 
@@ -158,7 +182,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
             TextField(
               controller: _nameController,
               style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-              decoration: const InputDecoration(hintText: 'e.g. Slim Fit Denim Jacket'),
+              decoration: const InputDecoration(
+                hintText: 'e.g. Slim Fit Denim Jacket',
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -176,13 +202,26 @@ class _AddProductScreenState extends State<AddProductScreen> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: AbzioTheme.grey100,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
               ),
-              items: _categories.map((c) => DropdownMenuItem(
-                value: c,
-                child: Text(c, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-              )).toList(),
+              items: _categories
+                  .map(
+                    (c) => DropdownMenuItem(
+                      value: c,
+                      child: Text(
+                        c,
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  )
+                  .toList(),
               onChanged: (val) => setState(() => _selectedCategory = val!),
             ),
             const SizedBox(height: 20),
@@ -195,6 +234,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
               decoration: InputDecoration(
                 hintText: _subcategoryHint,
                 helperText: _attributeHelperText,
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildLabel('3D Model (GLB/GLTF URL or asset key)'),
+            TextField(
+              controller: _model3dController,
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(
+                hintText:
+                    'shirt_001.glb or https://cdn.example.com/models/shirt_001.glb',
+                helperText:
+                    'Optional: used for avatar try-on and AR experiences.',
               ),
             ),
             const SizedBox(height: 20),
@@ -262,8 +313,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 style: GoogleFonts.inter(fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
-                _isActive ? 'This product is active in your catalog.' : 'This product stays hidden until you activate it.',
-                style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500),
+                _isActive
+                    ? 'This product is active in your catalog.'
+                    : 'This product stays hidden until you activate it.',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AbzioTheme.grey500,
+                ),
               ),
               onChanged: (value) => setState(() => _isActive = value),
             ),
@@ -273,8 +329,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
             TextField(
               controller: _descriptionController,
               maxLines: 4,
-              style: GoogleFonts.inter(fontWeight: FontWeight.w500, height: 1.5),
-              decoration: const InputDecoration(hintText: 'Describe your product in detail...'),
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w500,
+                height: 1.5,
+              ),
+              decoration: const InputDecoration(
+                hintText: 'Describe your product in detail...',
+              ),
             ),
 
             const SizedBox(height: 20),
@@ -289,12 +350,30 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 20),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 0,
                 ),
                 child: _isUploading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text(widget.existingProduct == null ? 'UPLOAD PRODUCT' : 'SAVE PRODUCT', style: GoogleFonts.poppins(fontWeight: FontWeight.w800, letterSpacing: 2, fontSize: 13)),
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        widget.existingProduct == null
+                            ? 'UPLOAD PRODUCT'
+                            : 'SAVE PRODUCT',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 2,
+                          fontSize: 13,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 32),
@@ -310,19 +389,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
       return;
     }
     if (_nameController.text.isEmpty || _priceController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all required fields.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields.')),
+      );
       return;
     }
     final imageUrls = _parseImageUrls(_imageUrlsController.text);
     if (imageUrls.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add at least one valid image URL or upload an image first.')),
+        const SnackBar(
+          content: Text(
+            'Add at least one valid image URL or upload an image first.',
+          ),
+        ),
       );
       return;
     }
     if (imageUrls.length < 4) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add at least 4 product images for the slide gallery.')),
+        const SnackBar(
+          content: Text('Add at least 4 product images for the slide gallery.'),
+        ),
       );
       return;
     }
@@ -351,6 +438,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
       isCustomTailoring: existing?.isCustomTailoring ?? false,
       outfitType: existing?.outfitType,
       fabric: attributes['fabric'] ?? existing?.fabric,
+      model3d: _model3dController.text.trim().isEmpty
+          ? null
+          : _model3dController.text.trim(),
       attributes: attributes,
       customizations: existing?.customizations ?? const {},
       measurements: existing?.measurements ?? const {},
@@ -378,8 +468,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           content: Text(
-            existing == null ? 'Product uploaded successfully!' : 'Product updated successfully!',
-            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+            existing == null
+                ? 'Product uploaded successfully!'
+                : 'Product updated successfully!',
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
           ),
         ),
       );
@@ -407,7 +503,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (actor == null) {
         return;
       }
-      final file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 84);
+      final file = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 84,
+      );
       if (file == null) {
         return;
       }
@@ -426,9 +525,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
       }
       current.insert(0, url);
       setState(() => _imageUrlsController.text = current.join('\n'));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product image uploaded.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Product image uploaded.')));
     } catch (error) {
       if (!mounted) {
         return;
@@ -436,7 +535,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            error.toString().replaceFirst('Bad state: ', '').contains('Cloudinary')
+            error
+                    .toString()
+                    .replaceFirst('Bad state: ', '')
+                    .contains('Cloudinary')
                 ? 'Cloudinary upload is not configured yet. Paste a public image URL instead.'
                 : error.toString().replaceFirst('Bad state: ', ''),
           ),
@@ -454,7 +556,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text.toUpperCase(),
-        style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: AbzioTheme.grey500, letterSpacing: 1.5),
+        style: GoogleFonts.poppins(
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          color: AbzioTheme.grey500,
+          letterSpacing: 1.5,
+        ),
       ),
     );
   }
@@ -464,7 +571,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (uri == null) {
       return false;
     }
-    return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
+    return uri.hasScheme &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
   }
 
   List<String> _parseImageUrls(String raw) {
@@ -531,9 +640,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Map<String, String> _collectAttributes() {
-    final keys = {
-      for (final section in _attributeSections) ...section.fields,
-    };
+    final keys = {for (final section in _attributeSections) ...section.fields};
     final attributes = <String, String>{};
     for (final key in keys) {
       final value = _attributeControllers[key]?.text.trim() ?? '';
@@ -589,7 +696,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 controller: _attributeControllers[field],
                 style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                 decoration: InputDecoration(
-                  hintText: _attributeHints[field] ?? humanizeAttributeLabel(field),
+                  hintText:
+                      _attributeHints[field] ?? humanizeAttributeLabel(field),
                   labelText: humanizeAttributeLabel(field),
                 ),
               ),
