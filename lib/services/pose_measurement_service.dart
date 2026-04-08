@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+import 'mediapipe_pose_bridge.dart';
 
 enum PoseGuideState {
   detecting,
@@ -94,6 +94,14 @@ class PoseRefinementResult {
   final double bodyRatio;
   final bool usedSideScan;
 
+  Map<String, double> toMeasurementCm() {
+    return {
+      'chest': chestCm,
+      'waist': waistCm,
+      'hips': hipCm,
+    };
+  }
+
   static PoseRefinementResult? merge(
     PoseRefinementResult? front,
     PoseRefinementResult? side,
@@ -177,44 +185,33 @@ class PoseRefinementResult {
 class PoseMeasurementService {
   const PoseMeasurementService();
 
-  static final PoseDetector _singleDetector = PoseDetector(
-    options: PoseDetectorOptions(
-      mode: PoseDetectionMode.single,
-      model: PoseDetectionModel.base,
-    ),
-  );
-
-  static final PoseDetector _streamDetector = PoseDetector(
-    options: PoseDetectorOptions(
-      mode: PoseDetectionMode.stream,
-      model: PoseDetectionModel.base,
-    ),
-  );
-
   Future<PoseRefinementResult?> analyzeFromFile(
     String imagePath, {
     required double heightCm,
     bool isSideView = false,
   }) async {
-    final input = InputImage.fromFilePath(imagePath);
-    final poses = await _singleDetector.processImage(input);
-    if (poses.isEmpty) {
+    final landmarks = await MediaPipePoseBridge.instance.processImagePath(
+      imagePath,
+    );
+    final pose = _toPose(landmarks);
+    if (pose == null) {
       return null;
     }
     return _buildRefinement(
-      poses.first,
+      pose,
       heightCm: heightCm,
       isSideView: isSideView,
     );
   }
 
   Future<PoseFrameFeedback> analyzeLiveInputImage(
-    InputImage inputImage, {
+    MediaPipePoseFrameInput inputFrame, {
     required double heightCm,
     bool isSideView = false,
   }) async {
-    final poses = await _streamDetector.processImage(inputImage);
-    if (poses.isEmpty) {
+    final landmarks = await MediaPipePoseBridge.instance.processFrame(inputFrame);
+    final pose = _toPose(landmarks);
+    if (pose == null) {
       return const PoseFrameFeedback(
         state: PoseGuideState.detecting,
         message: 'Detecting...',
@@ -224,40 +221,65 @@ class PoseMeasurementService {
       );
     }
     return _buildFrameFeedback(
-      poses.first,
+      pose,
       heightCm: heightCm,
       isSideView: isSideView,
     );
   }
 
   Future<TryOnPoseFrame?> analyzeTryOnLiveInputImage(
-    InputImage inputImage, {
+    MediaPipePoseFrameInput inputFrame, {
     bool isSideView = false,
   }) async {
-    final poses = await _streamDetector.processImage(inputImage);
-    if (poses.isEmpty) {
+    final landmarks = await MediaPipePoseBridge.instance.processFrame(inputFrame);
+    final pose = _toPose(landmarks);
+    if (pose == null) {
       return null;
     }
     return _buildTryOnFrame(
-      poses.first,
+      pose,
       isSideView: isSideView,
     );
   }
 
   Future<PoseRefinementResult?> analyzeLiveRefinementInputImage(
-    InputImage inputImage, {
+    MediaPipePoseFrameInput inputFrame, {
     required double heightCm,
     bool isSideView = false,
   }) async {
-    final poses = await _streamDetector.processImage(inputImage);
-    if (poses.isEmpty) {
+    final landmarks = await MediaPipePoseBridge.instance.processFrame(inputFrame);
+    final pose = _toPose(landmarks);
+    if (pose == null) {
       return null;
     }
     return _buildRefinement(
-      poses.first,
+      pose,
       heightCm: heightCm,
       isSideView: isSideView,
     );
+  }
+
+  Pose? _toPose(List<MediaPipePoseLandmark> landmarks) {
+    if (landmarks.isEmpty) {
+      return null;
+    }
+    final mapped = <PoseLandmarkType, PoseLandmark>{};
+    for (final landmark in landmarks) {
+      final type = PoseLandmarkType.fromMediaPipeType(landmark.type);
+      if (type == null) {
+        continue;
+      }
+      mapped[type] = PoseLandmark(
+        x: landmark.x,
+        y: landmark.y,
+        z: landmark.z,
+        visibility: landmark.visibility,
+      );
+    }
+    if (mapped.isEmpty) {
+      return null;
+    }
+    return Pose(mapped);
   }
 
   PoseFrameFeedback _buildFrameFeedback(
@@ -472,14 +494,28 @@ class PoseMeasurementService {
         rightShoulder == null ||
         leftHip == null ||
         rightHip == null ||
-        nose == null ||
         leftAnkle == null ||
         rightAnkle == null) {
       return null;
     }
 
-    final bodyPixelHeight =
-        ((((leftAnkle.y + rightAnkle.y) / 2) - nose.y).abs()).clamp(1.0, 9999.0);
+    final shoulderMid = _midPoint(leftShoulder, rightShoulder);
+    final ankleMid = _midPoint(leftAnkle, rightAnkle);
+    final midHead = nose == null
+        ? shoulderMid
+        : PoseLandmark(
+            x: (nose.x + shoulderMid.x) / 2,
+            y: (nose.y + shoulderMid.y) / 2,
+            z: (nose.z + shoulderMid.z) / 2,
+            visibility: (nose.visibility + shoulderMid.visibility) / 2,
+          );
+
+    final bodyPixelHeight = _distance(
+      midHead.x,
+      midHead.y,
+      ankleMid.x,
+      ankleMid.y,
+    ).clamp(1.0, 9999.0);
     final cmPerPixel = heightCm / bodyPixelHeight;
 
     final shoulderWidthPx = _distance(
@@ -497,14 +533,9 @@ class PoseMeasurementService {
 
     final shoulderWidthCm = shoulderWidthPx * cmPerPixel;
     final hipWidthCm = hipWidthPx * cmPerPixel;
-    final chestCm = shoulderWidthCm * 1.1;
-    var waistCm = hipWidthCm * 0.9;
-    var hipCm = hipWidthCm;
-
-    if (isSideView) {
-      waistCm *= 1.04;
-      hipCm *= 1.03;
-    }
+    final chestCm = shoulderWidthCm * 1.2;
+    final waistCm = hipWidthCm * 0.9;
+    final hipCm = hipWidthCm;
 
     final bodyRatio = waistCm <= 0 ? 1.0 : chestCm / waistCm;
     final bodyType = _bodyTypeFromRatio(bodyRatio);
@@ -525,6 +556,7 @@ class PoseMeasurementService {
           'Side scan improved waist depth estimation'
         else
           'Front scan mapped shoulders, chest, waist, hips, and knees',
+        'Measurement conversion uses: chest ≈ shoulder × scale × 1.2, waist ≈ hips × scale × 0.9',
         'Images are processed on-device and only measurements are stored',
       ],
       accuracyLabel: isSideView ? 'High' : 'Medium',
@@ -583,5 +615,59 @@ class PoseMeasurementService {
 
   double _distance(double x1, double y1, double x2, double y2) {
     return math.sqrt(math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2));
+  }
+
+  PoseLandmark _midPoint(PoseLandmark a, PoseLandmark b) {
+    return PoseLandmark(
+      x: (a.x + b.x) / 2,
+      y: (a.y + b.y) / 2,
+      z: (a.z + b.z) / 2,
+      visibility: (a.visibility + b.visibility) / 2,
+    );
+  }
+}
+
+class Pose {
+  const Pose(this.landmarks);
+
+  final Map<PoseLandmarkType, PoseLandmark> landmarks;
+}
+
+class PoseLandmark {
+  const PoseLandmark({
+    required this.x,
+    required this.y,
+    required this.z,
+    required this.visibility,
+  });
+
+  final double x;
+  final double y;
+  final double z;
+  final double visibility;
+}
+
+enum PoseLandmarkType {
+  nose('nose'),
+  leftShoulder('left_shoulder'),
+  rightShoulder('right_shoulder'),
+  leftHip('left_hip'),
+  rightHip('right_hip'),
+  leftKnee('left_knee'),
+  rightKnee('right_knee'),
+  leftAnkle('left_ankle'),
+  rightAnkle('right_ankle');
+
+  const PoseLandmarkType(this.wireName);
+  final String wireName;
+
+  static PoseLandmarkType? fromMediaPipeType(String type) {
+    final normalized = type.trim().toLowerCase();
+    for (final value in PoseLandmarkType.values) {
+      if (value.wireName == normalized) {
+        return value;
+      }
+    }
+    return null;
   }
 }

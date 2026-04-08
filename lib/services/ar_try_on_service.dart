@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import '../models/models.dart';
@@ -53,7 +54,7 @@ class ArOverlayLayout {
   static ArOverlayLayout lerp(
     ArOverlayLayout? previous,
     ArOverlayLayout next, {
-    double t = 0.22,
+    double t = 0.2,
   }) {
     if (previous == null) {
       return next;
@@ -202,51 +203,49 @@ class ArTryOnService {
       return ArOverlayLayout.lerp(previous, fallback, t: 0.18);
     }
 
-    final shoulderCenter = Offset(
-      guideRect.left + (guideRect.width * frame.shoulderCenter.x),
-      guideRect.top + (guideRect.height * frame.shoulderCenter.y),
+    final leftShoulder = Offset(
+      guideRect.left + (guideRect.width * frame.leftShoulder.x),
+      guideRect.top + (guideRect.height * frame.leftShoulder.y),
     );
-    final hipCenter = Offset(
-      guideRect.left + (guideRect.width * frame.hipCenter.x),
-      guideRect.top + (guideRect.height * frame.hipCenter.y),
+    final rightShoulder = Offset(
+      guideRect.left + (guideRect.width * frame.rightShoulder.x),
+      guideRect.top + (guideRect.height * frame.rightShoulder.y),
     );
-    final torsoMidpoint = Offset.lerp(
-          shoulderCenter,
-          hipCenter,
-          0.5,
-        ) ??
-        guideRect.center;
-    final anchorCenter = switch (metadata.type) {
-      ArGarmentType.pants => hipCenter,
-      ArGarmentType.footwear => hipCenter,
-      ArGarmentType.accessory => shoulderCenter,
-      _ => shoulderCenter,
-    };
-    final center = Offset.lerp(
-          anchorCenter,
-          torsoMidpoint,
-          (0.16 + metadata.verticalBias).clamp(0.0, 0.9),
-        ) ??
-        anchorCenter;
-    final fitScale = 1 + fitAdjustment;
-    final width = (guideRect.width *
-            frame.shoulderWidth *
-            metadata.widthMultiplier *
-            fitScale)
-        .clamp(guideRect.width * 0.24, guideRect.width * 0.92);
-    final height = (guideRect.height *
-            frame.torsoHeight *
-            metadata.heightMultiplier *
-            fitScale)
-        .clamp(guideRect.height * 0.2, guideRect.height * 0.9);
+    final shoulderMid = Offset(
+      (leftShoulder.dx + rightShoulder.dx) / 2,
+      (leftShoulder.dy + rightShoulder.dy) / 2,
+    );
+    final hipMid = Offset(
+      (guideRect.left + (guideRect.width * frame.leftHip.x) +
+              guideRect.left + (guideRect.width * frame.rightHip.x)) /
+          2,
+      (guideRect.top + (guideRect.height * frame.leftHip.y) +
+              guideRect.top + (guideRect.height * frame.rightHip.y)) /
+          2,
+    );
+
+    final shoulderDistance = _distance(leftShoulder, rightShoulder);
+    final torsoDistance = _distance(shoulderMid, hipMid);
+
+    final fitScale = (1 + fitAdjustment).clamp(0.82, 1.22);
+    final scaleFactor = (metadata.widthMultiplier * fitScale).clamp(0.88, 1.75);
+    final width = (shoulderDistance * scaleFactor)
+        .clamp(guideRect.width * 0.24, guideRect.width * 0.95);
+    final height = (torsoDistance * 1.5 * metadata.heightMultiplier * 0.88)
+        .clamp(guideRect.height * 0.2, guideRect.height * 0.95);
+
+    final targetRotation = math.atan2(
+      rightShoulder.dy - leftShoulder.dy,
+      rightShoulder.dx - leftShoulder.dx,
+    ).clamp(-0.42, 0.42);
     final next = ArOverlayLayout(
-      center: center,
+      center: shoulderMid,
       size: Size(width, height),
-      rotationRadians: frame.rotationRadians,
-      opacity: frame.feedback.isAligned ? 0.92 : 0.78,
+      rotationRadians: targetRotation.toDouble(),
+      opacity: frame.feedback.isAligned ? 0.94 : 0.82,
       usingFallbackArt: !metadata.prefersTransparentAsset,
     );
-    return ArOverlayLayout.lerp(previous, next);
+    return ArOverlayLayout.lerp(previous, next, t: 0.2);
   }
 
   String _fitFor(Product product) {
@@ -260,5 +259,11 @@ class ArTryOnService {
       return 'slim';
     }
     return 'regular';
+  }
+
+  double _distance(Offset a, Offset b) {
+    final dx = a.dx - b.dx;
+    final dy = a.dy - b.dy;
+    return math.sqrt((dx * dx) + (dy * dy));
   }
 }

@@ -6,7 +6,6 @@ import 'package:camera/camera.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,6 +16,8 @@ import '../../providers/auth_provider.dart';
 import '../../services/ar_try_on_service.dart';
 import '../../services/backend_commerce_service.dart';
 import '../../services/body_scan_service.dart';
+import '../../services/camera_frame_encoder.dart';
+import '../../services/mediapipe_pose_bridge.dart';
 import '../../services/pose_measurement_service.dart';
 import '../../theme.dart';
 import '../../widgets/state_views.dart';
@@ -87,6 +88,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
   bool _isCapturing = false;
   bool _useFrontCamera = true;
   int _lastProcessedFrameMs = 0;
+  int _poseFrameCounter = 0;
   String? _error;
   double _zoomLevel = 1;
   double _minZoomLevel = 1;
@@ -457,13 +459,24 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
 
     _isProcessingFrame = true;
     try {
-      final inputImage = _inputImageFromCameraImage(image, controller);
-      if (inputImage == null) {
+      _poseFrameCounter += 1;
+      if (_poseFrameCounter % 2 != 0) {
         return;
       }
+      final jpeg = CameraFrameEncoder.encodeJpeg(image);
+      if (jpeg == null) {
+        return;
+      }
+      final inputFrame = MediaPipePoseFrameInput(
+        jpegBytes: jpeg,
+        width: image.width,
+        height: image.height,
+        rotation: controller.description.sensorOrientation,
+        timestampMs: DateTime.now().millisecondsSinceEpoch,
+      );
 
       final nextFrame = await _poseService.analyzeTryOnLiveInputImage(
-        inputImage,
+        inputFrame,
         isSideView: false,
       );
       if (!mounted) {
@@ -613,35 +626,6 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
     );
   }
 
-  InputImage? _inputImageFromCameraImage(
-    CameraImage image,
-    CameraController controller,
-  ) {
-    final rotation = InputImageRotationValue.fromRawValue(
-      controller.description.sensorOrientation,
-    );
-    final format = InputImageFormatValue.fromRawValue(image.format.raw);
-    if (rotation == null || format == null) {
-      return null;
-    }
-
-    final writeBuffer = WriteBuffer();
-    for (final plane in image.planes) {
-      writeBuffer.putUint8List(plane.bytes);
-    }
-    final bytes = writeBuffer.done().buffer.asUint8List();
-
-    return InputImage.fromBytes(
-      bytes: bytes,
-      metadata: InputImageMetadata(
-        size: Size(image.width.toDouble(), image.height.toDouble()),
-        rotation: rotation,
-        format: format,
-        bytesPerRow: image.planes.first.bytesPerRow,
-      ),
-    );
-  }
-
   Rect _guideRectFor(Size size) {
     return Rect.fromCenter(
       center: Offset(size.width / 2, size.height / 2),
@@ -715,6 +699,20 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
                                   product: widget.product,
                                   accentColor: widget.accentColor,
                                 ),
+                        ),
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: ClipRect(
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 0.8, sigmaY: 0.8),
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.045),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                         Positioned.fill(
                           child: IgnorePointer(
@@ -1442,6 +1440,32 @@ class _GarmentOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final garmentChild = layout.usingFallbackArt
+        ? CustomPaint(
+            painter: _FallbackGarmentPainter(
+              accentColor: accentColor,
+              type: metadata.type,
+            ),
+          )
+        : CachedNetworkImage(
+            imageUrl: metadata.assetUrl,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+            fadeInDuration: const Duration(milliseconds: 100),
+            placeholder: (context, imageUrl) => CustomPaint(
+              painter: _FallbackGarmentPainter(
+                accentColor: accentColor,
+                type: metadata.type,
+              ),
+            ),
+            errorWidget: (context, imageUrl, error) => CustomPaint(
+              painter: _FallbackGarmentPainter(
+                accentColor: accentColor,
+                type: metadata.type,
+              ),
+            ),
+          );
+
     return Positioned(
       left: layout.center.dx - (layout.size.width / 2),
       top: layout.center.dy - (layout.size.height / 2),
@@ -1454,35 +1478,90 @@ class _GarmentOverlay extends StatelessWidget {
             child: SizedBox(
               width: layout.size.width,
               height: layout.size.height,
-              child: layout.usingFallbackArt
-                  ? CustomPaint(
-                      painter: _FallbackGarmentPainter(
-                        accentColor: accentColor,
-                        type: metadata.type,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: layout.size.width * 0.08,
+                    right: layout.size.width * 0.08,
+                    bottom: -layout.size.height * 0.05,
+                    height: layout.size.height * 0.16,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.26),
+                            blurRadius: 22,
+                            spreadRadius: 1,
+                          ),
+                        ],
                       ),
-                    )
-                  : CachedNetworkImage(
-                      imageUrl: metadata.assetUrl,
-                      fit: BoxFit.contain,
-                      placeholder: (context, imageUrl) => CustomPaint(
-                        painter: _FallbackGarmentPainter(
-                          accentColor: accentColor,
-                          type: metadata.type,
-                        ),
-                      ),
-                      errorWidget: (context, imageUrl, error) => CustomPaint(
-                        painter: _FallbackGarmentPainter(
-                          accentColor: accentColor,
-                          type: metadata.type,
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: ShaderMask(
+                      shaderCallback: (bounds) => RadialGradient(
+                        center: const Alignment(0, -0.08),
+                        radius: 0.98,
+                        colors: const [
+                          Colors.white,
+                          Colors.white,
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.88, 1.0],
+                      ).createShader(bounds),
+                      blendMode: BlendMode.dstIn,
+                      child: garmentChild,
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.white.withValues(alpha: 0.06),
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.11),
+                          ],
+                          stops: const [0.0, 0.52, 1.0],
                         ),
                       ),
                     ),
+                  ),
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _FabricNoisePainter(),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+class _FabricNoisePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.018);
+    for (double y = 2; y < size.height; y += 8) {
+      for (double x = 2; x < size.width; x += 8) {
+        final seed = ((x * 13) + (y * 17)) % 29;
+        if (seed < 8) {
+          canvas.drawCircle(Offset(x, y), 0.65, paint);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FabricNoisePainter oldDelegate) => false;
 }
 
 class _FallbackTryOnPreview extends StatelessWidget {

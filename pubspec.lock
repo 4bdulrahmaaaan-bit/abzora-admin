@@ -688,14 +688,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.12.0"
-  google_mlkit_pose_detection:
-    dependency: "direct main"
-    description:
-      name: google_mlkit_pose_detection
-      sha256: "05c4a6eaab12e575a55c83b357d76c1f694be5caf1dc8d5229a18327712f6685"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.13.0"
   hooks:
     dependency: transitive
     description:
@@ -729,7 +721,7 @@ packages:
     source: hosted
     version: "4.1.2"
   image:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: image
       sha256: f9881ff4998044947ec38d098bc7c8316ae1186fa786eddffdb867b9bc94dfce

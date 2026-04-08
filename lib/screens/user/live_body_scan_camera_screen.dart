@@ -2,8 +2,9 @@ import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 
+import '../../services/camera_frame_encoder.dart';
+import '../../services/mediapipe_pose_bridge.dart';
 import '../../services/pose_measurement_service.dart';
 import '../../theme.dart';
 
@@ -42,6 +43,7 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
   bool _isLoading = true;
   bool _isCapturing = false;
   bool _isProcessingFrame = false;
+  int _frameCounter = 0;
   String? _error;
   PoseFrameFeedback? _poseFeedback;
   final List<PoseRefinementResult> _recentRefinements = <PoseRefinementResult>[];
@@ -111,17 +113,28 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
     }
     _isProcessingFrame = true;
     try {
-      final inputImage = _inputImageFromCameraImage(image, controller);
-      if (inputImage == null) {
+      _frameCounter += 1;
+      if (_frameCounter % 2 != 0) {
         return;
       }
+      final jpeg = CameraFrameEncoder.encodeJpeg(image);
+      if (jpeg == null) {
+        return;
+      }
+      final inputFrame = MediaPipePoseFrameInput(
+        jpegBytes: jpeg,
+        width: image.width,
+        height: image.height,
+        rotation: controller.description.sensorOrientation,
+        timestampMs: DateTime.now().millisecondsSinceEpoch,
+      );
       final feedback = await _poseService.analyzeLiveInputImage(
-        inputImage,
+        inputFrame,
         heightCm: widget.heightCm,
         isSideView: !widget.isFrontView,
       );
       final refinement = await _poseService.analyzeLiveRefinementInputImage(
-        inputImage,
+        inputFrame,
         heightCm: widget.heightCm,
         isSideView: !widget.isFrontView,
       );
@@ -191,39 +204,6 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
         _error = error.toString();
       });
     }
-  }
-
-  InputImage? _inputImageFromCameraImage(
-    CameraImage image,
-    CameraController controller,
-  ) {
-    final camera = controller.description;
-    final rotation = InputImageRotationValue.fromRawValue(
-      camera.sensorOrientation,
-    );
-    if (rotation == null) {
-      return null;
-    }
-    final format = InputImageFormatValue.fromRawValue(image.format.raw);
-    if (format == null) {
-      return null;
-    }
-    final bytes = _concatenatePlanes(image.planes);
-    final metadata = InputImageMetadata(
-      size: Size(image.width.toDouble(), image.height.toDouble()),
-      rotation: rotation,
-      format: format,
-      bytesPerRow: image.planes.first.bytesPerRow,
-    );
-    return InputImage.fromBytes(bytes: bytes, metadata: metadata);
-  }
-
-  Uint8List _concatenatePlanes(List<Plane> planes) {
-    final writeBuffer = WriteBuffer();
-    for (final plane in planes) {
-      writeBuffer.putUint8List(plane.bytes);
-    }
-    return writeBuffer.done().buffer.asUint8List();
   }
 
   @override
