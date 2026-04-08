@@ -137,6 +137,41 @@ class PoseRefinementResult {
       usedSideScan: true,
     );
   }
+
+  static PoseRefinementResult? average(List<PoseRefinementResult> results) {
+    if (results.isEmpty) {
+      return null;
+    }
+    double sum(double Function(PoseRefinementResult item) picker) =>
+        results.fold<double>(0, (total, item) => total + picker(item));
+    final count = results.length.toDouble();
+    final avgChest = sum((item) => item.chestCm) / count;
+    final avgWaist = sum((item) => item.waistCm) / count;
+    final avgHip = sum((item) => item.hipCm) / count;
+    final avgShoulder = sum((item) => item.shoulderWidthCm) / count;
+    final avgRatio = avgWaist <= 0 ? 1.0 : avgChest / avgWaist;
+    final bodyType = PoseMeasurementService._bodyTypeFromRatio(avgRatio);
+    return PoseRefinementResult(
+      chestAdjustment: sum((item) => item.chestAdjustment) / count,
+      waistAdjustment: sum((item) => item.waistAdjustment) / count,
+      hipAdjustment: sum((item) => item.hipAdjustment) / count,
+      shoulderAdjustment: sum((item) => item.shoulderAdjustment) / count,
+      confidenceBoost: (sum((item) => item.confidenceBoost) / count)
+          .clamp(0.04, 0.16),
+      highlights: [
+        'Averaged ${results.length} pose frames for smoother measurements',
+      ],
+      accuracyLabel: results.length >= 8 ? 'High' : 'Medium',
+      detectedBodyType: bodyType.$1,
+      bodyTypeConfidence: bodyType.$2,
+      shoulderWidthCm: avgShoulder,
+      chestCm: avgChest,
+      waistCm: avgWaist,
+      hipCm: avgHip,
+      bodyRatio: avgRatio,
+      usedSideScan: results.any((item) => item.usedSideScan),
+    );
+  }
 }
 
 class PoseMeasurementService {
@@ -205,6 +240,22 @@ class PoseMeasurementService {
     }
     return _buildTryOnFrame(
       poses.first,
+      isSideView: isSideView,
+    );
+  }
+
+  Future<PoseRefinementResult?> analyzeLiveRefinementInputImage(
+    InputImage inputImage, {
+    required double heightCm,
+    bool isSideView = false,
+  }) async {
+    final poses = await _streamDetector.processImage(inputImage);
+    if (poses.isEmpty) {
+      return null;
+    }
+    return _buildRefinement(
+      poses.first,
+      heightCm: heightCm,
       isSideView: isSideView,
     );
   }

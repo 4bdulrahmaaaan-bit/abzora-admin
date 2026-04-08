@@ -139,7 +139,9 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
 
   double _confidenceValue(dynamic value) {
     if (value is num) {
-      return value.toDouble().clamp(0.0, 1.0);
+      final numeric = value.toDouble();
+      final normalized = numeric > 1 ? (numeric / 100) : numeric;
+      return normalized.clamp(0.0, 1.0);
     }
     switch ((value ?? '').toString().trim().toLowerCase()) {
       case 'high':
@@ -160,9 +162,11 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
     final recommendedSize =
         (payload['recommendedSize'] ?? seed.shirtSize).toString().toUpperCase();
     final confidence = _confidenceValue(
-      payload['confidence'] ?? seed.confidence,
+      payload['confidencePercent'] ?? payload['confidence'] ?? seed.confidence,
     );
-    final reasoning = (payload['reasoning'] ?? seed.reasoning).toString().trim();
+    final reasoning = (payload['reasoning'] ?? payload['reason'] ?? seed.reasoning)
+        .toString()
+        .trim();
     final message = (payload['message'] ?? seed.message).toString().trim();
 
     return SizePredictionResult(
@@ -184,6 +188,7 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
       reasoning: reasoning,
       bodyOutlineHighlights: [
         'We suggest size $recommendedSize',
+        '${(confidence * 100).round()}% match with your body profile',
         'Confidence ${confidence >= 0.86 ? 'High' : confidence >= 0.72 ? 'Medium' : 'Low'} based on height, weight, and body type',
         ...seed.bodyOutlineHighlights,
       ],
@@ -710,7 +715,7 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'We suggest size $displayedSize',
+            'Recommended for you: $displayedSize (${(result.confidence * 100).round()}% match)',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),

@@ -86,6 +86,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
   bool _isProcessingFrame = false;
   bool _isCapturing = false;
   bool _useFrontCamera = true;
+  int _lastProcessedFrameMs = 0;
   String? _error;
   double _zoomLevel = 1;
   double _minZoomLevel = 1;
@@ -443,6 +444,12 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
     if (_isProcessingFrame || _isCapturing) {
       return;
     }
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    // Keep processing close to 30fps for smoother overlay without overloading.
+    if (nowMs - _lastProcessedFrameMs < 33) {
+      return;
+    }
+    _lastProcessedFrameMs = nowMs;
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
       return;

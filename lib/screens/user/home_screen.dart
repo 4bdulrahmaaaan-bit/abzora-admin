@@ -2329,7 +2329,9 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${items.length} picks · ${_labelForFilter(outfit.occasion)}',
+                        outfit.bodyTypeLabel.isNotEmpty
+                            ? 'Perfect for your body type · ${outfit.bodyTypeLabel}'
+                            : 'Recommended for you',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -2337,6 +2339,18 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
                               color: context.abzioSecondaryText,
                             ),
                       ),
+                      if (outfit.bodyReason.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          outfit.bodyReason,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontSize: 11,
+                                color: context.abzioSecondaryText.withValues(alpha: 0.88),
+                              ),
+                        ),
+                      ],
                       const SizedBox(height: 6),
                       Row(
                         children: [

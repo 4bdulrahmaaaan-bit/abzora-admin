@@ -22,6 +22,7 @@ import '../../widgets/product_attributes.dart';
 import '../../widgets/tap_scale.dart';
 import '../../widgets/state_views.dart';
 import 'ai_stylist_screen.dart';
+import 'avatar_try_on_screen.dart';
 import 'live_ar_try_on_screen.dart';
 import 'size_recommendation_screen.dart';
 
@@ -393,6 +394,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       MaterialPageRoute(
         builder: (_) =>
             LiveArTryOnScreen(product: product, accentColor: accentColor),
+      ),
+    );
+  }
+
+  Future<void> _openAvatarTryOn(Product product, Color accentColor) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            AvatarTryOnScreen(product: product, accentColor: accentColor),
       ),
     );
   }
@@ -1073,6 +1084,64 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     ),
                     child: const Icon(Icons.arrow_forward_rounded, size: 16),
                   ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TapScale(
+            onTap: () => _openAvatarTryOn(product, accentColor),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE6D3A3)),
+                color: const Color(0xFFFFFBF2),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color.fromRGBO(200, 164, 77, 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.accessibility_new_rounded,
+                      size: 18,
+                      color: Color(0xFFB8963F),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Try on Avatar (3D)',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Measurement-based 3D preview with rotate and zoom',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: const Color(0xFF6B6B6B),
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded, size: 16),
                 ],
               ),
             ),

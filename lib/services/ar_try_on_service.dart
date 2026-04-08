@@ -210,12 +210,24 @@ class ArTryOnService {
       guideRect.left + (guideRect.width * frame.hipCenter.x),
       guideRect.top + (guideRect.height * frame.hipCenter.y),
     );
-    final torsoCenter = Offset.lerp(
+    final torsoMidpoint = Offset.lerp(
           shoulderCenter,
           hipCenter,
-          0.5 + metadata.verticalBias,
+          0.5,
         ) ??
         guideRect.center;
+    final anchorCenter = switch (metadata.type) {
+      ArGarmentType.pants => hipCenter,
+      ArGarmentType.footwear => hipCenter,
+      ArGarmentType.accessory => shoulderCenter,
+      _ => shoulderCenter,
+    };
+    final center = Offset.lerp(
+          anchorCenter,
+          torsoMidpoint,
+          (0.16 + metadata.verticalBias).clamp(0.0, 0.9),
+        ) ??
+        anchorCenter;
     final fitScale = 1 + fitAdjustment;
     final width = (guideRect.width *
             frame.shoulderWidth *
@@ -228,7 +240,7 @@ class ArTryOnService {
             fitScale)
         .clamp(guideRect.height * 0.2, guideRect.height * 0.9);
     final next = ArOverlayLayout(
-      center: torsoCenter,
+      center: center,
       size: Size(width, height),
       rotationRadians: frame.rotationRadians,
       opacity: frame.feedback.isAligned ? 0.92 : 0.78,

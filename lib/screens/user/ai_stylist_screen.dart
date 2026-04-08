@@ -454,6 +454,34 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                 ],
                 if (message.products.isNotEmpty) ...[
                   const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Text(
+                        'Styled for you',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF202020),
+                            ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF3D0),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          'Based on your body',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF8C6A16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   SizedBox(
                     height: 214,
                     child: ListView.separated(

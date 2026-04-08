@@ -10,6 +10,8 @@ class OutfitRecommendation {
     this.occasion = '',
     this.style = '',
     this.reasoning = '',
+    this.bodyTypeLabel = '',
+    this.bodyReason = '',
   });
 
   final String outfitId;
@@ -20,6 +22,8 @@ class OutfitRecommendation {
   final String occasion;
   final String style;
   final String reasoning;
+  final String bodyTypeLabel;
+  final String bodyReason;
 
   factory OutfitRecommendation.fromMap(Map<String, dynamic> map) {
     final rawItems = (map['items'] as List? ?? const [])
@@ -68,6 +72,8 @@ class OutfitRecommendation {
       occasion: (map['occasion'] ?? '').toString(),
       style: (map['style'] ?? '').toString(),
       reasoning: (map['reasoning'] ?? '').toString(),
+      bodyTypeLabel: (map['bodyTypeLabel'] ?? '').toString(),
+      bodyReason: (map['bodyReason'] ?? map['reason'] ?? '').toString(),
     );
   }
 }

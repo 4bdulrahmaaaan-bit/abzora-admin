@@ -44,6 +44,7 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
   bool _isProcessingFrame = false;
   String? _error;
   PoseFrameFeedback? _poseFeedback;
+  final List<PoseRefinementResult> _recentRefinements = <PoseRefinementResult>[];
   late final AnimationController _pulseController;
 
   @override
@@ -119,10 +120,21 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
         heightCm: widget.heightCm,
         isSideView: !widget.isFrontView,
       );
+      final refinement = await _poseService.analyzeLiveRefinementInputImage(
+        inputImage,
+        heightCm: widget.heightCm,
+        isSideView: !widget.isFrontView,
+      );
       if (!mounted) {
         return;
       }
       final wasAligned = _poseFeedback?.isAligned ?? false;
+      if (refinement != null) {
+        _recentRefinements.add(refinement);
+        if (_recentRefinements.length > 10) {
+          _recentRefinements.removeAt(0);
+        }
+      }
       setState(() {
         _poseFeedback = feedback;
       });
@@ -145,10 +157,19 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
     try {
       await controller.stopImageStream();
       final file = await controller.takePicture();
-      final refinement = await _poseService.analyzeFromFile(
+      final fileRefinement = await _poseService.analyzeFromFile(
         file.path,
         heightCm: widget.heightCm,
         isSideView: !widget.isFrontView,
+      );
+      final smoothedRefinement = PoseRefinementResult.average(
+        _recentRefinements.length > 5
+            ? _recentRefinements.sublist(_recentRefinements.length - 5)
+            : _recentRefinements,
+      );
+      final refinement = PoseRefinementResult.merge(
+        fileRefinement,
+        smoothedRefinement,
       );
       if (!mounted) {
         return;
@@ -363,6 +384,17 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
                                         style: const TextStyle(
                                           color: Colors.white,
                                           height: 1.45,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        'Samples: ${_recentRefinements.length}/10',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.72,
+                                          ),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                       const SizedBox(height: 12),
