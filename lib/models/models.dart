@@ -2872,6 +2872,106 @@ class PayoutModel {
       );
 }
 
+class WalletTransaction {
+  final String id;
+  final String type;
+  final String userType;
+  final String userId;
+  final double amount;
+  final String status;
+  final String note;
+  final String orderId;
+  final String payoutId;
+  final String storeId;
+  final String riderId;
+  final String createdAt;
+  final Map<String, dynamic> metadata;
+
+  const WalletTransaction({
+    required this.id,
+    required this.type,
+    required this.userType,
+    required this.userId,
+    required this.amount,
+    required this.status,
+    required this.note,
+    required this.orderId,
+    required this.payoutId,
+    required this.storeId,
+    required this.riderId,
+    required this.createdAt,
+    this.metadata = const {},
+  });
+
+  factory WalletTransaction.fromMap(Map<String, dynamic> map) => WalletTransaction(
+        id: map['id'] ?? '',
+        type: map['type'] ?? 'order',
+        userType: map['userType'] ?? 'vendor',
+        userId: map['userId'] ?? '',
+        amount: ((map['amount'] ?? 0) as num).toDouble(),
+        status: map['status'] ?? 'pending',
+        note: map['note'] ?? '',
+        orderId: map['orderId'] ?? '',
+        payoutId: map['payoutId'] ?? '',
+        storeId: map['storeId'] ?? '',
+        riderId: map['riderId'] ?? '',
+        createdAt: map['createdAt'] ?? '',
+        metadata: Map<String, dynamic>.from(map['metadata'] ?? const {}),
+      );
+}
+
+class WalletSummary {
+  final String id;
+  final String kind;
+  final String linkedId;
+  final double balance;
+  final double pendingAmount;
+  final double totalEarnings;
+  final double totalWithdrawn;
+  final String lastSettlementDate;
+  final double? commissionRate;
+  final List<WalletTransaction> transactions;
+
+  const WalletSummary({
+    required this.id,
+    required this.kind,
+    required this.linkedId,
+    required this.balance,
+    required this.pendingAmount,
+    required this.totalEarnings,
+    required this.totalWithdrawn,
+    required this.lastSettlementDate,
+    this.commissionRate,
+    this.transactions = const [],
+  });
+}
+
+class AdminFinanceSummary {
+  final double totalCommission;
+  final double totalRevenue;
+  final double payoutsDone;
+  final double vendorSettlementsDone;
+  final double riderSettlementsDone;
+  final double vendorPending;
+  final double riderPending;
+  final List<WalletSummary> vendorWallets;
+  final List<WalletSummary> riderWallets;
+  final List<WalletTransaction> transactions;
+
+  const AdminFinanceSummary({
+    required this.totalCommission,
+    required this.totalRevenue,
+    required this.payoutsDone,
+    required this.vendorSettlementsDone,
+    required this.riderSettlementsDone,
+    required this.vendorPending,
+    required this.riderPending,
+    this.vendorWallets = const [],
+    this.riderWallets = const [],
+    this.transactions = const [],
+  });
+}
+
 class AnalyticsPoint {
   final String label;
   final double value;

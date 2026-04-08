@@ -955,6 +955,125 @@ class BackendCommerceService {
     return PayoutModel.fromMap(map, map['id']?.toString() ?? '');
   }
 
+  WalletSummary _walletSummaryFromPayload(
+    Map<String, dynamic> map, {
+    required String kind,
+  }) {
+    final transactions = (map['transactions'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => WalletTransaction.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+    final linkedId = kind == 'vendor'
+        ? map['storeId']?.toString() ?? ''
+        : map['riderId']?.toString() ?? '';
+    return WalletSummary(
+      id: linkedId.isNotEmpty ? linkedId : kind,
+      kind: kind,
+      linkedId: linkedId,
+      balance: ((map['balance'] ?? 0) as num).toDouble(),
+      pendingAmount: ((map['pendingAmount'] ?? 0) as num).toDouble(),
+      totalEarnings: ((map['totalEarnings'] ?? 0) as num).toDouble(),
+      totalWithdrawn: ((map['totalWithdrawn'] ?? 0) as num).toDouble(),
+      lastSettlementDate: map['lastSettlementDate']?.toString() ?? '',
+      commissionRate: map['commissionRate'] == null ? null : (map['commissionRate'] as num).toDouble(),
+      transactions: transactions,
+    );
+  }
+
+  Future<WalletSummary> getVendorWallet() async {
+    final payload = await _client.get('/vendor/wallet', authenticated: true);
+    return _walletSummaryFromPayload(Map<String, dynamic>.from(payload as Map), kind: 'vendor');
+  }
+
+  Future<WalletSummary> requestVendorWithdraw(double amount) async {
+    final payload = await _client.post(
+      '/vendor/withdraw',
+      authenticated: true,
+      body: {'amount': amount},
+    );
+    return _walletSummaryFromPayload(Map<String, dynamic>.from(payload as Map), kind: 'vendor');
+  }
+
+  Future<WalletSummary> getRiderWallet() async {
+    final payload = await _client.get('/rider/wallet', authenticated: true);
+    return _walletSummaryFromPayload(Map<String, dynamic>.from(payload as Map), kind: 'rider');
+  }
+
+  Future<WalletSummary> requestRiderWithdraw(double amount) async {
+    final payload = await _client.post(
+      '/rider/withdraw',
+      authenticated: true,
+      body: {'amount': amount},
+    );
+    return _walletSummaryFromPayload(Map<String, dynamic>.from(payload as Map), kind: 'rider');
+  }
+
+  Future<AdminFinanceSummary> getAdminFinance() async {
+    final payload = await _client.get('/admin/finance', authenticated: true);
+    final map = Map<String, dynamic>.from(payload as Map);
+    final adminWallet = Map<String, dynamic>.from(map['adminWallet'] as Map? ?? const {});
+    final vendorWallets = (map['vendorWallets'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => _walletSummaryFromPayload(Map<String, dynamic>.from(item), kind: 'vendor'))
+        .toList();
+    final riderWallets = (map['riderWallets'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => _walletSummaryFromPayload(Map<String, dynamic>.from(item), kind: 'rider'))
+        .toList();
+    final transactions = (map['transactions'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => WalletTransaction.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+    return AdminFinanceSummary(
+      totalCommission: ((adminWallet['totalCommission'] ?? 0) as num).toDouble(),
+      totalRevenue: ((adminWallet['totalRevenue'] ?? 0) as num).toDouble(),
+      payoutsDone: ((adminWallet['payoutsDone'] ?? 0) as num).toDouble(),
+      vendorSettlementsDone: ((adminWallet['vendorSettlementsDone'] ?? 0) as num).toDouble(),
+      riderSettlementsDone: ((adminWallet['riderSettlementsDone'] ?? 0) as num).toDouble(),
+      vendorPending: ((map['vendorPending'] ?? 0) as num).toDouble(),
+      riderPending: ((map['riderPending'] ?? 0) as num).toDouble(),
+      vendorWallets: vendorWallets,
+      riderWallets: riderWallets,
+      transactions: transactions,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> settleVendorPayouts({
+    String? storeId,
+    String periodLabel = 'Vendor settlement',
+  }) async {
+    final payload = await _client.post(
+      '/admin/finance/settlements/vendors',
+      authenticated: true,
+      body: {
+        if (storeId != null && storeId.trim().isNotEmpty) 'storeId': storeId.trim(),
+        'periodLabel': periodLabel,
+      },
+    );
+    return (payload as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> settleRiderPayouts({
+    String? riderId,
+    String periodLabel = 'Rider settlement',
+  }) async {
+    final payload = await _client.post(
+      '/admin/finance/settlements/riders',
+      authenticated: true,
+      body: {
+        if (riderId != null && riderId.trim().isNotEmpty) 'riderId': riderId.trim(),
+        'periodLabel': periodLabel,
+      },
+    );
+    return (payload as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
   Future<List<DisputeRecord>> getAdminDisputes() async {
     final payload = await _client.get('/admin/disputes', authenticated: true);
     final items = payload is List ? payload : const [];
@@ -1654,11 +1773,11 @@ class BackendCommerceService {
         'shippingLabel': shipping['name'] ?? '',
         'shippingAddress': shippingParts.join(', '),
         'extraCharges': 0,
-        'subtotal': map['subtotalAmount'] ?? map['totalAmount'] ?? 0,
-        'taxAmount': 0,
-        'platformCommission': 0,
-        'vendorEarnings': 0,
-        'payoutStatus': 'Pending',
+        'subtotal': map['subtotalAmount'] ?? map['productAmount'] ?? map['totalAmount'] ?? 0,
+        'taxAmount': map['taxAmount'] ?? 0,
+        'platformCommission': map['platformCommission'] ?? 0,
+        'vendorEarnings': map['vendorEarnings'] ?? 0,
+        'payoutStatus': map['payoutStatus'] ?? 'Pending',
         'trackingId': map['trackingId'] ?? map['razorpay']?['orderId'] ?? '',
         'deliveryStatus': _frontendDeliveryStatus(
           map['deliveryStatus']?.toString(),
@@ -1680,6 +1799,7 @@ class BackendCommerceService {
         'deliveredAt': (map['trackingTimestamps'] as Map?)?['Delivered'],
         'isConfirmed': (map['orderStatus']?.toString() ?? '') == 'confirmed',
         'isDelivered': (map['orderStatus']?.toString() ?? '') == 'delivered',
+        'payoutProcessed': map['payoutProcessed'] ?? false,
         'paymentReference': map['razorpay']?['paymentId'] ?? map['razorpay']?['orderId'],
         'isPaymentVerified': (map['paymentStatus']?.toString() ?? '') == 'paid',
         'refundStatus': map['refundStatus'] ?? 'none',

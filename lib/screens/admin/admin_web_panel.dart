@@ -433,6 +433,27 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     await _load();
   }
 
+  Future<void> _settleRiderPayouts() async {
+    final actor = _actor;
+    if (actor == null) {
+      return;
+    }
+    final settled = await _db.settleRiderPayouts(actor: actor, periodLabel: 'Admin rider settlement');
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          settled.isEmpty
+              ? 'No rider payouts are pending right now.'
+              : 'Processed ${settled.length} rider settlement${settled.length == 1 ? '' : 's'}.',
+        ),
+      ),
+    );
+    await _load();
+  }
+
   Future<void> _approveRefund(RefundRequest request) async {
     final actor = _actor;
     if (actor == null) {
@@ -2625,13 +2646,102 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          children: [
-            _MetricCard(title: 'Processed Payouts', value: '${_payouts.length}'),
-            _MetricCard(title: 'Pending Payout Value', value: _formatCurrency(totalPending)),
-          ],
+        FutureBuilder<AdminFinanceSummary>(
+          future: _actor == null ? Future.value(const AdminFinanceSummary(
+            totalCommission: 0,
+            totalRevenue: 0,
+            payoutsDone: 0,
+            vendorSettlementsDone: 0,
+            riderSettlementsDone: 0,
+            vendorPending: 0,
+            riderPending: 0,
+          )) : _db.getAdminFinance(actor: _actor!),
+          builder: (context, financeSnapshot) {
+            final finance = financeSnapshot.data;
+            final vendorPending = finance?.vendorPending ?? totalPending;
+            final riderPending = finance?.riderPending ?? 0;
+            final totalCommission = finance?.totalCommission ?? 0;
+            final payoutsDone = finance?.payoutsDone ?? _payouts.fold<double>(0, (sum, payout) => sum + payout.amount);
+            final transactions = finance?.transactions ?? const <WalletTransaction>[];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    _MetricCard(title: 'Processed Payouts', value: '${_payouts.length}'),
+                    _MetricCard(title: 'Vendor Pending', value: _formatCurrency(vendorPending)),
+                    _MetricCard(title: 'Rider Pending', value: _formatCurrency(riderPending)),
+                    _MetricCard(title: 'Commission Earned', value: _formatCurrency(totalCommission)),
+                    _MetricCard(title: 'Settlements Done', value: _formatCurrency(payoutsDone)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _Panel(
+                  title: 'Finance actions',
+                  subtitle: 'Run vendor and rider settlements from one place.',
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _settleRiderPayouts,
+                        icon: const Icon(Icons.delivery_dining_outlined),
+                        label: const Text('Settle rider payouts'),
+                      ),
+                      if (transactions.isNotEmpty)
+                        Chip(
+                          avatar: const Icon(Icons.receipt_long_outlined, size: 18),
+                          label: Text('${transactions.length} recent transactions'),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (transactions.isNotEmpty)
+                  _Panel(
+                    title: 'Recent finance activity',
+                    subtitle: 'Latest commission, order credit, and payout records.',
+                    child: Column(
+                      children: transactions.take(8).map((transaction) {
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.payments_outlined),
+                          title: Text(
+                            '${transaction.userType.toUpperCase()} • ${transaction.type}',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                          ),
+                          subtitle: Text(
+                            transaction.note.isEmpty ? transaction.status : transaction.note,
+                            style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                          ),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                _formatCurrency(transaction.amount.abs()),
+                                style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                              ),
+                              Text(
+                                transaction.createdAt.isEmpty
+                                    ? transaction.status
+                                    : _formatIsoMoment(transaction.createdAt),
+                                style: GoogleFonts.inter(
+                                  color: AbzioTheme.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 16),
         FutureBuilder<List<RefundRequest>>(

@@ -6354,6 +6354,125 @@ class DatabaseService {
     return payout;
   }
 
+  Future<WalletSummary> getVendorWallet({required AppUser actor}) async {
+    if (_backendCommerce.isConfigured) {
+      if (actor.role != 'vendor') {
+        throw StateError('Vendor access required.');
+      }
+      return _backendCommerce.getVendorWallet();
+    }
+    final store = await getStoreByOwner(actor.id);
+    if (store == null) {
+      return const WalletSummary(
+        id: 'vendor',
+        kind: 'vendor',
+        linkedId: '',
+        balance: 0,
+        pendingAmount: 0,
+        totalEarnings: 0,
+        totalWithdrawn: 0,
+        lastSettlementDate: '',
+      );
+    }
+    final orders = (await getAllOrders()).where((order) => order.storeId == store.id).toList();
+    final pendingAmount = orders
+        .where((order) => !order.payoutProcessed)
+        .fold<double>(0, (sum, order) => sum + order.vendorEarnings);
+    final totalEarnings = orders.fold<double>(0, (sum, order) => sum + order.vendorEarnings);
+    return WalletSummary(
+      id: store.id,
+      kind: 'vendor',
+      linkedId: store.id,
+      balance: store.walletBalance,
+      pendingAmount: pendingAmount,
+      totalEarnings: totalEarnings,
+      totalWithdrawn: 0,
+      lastSettlementDate: '',
+      commissionRate: store.commissionRate,
+    );
+  }
+
+  Future<WalletSummary> requestVendorWithdraw({
+    required double amount,
+    required AppUser actor,
+  }) async {
+    if (_backendCommerce.isConfigured) {
+      if (actor.role != 'vendor') {
+        throw StateError('Vendor access required.');
+      }
+      return _backendCommerce.requestVendorWithdraw(amount);
+    }
+    throw StateError('Vendor withdrawals are only supported in backend mode.');
+  }
+
+  Future<WalletSummary> getRiderWallet({required AppUser actor}) async {
+    if (_backendCommerce.isConfigured) {
+      if (!isRider(actor)) {
+        throw StateError('Rider access required.');
+      }
+      return _backendCommerce.getRiderWallet();
+    }
+    return WalletSummary(
+      id: actor.id,
+      kind: 'rider',
+      linkedId: actor.id,
+      balance: actor.walletBalance,
+      pendingAmount: 0,
+      totalEarnings: actor.walletBalance,
+      totalWithdrawn: 0,
+      lastSettlementDate: '',
+    );
+  }
+
+  Future<WalletSummary> requestRiderWithdraw({
+    required double amount,
+    required AppUser actor,
+  }) async {
+    if (_backendCommerce.isConfigured) {
+      if (!isRider(actor)) {
+        throw StateError('Rider access required.');
+      }
+      return _backendCommerce.requestRiderWithdraw(amount);
+    }
+    throw StateError('Rider withdrawals are only supported in backend mode.');
+  }
+
+  Future<AdminFinanceSummary> getAdminFinance({required AppUser actor}) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getAdminFinance();
+    }
+    final payouts = await getPayouts(actor: actor);
+    final orders = await getAllOrders(actor: actor);
+    final vendorPending = orders
+        .where((order) => !order.payoutProcessed)
+        .fold<double>(0, (sum, order) => sum + order.vendorEarnings);
+    return AdminFinanceSummary(
+      totalCommission: orders.fold<double>(0, (sum, order) => sum + order.platformCommission),
+      totalRevenue: orders.fold<double>(0, (sum, order) => sum + order.totalAmount),
+      payoutsDone: payouts.fold<double>(0, (sum, item) => sum + item.amount),
+      vendorSettlementsDone: payouts.fold<double>(0, (sum, item) => sum + item.amount),
+      riderSettlementsDone: 0,
+      vendorPending: vendorPending,
+      riderPending: 0,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> settleRiderPayouts({
+    required AppUser actor,
+    String? riderId,
+    String periodLabel = 'Rider settlement',
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.settleRiderPayouts(
+        riderId: riderId,
+        periodLabel: periodLabel,
+      );
+    }
+    throw StateError('Rider settlements are only supported in backend mode.');
+  }
+
   Future<VendorKycRequest?> getVendorKycRequestForUser(String userId) {
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.getMyVendorKycRequest();

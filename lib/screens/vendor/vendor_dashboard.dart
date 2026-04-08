@@ -247,6 +247,61 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
     );
   }
 
+  Future<void> _requestVendorWithdrawal(AppUser actor) async {
+    final controller = TextEditingController();
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Request withdrawal'),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Amount (Rs)',
+            hintText: '500',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, double.tryParse(controller.text.trim())),
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (amount == null || amount <= 0 || !mounted) {
+      return;
+    }
+    try {
+      await _db.requestVendorWithdraw(amount: amount, actor: actor);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Withdrawal request submitted.'),
+        ),
+      );
+      await _refresh(actor);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', '')),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final actor = context.watch<AuthProvider>().user;
@@ -539,21 +594,30 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                           ),
                         ),
                         const SizedBox(height: 20),
-                        KeyedSubtree(
-                          key: _earningsSectionKey,
-                          child: _EarningsSection(
-                            todayEarnings: orders
-                                .where((order) {
-                                  final now = DateTime.now();
-                                  return order.timestamp.year == now.year &&
-                                      order.timestamp.month == now.month &&
-                                      order.timestamp.day == now.day;
-                                })
-                                .fold<double>(0, (sum, order) => sum + order.vendorEarnings),
-                            weeklyEarnings: _weeklyRevenue(orders),
-                            pendingPayouts: pendingPayouts,
-                            formatCurrency: _money,
-                          ),
+                        FutureBuilder<WalletSummary>(
+                          future: _db.getVendorWallet(actor: actor),
+                          builder: (context, walletSnapshot) {
+                            final wallet = walletSnapshot.data;
+                            return KeyedSubtree(
+                              key: _earningsSectionKey,
+                              child: _EarningsSection(
+                                todayEarnings: orders
+                                    .where((order) {
+                                      final now = DateTime.now();
+                                      return order.timestamp.year == now.year &&
+                                          order.timestamp.month == now.month &&
+                                          order.timestamp.day == now.day;
+                                    })
+                                    .fold<double>(0, (sum, order) => sum + order.vendorEarnings),
+                                weeklyEarnings: _weeklyRevenue(orders),
+                                pendingPayouts: wallet?.pendingAmount ?? pendingPayouts,
+                                availableBalance: wallet?.balance ?? analytics?.availableBalance ?? store.walletBalance,
+                                commissionRate: wallet?.commissionRate ?? store.commissionRate,
+                                formatCurrency: _money,
+                                onWithdraw: () => _requestVendorWithdrawal(actor),
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 20),
                         _AlertsSection(alerts: alerts),
@@ -796,13 +860,19 @@ class _EarningsSection extends StatelessWidget {
     required this.todayEarnings,
     required this.weeklyEarnings,
     required this.pendingPayouts,
+    required this.availableBalance,
+    required this.commissionRate,
     required this.formatCurrency,
+    this.onWithdraw,
   });
 
   final double todayEarnings;
   final double weeklyEarnings;
   final double pendingPayouts;
+  final double availableBalance;
+  final double? commissionRate;
   final String Function(double amount) formatCurrency;
+  final VoidCallback? onWithdraw;
 
   @override
   Widget build(BuildContext context) {
@@ -826,6 +896,11 @@ class _EarningsSection extends StatelessWidget {
           Text(
             'Earnings',
             style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Available ${formatCurrency(availableBalance)} • Commission ${((commissionRate ?? 0.12) * 100).toStringAsFixed(0)}%',
+            style: GoogleFonts.inter(color: AbzioTheme.grey500, fontSize: 12),
           ),
           const SizedBox(height: 14),
           Row(
@@ -854,6 +929,15 @@ class _EarningsSection extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              onPressed: onWithdraw,
+              icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
+              label: const Text('Withdraw'),
+            ),
           ),
         ],
       ),

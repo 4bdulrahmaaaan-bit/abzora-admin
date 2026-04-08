@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/database_service.dart';
 import '../../services/rider_service.dart';
 import '../../theme.dart';
 import '../../widgets/state_views.dart';
@@ -18,6 +19,60 @@ class RiderDashboard extends StatelessWidget {
   });
 
   final bool embedded;
+
+  Future<void> _requestWithdrawal(BuildContext context, AppUser actor) async {
+    final controller = TextEditingController();
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Withdraw earnings'),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Amount (Rs)',
+            hintText: '200',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, double.tryParse(controller.text.trim())),
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (amount == null || amount <= 0 || !context.mounted) {
+      return;
+    }
+    try {
+      await DatabaseService().requestRiderWithdraw(amount: amount, actor: actor);
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Withdrawal request submitted.'),
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', '')),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +105,19 @@ class RiderDashboard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
             _RiderHeroCard(rider: actor),
+            const SizedBox(height: 16),
+            FutureBuilder<WalletSummary>(
+              future: DatabaseService().getRiderWallet(actor: actor),
+              builder: (context, walletSnapshot) {
+                final wallet = walletSnapshot.data;
+                return _RiderWalletCard(
+                  balance: wallet?.balance ?? actor.walletBalance,
+                  pendingAmount: wallet?.pendingAmount ?? 0,
+                  totalEarnings: wallet?.totalEarnings ?? actor.walletBalance,
+                  onWithdraw: () => _requestWithdrawal(context, actor),
+                );
+              },
+            ),
             const SizedBox(height: 20),
             StreamBuilder<List<OrderModel>>(
               stream: service.watchAssignedOrders(actor),
@@ -336,6 +404,121 @@ class _RiderStatusStrip extends StatelessWidget {
           if (index != tiles.length - 1) const SizedBox(width: 12),
         ],
       ],
+    );
+  }
+}
+
+class _RiderWalletCard extends StatelessWidget {
+  const _RiderWalletCard({
+    required this.balance,
+    required this.pendingAmount,
+    required this.totalEarnings,
+    required this.onWithdraw,
+  });
+
+  final double balance;
+  final double pendingAmount;
+  final double totalEarnings;
+  final VoidCallback onWithdraw;
+
+  String _money(double amount) => 'Rs ${amount.toStringAsFixed(0)}';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AbzioTheme.grey100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Earnings Wallet',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: onWithdraw,
+                icon: const Icon(Icons.payments_outlined, size: 18),
+                label: const Text('Withdraw'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _RiderMoneyTile(
+                  label: 'Available',
+                  value: _money(balance),
+                  tint: const Color(0xFF1C9A5F),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _RiderMoneyTile(
+                  label: 'Pending',
+                  value: _money(pendingAmount),
+                  tint: const Color(0xFFD97A00),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _RiderMoneyTile(
+                  label: 'Total earned',
+                  value: _money(totalEarnings),
+                  tint: const Color(0xFF635BFF),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RiderMoneyTile extends StatelessWidget {
+  const _RiderMoneyTile({
+    required this.label,
+    required this.value,
+    required this.tint,
+  });
+
+  final String label;
+  final String value;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AbzioTheme.grey500),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w800),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 }
