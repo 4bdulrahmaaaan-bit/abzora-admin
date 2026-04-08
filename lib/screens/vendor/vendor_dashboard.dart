@@ -19,10 +19,7 @@ import 'store_settings_screen.dart';
 import 'vendor_registration_screen.dart';
 
 class VendorDashboard extends StatefulWidget {
-  const VendorDashboard({
-    super.key,
-    this.embedded = false,
-  });
+  const VendorDashboard({super.key, this.embedded = false});
 
   final bool embedded;
 
@@ -30,14 +27,18 @@ class VendorDashboard extends StatefulWidget {
   State<VendorDashboard> createState() => _VendorDashboardState();
 }
 
-class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProviderStateMixin {
+class _VendorDashboardState extends State<VendorDashboard>
+    with SingleTickerProviderStateMixin {
   final DatabaseService _db = DatabaseService();
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _earningsSectionKey = GlobalKey();
   late final TabController _tabController;
 
   Future<Store?>? _storeFuture;
+  Future<List<OrderModel>>? _ordersFuture;
+  Future<VendorAnalytics>? _analyticsFuture;
   String? _boundActorId;
+  String? _boundStoreId;
 
   @override
   void initState() {
@@ -78,13 +79,35 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
     _storeFuture = _loadStore(actor);
   }
 
+  void _ensureDashboardFutures(AppUser actor, Store store) {
+    if (_boundActorId == actor.id &&
+        _boundStoreId == store.id &&
+        _ordersFuture != null &&
+        _analyticsFuture != null) {
+      return;
+    }
+    _boundStoreId = store.id;
+    _ordersFuture = _db.getVendorOrders(store.id, actor: actor).first;
+    _analyticsFuture = _db.getVendorAnalytics(store.id, actor: actor);
+  }
+
   Future<void> _refresh(AppUser actor) async {
     setState(() {
       _boundActorId = null;
+      _boundStoreId = null;
       _storeFuture = null;
+      _ordersFuture = null;
+      _analyticsFuture = null;
     });
     _ensureFutures(actor);
-    await _storeFuture;
+    final store = await _storeFuture;
+    if (store != null) {
+      _ensureDashboardFutures(actor, store);
+      await Future.wait<void>([
+        _ordersFuture!.then((_) {}),
+        _analyticsFuture!.then((_) {}),
+      ]);
+    }
   }
 
   String _money(double amount) {
@@ -99,55 +122,113 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
     final now = DateTime.now();
     return orders.where((order) {
       final time = order.timestamp;
-      return time.year == now.year && time.month == now.month && time.day == now.day;
+      return time.year == now.year &&
+          time.month == now.month &&
+          time.day == now.day;
     }).length;
   }
 
   double _todayRevenue(List<OrderModel> orders) {
     final now = DateTime.now();
     return orders
-        .where((order) => order.timestamp.year == now.year && order.timestamp.month == now.month && order.timestamp.day == now.day)
+        .where(
+          (order) =>
+              order.timestamp.year == now.year &&
+              order.timestamp.month == now.month &&
+              order.timestamp.day == now.day,
+        )
         .fold<double>(0, (sum, order) => sum + order.totalAmount);
   }
 
   double _weeklyRevenue(List<OrderModel> orders) {
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
-    return orders.where((order) => !order.timestamp.isBefore(start)).fold<double>(0, (sum, order) => sum + order.vendorEarnings);
+    final start = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    return orders
+        .where((order) => !order.timestamp.isBefore(start))
+        .fold<double>(0, (sum, order) => sum + order.totalAmount);
+  }
+
+  double _todayCommission(List<OrderModel> orders) {
+    final now = DateTime.now();
+    return orders
+        .where(
+          (order) =>
+              order.timestamp.year == now.year &&
+              order.timestamp.month == now.month &&
+              order.timestamp.day == now.day,
+        )
+        .fold<double>(0, (sum, order) => sum + order.platformCommission);
+  }
+
+  double _weeklyCommission(List<OrderModel> orders) {
+    final now = DateTime.now();
+    final start = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    return orders
+        .where((order) => !order.timestamp.isBefore(start))
+        .fold<double>(0, (sum, order) => sum + order.platformCommission);
   }
 
   List<String> _buildAlerts(List<OrderModel> orders) {
     final alerts = <String>[];
     final newOrders = orders.where((order) => order.status == 'Placed').length;
-    final confirmedOrders = orders.where((order) => order.status == 'Confirmed').length;
-    final readyPickup = orders.where((order) => order.status == 'Ready for pickup').length;
-    final paymentsToday = orders.where((order) => order.isPaymentVerified).length;
+    final confirmedOrders = orders
+        .where((order) => order.status == 'Confirmed')
+        .length;
+    final readyPickup = orders
+        .where((order) => order.status == 'Ready for pickup')
+        .length;
+    final paymentsToday = orders
+        .where((order) => order.isPaymentVerified)
+        .length;
 
     if (newOrders > 0) {
-      alerts.add('$newOrders new order${newOrders == 1 ? '' : 's'} waiting for acceptance');
+      alerts.add(
+        '$newOrders new order${newOrders == 1 ? '' : 's'} waiting for acceptance',
+      );
     }
     if (confirmedOrders > 0) {
-      alerts.add('$confirmedOrders confirmed order${confirmedOrders == 1 ? '' : 's'} should be packed next');
+      alerts.add(
+        '$confirmedOrders confirmed order${confirmedOrders == 1 ? '' : 's'} should be packed next',
+      );
     }
     if (readyPickup > 0) {
-      alerts.add('$readyPickup pickup${readyPickup == 1 ? '' : 's'} are ready for riders');
+      alerts.add(
+        '$readyPickup pickup${readyPickup == 1 ? '' : 's'} are ready for riders',
+      );
     }
     if (paymentsToday > 0) {
-      alerts.add('$paymentsToday payment${paymentsToday == 1 ? '' : 's'} verified recently');
+      alerts.add(
+        '$paymentsToday payment${paymentsToday == 1 ? '' : 's'} verified recently',
+      );
     }
     return alerts;
   }
 
-  Future<void> _handleStatusUpdate(OrderModel order, String status, AppUser actor) async {
+  Future<void> _handleStatusUpdate(
+    OrderModel order,
+    String status,
+    AppUser actor,
+  ) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await _db.updateOrderStatus(order.id, status, actor: actor);
       messenger.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Order ${order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber} updated to $status.'),
+          content: Text(
+            'Order ${order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber} updated to $status.',
+          ),
         ),
       );
+      await _refresh(actor);
     } catch (error) {
       messenger.showSnackBar(
         SnackBar(
@@ -169,7 +250,9 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
       messenger.showSnackBar(
         const SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Complete your store registration before adding products.'),
+          content: Text(
+            'Complete your store registration before adding products.',
+          ),
         ),
       );
       await navigator.push(
@@ -182,9 +265,7 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
       return;
     }
     await navigator.push(
-      MaterialPageRoute(
-        builder: (_) => AddProductScreen(storeId: store.id),
-      ),
+      MaterialPageRoute(builder: (_) => AddProductScreen(storeId: store.id)),
     );
     if (!mounted) {
       return;
@@ -192,7 +273,11 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
     await _refresh(actor);
   }
 
-  Future<void> _toggleAcceptingOrders(Store store, bool value, AppUser actor) async {
+  Future<void> _toggleAcceptingOrders(
+    Store store,
+    bool value,
+    AppUser actor,
+  ) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await _db.saveStore(store.copyWith(isActive: value), actor: actor);
@@ -205,7 +290,11 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
       messenger.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(value ? 'Store is now accepting new orders.' : 'Store is now paused for new orders.'),
+          content: Text(
+            value
+                ? 'Store is now accepting new orders.'
+                : 'Store is now paused for new orders.',
+          ),
         ),
       );
     } catch (error) {
@@ -251,7 +340,10 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, double.tryParse(controller.text.trim())),
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              double.tryParse(controller.text.trim()),
+            ),
             child: const Text('Submit'),
           ),
         ],
@@ -280,7 +372,12 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', '')),
+          content: Text(
+            error
+                .toString()
+                .replaceFirst('Bad state: ', '')
+                .replaceFirst('Exception: ', ''),
+          ),
         ),
       );
     }
@@ -326,7 +423,10 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
         SnackBar(
           behavior: SnackBarBehavior.floating,
           content: Text(
-            error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', ''),
+            error
+                .toString()
+                .replaceFirst('Bad state: ', '')
+                .replaceFirst('Exception: ', ''),
           ),
         ),
       );
@@ -353,7 +453,8 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
             padding: EdgeInsets.all(24),
             child: AbzioEmptyCard(
               title: 'Vendor access only',
-              subtitle: 'Switch to a vendor account to manage store orders, products, and earnings.',
+              subtitle:
+                  'Switch to a vendor account to manage store orders, products, and earnings.',
             ),
           ),
         ),
@@ -370,7 +471,8 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
           if (storeSnapshot.connectionState != ConnectionState.done) {
             return const AbzioLoadingView(
               title: 'Loading your dashboard',
-              subtitle: 'Fetching store details, sales metrics, and pending tasks.',
+              subtitle:
+                  'Fetching store details, sales metrics, and pending tasks.',
             );
           }
 
@@ -381,11 +483,14 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                 padding: const EdgeInsets.all(24),
                 child: AbzioEmptyCard(
                   title: 'Set up your store first',
-                  subtitle: 'Create your storefront to start accepting orders, publishing products, and tracking revenue.',
+                  subtitle:
+                      'Create your storefront to start accepting orders, publishing products, and tracking revenue.',
                   ctaLabel: 'REGISTER STORE',
                   onTap: () async {
                     await Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const VendorRegistrationScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const VendorRegistrationScreen(),
+                      ),
                     );
                     if (!mounted) {
                       return;
@@ -397,46 +502,75 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
             );
           }
 
+          _ensureDashboardFutures(actor, store);
+
           return RefreshIndicator(
             onRefresh: () => _refresh(actor),
-            child: StreamBuilder<VendorAnalytics>(
-              stream: _db.watchPolledValue(
-                () => _db.getVendorAnalytics(store.id, actor: actor),
-              ),
+            child: FutureBuilder<VendorAnalytics>(
+              future: _analyticsFuture,
               builder: (context, analyticsSnapshot) {
-                return StreamBuilder<List<OrderModel>>(
-                  stream: _db.getVendorOrders(store.id, actor: actor),
+                return FutureBuilder<List<OrderModel>>(
+                  future: _ordersFuture,
                   builder: (context, ordersSnapshot) {
-                    if (ordersSnapshot.connectionState == ConnectionState.waiting &&
-                        analyticsSnapshot.connectionState != ConnectionState.done) {
+                    if (ordersSnapshot.connectionState ==
+                            ConnectionState.waiting &&
+                        analyticsSnapshot.connectionState !=
+                            ConnectionState.done) {
                       return const AbzioLoadingView(
                         title: 'Refreshing order pipeline',
-                        subtitle: 'Syncing live orders, product highlights, and payout data.',
+                        subtitle:
+                            'Syncing live orders, product highlights, and payout data.',
                       );
                     }
 
                     final analytics = analyticsSnapshot.data;
-                    final orders = ordersSnapshot.data ?? const <OrderModel>[];
-                    final products = analytics?.bestSellingProducts ?? const <Product>[];
-                    final newOrders = orders.where((order) => order.status == 'Placed').toList();
-                    final processingOrders =
-                        orders.where((order) => order.status == 'Confirmed' || order.status == 'Packed').toList();
-                    final readyOrders = orders.where((order) => order.status == 'Ready for pickup').toList();
+                    final orders = List<OrderModel>.of(
+                      ordersSnapshot.data ?? const <OrderModel>[],
+                    )..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+                    final products =
+                        analytics?.bestSellingProducts ?? const <Product>[];
+                    final newOrders = orders
+                        .where((order) => order.status == 'Placed')
+                        .toList();
+                    final processingOrders = orders
+                        .where(
+                          (order) =>
+                              order.status == 'Confirmed' ||
+                              order.status == 'Packed',
+                        )
+                        .toList();
+                    final readyOrders = orders
+                        .where((order) => order.status == 'Ready for pickup')
+                        .toList();
                     final completedOrders = orders
-                        .where((order) =>
-                            order.status == 'Delivered' ||
-                            order.status == 'Out for delivery' ||
-                            order.status == 'Picked up')
+                        .where(
+                          (order) =>
+                              order.status == 'Delivered' ||
+                              order.status == 'Out for delivery' ||
+                              order.status == 'Picked up',
+                        )
                         .toList();
                     final pendingOrders = orders
-                        .where((order) =>
-                            order.status == 'Placed' || order.status == 'Confirmed' || order.status == 'Packed')
+                        .where(
+                          (order) =>
+                              order.status == 'Placed' ||
+                              order.status == 'Confirmed' ||
+                              order.status == 'Packed',
+                        )
                         .length;
                     final todayRevenue = _todayRevenue(orders);
-                    final totalRevenue = analytics?.totalSales ?? orders.fold<double>(0, (sum, order) => sum + order.totalAmount);
+                    final totalRevenue =
+                        analytics?.totalSales ??
+                        orders.fold<double>(
+                          0,
+                          (sum, order) => sum + order.totalAmount,
+                        );
                     final pendingPayouts = orders
                         .where((order) => order.payoutStatus != 'Paid')
-                        .fold<double>(0, (sum, order) => sum + order.vendorEarnings);
+                        .fold<double>(
+                          0,
+                          (sum, order) => sum + order.vendorEarnings,
+                        );
                     final alerts = _buildAlerts(orders);
 
                     return ListView(
@@ -444,13 +578,18 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                       children: [
                         _VendorWelcomeBanner(
-                          vendorName: actor.name.trim().isEmpty ? 'Vendor' : actor.name.trim(),
+                          vendorName: actor.name.trim().isEmpty
+                              ? 'Vendor'
+                              : actor.name.trim(),
                           store: store,
                         ),
                         const SizedBox(height: 20),
                         Text(
                           'Today at a glance',
-                          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         VendorSummaryCards(
@@ -488,7 +627,10 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                         const SizedBox(height: 20),
                         Text(
                           'Quick actions',
-                          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         VendorQuickActions(
@@ -504,7 +646,10 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                               onTap: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (_) => OrderManagementScreen(actor: actor, store: store),
+                                    builder: (_) => OrderManagementScreen(
+                                      actor: actor,
+                                      store: store,
+                                    ),
                                   ),
                                 );
                               },
@@ -515,7 +660,8 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                               onTap: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (_) => StoreSettingsScreen(store: store),
+                                    builder: (_) =>
+                                        StoreSettingsScreen(store: store),
                                   ),
                                 );
                               },
@@ -530,7 +676,8 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                         const SizedBox(height: 20),
                         _StoreStatusCard(
                           store: store,
-                          onChanged: (value) => _toggleAcceptingOrders(store, value, actor),
+                          onChanged: (value) =>
+                              _toggleAcceptingOrders(store, value, actor),
                         ),
                         const SizedBox(height: 20),
                         Row(
@@ -538,14 +685,20 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                             Expanded(
                               child: Text(
                                 'Orders to process',
-                                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                             TextButton(
                               onPressed: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (_) => OrderManagementScreen(actor: actor, store: store),
+                                    builder: (_) => OrderManagementScreen(
+                                      actor: actor,
+                                      store: store,
+                                    ),
                                   ),
                                 );
                               },
@@ -568,7 +721,10 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                               color: const Color(0xFFD4AF37),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12),
+                            labelStyle: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
                             tabs: const [
                               Tab(text: 'New'),
                               Tab(text: 'Processing'),
@@ -587,9 +743,18 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                                 child: VendorOrdersTab(
                                   orders: newOrders,
                                   emptyTitle: 'No new orders yet',
-                                  emptySubtitle: 'Fresh orders will appear here the moment shoppers place them.',
-                                  onConfirm: (order) => _handleStatusUpdate(order, 'Confirmed', actor),
-                                  onPacked: (order) => _handleStatusUpdate(order, 'Packed', actor),
+                                  emptySubtitle:
+                                      'Fresh orders will appear here the moment shoppers place them.',
+                                  onConfirm: (order) => _handleStatusUpdate(
+                                    order,
+                                    'Confirmed',
+                                    actor,
+                                  ),
+                                  onPacked: (order) => _handleStatusUpdate(
+                                    order,
+                                    'Packed',
+                                    actor,
+                                  ),
                                   formatCurrency: _money,
                                 ),
                               ),
@@ -597,9 +762,18 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                                 child: VendorOrdersTab(
                                   orders: processingOrders,
                                   emptyTitle: 'Processing queue is clear',
-                                  emptySubtitle: 'Confirmed and packed orders will appear here for quick action.',
-                                  onConfirm: (order) => _handleStatusUpdate(order, 'Confirmed', actor),
-                                  onPacked: (order) => _handleStatusUpdate(order, 'Packed', actor),
+                                  emptySubtitle:
+                                      'Confirmed and packed orders will appear here for quick action.',
+                                  onConfirm: (order) => _handleStatusUpdate(
+                                    order,
+                                    'Confirmed',
+                                    actor,
+                                  ),
+                                  onPacked: (order) => _handleStatusUpdate(
+                                    order,
+                                    'Packed',
+                                    actor,
+                                  ),
                                   formatCurrency: _money,
                                 ),
                               ),
@@ -607,9 +781,18 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                                 child: VendorOrdersTab(
                                   orders: readyOrders,
                                   emptyTitle: 'Nothing waiting for pickup',
-                                  emptySubtitle: 'Orders marked ready will show here until a rider accepts them.',
-                                  onConfirm: (order) => _handleStatusUpdate(order, 'Confirmed', actor),
-                                  onPacked: (order) => _handleStatusUpdate(order, 'Packed', actor),
+                                  emptySubtitle:
+                                      'Orders marked ready will show here until a rider accepts them.',
+                                  onConfirm: (order) => _handleStatusUpdate(
+                                    order,
+                                    'Confirmed',
+                                    actor,
+                                  ),
+                                  onPacked: (order) => _handleStatusUpdate(
+                                    order,
+                                    'Packed',
+                                    actor,
+                                  ),
                                   formatCurrency: _money,
                                 ),
                               ),
@@ -617,9 +800,18 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                                 child: VendorOrdersTab(
                                   orders: completedOrders,
                                   emptyTitle: 'Completed orders will land here',
-                                  emptySubtitle: 'This view helps you review delivered and in-flight fulfillment quickly.',
-                                  onConfirm: (order) => _handleStatusUpdate(order, 'Confirmed', actor),
-                                  onPacked: (order) => _handleStatusUpdate(order, 'Packed', actor),
+                                  emptySubtitle:
+                                      'This view helps you review delivered and in-flight fulfillment quickly.',
+                                  onConfirm: (order) => _handleStatusUpdate(
+                                    order,
+                                    'Confirmed',
+                                    actor,
+                                  ),
+                                  onPacked: (order) => _handleStatusUpdate(
+                                    order,
+                                    'Packed',
+                                    actor,
+                                  ),
                                   formatCurrency: _money,
                                 ),
                               ),
@@ -631,45 +823,83 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                           future: _db.getVendorWallet(actor: actor),
                           builder: (context, walletSnapshot) {
                             final wallet = walletSnapshot.data;
-                              return KeyedSubtree(
-                                key: _earningsSectionKey,
-                                child: _EarningsSection(
-                                todayEarnings: orders
-                                    .where((order) {
-                                      final now = DateTime.now();
-                                      return order.timestamp.year == now.year &&
-                                          order.timestamp.month == now.month &&
-                                          order.timestamp.day == now.day;
-                                    })
-                                    .fold<double>(0, (sum, order) => sum + order.vendorEarnings),
-                                weeklyEarnings: _weeklyRevenue(orders),
-                                pendingPayouts: wallet?.pendingAmount ?? pendingPayouts,
-                                availableBalance: wallet?.balance ?? analytics?.availableBalance ?? store.walletBalance,
-                                  reservedWithdrawals: wallet?.reservedAmount ?? 0,
-                                  commissionRate: wallet?.commissionRate ?? store.commissionRate,
-                                  payoutProfile: wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
-                                  lastPayoutAmount: analytics?.lastPayoutAmount ?? 0,
-                                  lastPayoutAt: analytics?.lastPayoutAt ?? '',
-                                  ordersCompleted: analytics?.ordersCompleted ?? completedOrders.length,
-                                  salesTrend: analytics?.salesTrend ?? const <AnalyticsPoint>[],
-                                  transactions: analytics?.transactions ?? const <WalletTransaction>[],
-                                  formatCurrency: _money,
-                                  onWithdraw: () {
-                                    final profile =
-                                        wallet?.payoutProfile ?? const PayoutProfileSummary.empty();
-                                    if (!profile.isConfigured) {
-                                      _manageVendorPayoutAccount(actor, profile);
-                                      return;
-                                    }
-                                    _requestVendorWithdrawal(actor);
-                                  },
-                                  onManagePayoutAccount: () => _manageVendorPayoutAccount(
-                                    actor,
-                                    wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
-                                  ),
-                                ),
-                              );
-                            },
+                            return KeyedSubtree(
+                              key: _earningsSectionKey,
+                              child: _EarningsSection(
+                                todayRevenue:
+                                    analytics?.todayRevenue ??
+                                    _todayRevenue(orders),
+                                todayEarnings:
+                                    analytics?.todayEarnings ??
+                                    orders
+                                        .where((order) {
+                                          final now = DateTime.now();
+                                          return order.timestamp.year ==
+                                                  now.year &&
+                                              order.timestamp.month ==
+                                                  now.month &&
+                                              order.timestamp.day == now.day;
+                                        })
+                                        .fold<double>(
+                                          0,
+                                          (sum, order) =>
+                                              sum + order.vendorEarnings,
+                                        ),
+                                todayCommission:
+                                    analytics?.todayCommission ??
+                                    _todayCommission(orders),
+                                weeklyRevenue:
+                                    analytics?.weeklyRevenue ??
+                                    _weeklyRevenue(orders),
+                                weeklyCommission:
+                                    analytics?.weeklyCommission ??
+                                    _weeklyCommission(orders),
+                                pendingPayouts:
+                                    wallet?.pendingAmount ?? pendingPayouts,
+                                availableBalance:
+                                    wallet?.balance ??
+                                    analytics?.availableBalance ??
+                                    store.walletBalance,
+                                reservedWithdrawals:
+                                    wallet?.reservedAmount ?? 0,
+                                commissionRate:
+                                    wallet?.commissionRate ??
+                                    store.commissionRate,
+                                payoutProfile:
+                                    wallet?.payoutProfile ??
+                                    const PayoutProfileSummary.empty(),
+                                lastPayoutAmount:
+                                    analytics?.lastPayoutAmount ?? 0,
+                                lastPayoutAt: analytics?.lastPayoutAt ?? '',
+                                ordersCompleted:
+                                    analytics?.ordersCompleted ??
+                                    completedOrders.length,
+                                salesTrend:
+                                    analytics?.salesTrend ??
+                                    const <AnalyticsPoint>[],
+                                transactions:
+                                    analytics?.transactions ??
+                                    const <WalletTransaction>[],
+                                formatCurrency: _money,
+                                onWithdraw: () {
+                                  final profile =
+                                      wallet?.payoutProfile ??
+                                      const PayoutProfileSummary.empty();
+                                  if (!profile.isConfigured) {
+                                    _manageVendorPayoutAccount(actor, profile);
+                                    return;
+                                  }
+                                  _requestVendorWithdrawal(actor);
+                                },
+                                onManagePayoutAccount: () =>
+                                    _manageVendorPayoutAccount(
+                                      actor,
+                                      wallet?.payoutProfile ??
+                                          const PayoutProfileSummary.empty(),
+                                    ),
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 20),
                         _AlertsSection(alerts: alerts),
@@ -681,7 +911,8 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                           onManageProducts: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => ProductManagementScreen(storeId: store.id),
+                                builder: (_) =>
+                                    ProductManagementScreen(storeId: store.id),
                               ),
                             );
                           },
@@ -700,10 +931,7 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
 
   Widget _buildRoot(BuildContext context, Widget child) {
     if (widget.embedded) {
-      return ColoredBox(
-        color: const Color(0xFFFAFAFA),
-        child: child,
-      );
+      return ColoredBox(color: const Color(0xFFFAFAFA), child: child);
     }
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -764,10 +992,7 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
 }
 
 class _VendorWelcomeBanner extends StatelessWidget {
-  const _VendorWelcomeBanner({
-    required this.vendorName,
-    required this.store,
-  });
+  const _VendorWelcomeBanner({required this.vendorName, required this.store});
 
   final String vendorName;
   final Store store;
@@ -837,7 +1062,11 @@ class _VendorWelcomeBanner extends StatelessWidget {
               color: const Color(0xFFD4AF37).withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(22),
             ),
-            child: const Icon(Icons.insights_rounded, color: Color(0xFFD4AF37), size: 32),
+            child: const Icon(
+              Icons.insights_rounded,
+              color: Color(0xFFD4AF37),
+              size: 32,
+            ),
           ),
         ],
       ),
@@ -846,10 +1075,7 @@ class _VendorWelcomeBanner extends StatelessWidget {
 }
 
 class _StoreStatusCard extends StatelessWidget {
-  const _StoreStatusCard({
-    required this.store,
-    required this.onChanged,
-  });
+  const _StoreStatusCard({required this.store, required this.onChanged});
 
   final Store store;
   final ValueChanged<bool> onChanged;
@@ -878,7 +1104,10 @@ class _StoreStatusCard extends StatelessWidget {
               children: [
                 Text(
                   'Accepting Orders',
-                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -909,8 +1138,11 @@ class _StoreStatusCard extends StatelessWidget {
 
 class _EarningsSection extends StatelessWidget {
   const _EarningsSection({
+    required this.todayRevenue,
     required this.todayEarnings,
-    required this.weeklyEarnings,
+    required this.todayCommission,
+    required this.weeklyRevenue,
+    required this.weeklyCommission,
     required this.pendingPayouts,
     required this.availableBalance,
     required this.reservedWithdrawals,
@@ -926,8 +1158,11 @@ class _EarningsSection extends StatelessWidget {
     this.onManagePayoutAccount,
   });
 
+  final double todayRevenue;
   final double todayEarnings;
-  final double weeklyEarnings;
+  final double todayCommission;
+  final double weeklyRevenue;
+  final double weeklyCommission;
   final double pendingPayouts;
   final double availableBalance;
   final double reservedWithdrawals;
@@ -963,14 +1198,22 @@ class _EarningsSection extends StatelessWidget {
         children: [
           Text(
             'Earnings',
-            style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             'Available ${formatCurrency(availableBalance)} • Reserved ${formatCurrency(reservedWithdrawals)} • Commission ${((commissionRate ?? 0.12) * 100).toStringAsFixed(0)}%',
             style: GoogleFonts.inter(color: AbzioTheme.grey500, fontSize: 12),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 6),
+          Text(
+            'Revenue = gross customer payments. Earnings = net after commission.',
+            style: GoogleFonts.inter(color: AbzioTheme.grey500, fontSize: 11),
+          ),
+          const SizedBox(height: 12),
           PayoutAccountSummaryCard(
             title: 'Settlement destination',
             profile: payoutProfile,
@@ -990,7 +1233,9 @@ class _EarningsSection extends StatelessWidget {
               Expanded(
                 child: _EarningTile(
                   label: 'Last payout',
-                  value: lastPayoutAmount > 0 ? formatCurrency(lastPayoutAmount) : 'Pending',
+                  value: lastPayoutAmount > 0
+                      ? formatCurrency(lastPayoutAmount)
+                      : 'Pending',
                   tint: const Color(0xFF8B5CF6),
                 ),
               ),
@@ -1008,7 +1253,15 @@ class _EarningsSection extends StatelessWidget {
             children: [
               Expanded(
                 child: _EarningTile(
-                  label: "Today's earnings",
+                  label: 'Revenue today',
+                  value: formatCurrency(todayRevenue),
+                  tint: const Color(0xFF1F7A8C),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _EarningTile(
+                  label: 'Earnings today',
                   value: formatCurrency(todayEarnings),
                   tint: const Color(0xFF1C9A5F),
                 ),
@@ -1016,9 +1269,29 @@ class _EarningsSection extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _EarningTile(
-                  label: 'Weekly earnings',
-                  value: formatCurrency(weeklyEarnings),
+                  label: 'Commission today',
+                  value: formatCurrency(todayCommission),
+                  tint: const Color(0xFFB65E2A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _EarningTile(
+                  label: 'Weekly revenue',
+                  value: formatCurrency(weeklyRevenue),
                   tint: const Color(0xFF635BFF),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _EarningTile(
+                  label: 'Weekly commission',
+                  value: formatCurrency(weeklyCommission),
+                  tint: const Color(0xFFD97A00),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1026,7 +1299,7 @@ class _EarningsSection extends StatelessWidget {
                 child: _EarningTile(
                   label: 'Pending payouts',
                   value: formatCurrency(pendingPayouts),
-                  tint: const Color(0xFFD97A00),
+                  tint: const Color(0xFF9C6F19),
                 ),
               ),
             ],
@@ -1043,42 +1316,59 @@ class _EarningsSection extends StatelessWidget {
           if (transactions.isNotEmpty) ...[
             Text(
               'Recent finance activity',
-              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            ...transactions.take(3).map(
-              (transaction) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    const Icon(Icons.payments_outlined, size: 18, color: Color(0xFF6B6B6B)),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        transaction.note.isEmpty ? transaction.status : transaction.note,
-                        style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF555555)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      formatCurrency(transaction.amount.abs()),
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 12),
-                    ),
-                  ],
-                ),
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
               ),
             ),
+            const SizedBox(height: 8),
+            ...transactions
+                .take(3)
+                .map(
+                  (transaction) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.payments_outlined,
+                          size: 18,
+                          color: Color(0xFF6B6B6B),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            transaction.note.isEmpty
+                                ? transaction.status
+                                : transaction.note,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: const Color(0xFF555555),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          formatCurrency(transaction.amount.abs()),
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             const SizedBox(height: 6),
           ],
           Align(
             alignment: Alignment.centerRight,
             child: OutlinedButton.icon(
-                onPressed: onWithdraw,
-                icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
-                label: const Text('Withdraw'),
-              ),
+              onPressed: onWithdraw,
+              icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
+              label: const Text('Withdraw'),
+            ),
           ),
         ],
       ),
@@ -1146,7 +1436,10 @@ class _CompactEarningsChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxValue = points.fold<double>(1, (current, point) => point.value > current ? point.value : current);
+    final maxValue = points.fold<double>(
+      1,
+      (current, point) => point.value > current ? point.value : current,
+    );
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1158,7 +1451,10 @@ class _CompactEarningsChart extends StatelessWidget {
         children: [
           Text(
             title,
-            style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700),
+            style: GoogleFonts.poppins(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -1166,7 +1462,9 @@ class _CompactEarningsChart extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: points.map((point) {
-                final height = maxValue == 0 ? 8.0 : ((point.value / maxValue) * 64).clamp(8, 64).toDouble();
+                final height = maxValue == 0
+                    ? 8.0
+                    : ((point.value / maxValue) * 64).clamp(8, 64).toDouble();
                 return Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -1183,7 +1481,10 @@ class _CompactEarningsChart extends StatelessWidget {
                         const SizedBox(height: 8),
                         Text(
                           point.label,
-                          style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF666666)),
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            color: const Color(0xFF666666),
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1226,13 +1527,19 @@ class _AlertsSection extends StatelessWidget {
         children: [
           Text(
             'Notifications',
-            style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 12),
           if (alerts.isEmpty)
             Text(
               'No new alerts right now. Fresh orders, pickups, and verified payments will show here.',
-              style: GoogleFonts.inter(color: const Color(0xFF707070), height: 1.45),
+              style: GoogleFonts.inter(
+                color: const Color(0xFF707070),
+                height: 1.45,
+              ),
             )
           else
             ...alerts.map(
@@ -1294,7 +1601,10 @@ class _ProductPreviewSection extends StatelessWidget {
             Expanded(
               child: Text(
                 'Your Products',
-                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             TextButton(
@@ -1397,14 +1707,20 @@ class _ProductPreviewCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF6F6F6),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     product.isActive ? 'Active' : 'Hidden',
-                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700),
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -1433,7 +1749,10 @@ class _AddProductCard extends StatelessWidget {
           width: 188,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: const Color(0xFFE8D9AB), style: BorderStyle.solid),
+            border: Border.all(
+              color: const Color(0xFFE8D9AB),
+              style: BorderStyle.solid,
+            ),
             color: const Color(0xFFFFFBF0),
           ),
           padding: const EdgeInsets.all(18),
@@ -1447,7 +1766,11 @@ class _AddProductCard extends StatelessWidget {
                   color: const Color(0xFFD4AF37).withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: const Icon(Icons.add_rounded, color: Color(0xFFD4AF37), size: 30),
+                child: const Icon(
+                  Icons.add_rounded,
+                  color: Color(0xFFD4AF37),
+                  size: 30,
+                ),
               ),
               const SizedBox(height: 14),
               Text(

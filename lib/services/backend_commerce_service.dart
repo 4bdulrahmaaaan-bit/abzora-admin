@@ -1039,8 +1039,22 @@ class BackendCommerceService {
         })
         .toList();
     return VendorAnalytics(
+      todayRevenue:
+          ((map['todayRevenue'] ?? map['todayGrossRevenue'] ?? 0) as num)
+              .toDouble(),
       todayEarnings: ((map['todayEarnings'] ?? 0) as num).toDouble(),
-      totalSales: ((map['weeklyEarnings'] ?? 0) as num).toDouble(),
+      todayCommission: ((map['todayCommission'] ?? 0) as num).toDouble(),
+      weeklyRevenue:
+          ((map['weeklyRevenue'] ?? map['weeklyGrossRevenue'] ?? 0) as num)
+              .toDouble(),
+      weeklyCommission: ((map['weeklyCommission'] ?? 0) as num).toDouble(),
+      totalSales:
+          ((map['totalSales'] ??
+                      map['weeklyEarnings'] ??
+                      map['weeklyRevenue'] ??
+                      0)
+                  as num)
+              .toDouble(),
       availableBalance:
           ((map['availableBalance'] ?? wallet['balance'] ?? 0) as num)
               .toDouble(),
@@ -1755,13 +1769,19 @@ class BackendCommerceService {
       '/products/$productId/ar-asset/generate',
       authenticated: true,
       body: {
-        if (category != null && category.trim().isNotEmpty) 'category': category.trim(),
-        if (imageUrl != null && imageUrl.trim().isNotEmpty) 'imageUrl': imageUrl.trim(),
-        if (transparentImageUrl != null && transparentImageUrl.trim().isNotEmpty)
+        if (category != null && category.trim().isNotEmpty)
+          'category': category.trim(),
+        if (imageUrl != null && imageUrl.trim().isNotEmpty)
+          'imageUrl': imageUrl.trim(),
+        if (transparentImageUrl != null &&
+            transparentImageUrl.trim().isNotEmpty)
           'transparentImageUrl': transparentImageUrl.trim(),
       },
     );
-    final payload = await _client.get('/products/$productId', authenticated: true);
+    final payload = await _client.get(
+      '/products/$productId',
+      authenticated: true,
+    );
     return _productFromBackend(Map<String, dynamic>.from(payload as Map));
   }
 

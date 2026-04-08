@@ -35,7 +35,11 @@ class VendorOrdersTab extends StatelessWidget {
         ),
         child: Column(
           children: [
-            const Icon(Icons.inbox_outlined, size: 34, color: Color(0xFF8C8C8C)),
+            const Icon(
+              Icons.inbox_outlined,
+              size: 34,
+              color: Color(0xFF8C8C8C),
+            ),
             const SizedBox(height: 12),
             Text(
               emptyTitle,
@@ -44,7 +48,10 @@ class VendorOrdersTab extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               emptySubtitle,
-              style: GoogleFonts.inter(color: const Color(0xFF7B7B7B), height: 1.45),
+              style: GoogleFonts.inter(
+                color: const Color(0xFF7B7B7B),
+                height: 1.45,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -89,10 +96,16 @@ class _VendorOrderPriorityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final invoice = order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
+    final invoice = order.invoiceNumber.isEmpty
+        ? order.id
+        : order.invoiceNumber;
     final canConfirm = order.status == 'Placed';
     final canPack = order.status == 'Confirmed';
-    final itemPreview = order.items.take(2).map((item) => item.productName).join(', ');
+    final itemPreview = order.items
+        .take(2)
+        .map((item) => item.productName)
+        .join(', ');
+    final paymentStatus = order.isPaymentVerified ? 'Paid' : 'Pending';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
@@ -125,7 +138,10 @@ class _VendorOrderPriorityCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFD4AF37).withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(999),
@@ -160,13 +176,24 @@ class _VendorOrderPriorityCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 10),
-          Text(
-            formatCurrency(order.totalAmount),
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF111111),
-            ),
+          Wrap(
+            spacing: 10,
+            runSpacing: 6,
+            children: [
+              _FinanceChip(
+                label: 'Total',
+                value: formatCurrency(order.totalAmount),
+              ),
+              _FinanceChip(
+                label: 'Commission',
+                value: formatCurrency(order.platformCommission),
+              ),
+              _FinanceChip(
+                label: 'Your earning',
+                value: formatCurrency(order.vendorEarnings),
+              ),
+              _FinanceChip(label: 'Payment', value: paymentStatus),
+            ],
           ),
           const SizedBox(height: 14),
           Row(
@@ -205,7 +232,10 @@ class _VendorOrderPriorityCard extends StatelessWidget {
                     ),
                     child: const Text(
                       'Mark Packed',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
@@ -213,6 +243,43 @@ class _VendorOrderPriorityCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FinanceChip extends StatelessWidget {
+  const _FinanceChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F7F7),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: RichText(
+        text: TextSpan(
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            color: const Color(0xFF6A6A6A),
+          ),
+          children: [
+            TextSpan(text: '$label: '),
+            TextSpan(
+              text: value,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF212121),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

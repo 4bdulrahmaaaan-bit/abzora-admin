@@ -3581,7 +3581,11 @@ class AdminAnalytics {
 }
 
 class VendorAnalytics {
+  final double todayRevenue;
   final double todayEarnings;
+  final double todayCommission;
+  final double weeklyRevenue;
+  final double weeklyCommission;
   final double totalSales;
   final double availableBalance;
   final double totalEarnings;
@@ -3597,7 +3601,11 @@ class VendorAnalytics {
   final List<WalletTransaction> transactions;
 
   VendorAnalytics({
+    required this.todayRevenue,
     required this.todayEarnings,
+    required this.todayCommission,
+    required this.weeklyRevenue,
+    required this.weeklyCommission,
     required this.totalSales,
     required this.availableBalance,
     required this.totalEarnings,

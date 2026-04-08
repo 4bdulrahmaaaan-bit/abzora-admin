@@ -4020,7 +4020,10 @@ class DatabaseService {
     }
   }
 
-  Future<void> generateProductArAsset(String productId, {AppUser? actor}) async {
+  Future<void> generateProductArAsset(
+    String productId, {
+    AppUser? actor,
+  }) async {
     if (_backendCommerce.isConfigured) {
       _requireSuperAdmin(actor);
       await _backendCommerce.generateProductArAsset(productId);
@@ -4037,14 +4040,17 @@ class DatabaseService {
       return;
     }
     _requireStoreAccess(actor, product.storeId);
-    final existingAnchors =
-        (product.arAsset['anchors'] as Map?)?.cast<String, dynamic>();
+    final existingAnchors = (product.arAsset['anchors'] as Map?)
+        ?.cast<String, dynamic>();
     final generated = Map<String, dynamic>.from(product.arAsset)
       ..['status'] = 'generated'
       ..['category'] = product.category
       ..['sourceImage'] = product.images.isNotEmpty ? product.images.first : ''
-      ..['processedImage'] = product.images.isNotEmpty ? product.images.first : ''
-      ..['anchors'] = existingAnchors ??
+      ..['processedImage'] = product.images.isNotEmpty
+          ? product.images.first
+          : ''
+      ..['anchors'] =
+          existingAnchors ??
           {
             'left_shoulder': {'x': 0.33, 'y': 0.2},
             'right_shoulder': {'x': 0.67, 'y': 0.2},
@@ -7073,15 +7079,41 @@ class DatabaseService {
           .fold<double>(0, (sum, order) => sum + order.vendorEarnings);
       return AnalyticsPoint(label: DateFormat('dd').format(day), value: value);
     });
+    final today = DateTime.now();
+    final todayOrders = orders.where((order) {
+      return order.timestamp.year == today.year &&
+          order.timestamp.month == today.month &&
+          order.timestamp.day == today.day;
+    }).toList();
+    final weekStart = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).subtract(Duration(days: today.weekday - 1));
+    final weeklyOrders = orders
+        .where((order) => !order.timestamp.isBefore(weekStart))
+        .toList();
     return VendorAnalytics(
-      todayEarnings: orders
-          .where((order) {
-            final now = DateTime.now();
-            return order.timestamp.year == now.year &&
-                order.timestamp.month == now.month &&
-                order.timestamp.day == now.day;
-          })
-          .fold<double>(0, (sum, order) => sum + order.vendorEarnings),
+      todayRevenue: todayOrders.fold<double>(
+        0,
+        (sum, order) => sum + order.totalAmount,
+      ),
+      todayEarnings: todayOrders.fold<double>(
+        0,
+        (sum, order) => sum + order.vendorEarnings,
+      ),
+      todayCommission: todayOrders.fold<double>(
+        0,
+        (sum, order) => sum + order.platformCommission,
+      ),
+      weeklyRevenue: weeklyOrders.fold<double>(
+        0,
+        (sum, order) => sum + order.totalAmount,
+      ),
+      weeklyCommission: weeklyOrders.fold<double>(
+        0,
+        (sum, order) => sum + order.platformCommission,
+      ),
       totalSales: totalSales,
       availableBalance: store.walletBalance,
       totalEarnings: totalEarnings,
@@ -7095,12 +7127,7 @@ class DatabaseService {
       ordersCompleted: orders
           .where((order) => order.status == 'Delivered')
           .length,
-      ordersToday: orders.where((order) {
-        final now = DateTime.now();
-        return order.timestamp.year == now.year &&
-            order.timestamp.month == now.month &&
-            order.timestamp.day == now.day;
-      }).length,
+      ordersToday: todayOrders.length,
       bestSellingProducts: bestSellingProducts.take(3).toList(),
       salesTrend: salesTrend,
       transactions: const [],
