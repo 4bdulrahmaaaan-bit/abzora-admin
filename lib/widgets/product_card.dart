@@ -71,11 +71,10 @@ class _ProductCardState extends State<ProductCard> {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(8, 6, 8, 5),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisSize: MainAxisSize.max,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        AspectRatio(
-                          aspectRatio: 0.74,
+                        Expanded(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(14),
                             child: Stack(
