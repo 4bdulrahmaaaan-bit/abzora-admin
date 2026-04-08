@@ -22,6 +22,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   final _db = DatabaseService();
   final _searchController = TextEditingController();
   AdminAnalytics? _analytics;
+  AdminFinanceSummary? _finance;
   PlatformSettings _settings = const PlatformSettings();
   List<DisputeRecord> _disputes = [];
   List<ActivityLogEntry> _logs = [];
@@ -55,18 +56,28 @@ class _AdminDashboardState extends State<AdminDashboard> {
       return;
     }
     final analytics = await _db.getAdminAnalytics();
+    final finance = await _safeFinance(actor);
     final settings = await _safePlatformSettings(actor);
     final disputes = await _safeDisputes(actor);
     final logs = await _safeActivityLogs(actor);
     if (!mounted) return;
     setState(() {
       _analytics = analytics;
+      _finance = finance;
       _settings = settings;
       _disputes = disputes;
       _logs = logs.take(12).toList();
       _loading = false;
     });
     _resetIdleTimer();
+  }
+
+  Future<AdminFinanceSummary?> _safeFinance(AppUser actor) async {
+    try {
+      return await _db.getAdminFinance(actor: actor);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<PlatformSettings> _safePlatformSettings(AppUser actor) async {
@@ -457,6 +468,35 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       _AdminMetric(label: 'Total Orders', value: '${_analytics?.totalOrders ?? 0}', icon: Icons.shopping_cart_outlined, color: Colors.black87),
                       ],
                     ),
+                  if (_finance != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AbzioTheme.grey100),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('FINANCE SNAPSHOT', style: Theme.of(context).textTheme.labelMedium),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 8,
+                            children: [
+                              _FinancePill(label: 'Vendor Pending', value: 'Rs ${_finance!.vendorPending.toInt()}'),
+                              _FinancePill(label: 'Rider Pending', value: 'Rs ${_finance!.riderPending.toInt()}'),
+                              _FinancePill(label: 'Pending Withdrawals', value: 'Rs ${_finance!.pendingWithdrawalAmount.toInt()}'),
+                              _FinancePill(label: 'Flagged Users', value: '${_finance!.flaggedUsers}'),
+                              _FinancePill(label: 'Fraud Alerts', value: '${_finance!.fraudAlerts.length}'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   if (_analytics != null) ...[
                     const SizedBox(height: 24),
                     Text('DAILY SALES', style: Theme.of(context).textTheme.labelMedium),
@@ -618,6 +658,39 @@ class _AdminMetric extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(label, style: const TextStyle(color: AbzioTheme.grey500, fontSize: 12)),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FinancePill extends StatelessWidget {
+  const _FinancePill({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F7F7),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(color: AbzioTheme.grey500, fontSize: 12),
+          children: [
+            TextSpan(text: '$label: '),
+            TextSpan(
+              text: value,
+              style: const TextStyle(
+                color: Color(0xFF111111),
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
