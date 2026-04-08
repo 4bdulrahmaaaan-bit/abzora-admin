@@ -540,6 +540,25 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     }
   }
 
+  Future<void> _updateFraudAlert(FraudAlertSummary alert, String status) async {
+    final actor = _actor;
+    if (actor == null) {
+      return;
+    }
+    await _db.updateFraudAlertStatus(
+      alertId: alert.id,
+      status: status,
+      actor: actor,
+    );
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Fraud alert moved to ${status.toUpperCase()}')),
+    );
+    await _load();
+  }
+
   Future<void> _approveRefund(RefundRequest request) async {
     final actor = _actor;
     if (actor == null) {
@@ -2752,6 +2771,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             final payoutsDone = finance?.payoutsDone ?? _payouts.fold<double>(0, (sum, payout) => sum + payout.amount);
             final transactions = finance?.transactions ?? const <WalletTransaction>[];
             final withdrawalRequests = finance?.withdrawalRequests ?? const <WithdrawalRequestSummary>[];
+            final fraudAlerts = finance?.fraudAlerts ?? const <FraudAlertSummary>[];
+            final flaggedUsers = finance?.flaggedUsers ?? 0;
             final failedSettlements = finance?.failedSettlements ?? 0;
             final pendingWithdrawalAmount = finance?.pendingWithdrawalAmount ?? 0;
             return Column(
@@ -2768,6 +2789,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     _MetricCard(title: 'Commission Earned', value: _formatCurrency(totalCommission)),
                     _MetricCard(title: 'Settlements Done', value: _formatCurrency(payoutsDone)),
                     _MetricCard(title: 'Failed Settlements', value: failedSettlements.toStringAsFixed(0)),
+                    _MetricCard(title: 'Open Fraud Alerts', value: '${fraudAlerts.length}'),
+                    _MetricCard(title: 'Flagged Users', value: '$flaggedUsers'),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -2845,6 +2868,56 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     ),
                   ),
                 if (withdrawalRequests.isNotEmpty) const SizedBox(height: 16),
+                if (fraudAlerts.isNotEmpty)
+                  _Panel(
+                    title: 'Fraud alerts',
+                    subtitle: 'Review suspicious payout, order, and account activity.',
+                    child: Column(
+                      children: fraudAlerts.take(12).map((alert) {
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            switch (alert.type) {
+                              'withdrawal' => Icons.account_balance_wallet_outlined,
+                              'refund' => Icons.undo_rounded,
+                              'account' => Icons.security_outlined,
+                              _ => Icons.shopping_bag_outlined,
+                            },
+                            color: switch (alert.severity.toLowerCase()) {
+                              'critical' => Colors.red,
+                              'high' => Colors.deepOrange,
+                              'medium' => Colors.orange,
+                              _ => Colors.blueGrey,
+                            },
+                          ),
+                          title: Text(
+                            '${alert.type.toUpperCase()} • RISK ${alert.riskScore}',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                          ),
+                          subtitle: Text(
+                            alert.message.isEmpty
+                                ? (alert.reasons.isEmpty ? 'Risk rule matched.' : alert.reasons.join(' '))
+                                : alert.message,
+                            style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                          ),
+                          trailing: Wrap(
+                            spacing: 8,
+                            children: [
+                              TextButton(
+                                onPressed: () => _updateFraudAlert(alert, 'reviewing'),
+                                child: const Text('Review'),
+                              ),
+                              FilledButton(
+                                onPressed: () => _updateFraudAlert(alert, 'resolved'),
+                                child: const Text('Resolve'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                if (fraudAlerts.isNotEmpty) const SizedBox(height: 16),
                 if (transactions.isNotEmpty)
                   _Panel(
                     title: 'Recent finance activity',

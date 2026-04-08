@@ -6153,6 +6153,7 @@ class DatabaseService {
       return _backendCommerce.getAdminDashboard();
     }
     final orders = await getAllOrders();
+    final payouts = await getPayouts();
     final stores = await getAdminStores();
     final delivered = orders.where((order) => order.status == 'Delivered' || order.status == 'Shipped').toList();
     final totalRevenue = delivered.fold<double>(0, (sum, order) => sum + order.totalAmount);
@@ -6179,42 +6180,29 @@ class DatabaseService {
           .fold<double>(0, (sum, order) => sum + order.totalAmount);
       return AnalyticsPoint(label: 'W${index + 1}', value: value);
     });
-    return AdminAnalytics(
-      totalRevenue: totalRevenue,
-      platformCommissionRevenue: commissionRevenue,
-      totalOrders: orders.length,
-      topStores: topStores.take(3).toList(),
-      dailySales: dailySales,
-      weeklySales: weeklySales,
-    );
-  }
+      return AdminAnalytics(
+        totalRevenue: totalRevenue,
+        platformCommissionRevenue: commissionRevenue,
+        vendorPayouts: payouts.fold<double>(0, (sum, item) => sum + item.amount),
+        riderPayouts: 0,
+        totalOrders: orders.length,
+        ordersToday: orders
+            .where((order) {
+              final now = DateTime.now();
+              return order.timestamp.year == now.year &&
+                  order.timestamp.month == now.month &&
+                  order.timestamp.day == now.day;
+            })
+            .length,
+        topStores: topStores.take(3).toList(),
+        dailySales: dailySales,
+        weeklySales: weeklySales,
+      );
+    }
 
   Future<VendorAnalytics> getVendorAnalytics(String storeId, {AppUser? actor}) async {
     if (_backendCommerce.isConfigured) {
-      final store = await getStoreByOwner(actor?.id ?? '');
-      final orders = await _backendCommerce.getStoreOrders(storeId);
-      final totalSales = orders.fold<double>(0, (sum, order) => sum + order.totalAmount);
-      final totalEarnings = totalSales;
-      final products = await getProductsByStore(storeId)
-        ..sort((a, b) => b.reviewCount.compareTo(a.reviewCount));
-      final salesTrend = List.generate(7, (index) {
-        final day = DateTime.now().subtract(Duration(days: 6 - index));
-        final value = orders
-            .where((order) =>
-                order.timestamp.year == day.year &&
-                order.timestamp.month == day.month &&
-                order.timestamp.day == day.day)
-            .fold<double>(0, (sum, order) => sum + order.totalAmount);
-        return AnalyticsPoint(label: DateFormat('dd').format(day), value: value);
-      });
-      return VendorAnalytics(
-        totalSales: totalSales,
-        availableBalance: store?.walletBalance ?? 0,
-        totalEarnings: totalEarnings,
-        orders: orders.length,
-        bestSellingProducts: products.take(3).toList(),
-        salesTrend: salesTrend,
-      );
+      return _backendCommerce.getVendorDashboard();
     }
     _requireStoreAccess(actor, storeId);
     final orders = (await getAllOrders()).where((order) => order.storeId == storeId).toList();
@@ -6237,14 +6225,70 @@ class DatabaseService {
           .fold<double>(0, (sum, order) => sum + order.vendorEarnings);
       return AnalyticsPoint(label: DateFormat('dd').format(day), value: value);
     });
-    return VendorAnalytics(
-      totalSales: totalSales,
-      availableBalance: store.walletBalance,
-      totalEarnings: totalEarnings,
-      orders: orders.length,
-      bestSellingProducts: bestSellingProducts.take(3).toList(),
-      salesTrend: salesTrend,
+      return VendorAnalytics(
+        todayEarnings: orders
+            .where((order) {
+              final now = DateTime.now();
+              return order.timestamp.year == now.year &&
+                  order.timestamp.month == now.month &&
+                  order.timestamp.day == now.day;
+            })
+            .fold<double>(0, (sum, order) => sum + order.vendorEarnings),
+        totalSales: totalSales,
+        availableBalance: store.walletBalance,
+        totalEarnings: totalEarnings,
+        pendingAmount: orders
+            .where((order) => !order.payoutProcessed)
+            .fold<double>(0, (sum, order) => sum + order.vendorEarnings),
+        reservedAmount: 0,
+        lastPayoutAmount: 0,
+        lastPayoutAt: '',
+        orders: orders.length,
+        ordersCompleted: orders.where((order) => order.status == 'Delivered').length,
+        ordersToday: orders.where((order) {
+          final now = DateTime.now();
+          return order.timestamp.year == now.year &&
+              order.timestamp.month == now.month &&
+              order.timestamp.day == now.day;
+        }).length,
+        bestSellingProducts: bestSellingProducts.take(3).toList(),
+        salesTrend: salesTrend,
+        transactions: const [],
+      );
+    }
+
+  Future<RiderAnalytics> getRiderAnalytics({required AppUser actor}) async {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getRiderDashboard();
+    }
+    final assigned = await getAllOrders(actor: actor);
+    final delivered = assigned.where((order) => order.status == 'Delivered').toList();
+    final now = DateTime.now();
+    final todayDelivered = delivered.where((order) {
+      return order.timestamp.year == now.year &&
+          order.timestamp.month == now.month &&
+          order.timestamp.day == now.day;
+    }).toList();
+    double riderPayoutFor(OrderModel order) => order.extraCharges > 0 ? order.extraCharges : 0;
+    return RiderAnalytics(
+      todayDeliveries: todayDelivered.length,
+      earningsToday: todayDelivered.fold<double>(0, (sum, order) => sum + riderPayoutFor(order)),
+      totalEarnings: delivered.fold<double>(0, (sum, order) => sum + riderPayoutFor(order)),
+      pendingPayout: delivered
+          .where((order) => order.payoutStatus != 'Paid')
+          .fold<double>(0, (sum, order) => sum + riderPayoutFor(order)),
+      availableBalance: actor.walletBalance,
+      reservedAmount: 0,
+      transactions: const [],
     );
+  }
+
+  Stream<T> watchPolledValue<T>(
+    Future<T> Function() loader, {
+    Duration interval = const Duration(seconds: 12),
+  }) async* {
+    yield await loader();
+    yield* Stream.periodic(interval).asyncMap((_) => loader());
   }
 
   Future<List<PayoutModel>> getPayouts({AppUser? actor, String? storeId}) async {
@@ -6572,6 +6616,21 @@ class DatabaseService {
       );
     }
     throw StateError('Withdrawal approvals are only supported in backend mode.');
+  }
+
+  Future<FraudAlertSummary> updateFraudAlertStatus({
+    required String alertId,
+    required String status,
+    required AppUser actor,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.updateFraudAlertStatus(
+        alertId: alertId,
+        status: status,
+      );
+    }
+    throw StateError('Fraud alerts are only supported in backend mode.');
   }
 
   Future<Map<String, dynamic>> runScheduledSettlements({

@@ -151,35 +151,56 @@ class RiderDashboard extends StatelessWidget {
         onRefresh: () => context.read<AuthProvider>().refreshCurrentUser(),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-          children: [
-            _RiderHeroCard(rider: actor),
-            const SizedBox(height: 16),
-            FutureBuilder<WalletSummary>(
-              future: DatabaseService().getRiderWallet(actor: actor),
-              builder: (context, walletSnapshot) {
-                final wallet = walletSnapshot.data;
-                return _RiderWalletCard(
-                  balance: wallet?.balance ?? actor.walletBalance,
-                  pendingAmount: wallet?.pendingAmount ?? 0,
-                  reservedAmount: wallet?.reservedAmount ?? 0,
-                  totalEarnings: wallet?.totalEarnings ?? actor.walletBalance,
-                  payoutProfile: wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
-                  onWithdraw: () {
-                    final profile = wallet?.payoutProfile ?? const PayoutProfileSummary.empty();
-                    if (!profile.isConfigured) {
-                      _managePayoutAccount(context, actor, profile);
-                      return;
-                    }
-                    _requestWithdrawal(context, actor);
-                  },
-                  onManagePayoutAccount: () => _managePayoutAccount(
-                    context,
-                    actor,
-                    wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
-                  ),
-                );
-              },
-            ),
+            children: [
+              _RiderHeroCard(rider: actor),
+              const SizedBox(height: 16),
+              StreamBuilder<RiderAnalytics>(
+                stream: DatabaseService().watchPolledValue(
+                  () => DatabaseService().getRiderAnalytics(actor: actor),
+                ),
+                builder: (context, analyticsSnapshot) {
+                  return StreamBuilder<WalletSummary>(
+                    stream: DatabaseService().watchPolledValue(
+                      () => DatabaseService().getRiderWallet(actor: actor),
+                    ),
+                    builder: (context, walletSnapshot) {
+                      final wallet = walletSnapshot.data;
+                      final analytics = analyticsSnapshot.data;
+                      return Column(
+                        children: [
+                          _RiderRealtimeStats(
+                            todayDeliveries: analytics?.todayDeliveries ?? 0,
+                            earningsToday: analytics?.earningsToday ?? 0,
+                            pendingPayout: analytics?.pendingPayout ?? wallet?.pendingAmount ?? 0,
+                          ),
+                          const SizedBox(height: 14),
+                          _RiderWalletCard(
+                            balance: wallet?.balance ?? analytics?.availableBalance ?? actor.walletBalance,
+                            pendingAmount: wallet?.pendingAmount ?? analytics?.pendingPayout ?? 0,
+                            reservedAmount: wallet?.reservedAmount ?? analytics?.reservedAmount ?? 0,
+                            totalEarnings: wallet?.totalEarnings ?? analytics?.totalEarnings ?? actor.walletBalance,
+                            payoutProfile: wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
+                            transactions: analytics?.transactions ?? const <WalletTransaction>[],
+                            onWithdraw: () {
+                              final profile = wallet?.payoutProfile ?? const PayoutProfileSummary.empty();
+                              if (!profile.isConfigured) {
+                                _managePayoutAccount(context, actor, profile);
+                                return;
+                              }
+                              _requestWithdrawal(context, actor);
+                            },
+                            onManagePayoutAccount: () => _managePayoutAccount(
+                              context,
+                              actor,
+                              wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
             const SizedBox(height: 20),
             StreamBuilder<List<OrderModel>>(
               stream: service.watchAssignedOrders(actor),
@@ -470,6 +491,51 @@ class _RiderStatusStrip extends StatelessWidget {
   }
 }
 
+class _RiderRealtimeStats extends StatelessWidget {
+  const _RiderRealtimeStats({
+    required this.todayDeliveries,
+    required this.earningsToday,
+    required this.pendingPayout,
+  });
+
+  final int todayDeliveries;
+  final double earningsToday;
+  final double pendingPayout;
+
+  String _money(double amount) => 'Rs ${amount.toStringAsFixed(0)}';
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _RiderMoneyTile(
+            label: 'Today deliveries',
+            value: '$todayDeliveries',
+            tint: const Color(0xFFD4AF37),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _RiderMoneyTile(
+            label: 'Earnings today',
+            value: _money(earningsToday),
+            tint: const Color(0xFF1C9A5F),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _RiderMoneyTile(
+            label: 'Pending payout',
+            value: _money(pendingPayout),
+            tint: const Color(0xFFD97A00),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _RiderWalletCard extends StatelessWidget {
   const _RiderWalletCard({
     required this.balance,
@@ -477,6 +543,7 @@ class _RiderWalletCard extends StatelessWidget {
     required this.reservedAmount,
     required this.totalEarnings,
     required this.payoutProfile,
+    required this.transactions,
     required this.onWithdraw,
     required this.onManagePayoutAccount,
   });
@@ -486,6 +553,7 @@ class _RiderWalletCard extends StatelessWidget {
   final double reservedAmount;
   final double totalEarnings;
   final PayoutProfileSummary payoutProfile;
+  final List<WalletTransaction> transactions;
   final VoidCallback onWithdraw;
   final VoidCallback onManagePayoutAccount;
 
@@ -560,6 +628,40 @@ class _RiderWalletCard extends StatelessWidget {
               ),
             ],
           ),
+          if (transactions.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Recent payouts',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 15),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...transactions.take(3).map(
+              (transaction) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.payments_outlined, size: 18, color: Color(0xFF666666)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        transaction.note.isEmpty ? transaction.status : transaction.note,
+                        style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      _money(transaction.amount.abs()),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

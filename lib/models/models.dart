@@ -3020,6 +3020,10 @@ class WithdrawalRequestSummary {
   final String idempotencyKey;
   final String failureReason;
   final int retryCount;
+  final bool isSuspicious;
+  final bool reviewRequired;
+  final int riskScore;
+  final List<String> riskReasons;
   final List<String> auditOrderIds;
   final Map<String, dynamic> metadata;
 
@@ -3045,6 +3049,10 @@ class WithdrawalRequestSummary {
     required this.idempotencyKey,
     required this.failureReason,
     required this.retryCount,
+    this.isSuspicious = false,
+    this.reviewRequired = false,
+    this.riskScore = 0,
+    this.riskReasons = const [],
     this.auditOrderIds = const [],
     this.metadata = const {},
   });
@@ -3072,8 +3080,75 @@ class WithdrawalRequestSummary {
         idempotencyKey: map['idempotencyKey'] ?? '',
         failureReason: map['failureReason'] ?? '',
         retryCount: ((map['retryCount'] ?? 0) as num).toInt(),
+        isSuspicious: map['isSuspicious'] ?? false,
+        reviewRequired: map['reviewRequired'] ?? false,
+        riskScore: ((map['riskScore'] ?? 0) as num).toInt(),
+        riskReasons: List<String>.from(map['riskReasons'] ?? const []),
         auditOrderIds: List<String>.from(map['auditOrderIds'] ?? const []),
         metadata: Map<String, dynamic>.from(map['metadata'] ?? const {}),
+      );
+}
+
+class FraudAlertSummary {
+  final String id;
+  final String type;
+  final String severity;
+  final String status;
+  final String userId;
+  final String storeId;
+  final String riderId;
+  final String orderId;
+  final String withdrawalRequestId;
+  final String refundRequestId;
+  final int riskScore;
+  final List<String> reasons;
+  final String message;
+  final String ipAddress;
+  final String deviceId;
+  final String reviewedBy;
+  final String reviewedAt;
+  final String createdAt;
+
+  const FraudAlertSummary({
+    required this.id,
+    required this.type,
+    required this.severity,
+    required this.status,
+    required this.userId,
+    required this.storeId,
+    required this.riderId,
+    required this.orderId,
+    required this.withdrawalRequestId,
+    required this.refundRequestId,
+    required this.riskScore,
+    this.reasons = const [],
+    this.message = '',
+    this.ipAddress = '',
+    this.deviceId = '',
+    this.reviewedBy = '',
+    this.reviewedAt = '',
+    this.createdAt = '',
+  });
+
+  factory FraudAlertSummary.fromMap(Map<String, dynamic> map) => FraudAlertSummary(
+        id: map['id'] ?? '',
+        type: map['type'] ?? 'order',
+        severity: map['severity'] ?? 'medium',
+        status: map['status'] ?? 'open',
+        userId: map['userId'] ?? '',
+        storeId: map['storeId'] ?? '',
+        riderId: map['riderId'] ?? '',
+        orderId: map['orderId'] ?? '',
+        withdrawalRequestId: map['withdrawalRequestId'] ?? '',
+        refundRequestId: map['refundRequestId'] ?? '',
+        riskScore: ((map['riskScore'] ?? 0) as num).toInt(),
+        reasons: List<String>.from(map['reasons'] ?? const []),
+        message: map['message'] ?? '',
+        ipAddress: map['ipAddress'] ?? '',
+        deviceId: map['deviceId'] ?? '',
+        reviewedBy: map['reviewedBy'] ?? '',
+        reviewedAt: map['reviewedAt'] ?? '',
+        createdAt: map['createdAt']?.toString() ?? '',
       );
 }
 
@@ -3123,6 +3198,8 @@ class AdminFinanceSummary {
   final List<WalletSummary> riderWallets;
   final List<WalletTransaction> transactions;
   final List<WithdrawalRequestSummary> withdrawalRequests;
+  final List<FraudAlertSummary> fraudAlerts;
+  final int flaggedUsers;
 
   const AdminFinanceSummary({
     required this.totalCommission,
@@ -3138,6 +3215,8 @@ class AdminFinanceSummary {
     this.riderWallets = const [],
     this.transactions = const [],
     this.withdrawalRequests = const [],
+    this.fraudAlerts = const [],
+    this.flaggedUsers = 0,
   });
 }
 
@@ -3276,7 +3355,10 @@ class UserAiUsageStat {
 class AdminAnalytics {
   final double totalRevenue;
   final double platformCommissionRevenue;
+  final double vendorPayouts;
+  final double riderPayouts;
   final int totalOrders;
+  final int ordersToday;
   final List<Store> topStores;
   final List<AnalyticsPoint> dailySales;
   final List<AnalyticsPoint> weeklySales;
@@ -3284,7 +3366,10 @@ class AdminAnalytics {
   AdminAnalytics({
     required this.totalRevenue,
     required this.platformCommissionRevenue,
+    required this.vendorPayouts,
+    required this.riderPayouts,
     required this.totalOrders,
+    required this.ordersToday,
     required this.topStores,
     required this.dailySales,
     required this.weeklySales,
@@ -3292,20 +3377,56 @@ class AdminAnalytics {
 }
 
 class VendorAnalytics {
+  final double todayEarnings;
   final double totalSales;
   final double availableBalance;
   final double totalEarnings;
+  final double pendingAmount;
+  final double reservedAmount;
+  final double lastPayoutAmount;
+  final String lastPayoutAt;
   final int orders;
+  final int ordersCompleted;
+  final int ordersToday;
   final List<Product> bestSellingProducts;
   final List<AnalyticsPoint> salesTrend;
+  final List<WalletTransaction> transactions;
 
   VendorAnalytics({
+    required this.todayEarnings,
     required this.totalSales,
     required this.availableBalance,
     required this.totalEarnings,
+    required this.pendingAmount,
+    required this.reservedAmount,
+    required this.lastPayoutAmount,
+    required this.lastPayoutAt,
     required this.orders,
+    required this.ordersCompleted,
+    required this.ordersToday,
     required this.bestSellingProducts,
     required this.salesTrend,
+    this.transactions = const [],
+  });
+}
+
+class RiderAnalytics {
+  final int todayDeliveries;
+  final double earningsToday;
+  final double totalEarnings;
+  final double pendingPayout;
+  final double availableBalance;
+  final double reservedAmount;
+  final List<WalletTransaction> transactions;
+
+  const RiderAnalytics({
+    required this.todayDeliveries,
+    required this.earningsToday,
+    required this.totalEarnings,
+    required this.pendingPayout,
+    required this.availableBalance,
+    required this.reservedAmount,
+    this.transactions = const [],
   });
 }
 

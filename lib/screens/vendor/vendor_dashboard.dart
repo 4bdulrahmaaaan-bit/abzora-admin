@@ -37,9 +37,7 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
   late final TabController _tabController;
 
   Future<Store?>? _storeFuture;
-  Future<VendorAnalytics>? _analyticsFuture;
   String? _boundActorId;
-  String? _analyticsStoreId;
 
   @override
   void initState() {
@@ -77,25 +75,12 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
       return;
     }
     _boundActorId = actor.id;
-    _analyticsStoreId = null;
-    _analyticsFuture = null;
     _storeFuture = _loadStore(actor);
-  }
-
-  Future<VendorAnalytics> _analyticsFor(Store store, AppUser actor) {
-    if (_analyticsFuture != null && _analyticsStoreId == store.id) {
-      return _analyticsFuture!;
-    }
-    _analyticsStoreId = store.id;
-    _analyticsFuture = _db.getVendorAnalytics(store.id, actor: actor);
-    return _analyticsFuture!;
   }
 
   Future<void> _refresh(AppUser actor) async {
     setState(() {
       _boundActorId = null;
-      _analyticsStoreId = null;
-      _analyticsFuture = null;
       _storeFuture = null;
     });
     _ensureFutures(actor);
@@ -215,8 +200,6 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
         return;
       }
       setState(() {
-        _analyticsStoreId = null;
-        _analyticsFuture = null;
         _storeFuture = Future<Store?>.value(store.copyWith(isActive: value));
       });
       messenger.showSnackBar(
@@ -416,8 +399,10 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
 
           return RefreshIndicator(
             onRefresh: () => _refresh(actor),
-            child: FutureBuilder<VendorAnalytics>(
-              future: _analyticsFor(store, actor),
+            child: StreamBuilder<VendorAnalytics>(
+              stream: _db.watchPolledValue(
+                () => _db.getVendorAnalytics(store.id, actor: actor),
+              ),
               builder: (context, analyticsSnapshot) {
                 return StreamBuilder<List<OrderModel>>(
                   stream: _db.getVendorOrders(store.id, actor: actor),
@@ -663,6 +648,11 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                                   reservedWithdrawals: wallet?.reservedAmount ?? 0,
                                   commissionRate: wallet?.commissionRate ?? store.commissionRate,
                                   payoutProfile: wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
+                                  lastPayoutAmount: analytics?.lastPayoutAmount ?? 0,
+                                  lastPayoutAt: analytics?.lastPayoutAt ?? '',
+                                  ordersCompleted: analytics?.ordersCompleted ?? completedOrders.length,
+                                  salesTrend: analytics?.salesTrend ?? const <AnalyticsPoint>[],
+                                  transactions: analytics?.transactions ?? const <WalletTransaction>[],
                                   formatCurrency: _money,
                                   onWithdraw: () {
                                     final profile =
@@ -926,6 +916,11 @@ class _EarningsSection extends StatelessWidget {
     required this.reservedWithdrawals,
     required this.commissionRate,
     required this.payoutProfile,
+    required this.lastPayoutAmount,
+    required this.lastPayoutAt,
+    required this.ordersCompleted,
+    required this.salesTrend,
+    required this.transactions,
     required this.formatCurrency,
     this.onWithdraw,
     this.onManagePayoutAccount,
@@ -938,6 +933,11 @@ class _EarningsSection extends StatelessWidget {
   final double reservedWithdrawals;
   final double? commissionRate;
   final PayoutProfileSummary payoutProfile;
+  final double lastPayoutAmount;
+  final String lastPayoutAt;
+  final int ordersCompleted;
+  final List<AnalyticsPoint> salesTrend;
+  final List<WalletTransaction> transactions;
   final String Function(double amount) formatCurrency;
   final VoidCallback? onWithdraw;
   final VoidCallback? onManagePayoutAccount;
@@ -981,6 +981,33 @@ class _EarningsSection extends StatelessWidget {
             children: [
               Expanded(
                 child: _EarningTile(
+                  label: 'Orders completed',
+                  value: '$ordersCompleted',
+                  tint: const Color(0xFF111111),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _EarningTile(
+                  label: 'Last payout',
+                  value: lastPayoutAmount > 0 ? formatCurrency(lastPayoutAmount) : 'Pending',
+                  tint: const Color(0xFF8B5CF6),
+                ),
+              ),
+            ],
+          ),
+          if (lastPayoutAt.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Last payout on $lastPayoutAt',
+              style: GoogleFonts.inter(color: AbzioTheme.grey500, fontSize: 12),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _EarningTile(
                   label: "Today's earnings",
                   value: formatCurrency(todayEarnings),
                   tint: const Color(0xFF1C9A5F),
@@ -1005,9 +1032,49 @@ class _EarningsSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
+          if (salesTrend.isNotEmpty) ...[
+            _CompactEarningsChart(
+              title: 'Daily earnings',
+              points: salesTrend,
+              accent: const Color(0xFFD4AF37),
+            ),
+            const SizedBox(height: 14),
+          ],
+          if (transactions.isNotEmpty) ...[
+            Text(
+              'Recent finance activity',
+              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            ...transactions.take(3).map(
+              (transaction) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.payments_outlined, size: 18, color: Color(0xFF6B6B6B)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        transaction.note.isEmpty ? transaction.status : transaction.note,
+                        style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF555555)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      formatCurrency(transaction.amount.abs()),
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+          ],
           Align(
             alignment: Alignment.centerRight,
-              child: OutlinedButton.icon(
+            child: OutlinedButton.icon(
                 onPressed: onWithdraw,
                 icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
                 label: const Text('Withdraw'),
@@ -1059,6 +1126,73 @@ class _EarningTile extends StatelessWidget {
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactEarningsChart extends StatelessWidget {
+  const _CompactEarningsChart({
+    required this.title,
+    required this.points,
+    required this.accent,
+  });
+
+  final String title;
+  final List<AnalyticsPoint> points;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxValue = points.fold<double>(1, (current, point) => point.value > current ? point.value : current);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 104,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: points.map((point) {
+                final height = maxValue == 0 ? 8.0 : ((point.value / maxValue) * 64).clamp(8, 64).toDouble();
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(
+                          height: height,
+                          decoration: BoxDecoration(
+                            color: accent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          point.label,
+                          style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF666666)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),

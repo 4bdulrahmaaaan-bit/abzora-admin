@@ -28,16 +28,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
   GlobalSearchResults _searchResults = const GlobalSearchResults();
   bool _loading = true;
   Timer? _idleTimer;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 12), (_) {
+      if (mounted) {
+        _load();
+      }
+    });
   }
 
   @override
   void dispose() {
     _idleTimer?.cancel();
+    _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -441,13 +448,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                     childAspectRatio: 1.5,
-                    children: [
-                      _AdminMetric(label: 'Orders', value: '${_analytics?.totalOrders ?? 0}', icon: Icons.shopping_cart_outlined, color: Colors.green),
+                      children: [
+                      _AdminMetric(label: 'Orders Today', value: '${_analytics?.ordersToday ?? 0}', icon: Icons.today_outlined, color: Colors.green),
                       _AdminMetric(label: 'Revenue', value: 'Rs ${_analytics?.totalRevenue.toInt() ?? 0}', icon: Icons.payments_outlined, color: AbzioTheme.accentColor),
                       _AdminMetric(label: 'Commission', value: 'Rs ${_analytics?.platformCommissionRevenue.toInt() ?? 0}', icon: Icons.account_balance_outlined, color: Colors.blue),
-                      _AdminMetric(label: 'Top Store', value: _analytics?.topStores.isNotEmpty == true ? _analytics!.topStores.first.name : 'None', icon: Icons.store_outlined, color: Colors.orange),
-                    ],
-                  ),
+                      _AdminMetric(label: 'Vendor Payouts', value: 'Rs ${_analytics?.vendorPayouts.toInt() ?? 0}', icon: Icons.store_outlined, color: Colors.orange),
+                      _AdminMetric(label: 'Rider Payouts', value: 'Rs ${_analytics?.riderPayouts.toInt() ?? 0}', icon: Icons.delivery_dining_outlined, color: Colors.purple),
+                      _AdminMetric(label: 'Total Orders', value: '${_analytics?.totalOrders ?? 0}', icon: Icons.shopping_cart_outlined, color: Colors.black87),
+                      ],
+                    ),
                   if (_analytics != null) ...[
                     const SizedBox(height: 24),
                     Text('DAILY SALES', style: Theme.of(context).textTheme.labelMedium),

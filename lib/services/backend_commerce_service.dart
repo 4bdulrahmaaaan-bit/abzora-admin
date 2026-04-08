@@ -873,14 +873,89 @@ class BackendCommerceService {
         })
         .toList();
 
-    return AdminAnalytics(
-      totalRevenue: (map['totalRevenue'] ?? 0).toDouble(),
-      platformCommissionRevenue:
-          (map['platformCommissionRevenue'] ?? 0).toDouble(),
-      totalOrders: ((map['totalOrders'] ?? 0) as num).toInt(),
-      topStores: topStores,
-      dailySales: const [],
-      weeklySales: const [],
+      return AdminAnalytics(
+        totalRevenue: (map['totalRevenue'] ?? 0).toDouble(),
+        platformCommissionRevenue:
+            (map['platformCommissionRevenue'] ?? 0).toDouble(),
+        vendorPayouts: (map['vendorPayouts'] ?? 0).toDouble(),
+        riderPayouts: (map['riderPayouts'] ?? 0).toDouble(),
+        totalOrders: ((map['totalOrders'] ?? 0) as num).toInt(),
+        ordersToday: ((map['ordersToday'] ?? 0) as num).toInt(),
+        topStores: topStores,
+        dailySales: ((map['dailySales'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((item) {
+              final data = Map<String, dynamic>.from(item);
+              return AnalyticsPoint(
+                label: data['label']?.toString() ?? '',
+                value: ((data['value'] ?? 0) as num).toDouble(),
+              );
+            })
+            .toList(),
+        weeklySales: ((map['weeklySales'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((item) {
+              final data = Map<String, dynamic>.from(item);
+              return AnalyticsPoint(
+                label: data['label']?.toString() ?? '',
+                value: ((data['value'] ?? 0) as num).toDouble(),
+              );
+            })
+            .toList(),
+      );
+    }
+
+  Future<VendorAnalytics> getVendorDashboard() async {
+    final payload = await _client.get('/vendor/dashboard', authenticated: true);
+    final map = Map<String, dynamic>.from(payload as Map);
+    final wallet = Map<String, dynamic>.from(map['wallet'] as Map? ?? const {});
+    final transactions = ((map['transactions'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) => WalletTransaction.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+    final dailySeries = ((map['dailySeries'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) {
+          final data = Map<String, dynamic>.from(item);
+          return AnalyticsPoint(
+            label: data['label']?.toString() ?? '',
+            value: ((data['value'] ?? 0) as num).toDouble(),
+          );
+        })
+        .toList();
+    return VendorAnalytics(
+      todayEarnings: ((map['todayEarnings'] ?? 0) as num).toDouble(),
+      totalSales: ((map['weeklyEarnings'] ?? 0) as num).toDouble(),
+      availableBalance: ((map['availableBalance'] ?? wallet['balance'] ?? 0) as num).toDouble(),
+      totalEarnings: ((map['totalEarnings'] ?? 0) as num).toDouble(),
+      pendingAmount: ((map['pendingAmount'] ?? 0) as num).toDouble(),
+      reservedAmount: ((map['reservedAmount'] ?? 0) as num).toDouble(),
+      lastPayoutAmount: ((map['lastPayoutAmount'] ?? 0) as num).toDouble(),
+      lastPayoutAt: map['lastPayoutAt']?.toString() ?? '',
+      orders: ((map['ordersCompleted'] ?? 0) as num).toInt(),
+      ordersCompleted: ((map['ordersCompleted'] ?? 0) as num).toInt(),
+      ordersToday: ((map['ordersToday'] ?? 0) as num).toInt(),
+      bestSellingProducts: const [],
+      salesTrend: dailySeries,
+      transactions: transactions,
+    );
+  }
+
+  Future<RiderAnalytics> getRiderDashboard() async {
+    final payload = await _client.get('/rider/dashboard', authenticated: true);
+    final map = Map<String, dynamic>.from(payload as Map);
+    final transactions = ((map['transactions'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) => WalletTransaction.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+    return RiderAnalytics(
+      todayDeliveries: ((map['todayDeliveries'] ?? 0) as num).toInt(),
+      earningsToday: ((map['earningsToday'] ?? 0) as num).toDouble(),
+      totalEarnings: ((map['totalEarnings'] ?? 0) as num).toDouble(),
+      pendingPayout: ((map['pendingPayout'] ?? 0) as num).toDouble(),
+      availableBalance: ((map['availableBalance'] ?? 0) as num).toDouble(),
+      reservedAmount: ((map['reservedAmount'] ?? 0) as num).toDouble(),
+      transactions: transactions,
     );
   }
 
@@ -1094,6 +1169,10 @@ class BackendCommerceService {
         .whereType<Map>()
         .map((item) => WithdrawalRequestSummary.fromMap(Map<String, dynamic>.from(item)))
         .toList();
+    final fraudAlerts = (map['fraudAlerts'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => FraudAlertSummary.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
     return AdminFinanceSummary(
       totalCommission: ((adminWallet['totalCommission'] ?? 0) as num).toDouble(),
       totalRevenue: ((adminWallet['totalRevenue'] ?? 0) as num).toDouble(),
@@ -1108,6 +1187,8 @@ class BackendCommerceService {
       riderWallets: riderWallets,
       transactions: transactions,
       withdrawalRequests: withdrawalRequests,
+      fraudAlerts: fraudAlerts,
+      flaggedUsers: ((map['flaggedUsers'] ?? 0) as num).toInt(),
     );
   }
 
@@ -1174,6 +1255,18 @@ class BackendCommerceService {
       body: {'walletType': walletType},
     );
     return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<FraudAlertSummary> updateFraudAlertStatus({
+    required String alertId,
+    required String status,
+  }) async {
+    final payload = await _client.patch(
+      '/admin/finance/fraud-alerts/$alertId',
+      authenticated: true,
+      body: {'status': status},
+    );
+    return FraudAlertSummary.fromMap(Map<String, dynamic>.from(payload as Map));
   }
 
   Future<List<DisputeRecord>> getAdminDisputes() async {
