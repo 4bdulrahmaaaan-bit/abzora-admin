@@ -14,6 +14,7 @@ import '../../services/onboarding_service.dart';
 import '../../theme.dart';
 import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
+import 'admin_ar_moderation_section.dart';
 import 'admin_banners_section.dart';
 import 'admin_categories_section.dart';
 
@@ -28,6 +29,7 @@ enum AdminWebSection {
   riders,
   users,
   products,
+  arModeration,
   payouts,
   analytics,
   settings,
@@ -749,7 +751,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         brand: product.brand,
         description: product.description,
         price: product.price,
+        basePrice: product.basePrice,
+        dynamicPrice: product.dynamicPrice,
         originalPrice: product.originalPrice,
+        demandScore: product.demandScore,
+        viewCount: product.viewCount,
+        cartCount: product.cartCount,
+        purchaseCount: product.purchaseCount,
         images: product.images,
         sizes: product.sizes,
         stock: product.stock,
@@ -759,10 +767,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         createdAt: product.createdAt,
         rating: product.rating,
         reviewCount: product.reviewCount,
+        lastPriceUpdated: product.lastPriceUpdated,
         isCustomTailoring: product.isCustomTailoring,
         outfitType: product.outfitType,
         fabric: product.fabric,
+        model3d: product.model3d,
         attributes: product.attributes,
+        arAsset: product.arAsset,
         customizations: product.customizations,
         measurements: product.measurements,
         addons: product.addons,
@@ -900,6 +911,120 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('AI budget controls updated.')),
     );
+    await _load();
+  }
+
+  Product _cloneProductWithArAsset(Product product, Map<String, dynamic> arAsset) {
+    return Product(
+      id: product.id,
+      storeId: product.storeId,
+      name: product.name,
+      brand: product.brand,
+      description: product.description,
+      price: product.price,
+      basePrice: product.basePrice,
+      dynamicPrice: product.dynamicPrice,
+      originalPrice: product.originalPrice,
+      demandScore: product.demandScore,
+      viewCount: product.viewCount,
+      cartCount: product.cartCount,
+      purchaseCount: product.purchaseCount,
+      images: product.images,
+      sizes: product.sizes,
+      stock: product.stock,
+      category: product.category,
+      subcategory: product.subcategory,
+      isActive: product.isActive,
+      createdAt: product.createdAt,
+      rating: product.rating,
+      reviewCount: product.reviewCount,
+      lastPriceUpdated: product.lastPriceUpdated,
+      isCustomTailoring: product.isCustomTailoring,
+      outfitType: product.outfitType,
+      fabric: product.fabric,
+      model3d: product.model3d,
+      attributes: product.attributes,
+      arAsset: arAsset,
+      customizations: product.customizations,
+      measurements: product.measurements,
+      addons: product.addons,
+      measurementProfileLabel: product.measurementProfileLabel,
+      neededBy: product.neededBy,
+      tailoringDeliveryMode: product.tailoringDeliveryMode,
+      tailoringExtraCost: product.tailoringExtraCost,
+    );
+  }
+
+  Future<void> _approveArAsset(Product product) async {
+    final merged = Map<String, dynamic>.from(product.arAsset)
+      ..['status'] = 'approved'
+      ..['failureReason'] = ''
+      ..['generatedAt'] = DateTime.now().toIso8601String();
+    await _db.updateProduct(_cloneProductWithArAsset(product, merged), actor: _actor);
+    await _load();
+  }
+
+  Future<void> _rejectArAsset(Product product) async {
+    final merged = Map<String, dynamic>.from(product.arAsset)
+      ..['status'] = 'rejected'
+      ..['failureReason'] = 'manual_rejection'
+      ..['generatedAt'] = DateTime.now().toIso8601String();
+    await _db.updateProduct(_cloneProductWithArAsset(product, merged), actor: _actor);
+    await _load();
+  }
+
+  Future<void> _regenerateArAsset(Product product) async {
+    await _db.generateProductArAsset(product.id, actor: _actor);
+    await _load();
+  }
+
+  Future<void> _saveArAlignment(
+    Product product,
+    Map<String, dynamic> editorPatch,
+  ) async {
+    final anchors = Map<String, dynamic>.from(
+      product.arAsset['anchors'] as Map? ?? const {},
+    );
+    final left = Map<String, dynamic>.from(
+      anchors['left_shoulder'] as Map? ?? const {'x': 0.33, 'y': 0.2},
+    );
+    final right = Map<String, dynamic>.from(
+      anchors['right_shoulder'] as Map? ?? const {'x': 0.67, 'y': 0.2},
+    );
+    left['x'] = (editorPatch['leftShoulderX'] as num?)?.toDouble() ?? left['x'];
+    right['x'] = (editorPatch['rightShoulderX'] as num?)?.toDouble() ?? right['x'];
+    anchors['left_shoulder'] = left;
+    anchors['right_shoulder'] = right;
+
+    final merged = Map<String, dynamic>.from(product.arAsset)
+      ..['status'] = 'pending'
+      ..['anchors'] = anchors
+      ..['editor'] = {
+        'offsetX': (editorPatch['offsetX'] as num?)?.toDouble() ?? 0,
+        'offsetY': (editorPatch['offsetY'] as num?)?.toDouble() ?? 0,
+        'scale': (editorPatch['scale'] as num?)?.toDouble() ?? 1,
+        'rotation': (editorPatch['rotation'] as num?)?.toDouble() ?? 0,
+      };
+
+    await _db.updateProduct(_cloneProductWithArAsset(product, merged), actor: _actor);
+    await _load();
+  }
+
+  Future<void> _bulkApproveArAssets(List<Product> products) async {
+    for (final product in products) {
+      final merged = Map<String, dynamic>.from(product.arAsset)
+        ..['status'] = 'approved'
+        ..['failureReason'] = ''
+        ..['generatedAt'] = DateTime.now().toIso8601String();
+      await _db.updateProduct(_cloneProductWithArAsset(product, merged), actor: _actor);
+    }
+    await _load();
+  }
+
+  Future<void> _bulkRegenerateArAssets(List<Product> products) async {
+    for (final product in products) {
+      await _db.generateProductArAsset(product.id, actor: _actor);
+    }
     await _load();
   }
 
@@ -1377,6 +1502,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       (AdminWebSection.riders, Icons.delivery_dining_outlined, 'Riders'),
       (AdminWebSection.users, Icons.people_alt_outlined, 'Users'),
       (AdminWebSection.products, Icons.inventory_2_outlined, 'Products'),
+      (AdminWebSection.arModeration, Icons.view_in_ar_rounded, 'AR Moderation'),
       (AdminWebSection.analytics, Icons.insights_outlined, 'Analytics'),
       if (!_usesBackendCommerce)
         (AdminWebSection.payouts, Icons.payments_outlined, 'Payouts'),
@@ -1588,6 +1714,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         return _buildUsers();
       case AdminWebSection.products:
         return _buildProducts();
+      case AdminWebSection.arModeration:
+        return _buildArModeration();
       case AdminWebSection.payouts:
         return _usesBackendCommerce
             ? _buildBackendUnavailableState(
@@ -3752,6 +3880,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildArModeration() {
+    return AdminArModerationSection(
+      products: _products,
+      onApprove: _approveArAsset,
+      onReject: _rejectArAsset,
+      onRegenerate: _regenerateArAsset,
+      onSaveAlignment: _saveArAlignment,
+      onBulkApprove: _bulkApproveArAssets,
+      onBulkRegenerate: _bulkRegenerateArAssets,
     );
   }
 

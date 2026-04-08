@@ -560,6 +560,7 @@ class Product {
   final String? fabric;
   final String? model3d;
   final Map<String, String> attributes;
+  final Map<String, dynamic> arAsset;
   final Map<String, String> customizations;
   final Map<String, double> measurements;
   final List<String> addons;
@@ -597,6 +598,7 @@ class Product {
     this.fabric,
     this.model3d,
     this.attributes = const {},
+    this.arAsset = const {},
     this.customizations = const {},
     this.measurements = const {},
     this.addons = const [],
@@ -634,6 +636,7 @@ class Product {
     'fabric': fabric,
     'model3d': model3d,
     'attributes': attributes,
+    'arAsset': arAsset,
     'customizations': customizations,
     'measurements': measurements,
     'addons': addons,
@@ -703,6 +706,7 @@ class Product {
         (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
       ),
     ),
+    arAsset: Map<String, dynamic>.from(map['arAsset'] as Map? ?? const {}),
     customizations: Map<String, String>.from(map['customizations'] ?? const {}),
     measurements: (map['measurements'] as Map? ?? const {}).map(
       (key, value) => MapEntry(key.toString(), (value as num).toDouble()),

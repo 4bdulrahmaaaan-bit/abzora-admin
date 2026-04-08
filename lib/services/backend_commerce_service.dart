@@ -1745,6 +1745,26 @@ class BackendCommerceService {
     await _client.delete('/products/$productId', authenticated: true);
   }
 
+  Future<Product> generateProductArAsset(
+    String productId, {
+    String? category,
+    String? imageUrl,
+    String? transparentImageUrl,
+  }) async {
+    await _client.post(
+      '/products/$productId/ar-asset/generate',
+      authenticated: true,
+      body: {
+        if (category != null && category.trim().isNotEmpty) 'category': category.trim(),
+        if (imageUrl != null && imageUrl.trim().isNotEmpty) 'imageUrl': imageUrl.trim(),
+        if (transparentImageUrl != null && transparentImageUrl.trim().isNotEmpty)
+          'transparentImageUrl': transparentImageUrl.trim(),
+      },
+    );
+    final payload = await _client.get('/products/$productId', authenticated: true);
+    return _productFromBackend(Map<String, dynamic>.from(payload as Map));
+  }
+
   Future<List<OrderModel>> getStoreOrders(String storeId) async {
     final payload = await _client.get(
       '/orders/store/$storeId',
@@ -2037,6 +2057,8 @@ class BackendCommerceService {
       'images': product.images,
       'model3d': product.model3d,
       'attributes': product.attributes,
+      'arAsset': product.arAsset,
+      if (product.arAsset.isNotEmpty) 'disableArAssetGeneration': true,
       'isActive': product.isActive,
     };
   }
@@ -2128,6 +2150,7 @@ class BackendCommerceService {
       'outfitType': map['outfitType'],
       'fabric': map['fabric'],
       'attributes': map['attributes'] ?? const {},
+      'arAsset': map['arAsset'] ?? const {},
       'customizations': map['customizations'] ?? const {},
       'measurements': map['measurements'] ?? const {},
       'addons': map['addons'] ?? const [],

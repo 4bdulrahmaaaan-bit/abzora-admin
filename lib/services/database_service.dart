@@ -2630,6 +2630,8 @@ class DatabaseService {
       isCustomTailoring: product.isCustomTailoring,
       outfitType: product.outfitType,
       fabric: product.fabric,
+      attributes: product.attributes,
+      arAsset: product.arAsset,
       customizations: product.customizations,
       measurements: product.measurements,
       addons: product.addons,
@@ -3956,6 +3958,8 @@ class DatabaseService {
         outfitType: updatedProduct.outfitType,
         fabric: updatedProduct.fabric,
         model3d: updatedProduct.model3d,
+        attributes: updatedProduct.attributes,
+        arAsset: updatedProduct.arAsset,
         customizations: updatedProduct.customizations,
         measurements: updatedProduct.measurements,
         addons: updatedProduct.addons,
@@ -4014,6 +4018,80 @@ class DatabaseService {
         actor: actor,
       );
     }
+  }
+
+  Future<void> generateProductArAsset(String productId, {AppUser? actor}) async {
+    if (_backendCommerce.isConfigured) {
+      _requireSuperAdmin(actor);
+      await _backendCommerce.generateProductArAsset(productId);
+      return;
+    }
+    final allProducts = (await _productService.fetchAll())
+        .map(_decorateProduct)
+        .toList();
+    final product = allProducts.cast<Product?>().firstWhere(
+      (item) => item?.id == productId,
+      orElse: () => null,
+    );
+    if (product == null) {
+      return;
+    }
+    _requireStoreAccess(actor, product.storeId);
+    final existingAnchors =
+        (product.arAsset['anchors'] as Map?)?.cast<String, dynamic>();
+    final generated = Map<String, dynamic>.from(product.arAsset)
+      ..['status'] = 'generated'
+      ..['category'] = product.category
+      ..['sourceImage'] = product.images.isNotEmpty ? product.images.first : ''
+      ..['processedImage'] = product.images.isNotEmpty ? product.images.first : ''
+      ..['anchors'] = existingAnchors ??
+          {
+            'left_shoulder': {'x': 0.33, 'y': 0.2},
+            'right_shoulder': {'x': 0.67, 'y': 0.2},
+            'center': {'x': 0.5, 'y': 0.45},
+          }
+      ..['generatedAt'] = DateTime.now().toIso8601String();
+    await updateProduct(
+      Product(
+        id: product.id,
+        storeId: product.storeId,
+        name: product.name,
+        brand: product.brand,
+        description: product.description,
+        price: product.price,
+        basePrice: product.basePrice,
+        dynamicPrice: product.dynamicPrice,
+        originalPrice: product.originalPrice,
+        demandScore: product.demandScore,
+        viewCount: product.viewCount,
+        cartCount: product.cartCount,
+        purchaseCount: product.purchaseCount,
+        images: product.images,
+        sizes: product.sizes,
+        stock: product.stock,
+        category: product.category,
+        subcategory: product.subcategory,
+        isActive: product.isActive,
+        createdAt: product.createdAt,
+        rating: product.rating,
+        reviewCount: product.reviewCount,
+        lastPriceUpdated: product.lastPriceUpdated,
+        isCustomTailoring: product.isCustomTailoring,
+        outfitType: product.outfitType,
+        fabric: product.fabric,
+        model3d: product.model3d,
+        attributes: product.attributes,
+        arAsset: generated,
+        customizations: product.customizations,
+        measurements: product.measurements,
+        addons: product.addons,
+        measurementProfileLabel: product.measurementProfileLabel,
+        neededBy: product.neededBy,
+        tailoringDeliveryMode: product.tailoringDeliveryMode,
+        tailoringExtraCost: product.tailoringExtraCost,
+      ),
+      actor: actor,
+    );
   }
 
   Future<void> updateProductStock(String productId, int newStock) async {
