@@ -970,6 +970,9 @@ class BackendCommerceService {
     final linkedId = kind == 'vendor'
         ? map['storeId']?.toString() ?? ''
         : map['riderId']?.toString() ?? '';
+    final payoutProfile = PayoutProfileSummary.fromMap(
+      Map<String, dynamic>.from(map['payoutProfile'] as Map? ?? const {}),
+    );
     return WalletSummary(
       id: linkedId.isNotEmpty ? linkedId : kind,
       kind: kind,
@@ -981,6 +984,7 @@ class BackendCommerceService {
       totalWithdrawn: ((map['totalWithdrawn'] ?? 0) as num).toDouble(),
       lastSettlementDate: map['lastSettlementDate']?.toString() ?? '',
       commissionRate: map['commissionRate'] == null ? null : (map['commissionRate'] as num).toDouble(),
+      payoutProfile: payoutProfile,
       transactions: transactions,
       withdrawalRequests: withdrawalRequests,
     );
@@ -1012,6 +1016,62 @@ class BackendCommerceService {
       body: {'amount': amount},
     );
     return _walletSummaryFromPayload(Map<String, dynamic>.from(payload as Map), kind: 'rider');
+  }
+
+  Future<PayoutProfileSummary> getVendorPayoutProfile() async {
+    final payload = await _client.get('/vendor/payout-account', authenticated: true);
+    return PayoutProfileSummary.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<PayoutProfileSummary> saveVendorPayoutProfile({
+    required String methodType,
+    required String accountHolderName,
+    String upiId = '',
+    String bankAccountNumber = '',
+    String bankIfsc = '',
+    String bankName = '',
+  }) async {
+    final payload = await _client.post(
+      '/vendor/payout-account',
+      authenticated: true,
+      body: {
+        'methodType': methodType,
+        'accountHolderName': accountHolderName,
+        'upiId': upiId,
+        'bankAccountNumber': bankAccountNumber,
+        'bankIfsc': bankIfsc,
+        'bankName': bankName,
+      },
+    );
+    return PayoutProfileSummary.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<PayoutProfileSummary> getRiderPayoutProfile() async {
+    final payload = await _client.get('/rider/payout-account', authenticated: true);
+    return PayoutProfileSummary.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<PayoutProfileSummary> saveRiderPayoutProfile({
+    required String methodType,
+    required String accountHolderName,
+    String upiId = '',
+    String bankAccountNumber = '',
+    String bankIfsc = '',
+    String bankName = '',
+  }) async {
+    final payload = await _client.post(
+      '/rider/payout-account',
+      authenticated: true,
+      body: {
+        'methodType': methodType,
+        'accountHolderName': accountHolderName,
+        'upiId': upiId,
+        'bankAccountNumber': bankAccountNumber,
+        'bankIfsc': bankIfsc,
+        'bankName': bankName,
+      },
+    );
+    return PayoutProfileSummary.fromMap(Map<String, dynamic>.from(payload as Map));
   }
 
   Future<AdminFinanceSummary> getAdminFinance() async {

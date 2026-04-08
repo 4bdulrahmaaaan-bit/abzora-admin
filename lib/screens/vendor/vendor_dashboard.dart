@@ -7,6 +7,7 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../widgets/payout_account_dialog.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/vendor_orders_tab.dart';
 import '../../widgets/vendor_quick_actions.dart';
@@ -297,6 +298,53 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
         SnackBar(
           behavior: SnackBarBehavior.floating,
           content: Text(error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', '')),
+        ),
+      );
+    }
+  }
+
+  Future<void> _manageVendorPayoutAccount(
+    AppUser actor,
+    PayoutProfileSummary profile,
+  ) async {
+    final formValue = await showPayoutAccountDialog(
+      context: context,
+      title: 'Vendor payout account',
+      initialValue: profile,
+    );
+    if (formValue == null || !mounted) {
+      return;
+    }
+    try {
+      await _db.saveVendorPayoutProfile(
+        actor: actor,
+        methodType: formValue.methodType,
+        accountHolderName: formValue.accountHolderName,
+        upiId: formValue.upiId,
+        bankAccountNumber: formValue.bankAccountNumber,
+        bankIfsc: formValue.bankIfsc,
+        bankName: formValue.bankName,
+      );
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Payout account saved successfully.'),
+        ),
+      );
+      await _refresh(actor);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', ''),
+          ),
         ),
       );
     }
@@ -598,9 +646,9 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                           future: _db.getVendorWallet(actor: actor),
                           builder: (context, walletSnapshot) {
                             final wallet = walletSnapshot.data;
-                            return KeyedSubtree(
-                              key: _earningsSectionKey,
-                              child: _EarningsSection(
+                              return KeyedSubtree(
+                                key: _earningsSectionKey,
+                                child: _EarningsSection(
                                 todayEarnings: orders
                                     .where((order) {
                                       final now = DateTime.now();
@@ -612,13 +660,26 @@ class _VendorDashboardState extends State<VendorDashboard> with SingleTickerProv
                                 weeklyEarnings: _weeklyRevenue(orders),
                                 pendingPayouts: wallet?.pendingAmount ?? pendingPayouts,
                                 availableBalance: wallet?.balance ?? analytics?.availableBalance ?? store.walletBalance,
-                                reservedWithdrawals: wallet?.reservedAmount ?? 0,
-                                commissionRate: wallet?.commissionRate ?? store.commissionRate,
-                                formatCurrency: _money,
-                                onWithdraw: () => _requestVendorWithdrawal(actor),
-                              ),
-                            );
-                          },
+                                  reservedWithdrawals: wallet?.reservedAmount ?? 0,
+                                  commissionRate: wallet?.commissionRate ?? store.commissionRate,
+                                  payoutProfile: wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
+                                  formatCurrency: _money,
+                                  onWithdraw: () {
+                                    final profile =
+                                        wallet?.payoutProfile ?? const PayoutProfileSummary.empty();
+                                    if (!profile.isConfigured) {
+                                      _manageVendorPayoutAccount(actor, profile);
+                                      return;
+                                    }
+                                    _requestVendorWithdrawal(actor);
+                                  },
+                                  onManagePayoutAccount: () => _manageVendorPayoutAccount(
+                                    actor,
+                                    wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
+                                  ),
+                                ),
+                              );
+                            },
                         ),
                         const SizedBox(height: 20),
                         _AlertsSection(alerts: alerts),
@@ -864,8 +925,10 @@ class _EarningsSection extends StatelessWidget {
     required this.availableBalance,
     required this.reservedWithdrawals,
     required this.commissionRate,
+    required this.payoutProfile,
     required this.formatCurrency,
     this.onWithdraw,
+    this.onManagePayoutAccount,
   });
 
   final double todayEarnings;
@@ -874,8 +937,10 @@ class _EarningsSection extends StatelessWidget {
   final double availableBalance;
   final double reservedWithdrawals;
   final double? commissionRate;
+  final PayoutProfileSummary payoutProfile;
   final String Function(double amount) formatCurrency;
   final VoidCallback? onWithdraw;
+  final VoidCallback? onManagePayoutAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -904,6 +969,12 @@ class _EarningsSection extends StatelessWidget {
           Text(
             'Available ${formatCurrency(availableBalance)} • Reserved ${formatCurrency(reservedWithdrawals)} • Commission ${((commissionRate ?? 0.12) * 100).toStringAsFixed(0)}%',
             style: GoogleFonts.inter(color: AbzioTheme.grey500, fontSize: 12),
+          ),
+          const SizedBox(height: 14),
+          PayoutAccountSummaryCard(
+            title: 'Settlement destination',
+            profile: payoutProfile,
+            onManage: onManagePayoutAccount ?? () {},
           ),
           const SizedBox(height: 14),
           Row(
@@ -936,11 +1007,11 @@ class _EarningsSection extends StatelessWidget {
           const SizedBox(height: 14),
           Align(
             alignment: Alignment.centerRight,
-            child: OutlinedButton.icon(
-              onPressed: onWithdraw,
-              icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
-              label: const Text('Withdraw'),
-            ),
+              child: OutlinedButton.icon(
+                onPressed: onWithdraw,
+                icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
+                label: const Text('Withdraw'),
+              ),
           ),
         ],
       ),

@@ -2920,6 +2920,84 @@ class WalletTransaction {
       );
 }
 
+class PayoutProfileSummary {
+  final String methodType;
+  final String accountHolderName;
+  final String upiId;
+  final String bankAccountNumber;
+  final String bankIfsc;
+  final String bankName;
+  final String razorpayContactId;
+  final String razorpayFundAccountId;
+  final String lastSyncedAt;
+  final bool isConfigured;
+
+  const PayoutProfileSummary({
+    required this.methodType,
+    required this.accountHolderName,
+    required this.upiId,
+    required this.bankAccountNumber,
+    required this.bankIfsc,
+    required this.bankName,
+    required this.razorpayContactId,
+    required this.razorpayFundAccountId,
+    required this.lastSyncedAt,
+    required this.isConfigured,
+  });
+
+  const PayoutProfileSummary.empty()
+      : methodType = '',
+        accountHolderName = '',
+        upiId = '',
+        bankAccountNumber = '',
+        bankIfsc = '',
+        bankName = '',
+        razorpayContactId = '',
+        razorpayFundAccountId = '',
+        lastSyncedAt = '',
+        isConfigured = false;
+
+  factory PayoutProfileSummary.fromMap(Map<String, dynamic> map) =>
+      PayoutProfileSummary(
+        methodType: map['methodType'] ?? '',
+        accountHolderName: map['accountHolderName'] ?? '',
+        upiId: map['upiId'] ?? '',
+        bankAccountNumber: map['bankAccountNumber'] ?? '',
+        bankIfsc: map['bankIfsc'] ?? '',
+        bankName: map['bankName'] ?? '',
+        razorpayContactId: map['razorpayContactId'] ?? '',
+        razorpayFundAccountId: map['razorpayFundAccountId'] ?? '',
+        lastSyncedAt: map['lastSyncedAt'] ?? '',
+        isConfigured: map['isConfigured'] == true,
+      );
+
+  PayoutProfileSummary copyWith({
+    String? methodType,
+    String? accountHolderName,
+    String? upiId,
+    String? bankAccountNumber,
+    String? bankIfsc,
+    String? bankName,
+    String? razorpayContactId,
+    String? razorpayFundAccountId,
+    String? lastSyncedAt,
+    bool? isConfigured,
+  }) {
+    return PayoutProfileSummary(
+      methodType: methodType ?? this.methodType,
+      accountHolderName: accountHolderName ?? this.accountHolderName,
+      upiId: upiId ?? this.upiId,
+      bankAccountNumber: bankAccountNumber ?? this.bankAccountNumber,
+      bankIfsc: bankIfsc ?? this.bankIfsc,
+      bankName: bankName ?? this.bankName,
+      razorpayContactId: razorpayContactId ?? this.razorpayContactId,
+      razorpayFundAccountId: razorpayFundAccountId ?? this.razorpayFundAccountId,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      isConfigured: isConfigured ?? this.isConfigured,
+    );
+  }
+}
+
 class WithdrawalRequestSummary {
   final String id;
   final String walletType;
@@ -2932,7 +3010,16 @@ class WithdrawalRequestSummary {
   final String requestedAt;
   final String processedAt;
   final String processedBy;
+  final String approvedAt;
+  final String completedAt;
   final String rejectionReason;
+  final String payoutMode;
+  final String payoutId;
+  final String razorpayContactId;
+  final String razorpayFundAccountId;
+  final String idempotencyKey;
+  final String failureReason;
+  final int retryCount;
   final List<String> auditOrderIds;
   final Map<String, dynamic> metadata;
 
@@ -2948,7 +3035,16 @@ class WithdrawalRequestSummary {
     required this.requestedAt,
     required this.processedAt,
     required this.processedBy,
+    required this.approvedAt,
+    required this.completedAt,
     required this.rejectionReason,
+    required this.payoutMode,
+    required this.payoutId,
+    required this.razorpayContactId,
+    required this.razorpayFundAccountId,
+    required this.idempotencyKey,
+    required this.failureReason,
+    required this.retryCount,
     this.auditOrderIds = const [],
     this.metadata = const {},
   });
@@ -2966,7 +3062,16 @@ class WithdrawalRequestSummary {
         requestedAt: map['requestedAt'] ?? '',
         processedAt: map['processedAt'] ?? '',
         processedBy: map['processedBy'] ?? '',
+        approvedAt: map['approvedAt'] ?? '',
+        completedAt: map['completedAt'] ?? '',
         rejectionReason: map['rejectionReason'] ?? '',
+        payoutMode: map['payoutMode'] ?? '',
+        payoutId: map['payoutId'] ?? '',
+        razorpayContactId: map['razorpayContactId'] ?? '',
+        razorpayFundAccountId: map['razorpayFundAccountId'] ?? '',
+        idempotencyKey: map['idempotencyKey'] ?? '',
+        failureReason: map['failureReason'] ?? '',
+        retryCount: ((map['retryCount'] ?? 0) as num).toInt(),
         auditOrderIds: List<String>.from(map['auditOrderIds'] ?? const []),
         metadata: Map<String, dynamic>.from(map['metadata'] ?? const {}),
       );
@@ -2983,6 +3088,7 @@ class WalletSummary {
   final double totalWithdrawn;
   final String lastSettlementDate;
   final double? commissionRate;
+  final PayoutProfileSummary payoutProfile;
   final List<WalletTransaction> transactions;
   final List<WithdrawalRequestSummary> withdrawalRequests;
 
@@ -2997,6 +3103,7 @@ class WalletSummary {
     required this.totalWithdrawn,
     required this.lastSettlementDate,
     this.commissionRate,
+    this.payoutProfile = const PayoutProfileSummary.empty(),
     this.transactions = const [],
     this.withdrawalRequests = const [],
   });

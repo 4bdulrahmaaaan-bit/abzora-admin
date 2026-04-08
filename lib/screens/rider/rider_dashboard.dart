@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/rider_service.dart';
 import '../../theme.dart';
+import '../../widgets/payout_account_dialog.dart';
 import '../../widgets/state_views.dart';
 import 'delivery_screen.dart';
 import 'rider_onboarding_screen.dart';
@@ -74,6 +75,53 @@ class RiderDashboard extends StatelessWidget {
     }
   }
 
+  Future<void> _managePayoutAccount(
+    BuildContext context,
+    AppUser actor,
+    PayoutProfileSummary profile,
+  ) async {
+    final formValue = await showPayoutAccountDialog(
+      context: context,
+      title: 'Rider payout account',
+      initialValue: profile,
+    );
+    if (formValue == null || !context.mounted) {
+      return;
+    }
+    try {
+      await DatabaseService().saveRiderPayoutProfile(
+        actor: actor,
+        methodType: formValue.methodType,
+        accountHolderName: formValue.accountHolderName,
+        upiId: formValue.upiId,
+        bankAccountNumber: formValue.bankAccountNumber,
+        bankIfsc: formValue.bankIfsc,
+        bankName: formValue.bankName,
+      );
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Payout account saved successfully.'),
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -115,7 +163,20 @@ class RiderDashboard extends StatelessWidget {
                   pendingAmount: wallet?.pendingAmount ?? 0,
                   reservedAmount: wallet?.reservedAmount ?? 0,
                   totalEarnings: wallet?.totalEarnings ?? actor.walletBalance,
-                  onWithdraw: () => _requestWithdrawal(context, actor),
+                  payoutProfile: wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
+                  onWithdraw: () {
+                    final profile = wallet?.payoutProfile ?? const PayoutProfileSummary.empty();
+                    if (!profile.isConfigured) {
+                      _managePayoutAccount(context, actor, profile);
+                      return;
+                    }
+                    _requestWithdrawal(context, actor);
+                  },
+                  onManagePayoutAccount: () => _managePayoutAccount(
+                    context,
+                    actor,
+                    wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
+                  ),
                 );
               },
             ),
@@ -415,14 +476,18 @@ class _RiderWalletCard extends StatelessWidget {
     required this.pendingAmount,
     required this.reservedAmount,
     required this.totalEarnings,
+    required this.payoutProfile,
     required this.onWithdraw,
+    required this.onManagePayoutAccount,
   });
 
   final double balance;
   final double pendingAmount;
   final double reservedAmount;
   final double totalEarnings;
+  final PayoutProfileSummary payoutProfile;
   final VoidCallback onWithdraw;
+  final VoidCallback onManagePayoutAccount;
 
   String _money(double amount) => 'Rs ${amount.toStringAsFixed(0)}';
 
@@ -452,6 +517,12 @@ class _RiderWalletCard extends StatelessWidget {
                 label: const Text('Withdraw'),
               ),
             ],
+          ),
+          const SizedBox(height: 14),
+          PayoutAccountSummaryCard(
+            title: 'Settlement destination',
+            profile: payoutProfile,
+            onManage: onManagePayoutAccount,
           ),
           const SizedBox(height: 14),
           Row(

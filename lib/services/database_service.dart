@@ -6363,17 +6363,17 @@ class DatabaseService {
     }
     final store = await getStoreByOwner(actor.id);
     if (store == null) {
-      return const WalletSummary(
-        id: 'vendor',
-        kind: 'vendor',
-        linkedId: '',
-        balance: 0,
-        pendingAmount: 0,
-        reservedAmount: 0,
-        totalEarnings: 0,
-        totalWithdrawn: 0,
-        lastSettlementDate: '',
-      );
+        return const WalletSummary(
+          id: 'vendor',
+          kind: 'vendor',
+          linkedId: '',
+          balance: 0,
+          pendingAmount: 0,
+          reservedAmount: 0,
+          totalEarnings: 0,
+          totalWithdrawn: 0,
+          lastSettlementDate: '',
+        );
     }
     final orders = (await getAllOrders()).where((order) => order.storeId == store.id).toList();
     final pendingAmount = orders
@@ -6414,18 +6414,18 @@ class DatabaseService {
       }
       return _backendCommerce.getRiderWallet();
     }
-    return WalletSummary(
-      id: actor.id,
-      kind: 'rider',
-      linkedId: actor.id,
-      balance: actor.walletBalance,
+      return WalletSummary(
+        id: actor.id,
+        kind: 'rider',
+        linkedId: actor.id,
+        balance: actor.walletBalance,
       pendingAmount: 0,
       reservedAmount: 0,
       totalEarnings: actor.walletBalance,
       totalWithdrawn: 0,
-      lastSettlementDate: '',
-    );
-  }
+        lastSettlementDate: '',
+      );
+    }
 
   Future<WalletSummary> requestRiderWithdraw({
     required double amount,
@@ -6438,6 +6438,76 @@ class DatabaseService {
       return _backendCommerce.requestRiderWithdraw(amount);
     }
     throw StateError('Rider withdrawals are only supported in backend mode.');
+  }
+
+  Future<PayoutProfileSummary> getVendorPayoutProfile({required AppUser actor}) async {
+    if (_backendCommerce.isConfigured) {
+      if (actor.role != 'vendor') {
+        throw StateError('Vendor access required.');
+      }
+      return _backendCommerce.getVendorPayoutProfile();
+    }
+    throw StateError('Vendor payout accounts are only supported in backend mode.');
+  }
+
+  Future<PayoutProfileSummary> saveVendorPayoutProfile({
+    required AppUser actor,
+    required String methodType,
+    required String accountHolderName,
+    String upiId = '',
+    String bankAccountNumber = '',
+    String bankIfsc = '',
+    String bankName = '',
+  }) async {
+    if (_backendCommerce.isConfigured) {
+      if (actor.role != 'vendor') {
+        throw StateError('Vendor access required.');
+      }
+      return _backendCommerce.saveVendorPayoutProfile(
+        methodType: methodType,
+        accountHolderName: accountHolderName,
+        upiId: upiId,
+        bankAccountNumber: bankAccountNumber,
+        bankIfsc: bankIfsc,
+        bankName: bankName,
+      );
+    }
+    throw StateError('Vendor payout accounts are only supported in backend mode.');
+  }
+
+  Future<PayoutProfileSummary> getRiderPayoutProfile({required AppUser actor}) async {
+    if (_backendCommerce.isConfigured) {
+      if (!isRider(actor)) {
+        throw StateError('Rider access required.');
+      }
+      return _backendCommerce.getRiderPayoutProfile();
+    }
+    throw StateError('Rider payout accounts are only supported in backend mode.');
+  }
+
+  Future<PayoutProfileSummary> saveRiderPayoutProfile({
+    required AppUser actor,
+    required String methodType,
+    required String accountHolderName,
+    String upiId = '',
+    String bankAccountNumber = '',
+    String bankIfsc = '',
+    String bankName = '',
+  }) async {
+    if (_backendCommerce.isConfigured) {
+      if (!isRider(actor)) {
+        throw StateError('Rider access required.');
+      }
+      return _backendCommerce.saveRiderPayoutProfile(
+        methodType: methodType,
+        accountHolderName: accountHolderName,
+        upiId: upiId,
+        bankAccountNumber: bankAccountNumber,
+        bankIfsc: bankIfsc,
+        bankName: bankName,
+      );
+    }
+    throw StateError('Rider payout accounts are only supported in backend mode.');
   }
 
   Future<AdminFinanceSummary> getAdminFinance({required AppUser actor}) async {
