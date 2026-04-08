@@ -1305,7 +1305,7 @@ class _ProductPreviewSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 238,
+          height: 266,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: products.isEmpty ? 1 : products.take(6).length + 1,
@@ -1383,7 +1383,7 @@ class _ProductPreviewCard extends StatelessWidget {
                 Text(
                   product.name,
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),

@@ -1630,7 +1630,7 @@ Widget _storesFallbackSection(
       if (products.isNotEmpty) ...[
         const SizedBox(height: 10),
         SizedBox(
-          height: 214,
+          height: 236,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: products.length,

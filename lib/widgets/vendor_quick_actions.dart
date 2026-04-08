@@ -37,7 +37,7 @@ class VendorQuickActions extends StatelessWidget {
         crossAxisCount: 4,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.96,
+        childAspectRatio: 0.68,
       ),
       itemBuilder: (context, index) {
         final action = actions[index];

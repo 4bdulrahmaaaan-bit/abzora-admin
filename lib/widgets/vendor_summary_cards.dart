@@ -30,7 +30,7 @@ class VendorSummaryCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 154,
+      height: 172,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: metrics.length,
