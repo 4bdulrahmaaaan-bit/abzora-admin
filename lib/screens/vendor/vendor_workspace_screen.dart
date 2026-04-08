@@ -35,8 +35,10 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
   List<OrderModel> _orders = const [];
   VendorAnalytics? _analytics;
   WalletSummary? _wallet;
+  CustomVendorQualityState? _qualityState;
 
   AppUser? get _actor => context.read<AuthProvider>().user;
+  bool get _isCustomVendor => _store?.vendorType == 'custom_vendor';
 
   @override
   void initState() {
@@ -60,17 +62,24 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
     try {
       final store = await _db.getStoreByOwner(actor.id);
       if (store == null) throw Exception('Store not found.');
-      final data = await Future.wait<dynamic>([
+      final futures = <Future<dynamic>>[
         _db.getVendorOrders(store.id, actor: actor).first,
         _db.getVendorAnalytics(store.id, actor: actor),
         _db.getVendorWallet(actor: actor),
-      ]);
+      ];
+      if (store.vendorType == 'custom_vendor') {
+        futures.add(_db.getCustomVendorQuality(actor: actor));
+      }
+      final data = await Future.wait<dynamic>(futures);
       if (!mounted) return;
       setState(() {
         _store = store;
         _orders = data[0] as List<OrderModel>;
         _analytics = data[1] as VendorAnalytics;
         _wallet = data[2] as WalletSummary;
+        _qualityState = store.vendorType == 'custom_vendor'
+            ? data[3] as CustomVendorQualityState
+            : null;
         _acceptingOrders = store.isActive;
         _loading = false;
       });
@@ -94,6 +103,22 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
     await _load();
   }
 
+  Future<void> _openCustomOrderDetails(OrderModel order) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFFF9F7F2),
+      builder: (context) => FractionallySizedBox(
+        heightFactor: 0.92,
+        child: _CustomOrderDetailSheet(
+          order: order,
+          money: m,
+          onSet: (status) => _setStatus(order, status),
+        ),
+      ),
+    );
+  }
+
   Future<void> _withdraw() async {
     final actor = _actor;
     final wallet = _wallet;
@@ -114,6 +139,88 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
     await _db.requestVendorWithdraw(amount: amount, actor: actor);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Withdrawal requested')));
+    await _load();
+  }
+
+  Future<void> _completeTrainingModule(CustomVendorTrainingModule module) async {
+    final actor = _actor;
+    if (actor == null) return;
+    await _db.completeCustomVendorTrainingModule(
+      moduleKey: module.key,
+      actor: actor,
+      score: 100,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${module.title} marked as completed')),
+    );
+    await _load();
+  }
+
+  Future<void> _submitSampleReview() async {
+    final actor = _actor;
+    if (actor == null) return;
+    final imagesController = TextEditingController();
+    final notesController = TextEditingController();
+    final result = await showDialog<(List<String>, String)>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Submit sample work'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: imagesController,
+              minLines: 3,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: 'Sample image URLs',
+                hintText: 'Paste one image URL per line',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesController,
+              minLines: 2,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Notes',
+                hintText: 'Optional notes for admin review',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final images = imagesController.text
+                  .split(RegExp(r'[\r\n]+'))
+                  .map((item) => item.trim())
+                  .where((item) => item.isNotEmpty)
+                  .toList();
+              Navigator.of(context).pop((images, notesController.text.trim()));
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+    imagesController.dispose();
+    notesController.dispose();
+    if (result == null || result.$1.isEmpty) return;
+    await _db.submitCustomVendorSampleReview(
+      sampleImages: result.$1,
+      notes: result.$2,
+      actor: actor,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sample work submitted for approval')),
+    );
     await _load();
   }
 
@@ -146,6 +253,17 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
   Widget _home() {
     final a = _analytics!;
     final w = _wallet!;
+    final customOrders = _orders.where((order) => order.fulfillmentType == 'custom_tailoring').toList();
+    final todayTailoringOrders = customOrders.where((order) {
+      final created = DateTime.tryParse(order.createdAt ?? '') ?? order.timestamp;
+      final now = DateTime.now();
+      return created.year == now.year && created.month == now.month && created.day == now.day;
+    }).length;
+    final inProduction = customOrders.where((order) {
+      return order.customOrderStatus == 'accepted' ||
+          order.customOrderStatus == 'in_stitching' ||
+          order.customOrderStatus == 'quality_check';
+    }).length;
     return ListView(padding: const EdgeInsets.all(12), children: [
       _Card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Welcome back, ${_store!.name}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
@@ -153,16 +271,110 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
         Row(children: [const Icon(Icons.storefront_rounded, color: AbzioTheme.accentColor), const SizedBox(width: 8), const Expanded(child: Text('Accepting Orders')), Switch(value: _acceptingOrders, onChanged: (v) => setState(() => _acceptingOrders = v))]),
       ])),
       const SizedBox(height: 10),
-      _MetricGrid(items: [('Revenue Today', 'Gross sales', m(a.todayRevenue), const Color(0xFF374151)), ('Earnings Today', 'After commission', m(a.todayEarnings), const Color(0xFF15803D)), ('Pending Orders', 'Need action', '${_orders.where((o) => o.status == 'Placed').length}', const Color(0xFFC2410C)), ('Completed Orders', 'Delivered', '${_orders.where((o) => o.status == 'Delivered' || o.status == 'Completed').length}', const Color(0xFF374151))]),
+      _isCustomVendor
+          ? _MetricGrid(
+              items: [
+                ('Today Orders', 'New custom requests', '$todayTailoringOrders', const Color(0xFF374151)),
+                ('In Production', 'Accepted or stitching', '$inProduction', const Color(0xFFC2410C)),
+                ('Earnings Today', 'Released + pending', m(a.todayEarnings), const Color(0xFF15803D)),
+                ('Completed', 'Delivered custom pieces', '${customOrders.where((o) => o.customOrderStatus == 'delivered').length}', const Color(0xFF374151)),
+              ],
+            )
+          : _MetricGrid(items: [('Revenue Today', 'Gross sales', m(a.todayRevenue), const Color(0xFF374151)), ('Earnings Today', 'After commission', m(a.todayEarnings), const Color(0xFF15803D)), ('Pending Orders', 'Need action', '${_orders.where((o) => o.status == 'Placed').length}', const Color(0xFFC2410C)), ('Completed Orders', 'Delivered', '${_orders.where((o) => o.status == 'Delivered' || o.status == 'Completed').length}', const Color(0xFF374151))]),
       const SizedBox(height: 10),
       _MetricGrid3(items: [('Commission Today', m(a.todayCommission), const Color(0xFFB91C1C)), ('Pending Settlement', m(w.pendingAmount), const Color(0xFFC2410C)), ('Available Balance', m(w.balance), const Color(0xFF15803D))]),
+      if (_isCustomVendor) ...[
+        const SizedBox(height: 10),
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Tailor Performance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              _line('Rating', _store!.rating == 0 ? 'New' : _store!.rating.toStringAsFixed(1)),
+              _line('On-time delivery', '${((1 - _store!.customVendorProfile.metrics.delayRate) * 100).toStringAsFixed(0)}%'),
+              _line('Order success rate', '${(_store!.customVendorProfile.metrics.orderSuccessRate * 100).toStringAsFixed(0)}%'),
+              _line('Production time', '${_store!.customVendorProfile.productionTimeDays} days'),
+            ],
+          ),
+        ),
+        if (_qualityState != null) ...[
+          const SizedBox(height: 10),
+          _Card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Studio Quality', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                _line('Quality score', '${_qualityState!.quality.qualityScore.toStringAsFixed(0)}/100'),
+                _line('Visibility tier', _qualityState!.quality.visibilityTier),
+                _line('Training status', _qualityState!.training.trainingStatus.replaceAll('_', ' ')),
+                _line('Sample approval', _qualityState!.sampleReview.status.replaceAll('_', ' ')),
+                _line('Fit success', '${(_qualityState!.quality.fitSuccessRate * 100).toStringAsFixed(0)}%'),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final module in _qualityState!.training.modules)
+                      ActionChip(
+                        avatar: Icon(
+                          module.status == 'completed' ? Icons.check_circle_rounded : Icons.school_outlined,
+                          size: 18,
+                          color: module.status == 'completed' ? const Color(0xFF15803D) : const Color(0xFF8C6A12),
+                        ),
+                        label: Text(module.title),
+                        onPressed: module.status == 'completed'
+                            ? null
+                            : () => _completeTrainingModule(module),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (_qualityState!.sampleReview.status != 'approved')
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: _submitSampleReview,
+                      icon: const Icon(Icons.photo_library_outlined),
+                      label: const Text('Submit sample work'),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Orders in production', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              if (customOrders.isEmpty)
+                const AbzioEmptyCard(title: 'No custom orders yet', subtitle: 'Accepted orders will appear here for stitching and QC.')
+              else
+                ...customOrders
+                    .where((order) => order.customOrderStatus != 'delivered')
+                    .take(3)
+                    .map((order) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _CustomProductionRow(
+                            order: order,
+                            onTap: () => _openCustomOrderDetails(order),
+                          ),
+                        )),
+            ],
+          ),
+        ),
+      ],
       const SizedBox(height: 10),
       _Card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('Quick actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         Wrap(spacing: 8, runSpacing: 8, children: [
           _Action(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddProductScreen(storeId: _store!.id))), icon: Icons.add_box_rounded, t: 'Add Product', s: 'Publish new item'),
-          _Action(onTap: () => setState(() => _index = 1), icon: Icons.list_alt_rounded, t: 'View Orders', s: 'Process quickly'),
+          _Action(onTap: () => setState(() => _index = 1), icon: Icons.list_alt_rounded, t: _isCustomVendor ? 'Custom Orders' : 'View Orders', s: _isCustomVendor ? 'Stitching workflow' : 'Process quickly'),
           _Action(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StoreSettingsScreen(store: _store!))), icon: Icons.store_rounded, t: 'Manage Store', s: 'Branding/settings'),
           _Action(onTap: () => setState(() => _index = 2), icon: Icons.payments_rounded, t: 'View Earnings', s: 'Wallet/payouts'),
         ]),
@@ -172,6 +384,18 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
 
   Widget _ordersTab() {
     final filtered = _orders.where((o) {
+      if (_isCustomVendor && o.fulfillmentType == 'custom_tailoring') {
+        if (_orderTab == 'new') return o.customOrderStatus == 'new_order';
+        if (_orderTab == 'processing') {
+          return o.customOrderStatus == 'accepted' ||
+              o.customOrderStatus == 'in_stitching' ||
+              o.customOrderStatus == 'quality_check';
+        }
+        if (_orderTab == 'ready') {
+          return o.customOrderStatus == 'ready' || o.customOrderStatus == 'shipped';
+        }
+        return o.customOrderStatus == 'delivered';
+      }
       if (_orderTab == 'new') return o.status == 'Placed';
       if (_orderTab == 'processing') return o.status == 'Confirmed' || o.status == 'Packed';
       if (_orderTab == 'ready') return o.status == 'Ready for pickup';
@@ -186,7 +410,12 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
       ])),
       const SizedBox(height: 10),
       if (filtered.isEmpty) const _Card(child: AbzioEmptyCard(title: 'No orders yet', subtitle: 'New orders will appear here.')),
-      ...filtered.map((o) => Padding(padding: const EdgeInsets.only(bottom: 10), child: _OrderCard(order: o, money: m, onSet: _setStatus))),
+      ...filtered.map((o) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: _isCustomVendor && o.fulfillmentType == 'custom_tailoring'
+            ? _CustomOrderCard(order: o, money: m, onSet: _setStatus)
+            : _OrderCard(order: o, money: m, onSet: _setStatus),
+      )),
       const SizedBox(height: 6),
       if (_orderTab != 'completed') FilledButton.tonal(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderManagementScreen(actor: _actor!, store: _store!))), child: const Text('Open full queue')),
     ]);
@@ -242,7 +471,33 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
         _line('Address', store.address),
         _line('Commission', '${(store.commissionRate * 100).toStringAsFixed(1)}%'),
         _line('Payout Profile', wallet.payoutProfile.isConfigured ? 'Configured' : 'Pending'),
+        if (_isCustomVendor) _line('Vendor Type', 'Custom tailoring'),
       ])),
+      if (_isCustomVendor) ...[
+        const SizedBox(height: 10),
+        _Card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Custom Tailoring Profile', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          _line('Experience', '${store.customVendorProfile.experienceYears} years'),
+          _line('Specialization', store.customVendorProfile.specializations.isEmpty ? 'Not set' : store.customVendorProfile.specializations.join(', ')),
+          _line('Price range', '${m(store.customVendorProfile.priceRangeMin)} - ${m(store.customVendorProfile.priceRangeMax)}'),
+          _line('Production time', '${store.customVendorProfile.productionTimeDays} days'),
+          _line('Alterations', store.customVendorProfile.supportsAlterations ? 'Supported' : 'Not supported'),
+        ])),
+        if (_qualityState != null) ...[
+          const SizedBox(height: 10),
+          _Card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Quality & Training', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            _line('Quality score', '${_qualityState!.quality.qualityScore.toStringAsFixed(0)}/100'),
+            _line('On-time delivery', '${(_qualityState!.quality.onTimeDeliveryRate * 100).toStringAsFixed(0)}%'),
+            _line('Fit success', '${(_qualityState!.quality.fitSuccessRate * 100).toStringAsFixed(0)}%'),
+            _line('Sample approval', _qualityState!.sampleReview.status.replaceAll('_', ' ')),
+            if (_qualityState!.sampleReview.adminFeedback.isNotEmpty)
+              _line('Admin feedback', _qualityState!.sampleReview.adminFeedback),
+          ])),
+        ],
+      ],
       const SizedBox(height: 10),
       _Card(child: Column(children: [
         ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.inventory_2_outlined), title: const Text('Product Management'), subtitle: const Text('Catalogue and stock'), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductManagementScreen(storeId: store.id)))),
@@ -385,6 +640,369 @@ class _OrderCard extends StatelessWidget {
           ]),
         ]),
       );
+}
+
+class _CustomOrderCard extends StatelessWidget {
+  const _CustomOrderCard({required this.order, required this.money, required this.onSet});
+  final OrderModel order;
+  final String Function(double) money;
+  final Future<void> Function(OrderModel order, String status) onSet;
+
+  @override
+  Widget build(BuildContext context) => _Card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Chip(
+                  label: Text(order.customOrderStatus.replaceAll('_', ' ')),
+                  backgroundColor: const Color(0xFFF4E8C5),
+                  side: BorderSide.none,
+                ),
+              ],
+            ),
+            Text('Customer: ${order.shippingLabel.isEmpty ? order.userId : order.shippingLabel}'),
+            Text(
+              'Category: ${order.items.isEmpty ? 'Custom' : order.items.first.productName}',
+              style: const TextStyle(color: Colors.black54),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E8),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.straighten_rounded, size: 16, color: Color(0xFF8F6A1D)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _measurementSummary(order),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Delivery: ${_deliveryLabel(order)}',
+                    style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Text(money(order.totalAmount), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: order.customOrderStatus == 'new_order'
+                        ? () => onSet(order, 'accepted')
+                        : null,
+                    child: const Text('Accept'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.tonal(
+                    onPressed: () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: const Color(0xFFF9F7F2),
+                        builder: (context) => FractionallySizedBox(
+                          heightFactor: 0.92,
+                          child: _CustomOrderDetailSheet(
+                            order: order,
+                            money: money,
+                            onSet: (status) => onSet(order, status),
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('View details'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+  String _measurementSummary(OrderModel order) {
+    if (order.customMeasurements.isEmpty) {
+      return 'Measurements pending';
+    }
+    final chest = order.customMeasurements['chest'];
+    final waist = order.customMeasurements['waist'];
+    final shoulder = order.customMeasurements['shoulder'];
+    final pieces = <String>[
+      if (chest != null) 'Chest ${chest.toString()}',
+      if (waist != null) 'Waist ${waist.toString()}',
+      if (shoulder != null) 'Shoulder ${shoulder.toString()}',
+    ];
+    return pieces.isEmpty ? 'Measurements captured' : pieces.join(' • ');
+  }
+
+  String _deliveryLabel(OrderModel order) {
+    final created = DateTime.tryParse(order.createdAt ?? '') ?? order.timestamp;
+    final days = order.customProductionTimeDays > 0 ? order.customProductionTimeDays : 7;
+    final target = created.add(Duration(days: days));
+    return DateFormat('d MMM').format(target);
+  }
+}
+
+class _CustomProductionRow extends StatelessWidget {
+  const _CustomProductionRow({required this.order, required this.onTap});
+
+  final OrderModel order;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Ink(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFBFAF7),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFEAE6DB)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AbzioTheme.accentColor.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.design_services_rounded, color: AbzioTheme.accentColor),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    order.shippingLabel.isEmpty ? order.userId : order.shippingLabel,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    order.customOrderStatus.replaceAll('_', ' '),
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CustomOrderDetailSheet extends StatelessWidget {
+  const _CustomOrderDetailSheet({
+    required this.order,
+    required this.money,
+    required this.onSet,
+  });
+
+  final OrderModel order;
+  final String Function(double) money;
+  final Future<void> Function(String status) onSet;
+
+  @override
+  Widget build(BuildContext context) {
+    final measurementEntries = order.customMeasurements.entries.toList();
+    final designEntries = order.customDesignOptions.entries.toList();
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Custom Order Details',
+                    style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            Expanded(
+              child: ListView(
+                children: [
+                  _Card(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          order.shippingLabel.isEmpty ? order.userId : order.shippingLabel,
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(order.items.isEmpty ? 'Custom outfit' : order.items.first.productName),
+                        const SizedBox(height: 6),
+                        Text('Earnings per order: ${money(order.vendorEarnings)}', style: const TextStyle(color: Color(0xFF15803D), fontWeight: FontWeight.w700)),
+                        Text('Delivery date: ${DateFormat('d MMM y').format((DateTime.tryParse(order.createdAt ?? '') ?? order.timestamp).add(Duration(days: order.customProductionTimeDays > 0 ? order.customProductionTimeDays : 7)))}'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _Card(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Full measurements', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 8),
+                        if (measurementEntries.isEmpty)
+                          const Text('No measurements attached.')
+                        else
+                          ...measurementEntries.map((entry) => Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Row(
+                                  children: [
+                                    Expanded(child: Text(entry.key, style: const TextStyle(color: Colors.black54))),
+                                    Text('${entry.value}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                                  ],
+                                ),
+                              )),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _Card(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Design selections', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 8),
+                        if (designEntries.isEmpty)
+                          const Text('No design selections attached.')
+                        else
+                          ...designEntries.map((entry) => Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Row(
+                                  children: [
+                                    Expanded(child: Text(entry.key, style: const TextStyle(color: Colors.black54))),
+                                    Text('${entry.value}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                                  ],
+                                ),
+                              )),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _Card(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Reference image', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 8),
+                        Container(
+                          height: 150,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            color: const Color(0xFFF5F0E2),
+                            border: Border.all(color: const Color(0xFFE5D7B2)),
+                          ),
+                          child: Center(
+                            child: order.referenceImageUrl.isEmpty
+                                ? const Text('No reference image')
+                                : const Icon(Icons.image_rounded, size: 40, color: Color(0xFF9C7A2C)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _Card(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Production tracking', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: const [
+                            _StatusChip(label: 'New'),
+                            _StatusChip(label: 'Accepted'),
+                            _StatusChip(label: 'Stitching'),
+                            _StatusChip(label: 'Quality Check'),
+                            _StatusChip(label: 'Ready'),
+                            _StatusChip(label: 'Shipped'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton(onPressed: order.customOrderStatus == 'new_order' ? () => onSet('accepted') : null, child: const Text('Accept')),
+                OutlinedButton(onPressed: order.customOrderStatus == 'new_order' ? () => onSet('rejected') : null, child: const Text('Reject')),
+                FilledButton(onPressed: order.customOrderStatus == 'accepted' ? () => onSet('in_stitching') : null, child: const Text('Start stitching')),
+                FilledButton.tonal(onPressed: order.customOrderStatus == 'in_stitching' ? () => onSet('quality_check') : null, child: const Text('Mark QC done')),
+                FilledButton.tonal(onPressed: order.customOrderStatus == 'quality_check' ? () => onSet('ready') : null, child: const Text('Ready for dispatch')),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4E8C5),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+    );
+  }
 }
 
 class _TxRow extends StatelessWidget {

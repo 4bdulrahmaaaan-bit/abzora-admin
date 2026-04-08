@@ -406,7 +406,14 @@ class _OrderDetailsPage extends StatelessWidget {
   final VoidCallback onSupport;
   final VoidCallback onReorder;
 
+  bool get _isCustomTailoring =>
+      order.orderType == 'custom_tailoring' ||
+      order.fulfillmentType == 'custom_tailoring';
+
   String get _normalizedStatus {
+    if (_isCustomTailoring) {
+      return order.customOrderStatus.trim().toLowerCase();
+    }
     final value = (order.deliveryStatus.isNotEmpty ? order.deliveryStatus : order.status).trim().toLowerCase();
     if (value == 'placed' || value == 'pending') {
       return 'order placed';
@@ -415,6 +422,31 @@ class _OrderDetailsPage extends StatelessWidget {
   }
 
   int get _currentStepIndex {
+    if (_isCustomTailoring) {
+      switch (_normalizedStatus) {
+        case 'delivered':
+          return 6;
+        case 'shipped':
+          return 5;
+        case 'ready':
+        case 'ready_for_dispatch':
+          return 4;
+        case 'quality check':
+        case 'quality_check':
+          return 3;
+        case 'stitching':
+        case 'in stitching':
+        case 'in_stitching':
+          return 2;
+        case 'accepted':
+          return 1;
+        case 'cancelled':
+        case 'rejected':
+          return 0;
+        default:
+          return 0;
+      }
+    }
     switch (_normalizedStatus) {
       case 'delivered':
         return 4;
@@ -441,7 +473,10 @@ class _OrderDetailsPage extends StatelessWidget {
         return parsed;
       }
     }
-    return order.timestamp.add(Duration(days: order.orderType == 'custom_tailoring' ? 6 : 3));
+    final customProductionDays = (order.customDesignOptions['productionTimeDays'] as num?)?.toInt();
+    return order.timestamp.add(
+      Duration(days: _isCustomTailoring ? (customProductionDays ?? 6) : 3),
+    );
   }
 
   String _timestampLabelFor(String title, int index) {
@@ -459,11 +494,46 @@ class _OrderDetailsPage extends StatelessWidget {
       final inferred = order.timestamp.add(Duration(hours: index * 6));
       return DateFormat('dd MMM, hh:mm a').format(inferred);
     }
-    final expected = _estimatedDelivery.subtract(Duration(hours: (4 - index) * 6));
+    final totalSteps = _isCustomTailoring ? 7 : 5;
+    final expected = _estimatedDelivery.subtract(Duration(hours: ((totalSteps - 1) - index) * 6));
     return 'Expected ${DateFormat('dd MMM, hh:mm a').format(expected)}';
   }
 
   List<TrackingStepData> _buildSteps() {
+    if (_isCustomTailoring) {
+      const labels = [
+        'Order Placed',
+        'Accepted by Tailor',
+        'Stitching in Progress',
+        'Quality Check',
+        'Ready for Dispatch',
+        'Shipped',
+        'Delivered',
+      ];
+      const icons = [
+        Icons.receipt_long_outlined,
+        Icons.check_circle_outline,
+        Icons.content_cut_outlined,
+        Icons.fact_check_outlined,
+        Icons.local_mall_outlined,
+        Icons.local_shipping_outlined,
+        Icons.home_filled,
+      ];
+
+      return List.generate(labels.length, (index) {
+        final state = index < _currentStepIndex
+            ? TrackingStepState.completed
+            : index == _currentStepIndex
+                ? TrackingStepState.current
+                : TrackingStepState.upcoming;
+        return TrackingStepData(
+          title: labels[index],
+          timestampLabel: _timestampLabelFor(labels[index], index),
+          icon: icons[index],
+          state: state,
+        );
+      });
+    }
     const labels = [
       'Order Placed',
       'Confirmed',
@@ -495,6 +565,31 @@ class _OrderDetailsPage extends StatelessWidget {
   }
 
   String get _statusTitle {
+    if (_isCustomTailoring) {
+      switch (_normalizedStatus) {
+        case 'cancelled':
+        case 'rejected':
+          return 'Custom Order Cancelled';
+        case 'accepted':
+          return 'Accepted by Tailor';
+        case 'stitching':
+        case 'in stitching':
+        case 'in_stitching':
+          return 'Stitching in Progress';
+        case 'quality check':
+        case 'quality_check':
+          return 'Quality Check';
+        case 'ready':
+        case 'ready_for_dispatch':
+          return 'Ready for Dispatch';
+        case 'shipped':
+          return 'Shipped';
+        case 'delivered':
+          return 'Delivered';
+        default:
+          return 'Order Placed';
+      }
+    }
     switch (_normalizedStatus) {
       case 'cancelled':
         return 'Order Cancelled';
@@ -515,6 +610,21 @@ class _OrderDetailsPage extends StatelessWidget {
   }
 
   Color get _statusColor {
+    if (_isCustomTailoring) {
+      switch (_normalizedStatus) {
+        case 'cancelled':
+        case 'rejected':
+          return const Color(0xFFB23A3A);
+        case 'delivered':
+          return const Color(0xFF1B8E5A);
+        case 'shipped':
+        case 'ready':
+        case 'ready_for_dispatch':
+          return const Color(0xFF9E6A00);
+        default:
+          return const Color(0xFF7B6A2D);
+      }
+    }
     switch (_normalizedStatus) {
       case 'cancelled':
         return const Color(0xFFB23A3A);
@@ -529,6 +639,220 @@ class _OrderDetailsPage extends StatelessWidget {
     }
   }
 
+  String get _storeLabel {
+    if (order.selectedDesignerName.trim().isNotEmpty) {
+      return order.selectedDesignerName.trim();
+    }
+    return 'Your Designer Studio';
+  }
+
+  String get _customCategoryLabel {
+    final explicitCategory = order.customDesignOptions['category']?.toString().trim() ?? '';
+    if (explicitCategory.isNotEmpty) {
+      return explicitCategory;
+    }
+    final itemLabel = order.items.isNotEmpty ? order.items.first.productName.trim() : '';
+    return itemLabel.isEmpty ? 'Custom Clothing' : itemLabel;
+  }
+
+  List<MapEntry<String, String>> get _measurementEntries {
+    final entries = <MapEntry<String, String>>[];
+    const orderedLabels = {
+      'chest': 'Chest',
+      'waist': 'Waist',
+      'hips': 'Hips',
+      'shoulder': 'Shoulder',
+      'height': 'Height',
+    };
+    for (final entry in orderedLabels.entries) {
+      final value = order.customMeasurements[entry.key];
+      if (value != null && value.toString().trim().isNotEmpty) {
+        entries.add(MapEntry(entry.value, '${value.toString().trim()} cm'));
+      }
+    }
+    order.customMeasurements.forEach((key, value) {
+      if (orderedLabels.containsKey(key) || value == null || value.toString().trim().isEmpty) {
+        return;
+      }
+      entries.add(MapEntry(_humanizeKey(key), value.toString().trim()));
+    });
+    return entries;
+  }
+
+  List<MapEntry<String, String>> get _designEntries {
+    final entries = <MapEntry<String, String>>[];
+    order.customDesignOptions.forEach((key, value) {
+      if (value == null) {
+        return;
+      }
+      final normalized = value.toString().trim();
+      if (normalized.isEmpty || key == 'productionTimeDays') {
+        return;
+      }
+      entries.add(MapEntry(_humanizeKey(key), normalized));
+    });
+    return entries;
+  }
+
+  List<_CustomProgressMedia> get _progressMedia {
+    final items = <_CustomProgressMedia>[];
+    if (order.referenceImageUrl.trim().isNotEmpty) {
+      items.add(
+        _CustomProgressMedia(
+          label: 'Reference',
+          subtitle: 'Shared with the tailor',
+          imageUrl: order.referenceImageUrl.trim(),
+        ),
+      );
+    }
+    if (order.previewImageUrl.trim().isNotEmpty) {
+      items.add(
+        _CustomProgressMedia(
+          label: 'Preview',
+          subtitle: 'Design visualization',
+          imageUrl: order.previewImageUrl.trim(),
+        ),
+      );
+    }
+    if (order.vendorFinalImageUrl.trim().isNotEmpty) {
+      items.add(
+        _CustomProgressMedia(
+          label: 'Work in progress',
+          subtitle: 'Uploaded before dispatch',
+          imageUrl: order.vendorFinalImageUrl.trim(),
+        ),
+      );
+    }
+    return items;
+  }
+
+  bool get _canRequestChange =>
+      _isCustomTailoring &&
+      _currentStepIndex <= 3 &&
+      _normalizedStatus != 'cancelled' &&
+      _normalizedStatus != 'rejected';
+
+  bool get _canLeaveFitFeedback => _isCustomTailoring && _normalizedStatus == 'delivered';
+
+  static String _humanizeKey(String key) {
+    return key
+        .replaceAll('_', ' ')
+        .split(' ')
+        .where((part) => part.trim().isNotEmpty)
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
+  }
+
+  Future<void> _requestAlteration(BuildContext context) async {
+    final notes = await _showNotesPrompt(
+      context,
+      title: 'Request change',
+      subtitle: 'Share what the tailor should adjust before the outfit is finalized.',
+      hintText: 'Example: Please taper the waist slightly and shorten the sleeve by 1 inch.',
+      submitLabel: 'Send request',
+    );
+    if (notes == null) {
+      return;
+    }
+    try {
+      await database.requestCustomAlteration(orderId: order.id, notes: notes);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Change request sent to the tailor.')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to send request: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _submitFitFeedback(BuildContext context) async {
+    final payload = await showModalBottomSheet<_CustomFeedbackPayload>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _CustomFitFeedbackSheet(order: order),
+    );
+    if (payload == null) {
+      return;
+    }
+    try {
+      await database.submitCustomFitFeedback(
+        orderId: order.id,
+        fitRating: payload.fitRating,
+        qualityRating: payload.qualityRating,
+        deliveryRating: payload.deliveryRating,
+        notes: payload.notes,
+        needsAlteration: payload.needsAlteration,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Thanks for rating your tailoring experience.')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to submit feedback: $error')),
+        );
+      }
+    }
+  }
+
+  Future<String?> _showNotesPrompt(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required String hintText,
+    required String submitLabel,
+  }) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                subtitle,
+                style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
+                      color: dialogContext.abzioSecondaryText,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                minLines: 3,
+                maxLines: 5,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(hintText: hintText),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Not now'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()),
+              child: Text(submitLabel),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryItem = order.items.isEmpty ? null : order.items.first;
@@ -541,6 +865,10 @@ class _OrderDetailsPage extends StatelessWidget {
     final savedAmount = (order.subtotal > 0 ? (order.subtotal - order.totalAmount) : 0).clamp(0, double.infinity);
     final orderLabel = order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
     final contactLabel = (actor.phone ?? '').trim().isEmpty ? 'Not available' : actor.phone!.trim();
+    final progressMedia = _progressMedia;
+    final measurements = _measurementEntries;
+    final designEntries = _designEntries;
+    final steps = _buildSteps();
 
     return AbzioThemeScope.light(
       child: Scaffold(
@@ -598,7 +926,18 @@ class _OrderDetailsPage extends StatelessWidget {
                             ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
+                    if (_isCustomTailoring)
+                      Text(
+                        'Made by $_storeLabel • $_customCategoryLabel • Order ID: #$orderLabel',
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: context.abzioSecondaryText,
+                            ),
+                      )
+                    else
+                      Text(
                       primaryItem.productName,
                       textAlign: TextAlign.center,
                       maxLines: 2,
@@ -663,6 +1002,38 @@ class _OrderDetailsPage extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 12),
+            if (_isCustomTailoring)
+              _SectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionTitle(context, 'Custom order'),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(child: _miniInfo(context, 'Order ID', '#$orderLabel')),
+                        const SizedBox(width: 10),
+                        Expanded(child: _miniInfo(context, 'Store', _storeLabel)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(child: _miniInfo(context, 'Category', _customCategoryLabel)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _miniInfo(
+                            context,
+                            'Estimated delivery',
+                            DateFormat('dd MMM yyyy').format(_estimatedDelivery),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            if (_isCustomTailoring) const SizedBox(height: 12),
             _SectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,6 +1120,72 @@ class _OrderDetailsPage extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 12),
+            if (_isCustomTailoring && (designEntries.isNotEmpty || measurements.isNotEmpty))
+              _SectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionTitle(context, 'Design summary'),
+                    const SizedBox(height: 12),
+                    if (designEntries.isNotEmpty)
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: designEntries
+                            .map((entry) => _SummaryChip(label: entry.key, value: entry.value))
+                            .toList(),
+                      ),
+                    if (measurements.isNotEmpty) ...[
+                      if (designEntries.isNotEmpty) const SizedBox(height: 14),
+                      Text(
+                        'Estimated measurements (editable)',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: context.abzioSecondaryText,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: measurements
+                            .map((entry) => _SummaryChip(label: entry.key, value: entry.value))
+                            .toList(),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Precision fit guaranteed',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF8C6A12),
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            if (_isCustomTailoring && (designEntries.isNotEmpty || measurements.isNotEmpty))
+              const SizedBox(height: 12),
+            if (_isCustomTailoring && progressMedia.isNotEmpty)
+              _SectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionTitle(context, 'Progress media'),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 186,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: progressMedia.length,
+                        separatorBuilder: (context, index) => const SizedBox(width: 10),
+                        itemBuilder: (context, index) => _ProgressMediaTile(media: progressMedia[index]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (_isCustomTailoring && progressMedia.isNotEmpty) const SizedBox(height: 12),
             _SectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -783,7 +1220,7 @@ class _OrderDetailsPage extends StatelessWidget {
                 ],
               ),
             ),
-            if (_normalizedStatus == 'delivered') ...[
+            if (!_isCustomTailoring && _normalizedStatus == 'delivered') ...[
               const SizedBox(height: 12),
               _SectionCard(
                 child: Row(
@@ -819,14 +1256,50 @@ class _OrderDetailsPage extends StatelessWidget {
                   _sectionTitle(context, 'Tracking'),
                   const SizedBox(height: 14),
                   TrackingTimeline(
-                    steps: _buildSteps(),
-                    progressAnimation: AlwaysStoppedAnimation<double>(_currentStepIndex / 4),
+                    steps: steps,
+                    progressAnimation: AlwaysStoppedAnimation<double>(
+                      _currentStepIndex / ((steps.length - 1).clamp(1, 10)),
+                    ),
                     pulseAnimation: const AlwaysStoppedAnimation<double>(1),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
+            if (_isCustomTailoring)
+              _SectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionTitle(context, 'Actions'),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        _ActionChipButton(
+                          icon: Icons.chat_bubble_outline,
+                          label: 'Contact tailor',
+                          onPressed: onSupport,
+                        ),
+                        if (_canRequestChange)
+                          _ActionChipButton(
+                            icon: Icons.edit_note_outlined,
+                            label: 'Request change',
+                            onPressed: () => _requestAlteration(context),
+                          ),
+                        if (canCancel)
+                          _ActionChipButton(
+                            icon: Icons.cancel_outlined,
+                            label: 'Cancel early',
+                            onPressed: onCancel,
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            if (_isCustomTailoring) const SizedBox(height: 12),
             _SectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -958,17 +1431,59 @@ class _OrderDetailsPage extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 12),
-            _ActionPanel(
-              actor: actor,
-              order: order,
-              refundRequestFuture: database.getRefundRequestForOrder(order.id, actor: actor),
-              returnRequestFuture: database.getReturnRequestForOrder(order.id, actor: actor),
-              canCancel: canCancel,
-              onSupport: onSupport,
-              onCancel: onCancel,
-              onReorder: onReorder,
-            ),
-            if (order.trackingId.isEmpty) ...[
+            if (_canLeaveFitFeedback)
+              _SectionCard(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('★★★★★', style: TextStyle(color: Color(0xFFE0912D), fontSize: 18)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'How was the fit?',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            order.customerFitFeedbackStatus == 'submitted'
+                                ? 'Thanks for reviewing this made-to-measure order.'
+                                : 'Rate the fit, quality, and delivery so we can keep tailoring standards high.',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: context.abzioSecondaryText,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: order.customerFitFeedbackStatus == 'submitted'
+                          ? null
+                          : () => _submitFitFeedback(context),
+                      child: Text(
+                        order.customerFitFeedbackStatus == 'submitted' ? 'Submitted' : 'Rate fit',
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              _ActionPanel(
+                actor: actor,
+                order: order,
+                refundRequestFuture: database.getRefundRequestForOrder(order.id, actor: actor),
+                returnRequestFuture: database.getReturnRequestForOrder(order.id, actor: actor),
+                canCancel: canCancel,
+                onSupport: onSupport,
+                onCancel: onCancel,
+                onReorder: onReorder,
+              ),
+            if (!_isCustomTailoring && order.trackingId.isEmpty) ...[
               const SizedBox(height: 12),
               _TrackingEmptyHint(order: order),
             ],
@@ -1079,6 +1594,322 @@ class _SectionCard extends StatelessWidget {
         ],
       ),
       child: child,
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 112),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: context.abzioMuted,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: context.abzioSecondaryText,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CustomProgressMedia {
+  const _CustomProgressMedia({
+    required this.label,
+    required this.subtitle,
+    required this.imageUrl,
+  });
+
+  final String label;
+  final String subtitle;
+  final String imageUrl;
+}
+
+class _ProgressMediaTile extends StatelessWidget {
+  const _ProgressMediaTile({required this.media});
+
+  final _CustomProgressMedia media;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 154,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.abzioBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              child: CachedNetworkImage(
+                imageUrl: media.imageUrl,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(color: context.abzioMuted),
+                errorWidget: (context, url, error) => Container(
+                  color: context.abzioMuted,
+                  alignment: Alignment.center,
+                  child: Icon(Icons.image_not_supported_outlined, color: context.abzioSecondaryText),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  media.label,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  media.subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: context.abzioSecondaryText,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionChipButton extends StatelessWidget {
+  const _ActionChipButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+  }
+}
+
+class _CustomFeedbackPayload {
+  const _CustomFeedbackPayload({
+    required this.fitRating,
+    required this.qualityRating,
+    required this.deliveryRating,
+    required this.notes,
+    required this.needsAlteration,
+  });
+
+  final double fitRating;
+  final double qualityRating;
+  final double deliveryRating;
+  final String notes;
+  final bool needsAlteration;
+}
+
+class _CustomFitFeedbackSheet extends StatefulWidget {
+  const _CustomFitFeedbackSheet({required this.order});
+
+  final OrderModel order;
+
+  @override
+  State<_CustomFitFeedbackSheet> createState() => _CustomFitFeedbackSheetState();
+}
+
+class _CustomFitFeedbackSheetState extends State<_CustomFitFeedbackSheet> {
+  late final TextEditingController _notesController;
+  double _fitRating = 5;
+  double _qualityRating = 5;
+  double _deliveryRating = 5;
+  bool _needsAlteration = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _notesController = TextEditingController(text: widget.order.customerFitFeedbackNotes);
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6DECD),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'How was the fit?',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Rate this made-to-measure order so your tailor can keep improving.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: context.abzioSecondaryText,
+                  ),
+            ),
+            const SizedBox(height: 18),
+            _RatingField(
+              label: 'Fit',
+              value: _fitRating,
+              onChanged: (value) => setState(() => _fitRating = value),
+            ),
+            _RatingField(
+              label: 'Quality',
+              value: _qualityRating,
+              onChanged: (value) => setState(() => _qualityRating = value),
+            ),
+            _RatingField(
+              label: 'Delivery',
+              value: _deliveryRating,
+              onChanged: (value) => setState(() => _deliveryRating = value),
+            ),
+            SwitchListTile.adaptive(
+              value: _needsAlteration,
+              contentPadding: EdgeInsets.zero,
+              activeThumbColor: const Color(0xFFC8A95B),
+              activeTrackColor: const Color(0xFFF0DFAE),
+              title: const Text('I need an alteration'),
+              subtitle: const Text('The same tailor will be asked to adjust the outfit.'),
+              onChanged: (value) => setState(() => _needsAlteration = value),
+            ),
+            TextField(
+              controller: _notesController,
+              minLines: 3,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Notes',
+                hintText: 'Tell us about the fit, finish, or any changes you want.',
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  Navigator.of(context).pop(
+                    _CustomFeedbackPayload(
+                      fitRating: _fitRating,
+                      qualityRating: _qualityRating,
+                      deliveryRating: _deliveryRating,
+                      notes: _notesController.text.trim(),
+                      needsAlteration: _needsAlteration,
+                    ),
+                  );
+                },
+                child: const Text('Submit feedback'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RatingField extends StatelessWidget {
+  const _RatingField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label: ${value.toStringAsFixed(0)}/5',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          Slider(
+            value: value,
+            min: 1,
+            max: 5,
+            divisions: 4,
+            activeColor: const Color(0xFFC8A95B),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
     );
   }
 }

@@ -966,53 +966,173 @@ Widget _tailoringHighlight({required VoidCallback onStart}) {
     builder: (context) => TapScale(
       onTap: onStart,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          color: Theme.of(context).cardColor,
-          border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.5)),
-          boxShadow: [
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[
+              Color(0xFF121212),
+              Color(0xFF2E2417),
+              Color(0xFFF1DCA1),
+            ],
+          ),
+          border: Border.all(color: const Color(0x33FFFFFF)),
+          boxShadow: <BoxShadow>[
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 14,
-              offset: const Offset(0, 8),
+              color: Colors.black.withValues(alpha: 0.10),
+              blurRadius: 20,
+              offset: const Offset(0, 12),
             ),
           ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AbzioTheme.accentColor.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(Icons.design_services_rounded, color: AbzioTheme.accentColor),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AbzoraText.customClothingTitle,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(999),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    AbzoraText.customClothingSubtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.abzioSecondaryText),
+                  child: const Text(
+                    'LUXURY ATELIER',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.design_services_rounded,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Text(
+              AbzoraText.customClothingTitle,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    height: 1.05,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Crafted to your body. Designed with your chosen boutique.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.84),
+                    height: 1.45,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: const [
+                _AtelierChip(label: 'Featured Designers'),
+                _AtelierChip(label: 'Wedding Specialists'),
+                _AtelierChip(label: 'Formal Shirts'),
+                _AtelierChip(label: 'Blazers'),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.verified_rounded,
+                    color: Color(0xFFFFE7A7),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Choose store first • Live pricing • Precision fit guaranteed',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
                   ),
                 ],
               ),
             ),
-            ElevatedButton(onPressed: onStart, child: const Text(AbzoraText.customClothingCta)),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onStart,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text(AbzoraText.customClothingCta),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onStart,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Explore Designers'),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     ),
   );
+}
+
+class _AtelierChip extends StatelessWidget {
+  const _AtelierChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+    );
+  }
 }
 
 // ignore: unused_element

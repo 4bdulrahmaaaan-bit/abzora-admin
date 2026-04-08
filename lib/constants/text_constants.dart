@@ -2,7 +2,7 @@ class AbzoraText {
   static const brandName = 'ABZORA';
   static const brandTagline = 'Style Near You';
   static const premiumMarketplaceBadge = 'Premium Fashion Marketplace';
-  static const customNavLabel = 'Custom';
+  static const customNavLabel = 'Atelier';
   static const heroSearchTitlePrefix = 'Search in';
   static const profileSetupTitle = 'Complete your profile for perfect fit ✨';
   static const profileSetupNameLabel = 'Name';
@@ -31,9 +31,10 @@ class AbzoraText {
   static const changeLocation = 'Change location';
   static const expandTo25Km = 'Expand to 25 km';
 
-  static const customClothingTitle = 'Custom Clothing';
-  static const customClothingSubtitle = 'Designed for your perfect fit';
-  static const customClothingCta = 'Start Custom Order';
+  static const customClothingTitle = 'Tailored Just for You';
+  static const customClothingSubtitle =
+      'Choose a designer first, then create a made-to-measure look';
+  static const customClothingCta = 'Enter Atelier';
 
   static const trendingNearYouTitle = 'Trending Near You';
   static const trendingNearYouSubtitle = 'Popular picks from nearby stores';
@@ -134,9 +135,9 @@ class AbzoraCopySets {
     ),
     PromoBannerCopy(
       eyebrow: 'Limited Offer',
-      title: 'Flat 20% off on custom styles',
-      subtitle: 'A premium fit, now with a sharper reason to order today.',
-      cta: 'Grab Deal',
+      title: 'Intro offer on atelier tailoring',
+      subtitle: 'Choose your designer, personalize the details, and enjoy a sharper reason to order today.',
+      cta: 'Enter Atelier',
     ),
     PromoBannerCopy(
       eyebrow: 'Local Discovery',

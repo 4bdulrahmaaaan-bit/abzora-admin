@@ -21,8 +21,15 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
   final _storeNameController = TextEditingController();
   final _ownerNameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
   final _addressController = TextEditingController();
   final _cityController = TextEditingController();
+  final _experienceController = TextEditingController();
+  final _startingPriceController = TextEditingController();
+  final _typicalPriceController = TextEditingController();
+  final _ordersPerDayController = TextEditingController();
+  final _productionDaysController = TextEditingController(text: '7');
+  final _bankSetupController = TextEditingController();
   final _picker = ImagePicker();
   final _onboardingService = OnboardingService();
   final _locationService = LocationService();
@@ -31,6 +38,8 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
   XFile? _storePhoto;
   XFile? _aadhaarPhoto;
   XFile? _panPhoto;
+  final List<XFile> _portfolioFiles = <XFile>[];
+  final Set<String> _specializations = <String>{};
   double? _latitude;
   double? _longitude;
   bool _submitting = false;
@@ -44,6 +53,7 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
     if (user != null) {
       _ownerNameController.text = user.name;
       _phoneController.text = user.phone ?? '';
+      _emailController.text = user.email;
       _addressController.text = user.address ?? '';
       _cityController.text = user.city ?? '';
       _latitude = user.latitude;
@@ -56,8 +66,15 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
     _storeNameController.dispose();
     _ownerNameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _addressController.dispose();
     _cityController.dispose();
+    _experienceController.dispose();
+    _startingPriceController.dispose();
+    _typicalPriceController.dispose();
+    _ordersPerDayController.dispose();
+    _productionDaysController.dispose();
+    _bankSetupController.dispose();
     super.dispose();
   }
 
@@ -67,6 +84,17 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
       return;
     }
     setState(() => onPicked(file));
+  }
+
+  Future<void> _addPortfolioImages() async {
+    final files = await _picker.pickMultiImage(imageQuality: 82, maxWidth: 1800);
+    if (files.isEmpty || !mounted) {
+      return;
+    }
+    setState(() {
+      final remaining = 10 - _portfolioFiles.length;
+      _portfolioFiles.addAll(files.take(remaining));
+    });
   }
 
   Future<void> _useCurrentLocation() async {
@@ -115,6 +143,24 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
       );
       return;
     }
+    if (_specializations.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Choose at least one specialization.'),
+        ),
+      );
+      return;
+    }
+    if (_portfolioFiles.length < 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Upload at least 5 portfolio samples.'),
+        ),
+      );
+      return;
+    }
     final auth = context.read<AuthProvider>();
     final user = auth.user;
     if (user == null) {
@@ -151,6 +197,15 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
         ownerId: user.id,
         label: 'pan',
       );
+      final portfolioUrls = <String>[];
+      for (var i = 0; i < _portfolioFiles.length; i++) {
+        final url = await _onboardingService.uploadVendorDocument(
+          file: _portfolioFiles[i],
+          ownerId: user.id,
+          label: 'portfolio-$i',
+        );
+        portfolioUrls.add(url);
+      }
 
       final nowIso = DateTime.now().toIso8601String();
       final submitted = await _onboardingService.submitVendorRequest(
@@ -161,10 +216,20 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
           storeName: _storeNameController.text.trim(),
           ownerName: _ownerNameController.text.trim(),
           phone: _phoneController.text.trim(),
+          email: _emailController.text.trim(),
           address: _addressController.text.trim(),
           city: _cityController.text.trim(),
           latitude: _latitude!,
           longitude: _longitude!,
+          vendorType: 'custom_vendor',
+          experienceYears: int.tryParse(_experienceController.text.trim()) ?? 0,
+          specializations: _specializations.toList(),
+          portfolioImageUrls: portfolioUrls,
+          startingPrice: double.tryParse(_startingPriceController.text.trim()) ?? 0,
+          typicalPriceUpper: double.tryParse(_typicalPriceController.text.trim()) ?? 0,
+          ordersPerDay: int.tryParse(_ordersPerDayController.text.trim()) ?? 0,
+          productionTimeDays: int.tryParse(_productionDaysController.text.trim()) ?? 7,
+          payoutSetupLabel: _bankSetupController.text.trim(),
           kyc: KycDocuments(
             ownerPhotoUrl: ownerPhotoUrl,
             storeImageUrl: storeImageUrl,
@@ -222,22 +287,57 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
     }
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('Vendor KYC Onboarding')),
+      appBar: AppBar(title: const Text('Custom Designer Onboarding')),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
             const Text(
-              'Build your storefront with verified KYC.',
+              'Join as a Custom Designer',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, height: 1.2),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Submit your store details, location, and KYC documents once. Our team will review and activate your vendor role.',
+              'Create made-to-measure outfits for customers with a premium onboarding flow built for tailoring studios and designers.',
               style: TextStyle(color: Color(0xFF666666), height: 1.45),
             ),
             const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF141414),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'START ONBOARDING',
+                    style: TextStyle(
+                      color: Color(0xFFE3C377),
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Luxury boutique + digital tailoring studio',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Share your craft, portfolio, pricing, production capacity, and bank setup. Customers trust what they can clearly see.',
+                    style: TextStyle(color: Colors.white70, height: 1.45),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -272,6 +372,7 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            _sectionTitle('Basic details'),
             OutlinedButton.icon(
               onPressed: _detectingLocation ? null : _useCurrentLocation,
               icon: _detectingLocation
@@ -286,7 +387,7 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
             const SizedBox(height: 20),
             TextFormField(
               controller: _storeNameController,
-              decoration: const InputDecoration(labelText: 'Store name'),
+              decoration: const InputDecoration(labelText: 'Store / Designer name'),
               validator: (value) => (value ?? '').trim().isEmpty ? 'Store name is required' : null,
             ),
             const SizedBox(height: 16),
@@ -306,6 +407,12 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
             ),
             const SizedBox(height: 16),
             TextFormField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
               controller: _addressController,
               maxLines: 3,
               decoration: const InputDecoration(labelText: 'Address'),
@@ -318,6 +425,121 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
               validator: (value) => (value ?? '').trim().isEmpty ? 'City is required' : null,
             ),
             const SizedBox(height: 24),
+            _sectionTitle('Experience'),
+            TextFormField(
+              controller: _experienceController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Years of experience'),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: ['Shirts', 'Blazers', 'Dresses', 'Ethnic wear'].map((item) {
+                final selected = _specializations.contains(item);
+                return FilterChip(
+                  selected: selected,
+                  label: Text(item),
+                  onSelected: (value) {
+                    setState(() {
+                      if (value) {
+                        _specializations.add(item);
+                      } else {
+                        _specializations.remove(item);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+            _sectionTitle('Portfolio upload'),
+            const Text(
+              'Your designs help customers trust you. Upload 5-10 sample works.',
+              style: TextStyle(color: Color(0xFF666666), height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _portfolioFiles.length >= 10 ? null : _addPortfolioImages,
+              icon: const Icon(Icons.collections_rounded),
+              label: Text(
+                _portfolioFiles.isEmpty
+                    ? 'Upload sample works'
+                    : 'Add more samples (${_portfolioFiles.length}/10)',
+              ),
+            ),
+            if (_portfolioFiles.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: List<Widget>.generate(_portfolioFiles.length, (index) {
+                  return Stack(
+                    children: [
+                      Container(
+                        width: 74,
+                        height: 74,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          color: const Color(0xFFF5F0E2),
+                          border: Border.all(color: const Color(0xFFE5D7B2)),
+                        ),
+                        child: const Icon(Icons.checkroom_rounded, color: Color(0xFF9C7A2C)),
+                      ),
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: InkWell(
+                          onTap: () => setState(() => _portfolioFiles.removeAt(index)),
+                          child: const CircleAvatar(
+                            radius: 10,
+                            backgroundColor: Colors.black87,
+                            child: Icon(Icons.close, size: 12, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ],
+            const SizedBox(height: 24),
+            _sectionTitle('Pricing range'),
+            TextFormField(
+              controller: _startingPriceController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Starting price (₹)'),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _typicalPriceController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Typical upper range (₹)'),
+            ),
+            const SizedBox(height: 24),
+            _sectionTitle('Production capacity'),
+            TextFormField(
+              controller: _ordersPerDayController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Orders per day'),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _productionDaysController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Delivery time (days)'),
+            ),
+            const SizedBox(height: 24),
+            _sectionTitle('Bank setup'),
+            TextFormField(
+              controller: _bankSetupController,
+              decoration: const InputDecoration(
+                labelText: 'RazorpayX / UPI / Bank details',
+                hintText: 'UPI / Bank setup label for approval review',
+              ),
+            ),
+            const SizedBox(height: 24),
+            _sectionTitle('Verification documents'),
             KycUploadWidget(
               title: 'Owner Photo',
               subtitle: 'Capture a clear portrait of the store owner.',
@@ -392,6 +614,27 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
               ),
             ],
             const SizedBox(height: 24),
+            _sectionTitle('Review'),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF9EA),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE5C56C)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Submit for approval', style: TextStyle(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 8),
+                  Text('Specializations: ${_specializations.isEmpty ? 'Not selected' : _specializations.join(', ')}'),
+                  Text('Portfolio uploads: ${_portfolioFiles.length}/10'),
+                  Text('Production time: ${_productionDaysController.text.trim().isEmpty ? '-' : _productionDaysController.text.trim()} days'),
+                  Text('Payout setup: ${_bankSetupController.text.trim().isEmpty ? 'Pending' : _bankSetupController.text.trim()}'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -402,7 +645,7 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
-                    : const Text('Submit Vendor KYC'),
+                    : const Text('Submit for Approval'),
               ),
             ),
           ],
@@ -420,6 +663,16 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
       return trimmed;
     }
     return '${'*' * (trimmed.length - 4)}${trimmed.substring(trimmed.length - 4)}';
+  }
+
+  Widget _sectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+      ),
+    );
   }
 }
 

@@ -451,6 +451,34 @@ class BackendCommerceService {
         .toList();
   }
 
+  Future<List<Store>> getRankedCustomStores({
+    String? category,
+    String? style,
+    double? budgetMin,
+    double? budgetMax,
+    int? deliveryDays,
+    double? latitude,
+    double? longitude,
+  }) async {
+    final payload = await _client.get(
+      '/stores/custom/ranked',
+      queryParameters: {
+        if (category?.trim().isNotEmpty == true) 'category': category!.trim(),
+        if (style?.trim().isNotEmpty == true) 'style': style!.trim(),
+        if (budgetMin != null) 'budgetMin': budgetMin.toString(),
+        if (budgetMax != null) 'budgetMax': budgetMax.toString(),
+        if (deliveryDays != null) 'deliveryDays': deliveryDays.toString(),
+        if (latitude != null) 'latitude': latitude.toString(),
+        if (longitude != null) 'longitude': longitude.toString(),
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => _storeFromBackend(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
   Future<List<BannerModel>> getBanners({bool includeInactive = false}) async {
     final payload = await _client.get(
       '/banners',
@@ -1751,12 +1779,21 @@ class BackendCommerceService {
   }
 
   Future<Store> saveStore(Store store) async {
-    final body = {
-      'name': store.name,
-      'description': store.description,
-      'logoUrl': store.logoUrl.isNotEmpty ? store.logoUrl : store.imageUrl,
-      'isActive': store.isActive,
-    };
+      final body = {
+        'name': store.name,
+        'description': store.description,
+        'logoUrl': store.logoUrl.isNotEmpty ? store.logoUrl : store.imageUrl,
+        'isActive': store.isActive,
+        'vendorType': store.vendorType,
+        'address': store.address,
+        'city': store.city,
+        'latitude': store.latitude,
+        'longitude': store.longitude,
+        'tagline': store.tagline,
+        'bannerImageUrl': store.bannerImageUrl,
+        'category': store.category,
+        'customVendorProfile': store.customVendorProfile.toMap(),
+      };
     final payload = store.id.isEmpty
         ? await _client.post('/stores', authenticated: true, body: body)
         : await _client.put(
@@ -1953,6 +1990,111 @@ class BackendCommerceService {
       '/orders/$orderId/status',
       authenticated: true,
       body: {'status': status},
+    );
+    return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<OrderModel> updateCustomVendorOrderStatus(
+    String orderId,
+    String status, {
+    String? vendorFinalImageUrl,
+    bool? measurementsConfirmedByVendor,
+    String? qualityApprovalStatus,
+    String? alterationStatus,
+  }
+  ) async {
+    final body = <String, dynamic>{'status': status};
+    if (vendorFinalImageUrl?.isNotEmpty == true) {
+      body['vendorFinalImageUrl'] = vendorFinalImageUrl!;
+    }
+    if (measurementsConfirmedByVendor != null) {
+      body['measurementsConfirmedByVendor'] = measurementsConfirmedByVendor;
+    }
+    if (qualityApprovalStatus?.isNotEmpty == true) {
+      body['qualityApprovalStatus'] = qualityApprovalStatus!;
+    }
+    if (alterationStatus?.isNotEmpty == true) {
+      body['alterationStatus'] = alterationStatus!;
+    }
+    final payload = await _client.patch(
+      '/vendor/custom/orders/$orderId/status',
+      authenticated: true,
+      body: body,
+    );
+    return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<CustomVendorQualityState> getCustomVendorQuality() async {
+    final payload = await _client.get(
+      '/vendor/custom/quality',
+      authenticated: true,
+    );
+    return CustomVendorQualityState.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
+  }
+
+  Future<CustomVendorTrainingProgress> completeCustomVendorTrainingModule({
+    required String moduleKey,
+    double score = 100,
+  }) async {
+    final payload = await _client.post(
+      '/vendor/custom/training/modules/$moduleKey/complete',
+      authenticated: true,
+      body: {'score': score},
+    );
+    return CustomVendorTrainingProgress.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
+  }
+
+  Future<CustomVendorSampleReview> submitCustomVendorSampleReview({
+    required List<String> sampleImages,
+    String notes = '',
+  }) async {
+    final payload = await _client.post(
+      '/vendor/custom/sample-review',
+      authenticated: true,
+      body: {
+        'sampleImages': sampleImages,
+        'notes': notes,
+      },
+    );
+    return CustomVendorSampleReview.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
+  }
+
+  Future<OrderModel> submitCustomFitFeedback({
+    required String orderId,
+    required double fitRating,
+    required double qualityRating,
+    required double deliveryRating,
+    String notes = '',
+    bool needsAlteration = false,
+  }) async {
+    final payload = await _client.post(
+      '/orders/$orderId/custom-fit-feedback',
+      authenticated: true,
+      body: {
+        'fitRating': fitRating,
+        'qualityRating': qualityRating,
+        'deliveryRating': deliveryRating,
+        'notes': notes,
+        'needsAlteration': needsAlteration,
+      },
+    );
+    return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<OrderModel> requestCustomAlteration({
+    required String orderId,
+    String notes = '',
+  }) async {
+    final payload = await _client.post(
+      '/orders/$orderId/custom-alteration',
+      authenticated: true,
+      body: {'notes': notes},
     );
     return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
   }
@@ -2215,15 +2357,18 @@ class BackendCommerceService {
       'isActive': map['isActive'] ?? true,
       'isFeatured': map['isFeatured'] ?? false,
       'approvalStatus': map['approvalStatus'] ?? 'approved',
-      'tagline': map['tagline'] ?? '',
-      'commissionRate': map['commissionRate'] ?? 0.12,
-      'walletBalance': map['walletBalance'] ?? 0,
-      'latitude': map['latitude'],
-      'longitude': map['longitude'],
-      'category': map['category'] ?? '',
-      'vendorScore': map['vendorScore'] ?? 0,
-      'vendorRank': map['vendorRank'] ?? 0,
-      'vendorVisibility': map['vendorVisibility'] ?? 'normal',
+        'tagline': map['tagline'] ?? '',
+        'commissionRate': map['commissionRate'] ?? 0.12,
+        'walletBalance': map['walletBalance'] ?? 0,
+        'latitude': map['latitude'],
+        'longitude': map['longitude'],
+        'category': map['category'] ?? '',
+        'vendorType': map['vendorType'] ?? 'standard_vendor',
+        'customVendorProfile': map['customVendorProfile'] ?? const {},
+        'vendorScore': map['vendorScore'] ?? 0,
+        'vendorRank': map['vendorRank'] ?? 0,
+        'vendorVisibility': map['vendorVisibility'] ?? 'normal',
+        'vendorHighlights': map['vendorHighlights'] ?? const <String>[],
       'performanceMetrics': map['performanceMetrics'] ?? const {},
     }, map['id']?.toString() ?? '');
   }
@@ -2335,8 +2480,36 @@ class BackendCommerceService {
       ),
       'assignedDeliveryPartner': map['assignedDeliveryPartner'] ?? 'Unassigned',
       'invoiceNumber': map['id'] ?? '',
-      'orderType': 'marketplace',
-      'trackingTimestamps': Map<String, String>.from(
+        'orderType': map['fulfillmentType'] == 'custom_tailoring'
+            ? 'custom_tailoring'
+            : 'marketplace',
+        'fulfillmentType': map['fulfillmentType'] ?? 'marketplace',
+        'customOrderStatus': map['customOrderStatus'] ?? 'none',
+        'customMeasurements': map['customMeasurements'] ?? const {},
+        'customDesignOptions': map['customDesignOptions'] ?? const {},
+        'referenceImageUrl': map['referenceImageUrl'] ?? '',
+        'previewImageUrl': map['previewImageUrl'] ?? '',
+        'vendorFinalImageUrl': map['vendorFinalImageUrl'] ?? '',
+        'selectedDesignerName': map['selectedDesignerName'] ?? '',
+        'qualityApprovalStatus': map['qualityApprovalStatus'] ?? 'not_required',
+        'measurementsConfirmedByVendor':
+            map['measurementsConfirmedByVendor'] ?? false,
+        'preDispatchChecklistCompletedAt':
+            map['preDispatchChecklistCompletedAt'] ?? '',
+        'customerFitFeedbackStatus':
+            map['customerFitFeedbackStatus'] ?? 'pending',
+        'customerFitRating': map['customerFitRating'] ?? 0,
+        'customerQualityRating': map['customerQualityRating'] ?? 0,
+        'customerDeliveryRating': map['customerDeliveryRating'] ?? 0,
+        'customerFitFeedbackNotes': map['customerFitFeedbackNotes'] ?? '',
+        'customerFitRespondedAt': map['customerFitRespondedAt'] ?? '',
+        'alterationStatus': map['alterationStatus'] ?? 'none',
+        'alterationRequestedAt': map['alterationRequestedAt'] ?? '',
+        'alterationResolvedAt': map['alterationResolvedAt'] ?? '',
+        'alterationNotes': map['alterationNotes'] ?? '',
+        'customProductionTimeDays': map['customProductionTimeDays'] ?? 0,
+        'customizationSummary': map['customizationSummary'] ?? '',
+        'trackingTimestamps': Map<String, String>.from(
         (map['trackingTimestamps'] as Map? ?? const {}).map(
           (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
         ),

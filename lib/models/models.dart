@@ -193,9 +193,12 @@ class Store {
   final double? latitude;
   final double? longitude;
   final String category;
+  final String vendorType;
+  final CustomVendorProfile customVendorProfile;
   final double vendorScore;
   final int vendorRank;
   final String vendorVisibility;
+  final List<String> vendorHighlights;
   final VendorPerformanceMetrics performanceMetrics;
 
   Store({
@@ -221,9 +224,12 @@ class Store {
     this.latitude,
     this.longitude,
     this.category = '',
+    this.vendorType = 'standard_vendor',
+    this.customVendorProfile = const CustomVendorProfile(),
     this.vendorScore = 0,
     this.vendorRank = 0,
     this.vendorVisibility = 'normal',
+    this.vendorHighlights = const <String>[],
     this.performanceMetrics = const VendorPerformanceMetrics(),
   }) : storeId = storeId ?? id;
 
@@ -250,9 +256,12 @@ class Store {
     'latitude': latitude,
     'longitude': longitude,
     'category': category,
+    'vendorType': vendorType,
+    'customVendorProfile': customVendorProfile.toMap(),
     'vendorScore': vendorScore,
     'vendorRank': vendorRank,
     'vendorVisibility': vendorVisibility,
+    'vendorHighlights': vendorHighlights,
     'performanceMetrics': performanceMetrics.toMap(),
   };
 
@@ -285,9 +294,16 @@ class Store {
         ? null
         : (map['longitude'] as num).toDouble(),
     category: map['category'] ?? '',
+    vendorType: map['vendorType'] ?? 'standard_vendor',
+    customVendorProfile: CustomVendorProfile.fromMap(
+      Map<String, dynamic>.from(map['customVendorProfile'] ?? const {}),
+    ),
     vendorScore: (map['vendorScore'] ?? 0.0).toDouble(),
     vendorRank: map['vendorRank'] ?? 0,
     vendorVisibility: map['vendorVisibility'] ?? 'normal',
+    vendorHighlights: List<String>.from(
+      map['vendorHighlights'] ?? const <String>[],
+    ),
     performanceMetrics: VendorPerformanceMetrics.fromMap(
       Map<String, dynamic>.from(map['performanceMetrics'] ?? const {}),
     ),
@@ -316,9 +332,12 @@ class Store {
     double? latitude,
     double? longitude,
     String? category,
+    String? vendorType,
+    CustomVendorProfile? customVendorProfile,
     double? vendorScore,
     int? vendorRank,
     String? vendorVisibility,
+    List<String>? vendorHighlights,
     VendorPerformanceMetrics? performanceMetrics,
   }) {
     return Store(
@@ -344,9 +363,12 @@ class Store {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       category: category ?? this.category,
+      vendorType: vendorType ?? this.vendorType,
+      customVendorProfile: customVendorProfile ?? this.customVendorProfile,
       vendorScore: vendorScore ?? this.vendorScore,
       vendorRank: vendorRank ?? this.vendorRank,
       vendorVisibility: vendorVisibility ?? this.vendorVisibility,
+      vendorHighlights: vendorHighlights ?? this.vendorHighlights,
       performanceMetrics: performanceMetrics ?? this.performanceMetrics,
     );
   }
@@ -406,6 +428,296 @@ class VendorPerformanceMetrics {
         totalRevenue: (map['totalRevenue'] ?? 0.0).toDouble(),
         repeatCustomerRate: (map['repeatCustomerRate'] ?? 0.0).toDouble(),
         updatedAt: map['updatedAt'] ?? '',
+      );
+}
+
+class CustomVendorMetrics {
+  final double orderSuccessRate;
+  final double delayRate;
+  final double returnRate;
+  final int totalCustomOrders;
+  final int completedCustomOrders;
+
+  const CustomVendorMetrics({
+    this.orderSuccessRate = 0,
+    this.delayRate = 0,
+    this.returnRate = 0,
+    this.totalCustomOrders = 0,
+    this.completedCustomOrders = 0,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'orderSuccessRate': orderSuccessRate,
+    'delayRate': delayRate,
+    'returnRate': returnRate,
+    'totalCustomOrders': totalCustomOrders,
+    'completedCustomOrders': completedCustomOrders,
+  };
+
+  factory CustomVendorMetrics.fromMap(Map<String, dynamic> map) =>
+      CustomVendorMetrics(
+        orderSuccessRate: ((map['orderSuccessRate'] ?? 0) as num).toDouble(),
+        delayRate: ((map['delayRate'] ?? 0) as num).toDouble(),
+        returnRate: ((map['returnRate'] ?? 0) as num).toDouble(),
+        totalCustomOrders: (map['totalCustomOrders'] ?? 0) as int,
+        completedCustomOrders: (map['completedCustomOrders'] ?? 0) as int,
+      );
+}
+
+class CustomVendorQuality {
+  final double qualityScore;
+  final double fitSuccessRate;
+  final double onTimeDeliveryRate;
+  final double customerQualityRating;
+  final double customerFitRating;
+  final double customerDeliveryRating;
+  final double adminQaPassRate;
+  final String visibilityTier;
+
+  const CustomVendorQuality({
+    this.qualityScore = 0,
+    this.fitSuccessRate = 0,
+    this.onTimeDeliveryRate = 0,
+    this.customerQualityRating = 0,
+    this.customerFitRating = 0,
+    this.customerDeliveryRating = 0,
+    this.adminQaPassRate = 0,
+    this.visibilityTier = 'watchlist',
+  });
+
+  Map<String, dynamic> toMap() => {
+    'qualityScore': qualityScore,
+    'fitSuccessRate': fitSuccessRate,
+    'onTimeDeliveryRate': onTimeDeliveryRate,
+    'customerQualityRating': customerQualityRating,
+    'customerFitRating': customerFitRating,
+    'customerDeliveryRating': customerDeliveryRating,
+    'adminQaPassRate': adminQaPassRate,
+    'visibilityTier': visibilityTier,
+  };
+
+  factory CustomVendorQuality.fromMap(Map<String, dynamic> map) =>
+      CustomVendorQuality(
+        qualityScore: ((map['qualityScore'] ?? 0) as num).toDouble(),
+        fitSuccessRate: ((map['fitSuccessRate'] ?? 0) as num).toDouble(),
+        onTimeDeliveryRate: ((map['onTimeDeliveryRate'] ?? 0) as num).toDouble(),
+        customerQualityRating: ((map['customerQualityRating'] ?? 0) as num).toDouble(),
+        customerFitRating: ((map['customerFitRating'] ?? 0) as num).toDouble(),
+        customerDeliveryRating: ((map['customerDeliveryRating'] ?? 0) as num).toDouble(),
+        adminQaPassRate: ((map['adminQaPassRate'] ?? 0) as num).toDouble(),
+        visibilityTier: map['visibilityTier']?.toString() ?? 'watchlist',
+      );
+}
+
+class CustomVendorTrainingModule {
+  final String key;
+  final String title;
+  final String status;
+  final String completedAt;
+  final double score;
+
+  const CustomVendorTrainingModule({
+    this.key = '',
+    this.title = '',
+    this.status = 'pending',
+    this.completedAt = '',
+    this.score = 0,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'key': key,
+    'title': title,
+    'status': status,
+    'completedAt': completedAt,
+    'score': score,
+  };
+
+  factory CustomVendorTrainingModule.fromMap(Map<String, dynamic> map) =>
+      CustomVendorTrainingModule(
+        key: map['key']?.toString() ?? '',
+        title: map['title']?.toString() ?? '',
+        status: map['status']?.toString() ?? 'pending',
+        completedAt: map['completedAt']?.toString() ?? '',
+        score: ((map['score'] ?? 0) as num).toDouble(),
+      );
+}
+
+class CustomVendorTrainingProgress {
+  final String trainingStatus;
+  final String lastUpdatedAt;
+  final List<CustomVendorTrainingModule> modules;
+
+  const CustomVendorTrainingProgress({
+    this.trainingStatus = 'not_started',
+    this.lastUpdatedAt = '',
+    this.modules = const [],
+  });
+
+  Map<String, dynamic> toMap() => {
+    'trainingStatus': trainingStatus,
+    'lastUpdatedAt': lastUpdatedAt,
+    'modules': modules.map((module) => module.toMap()).toList(),
+  };
+
+  factory CustomVendorTrainingProgress.fromMap(Map<String, dynamic> map) =>
+      CustomVendorTrainingProgress(
+        trainingStatus: map['trainingStatus']?.toString() ?? 'not_started',
+        lastUpdatedAt: map['lastUpdatedAt']?.toString() ?? '',
+        modules: ((map['modules'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((item) => CustomVendorTrainingModule.fromMap(Map<String, dynamic>.from(item)))
+            .toList(),
+      );
+}
+
+class CustomVendorSampleReview {
+  final String id;
+  final List<String> sampleImages;
+  final String notes;
+  final String status;
+  final String reviewedBy;
+  final String reviewedAt;
+  final String adminFeedback;
+  final String createdAt;
+  final String updatedAt;
+
+  const CustomVendorSampleReview({
+    this.id = '',
+    this.sampleImages = const [],
+    this.notes = '',
+    this.status = 'pending_review',
+    this.reviewedBy = '',
+    this.reviewedAt = '',
+    this.adminFeedback = '',
+    this.createdAt = '',
+    this.updatedAt = '',
+  });
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'sampleImages': sampleImages,
+    'notes': notes,
+    'status': status,
+    'reviewedBy': reviewedBy,
+    'reviewedAt': reviewedAt,
+    'adminFeedback': adminFeedback,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+  };
+
+  factory CustomVendorSampleReview.fromMap(Map<String, dynamic> map) =>
+      CustomVendorSampleReview(
+        id: map['id']?.toString() ?? '',
+        sampleImages: List<String>.from((map['sampleImages'] as List?) ?? const []),
+        notes: map['notes']?.toString() ?? '',
+        status: map['status']?.toString() ?? 'pending_review',
+        reviewedBy: map['reviewedBy']?.toString() ?? '',
+        reviewedAt: map['reviewedAt']?.toString() ?? '',
+        adminFeedback: map['adminFeedback']?.toString() ?? '',
+        createdAt: map['createdAt']?.toString() ?? '',
+        updatedAt: map['updatedAt']?.toString() ?? '',
+      );
+}
+
+class CustomVendorQualityState {
+  final CustomVendorQuality quality;
+  final CustomVendorTrainingProgress training;
+  final CustomVendorSampleReview sampleReview;
+
+  const CustomVendorQualityState({
+    this.quality = const CustomVendorQuality(),
+    this.training = const CustomVendorTrainingProgress(),
+    this.sampleReview = const CustomVendorSampleReview(),
+  });
+
+  factory CustomVendorQualityState.fromMap(Map<String, dynamic> map) =>
+      CustomVendorQualityState(
+        quality: CustomVendorQuality.fromMap(
+          Map<String, dynamic>.from(map['quality'] ?? const {}),
+        ),
+        training: CustomVendorTrainingProgress.fromMap(
+          Map<String, dynamic>.from(map['training'] ?? const {}),
+        ),
+        sampleReview: CustomVendorSampleReview.fromMap(
+          Map<String, dynamic>.from(map['sampleReview'] ?? const {}),
+        ),
+      );
+}
+
+class CustomVendorProfile {
+  final int experienceYears;
+  final List<String> specializations;
+  final List<String> portfolioImages;
+  final double priceRangeMin;
+  final double priceRangeMax;
+  final int productionTimeDays;
+  final bool qualityApprovalRequired;
+  final bool supportsAlterations;
+  final String alterationPolicy;
+  final String qualityTier;
+  final int penaltyPoints;
+  final int activeCustomOrderLimit;
+  final CustomVendorMetrics metrics;
+  final CustomVendorQuality quality;
+
+  const CustomVendorProfile({
+    this.experienceYears = 0,
+    this.specializations = const [],
+    this.portfolioImages = const [],
+    this.priceRangeMin = 0,
+    this.priceRangeMax = 0,
+    this.productionTimeDays = 0,
+    this.qualityApprovalRequired = false,
+    this.supportsAlterations = true,
+    this.alterationPolicy = '',
+    this.qualityTier = 'normal',
+    this.penaltyPoints = 0,
+    this.activeCustomOrderLimit = 0,
+    this.metrics = const CustomVendorMetrics(),
+    this.quality = const CustomVendorQuality(),
+  });
+
+  Map<String, dynamic> toMap() => {
+    'experienceYears': experienceYears,
+    'specializations': specializations,
+    'portfolioImages': portfolioImages,
+    'priceRangeMin': priceRangeMin,
+    'priceRangeMax': priceRangeMax,
+    'productionTimeDays': productionTimeDays,
+    'qualityApprovalRequired': qualityApprovalRequired,
+    'supportsAlterations': supportsAlterations,
+    'alterationPolicy': alterationPolicy,
+    'qualityTier': qualityTier,
+    'penaltyPoints': penaltyPoints,
+    'activeCustomOrderLimit': activeCustomOrderLimit,
+    'metrics': metrics.toMap(),
+    'quality': quality.toMap(),
+  };
+
+  factory CustomVendorProfile.fromMap(Map<String, dynamic> map) =>
+      CustomVendorProfile(
+        experienceYears: (map['experienceYears'] ?? 0) as int,
+        specializations: List<String>.from(
+          (map['specializations'] as List?) ?? const [],
+        ),
+        portfolioImages: List<String>.from(
+          (map['portfolioImages'] as List?) ?? const [],
+        ),
+        priceRangeMin: ((map['priceRangeMin'] ?? 0) as num).toDouble(),
+        priceRangeMax: ((map['priceRangeMax'] ?? 0) as num).toDouble(),
+        productionTimeDays: (map['productionTimeDays'] ?? 0) as int,
+        qualityApprovalRequired: map['qualityApprovalRequired'] == true,
+        supportsAlterations: map['supportsAlterations'] != false,
+        alterationPolicy: map['alterationPolicy']?.toString() ?? '',
+        qualityTier: map['qualityTier']?.toString() ?? 'normal',
+        penaltyPoints: (map['penaltyPoints'] ?? 0) as int,
+        activeCustomOrderLimit: (map['activeCustomOrderLimit'] ?? 0) as int,
+        metrics: CustomVendorMetrics.fromMap(
+          Map<String, dynamic>.from(map['metrics'] ?? const {}),
+        ),
+        quality: CustomVendorQuality.fromMap(
+          Map<String, dynamic>.from(map['quality'] ?? const {}),
+        ),
       );
 }
 
@@ -768,6 +1080,29 @@ class OrderModel {
   final String refundStatus;
   final String returnStatus;
   final double walletCreditUsed;
+  final String fulfillmentType;
+  final String customOrderStatus;
+  final Map<String, dynamic> customMeasurements;
+  final Map<String, dynamic> customDesignOptions;
+  final String referenceImageUrl;
+  final String previewImageUrl;
+  final String vendorFinalImageUrl;
+  final String selectedDesignerName;
+  final String qualityApprovalStatus;
+  final bool measurementsConfirmedByVendor;
+  final String preDispatchChecklistCompletedAt;
+  final String customerFitFeedbackStatus;
+  final double customerFitRating;
+  final double customerQualityRating;
+  final double customerDeliveryRating;
+  final String customerFitFeedbackNotes;
+  final String customerFitRespondedAt;
+  final String alterationStatus;
+  final String alterationRequestedAt;
+  final String alterationResolvedAt;
+  final String alterationNotes;
+  final int customProductionTimeDays;
+  final String customizationSummary;
 
   OrderModel({
     required this.id,
@@ -809,6 +1144,29 @@ class OrderModel {
     this.refundStatus = '',
     this.returnStatus = '',
     this.walletCreditUsed = 0,
+    this.fulfillmentType = 'marketplace',
+    this.customOrderStatus = 'none',
+    this.customMeasurements = const {},
+    this.customDesignOptions = const {},
+    this.referenceImageUrl = '',
+    this.previewImageUrl = '',
+    this.vendorFinalImageUrl = '',
+    this.selectedDesignerName = '',
+    this.qualityApprovalStatus = 'not_required',
+    this.measurementsConfirmedByVendor = false,
+    this.preDispatchChecklistCompletedAt = '',
+    this.customerFitFeedbackStatus = 'pending',
+    this.customerFitRating = 0,
+    this.customerQualityRating = 0,
+    this.customerDeliveryRating = 0,
+    this.customerFitFeedbackNotes = '',
+    this.customerFitRespondedAt = '',
+    this.alterationStatus = 'none',
+    this.alterationRequestedAt = '',
+    this.alterationResolvedAt = '',
+    this.alterationNotes = '',
+    this.customProductionTimeDays = 0,
+    this.customizationSummary = '',
   });
 
   Map<String, dynamic> toMap() => {
@@ -850,6 +1208,29 @@ class OrderModel {
     'refundStatus': refundStatus,
     'returnStatus': returnStatus,
     'walletCreditUsed': walletCreditUsed,
+    'fulfillmentType': fulfillmentType,
+    'customOrderStatus': customOrderStatus,
+    'customMeasurements': customMeasurements,
+    'customDesignOptions': customDesignOptions,
+    'referenceImageUrl': referenceImageUrl,
+    'previewImageUrl': previewImageUrl,
+    'vendorFinalImageUrl': vendorFinalImageUrl,
+    'selectedDesignerName': selectedDesignerName,
+    'qualityApprovalStatus': qualityApprovalStatus,
+    'measurementsConfirmedByVendor': measurementsConfirmedByVendor,
+    'preDispatchChecklistCompletedAt': preDispatchChecklistCompletedAt,
+    'customerFitFeedbackStatus': customerFitFeedbackStatus,
+    'customerFitRating': customerFitRating,
+    'customerQualityRating': customerQualityRating,
+    'customerDeliveryRating': customerDeliveryRating,
+    'customerFitFeedbackNotes': customerFitFeedbackNotes,
+    'customerFitRespondedAt': customerFitRespondedAt,
+    'alterationStatus': alterationStatus,
+    'alterationRequestedAt': alterationRequestedAt,
+    'alterationResolvedAt': alterationResolvedAt,
+    'alterationNotes': alterationNotes,
+    'customProductionTimeDays': customProductionTimeDays,
+    'customizationSummary': customizationSummary,
   };
 
   factory OrderModel.fromMap(Map<String, dynamic> map, String docId) =>
@@ -903,6 +1284,39 @@ class OrderModel {
         refundStatus: map['refundStatus'] ?? '',
         returnStatus: map['returnStatus'] ?? '',
         walletCreditUsed: ((map['walletCreditUsed'] ?? 0) as num).toDouble(),
+        fulfillmentType: map['fulfillmentType'] ?? 'marketplace',
+        customOrderStatus: map['customOrderStatus'] ?? 'none',
+        customMeasurements: Map<String, dynamic>.from(
+          map['customMeasurements'] ?? const {},
+        ),
+        customDesignOptions: Map<String, dynamic>.from(
+          map['customDesignOptions'] ?? const {},
+        ),
+        referenceImageUrl: map['referenceImageUrl'] ?? '',
+        previewImageUrl: map['previewImageUrl'] ?? '',
+        vendorFinalImageUrl: map['vendorFinalImageUrl'] ?? '',
+        selectedDesignerName: map['selectedDesignerName'] ?? '',
+        qualityApprovalStatus: map['qualityApprovalStatus'] ?? 'not_required',
+        measurementsConfirmedByVendor:
+            map['measurementsConfirmedByVendor'] == true,
+        preDispatchChecklistCompletedAt:
+            map['preDispatchChecklistCompletedAt'] ?? '',
+        customerFitFeedbackStatus:
+            map['customerFitFeedbackStatus'] ?? 'pending',
+        customerFitRating:
+            ((map['customerFitRating'] ?? 0) as num).toDouble(),
+        customerQualityRating:
+            ((map['customerQualityRating'] ?? 0) as num).toDouble(),
+        customerDeliveryRating:
+            ((map['customerDeliveryRating'] ?? 0) as num).toDouble(),
+        customerFitFeedbackNotes: map['customerFitFeedbackNotes'] ?? '',
+        customerFitRespondedAt: map['customerFitRespondedAt'] ?? '',
+        alterationStatus: map['alterationStatus'] ?? 'none',
+        alterationRequestedAt: map['alterationRequestedAt'] ?? '',
+        alterationResolvedAt: map['alterationResolvedAt'] ?? '',
+        alterationNotes: map['alterationNotes'] ?? '',
+        customProductionTimeDays: (map['customProductionTimeDays'] ?? 0) as int,
+        customizationSummary: map['customizationSummary'] ?? '',
       );
 }
 
@@ -2775,10 +3189,20 @@ class VendorKycRequest {
   final String storeName;
   final String ownerName;
   final String phone;
+  final String email;
   final String address;
   final String city;
   final double latitude;
   final double longitude;
+  final String vendorType;
+  final int experienceYears;
+  final List<String> specializations;
+  final List<String> portfolioImageUrls;
+  final double startingPrice;
+  final double typicalPriceUpper;
+  final int ordersPerDay;
+  final int productionTimeDays;
+  final String payoutSetupLabel;
   final KycDocuments kyc;
   final String status;
   final String createdAt;
@@ -2796,10 +3220,20 @@ class VendorKycRequest {
     required this.storeName,
     required this.ownerName,
     required this.phone,
+    this.email = '',
     required this.address,
     required this.city,
     required this.latitude,
     required this.longitude,
+    this.vendorType = 'standard_vendor',
+    this.experienceYears = 0,
+    this.specializations = const [],
+    this.portfolioImageUrls = const [],
+    this.startingPrice = 0,
+    this.typicalPriceUpper = 0,
+    this.ordersPerDay = 0,
+    this.productionTimeDays = 0,
+    this.payoutSetupLabel = '',
     required this.kyc,
     this.status = 'pending',
     required this.createdAt,
@@ -2818,10 +3252,20 @@ class VendorKycRequest {
     'storeName': storeName,
     'ownerName': ownerName,
     'phone': phone,
+    'email': email,
     'address': address,
     'city': city,
     'latitude': latitude,
     'longitude': longitude,
+    'vendorType': vendorType,
+    'experienceYears': experienceYears,
+    'specializations': specializations,
+    'portfolioImageUrls': portfolioImageUrls,
+    'startingPrice': startingPrice,
+    'typicalPriceUpper': typicalPriceUpper,
+    'ordersPerDay': ordersPerDay,
+    'productionTimeDays': productionTimeDays,
+    'payoutSetupLabel': payoutSetupLabel,
     'kyc': kyc.toMap(),
     'status': status,
     'createdAt': createdAt,
@@ -2843,10 +3287,24 @@ class VendorKycRequest {
     storeName: map['storeName'] ?? '',
     ownerName: map['ownerName'] ?? '',
     phone: map['phone'] ?? '',
+    email: map['email'] ?? '',
     address: map['address'] ?? '',
     city: map['city'] ?? '',
     latitude: (map['latitude'] ?? 0).toDouble(),
     longitude: (map['longitude'] ?? 0).toDouble(),
+    vendorType: map['vendorType'] ?? 'standard_vendor',
+    experienceYears: map['experienceYears'] ?? 0,
+    specializations: List<String>.from(
+      (map['specializations'] as List?) ?? const [],
+    ),
+    portfolioImageUrls: List<String>.from(
+      (map['portfolioImageUrls'] as List?) ?? const [],
+    ),
+    startingPrice: (map['startingPrice'] ?? 0).toDouble(),
+    typicalPriceUpper: (map['typicalPriceUpper'] ?? 0).toDouble(),
+    ordersPerDay: map['ordersPerDay'] ?? 0,
+    productionTimeDays: map['productionTimeDays'] ?? 0,
+    payoutSetupLabel: map['payoutSetupLabel'] ?? '',
     kyc: KycDocuments.fromMap(
       Map<String, dynamic>.from((map['kyc'] as Map?) ?? const {}),
     ),
@@ -2874,10 +3332,20 @@ class VendorKycRequest {
     String? storeName,
     String? ownerName,
     String? phone,
+    String? email,
     String? address,
     String? city,
     double? latitude,
     double? longitude,
+    String? vendorType,
+    int? experienceYears,
+    List<String>? specializations,
+    List<String>? portfolioImageUrls,
+    double? startingPrice,
+    double? typicalPriceUpper,
+    int? ordersPerDay,
+    int? productionTimeDays,
+    String? payoutSetupLabel,
     KycDocuments? kyc,
     String? status,
     String? createdAt,
@@ -2895,10 +3363,20 @@ class VendorKycRequest {
       storeName: storeName ?? this.storeName,
       ownerName: ownerName ?? this.ownerName,
       phone: phone ?? this.phone,
+      email: email ?? this.email,
       address: address ?? this.address,
       city: city ?? this.city,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      vendorType: vendorType ?? this.vendorType,
+      experienceYears: experienceYears ?? this.experienceYears,
+      specializations: specializations ?? this.specializations,
+      portfolioImageUrls: portfolioImageUrls ?? this.portfolioImageUrls,
+      startingPrice: startingPrice ?? this.startingPrice,
+      typicalPriceUpper: typicalPriceUpper ?? this.typicalPriceUpper,
+      ordersPerDay: ordersPerDay ?? this.ordersPerDay,
+      productionTimeDays: productionTimeDays ?? this.productionTimeDays,
+      payoutSetupLabel: payoutSetupLabel ?? this.payoutSetupLabel,
       kyc: kyc ?? this.kyc,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
@@ -3930,6 +4408,14 @@ class CustomBrand {
   final String type;
   final bool isPremium;
   final List<String> categories;
+  final double rating;
+  final String location;
+  final String priceBand;
+  final String tagline;
+  final String description;
+  final List<String> highlightChips;
+  final double rankingScore;
+  final String rankingVisibility;
 
   const CustomBrand({
     required this.id,
@@ -3939,6 +4425,14 @@ class CustomBrand {
     this.type = 'custom_clothing',
     this.isPremium = true,
     this.categories = const [],
+    this.rating = 0,
+    this.location = '',
+    this.priceBand = 'RsRsRs',
+    this.tagline = '',
+    this.description = '',
+    this.highlightChips = const <String>[],
+    this.rankingScore = 0,
+    this.rankingVisibility = 'normal',
   });
 
   Map<String, dynamic> toMap() => {
@@ -3948,6 +4442,14 @@ class CustomBrand {
     'type': type,
     'is_premium': isPremium,
     'categories': categories,
+    'rating': rating,
+    'location': location,
+    'price_band': priceBand,
+    'tagline': tagline,
+    'description': description,
+    'highlight_chips': highlightChips,
+    'ranking_score': rankingScore,
+    'ranking_visibility': rankingVisibility,
   };
 
   factory CustomBrand.fromMap(Map<String, dynamic> map, String id) =>
@@ -3959,6 +4461,16 @@ class CustomBrand {
         type: map['type'] ?? 'custom_clothing',
         isPremium: map['is_premium'] ?? true,
         categories: List<String>.from(map['categories'] ?? const <String>[]),
+        rating: ((map['rating'] ?? 0) as num).toDouble(),
+        location: map['location'] ?? '',
+        priceBand: map['price_band'] ?? 'RsRsRs',
+        tagline: map['tagline'] ?? '',
+        description: map['description'] ?? '',
+        highlightChips: List<String>.from(
+          map['highlight_chips'] ?? const <String>[],
+        ),
+        rankingScore: ((map['ranking_score'] ?? 0) as num).toDouble(),
+        rankingVisibility: map['ranking_visibility'] ?? 'normal',
       );
 }
 

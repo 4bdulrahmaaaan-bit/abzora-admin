@@ -3500,13 +3500,67 @@ class DatabaseService {
     return outfits;
   }
 
-  Future<List<CustomBrand>> getCustomBrands() async {
+  Future<List<CustomBrand>> getCustomBrands({
+    String? category,
+    String? style,
+    double? budgetMin,
+    double? budgetMax,
+    int? deliveryDays,
+  }) async {
+    if (_backendCommerce.isConfigured) {
+      final stores = await _backendCommerce.getRankedCustomStores(
+        category: category,
+        style: style,
+        budgetMin: budgetMin,
+        budgetMax: budgetMax,
+        deliveryDays: deliveryDays,
+      );
+      return stores.map(_customBrandFromStore).toList();
+    }
     final brands = await _fetchCollection(
       'brands',
       (map, id) => CustomBrand.fromMap(map, id),
     );
     brands.removeWhere((brand) => brand.type != 'custom_clothing');
     return brands;
+  }
+
+  CustomBrand _customBrandFromStore(Store store) {
+    final profile = store.customVendorProfile;
+    final categories = profile.specializations.isEmpty
+        ? <String>[
+            if (store.category.trim().isNotEmpty) store.category.trim(),
+          ]
+        : profile.specializations;
+    final effectiveMinPrice = profile.priceRangeMin <= 0
+        ? 2499
+        : profile.priceRangeMin;
+    final effectiveMaxPrice = profile.priceRangeMax < effectiveMinPrice
+        ? effectiveMinPrice
+        : profile.priceRangeMax;
+    final priceBand = effectiveMaxPrice >= 12000
+        ? 'RsRsRsRs'
+        : effectiveMaxPrice >= 7000
+            ? 'RsRsRs'
+            : 'RsRs';
+
+    return CustomBrand(
+      id: store.id,
+      name: store.name,
+      logoUrl: store.logoUrl.isNotEmpty ? store.logoUrl : store.imageUrl,
+      bannerUrl: store.bannerImageUrl,
+      categories: categories,
+      rating: store.rating,
+      location: store.city.trim().isNotEmpty
+          ? store.city.trim()
+          : store.address.trim(),
+      priceBand: priceBand,
+      tagline: store.tagline,
+      description: store.description,
+      highlightChips: store.vendorHighlights,
+      rankingScore: store.vendorScore,
+      rankingVisibility: store.vendorVisibility,
+    );
   }
 
   Future<List<CustomBrandProduct>> getCustomProductsByBrand(
@@ -3525,6 +3579,86 @@ class DatabaseService {
       );
     }
     return products;
+  }
+
+  Future<OrderModel> submitCustomFitFeedback({
+    required String orderId,
+    required double fitRating,
+    required double qualityRating,
+    required double deliveryRating,
+    String notes = '',
+    bool needsAlteration = false,
+  }) async {
+    if (!_backendCommerce.isConfigured) {
+      throw StateError('Custom fit feedback requires backend mode.');
+    }
+    return _backendCommerce.submitCustomFitFeedback(
+      orderId: orderId,
+      fitRating: fitRating,
+      qualityRating: qualityRating,
+      deliveryRating: deliveryRating,
+      notes: notes,
+      needsAlteration: needsAlteration,
+    );
+  }
+
+  Future<OrderModel> requestCustomAlteration({
+    required String orderId,
+    String notes = '',
+  }) async {
+    if (!_backendCommerce.isConfigured) {
+      throw StateError('Custom alteration requests require backend mode.');
+    }
+    return _backendCommerce.requestCustomAlteration(
+      orderId: orderId,
+      notes: notes,
+    );
+  }
+
+  Future<CustomVendorQualityState> getCustomVendorQuality({
+    required AppUser actor,
+  }) async {
+    if (!_backendCommerce.isConfigured) {
+      throw StateError('Custom vendor quality requires backend mode.');
+    }
+    if (actor.role != 'vendor') {
+      throw StateError('Vendor access required.');
+    }
+    return _backendCommerce.getCustomVendorQuality();
+  }
+
+  Future<CustomVendorTrainingProgress> completeCustomVendorTrainingModule({
+    required String moduleKey,
+    required AppUser actor,
+    double score = 100,
+  }) async {
+    if (!_backendCommerce.isConfigured) {
+      throw StateError('Custom vendor training requires backend mode.');
+    }
+    if (actor.role != 'vendor') {
+      throw StateError('Vendor access required.');
+    }
+    return _backendCommerce.completeCustomVendorTrainingModule(
+      moduleKey: moduleKey,
+      score: score,
+    );
+  }
+
+  Future<CustomVendorSampleReview> submitCustomVendorSampleReview({
+    required List<String> sampleImages,
+    required AppUser actor,
+    String notes = '',
+  }) async {
+    if (!_backendCommerce.isConfigured) {
+      throw StateError('Sample review requires backend mode.');
+    }
+    if (actor.role != 'vendor') {
+      throw StateError('Vendor access required.');
+    }
+    return _backendCommerce.submitCustomVendorSampleReview(
+      sampleImages: sampleImages,
+      notes: notes,
+    );
   }
 
   Future<String> placeCustomBrandOrder({
@@ -5795,21 +5929,34 @@ class DatabaseService {
     String status, {
     AppUser? actor,
   }) async {
-    if (_backendCommerce.isConfigured) {
-      final normalizedStatus = status.trim().toLowerCase();
-      final isStoreManagedActor =
-          actor != null &&
-          (actor.role == 'vendor' ||
-              actor.role == riderRole ||
-              actor.role == 'admin' ||
-              actor.role == 'super_admin');
-      if (normalizedStatus == 'cancelled' && !isStoreManagedActor) {
-        await _backendCommerce.cancelOrder(orderId);
-      } else {
-        await _backendCommerce.updateOrderStatus(orderId, status);
+      if (_backendCommerce.isConfigured) {
+        final normalizedStatus = status.trim().toLowerCase();
+        final isCustomVendorStatus = <String>{
+          'new_order',
+          'accepted',
+          'needs_clarification',
+          'in_stitching',
+          'quality_check',
+          'ready',
+          'shipped',
+          'delivered',
+          'rejected',
+        }.contains(normalizedStatus);
+        final isStoreManagedActor =
+            actor != null &&
+            (actor.role == 'vendor' ||
+                actor.role == riderRole ||
+                actor.role == 'admin' ||
+                actor.role == 'super_admin');
+        if (normalizedStatus == 'cancelled' && !isStoreManagedActor) {
+          await _backendCommerce.cancelOrder(orderId);
+        } else if (isCustomVendorStatus) {
+          await _backendCommerce.updateCustomVendorOrderStatus(orderId, status);
+        } else {
+          await _backendCommerce.updateOrderStatus(orderId, status);
+        }
+        return;
       }
-      return;
-    }
     final existing = await _fetchDocument(
       'orders/$orderId',
       (map, id) => OrderModel.fromMap(map, id),
@@ -7880,15 +8027,39 @@ class DatabaseService {
         isActive: true,
         isFeatured: existingStore?.isFeatured ?? false,
         approvalStatus: 'approved',
+        vendorType: request.vendorType == 'custom_vendor'
+            ? 'custom_vendor'
+            : (existingStore?.vendorType ?? 'standard_vendor'),
         logoUrl: existingStore?.logoUrl ?? request.kyc.ownerPhotoUrl,
         bannerImageUrl:
             existingStore?.bannerImageUrl ?? request.kyc.storeImageUrl,
-        tagline: existingStore?.tagline ?? '',
+        tagline: existingStore?.tagline ??
+            (request.vendorType == 'custom_vendor'
+                ? 'Made-to-measure designer studio on ABZORA.'
+                : ''),
         commissionRate: existingStore?.commissionRate ?? 0.12,
         walletBalance: existingStore?.walletBalance ?? 0,
         latitude: request.latitude,
         longitude: request.longitude,
-        category: existingStore?.category ?? 'Fashion',
+        category: request.specializations.isNotEmpty
+            ? request.specializations.first
+            : (existingStore?.category ?? 'Fashion'),
+        customVendorProfile: request.vendorType == 'custom_vendor'
+            ? CustomVendorProfile(
+                experienceYears: request.experienceYears,
+                specializations: request.specializations,
+                portfolioImages: request.portfolioImageUrls,
+                priceRangeMin: request.startingPrice,
+                priceRangeMax: request.typicalPriceUpper,
+                productionTimeDays: request.productionTimeDays,
+                qualityApprovalRequired: true,
+                supportsAlterations: true,
+                alterationPolicy: 'Easy alteration policy',
+                metrics: existingStore?.customVendorProfile.metrics ??
+                    const CustomVendorMetrics(),
+              )
+            : (existingStore?.customVendorProfile ??
+                const CustomVendorProfile()),
         vendorScore: existingStore?.vendorScore ?? 0,
         vendorRank: existingStore?.vendorRank ?? 0,
         vendorVisibility: existingStore?.vendorVisibility ?? 'normal',
