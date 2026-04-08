@@ -8,7 +8,7 @@ import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
 import 'ops_account_screen.dart';
 import '../rider/rider_dashboard.dart';
-import '../vendor/vendor_dashboard.dart';
+import '../vendor/vendor_workspace_screen.dart';
 
 class OpsShellScreen extends StatefulWidget {
   const OpsShellScreen({super.key});
@@ -45,8 +45,12 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
       );
     }
 
+    if (isVendor) {
+      return const VendorWorkspaceScreen();
+    }
+
     final pages = [
-      isVendor ? const VendorDashboard(embedded: true) : const RiderDashboard(embedded: true),
+      const RiderDashboard(embedded: true),
       const OpsAccountScreen(),
     ];
 
