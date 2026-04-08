@@ -83,10 +83,35 @@ class BackendApiClient {
   }
 
   dynamic _extractPayload(http.Response response) {
-    if (response.body.trim().isEmpty) {
+    final rawBody = response.body.trim();
+    if (rawBody.isEmpty) {
       return null;
     }
-    final decoded = jsonDecode(response.body);
+    final contentType = (response.headers['content-type'] ?? '').toLowerCase();
+    final looksLikeJson =
+        contentType.contains('application/json') ||
+        rawBody.startsWith('{') ||
+        rawBody.startsWith('[');
+
+    if (!looksLikeJson) {
+      final preview = rawBody.replaceAll(RegExp(r'\s+'), ' ');
+      throw BackendApiException(
+        response.statusCode >= 200 && response.statusCode < 300
+            ? 'Backend returned a non-JSON response. Please verify backend URL/deployment.'
+            : 'Backend request failed (${response.statusCode}). ${preview.length > 120 ? '${preview.substring(0, 120)}...' : preview}',
+        statusCode: response.statusCode,
+      );
+    }
+
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(rawBody);
+    } on FormatException {
+      throw BackendApiException(
+        'Backend returned invalid JSON. Please verify backend deployment.',
+        statusCode: response.statusCode,
+      );
+    }
     if (decoded is Map<String, dynamic>) {
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw BackendApiException(
