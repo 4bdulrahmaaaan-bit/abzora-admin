@@ -323,12 +323,12 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                       style: Theme.of(context).textTheme.bodyMedium,
                       children: [
                         TextSpan(
-                          text: 'Rs ${product.price.toInt()}',
+                          text: '₹${product.price.toInt()}',
                           style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
                         ),
                         if (hasDiscount) ...[
                           TextSpan(
-                            text: '   Rs ${originalPrice.toInt()}',
+                            text: '   ₹${originalPrice.toInt()}',
                             style: GoogleFonts.inter(
                               color: Theme.of(context).hintColor,
                               decoration: TextDecoration.lineThrough,

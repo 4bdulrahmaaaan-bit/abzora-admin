@@ -22,7 +22,7 @@ class VendorWorkspaceScreen extends StatefulWidget {
 
 class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
   final DatabaseService _db = DatabaseService();
-  final NumberFormat _money = NumberFormat.currency(locale: 'en_IN', symbol: 'Rs ', decimalDigits: 0);
+  final NumberFormat _money = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
   int _index = 0;
   bool _loading = true;
@@ -441,7 +441,7 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
         const Text('Withdraw Earnings', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         _line('Available', m(w.balance)),
-        _line('Minimum withdrawal', 'Rs 100'),
+        _line('Minimum withdrawal', '₹100'),
         _line('Next payout date', DateFormat('EEE, d MMM').format(DateTime.now().add(const Duration(days: 1)))),
         const SizedBox(height: 8),
         SizedBox(width: double.infinity, child: FilledButton(onPressed: _withdraw, child: const Text('Withdraw'))),

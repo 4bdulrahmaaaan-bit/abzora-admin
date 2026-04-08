@@ -106,7 +106,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                 children: [
                   _OrderMetric(label: 'Total orders', value: '${orders.length}'),
                   _OrderMetric(label: 'Pending', value: '$pending'),
-                  _OrderMetric(label: 'Revenue', value: 'Rs ${revenue.toInt()}'),
+                  _OrderMetric(label: 'Revenue', value: '₹${revenue.toInt()}'),
                   _OrderMetric(label: 'Visible', value: '${filtered.length}'),
                 ],
               ),
@@ -215,7 +215,7 @@ class _OrderManagementCard extends StatelessWidget {
                 ),
               ),
               Text(
-                'Rs ${order.totalAmount.toInt()}',
+                '₹${order.totalAmount.toInt()}',
                 style: GoogleFonts.poppins(fontWeight: FontWeight.w800),
               ),
             ],
