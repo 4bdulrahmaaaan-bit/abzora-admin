@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/network_provider.dart';
+import '../services/backend_api_client.dart';
 import '../theme.dart';
 
 class AbzioOfflineView extends StatelessWidget {
@@ -131,42 +132,70 @@ class AbzioNetworkBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<NetworkProvider>(
       builder: (context, network, child) {
-        if (!network.showStatusBanner) {
-          return const SizedBox.shrink();
-        }
-        final offline = network.isOffline;
-        return SafeArea(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Material(
-                color: offline ? const Color(0xFFC94D4D) : const Color(0xFF218B5B),
-                borderRadius: BorderRadius.circular(14),
+        return ValueListenableBuilder<BackendAvailability>(
+          valueListenable: BackendApiClient.backendAvailability,
+          builder: (context, backendStatus, _) {
+            final showBackendBanner = !backendStatus.isAvailable;
+            final showNetworkBanner = network.showStatusBanner;
+            if (!showBackendBanner && !showNetworkBanner) {
+              return const SizedBox.shrink();
+            }
+            final offline = network.isOffline;
+            final isBackend = showBackendBanner;
+            final bannerColor = isBackend
+                ? const Color(0xFFB26A00)
+                : (offline ? const Color(0xFFC94D4D) : const Color(0xFF218B5B));
+            final message = isBackend
+                ? (backendStatus.message.isEmpty
+                    ? 'Backend unavailable. Pull to retry.'
+                    : backendStatus.message)
+                : network.statusMessage;
+
+            return SafeArea(
+              child: Align(
+                alignment: Alignment.topCenter,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        offline ? Icons.wifi_off_rounded : Icons.wifi_rounded,
-                        color: Colors.white,
-                        size: 18,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Material(
+                    color: bannerColor,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isBackend
+                                ? Icons.cloud_off_rounded
+                                : (offline ? Icons.wifi_off_rounded : Icons.wifi_rounded),
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              message,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (isBackend) ...[
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: BackendApiClient.clearBackendAvailability,
+                              child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                            ),
+                          ],
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        network.statusMessage,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );

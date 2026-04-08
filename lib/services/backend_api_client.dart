@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:flutter/foundation.dart';
 
 import 'app_config.dart';
 
@@ -25,6 +26,23 @@ class BackendApiClient {
   const BackendApiClient();
 
   bool get isConfigured => AppConfig.hasBackendBaseUrl;
+
+  static final ValueNotifier<BackendAvailability> backendAvailability =
+      ValueNotifier(const BackendAvailability.available());
+
+  static void clearBackendAvailability() {
+    backendAvailability.value = const BackendAvailability.available();
+  }
+
+  void _markBackendDown(String message) {
+    backendAvailability.value = BackendAvailability.unavailable(message);
+  }
+
+  void _markBackendOk() {
+    if (!backendAvailability.value.isAvailable) {
+      backendAvailability.value = const BackendAvailability.available();
+    }
+  }
 
   Future<Map<String, String>> _headers({
     bool includeJson = true,
@@ -85,6 +103,9 @@ class BackendApiClient {
   dynamic _extractPayload(http.Response response) {
     final rawBody = response.body.trim();
     if (rawBody.isEmpty) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        _markBackendOk();
+      }
       return null;
     }
     final contentType = (response.headers['content-type'] ?? '').toLowerCase();
@@ -95,6 +116,7 @@ class BackendApiClient {
 
     if (!looksLikeJson) {
       final preview = rawBody.replaceAll(RegExp(r'\s+'), ' ');
+      _markBackendDown('Backend responded with non-JSON content.');
       throw BackendApiException(
         response.statusCode >= 200 && response.statusCode < 300
             ? 'Backend returned a non-JSON response. Please verify backend URL/deployment.'
@@ -107,6 +129,7 @@ class BackendApiClient {
     try {
       decoded = jsonDecode(rawBody);
     } on FormatException {
+      _markBackendDown('Backend returned invalid JSON.');
       throw BackendApiException(
         'Backend returned invalid JSON. Please verify backend deployment.',
         statusCode: response.statusCode,
@@ -114,19 +137,27 @@ class BackendApiClient {
     }
     if (decoded is Map<String, dynamic>) {
       if (response.statusCode < 200 || response.statusCode >= 300) {
+        if (response.statusCode >= 500) {
+          _markBackendDown('Backend error (${response.statusCode}).');
+        }
         throw BackendApiException(
           decoded['message']?.toString() ?? 'Request failed.',
           statusCode: response.statusCode,
         );
       }
+      _markBackendOk();
       return decoded.containsKey('data') ? decoded['data'] : decoded;
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (response.statusCode >= 500) {
+        _markBackendDown('Backend error (${response.statusCode}).');
+      }
       throw BackendApiException(
         'Request failed.',
         statusCode: response.statusCode,
       );
     }
+    _markBackendOk();
     return decoded;
   }
 
@@ -135,13 +166,21 @@ class BackendApiClient {
     bool authenticated = false,
     Map<String, String>? queryParameters,
   }) async {
-    final response = await http
-        .get(
-          _uri(path, queryParameters),
-          headers: await _headers(authenticated: authenticated),
-        )
-        .timeout(const Duration(seconds: 20));
-    return _extractPayload(response);
+    try {
+      final response = await http
+          .get(
+            _uri(path, queryParameters),
+            headers: await _headers(authenticated: authenticated),
+          )
+          .timeout(const Duration(seconds: 20));
+      return _extractPayload(response);
+    } on SocketException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on TimeoutException {
+      _markBackendDown('Backend timed out.');
+      rethrow;
+    }
   }
 
   Future<dynamic> post(
@@ -149,14 +188,22 @@ class BackendApiClient {
     bool authenticated = false,
     Map<String, dynamic> body = const {},
   }) async {
-    final response = await http
-        .post(
-          _uri(path),
-          headers: await _headers(authenticated: authenticated),
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 25));
-    return _extractPayload(response);
+    try {
+      final response = await http
+          .post(
+            _uri(path),
+            headers: await _headers(authenticated: authenticated),
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 25));
+      return _extractPayload(response);
+    } on SocketException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on TimeoutException {
+      _markBackendDown('Backend timed out.');
+      rethrow;
+    }
   }
 
   Future<dynamic> put(
@@ -164,14 +211,22 @@ class BackendApiClient {
     bool authenticated = false,
     Map<String, dynamic> body = const {},
   }) async {
-    final response = await http
-        .put(
-          _uri(path),
-          headers: await _headers(authenticated: authenticated),
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 25));
-    return _extractPayload(response);
+    try {
+      final response = await http
+          .put(
+            _uri(path),
+            headers: await _headers(authenticated: authenticated),
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 25));
+      return _extractPayload(response);
+    } on SocketException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on TimeoutException {
+      _markBackendDown('Backend timed out.');
+      rethrow;
+    }
   }
 
   Future<dynamic> patch(
@@ -179,27 +234,43 @@ class BackendApiClient {
     bool authenticated = false,
     Map<String, dynamic> body = const {},
   }) async {
-    final response = await http
-        .patch(
-          _uri(path),
-          headers: await _headers(authenticated: authenticated),
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 25));
-    return _extractPayload(response);
+    try {
+      final response = await http
+          .patch(
+            _uri(path),
+            headers: await _headers(authenticated: authenticated),
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 25));
+      return _extractPayload(response);
+    } on SocketException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on TimeoutException {
+      _markBackendDown('Backend timed out.');
+      rethrow;
+    }
   }
 
   Future<dynamic> delete(
     String path, {
     bool authenticated = false,
   }) async {
-    final response = await http
-        .delete(
-          _uri(path),
-          headers: await _headers(authenticated: authenticated),
-        )
-        .timeout(const Duration(seconds: 20));
-    return _extractPayload(response);
+    try {
+      final response = await http
+          .delete(
+            _uri(path),
+            headers: await _headers(authenticated: authenticated),
+          )
+          .timeout(const Duration(seconds: 20));
+      return _extractPayload(response);
+    } on SocketException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on TimeoutException {
+      _markBackendDown('Backend timed out.');
+      rethrow;
+    }
   }
 
   Future<dynamic> multipart(
@@ -221,9 +292,26 @@ class BackendApiClient {
         contentType: contentType,
       ),
     );
-    final response = await request.send().timeout(const Duration(seconds: 30));
-    final body = await response.stream.bytesToString();
-    final wrapped = http.Response(body, response.statusCode, headers: response.headers);
-    return _extractPayload(wrapped);
+    try {
+      final response = await request.send().timeout(const Duration(seconds: 30));
+      final body = await response.stream.bytesToString();
+      final wrapped = http.Response(body, response.statusCode, headers: response.headers);
+      return _extractPayload(wrapped);
+    } on SocketException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on TimeoutException {
+      _markBackendDown('Backend timed out.');
+      rethrow;
+    }
   }
+}
+
+class BackendAvailability {
+  final bool isAvailable;
+  final String message;
+
+  const BackendAvailability.available() : isAvailable = true, message = '';
+
+  const BackendAvailability.unavailable(this.message) : isAvailable = false;
 }
