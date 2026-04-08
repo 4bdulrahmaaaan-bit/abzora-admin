@@ -33,6 +33,9 @@ class _ProductCardState extends State<ProductCard> {
         ? ''
         : widget.product.images[0];
     final pricing = _pricingFor(widget.product);
+    final hasArTryOn =
+        (widget.product.model3d ?? '').trim().isNotEmpty ||
+        widget.product.arAsset.isNotEmpty;
     final theme = Theme.of(context);
 
     return Consumer<WishlistProvider>(
@@ -137,6 +140,34 @@ class _ProductCardState extends State<ProductCard> {
                                           fontSize: 9,
                                           fontWeight: FontWeight.w800,
                                           letterSpacing: 0.2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (hasArTryOn)
+                                  Positioned(
+                                    left: 8,
+                                    bottom: 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.72,
+                                        ),
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                      child: const Text(
+                                        'AR TRY ON',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.3,
                                         ),
                                       ),
                                     ),
@@ -286,13 +317,15 @@ String _brandName(Product product) {
 String _subtitle(Product product) {
   final category = product.category.trim();
   final fit = product.outfitType?.trim() ?? '';
+  const trustSuffix = 'Easy returns';
   if (category.isEmpty && fit.isEmpty) {
-    return 'Premium style';
+    return 'Verified seller | $trustSuffix';
   }
   if (category.isNotEmpty && fit.isNotEmpty) {
     return '$category • $fit';
   }
-  return category.isNotEmpty ? category : fit;
+  final base = category.isNotEmpty ? category : fit;
+  return '$base | $trustSuffix';
 }
 
 String _displayName(Product product) {
