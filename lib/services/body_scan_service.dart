@@ -8,6 +8,7 @@ class BodyScanInput {
     required this.heightCm,
     required this.weightKg,
     required this.bodyFrame,
+    this.fitPreference = 'regular',
     this.frontImagePath,
     this.sideImagePath,
   });
@@ -15,6 +16,7 @@ class BodyScanInput {
   final double heightCm;
   final double weightKg;
   final String bodyFrame;
+  final String fitPreference;
   final String? frontImagePath;
   final String? sideImagePath;
 }
@@ -27,6 +29,8 @@ class SizePredictionResult {
     required this.waistCm,
     required this.hipCm,
     required this.shoulderCm,
+    required this.armLengthCm,
+    required this.inseamCm,
     required this.sleeveCm,
     required this.lengthCm,
     required this.fit,
@@ -49,6 +53,8 @@ class SizePredictionResult {
   final double waistCm;
   final double hipCm;
   final double shoulderCm;
+  final double armLengthCm;
+  final double inseamCm;
   final double sleeveCm;
   final double lengthCm;
   final String fit;
@@ -100,6 +106,7 @@ class BodyScanService {
     final refinement = poseRefinement;
     final bmi = input.weightKg / math.pow(input.heightCm / 100, 2);
     final normalizedFit = (productFit ?? '').trim().toLowerCase();
+    final normalizedFitPreference = input.fitPreference.trim().toLowerCase();
     final normalizedFrame = input.bodyFrame.trim().toLowerCase();
     final reasons = <String>['Base size from weight'];
     var shirtIndex = _baseShirtIndex(input.weightKg);
@@ -123,6 +130,13 @@ class BodyScanService {
     } else if (normalizedFit == 'oversized') {
       shirtIndex -= 1;
       reasons.add('Adjusted down for oversized fit');
+    }
+    if (normalizedFitPreference == 'slim') {
+      shirtIndex += 1;
+      reasons.add('Adjusted up for slim fit preference');
+    } else if (normalizedFitPreference == 'loose') {
+      shirtIndex -= 1;
+      reasons.add('Adjusted down for loose fit preference');
     }
     shirtIndex = shirtIndex.clamp(0, _shirtOrder.length - 1);
     final shirtSize = _shirtOrder[shirtIndex];
@@ -149,6 +163,8 @@ class BodyScanService {
         : ((input.heightCm * 0.24) + (frameBias * 0.45));
     final sleeve = (input.heightCm * 0.34) + (frameBias * 0.2);
     final length = (input.heightCm * 0.41) + (frameBias * 0.2);
+    final armLength = (input.heightCm * 0.36) + (frameBias * 0.16);
+    final inseam = (input.heightCm * 0.46) + (frameBias * 0.2);
 
     final pantSize = _pantSizeFor(waist);
     final confidence = (_confidenceFor(input, bmi) +
@@ -167,6 +183,8 @@ class BodyScanService {
       waistCm: waist,
       hipCm: hip,
       shoulderCm: shoulder,
+      armLengthCm: armLength,
+      inseamCm: inseam,
       sleeveCm: sleeve,
       lengthCm: length,
       fit: fit,

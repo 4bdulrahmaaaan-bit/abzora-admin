@@ -38,6 +38,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
   double _heightCm = 170;
   double _weightKg = 68;
   String _bodyFrame = 'regular';
+  String _fitPreference = 'regular';
   bool _isAnalyzing = false;
   bool _isSaving = false;
   SizePredictionResult? _result;
@@ -117,6 +118,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
         heightCm: _heightCm,
         weightKg: _weightKg,
         bodyFrame: _bodyFrame,
+        fitPreference: _fitPreference,
         frontImagePath: _frontImage?.path,
         sideImagePath: _sideImage?.path,
       ),
@@ -153,11 +155,17 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
       bodyType: _bodyTypeForSizing(result.detectedBodyType),
       recommendedSize: result.shirtSize,
       pantSize: result.pantSize,
+      fitPreference: _fitPreference,
       shoulderCm: result.shoulderCm,
       chestCm: result.chestCm,
       waistCm: result.waistCm,
       hipCm: result.hipCm,
+      armLengthCm: result.armLengthCm,
+      inseamCm: result.inseamCm,
       confidence: result.confidence,
+      scanFrameCount: 45,
+      scanSource:
+          (_frontImage != null && _sideImage != null) ? 'front_side' : 'front_only',
       updatedAt: DateTime.now().toIso8601String(),
     );
     await _database.saveMeasurementProfile(profile);
@@ -647,6 +655,29 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                     ),
                     selected: _bodyFrame == frame,
                     onSelected: (_) => setState(() => _bodyFrame = frame),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Fit preference',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: ['slim', 'regular', 'loose']
+                .map(
+                  (fit) => ChoiceChip(
+                    label: Text(
+                      '${fit[0].toUpperCase()}${fit.substring(1)}',
+                    ),
+                    selected: _fitPreference == fit,
+                    onSelected: (_) => setState(() => _fitPreference = fit),
                   ),
                 )
                 .toList(),

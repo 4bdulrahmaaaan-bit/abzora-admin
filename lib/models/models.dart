@@ -1374,11 +1374,16 @@ class BodyProfile {
   final String bodyType;
   final String recommendedSize;
   final String pantSize;
+  final String fitPreference;
   final double? shoulderCm;
   final double? chestCm;
   final double? waistCm;
   final double? hipCm;
+  final double? armLengthCm;
+  final double? inseamCm;
   final double? confidence;
+  final int? scanFrameCount;
+  final String? scanSource;
   final String updatedAt;
 
   const BodyProfile({
@@ -1387,11 +1392,16 @@ class BodyProfile {
     required this.bodyType,
     required this.recommendedSize,
     this.pantSize = '',
+    this.fitPreference = 'regular',
     this.shoulderCm,
     this.chestCm,
     this.waistCm,
     this.hipCm,
+    this.armLengthCm,
+    this.inseamCm,
     this.confidence,
+    this.scanFrameCount,
+    this.scanSource,
     required this.updatedAt,
   });
 
@@ -1402,11 +1412,16 @@ class BodyProfile {
         'size': recommendedSize,
         'recommendedSize': recommendedSize,
         'pantSize': pantSize,
+        'fitPreference': fitPreference,
         'shoulderCm': shoulderCm,
         'chestCm': chestCm,
         'waistCm': waistCm,
         'hipCm': hipCm,
+        'armLengthCm': armLengthCm,
+        'inseamCm': inseamCm,
         'confidence': confidence,
+        'scanFrameCount': scanFrameCount,
+        'scanSource': scanSource,
         'updatedAt': updatedAt,
       };
 
@@ -1417,6 +1432,7 @@ class BodyProfile {
         recommendedSize:
             (map['recommendedSize'] ?? map['size'] ?? '').toString(),
         pantSize: (map['pantSize'] ?? '').toString(),
+        fitPreference: (map['fitPreference'] ?? 'regular').toString(),
         shoulderCm: map['shoulderCm'] == null
             ? null
             : (map['shoulderCm'] as num).toDouble(),
@@ -1427,9 +1443,19 @@ class BodyProfile {
             ? null
             : (map['waistCm'] as num).toDouble(),
         hipCm: map['hipCm'] == null ? null : (map['hipCm'] as num).toDouble(),
+        armLengthCm: map['armLengthCm'] == null
+            ? null
+            : (map['armLengthCm'] as num).toDouble(),
+        inseamCm: map['inseamCm'] == null
+            ? null
+            : (map['inseamCm'] as num).toDouble(),
         confidence: map['confidence'] == null
             ? null
             : (map['confidence'] as num).toDouble(),
+        scanFrameCount: map['scanFrameCount'] == null
+            ? null
+            : (map['scanFrameCount'] as num).toInt(),
+        scanSource: map['scanSource']?.toString(),
         updatedAt:
             (map['updatedAt'] ?? DateTime.now().toIso8601String()).toString(),
       );
@@ -1440,11 +1466,16 @@ class BodyProfile {
     String? bodyType,
     String? recommendedSize,
     String? pantSize,
+    String? fitPreference,
     double? shoulderCm,
     double? chestCm,
     double? waistCm,
     double? hipCm,
+    double? armLengthCm,
+    double? inseamCm,
     double? confidence,
+    int? scanFrameCount,
+    String? scanSource,
     String? updatedAt,
   }) {
     return BodyProfile(
@@ -1453,11 +1484,16 @@ class BodyProfile {
       bodyType: bodyType ?? this.bodyType,
       recommendedSize: recommendedSize ?? this.recommendedSize,
       pantSize: pantSize ?? this.pantSize,
+      fitPreference: fitPreference ?? this.fitPreference,
       shoulderCm: shoulderCm ?? this.shoulderCm,
       chestCm: chestCm ?? this.chestCm,
       waistCm: waistCm ?? this.waistCm,
       hipCm: hipCm ?? this.hipCm,
+      armLengthCm: armLengthCm ?? this.armLengthCm,
+      inseamCm: inseamCm ?? this.inseamCm,
       confidence: confidence ?? this.confidence,
+      scanFrameCount: scanFrameCount ?? this.scanFrameCount,
+      scanSource: scanSource ?? this.scanSource,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -2195,6 +2231,15 @@ class UserMemory {
   final String name;
   final String preferredStyle;
   final String size;
+  final String fitPreference;
+  final double? shoulderCm;
+  final double? chestCm;
+  final double? waistCm;
+  final double? hipCm;
+  final double? armLengthCm;
+  final double? inseamCm;
+  final int? scanFrameCount;
+  final String scanSource;
   final List<String> pastIssues;
   final String lastOrderId;
   final String lastConversationSummary;
@@ -2205,6 +2250,15 @@ class UserMemory {
     this.name = '',
     this.preferredStyle = '',
     this.size = '',
+    this.fitPreference = 'regular',
+    this.shoulderCm,
+    this.chestCm,
+    this.waistCm,
+    this.hipCm,
+    this.armLengthCm,
+    this.inseamCm,
+    this.scanFrameCount,
+    this.scanSource = '',
     this.pastIssues = const [],
     this.lastOrderId = '',
     this.lastConversationSummary = '',
@@ -2216,6 +2270,15 @@ class UserMemory {
         'name': name,
         'preferredStyle': preferredStyle,
         'size': size,
+        'fitPreference': fitPreference,
+        'shoulderCm': shoulderCm,
+        'chestCm': chestCm,
+        'waistCm': waistCm,
+        'hipCm': hipCm,
+        'armLengthCm': armLengthCm,
+        'inseamCm': inseamCm,
+        'scanFrameCount': scanFrameCount,
+        'scanSource': scanSource,
         'pastIssues': pastIssues,
         'lastOrderId': lastOrderId,
         'lastConversationSummary': lastConversationSummary,
@@ -2228,6 +2291,29 @@ class UserMemory {
         name: (map['name'] ?? '').toString(),
         preferredStyle: (map['preferredStyle'] ?? '').toString(),
         size: (map['size'] ?? '').toString(),
+        fitPreference: (map['fitPreference'] ?? 'regular').toString(),
+        shoulderCm: map['shoulderCm'] == null
+            ? null
+            : (map['shoulderCm'] as num).toDouble(),
+        chestCm: map['chestCm'] == null
+            ? null
+            : (map['chestCm'] as num).toDouble(),
+        waistCm: map['waistCm'] == null
+            ? null
+            : (map['waistCm'] as num).toDouble(),
+        hipCm: map['hipCm'] == null
+            ? null
+            : (map['hipCm'] as num).toDouble(),
+        armLengthCm: map['armLengthCm'] == null
+            ? null
+            : (map['armLengthCm'] as num).toDouble(),
+        inseamCm: map['inseamCm'] == null
+            ? null
+            : (map['inseamCm'] as num).toDouble(),
+        scanFrameCount: map['scanFrameCount'] == null
+            ? null
+            : (map['scanFrameCount'] as num).toInt(),
+        scanSource: (map['scanSource'] ?? '').toString(),
         pastIssues: ((map['pastIssues'] as List?) ?? const [])
             .map((item) => item.toString())
             .where((item) => item.trim().isNotEmpty)
@@ -2243,6 +2329,15 @@ class UserMemory {
     String? name,
     String? preferredStyle,
     String? size,
+    String? fitPreference,
+    double? shoulderCm,
+    double? chestCm,
+    double? waistCm,
+    double? hipCm,
+    double? armLengthCm,
+    double? inseamCm,
+    int? scanFrameCount,
+    String? scanSource,
     List<String>? pastIssues,
     String? lastOrderId,
     String? lastConversationSummary,
@@ -2253,6 +2348,15 @@ class UserMemory {
       name: name ?? this.name,
       preferredStyle: preferredStyle ?? this.preferredStyle,
       size: size ?? this.size,
+      fitPreference: fitPreference ?? this.fitPreference,
+      shoulderCm: shoulderCm ?? this.shoulderCm,
+      chestCm: chestCm ?? this.chestCm,
+      waistCm: waistCm ?? this.waistCm,
+      hipCm: hipCm ?? this.hipCm,
+      armLengthCm: armLengthCm ?? this.armLengthCm,
+      inseamCm: inseamCm ?? this.inseamCm,
+      scanFrameCount: scanFrameCount ?? this.scanFrameCount,
+      scanSource: scanSource ?? this.scanSource,
       pastIssues: pastIssues ?? this.pastIssues,
       lastOrderId: lastOrderId ?? this.lastOrderId,
       lastConversationSummary:

@@ -33,10 +33,13 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
   static const String _heightStorageKey = 'size_recommendation_height_cm';
   static const String _weightStorageKey = 'size_recommendation_weight_kg';
   static const String _bodyTypeStorageKey = 'size_recommendation_body_type';
+  static const String _fitPreferenceStorageKey =
+      'size_recommendation_fit_preference';
 
   double _heightCm = 170;
   double _weightKg = 68;
   String _bodyFrame = 'regular';
+  String _fitPreference = 'regular';
   MeasurementProfile? _selectedProfile;
   BodyProfile? _bodyProfile;
   List<MeasurementProfile> _profiles = const [];
@@ -65,6 +68,8 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
       _heightCm = prefs.getDouble(_heightStorageKey) ?? _heightCm;
       _weightKg = prefs.getDouble(_weightStorageKey) ?? _weightKg;
       _bodyFrame = prefs.getString(_bodyTypeStorageKey) ?? _bodyFrame;
+      _fitPreference =
+          prefs.getString(_fitPreferenceStorageKey) ?? _fitPreference;
     });
   }
 
@@ -73,6 +78,7 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
     await prefs.setDouble(_heightStorageKey, _heightCm);
     await prefs.setDouble(_weightStorageKey, _weightKg);
     await prefs.setString(_bodyTypeStorageKey, _bodyFrame);
+    await prefs.setString(_fitPreferenceStorageKey, _fitPreference);
   }
 
   Future<void> _loadProfiles() async {
@@ -101,6 +107,7 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
         _heightCm = bodyProfile.heightCm;
         _weightKg = bodyProfile.weightKg;
         _bodyFrame = bodyProfile.bodyType;
+        _fitPreference = bodyProfile.fitPreference;
       }
       _isLoadingProfiles = false;
     });
@@ -165,6 +172,8 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
       waistCm: seed.waistCm,
       hipCm: seed.hipCm,
       shoulderCm: seed.shoulderCm,
+      armLengthCm: seed.armLengthCm,
+      inseamCm: seed.inseamCm,
       sleeveCm: seed.sleeveCm,
       lengthCm: seed.lengthCm,
       fit: seed.fit,
@@ -199,6 +208,8 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
         waistCm: _selectedProfile!.waist,
         hipCm: _selectedProfile!.waist + 8,
         shoulderCm: _selectedProfile!.shoulder,
+        armLengthCm: (_heightCm * 0.36),
+        inseamCm: (_heightCm * 0.46),
         sleeveCm: _selectedProfile!.sleeve,
         lengthCm: _selectedProfile!.length,
         fit: 'Regular',
@@ -217,6 +228,7 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
           heightCm: _heightCm,
           weightKg: _weightKg,
           bodyFrame: _bodyFrame,
+          fitPreference: _fitPreference,
         ),
         productFit: productFit,
       );
@@ -226,7 +238,16 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
             heightCm: _heightCm,
             weightKg: _weightKg,
             bodyType: _bodyFrame,
+            fitPreference: _fitPreference,
             productFit: productFit,
+            shoulderCm: seed.shoulderCm,
+            chestCm: seed.chestCm,
+            waistCm: seed.waistCm,
+            hipCm: seed.hipCm,
+            armLengthCm: seed.armLengthCm,
+            inseamCm: seed.inseamCm,
+            availableSizes: widget.product?.sizes,
+            sizeChart: widget.product?.attributes,
           );
           final payload = response['data'] is Map
               ? Map<String, dynamic>.from(response['data'] as Map)
@@ -251,11 +272,16 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
         bodyType: _bodyFrame,
         recommendedSize: result.shirtSize,
         pantSize: result.pantSize,
+        fitPreference: _fitPreference,
         shoulderCm: result.shoulderCm,
         chestCm: result.chestCm,
         waistCm: result.waistCm,
         hipCm: result.hipCm,
+        armLengthCm: result.armLengthCm,
+        inseamCm: result.inseamCm,
         confidence: result.confidence,
+        scanSource: _selectedProfile != null ? 'saved_profile' : 'manual',
+        scanFrameCount: _selectedProfile != null ? 30 : 0,
         updatedAt: DateTime.now().toIso8601String(),
       );
       await _database.saveBodyProfile(user.id, bodyProfile);
@@ -589,6 +615,22 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
                     ),
                     selected: _bodyFrame == frame,
                     onSelected: (_) => setState(() => _bodyFrame = frame),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: ['slim', 'regular', 'loose']
+                .map(
+                  (fit) => ChoiceChip(
+                    label: Text(
+                      '${fit[0].toUpperCase()}${fit.substring(1)} fit',
+                    ),
+                    selected: _fitPreference == fit,
+                    onSelected: (_) => setState(() => _fitPreference = fit),
                   ),
                 )
                 .toList(),

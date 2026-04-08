@@ -3423,6 +3423,15 @@ class DatabaseService {
             ))
         .copyWith(
           size: resolved.recommendedSize,
+          fitPreference: resolved.fitPreference,
+          shoulderCm: resolved.shoulderCm,
+          chestCm: resolved.chestCm,
+          waistCm: resolved.waistCm,
+          hipCm: resolved.hipCm,
+          armLengthCm: resolved.armLengthCm,
+          inseamCm: resolved.inseamCm,
+          scanFrameCount: resolved.scanFrameCount,
+          scanSource: resolved.scanSource,
           updatedAt: resolved.updatedAt,
         );
     if (_backendCommerce.isConfigured) {

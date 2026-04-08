@@ -256,18 +256,39 @@ class BackendCommerceService {
     required double heightCm,
     required double weightKg,
     required String bodyType,
+    String? fitPreference,
     String? productFit,
+    double? shoulderCm,
+    double? chestCm,
+    double? waistCm,
+    double? hipCm,
+    double? armLengthCm,
+    double? inseamCm,
+    List<String>? availableSizes,
+    Map<String, String>? sizeChart,
   }) async {
+    final body = <String, dynamic>{
+      'heightCm': heightCm,
+      'weightKg': weightKg,
+      'bodyType': bodyType,
+      'fitPreference': fitPreference?.trim(),
+      'productFit': productFit?.trim(),
+      'shoulderCm': shoulderCm,
+      'chestCm': chestCm,
+      'waistCm': waistCm,
+      'hipCm': hipCm,
+      'armLengthCm': armLengthCm,
+      'inseamCm': inseamCm,
+      'availableSizes':
+          (availableSizes != null && availableSizes.isNotEmpty) ? availableSizes : null,
+      'sizeChart': (sizeChart != null && sizeChart.isNotEmpty) ? sizeChart : null,
+    }..removeWhere(
+        (key, value) => value == null || (value is String && value.isEmpty),
+      );
     final payload = await _client.post(
       '/ai/recommend-size',
       authenticated: true,
-      body: {
-        'heightCm': heightCm,
-        'weightKg': weightKg,
-        'bodyType': bodyType,
-        if (productFit != null && productFit.trim().isNotEmpty)
-          'productFit': productFit.trim(),
-      },
+      body: body,
     );
     return Map<String, dynamic>.from(payload as Map);
   }
