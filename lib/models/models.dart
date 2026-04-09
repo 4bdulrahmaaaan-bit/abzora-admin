@@ -871,6 +871,9 @@ class Product {
   final String? outfitType;
   final String? fabric;
   final String? model3d;
+  final String? unityAssetBundleUrl;
+  final String? rigProfile;
+  final String? materialProfile;
   final Map<String, String> attributes;
   final Map<String, dynamic> arAsset;
   final Map<String, String> customizations;
@@ -909,6 +912,9 @@ class Product {
     this.outfitType,
     this.fabric,
     this.model3d,
+    this.unityAssetBundleUrl,
+    this.rigProfile,
+    this.materialProfile,
     this.attributes = const {},
     this.arAsset = const {},
     this.customizations = const {},
@@ -947,6 +953,9 @@ class Product {
     'outfitType': outfitType,
     'fabric': fabric,
     'model3d': model3d,
+    'unityAssetBundleUrl': unityAssetBundleUrl,
+    'rigProfile': rigProfile,
+    'materialProfile': materialProfile,
     'attributes': attributes,
     'arAsset': arAsset,
     'customizations': customizations,
@@ -1013,6 +1022,17 @@ class Product {
                 '';
             return raw.isEmpty ? null : raw;
           })(),
+    unityAssetBundleUrl:
+        (map['unityAssetBundleUrl']?.toString().trim().isNotEmpty ?? false)
+        ? map['unityAssetBundleUrl'].toString().trim()
+        : null,
+    rigProfile: (map['rigProfile']?.toString().trim().isNotEmpty ?? false)
+        ? map['rigProfile'].toString().trim()
+        : null,
+    materialProfile:
+        (map['materialProfile']?.toString().trim().isNotEmpty ?? false)
+        ? map['materialProfile'].toString().trim()
+        : null,
     attributes: Map<String, String>.from(
       (map['attributes'] as Map? ?? const {}).map(
         (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),

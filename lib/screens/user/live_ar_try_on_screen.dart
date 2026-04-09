@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
@@ -11,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../models/ar_try_on_models.dart';
 import '../../models/models.dart';
 import '../../models/outfit_recommendation_model.dart';
 import '../../providers/auth_provider.dart';
@@ -20,8 +23,12 @@ import '../../services/body_scan_service.dart';
 import '../../services/camera_frame_encoder.dart';
 import '../../services/mediapipe_pose_bridge.dart';
 import '../../services/pose_measurement_service.dart';
+import '../../services/real_time_ar_try_on_bridge.dart';
+import '../../services/unity_try_on_bridge.dart';
 import '../../theme.dart';
+import '../../widgets/ar_native_try_on_view.dart';
 import '../../widgets/state_views.dart';
+import '../../widgets/unity_try_on_view.dart';
 
 class LiveArTryOnScreen extends StatefulWidget {
   const LiveArTryOnScreen({
@@ -38,6 +45,7 @@ class LiveArTryOnScreen extends StatefulWidget {
 }
 
 enum _TryOnMode { single, outfit }
+enum _ArRendererMode { auto, flutter, native, unity }
 
 class _ArFitSummary {
   const _ArFitSummary({
@@ -103,13 +111,26 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
   Product? _selectedProductOverride;
   final List<TryOnPoseFrame> _recentPoseFrames = <TryOnPoseFrame>[];
   _TryOnMode _mode = _TryOnMode.single;
+  _ArRendererMode _rendererMode = _ArRendererMode.auto;
+  ArTryOnProductMetadata? _nativeTryOnMetadata;
+  bool _nativeRendererConfigured = false;
+  ArTryOnProductMetadata? _unityTryOnMetadata;
+  bool _unityRendererConfigured = false;
+  String _tryOnSessionId = '';
+  int _tryOnCaptureCount = 0;
+  int _tryOnOutfitSwitchCount = 0;
+  final List<ArTryOnFrameStat> _tryOnFrameStats = <ArTryOnFrameStat>[];
 
   @override
   void initState() {
     super.initState();
     _garment = _tryOnService.metadataFor(widget.product);
+    _tryOnSessionId =
+        'tryon_${widget.product.id}_${DateTime.now().millisecondsSinceEpoch}';
     _initializeCamera();
     Future.microtask(_loadIntelligence);
+    Future.microtask(() => _configureNativeRenderer(widget.product));
+    Future.microtask(() => _configureUnityRenderer(widget.product));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -120,6 +141,9 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
 
   @override
   void dispose() {
+    unawaited(_persistTryOnSession());
+    unawaited(RealTimeArTryOnBridge.instance.dispose());
+    unawaited(UnityTryOnBridge.instance.dispose());
     _controller?.dispose();
     super.dispose();
   }
@@ -216,6 +240,270 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
         return;
       }
       _refreshFitSummary();
+    }
+  }
+
+  Future<void> _configureNativeRenderer(Product product) async {
+    if (_rendererMode == _ArRendererMode.flutter ||
+        _rendererMode == _ArRendererMode.unity) {
+      return;
+    }
+    if (!(Platform.isAndroid || Platform.isIOS)) {
+      return;
+    }
+    try {
+      final metadata = await _backendCommerceService.getTryOnProductMetadata(
+        product.id,
+      );
+      if (!mounted) {
+        return;
+      }
+      await RealTimeArTryOnBridge.instance.initialize(
+        metadata: metadata,
+        preferBackCamera: !_useFrontCamera,
+        enableOcclusion: true,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _nativeTryOnMetadata = metadata;
+        _nativeRendererConfigured = true;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _nativeTryOnMetadata = null;
+        _nativeRendererConfigured = false;
+      });
+    }
+  }
+
+  Future<void> _configureUnityRenderer(Product product) async {
+    if (_rendererMode == _ArRendererMode.flutter ||
+        _rendererMode == _ArRendererMode.native) {
+      return;
+    }
+    if (!(Platform.isAndroid || Platform.isIOS)) {
+      return;
+    }
+    try {
+      final metadata = await _backendCommerceService.getTryOnProductMetadata(
+        product.id,
+      );
+      if (!mounted) {
+        return;
+      }
+      final summary = _fitSummary;
+      await UnityTryOnBridge.instance.initialize(
+        metadata: metadata,
+        measurements: {
+          if (_savedBodyProfile?.heightCm != null)
+            'heightCm': _savedBodyProfile!.heightCm,
+          if (summary != null) 'shoulderCm': summary.shoulderCm,
+          if (summary != null) 'chestCm': summary.chestCm,
+          if (summary != null) 'waistCm': summary.waistCm,
+          if (summary != null) 'hipCm': summary.hipCm,
+        },
+        enableAvatar: true,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _unityTryOnMetadata = metadata;
+        _unityRendererConfigured = true;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _unityTryOnMetadata = null;
+        _unityRendererConfigured = false;
+      });
+    }
+  }
+
+  Future<void> _switchNativeGarment(Product product) async {
+    if (_rendererMode == _ArRendererMode.flutter ||
+        _rendererMode == _ArRendererMode.unity) {
+      return;
+    }
+    if (!(Platform.isAndroid || Platform.isIOS)) {
+      return;
+    }
+    try {
+      final metadata = await _backendCommerceService.getTryOnProductMetadata(
+        product.id,
+      );
+      await RealTimeArTryOnBridge.instance.updateGarment(metadata);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _nativeTryOnMetadata = metadata;
+        _nativeRendererConfigured = true;
+      });
+    } catch (_) {
+      // Keep Flutter overlay active even if native renderer update fails.
+    }
+  }
+
+  Future<void> _switchUnityGarment(Product product) async {
+    if (_rendererMode == _ArRendererMode.flutter ||
+        _rendererMode == _ArRendererMode.native) {
+      return;
+    }
+    if (!(Platform.isAndroid || Platform.isIOS)) {
+      return;
+    }
+    try {
+      final metadata = await _backendCommerceService.getTryOnProductMetadata(
+        product.id,
+      );
+      await UnityTryOnBridge.instance.loadGarment(metadata);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _unityTryOnMetadata = metadata;
+        _unityRendererConfigured = true;
+      });
+    } catch (_) {
+      // Keep fallback renderers active if Unity garment load fails.
+    }
+  }
+
+  Map<String, dynamic> _tryOnFrameToMap(TryOnPoseFrame frame) {
+    Map<String, double> point(NormalizedLandmarkPoint value) => {
+      'x': value.x,
+      'y': value.y,
+    };
+
+    return {
+      'leftShoulder': point(frame.leftShoulder),
+      'rightShoulder': point(frame.rightShoulder),
+      'leftHip': point(frame.leftHip),
+      'rightHip': point(frame.rightHip),
+      'shoulderCenter': point(frame.shoulderCenter),
+      'hipCenter': point(frame.hipCenter),
+      'rotationRadians': frame.rotationRadians,
+      'shoulderWidth': frame.shoulderWidth,
+      'torsoHeight': frame.torsoHeight,
+    };
+  }
+
+  Future<void> _pushPoseToNative(TryOnPoseFrame? frame) async {
+    final canvas = _previewCanvasSize;
+    if (!_shouldUseNativeRenderer ||
+        !_nativeRendererConfigured ||
+        _nativeTryOnMetadata == null ||
+        canvas == null) {
+      return;
+    }
+    final poseConfidence = frame == null
+        ? 0.0
+        : (frame.feedback.progress.clamp(0.0, 1.0) * 0.6) +
+            (frame.feedback.isAligned ? 0.35 : 0.1);
+    _tryOnFrameStats.add(
+      ArTryOnFrameStat(
+        timestampMs: DateTime.now().millisecondsSinceEpoch,
+        fps: 30,
+        poseConfidence: poseConfidence.clamp(0.0, 1.0),
+        bodyVisible: frame != null,
+        lightingScore: _sceneLuma,
+      ),
+    );
+    if (_tryOnFrameStats.length > 90) {
+      _tryOnFrameStats.removeAt(0);
+    }
+    try {
+      await RealTimeArTryOnBridge.instance.updatePoseFrame(
+        poseFrame: frame == null ? const {} : _tryOnFrameToMap(frame),
+        viewportSize: canvas,
+        bodyDetected: frame != null,
+        lightingScore: _sceneLuma,
+      );
+    } catch (_) {
+      // Native renderer is optional. Keep Flutter overlay responsive.
+    }
+  }
+
+  Future<void> _pushPoseToUnity(TryOnPoseFrame? frame) async {
+    if (!_shouldUseUnityRenderer ||
+        !_unityRendererConfigured ||
+        _unityTryOnMetadata == null ||
+        frame == null) {
+      return;
+    }
+    try {
+      await UnityTryOnBridge.instance.updatePose(_tryOnFrameToMap(frame));
+    } catch (_) {
+      // Unity mode is optional and should never block tracking.
+    }
+  }
+
+  Future<void> _persistTryOnSession() async {
+    if (!_backendCommerceService.isConfigured || _tryOnFrameStats.isEmpty) {
+      return;
+    }
+    final summary = _fitSummary;
+    final avgFps = _tryOnFrameStats.fold<double>(
+          0,
+          (sum, item) => sum + item.fps,
+        ) /
+        _tryOnFrameStats.length;
+    final avgPoseConfidence = _tryOnFrameStats.fold<double>(
+          0,
+          (sum, item) => sum + item.poseConfidence,
+        ) /
+        _tryOnFrameStats.length;
+    final peakFps = _tryOnFrameStats.fold<double>(
+      0,
+      (maxValue, item) => math.max(maxValue, item.fps),
+    );
+    final payload = ArTryOnSessionPayload(
+      productId: (_selectedProductOverride ?? widget.product).id,
+      sessionId: _tryOnSessionId,
+      platform: RealTimeArTryOnBridge.instance.platformLabel,
+      deviceModel: Platform.operatingSystemVersion,
+      cameraFacing: _useFrontCamera ? 'front' : 'back',
+      mode: _mode == _TryOnMode.outfit ? 'outfit' : 'live_overlay',
+      captureCount: _tryOnCaptureCount,
+      outfitSwitchCount: _tryOnOutfitSwitchCount,
+      averageFps: avgFps,
+      peakFps: peakFps,
+      averagePoseConfidence: avgPoseConfidence,
+      bodyProfileSnapshot: {
+        if (_savedBodyProfile?.heightCm != null) 'heightCm': _savedBodyProfile!.heightCm,
+        if (_savedBodyProfile?.weightKg != null) 'weightKg': _savedBodyProfile!.weightKg,
+      },
+      measurements: {
+        if (summary != null) 'shoulderCm': summary.shoulderCm,
+        if (summary != null) 'chestCm': summary.chestCm,
+        if (summary != null) 'waistCm': summary.waistCm,
+        if (summary != null) 'hipCm': summary.hipCm,
+      },
+      renderStats: {
+        'renderer': _nativeRendererConfigured
+            ? 'native_hybrid'
+            : 'flutter_hybrid',
+        'occlusionEnabled':
+            (_trackingFrame?.feedback.isAligned ?? false) &&
+            (_trackingFrame?.shoulderWidth ?? 0) > 0.08,
+        'physicsEnabled': false,
+        'frameSkipCount': _poseFrameCounter ~/ 2,
+      },
+      events: List<ArTryOnFrameStat>.from(_tryOnFrameStats),
+      previewImageUrl: _lastCapturePath ?? '',
+    );
+    try {
+      await _backendCommerceService.saveTryOnSession(payload);
+    } catch (_) {
+      // Session analytics should never block the UI teardown path.
     }
   }
 
@@ -493,6 +781,8 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       if (!wasAligned && isAligned) {
         HapticFeedback.selectionClick();
       }
+      unawaited(_pushPoseToNative(smoothedFrame));
+      unawaited(_pushPoseToUnity(smoothedFrame));
     } catch (_) {
       // Ignore frame-level errors to keep the preview responsive.
     } finally {
@@ -505,6 +795,11 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       return;
     }
     await HapticFeedback.selectionClick();
+    try {
+      await RealTimeArTryOnBridge.instance.setCameraFacing(
+        front: !_useFrontCamera,
+      );
+    } catch (_) {}
     await _initializeCamera(useFrontCamera: !_useFrontCamera);
   }
 
@@ -522,6 +817,14 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
   }
 
   Future<void> _capturePhoto() async {
+    if (_shouldUseUnityRenderer) {
+      await _captureUnityPreview();
+      return;
+    }
+    if (_shouldUseNativeRenderer) {
+      await _captureNativePreview();
+      return;
+    }
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized || _isCapturing) {
       return;
@@ -534,6 +837,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       final watermarkedPath = await _applyCaptureWatermark(file.path);
       await _persistCapture(watermarkedPath);
       await _syncBodyProfileFromFitSummary();
+      _tryOnCaptureCount += 1;
       if (!mounted) {
         return;
       }
@@ -555,6 +859,78 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       } catch (_) {
         // Ignore restart errors and let the user retry or fallback.
       }
+      if (mounted) {
+        setState(() => _isCapturing = false);
+      }
+    }
+  }
+
+  Future<void> _captureNativePreview() async {
+    if (_isCapturing) {
+      return;
+    }
+    setState(() => _isCapturing = true);
+    try {
+      final nativePath = await RealTimeArTryOnBridge.instance.capturePreview();
+      await _triggerCaptureFlash();
+      if (nativePath == null || nativePath.trim().isEmpty) {
+        throw StateError('Native AR preview capture is unavailable.');
+      }
+      await _persistCapture(nativePath);
+      await _syncBodyProfileFromFitSummary();
+      _tryOnCaptureCount += 1;
+      if (!mounted) {
+        return;
+      }
+      HapticFeedback.mediumImpact();
+      setState(() => _lastCapturePath = nativePath);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Native AR capture saved.')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Native capture failed: $error')));
+    } finally {
+      if (mounted) {
+        setState(() => _isCapturing = false);
+      }
+    }
+  }
+
+  Future<void> _captureUnityPreview() async {
+    if (_isCapturing) {
+      return;
+    }
+    setState(() => _isCapturing = true);
+    try {
+      final unityPath = await UnityTryOnBridge.instance.capture();
+      await _triggerCaptureFlash();
+      if (unityPath == null || unityPath.trim().isEmpty) {
+        throw StateError('Unity capture is unavailable.');
+      }
+      await _persistCapture(unityPath);
+      await _syncBodyProfileFromFitSummary();
+      _tryOnCaptureCount += 1;
+      if (!mounted) {
+        return;
+      }
+      HapticFeedback.mediumImpact();
+      setState(() => _lastCapturePath = unityPath);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unity premium capture saved.')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unity capture failed: $error')));
+    } finally {
       if (mounted) {
         setState(() => _isCapturing = false);
       }
@@ -698,6 +1074,26 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       [XFile(path)],
       text: 'Trying on ${widget.product.name} with ABZORA AR.',
     );
+  }
+
+  bool get _shouldUseNativeRenderer {
+    return switch (_rendererMode) {
+      _ArRendererMode.flutter => false,
+      _ArRendererMode.unity => false,
+      _ArRendererMode.native => _nativeTryOnMetadata != null,
+      _ArRendererMode.auto => _nativeTryOnMetadata != null,
+    };
+  }
+
+  bool get _shouldUseUnityRenderer {
+    return switch (_rendererMode) {
+      _ArRendererMode.unity => _unityTryOnMetadata != null,
+      _ArRendererMode.auto =>
+        _unityTryOnMetadata != null &&
+        _unityTryOnMetadata!.unityAssetBundleUrl.trim().isNotEmpty,
+      _ArRendererMode.flutter => false,
+      _ArRendererMode.native => false,
+    };
   }
 
   Rect _guideRectFor(Size size) {
@@ -949,6 +1345,9 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       _mode = _TryOnMode.single;
       _overlayLayout = null;
     });
+    _tryOnOutfitSwitchCount += 1;
+    unawaited(_switchNativeGarment(selected));
+    unawaited(_switchUnityGarment(selected));
   }
 
   @override
@@ -1059,7 +1458,39 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
                             ),
                           ),
                         ),
-                        if (_showOverlay)
+                        if (_showOverlay && _shouldUseUnityRenderer)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: UnityTryOnView(
+                                metadata: _unityTryOnMetadata!,
+                                measurements: {
+                                  if (_savedBodyProfile?.heightCm != null)
+                                    'heightCm': _savedBodyProfile!.heightCm,
+                                  if (fitSummary != null)
+                                    'shoulderCm': fitSummary.shoulderCm,
+                                  if (fitSummary != null)
+                                    'chestCm': fitSummary.chestCm,
+                                  if (fitSummary != null)
+                                    'waistCm': fitSummary.waistCm,
+                                  if (fitSummary != null)
+                                    'hipCm': fitSummary.hipCm,
+                                },
+                              ),
+                            ),
+                          ),
+                        if (_showOverlay &&
+                            !_shouldUseUnityRenderer &&
+                            _shouldUseNativeRenderer)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: ArNativeTryOnView(
+                                metadata: _nativeTryOnMetadata!,
+                              ),
+                            ),
+                          ),
+                        if (_showOverlay &&
+                            !_shouldUseUnityRenderer &&
+                            !_shouldUseNativeRenderer)
                           _GarmentOverlay(
                             product: activePrimaryProduct,
                             metadata: activePrimaryMetadata,
@@ -1100,6 +1531,9 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
                             productSizes: widget.product.sizes,
                             fitSummary: fitSummary,
                             statusText: _statusText(),
+                            rendererMode: _rendererMode,
+                            nativeRendererAvailable: _nativeTryOnMetadata != null,
+                            unityRendererAvailable: _unityTryOnMetadata != null,
                             fitAdjustment: _fitAdjustment,
                             zoomLevel: _zoomLevel,
                             minZoomLevel: _minZoomLevel,
@@ -1111,6 +1545,22 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
                             canSwitchCamera: _cameras.length > 1,
                             onSwitchCamera: _switchCamera,
                             onChangeProduct: _openProductPicker,
+                            onRendererModeChanged: (mode) async {
+                              HapticFeedback.selectionClick();
+                              setState(() => _rendererMode = mode);
+                              if (mode == _ArRendererMode.unity ||
+                                  mode == _ArRendererMode.auto) {
+                                await _configureUnityRenderer(
+                                  _selectedProductOverride ?? widget.product,
+                                );
+                              }
+                              if (mode != _ArRendererMode.flutter &&
+                                  mode != _ArRendererMode.unity) {
+                                await _configureNativeRenderer(
+                                  _selectedProductOverride ?? widget.product,
+                                );
+                              }
+                            },
                             showOverlay: _showOverlay,
                             onToggleBeforeAfter: () {
                               HapticFeedback.selectionClick();
@@ -1270,6 +1720,9 @@ class _BottomControls extends StatelessWidget {
     required this.productSizes,
     required this.fitSummary,
     required this.statusText,
+    required this.rendererMode,
+    required this.nativeRendererAvailable,
+    required this.unityRendererAvailable,
     required this.fitAdjustment,
     required this.zoomLevel,
     required this.minZoomLevel,
@@ -1281,6 +1734,7 @@ class _BottomControls extends StatelessWidget {
     required this.canSwitchCamera,
     required this.onSwitchCamera,
     required this.onChangeProduct,
+    required this.onRendererModeChanged,
     required this.showOverlay,
     required this.onToggleBeforeAfter,
     required this.onSelectSize,
@@ -1290,6 +1744,9 @@ class _BottomControls extends StatelessWidget {
   final List<String> productSizes;
   final _ArFitSummary? fitSummary;
   final String statusText;
+  final _ArRendererMode rendererMode;
+  final bool nativeRendererAvailable;
+  final bool unityRendererAvailable;
   final double fitAdjustment;
   final double zoomLevel;
   final double minZoomLevel;
@@ -1301,6 +1758,7 @@ class _BottomControls extends StatelessWidget {
   final bool canSwitchCamera;
   final VoidCallback onSwitchCamera;
   final VoidCallback onChangeProduct;
+  final ValueChanged<_ArRendererMode> onRendererModeChanged;
   final bool showOverlay;
   final VoidCallback onToggleBeforeAfter;
   final ValueChanged<String> onSelectSize;
@@ -1432,6 +1890,45 @@ class _BottomControls extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final option in _ArRendererMode.values)
+                    ChoiceChip(
+                      label: Text(
+                        switch (option) {
+                          _ArRendererMode.auto => 'Auto',
+                          _ArRendererMode.flutter => 'Flutter',
+                          _ArRendererMode.native => 'Native',
+                          _ArRendererMode.unity => 'Unity',
+                        },
+                      ),
+                      selected: rendererMode == option,
+                      onSelected: ((option == _ArRendererMode.native &&
+                                  !nativeRendererAvailable) ||
+                              (option == _ArRendererMode.unity &&
+                                  !unityRendererAvailable))
+                          ? null
+                          : (_) => onRendererModeChanged(option),
+                      selectedColor: AbzioTheme.accentColor,
+                      backgroundColor: Colors.white.withValues(alpha: 0.12),
+                      disabledColor: Colors.white.withValues(alpha: 0.06),
+                      labelStyle: TextStyle(
+                        color: rendererMode == option
+                            ? Colors.black
+                            : (((option == _ArRendererMode.native &&
+                                            !nativeRendererAvailable) ||
+                                        (option == _ArRendererMode.unity &&
+                                            !unityRendererAvailable)))
+                                ? Colors.white38
+                                : Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 12),
               Row(

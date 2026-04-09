@@ -1,4 +1,5 @@
 import '../models/banner_model.dart';
+import '../models/ar_try_on_models.dart';
 import '../models/category_management_model.dart';
 import '../models/models.dart';
 import '../models/outfit_recommendation_model.dart';
@@ -1941,6 +1942,28 @@ class BackendCommerceService {
     return _productFromBackend(Map<String, dynamic>.from(payload as Map));
   }
 
+  Future<ArTryOnProductMetadata> getTryOnProductMetadata(
+    String productId,
+  ) async {
+    final payload = await _client.get('/ar/product/$productId');
+    final map = payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+    return ArTryOnProductMetadata.fromMap(map);
+  }
+
+  Future<String> saveTryOnSession(ArTryOnSessionPayload session) async {
+    final payload = await _client.post(
+      '/ar/tryon/session',
+      authenticated: true,
+      body: session.toMap(),
+    );
+    final map = payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+    return map['sessionId']?.toString() ?? session.sessionId;
+  }
+
   Future<List<OrderModel>> getStoreOrders(String storeId) async {
     final payload = await _client.get(
       '/orders/store/$storeId',
@@ -2337,6 +2360,9 @@ class BackendCommerceService {
       'subcategory': product.subcategory,
       'images': product.images,
       'model3d': product.model3d,
+      'unityAssetBundleUrl': product.unityAssetBundleUrl,
+      'rigProfile': product.rigProfile,
+      'materialProfile': product.materialProfile,
       'attributes': product.attributes,
       'arAsset': product.arAsset,
       if (product.arAsset.isNotEmpty) 'disableArAssetGeneration': true,
@@ -2421,6 +2447,9 @@ class BackendCommerceService {
       'purchaseCount': map['purchaseCount'] ?? 0,
       'images': map['images'] ?? const [],
       'model3d': map['model3d'],
+      'unityAssetBundleUrl': map['unityAssetBundleUrl'],
+      'rigProfile': map['rigProfile'],
+      'materialProfile': map['materialProfile'],
       'sizes': map['sizes'] ?? const ['S', 'M', 'L'],
       'stock': map['stock'] ?? 0,
       'category': map['category'] ?? '',

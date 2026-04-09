@@ -1,0 +1,14 @@
+{
+  "anchorTemplate": "torso_template",
+  "scaleFactor": 1.08,
+  "widthFactor": 1.12,
+  "heightFactor": 1.58,
+  "fallbackMode": "static_preview",
+  "processedImage": "https://res.cloudinary.com/demo/image/upload/f_png/sample-shirt.png",
+  "transparentImage": "https://res.cloudinary.com/demo/image/upload/f_png/sample-shirt-transparent.png",
+  "anchors": {
+    "leftShoulder": { "x": 0.32, "y": 0.18 },
+    "rightShoulder": { "x": 0.68, "y": 0.18 },
+    "center": { "x": 0.5, "y": 0.44 }
+  }
+}

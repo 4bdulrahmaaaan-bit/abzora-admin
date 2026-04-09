@@ -8,6 +8,7 @@ class MainActivity : FlutterActivity() {
     override fun getRenderMode(): RenderMode = RenderMode.texture
 
     private lateinit var mediaPipePoseBridge: MediaPipePoseBridge
+    private lateinit var realTimeArTryOnPlugin: RealTimeArTryOnPlugin
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -15,6 +16,11 @@ class MainActivity : FlutterActivity() {
             context = applicationContext,
             messenger = flutterEngine.dartExecutor.binaryMessenger
         )
+        realTimeArTryOnPlugin = RealTimeArTryOnPlugin(
+            context = applicationContext,
+            messenger = flutterEngine.dartExecutor.binaryMessenger
+        )
+        realTimeArTryOnPlugin.registerViews(flutterEngine.platformViewsController.registry)
     }
 
     override fun onDestroy() {
