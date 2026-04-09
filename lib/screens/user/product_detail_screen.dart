@@ -636,46 +636,84 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     Color accentColor,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFFFFDF8),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFF0E3C5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
+            color: const Color(0xFFB8963F).withValues(alpha: 0.08),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            (product.brand.trim().isEmpty ? product.category : product.brand)
-                .toUpperCase(),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: accentColor,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.35,
-            ),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF6E8C7),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  (product.brand.trim().isEmpty ? product.category : product.brand)
+                      .toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: const Color(0xFF8E6B22),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.55,
+                  ),
+                ),
+              ),
+              if (product.category.trim().isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: const Color(0xFFE8D9B3)),
+                  ),
+                  child: Text(
+                    product.category,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: const Color(0xFF6F6351),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
           Text(
             product.name,
             style: Theme.of(
               context,
             ).textTheme.displayMedium?.copyWith(
-              fontSize: 34,
+              fontSize: 36,
               height: 1.1,
               color: const Color(0xFF1A1A1A),
+              fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 4,
+            spacing: 10,
+            runSpacing: 8,
             children: [
               Text(
                 pricing.currentLabel,
@@ -684,6 +722,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 ).textTheme.displayMedium?.copyWith(
                   fontSize: 32,
                   color: const Color(0xFF1A1A1A),
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               if (pricing.originalLabel != null)
@@ -696,20 +735,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   ),
                 ),
               if (pricing.discountPercent > 0)
-                Text(
-                  '${pricing.discountPercent}% OFF',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: const Color(0xFFB8963F),
-                    fontWeight: FontWeight.w800,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF163A2F),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${pricing.discountPercent}% OFF',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                    ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Text(
             pricing.discountPercent > 0
-                ? 'Best price today with premium finish and fast delivery'
-                : 'Premium finish with fast delivery and easy returns',
+                ? 'Best value today with premium finishing, sharper tailoring, and protected delivery.'
+                : 'Premium finish, trusted delivery, and a more elevated buying experience.',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -718,13 +768,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               height: 1.35,
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+                  horizontal: 12,
+                  vertical: 8,
                 ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF5EBD3),
@@ -741,16 +793,48 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     const SizedBox(width: 4),
                     Text(
                       _averageRating.toStringAsFixed(1),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1A1A1A),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Text(
-                '${_reviews.length} reviews',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF6B6B6B),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFFE8D9B3)),
+                ),
+                child: Text(
+                  '${_reviews.length} reviews',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF6B6B6B),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFFE8D9B3)),
+                ),
+                child: Text(
+                  deliverySummary,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF6B6B6B),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -3604,11 +3688,18 @@ class _TrustBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E6),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE6D3A3)),
+        color: const Color(0xFFFFFBF0),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF0E0B8)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFB8963F).withValues(alpha: 0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -3622,8 +3713,8 @@ class _TrustBadge extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1A1A1A),
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF2B2418),
                 ),
           ),
         ],
@@ -3663,18 +3754,18 @@ class _BottomActionButton extends StatelessWidget {
 
     return TapScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Material(
         color: background,
-        borderRadius: BorderRadius.circular(12),
-        elevation: outlined || !enabled ? 0 : 1,
-        shadowColor: accentColor.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(16),
+        elevation: outlined || !enabled ? 0 : 2,
+        shadowColor: accentColor.withValues(alpha: 0.18),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: Ink(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: borderColor),
             ),
             child: Row(
@@ -3690,7 +3781,8 @@ class _BottomActionButton extends StatelessWidget {
                     style: TextStyle(
                       color: foreground,
                       fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.1,
                     ),
                   ),
                 ),

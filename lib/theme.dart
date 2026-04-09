@@ -19,12 +19,12 @@ class AbzioTheme {
   static const Color grey500 = Color(0xFF8B8B8B);
   static const Color grey600 = lightTextSecondary;
 
-  static const Color lightBackground = Color(0xFFFFFFFF);
-  static const Color lightCard = Color(0xFFF5F5F5);
-  static const Color lightTextPrimary = Color(0xFF111111);
-  static const Color lightTextSecondary = Color(0xFF5F5F5F);
-  static const Color lightBorder = Color(0xFFE2E2E2);
-  static const Color lightMuted = Color(0xFFEEEEEE);
+  static const Color lightBackground = Color(0xFFFFFCF7);
+  static const Color lightCard = Color(0xFFFFFDF8);
+  static const Color lightTextPrimary = Color(0xFF1B1812);
+  static const Color lightTextSecondary = Color(0xFF6B655B);
+  static const Color lightBorder = Color(0xFFF0E3C5);
+  static const Color lightMuted = Color(0xFFF7F1E3);
 
   static const Color darkBackground = lightBackground;
   static const Color darkCard = lightCard;
@@ -34,16 +34,19 @@ class AbzioTheme {
   static const Color darkMuted = lightMuted;
 
   static const double spacing8 = 8;
+  static const double spacing12 = 12;
   static const double spacing16 = 16;
   static const double spacing24 = 24;
-  static const double baseRadius = 16;
+  static const double baseRadius = 20;
   static const double sectionSpacing = spacing24;
   static const double internalSpacing = spacing16;
 
   static List<BoxShadow> shadowFor(Brightness brightness) => [
         BoxShadow(
-          color: Colors.black.withValues(alpha: brightness == Brightness.dark ? 0.28 : 0.10),
-          blurRadius: brightness == Brightness.dark ? 20 : 14,
+          color: const Color(0xFFB8963F).withValues(
+            alpha: brightness == Brightness.dark ? 0.18 : 0.08,
+          ),
+          blurRadius: brightness == Brightness.dark ? 24 : 18,
           offset: const Offset(0, 10),
         ),
       ];
@@ -102,13 +105,13 @@ class AbzioTheme {
       ),
       titleLarge: GoogleFonts.outfit(
         color: textPrimary,
-        fontSize: 20,
-        fontWeight: FontWeight.w700,
+        fontSize: 21,
+        fontWeight: FontWeight.w800,
       ),
       titleMedium: GoogleFonts.outfit(
         color: textPrimary,
         fontSize: 16,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
       ),
       bodyLarge: GoogleFonts.outfit(
         color: textPrimary,
@@ -126,6 +129,12 @@ class AbzioTheme {
         fontSize: 12,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.6,
+      ),
+      labelSmall: GoogleFonts.outfit(
+        color: textSecondary,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.35,
       ),
     );
 
@@ -160,9 +169,9 @@ class AbzioTheme {
           foregroundColor: Colors.black,
           elevation: 0,
           animationDuration: AbzioMotion.medium,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w700),
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800),
         ).copyWith(
           overlayColor: WidgetStatePropertyAll(accentColor.withValues(alpha: 0.10)),
         ),
@@ -172,9 +181,9 @@ class AbzioTheme {
           foregroundColor: textPrimary,
           side: BorderSide(color: border, width: 1.1),
           animationDuration: AbzioMotion.medium,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w700),
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800),
         ).copyWith(
           overlayColor: WidgetStatePropertyAll(accentColor.withValues(alpha: 0.08)),
         ),
@@ -182,8 +191,8 @@ class AbzioTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           animationDuration: AbzioMotion.medium,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w700),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800),
         ).copyWith(
           overlayColor: WidgetStatePropertyAll(accentColor.withValues(alpha: 0.08)),
         ),
@@ -193,15 +202,15 @@ class AbzioTheme {
         fillColor: muted,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(color: border, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(color: border, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           borderSide: const BorderSide(color: accentColor, width: 1.3),
         ),
         hintStyle: GoogleFonts.outfit(color: textSecondary, fontSize: 14, fontWeight: FontWeight.w500),
@@ -224,6 +233,7 @@ class AbzioTheme {
         backgroundColor: card,
         indicatorColor: accentColor.withValues(alpha: isDark ? 0.18 : 0.12),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        elevation: 0,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(color: selected ? accentColor : textSecondary);

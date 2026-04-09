@@ -25,7 +25,7 @@ class _CartScreenState extends State<CartScreen> {
   final DatabaseService _database = DatabaseService();
   final NumberFormat _currency = NumberFormat.currency(
     locale: 'en_IN',
-    symbol: 'Rs ',
+    symbol: '₹',
     decimalDigits: 0,
   );
 
@@ -404,12 +404,15 @@ class _BagHeader extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFFFFDF8),
+          border: Border(
+            bottom: BorderSide(color: const Color(0xFFF0E3C5)),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
+              color: const Color(0xFFB8963F).withValues(alpha: 0.08),
+              blurRadius: 28,
+              offset: const Offset(0, 14),
             ),
           ],
         ),
@@ -1331,7 +1334,7 @@ class _OffersSection extends StatelessWidget {
                 children: const [
                   _OfferRow(
                     title: '10% off with HDFC card',
-                    subtitle: 'Valid on orders above Rs 2,999',
+                    subtitle: 'Valid on orders above ₹2,999',
                   ),
                   SizedBox(height: 10),
                   _OfferRow(
@@ -1444,7 +1447,7 @@ class _DonationSection extends StatelessWidget {
             children: amounts
                 .map(
                   (amount) => ChoiceChip(
-                    label: Text('Rs $amount'),
+                    label: Text('₹$amount'),
                     selected: selectedAmount == amount,
                     onSelected: (_) => onSelect(amount),
                   ),
@@ -1989,12 +1992,13 @@ class _BagCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFFDF8),
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFF0E3C5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 22,
+            color: const Color(0xFFB8963F).withValues(alpha: 0.07),
+            blurRadius: 24,
             offset: const Offset(0, 12),
           ),
         ],

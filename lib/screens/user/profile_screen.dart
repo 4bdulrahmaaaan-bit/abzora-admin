@@ -1209,20 +1209,18 @@ class _ProfileScreenState extends State<ProfileScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFFDF8),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: context.abzioBorder.withValues(alpha: lightweight ? 0.50 : 0.7),
+          color: AbzioTheme.accentColor.withValues(alpha: lightweight ? 0.16 : 0.22),
         ),
-        boxShadow: lightweight
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 14,
-                  offset: const Offset(0, 8),
-                ),
-              ],
+        boxShadow: [
+          BoxShadow(
+            color: AbzioTheme.accentColor.withValues(alpha: lightweight ? 0.04 : 0.06),
+            blurRadius: lightweight ? 12 : 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -1265,8 +1263,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7E1),
+                    color: const Color(0xFFFFF4D8),
                     borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AbzioTheme.accentColor.withValues(alpha: 0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
                   child: Icon(icon, color: Theme.of(context).colorScheme.onSurface, size: 20),
                 ),

@@ -27,21 +27,19 @@ class _ProductCardState extends State<ProductCard> {
 
   @override
   Widget build(BuildContext context) {
-    final displayName = _displayName(widget.product);
-    final brandLabel = _brandName(widget.product);
-    final imageUrl = widget.product.images.isEmpty
-        ? ''
-        : widget.product.images[0];
-    final pricing = _pricingFor(widget.product);
+    final product = widget.product;
+    final displayName = _displayName(product);
+    final brandLabel = _brandName(product);
+    final imageUrl = product.images.isEmpty ? '' : product.images.first;
+    final pricing = _pricingFor(product);
     final hasArTryOn =
-        (widget.product.model3d ?? '').trim().isNotEmpty ||
-        widget.product.arAsset.isNotEmpty;
+        (product.model3d ?? '').trim().isNotEmpty || product.arAsset.isNotEmpty;
     final theme = Theme.of(context);
 
     return Consumer<WishlistProvider>(
       builder: (context, wishlist, child) {
-        final isWishlisted = wishlist.isWishlisted(widget.product.id);
-        final isPending = wishlist.isPending(widget.product.id);
+        final isWishlisted = wishlist.isWishlisted(product.id);
+        final isPending = wishlist.isPending(product.id);
 
         return AnimatedScale(
           scale: _pressed ? 0.985 : 1,
@@ -58,144 +56,113 @@ class _ProductCardState extends State<ProductCard> {
                   }
                   setState(() => _pressed = value);
                 },
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(22),
                 child: Ink(
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    color: const Color(0xFFFFFDF9),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: const Color(0xFFEEE6D8)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.035),
-                        blurRadius: 12,
-                        offset: const Offset(0, 5),
+                        color: const Color(0xFF1E1405).withValues(alpha: 0.06),
+                        blurRadius: 18,
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 5),
+                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
                     child: Column(
-                      mainAxisSize: MainAxisSize.max,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(18),
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
                                 DecoratedBox(
                                   decoration: const BoxDecoration(
-                                    color: Color(0xFFF5F5F5),
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Color(0xFFF6F1E7),
+                                        Color(0xFFEDE4D3),
+                                      ],
+                                    ),
                                   ),
-                                  child: CachedNetworkImage(
-                                    imageUrl: imageUrl,
-                                    fit: BoxFit.cover,
-                                    fadeInDuration:
-                                        const Duration(milliseconds: 260),
-                                    placeholder: (context, url) =>
-                                        const ShimmerBox(
-                                          borderRadius: BorderRadius.all(
-                                            Radius.circular(14),
-                                          ),
-                                        ),
-                                    errorWidget: (context, url, error) =>
-                                        Container(
-                                          color: const Color(0xFFF5F5F5),
-                                          padding: const EdgeInsets.all(16),
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            displayName,
-                                            textAlign: TextAlign.center,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: theme.textTheme.titleMedium
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w800,
+                                  child: imageUrl.isEmpty
+                                      ? _ProductFallbackImage(
+                                          label: displayName,
+                                          theme: theme,
+                                        )
+                                      : CachedNetworkImage(
+                                          imageUrl: imageUrl,
+                                          fit: BoxFit.cover,
+                                          fadeInDuration:
+                                              const Duration(milliseconds: 260),
+                                          placeholder: (context, url) =>
+                                              const ShimmerBox(
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(18),
                                                 ),
-                                          ),
+                                              ),
+                                          errorWidget: (context, url, error) =>
+                                              _ProductFallbackImage(
+                                                label: displayName,
+                                                theme: theme,
+                                              ),
                                         ),
-                                  ),
                                 ),
                                 if (pricing.discountPercent > 0)
                                   Positioned(
-                                    left: 8,
-                                    top: 8,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 7,
-                                        vertical: 4,
+                                    left: 10,
+                                    top: 10,
+                                    child: _FloatingPill(
+                                      backgroundColor:
+                                          const Color(0xFF10281D).withValues(
+                                        alpha: 0.92,
                                       ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.92,
-                                        ),
-                                        borderRadius: BorderRadius.circular(999),
-                                      ),
-                                      child: Text(
-                                        '${pricing.discountPercent}% OFF',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Color(0xFF159947),
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.2,
-                                        ),
-                                      ),
+                                      foregroundColor:
+                                          const Color(0xFFF5F2E9),
+                                      label:
+                                          '${pricing.discountPercent}% OFF',
                                     ),
                                   ),
                                 if (hasArTryOn)
-                                  Positioned(
-                                    left: 8,
-                                    bottom: 8,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 7,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.72,
-                                        ),
-                                        borderRadius: BorderRadius.circular(999),
-                                      ),
-                                      child: const Text(
-                                        'AR TRY ON',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
+                                  const Positioned(
+                                    left: 10,
+                                    bottom: 10,
+                                    child: _FloatingPill(
+                                      backgroundColor: Color(0xFFC8A95B),
+                                      foregroundColor: Color(0xFF23180C),
+                                      label: 'TRY ON',
                                     ),
                                   ),
                                 Positioned(
-                                  top: 8,
-                                  right: 8,
+                                  top: 10,
+                                  right: 10,
                                   child: AnimatedWishlistButton(
                                     isSelected: isWishlisted,
                                     isLoading: isPending,
                                     onTap: () async {
                                       try {
-                                        await wishlist.toggleWishlist(
-                                          widget.product,
-                                        );
+                                        await wishlist.toggleWishlist(product);
                                       } catch (error) {
                                         if (!context.mounted) {
                                           return;
                                         }
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              error.toString().replaceFirst(
-                                                'Bad state: ',
-                                                '',
-                                              ),
+                                              error
+                                                  .toString()
+                                                  .replaceFirst(
+                                                    'Bad state: ',
+                                                    '',
+                                                  ),
                                             ),
                                           ),
                                         );
@@ -207,59 +174,56 @@ class _ProductCardState extends State<ProductCard> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 10),
                         if (brandLabel.isNotEmpty)
                           Text(
                             brandLabel,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              fontSize: 10,
-                              color: const Color(0xFF8A8A8A),
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.35,
+                              fontSize: 10.5,
+                              color: const Color(0xFF8C6A12),
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.45,
                             ),
                           ),
-                        if (brandLabel.isNotEmpty) const SizedBox(height: 1),
-                        const SizedBox(height: 2),
+                        if (brandLabel.isNotEmpty) const SizedBox(height: 4),
                         Text(
                           displayName,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 13,
-                            color: const Color(0xFF161616),
-                            height: 1.15,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 13.5,
+                            color: const Color(0xFF16120D),
+                            height: 1.18,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(height: 1),
-                        Text(
-                          _subtitle(widget.product),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 11,
-                            color: const Color(0xFF707070),
-                            fontWeight: FontWeight.w500,
-                          ),
+                        const SizedBox(height: 7),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: _productMetaChips(product)
+                              .map((label) => _MetaChip(label: label))
+                              .toList(),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 8),
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Flexible(
                               child: Text(
-                                _currency(widget.product.effectivePrice),
+                                _currency(product.effectivePrice),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.titleMedium?.copyWith(
-                                  fontSize: 14,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w800,
                                   color: const Color(0xFF121212),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 6),
                             if (pricing.originalPrice != null)
                               Flexible(
                                 child: Text(
@@ -267,21 +231,21 @@ class _ProductCardState extends State<ProductCard> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                    color: const Color(0xFF9A9A9A),
+                                    color: const Color(0xFF9B9385),
                                     decoration: TextDecoration.lineThrough,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
                             if (pricing.discountPercent > 0) ...[
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 6),
                               Flexible(
                                 child: Text(
                                   '${pricing.discountPercent}% OFF',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                    color: const Color(0xFF159947),
+                                    color: const Color(0xFF0D8A43),
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
@@ -302,6 +266,94 @@ class _ProductCardState extends State<ProductCard> {
   }
 }
 
+class _ProductFallbackImage extends StatelessWidget {
+  const _ProductFallbackImage({
+    required this.label,
+    required this.theme,
+  });
+
+  final String label;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFFF3ECDF),
+      padding: const EdgeInsets.all(16),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: const Color(0xFF2B2116),
+        ),
+      ),
+    );
+  }
+}
+
+class _FloatingPill extends StatelessWidget {
+  const _FloatingPill({
+    required this.backgroundColor,
+    required this.foregroundColor,
+    required this.label,
+  });
+
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: foregroundColor,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.35,
+        ),
+      ),
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5EFE2),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontSize: 10,
+              color: const Color(0xFF6F5A2B),
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+    );
+  }
+}
+
 String _brandName(Product product) {
   final raw = product.brand.trim();
   if (raw.isEmpty) {
@@ -310,22 +362,26 @@ String _brandName(Product product) {
   return raw
       .split(' ')
       .where((part) => part.isNotEmpty)
-      .map((part) => '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}')
+      .map(
+        (part) =>
+            '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}',
+      )
       .join(' ');
 }
 
-String _subtitle(Product product) {
+List<String> _productMetaChips(Product product) {
   final category = product.category.trim();
   final fit = product.outfitType?.trim() ?? '';
-  const trustSuffix = 'Easy returns';
-  if (category.isEmpty && fit.isEmpty) {
-    return 'Verified seller | $trustSuffix';
+  final chips = <String>[
+    if (category.isNotEmpty) category,
+    if (fit.isNotEmpty) fit,
+  ];
+  if (chips.isEmpty) {
+    chips.addAll(const ['Verified seller', 'Easy returns']);
+  } else if (chips.length == 1) {
+    chips.add('Easy returns');
   }
-  if (category.isNotEmpty && fit.isNotEmpty) {
-    return '$category • $fit';
-  }
-  final base = category.isNotEmpty ? category : fit;
-  return '$base | $trustSuffix';
+  return chips.take(2).toList();
 }
 
 String _displayName(Product product) {

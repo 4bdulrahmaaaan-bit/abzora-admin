@@ -10,6 +10,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/banner_model.dart';
 import '../models/models.dart';
 import '../models/outfit_recommendation_model.dart';
 import 'backend_commerce_service.dart';
@@ -10210,6 +10211,30 @@ class DatabaseService {
       (map, _) => PlatformSettings.fromMap(map),
     );
     return settings ?? const PlatformSettings();
+  }
+
+  Future<HomeVisualConfigModel> getHomeVisualConfig({
+    bool adminView = false,
+    AppUser? actor,
+  }) async {
+    if (adminView && actor != null) {
+      _requireSuperAdmin(actor);
+    }
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getHomeVisualConfig(adminView: adminView);
+    }
+    return const HomeVisualConfigModel();
+  }
+
+  Future<HomeVisualConfigModel> saveHomeVisualConfig(
+    HomeVisualConfigModel config, {
+    required AppUser actor,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.saveHomeVisualConfig(config);
+    }
+    return config;
   }
 
   Future<void> savePlatformSettings(

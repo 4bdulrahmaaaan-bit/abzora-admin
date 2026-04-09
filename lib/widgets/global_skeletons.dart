@@ -41,11 +41,12 @@ class ShimmerCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: const Color(0xFFFFFDF8),
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: context.abzioBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: const Color(0xFFB8963F).withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -79,9 +80,16 @@ class ShimmerListItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: const Color(0xFFFFFDF8),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: context.abzioBorder),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFB8963F).withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -117,12 +125,16 @@ class ShimmerProfileHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
+        color: const Color(0xFFFFFDF8),
         borderRadius: BorderRadius.circular(30),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF171517), Color(0xFF231F22)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        border: Border.all(color: context.abzioBorder),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFB8963F).withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,9 +192,16 @@ class ShimmerProductGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         return Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
+            color: const Color(0xFFFFFDF8),
             borderRadius: BorderRadius.circular(22),
             border: Border.all(color: context.abzioBorder.withValues(alpha: 0.8)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFB8963F).withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           padding: const EdgeInsets.all(12),
           child: Column(

@@ -224,6 +224,28 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
     await _load();
   }
 
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('You will need to sign in again to access your vendor workspace.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Stay signed in'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await context.read<AuthProvider>().logout();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -503,6 +525,17 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
         ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.inventory_2_outlined), title: const Text('Product Management'), subtitle: const Text('Catalogue and stock'), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductManagementScreen(storeId: store.id)))),
         ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.settings_outlined), title: const Text('Store Controls'), subtitle: const Text('Branding and operations'), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StoreSettingsScreen(store: store)))),
       ])),
+      const SizedBox(height: 10),
+      _Card(
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.logout_rounded, color: Color(0xFFB91C1C)),
+          title: const Text('Log out'),
+          subtitle: const Text('Sign out from this vendor account'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _logout,
+        ),
+      ),
     ]);
   }
 

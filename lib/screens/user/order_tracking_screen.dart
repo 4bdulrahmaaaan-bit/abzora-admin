@@ -890,11 +890,18 @@ class _OrderDetailsPage extends StatelessWidget {
           children: [
             if (primaryItem != null)
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: context.abzioBorder),
+                  color: const Color(0xFFFFFDF8),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: const Color(0xFFF0E3C5)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFB8963F).withValues(alpha: 0.08),
+                      blurRadius: 24,
+                      offset: const Offset(0, 14),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
@@ -934,6 +941,7 @@ class _OrderDetailsPage extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: context.abzioSecondaryText,
+                              fontWeight: FontWeight.w700,
                             ),
                       )
                     else
@@ -963,10 +971,11 @@ class _OrderDetailsPage extends StatelessWidget {
                     const SizedBox(height: 14),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: _statusColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(18),
+                        color: _statusColor.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: _statusColor.withValues(alpha: 0.18)),
                       ),
                       child: Row(
                         children: [
@@ -1108,7 +1117,7 @@ class _OrderDetailsPage extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'On this order you saved a total of Rs ${savedAmount.toStringAsFixed(0)}',
+                        'On this order you saved a total of ₹${savedAmount.toStringAsFixed(0)}',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: const Color(0xFF1B8E5A),
@@ -1194,7 +1203,7 @@ class _OrderDetailsPage extends StatelessWidget {
                     children: [
                       Expanded(child: _sectionTitle(context, 'Total Order Price')),
                       Text(
-                        'Rs ${order.totalAmount.toStringAsFixed(2)}',
+                        '₹${order.totalAmount.toStringAsFixed(2)}',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w800,
                             ),
@@ -1414,7 +1423,7 @@ class _OrderDetailsPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Rs ${product.effectivePrice.toStringAsFixed(0)}',
+                                    '₹${product.effectivePrice.toStringAsFixed(0)}',
                                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                                           fontWeight: FontWeight.w800,
                                         ),
@@ -1530,6 +1539,8 @@ class _OrderDetailsPage extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 value,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -1976,11 +1987,18 @@ class _ProductSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.abzioBorder),
+        color: const Color(0xFFFFFDF8),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFF0E3C5)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFB8963F).withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2045,7 +2063,7 @@ class _ProductSummaryCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Rs ${(item.price * item.quantity).toStringAsFixed(0)}',
+                    '₹${(item.price * item.quantity).toStringAsFixed(0)}',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ],
@@ -2422,9 +2440,13 @@ class _ActionPanelBodyState extends State<_ActionPanelBody> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    OutlinedButton.icon(
+                    FilledButton.icon(
                       onPressed: widget.onSupport,
                       icon: const Icon(Icons.support_agent_outlined, size: 18),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A1A1A),
+                        foregroundColor: Colors.white,
+                      ),
                       label: const Text('Contact Support'),
                     ),
                     OutlinedButton.icon(
@@ -2559,16 +2581,16 @@ class _OrderListCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: context.abzioBorder),
+          color: const Color(0xFFFFFDF8),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFF0E3C5)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: const Color(0xFFB8963F).withValues(alpha: 0.06),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -2618,11 +2640,11 @@ class _OrderListCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: context.abzioBorder),
+                border: Border.all(color: const Color(0xFFF0E3C5)),
               ),
               child: Row(
                 children: [
@@ -2677,7 +2699,7 @@ class _OrderListCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Rs ${order.totalAmount.toStringAsFixed(0)}',
+                          '₹${order.totalAmount.toStringAsFixed(0)}',
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),

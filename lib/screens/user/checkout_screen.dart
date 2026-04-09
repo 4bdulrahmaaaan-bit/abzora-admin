@@ -777,7 +777,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
-    final currency = NumberFormat.currency(locale: 'en_IN', symbol: 'Rs ', decimalDigits: 0);
+    final currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
     final total = _totalAmount(cart);
 
     return AbzioThemeScope.light(
@@ -866,7 +866,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       discountLabel: _bestCouponOffer == null
                           ? (cart.hasCustomTailoring ? '20% off tailoring' : '10% off this checkout')
                           : _bestCouponOffer!.discountAmount > 0
-                              ? 'Rs ${_bestCouponOffer!.discountAmount.toStringAsFixed(0)} off for this order'
+                              ? '₹${_bestCouponOffer!.discountAmount.toStringAsFixed(0)} off for this order'
                               : '${_bestCouponOffer!.discountPercent.toStringAsFixed(0)}% off for this order',
                       onApply: cart.appliedCoupon != null ? null : () => _applyBestOffer(cart),
                     ),
@@ -1108,16 +1108,16 @@ class _SectionShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: context.abzioBorder),
+        color: const Color(0xFFFFFDF8),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFF0E3C5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: const Color(0xFFB8963F).withValues(alpha: 0.07),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -1134,8 +1134,8 @@ class _SectionShell extends StatelessWidget {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
                           ),
                     ),
                     if (subtitle != null) ...[
@@ -1175,11 +1175,11 @@ class _CompactHeroRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.abzioBorder),
+        color: const Color(0xFFFFFBF3),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF0E3C5)),
       ),
       child: Row(
         children: [

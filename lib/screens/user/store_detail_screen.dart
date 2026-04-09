@@ -219,11 +219,18 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).cardColor,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: context.abzioBorder),
+                            color: const Color(0xFFFFFDF8),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: const Color(0xFFF0E3C5)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFB8963F).withValues(alpha: 0.06),
+                                blurRadius: 18,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,8 +258,8 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                                     .map(
                                       (category) => Chip(
                                         label: Text(category),
-                                        backgroundColor: Theme.of(context).cardColor,
-                                        side: BorderSide(color: context.abzioBorder),
+                                        backgroundColor: const Color(0xFFFFF4D8),
+                                        side: const BorderSide(color: Color(0xFFF0DFC0)),
                                       ),
                                     )
                                     .toList(),
@@ -303,6 +310,12 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                         else
                           ..._reviews.map(
                             (review) => Card(
+                              color: const Color(0xFFFFFDF8),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                side: const BorderSide(color: Color(0xFFF0E3C5)),
+                              ),
                               child: ListTile(
                                 title: Text(review.userName),
                                 subtitle: Text(review.comment),

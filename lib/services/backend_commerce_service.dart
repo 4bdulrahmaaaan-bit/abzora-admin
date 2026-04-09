@@ -514,6 +514,31 @@ class BackendCommerceService {
     await _client.delete('/banners/$bannerId', authenticated: true);
   }
 
+  Future<HomeVisualConfigModel> getHomeVisualConfig({
+    bool adminView = false,
+  }) async {
+    final payload = await _client.get(
+      adminView ? '/admin/home-visuals' : '/home-visuals',
+      authenticated: adminView,
+    );
+    return HomeVisualConfigModel.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
+  }
+
+  Future<HomeVisualConfigModel> saveHomeVisualConfig(
+    HomeVisualConfigModel config,
+  ) async {
+    final payload = await _client.put(
+      '/admin/home-visuals',
+      authenticated: true,
+      body: config.toMap(),
+    );
+    return HomeVisualConfigModel.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
+  }
+
   Future<List<CategoryManagementModel>> getAdminCategories() async {
     final payload = await _client.get('/api/categories', authenticated: true);
     final items = payload is List ? payload : const [];

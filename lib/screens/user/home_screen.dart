@@ -318,8 +318,9 @@ class _HomeContentState extends State<HomeContent> {
                                   const SizedBox(height: 12),
                                   const CategorySection(),
                                   const SizedBox(height: 12),
-                                  _promoBanner(
-                                    copy: AbzoraCopySets.promoBanners[0],
+                                  HomePromoBannerSlot(
+                                    slot: 1,
+                                    fallbackCopy: AbzoraCopySets.promoBanners[0],
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -360,8 +361,9 @@ class _HomeContentState extends State<HomeContent> {
                                       products: trendingProducts,
                                     ),
                                     const SizedBox(height: 12),
-                                    _promoBanner(
-                                      copy: AbzoraCopySets.promoBanners[1],
+                                    HomePromoBannerSlot(
+                                      slot: 2,
+                                      fallbackCopy: AbzoraCopySets.promoBanners[1],
                                       onTap: () => Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -379,8 +381,9 @@ class _HomeContentState extends State<HomeContent> {
                                           : justForYouProducts,
                                     ),
                                     const SizedBox(height: 12),
-                                    _promoBanner(
-                                      copy: AbzoraCopySets.promoBanners[2],
+                                    HomePromoBannerSlot(
+                                      slot: 3,
+                                      fallbackCopy: AbzoraCopySets.promoBanners[2],
                                       onTap: () => showLocationBottomSheet(context),
                                     ),
                                     const SizedBox(height: 12),
@@ -1396,48 +1399,185 @@ class _CategorySectionState extends State<CategorySection> {
       _CategorySectionItem(
         label: AbzoraCopySets.categories[0].title,
         icon: Icons.male_rounded,
+        imageUrl:
+            'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=600',
       ),
       _CategorySectionItem(
         label: AbzoraCopySets.categories[1].title,
         icon: Icons.female_rounded,
+        imageUrl:
+            'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=600',
       ),
       _CategorySectionItem(
         label: AbzoraCopySets.categories[2].title,
         icon: Icons.auto_awesome_rounded,
+        imageUrl:
+            'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=600',
       ),
       _CategorySectionItem(
         label: AbzoraCopySets.categories[3].title,
         icon: Icons.watch_outlined,
+        imageUrl:
+            'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&q=80&w=600',
       ),
     ],
     'Men': const [
-      _CategorySectionItem(label: 'Casual', icon: Icons.checkroom_rounded),
-      _CategorySectionItem(label: 'Ethnic', icon: Icons.auto_awesome_rounded),
-      _CategorySectionItem(label: 'Footwear', icon: Icons.hiking_rounded),
-      _CategorySectionItem(label: 'Sports', icon: Icons.sports_basketball_rounded),
+      _CategorySectionItem(
+        label: 'Casual',
+        icon: Icons.checkroom_rounded,
+        imageUrl:
+            'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=600',
+      ),
+      _CategorySectionItem(
+        label: 'Ethnic',
+        icon: Icons.auto_awesome_rounded,
+        imageUrl:
+            'https://images.unsplash.com/photo-1592878904946-b3cd8ae243d0?auto=format&fit=crop&q=80&w=600',
+      ),
+      _CategorySectionItem(
+        label: 'Footwear',
+        icon: Icons.hiking_rounded,
+        imageUrl:
+            'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=600',
+      ),
+      _CategorySectionItem(
+        label: 'Sports',
+        icon: Icons.sports_basketball_rounded,
+        imageUrl:
+            'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=600',
+      ),
     ],
     'Women': const [
-      _CategorySectionItem(label: 'Western', icon: Icons.diamond_outlined),
-      _CategorySectionItem(label: 'Ethnic', icon: Icons.local_florist_outlined),
-      _CategorySectionItem(label: 'Fusion', icon: Icons.style_outlined),
-      _CategorySectionItem(label: 'Beauty', icon: Icons.face_retouching_natural_outlined),
+      _CategorySectionItem(
+        label: 'Western',
+        icon: Icons.diamond_outlined,
+        imageUrl:
+            'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=600',
+      ),
+      _CategorySectionItem(
+        label: 'Ethnic',
+        icon: Icons.local_florist_outlined,
+        imageUrl:
+            'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=600',
+      ),
+      _CategorySectionItem(
+        label: 'Fusion',
+        icon: Icons.style_outlined,
+        imageUrl:
+            'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=600',
+      ),
+      _CategorySectionItem(
+        label: 'Beauty',
+        icon: Icons.face_retouching_natural_outlined,
+        imageUrl:
+            'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=600',
+      ),
     ],
     'Kids': const [
-      _CategorySectionItem(label: 'Playwear', icon: Icons.toys_rounded),
-      _CategorySectionItem(label: 'Festive', icon: Icons.celebration_rounded),
-      _CategorySectionItem(label: 'School', icon: Icons.backpack_outlined),
-      _CategorySectionItem(label: 'Sneakers', icon: Icons.directions_run_rounded),
+      _CategorySectionItem(
+        label: 'Playwear',
+        icon: Icons.toys_rounded,
+        imageUrl:
+            'https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?auto=format&fit=crop&q=80&w=600',
+      ),
+      _CategorySectionItem(
+        label: 'Festive',
+        icon: Icons.celebration_rounded,
+        imageUrl:
+            'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=600',
+      ),
+      _CategorySectionItem(
+        label: 'School',
+        icon: Icons.backpack_outlined,
+        imageUrl:
+            'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&q=80&w=600',
+      ),
+      _CategorySectionItem(
+        label: 'Sneakers',
+        icon: Icons.directions_run_rounded,
+        imageUrl:
+            'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=600',
+      ),
     ],
   };
 
   int _selectedTabIndex = 0;
   int _selectedCategoryIndex = 0;
+  final BackendApiClient _apiClient = const BackendApiClient();
+  late final Future<HomeVisualConfigModel> _homeVisualsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _homeVisualsFuture = _fetchHomeVisuals();
+  }
+
+  Future<HomeVisualConfigModel> _fetchHomeVisuals() async {
+    if (!_apiClient.isConfigured) {
+      return const HomeVisualConfigModel();
+    }
+    try {
+      final payload = await _apiClient.get('/home-visuals');
+      return HomeVisualConfigModel.fromMap(
+        Map<String, dynamic>.from(payload as Map),
+      );
+    } catch (_) {
+      return const HomeVisualConfigModel();
+    }
+  }
+
+  List<_CategorySectionItem> _resolveCategories(
+    String currentTab,
+    HomeVisualConfigModel? config,
+  ) {
+    final remote = (config?.categoryVisuals ?? const <HomeCategoryVisualModel>[])
+        .where(
+          (item) =>
+              item.isActive &&
+              item.tab == currentTab &&
+              item.imageUrl.trim().isNotEmpty,
+        )
+        .toList();
+    if (remote.isNotEmpty) {
+      return remote
+          .map(
+            (item) => _CategorySectionItem(
+              label: item.label,
+              icon: _iconForCategoryKey(item.icon),
+              imageUrl: item.imageUrl,
+            ),
+          )
+          .toList();
+    }
+    return _categoryMap[currentTab] ?? _categoryMap['All'] ?? const <_CategorySectionItem>[];
+  }
+
+  IconData _iconForCategoryKey(String key) {
+    switch (key) {
+      case 'male':
+        return Icons.male_rounded;
+      case 'female':
+        return Icons.female_rounded;
+      case 'sparkle':
+        return Icons.auto_awesome_rounded;
+      case 'watch':
+        return Icons.watch_outlined;
+      case 'shirt':
+        return Icons.checkroom_rounded;
+      case 'celebration':
+        return Icons.celebration_rounded;
+      case 'sneakers':
+        return Icons.directions_run_rounded;
+      case 'beauty':
+        return Icons.face_retouching_natural_outlined;
+      default:
+        return Icons.category_rounded;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final currentTab = _tabs[_selectedTabIndex];
-    final categories =
-        _categoryMap[currentTab] ?? _categoryMap['All'] ?? const <_CategorySectionItem>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1549,89 +1689,140 @@ class _CategorySectionState extends State<CategorySection> {
             },
           ),
         ),
-        const SizedBox(height: 8),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 260),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          child: SizedBox(
-            key: ValueKey(currentTab),
-            height: 92,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemCount: categories.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 10),
-              itemBuilder: (context, index) {
-                final category = categories[index];
-                final isSelected = _selectedCategoryIndex == index;
-                return TapScale(
-                  onTap: () {
-                    if (_selectedCategoryIndex == index) {
-                      return;
-                    }
-                    setState(() => _selectedCategoryIndex = index);
-                  },
-                  child: InkWell(
-                    onTap: () {
-                      if (_selectedCategoryIndex == index) {
-                        return;
-                      }
-                      setState(() => _selectedCategoryIndex = index);
-                    },
-                    borderRadius: BorderRadius.circular(20),
-                    child: SizedBox(
-                      width: 76,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 220),
-                            curve: Curves.easeOutCubic,
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFFC9A74E).withValues(alpha: 0.16)
-                                  : const Color(0xFFF6F4EE),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xFFC9A74E)
-                                    : context.abzioBorder,
-                              ),
-                            ),
-                            child: Icon(
-                              category.icon,
-                              size: 26,
-                              color: isSelected
-                                  ? const Color(0xFFC9A74E)
-                                  : AbzioTheme.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            category.label,
-                            maxLines: 1,
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  fontSize: 11,
-                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-                                  color: isSelected
-                                      ? AbzioTheme.textPrimary
-                                      : context.abzioSecondaryText,
-                                  height: 1.1,
+        const SizedBox(height: 6),
+        FutureBuilder<HomeVisualConfigModel>(
+          future: _homeVisualsFuture,
+          builder: (context, snapshot) {
+            final categories = _resolveCategories(currentTab, snapshot.data);
+            final selectedIndex = categories.isEmpty
+                ? 0
+                : _selectedCategoryIndex.clamp(0, categories.length - 1);
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              child: SizedBox(
+                key: ValueKey(currentTab),
+                height: 114,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  itemCount: categories.length,
+                  separatorBuilder: (context, index) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final category = categories[index];
+                    final isSelected = selectedIndex == index;
+                    return TapScale(
+                      onTap: () {
+                        if (selectedIndex == index) {
+                          return;
+                        }
+                        setState(() => _selectedCategoryIndex = index);
+                      },
+                      child: InkWell(
+                        onTap: () {
+                          if (selectedIndex == index) {
+                            return;
+                          }
+                          setState(() => _selectedCategoryIndex = index);
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: SizedBox(
+                          width: 82,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOutCubic,
+                                width: 74,
+                                height: 74,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF6F4EE),
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFFC9A74E)
+                                        : context.abzioBorder,
+                                    width: isSelected ? 1.5 : 1,
+                                  ),
+                                  boxShadow: [
+                                    if (isSelected)
+                                      BoxShadow(
+                                        color: const Color(0xFFC9A74E).withValues(alpha: 0.18),
+                                        blurRadius: 14,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                  ],
                                 ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(22),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      AbzioNetworkImage(
+                                        imageUrl: category.imageUrl,
+                                        fallbackLabel: category.label,
+                                        fit: BoxFit.cover,
+                                      ),
+                                      DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Colors.black.withValues(alpha: 0.04),
+                                              Colors.black.withValues(alpha: 0.22),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      Align(
+                                        alignment: Alignment.topRight,
+                                        child: Container(
+                                          margin: const EdgeInsets.all(6),
+                                          width: 24,
+                                          height: 24,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(alpha: 0.88),
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Icon(
+                                            category.icon,
+                                            size: 14,
+                                            color: const Color(0xFF7C6320),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                category.label,
+                                maxLines: 2,
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      fontSize: 11,
+                                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                                      color: isSelected
+                                          ? AbzioTheme.textPrimary
+                                          : context.abzioSecondaryText,
+                                      height: 1.15,
+                                    ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -1642,10 +1833,12 @@ class _CategorySectionItem {
   const _CategorySectionItem({
     required this.label,
     required this.icon,
+    required this.imageUrl,
   });
 
   final String label;
   final IconData icon;
+  final String imageUrl;
 }
 
 Widget _sectionHeader({
@@ -1653,17 +1846,56 @@ Widget _sectionHeader({
   required String subtitle,
 }) {
   return Builder(
-    builder: (context) => Column(
+    builder: (context) => Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 2),
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: context.abzioSecondaryText,
-                fontSize: 13,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC8A95B),
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.2,
+                      color: const Color(0xFF17130C),
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: context.abzioSecondaryText,
+                      fontSize: 13,
+                      height: 1.35,
+                    ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF6EFE2),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            'Curated',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF7B6325),
+                ),
+          ),
         ),
       ],
     ),
@@ -1679,16 +1911,16 @@ Widget _storesFallbackSection(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          color: const Color(0xFFFFFBF6),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(color: const Color(0xFFECE5D4)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -1698,7 +1930,14 @@ Widget _storesFallbackSection(
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: AbzioTheme.accentColor.withValues(alpha: 0.12),
+                gradient: LinearGradient(
+                  colors: [
+                    AbzioTheme.accentColor.withValues(alpha: 0.18),
+                    const Color(0xFFF4E4B6),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(
@@ -1717,7 +1956,7 @@ Widget _storesFallbackSection(
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w900,
                         ),
                   ),
                   const SizedBox(height: 2),
@@ -1741,7 +1980,7 @@ Widget _storesFallbackSection(
                   ? provider.setRadiusKm(25)
                   : showLocationBottomSheet(context),
               child: Text(
-                provider.radiusKm < 25 ? 'Expand' : 'Change',
+                provider.radiusKm < 25 ? 'Expand' : 'Refine',
               ),
             ),
           ],
@@ -1855,6 +2094,31 @@ Widget _compactAiStylistStrip({required VoidCallback onTap}) {
       ),
     ),
   );
+}
+
+class _HomeBadge extends StatelessWidget {
+  const _HomeBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFFF9F3E7),
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+    );
+  }
 }
 
 class HomeBanner extends StatefulWidget {
@@ -2833,64 +3097,210 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
 Widget _promoBanner({
   required PromoBannerCopy copy,
   required VoidCallback onTap,
+  String? imageUrl,
 }) {
   return Builder(
     builder: (context) => TapScale(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1F1A0B), Color(0xFF4B3A10)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: const Color(0xFFE2C98B).withValues(alpha: 0.22),
           ),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF1F1A0B).withValues(alpha: 0.22),
-              blurRadius: 18,
-              offset: const Offset(0, 12),
+              blurRadius: 24,
+              offset: const Offset(0, 14),
             ),
           ],
         ),
-        child: Row(
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
           children: [
-            Expanded(
-              child: Column(
+            Positioned.fill(
+              child: imageUrl != null && imageUrl.trim().isNotEmpty
+                  ? AbzioNetworkImage(
+                      imageUrl: imageUrl,
+                      fallbackLabel: copy.title,
+                      fit: BoxFit.cover,
+                    )
+                  : const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF181108), Color(0xFF4F3A14), Color(0xFF8C6A12)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                    ),
+            ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF120E08).withValues(alpha: 0.74),
+                      const Color(0xFF281C0B).withValues(alpha: 0.48),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    copy.eyebrow.toUpperCase(),
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white70),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          copy.eyebrow.toUpperCase(),
+                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                color: const Color(0xFFF8E9BE),
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          copy.title,
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                height: 1.05,
+                              ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          copy.subtitle,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFFF7F1E3).withValues(alpha: 0.82),
+                                height: 1.35,
+                              ),
+                        ),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: const [
+                            _HomeBadge(label: 'Premium edit'),
+                            _HomeBadge(label: 'Fast discovery'),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    copy.title,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    copy.subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_outward_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      FilledButton(
+                        onPressed: onTap,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF19130A),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Text(copy.cta),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 12),
-            OutlinedButton(
-              onPressed: onTap,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white38),
-              ),
-              child: Text(copy.cta),
             ),
           ],
         ),
       ),
     ),
   );
+}
+
+class HomePromoBannerSlot extends StatefulWidget {
+  const HomePromoBannerSlot({
+    super.key,
+    required this.slot,
+    required this.fallbackCopy,
+    required this.onTap,
+  });
+
+  final int slot;
+  final PromoBannerCopy fallbackCopy;
+  final VoidCallback onTap;
+
+  @override
+  State<HomePromoBannerSlot> createState() => _HomePromoBannerSlotState();
+}
+
+class _HomePromoBannerSlotState extends State<HomePromoBannerSlot> {
+  static Future<HomeVisualConfigModel>? _sharedFuture;
+  final BackendApiClient _apiClient = const BackendApiClient();
+
+  @override
+  void initState() {
+    super.initState();
+    _sharedFuture ??= _fetchHomeVisuals();
+  }
+
+  Future<HomeVisualConfigModel> _fetchHomeVisuals() async {
+    if (!_apiClient.isConfigured) {
+      return const HomeVisualConfigModel();
+    }
+    try {
+      final payload = await _apiClient.get('/home-visuals');
+      return HomeVisualConfigModel.fromMap(
+        Map<String, dynamic>.from(payload as Map),
+      );
+    } catch (_) {
+      return const HomeVisualConfigModel();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<HomeVisualConfigModel>(
+      future: _sharedFuture,
+      builder: (context, snapshot) {
+        final promoBlocks = snapshot.data?.promoBlocks ?? const <HomePromoBlockModel>[];
+        final matches = promoBlocks.where((item) => item.isActive && item.slot == widget.slot);
+        final block = matches.isEmpty ? null : matches.first;
+        final copy = block == null
+            ? widget.fallbackCopy
+            : PromoBannerCopy(
+                eyebrow: block.eyebrow.isEmpty ? widget.fallbackCopy.eyebrow : block.eyebrow,
+                title: block.title.isEmpty ? widget.fallbackCopy.title : block.title,
+                subtitle: block.subtitle.isEmpty ? widget.fallbackCopy.subtitle : block.subtitle,
+                cta: block.ctaText.isEmpty ? widget.fallbackCopy.cta : block.ctaText,
+              );
+        return _promoBanner(
+          copy: copy,
+          imageUrl: block?.imageUrl,
+          onTap: widget.onTap,
+        );
+      },
+    );
+  }
 }
 
 Widget _productSection(
@@ -2907,13 +3317,28 @@ Widget _productSection(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _sectionHeader(title: title, subtitle: subtitle),
-      const SizedBox(height: 8),
-      ProductGrid(
-        products: products,
-        shrinkWrap: true,
-        onProductTap: (product) => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)),
+      const SizedBox(height: 12),
+      Container(
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBF5),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFEEE4D1)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: ProductGrid(
+          products: products,
+          shrinkWrap: true,
+          onProductTap: (product) => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)),
+          ),
         ),
       ),
     ],
@@ -2928,18 +3353,18 @@ Widget _storeCard({required NearbyStore nearby, required VoidCallback onTap}) {
       onTap: onTap,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
           width: 164,
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: context.abzioBorder),
+            color: const Color(0xFFFFFBF6),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFEEE4D1)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 14,
-                offset: const Offset(0, 10),
+                blurRadius: 18,
+                offset: const Offset(0, 12),
               ),
             ],
           ),
@@ -2947,19 +3372,40 @@ Widget _storeCard({required NearbyStore nearby, required VoidCallback onTap}) {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 108, width: double.infinity, child: AbzioNetworkImage(imageUrl: image, fallbackLabel: store.name)),
+              SizedBox(
+                height: 112,
+                width: double.infinity,
+                child: AbzioNetworkImage(imageUrl: image, fallbackLabel: store.name),
+              ),
               Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(store.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 4),
                     Text(
-                      '${nearby.distanceKm.toStringAsFixed(1)} km away',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: context.abzioSecondaryText),
+                      store.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4EEDC),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '${nearby.distanceKm.toStringAsFixed(1)} km away',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF7A642B),
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         const Icon(Icons.star_rounded, size: 14, color: AbzioTheme.accentColor),
@@ -2967,6 +3413,17 @@ Widget _storeCard({required NearbyStore nearby, required VoidCallback onTap}) {
                         Text(
                           store.rating.toStringAsFixed(1),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            store.tagline.trim().isEmpty ? 'Trusted local fashion store' : store.tagline.trim(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: context.abzioSecondaryText,
+                                ),
+                          ),
                         ),
                       ],
                     ),

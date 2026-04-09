@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../theme.dart';
 import 'shimmer_box.dart';
@@ -22,18 +21,48 @@ class AbzioLoadingView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(color: AbzioTheme.accentColor, strokeWidth: 2.2),
+            Container(
+              width: 62,
+              height: 62,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF4D8),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: AbzioTheme.accentColor.withValues(alpha: 0.10),
+                    blurRadius: 18,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                    color: AbzioTheme.accentColor,
+                    strokeWidth: 2.2,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 18),
-            Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16), textAlign: TextAlign.center),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AbzioTheme.textPrimary,
+                  ),
+              textAlign: TextAlign.center,
+            ),
             if (subtitle != null) ...[
               const SizedBox(height: 8),
               Text(
                 subtitle!,
-                style: GoogleFonts.inter(color: context.abzioSecondaryText, height: 1.4),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: context.abzioSecondaryText,
+                      height: 1.4,
+                    ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -64,21 +93,29 @@ class AbzioEmptyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
+      color: const Color(0xFFFFFDF8),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
         side: BorderSide(color: context.abzioBorder),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 58,
+              height: 58,
               decoration: BoxDecoration(
-                color: AbzioTheme.accentColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(18),
+                color: const Color(0xFFFFF4D8),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AbzioTheme.accentColor.withValues(alpha: 0.08),
+                    blurRadius: 14,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
               child: Stack(
                 alignment: Alignment.center,
@@ -103,12 +140,19 @@ class AbzioEmptyCard extends StatelessWidget {
             const SizedBox(height: 14),
             Text(
               title,
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16, height: 1.15),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.15,
+                    color: AbzioTheme.textPrimary,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: GoogleFonts.inter(color: context.abzioSecondaryText, height: 1.45),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: context.abzioSecondaryText,
+                    height: 1.45,
+                  ),
             ),
             if (ctaLabel != null && onTap != null) ...[
               const SizedBox(height: 16),
@@ -124,7 +168,10 @@ class AbzioEmptyCard extends StatelessWidget {
                 ),
                 child: Text(
                   ctaLabel!,
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black,
+                      ),
                 ),
               ),
             ],
@@ -259,10 +306,10 @@ class _AbzioImageFallback extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
+                          style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurface,
                             fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                             height: 1.1,
                           ),
                         ),
