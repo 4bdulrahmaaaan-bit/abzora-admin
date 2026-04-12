@@ -72,8 +72,18 @@ class BackendApiClient {
     if (error is TimeoutException) {
       return true;
     }
+    if (error is http.ClientException) {
+      final message = error.message.toLowerCase();
+      if (message.contains('socketexception') ||
+          message.contains('failed host lookup') ||
+          message.contains('software caused connection abort') ||
+          message.contains('connection closed')) {
+        return true;
+      }
+    }
     final asText = error.toString().toLowerCase();
     return error is SocketException ||
+        error is HandshakeException ||
         asText.contains('failed host lookup') ||
         asText.contains('software caused connection abort') ||
         asText.contains('connection closed');
@@ -167,14 +177,23 @@ class BackendApiClient {
     Map<String, String>? queryParameters,
   }) async {
     try {
-      final response = await http
-          .get(
-            _uri(path, queryParameters),
-            headers: await _headers(authenticated: authenticated),
-          )
-          .timeout(const Duration(seconds: 20));
+      final headers = await _headers(authenticated: authenticated);
+      final response = await withRetry(
+        () => http
+            .get(
+              _uri(path, queryParameters),
+              headers: headers,
+            )
+            .timeout(const Duration(seconds: 20)),
+      );
       return _extractPayload(response);
     } on SocketException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on http.ClientException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on HandshakeException {
       _markBackendDown('Backend unreachable.');
       rethrow;
     } on TimeoutException {
@@ -189,15 +208,25 @@ class BackendApiClient {
     Map<String, dynamic> body = const {},
   }) async {
     try {
-      final response = await http
-          .post(
-            _uri(path),
-            headers: await _headers(authenticated: authenticated),
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 25));
+      final headers = await _headers(authenticated: authenticated);
+      final payload = jsonEncode(body);
+      final response = await withRetry(
+        () => http
+            .post(
+              _uri(path),
+              headers: headers,
+              body: payload,
+            )
+            .timeout(const Duration(seconds: 25)),
+      );
       return _extractPayload(response);
     } on SocketException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on http.ClientException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on HandshakeException {
       _markBackendDown('Backend unreachable.');
       rethrow;
     } on TimeoutException {
@@ -212,15 +241,25 @@ class BackendApiClient {
     Map<String, dynamic> body = const {},
   }) async {
     try {
-      final response = await http
-          .put(
-            _uri(path),
-            headers: await _headers(authenticated: authenticated),
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 25));
+      final headers = await _headers(authenticated: authenticated);
+      final payload = jsonEncode(body);
+      final response = await withRetry(
+        () => http
+            .put(
+              _uri(path),
+              headers: headers,
+              body: payload,
+            )
+            .timeout(const Duration(seconds: 25)),
+      );
       return _extractPayload(response);
     } on SocketException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on http.ClientException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on HandshakeException {
       _markBackendDown('Backend unreachable.');
       rethrow;
     } on TimeoutException {
@@ -235,15 +274,25 @@ class BackendApiClient {
     Map<String, dynamic> body = const {},
   }) async {
     try {
-      final response = await http
-          .patch(
-            _uri(path),
-            headers: await _headers(authenticated: authenticated),
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 25));
+      final headers = await _headers(authenticated: authenticated);
+      final payload = jsonEncode(body);
+      final response = await withRetry(
+        () => http
+            .patch(
+              _uri(path),
+              headers: headers,
+              body: payload,
+            )
+            .timeout(const Duration(seconds: 25)),
+      );
       return _extractPayload(response);
     } on SocketException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on http.ClientException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on HandshakeException {
       _markBackendDown('Backend unreachable.');
       rethrow;
     } on TimeoutException {
@@ -257,14 +306,23 @@ class BackendApiClient {
     bool authenticated = false,
   }) async {
     try {
-      final response = await http
-          .delete(
-            _uri(path),
-            headers: await _headers(authenticated: authenticated),
-          )
-          .timeout(const Duration(seconds: 20));
+      final headers = await _headers(authenticated: authenticated);
+      final response = await withRetry(
+        () => http
+            .delete(
+              _uri(path),
+              headers: headers,
+            )
+            .timeout(const Duration(seconds: 20)),
+      );
       return _extractPayload(response);
     } on SocketException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on http.ClientException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on HandshakeException {
       _markBackendDown('Backend unreachable.');
       rethrow;
     } on TimeoutException {
@@ -281,23 +339,31 @@ class BackendApiClient {
     MediaType? contentType,
     bool authenticated = true,
   }) async {
-    final request = http.MultipartRequest('POST', _uri(path));
-    final headers = await _headers(includeJson: false, authenticated: authenticated);
-    request.headers.addAll(headers);
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        fieldName,
-        bytes,
-        filename: filename,
-        contentType: contentType,
-      ),
-    );
     try {
-      final response = await request.send().timeout(const Duration(seconds: 30));
+      final response = await withRetry(() async {
+        final request = http.MultipartRequest('POST', _uri(path));
+        final headers = await _headers(includeJson: false, authenticated: authenticated);
+        request.headers.addAll(headers);
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            fieldName,
+            bytes,
+            filename: filename,
+            contentType: contentType,
+          ),
+        );
+        return request.send().timeout(const Duration(seconds: 30));
+      });
       final body = await response.stream.bytesToString();
       final wrapped = http.Response(body, response.statusCode, headers: response.headers);
       return _extractPayload(wrapped);
     } on SocketException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on http.ClientException {
+      _markBackendDown('Backend unreachable.');
+      rethrow;
+    } on HandshakeException {
       _markBackendDown('Backend unreachable.');
       rethrow;
     } on TimeoutException {

@@ -12,6 +12,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
+import io.flutter.plugin.platform.PlatformViewRegistry
 import io.flutter.plugin.common.StandardMessageCodec
 import java.util.UUID
 
@@ -31,7 +32,7 @@ class RealTimeArTryOnPlugin(
         eventChannel.setStreamHandler(this)
     }
 
-    fun registerViews(registry: FlutterPlugin.PlatformViewRegistry) {
+    fun registerViews(registry: PlatformViewRegistry) {
         registry.registerViewFactory(
             "abzora/native_ar_try_on_view",
             RealTimeArTryOnViewFactory(context) { view ->

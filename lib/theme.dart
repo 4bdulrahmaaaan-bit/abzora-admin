@@ -5,7 +5,7 @@ import 'widgets/abzio_motion.dart';
 enum AbzioSectionTheme { light, dark }
 
 class AbzioTheme {
-  static const Color accentColor = Color(0xFFD4AF37);
+  static const Color accentColor = Color(0xFFC8A96A);
   static const Color primaryColor = lightBackground;
   static const Color backgroundColor = lightBackground;
   static const Color cardColor = lightCard;
@@ -19,12 +19,12 @@ class AbzioTheme {
   static const Color grey500 = Color(0xFF8B8B8B);
   static const Color grey600 = lightTextSecondary;
 
-  static const Color lightBackground = Color(0xFFFFFCF7);
-  static const Color lightCard = Color(0xFFFFFDF8);
-  static const Color lightTextPrimary = Color(0xFF1B1812);
-  static const Color lightTextSecondary = Color(0xFF6B655B);
-  static const Color lightBorder = Color(0xFFF0E3C5);
-  static const Color lightMuted = Color(0xFFF7F1E3);
+  static const Color lightBackground = Color(0xFFFFFFFF);
+  static const Color lightCard = Color(0xFFFFFFFF);
+  static const Color lightTextPrimary = Color(0xFF111111);
+  static const Color lightTextSecondary = Color(0xFF666666);
+  static const Color lightBorder = Color(0xFFE6E6E6);
+  static const Color lightMuted = Color(0xFFF7F7F7);
 
   static const Color darkBackground = lightBackground;
   static const Color darkCard = lightCard;
@@ -43,11 +43,11 @@ class AbzioTheme {
 
   static List<BoxShadow> shadowFor(Brightness brightness) => [
         BoxShadow(
-          color: const Color(0xFFB8963F).withValues(
-            alpha: brightness == Brightness.dark ? 0.18 : 0.08,
+          color: Colors.black.withValues(
+            alpha: brightness == Brightness.dark ? 0.14 : 0.06,
           ),
-          blurRadius: brightness == Brightness.dark ? 24 : 18,
-          offset: const Offset(0, 10),
+          blurRadius: brightness == Brightness.dark ? 18 : 12,
+          offset: const Offset(0, 6),
         ),
       ];
 
@@ -105,17 +105,17 @@ class AbzioTheme {
       ),
       titleLarge: GoogleFonts.outfit(
         color: textPrimary,
-        fontSize: 21,
-        fontWeight: FontWeight.w800,
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
       ),
       titleMedium: GoogleFonts.outfit(
         color: textPrimary,
-        fontSize: 16,
-        fontWeight: FontWeight.w800,
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
       ),
       bodyLarge: GoogleFonts.outfit(
         color: textPrimary,
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: FontWeight.w500,
         height: 1.5,
       ),
@@ -127,7 +127,7 @@ class AbzioTheme {
       labelMedium: GoogleFonts.outfit(
         color: accentColor,
         fontSize: 12,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w700,
         letterSpacing: 0.6,
       ),
       labelSmall: GoogleFonts.outfit(

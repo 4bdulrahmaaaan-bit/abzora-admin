@@ -23,7 +23,7 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
   final bool isScrolled;
 
   @override
-  Size get preferredSize => const Size.fromHeight(110);
+  Size get preferredSize => const Size.fromHeight(88);
 
   @override
   Widget build(BuildContext context) {
@@ -35,18 +35,16 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-        ),
+        padding: const EdgeInsets.fromLTRB(16, 1, 16, 1),
+        decoration: BoxDecoration(color: Colors.white),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Row(
               children: [
                 const BrandLogo(
-                  size: 38,
-                  radius: 9,
+                  size: 30,
+                  radius: 8,
                   padding: EdgeInsets.zero,
                   backgroundColor: Colors.transparent,
                   shadows: [],
@@ -64,8 +62,8 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
-                          fontSize: 19,
-                          letterSpacing: 0.5,
+                          fontSize: 16,
+                          letterSpacing: 0.3,
                           color: const Color(0xFF111111),
                         ),
                       ),
@@ -75,10 +73,10 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF8A8A8A),
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.2,
+                          color: const Color(0xFF666666),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: 0.15,
                         ),
                       ),
                     ],
@@ -88,27 +86,24 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                   icon: Icons.search_rounded,
                   onTap: onSearchTap,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 _HeaderIconButton(
                   icon: Icons.favorite_border_rounded,
                   onTap: onWishlistTap,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 _HeaderIconButton(
                   icon: Icons.shopping_bag_outlined,
                   onTap: onCartTap,
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 3),
             AnimatedSlide(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
               offset: const Offset(0, 0),
-              child: _LocationBar(
-                location: location,
-                onTap: onLocationTap,
-              ),
+              child: _LocationBar(location: location, onTap: onLocationTap),
             ),
           ],
         ),
@@ -118,10 +113,7 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _HeaderIconButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -137,10 +129,10 @@ class _HeaderIconButton extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(999),
           child: SizedBox(
-            width: 36,
-            height: 36,
+            width: 30,
+            height: 30,
             child: Center(
-              child: Icon(icon, color: const Color(0xFF111111), size: 22),
+              child: Icon(icon, color: const Color(0xFF111111), size: 19),
             ),
           ),
         ),
@@ -150,10 +142,7 @@ class _HeaderIconButton extends StatelessWidget {
 }
 
 class _LocationBar extends StatelessWidget {
-  const _LocationBar({
-    required this.location,
-    required this.onTap,
-  });
+  const _LocationBar({required this.location, required this.onTap});
 
   final String location;
   final VoidCallback onTap;
@@ -167,15 +156,16 @@ class _LocationBar extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(10),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFEDEDED)),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE6E6E6)),
             ),
             child: Row(
               children: [
@@ -191,27 +181,25 @@ class _LocationBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                      color: const Color(0xFF1A1A1A),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      color: const Color(0xFF111111),
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
-                SizedBox(
-                  width: 54,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      'Change',
-                      maxLines: 1,
-                      overflow: TextOverflow.fade,
-                      softWrap: false,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF6B6B6B),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 11,
-                          ),
+                const SizedBox(width: 8),
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: Text(
+                    'Change',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF666666),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
                     ),
                   ),
                 ),

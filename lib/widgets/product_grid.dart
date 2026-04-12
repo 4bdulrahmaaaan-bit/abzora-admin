@@ -14,7 +14,8 @@ class ProductGrid extends StatelessWidget {
     this.shrinkWrap = false,
     this.physics,
     this.emptyTitle = 'Start exploring styles near you',
-    this.emptySubtitle = 'Curated picks from nearby fashion stores will appear here.',
+    this.emptySubtitle =
+        'Curated picks from nearby fashion stores will appear here.',
   });
 
   final List<Product> products;
@@ -28,34 +29,28 @@ class ProductGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading && products.isEmpty) {
-      return ProductShimmer(
-        shrinkWrap: shrinkWrap,
-        physics: physics,
-      );
+      return ProductShimmer(shrinkWrap: shrinkWrap, physics: physics);
     }
 
     if (products.isEmpty) {
-      return AbzioEmptyCard(
-        title: emptyTitle,
-        subtitle: emptySubtitle,
-      );
+      return AbzioEmptyCard(title: emptyTitle, subtitle: emptySubtitle);
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final isCompact = width <= 380;
-        final ratio = isCompact ? 0.49 : 0.53;
+        final ratio = isCompact ? 0.50 : 0.54;
 
         return GridView.builder(
           shrinkWrap: shrinkWrap,
           physics: physics ?? const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+          padding: EdgeInsets.zero,
           itemCount: products.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 10,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 12,
             childAspectRatio: ratio,
           ),
           itemBuilder: (context, index) {
