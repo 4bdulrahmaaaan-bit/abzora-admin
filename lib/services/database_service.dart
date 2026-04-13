@@ -165,22 +165,26 @@ class DatabaseService {
     String path,
     T Function(Map<String, dynamic> map, String id) mapper,
   ) {
-    return _ref(path).onValue.map(
-      (event) => _asCollectionEntries(
-        event.snapshot.value,
-      ).map((entry) => mapper(entry.value, entry.key)).toList(),
-    );
+    return _ref(path).onValue
+        .map(
+          (event) => _asCollectionEntries(
+            event.snapshot.value,
+          ).map((entry) => mapper(entry.value, entry.key)).toList(),
+        )
+        .asBroadcastStream();
   }
 
   Stream<List<T>> _watchQueryCollection<T>(
     Query query,
     T Function(Map<String, dynamic> map, String id) mapper,
   ) {
-    return query.onValue.map(
-      (event) => _asCollectionEntries(
-        event.snapshot.value,
-      ).map((entry) => mapper(entry.value, entry.key)).toList(),
-    );
+    return query.onValue
+        .map(
+          (event) => _asCollectionEntries(
+            event.snapshot.value,
+          ).map((entry) => mapper(entry.value, entry.key)).toList(),
+        )
+        .asBroadcastStream();
   }
 
   Future<T?> _fetchDocument<T>(

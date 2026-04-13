@@ -2332,38 +2332,51 @@ class _CategoryCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: Icon(
-                  selected ? Icons.check_circle_rounded : category.icon,
-                  color: Colors.white,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                category.title,
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                category.subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.88),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxHeight < 140;
+            final padding = EdgeInsets.all(isCompact ? 10 : 16);
+            final titleSize = isCompact ? 16.0 : 20.0;
+            final subtitleLines = isCompact ? 1 : 2;
+
+            return Padding(
+              padding: padding,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: Icon(
+                      selected ? Icons.check_circle_rounded : category.icon,
+                      size: isCompact ? 18 : 22,
+                      color: Colors.white,
                     ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    category.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: isCompact ? 4 : 6),
+                  Text(
+                    category.subtitle,
+                    maxLines: subtitleLines,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.88),
+                          fontSize: isCompact ? 11 : null,
+                        ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
