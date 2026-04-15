@@ -1,5 +1,9 @@
+import 'dart:math' as math;
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../services/image_url_service.dart';
 import '../theme.dart';
 import 'shimmer_box.dart';
 
@@ -182,12 +186,16 @@ class AbzioEmptyCard extends StatelessWidget {
   }
 }
 
-class AbzioNetworkImage extends StatelessWidget {
+class AbzioNetworkImage extends StatefulWidget {
   final String imageUrl;
   final BoxFit fit;
   final BorderRadius? borderRadius;
   final Widget? overlay;
   final String fallbackLabel;
+  final bool priority;
+  final int? maxWidth;
+  final int? maxHeight;
+  final String quality;
 
   const AbzioNetworkImage({
     super.key,
@@ -196,49 +204,103 @@ class AbzioNetworkImage extends StatelessWidget {
     this.borderRadius,
     this.overlay,
     this.fallbackLabel = 'ABZORA',
+    this.priority = false,
+    this.maxWidth,
+    this.maxHeight,
+    this.quality = 'eco',
   });
 
   @override
+  State<AbzioNetworkImage> createState() => _AbzioNetworkImageState();
+}
+
+class _AbzioNetworkImageState extends State<AbzioNetworkImage> {
+  String? _prefetchedUrl;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!widget.priority || widget.imageUrl.trim().isEmpty) {
+      return;
+    }
+    final url = _optimizedUrl(widget.maxWidth ?? 1400);
+    if (_prefetchedUrl == url) {
+      return;
+    }
+    _prefetchedUrl = url;
+    precacheImage(CachedNetworkImageProvider(url), context);
+  }
+
+  String _optimizedUrl(int width) {
+    final quality = widget.priority ? 'good' : widget.quality;
+    return ImageUrlService.optimizeForDelivery(
+      widget.imageUrl,
+      width: width,
+      quality: quality,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final overlayWidget = overlay;
-    final overlayChildren = overlayWidget == null ? const <Widget>[] : <Widget>[overlayWidget];
-    final child = Stack(
-      fit: StackFit.expand,
-      children: [
-        Image.network(
-          imageUrl,
-          fit: fit,
-          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-            if (wasSynchronouslyLoaded) {
-              return child;
-            }
-            return AnimatedOpacity(
-              opacity: frame == null ? 0 : 1,
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              child: child,
-            );
-          },
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) {
-              return child;
-            }
-            return const _AbzioImagePlaceholder();
-          },
-          errorBuilder: (context, error, stackTrace) => _AbzioImageFallback(
-            label: fallbackLabel,
-          ),
-        ),
-        ...overlayChildren,
-      ],
+    if (widget.imageUrl.trim().isEmpty) {
+      return _AbzioImageFallback(label: widget.fallbackLabel);
+    }
+
+    final overlayWidget = widget.overlay;
+    final overlayChildren =
+        overlayWidget == null ? const <Widget>[] : <Widget>[overlayWidget];
+
+    final child = LayoutBuilder(
+      builder: (context, constraints) {
+        final dpr = MediaQuery.of(context).devicePixelRatio;
+        int? cacheWidth;
+        int? cacheHeight;
+        if (constraints.hasBoundedWidth) {
+          cacheWidth = (constraints.maxWidth * dpr).round();
+        }
+        if (constraints.hasBoundedHeight) {
+          cacheHeight = (constraints.maxHeight * dpr).round();
+        }
+        if (widget.maxWidth != null) {
+          cacheWidth =
+              cacheWidth == null ? widget.maxWidth : math.min(cacheWidth, widget.maxWidth!);
+        }
+        if (widget.maxHeight != null) {
+          cacheHeight = cacheHeight == null
+              ? widget.maxHeight
+              : math.min(cacheHeight, widget.maxHeight!);
+        }
+        final resolvedWidth = cacheWidth ?? widget.maxWidth ?? 1400;
+        final url = _optimizedUrl(resolvedWidth);
+
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            CachedNetworkImage(
+              imageUrl: url,
+              fit: widget.fit,
+              memCacheWidth: cacheWidth,
+              memCacheHeight: cacheHeight,
+              useOldImageOnUrlChange: true,
+              fadeInDuration: const Duration(milliseconds: 220),
+              fadeOutDuration: const Duration(milliseconds: 140),
+              placeholder: (context, url) => const _AbzioImagePlaceholder(),
+              errorWidget: (context, url, error) => _AbzioImageFallback(
+                label: widget.fallbackLabel,
+              ),
+            ),
+            ...overlayChildren,
+          ],
+        );
+      },
     );
 
-    if (borderRadius == null) {
+    if (widget.borderRadius == null) {
       return child;
     }
 
     return ClipRRect(
-      borderRadius: borderRadius!,
+      borderRadius: widget.borderRadius!,
       child: child,
     );
   }

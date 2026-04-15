@@ -13,6 +13,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/banner_model.dart';
 import '../models/models.dart';
 import '../models/outfit_recommendation_model.dart';
+import '../models/trial_session.dart';
+import 'backend_api_client.dart';
 import 'backend_commerce_service.dart';
 import 'firebase_database_service.dart';
 import 'kyc_ai_service.dart';
@@ -94,6 +96,20 @@ class DatabaseService {
     return Map<String, dynamic>.from(
       value.map((key, item) => MapEntry(key.toString(), item)),
     );
+  }
+
+  bool _isTransientBackendIssue(Object error) {
+    final message = error.toString().toLowerCase();
+    if (error is BackendApiException && error.statusCode == 404) {
+      return true;
+    }
+    return error is SocketException ||
+        error is TimeoutException ||
+        message.contains('404') ||
+        message.contains('failed host lookup') ||
+        message.contains('backend unreachable') ||
+        message.contains('connection closed') ||
+        message.contains('clientexception');
   }
 
   List<MapEntry<String, Map<String, dynamic>>> _asCollectionEntries(
@@ -1507,8 +1523,20 @@ class DatabaseService {
       return products;
     }
     if (_backendCommerce.isConfigured) {
-      final summary = await getUserActivitySummary(user.id);
-      final recentOrders = await getUserOrdersOnce(user.id);
+      UserActivitySummary summary;
+      List<OrderModel> recentOrders;
+      try {
+        summary = await getUserActivitySummary(user.id);
+        recentOrders = await getUserOrdersOnce(user.id);
+      } catch (error) {
+        if (_isTransientBackendIssue(error)) {
+          debugPrint(
+            'Personalization fallback active for ${user.id}: $error',
+          );
+          return products;
+        }
+        rethrow;
+      }
       final orderedCategories = <String>{};
       for (final order in recentOrders.take(5)) {
         for (final item in order.items) {
@@ -5638,7 +5666,7 @@ class DatabaseService {
             yield null;
           }
         }
-      })();
+      })().asBroadcastStream();
     }
     return _ref('users/$uid').onValue.map((event) {
       final map = _asMap(event.snapshot.value);
@@ -8531,9 +8559,17 @@ class DatabaseService {
 
   Future<List<OrderModel>> getUserOrdersOnce(String userId) async {
     if (_backendCommerce.isConfigured) {
-      final orders = await _backendCommerce.getUserOrders();
-      orders.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      return orders;
+      try {
+        final orders = await _backendCommerce.getUserOrders();
+        orders.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        return orders;
+      } catch (error) {
+        if (_isTransientBackendIssue(error)) {
+          debugPrint('Orders fallback active for $userId: $error');
+          return const <OrderModel>[];
+        }
+        rethrow;
+      }
     }
     try {
       final orders = await _fetchQueryCollection(
@@ -10284,6 +10320,175 @@ class DatabaseService {
     );
     disputes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return disputes;
+  }
+
+  Future<List<TrialSession>> getAdminTrialHomeSessions({
+    required AppUser actor,
+    String? status,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      final sessions = await _backendCommerce.getAdminTrialHomeSessions(
+        status: status,
+      );
+      sessions.sort((a, b) {
+        final left =
+            a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final right =
+            b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return right.compareTo(left);
+      });
+      return sessions;
+    }
+    return const <TrialSession>[];
+  }
+
+  Future<TrialSession> getAdminTrialHomeSession({
+    required AppUser actor,
+    required String trialId,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getAdminTrialHomeSession(trialId);
+    }
+    throw StateError('Trial-home admin requires backend mode.');
+  }
+
+  Future<TrialSession> updateAdminTrialHomeSession({
+    required AppUser actor,
+    required String trialId,
+    String? status,
+    String? note,
+    String? paymentStatus,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      final updated = await _backendCommerce.updateAdminTrialHomeSession(
+        id: trialId,
+        status: status,
+        note: note,
+        paymentStatus: paymentStatus,
+      );
+      await logActivity(
+        action: 'admin_update_trial_home',
+        targetType: 'trial_home',
+        targetId: trialId,
+        message:
+            'Updated trial-home session to ${status ?? updated.status}${note != null && note.trim().isNotEmpty ? ' with note: ${note.trim()}' : ''}.',
+        actor: actor,
+      );
+      return updated;
+    }
+    throw StateError('Trial-home admin requires backend mode.');
+  }
+
+  void _requireVendorActor(AppUser actor) {
+    if (actor.role != 'vendor') {
+      throw StateError('Vendor access required.');
+    }
+  }
+
+  Future<Map<String, dynamic>> getVendorTrialHomeDashboard({
+    required AppUser actor,
+  }) async {
+    _requireVendorActor(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getVendorTrialHomeDashboard();
+    }
+    throw StateError('Vendor trial dashboard requires backend mode.');
+  }
+
+  Future<List<TrialSession>> getVendorTrialHomeSessions({
+    required AppUser actor,
+    String? status,
+    String? approvalStatus,
+  }) async {
+    _requireVendorActor(actor);
+    if (_backendCommerce.isConfigured) {
+      final sessions = await _backendCommerce.getVendorTrialHomeSessions(
+        status: status,
+        approvalStatus: approvalStatus,
+      );
+      sessions.sort((a, b) {
+        final left =
+            a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final right =
+            b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return right.compareTo(left);
+      });
+      return sessions;
+    }
+    return const <TrialSession>[];
+  }
+
+  Future<TrialSession> updateVendorTrialHomeSession({
+    required AppUser actor,
+    required String trialId,
+    String? status,
+    String? note,
+    String? paymentStatus,
+    String? returnDecision,
+  }) async {
+    _requireVendorActor(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.updateVendorTrialHomeSession(
+        id: trialId,
+        status: status,
+        note: note,
+        paymentStatus: paymentStatus,
+        returnDecision: returnDecision,
+      );
+    }
+    throw StateError('Vendor trial dashboard requires backend mode.');
+  }
+
+  Future<TrialSession> approveVendorTrialRequest({
+    required AppUser actor,
+    required String trialId,
+    String note = '',
+  }) async {
+    _requireVendorActor(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.approveTrialHomeRequest(trialId, note: note);
+    }
+    throw StateError('Vendor trial dashboard requires backend mode.');
+  }
+
+  Future<TrialSession> rejectVendorTrialRequest({
+    required AppUser actor,
+    required String trialId,
+    String note = '',
+  }) async {
+    _requireVendorActor(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.rejectTrialHomeRequest(trialId, note: note);
+    }
+    throw StateError('Vendor trial dashboard requires backend mode.');
+  }
+
+  Future<List<Map<String, dynamic>>> getVendorTrialHomeProductSettings({
+    required AppUser actor,
+  }) async {
+    _requireVendorActor(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getVendorTrialHomeProductSettings();
+    }
+    return const <Map<String, dynamic>>[];
+  }
+
+  Future<Map<String, dynamic>> updateVendorTrialHomeProductSettings({
+    required AppUser actor,
+    required String productId,
+    required Map<String, dynamic> trialHome,
+  }) async {
+    _requireVendorActor(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.updateVendorTrialHomeProductSettings(
+        productId: productId,
+        trialHome: trialHome,
+      );
+    }
+    throw StateError('Vendor trial dashboard requires backend mode.');
   }
 
   Future<void> updateDispute(

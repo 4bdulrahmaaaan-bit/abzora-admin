@@ -16,6 +16,7 @@ class WishlistProvider with ChangeNotifier {
   String? _userId;
   final Map<String, WishlistItem> _cache = {};
   final Set<String> _pendingProductIds = {};
+  final Map<String, Timer> _toggleDebounce = {};
   bool _isLoading = false;
 
   List<WishlistItem> get items {
@@ -63,9 +64,20 @@ class WishlistProvider with ChangeNotifier {
       return;
     }
     _pendingProductIds.add(product.id);
+    _cache[product.id] = WishlistItem(
+      productId: product.id,
+      storeId: product.storeId,
+      name: product.name,
+      price: product.price,
+      image: product.images.isEmpty ? '' : product.images.first,
+      addedAt: DateTime.now(),
+    );
     notifyListeners();
     try {
       await _wishlistService.addToWishlist(userId: userId, product: product);
+    } catch (_) {
+      _cache.remove(product.id);
+      rethrow;
     } finally {
       _pendingProductIds.remove(product.id);
       notifyListeners();
@@ -74,10 +86,17 @@ class WishlistProvider with ChangeNotifier {
 
   Future<void> removeFromWishlist(String productId) async {
     final userId = _requireUserId();
+    final existing = _cache[productId];
     _pendingProductIds.add(productId);
+    _cache.remove(productId);
     notifyListeners();
     try {
       await _wishlistService.removeFromWishlist(userId: userId, productId: productId);
+    } catch (_) {
+      if (existing != null) {
+        _cache[productId] = existing;
+      }
+      rethrow;
     } finally {
       _pendingProductIds.remove(productId);
       notifyListeners();
@@ -85,6 +104,13 @@ class WishlistProvider with ChangeNotifier {
   }
 
   Future<void> toggleWishlist(Product product) async {
+    if (_toggleDebounce.containsKey(product.id)) {
+      return;
+    }
+    _toggleDebounce[product.id] = Timer(
+      const Duration(milliseconds: 280),
+      () => _toggleDebounce.remove(product.id),
+    );
     if (isWishlisted(product.id)) {
       await removeFromWishlist(product.id);
     } else {
@@ -102,6 +128,9 @@ class WishlistProvider with ChangeNotifier {
   @override
   void dispose() {
     _subscription?.cancel();
+    for (final timer in _toggleDebounce.values) {
+      timer.cancel();
+    }
     super.dispose();
   }
 }

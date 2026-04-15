@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -140,77 +141,123 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
   Widget build(BuildContext context) {
     return AbzioThemeScope.dark(
       child: Scaffold(
-      backgroundColor: AbzioTheme.darkBackground,
-      appBar: AppBar(
-        titleSpacing: 20,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Enter Your Measurements', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 2),
-            Text(
-              'Ensure the perfect fit',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AbzioTheme.grey600),
-            ),
-          ],
-        ),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-              child: _buildStepHeader(),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  child: _stepIndex == 0 ? _buildMethodSelection() : _buildCurrentStep(),
-                ),
+        backgroundColor: const Color(0xFFFCF8F2),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: AbzioTheme.textPrimary,
+          titleSpacing: 20,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Enter Your Measurements',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: AbzioTheme.textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
-            ),
-            _buildBottomBar(),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                'Ensure the perfect fit',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AbzioTheme.grey600,
+                    ),
+              ),
+            ],
+          ),
         ),
-      ),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFFFFCF7),
+                Color(0xFFF7F0E2),
+                Color(0xFFFCF8F2),
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                  child: _buildStepHeader(),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 260),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      child: _stepIndex == 0 ? _buildMethodSelection() : _buildCurrentStep(),
+                    ),
+                  ),
+                ),
+                _buildBottomBar(),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildStepHeader() {
     const labels = ['Method', 'Input', 'Review'];
-    return Row(
-      children: List.generate(labels.length, (index) {
-        final isActive = index == _stepIndex;
-        final isComplete = index < _stepIndex;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: index == labels.length - 1 ? 0 : 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: isActive || isComplete ? AbzioTheme.accentColor : AbzioTheme.grey100,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  labels[index],
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: isActive || isComplete ? AbzioTheme.accentColor : AbzioTheme.grey500,
-                      ),
-                ),
-              ],
-            ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 10),
           ),
-        );
-      }),
+        ],
+      ),
+      child: Row(
+        children: List.generate(labels.length, (index) {
+          final isActive = index == _stepIndex;
+          final isComplete = index < _stepIndex;
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: index == labels.length - 1 ? 0 : 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    height: 7,
+                    decoration: BoxDecoration(
+                      gradient: isActive || isComplete
+                          ? const LinearGradient(
+                              colors: [Color(0xFFE1C46A), Color(0xFFC89D34)],
+                            )
+                          : null,
+                      color: isActive || isComplete ? null : const Color(0xFFECE4D6),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    labels[index],
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: isActive || isComplete ? const Color(0xFF9C7A22) : AbzioTheme.grey500,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
 
@@ -219,8 +266,16 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
       key: const ValueKey('method-selection'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('Measurement Method (Step 1)'),
-        const SizedBox(height: 12),
+        _sectionTitle('Enter Your Measurements'),
+        const SizedBox(height: 8),
+        Text(
+          'Choose the method that feels most comfortable. You can refine it before saving.',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AbzioTheme.grey600,
+                height: 1.45,
+              ),
+        ),
+        const SizedBox(height: 16),
         _methodCard(
           method: MeasurementMethod.manual,
           title: 'Manual Entry',
@@ -238,7 +293,7 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
         _methodCard(
           method: MeasurementMethod.previous,
           title: 'Upload Previous Measurements',
-          description: 'Reuse a saved measurement profile from your ABZOVA account to avoid starting over.',
+          description: 'Reuse a saved measurement profile from your ABZORA account to avoid starting over.',
           icon: Icons.cloud_upload_rounded,
         ),
         const SizedBox(height: 24),
@@ -266,6 +321,7 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
   Widget _buildManualStep() {
     return Form(
       key: _manualFormKey,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       child: Column(
         key: const ValueKey('manual-step'),
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -274,7 +330,10 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
           const SizedBox(height: 8),
           Text(
             'Simple, guided fields help you capture accurate body measurements without second guessing.',
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AbzioTheme.grey600,
+                  height: 1.45,
+                ),
           ),
           const SizedBox(height: 20),
           for (final field in _fields) ...[
@@ -311,29 +370,37 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
                 runSpacing: 12,
                 children: _standardProfiles.keys.map((size) {
                   final isSelected = _selectedStandardSize == size;
-                  return ChoiceChip(
-                    label: Text(size),
-                    selected: isSelected,
-                    onSelected: (_) => setState(() => _selectedStandardSize = size),
-                    selectedColor: AbzioTheme.accentColor,
-                    backgroundColor: AbzioTheme.grey100,
-                    labelStyle: GoogleFonts.outfit(
-                      fontWeight: FontWeight.w700,
-                      color: isSelected ? Colors.black : AbzioTheme.textPrimary,
+                  return InkWell(
+                    onTap: () => setState(() => _selectedStandardSize = size),
+                    borderRadius: BorderRadius.circular(999),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF1E1813) : const Color(0xFFF6F0E5),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        size,
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.w700,
+                          color: isSelected ? const Color(0xFFF4DEAC) : AbzioTheme.textPrimary,
+                        ),
+                      ),
                     ),
-                    side: BorderSide(color: isSelected ? AbzioTheme.accentColor : AbzioTheme.grey300),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   );
                 }).toList(),
               ),
               const SizedBox(height: 20),
               Form(
                 key: _standardRecommendationKey,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 child: Column(
                   children: [
                     TextFormField(
                       controller: _standardChestController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Chest for recommendation',
                         suffixText: 'cm',
@@ -344,6 +411,7 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
                     TextFormField(
                       controller: _standardWaistController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      textInputAction: TextInputAction.done,
                       decoration: const InputDecoration(
                         labelText: 'Waist for recommendation',
                         suffixText: 'cm',
@@ -353,10 +421,18 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
                     const SizedBox(height: 14),
                     SizedBox(
                       width: double.infinity,
-                      child: OutlinedButton.icon(
+                      child: ElevatedButton.icon(
                         onPressed: _recommendStandardSize,
                         icon: const Icon(Icons.auto_awesome_rounded, size: 18),
                         label: const Text('Recommend my size'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD7B55C),
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
                       ),
                     ),
                   ],
@@ -367,10 +443,9 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.35)),
-                ),
+                color: const Color(0xFF18130F),
+                borderRadius: BorderRadius.circular(16),
+              ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -406,7 +481,10 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
         const SizedBox(height: 8),
         Text(
           'Choose a saved profile to instantly reuse your earlier tailoring measurements.',
-          style: Theme.of(context).textTheme.bodyMedium,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AbzioTheme.grey600,
+                height: 1.45,
+              ),
         ),
         const SizedBox(height: 20),
         FutureBuilder<List<MeasurementProfile>>(
@@ -428,11 +506,49 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Container(
+                      height: 52,
+                      width: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFBF3DE),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Icon(
+                        Icons.collections_bookmark_outlined,
+                        color: Color(0xFF9C7A22),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     Text('No saved profiles yet', style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 8),
                     Text(
                       'Create a measurement profile once and it will appear here for future custom orders.',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AbzioTheme.grey600,
+                            height: 1.45,
+                          ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFBF7EF),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.lock_outline_rounded, size: 18, color: Color(0xFF9C7A22)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Profiles stay linked to your account for future Atelier orders.',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AbzioTheme.grey600,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -462,7 +578,10 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
         const SizedBox(height: 8),
         Text(
           'Double check your measurements before you continue to the tailoring booking step.',
-          style: Theme.of(context).textTheme.bodyMedium,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AbzioTheme.grey600,
+                height: 1.45,
+              ),
         ),
         const SizedBox(height: 20),
         Container(
@@ -471,6 +590,14 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                'My Size',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: const Color(0xFF9C7A22),
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
@@ -487,16 +614,25 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () => setState(() => _stepIndex = 1),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _stepIndex = 1);
+                    },
                     icon: const Icon(Icons.edit_rounded, size: 18),
                     label: const Text('Edit'),
                   ),
                 ],
               ),
-              if (standardSize != null) ...[
-                const SizedBox(height: 14),
-                _reviewBadge('Standard size', standardSize),
-              ],
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _reviewBadge('Method', methodLabel),
+                  if (profile.recommendedSize != null) _reviewBadge('Recommended', profile.recommendedSize!),
+                  if (standardSize != null) _reviewBadge('Standard size', standardSize),
+                ],
+              ),
               const SizedBox(height: 18),
               Wrap(
                 spacing: 12,
@@ -526,10 +662,13 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
                 activeTrackColor: AbzioTheme.accentColor.withValues(alpha: 0.35),
                 title: Text('Save measurement profile', style: Theme.of(context).textTheme.titleMedium),
                 subtitle: Text(
-                  'Store it in Firebase so you can reuse it for later orders.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  'Save this fit so your next Atelier order starts in seconds.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AbzioTheme.grey600),
                 ),
-                onChanged: (value) => setState(() => _saveProfile = value),
+                onChanged: (value) {
+                  HapticFeedback.selectionClick();
+                  setState(() => _saveProfile = value);
+                },
               ),
               if (_saveProfile) ...[
                 const SizedBox(height: 12),
@@ -548,9 +687,14 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
         Container(
           padding: const EdgeInsets.all(18),
           decoration: _panelDecoration(),
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                'What comes next',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              SizedBox(height: 14),
               _FutureFeatureRow(
                 icon: Icons.photo_camera_front_rounded,
                 title: 'Camera-based measurement',
@@ -583,16 +727,26 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
   }) {
     final isSelected = _selectedMethod == method;
     return InkWell(
-      onTap: () => setState(() => _selectedMethod = method),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _selectedMethod = method);
+      },
       borderRadius: BorderRadius.circular(20),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: isSelected ? AbzioTheme.accentColor.withValues(alpha: 0.12) : AbzioTheme.cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? AbzioTheme.accentColor : AbzioTheme.grey100),
-          boxShadow: isSelected ? AbzioTheme.eliteShadow : const [],
+      decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFF7E7) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: isSelected
+                  ? const Color(0xFFC69B2F).withValues(alpha: 0.12)
+                  : Colors.black.withValues(alpha: 0.04),
+              blurRadius: isSelected ? 20 : 16,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -600,10 +754,13 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
               height: 52,
               width: 52,
               decoration: BoxDecoration(
-                color: isSelected ? AbzioTheme.accentColor : AbzioTheme.grey100,
-                borderRadius: BorderRadius.circular(16),
+                color: isSelected ? const Color(0xFFD7B55C) : const Color(0xFFF5EFE3),
+                borderRadius: BorderRadius.circular(18),
               ),
-              child: Icon(icon, color: isSelected ? Colors.black : AbzioTheme.accentColor),
+              child: Icon(
+                icon,
+                color: isSelected ? Colors.black : const Color(0xFF9C7A22),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -612,14 +769,20 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
                 children: [
                   Text(title, style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 4),
-                  Text(description, style: Theme.of(context).textTheme.bodyMedium),
+                  Text(
+                    description,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AbzioTheme.grey600,
+                          height: 1.45,
+                        ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(width: 12),
             Icon(
               isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-              color: isSelected ? AbzioTheme.accentColor : AbzioTheme.grey500,
+              color: isSelected ? const Color(0xFFC89D34) : AbzioTheme.grey500,
             ),
           ],
         ),
@@ -655,31 +818,36 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
           TextFormField(
             controller: _manualControllers[field.key],
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: _isLastField(field.key) ? TextInputAction.done : TextInputAction.next,
+            onChanged: (_) => setState(() {}),
+            onFieldSubmitted: (_) => _focusNextField(field.key),
             decoration: InputDecoration(
               labelText: field.label,
               suffixText: _manualUnits[field.key] == MeasurementUnit.cm ? 'cm' : 'inch',
+              filled: true,
+              fillColor: const Color(0xFFFBF7EF),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: const BorderSide(color: Color(0xFFC89D34)),
+              ),
             ),
             validator: (value) => _validateManualField(field, value),
           ),
+          const SizedBox(height: 10),
+          _validationHint(field),
           const SizedBox(height: 12),
           Row(
             children: [
-              ToggleButtons(
-                isSelected: [
-                  _manualUnits[field.key] == MeasurementUnit.cm,
-                  _manualUnits[field.key] == MeasurementUnit.inch,
-                ],
-                onPressed: (index) => _switchUnit(field.key, index == 0 ? MeasurementUnit.cm : MeasurementUnit.inch),
-                borderRadius: BorderRadius.circular(12),
-                constraints: const BoxConstraints(minHeight: 40, minWidth: 68),
-                selectedColor: Colors.black,
-                fillColor: AbzioTheme.accentColor,
-                color: AbzioTheme.textPrimary,
-                borderColor: AbzioTheme.grey300,
-                selectedBorderColor: AbzioTheme.accentColor,
-                children: const [Text('cm'), Text('inch')],
-              ),
-              const Spacer(),
+              _unitPillToggle(field.key),
+              const SizedBox(width: 12),
               TextButton.icon(
                 onPressed: () => _showHowToMeasure(field),
                 icon: const Icon(Icons.help_outline_rounded, size: 18),
@@ -697,16 +865,8 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
       height: 68,
       width: 68,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AbzioTheme.accentColor.withValues(alpha: 0.18),
-            Colors.white.withValues(alpha: 0.05),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: const Color(0xFFFBF3DE),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AbzioTheme.grey100),
       ),
       child: Stack(
         alignment: Alignment.center,
@@ -733,9 +893,17 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
         child: Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: isSelected ? AbzioTheme.accentColor.withValues(alpha: 0.12) : AbzioTheme.cardColor,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: isSelected ? AbzioTheme.accentColor : AbzioTheme.grey100),
+            color: isSelected ? const Color(0xFFFFF7E7) : Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: isSelected
+                    ? const Color(0xFFC69B2F).withValues(alpha: 0.10)
+                    : Colors.black.withValues(alpha: 0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -768,9 +936,8 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
       width: 150,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AbzioTheme.grey50,
+        color: const Color(0xFFFBF7EF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.grey100),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -807,12 +974,18 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF151515), Color(0xFF090909)],
+          colors: [Color(0xFF191510), Color(0xFF0D0A08)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AbzioTheme.grey100),
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 22,
+            offset: const Offset(0, 14),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -827,8 +1000,11 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'ABZOVA keeps the flow guided, validates each entry, and lets you save multiple profiles for different outfits.',
-            style: Theme.of(context).textTheme.bodyMedium,
+            'ABZORA validates every entry and lets you save multiple profiles.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.76),
+                  height: 1.5,
+                ),
           ),
         ],
       ),
@@ -840,8 +1016,14 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
     return Container(
       padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF080808),
-        border: Border(top: BorderSide(color: AbzioTheme.grey100)),
+        color: Colors.white.withValues(alpha: 0.96),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, -6),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -857,6 +1039,11 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
                             _stepIndex = 0;
                           }
                         }),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                  foregroundColor: AbzioTheme.textPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
                 child: const Text('Back'),
               ),
             ),
@@ -866,8 +1053,10 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
             child: ElevatedButton(
               onPressed: _isSaving ? null : (isReview ? _saveAndContinue : _goToNextStep),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AbzioTheme.accentColor,
+                backgroundColor: const Color(0xFFD7B55C),
                 foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                padding: const EdgeInsets.symmetric(vertical: 16),
               ),
               child: _isSaving
                   ? const SizedBox(
@@ -1046,6 +1235,7 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
     if (!_standardRecommendationKey.currentState!.validate()) {
       return;
     }
+    HapticFeedback.mediumImpact();
     final chest = double.parse(_standardChestController.text.trim());
     final waist = double.parse(_standardWaistController.text.trim());
     final recommended = _recommendSizeFromValues(chest, waist);
@@ -1073,6 +1263,7 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
     if (currentUnit == nextUnit) {
       return;
     }
+    HapticFeedback.selectionClick();
     final controller = _manualControllers[fieldKey]!;
     final value = double.tryParse(controller.text.trim());
     if (value != null) {
@@ -1158,9 +1349,15 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
 
   BoxDecoration _panelDecoration() {
     return BoxDecoration(
-      color: AbzioTheme.cardColor,
-      borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: AbzioTheme.grey100),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 16,
+          offset: const Offset(0, 10),
+        ),
+      ],
     );
   }
 
@@ -1168,9 +1365,106 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
     return Text(
       text,
       style: GoogleFonts.outfit(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
+        fontSize: 14,
+        fontWeight: FontWeight.w800,
         color: AbzioTheme.textPrimary,
+      ),
+    );
+  }
+
+  Widget _unitPillToggle(String fieldKey) {
+    final isCm = _manualUnits[fieldKey] == MeasurementUnit.cm;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F0E5),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _unitPill(
+            label: 'cm',
+            selected: isCm,
+            onTap: () => _switchUnit(fieldKey, MeasurementUnit.cm),
+          ),
+          _unitPill(
+            label: 'inch',
+            selected: !isCm,
+            onTap: () => _switchUnit(fieldKey, MeasurementUnit.inch),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _validationHint(_MeasurementFieldDefinition field) {
+    final value = _manualControllers[field.key]!.text.trim();
+    if (value.isEmpty) {
+      return Text(
+        'We will validate this measurement before you continue.',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AbzioTheme.grey500,
+            ),
+      );
+    }
+
+    final error = _validateManualField(field, value);
+    final isValid = error == null;
+    return Row(
+      children: [
+        Icon(
+          isValid ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+          size: 16,
+          color: isValid ? const Color(0xFF4E8E5A) : const Color(0xFFC55F4A),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            isValid ? 'Looks right for ${field.label.toLowerCase()}.' : error,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: isValid ? const Color(0xFF4E8E5A) : const Color(0xFFC55F4A),
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  bool _isLastField(String fieldKey) => _fields.last.key == fieldKey;
+
+  void _focusNextField(String fieldKey) {
+    final index = _fields.indexWhere((field) => field.key == fieldKey);
+    if (index == -1 || index == _fields.length - 1) {
+      FocusScope.of(context).unfocus();
+      return;
+    }
+    FocusScope.of(context).nextFocus();
+  }
+
+  Widget _unitPill({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF1E1813) : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.outfit(
+            color: selected ? const Color(0xFFF4DEAC) : AbzioTheme.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }

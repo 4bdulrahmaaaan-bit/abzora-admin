@@ -14,6 +14,7 @@ import 'providers/location_provider.dart';
 import 'providers/network_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/trial_home_provider.dart';
 import 'providers/wishlist_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/ops/ops_account_screen.dart';
@@ -38,6 +39,7 @@ import 'screens/user/referral_screen.dart';
 import 'screens/user/role_selection_screen.dart';
 import 'screens/user/signup_screen.dart';
 import 'screens/user/video_feed_screen.dart';
+import 'screens/atelier/atelier_flow_screen.dart';
 import 'screens/admin/admin_kyc_screen.dart';
 import 'screens/admin/admin_orders_screen.dart';
 import 'screens/admin/admin_payouts_screen.dart';
@@ -68,6 +70,9 @@ Future<void> bootstrapAndRunWithInitialRoute(
     WidgetsFlutterBinding.ensureInitialized();
     _installGlobalErrorHandling();
     await AppBootstrapService().initialize();
+    final imageCache = PaintingBinding.instance.imageCache;
+    imageCache.maximumSizeBytes = 200 << 20;
+    imageCache.maximumSize = 1000;
 
     runApp(
       MultiProvider(
@@ -94,7 +99,7 @@ Future<void> bootstrapAndRunWithInitialRoute(
               return provider;
             },
           ),
-          ChangeNotifierProxyProvider<AuthProvider, WishlistProvider>(
+        ChangeNotifierProxyProvider<AuthProvider, WishlistProvider>(
             create: (_) => WishlistProvider(),
             update: (_, authProvider, wishlistProvider) {
               final provider = wishlistProvider ?? WishlistProvider();
@@ -102,6 +107,7 @@ Future<void> bootstrapAndRunWithInitialRoute(
               return provider;
             },
           ),
+          ChangeNotifierProvider(create: (_) => TrialHomeProvider()),
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ],
         child: AbzioApp(mode: mode, initialRoute: initialRoute),
@@ -197,6 +203,7 @@ class AbzioApp extends StatelessWidget {
           '/signup': (context) => const SignupScreen(),
         '/shop': (context) => const HomeScreen(),
         '/home': (context) => const HomeScreen(),
+        '/atelier-flow': (context) => const AtelierFlowScreen(),
         '/ops': (context) => const OpsShellScreen(),
         '/profile': (context) => mode == AbzioAppMode.operations
             ? const OpsAccountScreen()

@@ -12,6 +12,7 @@ import 'add_product_screen.dart';
 import 'order_management.dart';
 import 'product_management.dart';
 import 'store_settings_screen.dart';
+import 'vendor_trial_home_dashboard_screen.dart';
 
 class VendorWorkspaceScreen extends StatefulWidget {
   const VendorWorkspaceScreen({super.key});
@@ -258,13 +259,26 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
           ? const _Skeleton()
           : _error != null
               ? Center(child: Padding(padding: const EdgeInsets.all(16), child: AbzioEmptyCard(title: 'Unable to load', subtitle: _error!, ctaLabel: 'Retry', onTap: _load)))
-              : RefreshIndicator(onRefresh: _load, child: IndexedStack(index: _index, children: [_home(), _ordersTab(), _earnings(), _account()])),
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: IndexedStack(
+                    index: _index,
+                    children: [
+                      _home(),
+                      _ordersTab(),
+                      const VendorTrialHomeDashboardScreen(),
+                      _earnings(),
+                      _account(),
+                    ],
+                  ),
+                ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: 'Dashboard'),
           NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long_rounded), label: 'Orders'),
+          NavigationDestination(icon: Icon(Icons.home_work_outlined), selectedIcon: Icon(Icons.home_work_rounded), label: 'Trials'),
           NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet_rounded), label: 'Earnings'),
           NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Account'),
         ],

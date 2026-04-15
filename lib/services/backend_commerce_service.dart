@@ -3,6 +3,8 @@ import '../models/ar_try_on_models.dart';
 import '../models/category_management_model.dart';
 import '../models/models.dart';
 import '../models/outfit_recommendation_model.dart';
+import '../models/trial_session.dart';
+import 'package:flutter/foundation.dart';
 import 'backend_api_client.dart';
 
 class BackendCommerceService {
@@ -12,6 +14,16 @@ class BackendCommerceService {
   final BackendApiClient _client;
 
   bool get isConfigured => _client.isConfigured;
+
+  bool _isTransientNetworkIssue(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('failed host lookup') ||
+        message.contains('backend unreachable') ||
+        message.contains('socketexception') ||
+        message.contains('connection closed') ||
+        message.contains('timed out') ||
+        message.contains('clientexception');
+  }
 
   Future<AppUser> getCurrentUserProfile() async {
     final payload = await _client.get('/auth/me', authenticated: true);
@@ -1682,6 +1694,141 @@ class BackendCommerceService {
         .toList();
   }
 
+  Future<List<TrialSession>> getAdminTrialHomeSessions({String? status}) async {
+    final payload = await _client.get(
+      '/admin/trial-home',
+      authenticated: true,
+      queryParameters: {
+        if (status != null && status.isNotEmpty) 'status': status,
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => TrialSession.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<TrialSession> getAdminTrialHomeSession(String id) async {
+    final payload = await _client.get('/admin/trial-home/$id', authenticated: true);
+    return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<TrialSession> updateAdminTrialHomeSession({
+    required String id,
+    String? status,
+    String? note,
+    String? paymentStatus,
+  }) async {
+    final payload = await _client.patch(
+      '/admin/trial-home/$id',
+      authenticated: true,
+      body: {
+        if (status != null && status.isNotEmpty) 'status': status,
+        if (note != null && note.isNotEmpty) 'note': note,
+        if (paymentStatus != null && paymentStatus.isNotEmpty)
+          'paymentStatus': paymentStatus,
+      },
+    );
+    return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<Map<String, dynamic>> getVendorTrialHomeDashboard() async {
+    final payload = await _client.get(
+      '/vendor/trial-home/dashboard',
+      authenticated: true,
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<List<TrialSession>> getVendorTrialHomeSessions({
+    String? status,
+    String? approvalStatus,
+  }) async {
+    final payload = await _client.get(
+      '/vendor/trial-home/sessions',
+      authenticated: true,
+      queryParameters: {
+        if (status != null && status.isNotEmpty) 'status': status,
+        if (approvalStatus != null && approvalStatus.isNotEmpty)
+          'approvalStatus': approvalStatus,
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => TrialSession.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<TrialSession> updateVendorTrialHomeSession({
+    required String id,
+    String? status,
+    String? note,
+    String? paymentStatus,
+    String? returnDecision,
+  }) async {
+    final payload = await _client.patch(
+      '/vendor/trial-home/$id/status',
+      authenticated: true,
+      body: {
+        if (status != null && status.isNotEmpty) 'status': status,
+        if (note != null && note.isNotEmpty) 'note': note,
+        if (paymentStatus != null && paymentStatus.isNotEmpty)
+          'paymentStatus': paymentStatus,
+        if (returnDecision != null && returnDecision.isNotEmpty)
+          'returnDecision': returnDecision,
+      },
+    );
+    return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<TrialSession> approveTrialHomeRequest(String id, {String note = ''}) async {
+    final payload = await _client.post(
+      '/trial-home/$id/approve',
+      authenticated: true,
+      body: {
+        if (note.trim().isNotEmpty) 'note': note.trim(),
+      },
+    );
+    return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<TrialSession> rejectTrialHomeRequest(String id, {String note = ''}) async {
+    final payload = await _client.post(
+      '/trial-home/$id/reject',
+      authenticated: true,
+      body: {
+        if (note.trim().isNotEmpty) 'note': note.trim(),
+      },
+    );
+    return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<List<Map<String, dynamic>>> getVendorTrialHomeProductSettings() async {
+    final payload = await _client.get(
+      '/vendor/trial-home/settings/products',
+      authenticated: true,
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> updateVendorTrialHomeProductSettings({
+    required String productId,
+    required Map<String, dynamic> trialHome,
+  }) async {
+    final payload = await _client.patch(
+      '/vendor/trial-home/settings/products/$productId',
+      authenticated: true,
+      body: {'trialHome': trialHome},
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
   Future<List<VendorKycRequest>> getVendorKycRequests({String? status}) async {
     final payload = await _client.get(
       '/admin/kyc/vendors',
@@ -1834,34 +1981,54 @@ class BackendCommerceService {
   }
 
   Future<void> syncUserProfile(AppUser user) async {
-    await _client.withRetry(
-      () => _client.post(
-        '/auth/sync-profile',
-        authenticated: true,
-        body: {
-          'name': user.name,
-          'email': user.email,
-          'phone': user.phone ?? '',
-          'profileImageUrl': user.profileImageUrl ?? '',
-          'address': user.address ?? '',
-          'area': user.area ?? '',
-          'city': user.city ?? '',
-          'latitude': user.latitude,
-          'longitude': user.longitude,
-          'deliveryRadiusKm': user.deliveryRadiusKm,
-          'locationUpdatedAt': user.locationUpdatedAt ?? '',
-          'role': user.role,
-          'isActive': user.isActive,
-          'storeId': user.storeId ?? '',
-          'walletBalance': user.walletBalance,
-          'roles': user.roles,
-          'riderApprovalStatus': user.riderApprovalStatus,
-          'riderVehicleType': user.riderVehicleType ?? '',
-          'riderLicenseNumber': user.riderLicenseNumber ?? '',
-          'riderCity': user.riderCity ?? '',
-        },
-      ),
-    );
+    try {
+      await _client.withRetry(
+        () => _client.post(
+          '/auth/sync-profile',
+          authenticated: true,
+          body: {
+            'name': user.name,
+            'email': user.email,
+            'phone': user.phone ?? '',
+            'profileImageUrl': user.profileImageUrl ?? '',
+            'address': user.address ?? '',
+            'area': user.area ?? '',
+            'city': user.city ?? '',
+            'latitude': user.latitude,
+            'longitude': user.longitude,
+            'deliveryRadiusKm': user.deliveryRadiusKm,
+            'locationUpdatedAt': user.locationUpdatedAt ?? '',
+            'role': user.role,
+            'isActive': user.isActive,
+            'storeId': user.storeId ?? '',
+            'walletBalance': user.walletBalance,
+            'roles': user.roles,
+            'riderApprovalStatus': user.riderApprovalStatus,
+            'riderVehicleType': user.riderVehicleType ?? '',
+            'riderLicenseNumber': user.riderLicenseNumber ?? '',
+            'riderCity': user.riderCity ?? '',
+          },
+        ),
+      );
+    } on BackendApiException catch (error) {
+      if (error.statusCode == 404) {
+        debugPrint(
+          'sync-profile endpoint unavailable on this backend. Continuing without sync.',
+        );
+        return;
+      }
+      if (_isTransientNetworkIssue(error)) {
+        debugPrint('sync-profile skipped due to transient network issue: $error');
+        return;
+      }
+      rethrow;
+    } catch (error) {
+      if (_isTransientNetworkIssue(error)) {
+        debugPrint('sync-profile skipped due to transient network issue: $error');
+        return;
+      }
+      rethrow;
+    }
   }
 
   AppUser _appUserFromBackend(Map<String, dynamic> map) {

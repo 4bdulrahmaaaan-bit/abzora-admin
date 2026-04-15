@@ -15,6 +15,10 @@ class ProductProvider with ChangeNotifier {
 
   final DatabaseService _db;
   StreamSubscription<List<Product>>? _productsSubscription;
+  bool _streamAttached = false;
+  Timer? _streamDebounce;
+  Timer? _locationNotifyDebounce;
+  List<Product>? _pendingStreamProducts;
 
   LocationProvider? _locationProvider;
   AppUser? _currentUser;
@@ -88,21 +92,38 @@ class ProductProvider with ChangeNotifier {
       }
 
       await _loadNextPageInternal(resetSearch: true);
-      _productsSubscription?.cancel();
-      _productsSubscription = _db.watchAllProducts().listen(
-        (products) async {
-          final storeIds = _activeNearbyStoreIds();
-          final liveProducts = products.where((item) => storeIds.contains(item.storeId)).toList();
-          final ranked = await _db.personalizeProductsForUser(liveProducts, user: _currentUser);
-          _trendingProducts = ranked.take(10).toList();
-          _searchResults = _applyFilter(ranked, _searchFilter);
-          notifyListeners();
-        },
-        onError: (error) {
-          debugPrint('Realtime product stream error: $error');
-          notifyListeners();
-        },
-      );
+      if (!_streamAttached) {
+        _productsSubscription?.cancel();
+        _productsSubscription = _db.watchAllProducts().listen(
+          (products) {
+            _pendingStreamProducts = products;
+            _streamDebounce?.cancel();
+            _streamDebounce = Timer(const Duration(milliseconds: 320), () async {
+              try {
+                final buffered = _pendingStreamProducts ?? const <Product>[];
+                final storeIds = _activeNearbyStoreIds();
+                final liveProducts = buffered
+                    .where((item) => storeIds.contains(item.storeId))
+                    .toList();
+                final ranked = await _db.personalizeProductsForUser(
+                  liveProducts,
+                  user: _currentUser,
+                );
+                _trendingProducts = ranked.take(10).toList();
+                _searchResults = _applyFilter(ranked, _searchFilter);
+                notifyListeners();
+              } catch (error) {
+                debugPrint('Realtime personalization fallback: $error');
+              }
+            });
+          },
+          onError: (error) {
+            debugPrint('Realtime product stream error: $error');
+            notifyListeners();
+          },
+        );
+        _streamAttached = true;
+      }
     } catch (error) {
       final message = error.toString().toLowerCase();
       if (message.contains('permission-denied')) {
@@ -268,12 +289,19 @@ class ProductProvider with ChangeNotifier {
   }
 
   void _handleLocationChanged() {
-    notifyListeners();
+    if (_locationNotifyDebounce?.isActive ?? false) {
+      return;
+    }
+    _locationNotifyDebounce = Timer(const Duration(milliseconds: 90), () {
+      notifyListeners();
+    });
   }
 
   @override
   void dispose() {
     _productsSubscription?.cancel();
+    _streamDebounce?.cancel();
+    _locationNotifyDebounce?.cancel();
     _locationProvider?.removeListener(_handleLocationChanged);
     super.dispose();
   }

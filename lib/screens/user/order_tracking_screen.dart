@@ -54,10 +54,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
     return AbzioThemeScope.light(
       child: Scaffold(
-        appBar: AppBar(title: const Text('My Orders')),
-        body: StreamBuilder<List<OrderModel>>(
-          stream: _ordersStream,
-          builder: (context, snapshot) {
+        backgroundColor: const Color(0xFFFCF8F2),
+        body: SafeArea(
+          bottom: false,
+          child: StreamBuilder<List<OrderModel>>(
+            stream: _ordersStream,
+            builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const AbzioLoadingView(
                 title: 'Loading your orders',
@@ -82,66 +84,71 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             final filteredOrders = orders.where(_matchesFilter).where(_matchesSearch).toList();
 
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        onChanged: (value) => setState(() => _searchQuery = value.trim()),
-                        decoration: InputDecoration(
-                          hintText: 'Search your orders',
-                          prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                          isDense: true,
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(18),
-                            borderSide: BorderSide(color: context.abzioBorder),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(18),
-                            borderSide: BorderSide(color: context.abzioBorder),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(18),
-                            borderSide: const BorderSide(color: AbzioTheme.accentColor),
-                          ),
-                        ),
+                Text(
+                  'Your Orders',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Track purchases and custom creations',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: context.abzioSecondaryText,
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+                const SizedBox(height: 18),
+                TextField(
+                  onChanged: (value) => setState(() => _searchQuery = value.trim()),
+                  decoration: InputDecoration(
+                    hintText: 'Search by product, atelier, or order ID',
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      size: 20,
+                      color: context.abzioSecondaryText,
                     ),
-                    const SizedBox(width: 10),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: _showFilterSheet,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: context.abzioBorder),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.tune_rounded, size: 18),
-                            const SizedBox(width: 6),
-                            Text(
-                              _activeFilter.label,
-                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                    isDense: true,
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: const BorderSide(color: Color(0xFFD7BA6A)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _OrderFilter.values
+                        .map(
+                          (filter) => Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: _OrderFilterChip(
+                              label: filter.label,
+                              selected: filter == _activeFilter,
+                              onTap: () => setState(() => _activeFilter = filter),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                          ),
+                        )
+                        .toList(),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  '${filteredOrders.length} orders',
+                  '${filteredOrders.length} ${filteredOrders.length == 1 ? 'piece in progress' : 'pieces in progress'}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: context.abzioSecondaryText,
                         fontWeight: FontWeight.w600,
@@ -170,13 +177,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                         statusColor: _statusColor(order),
                         statusIcon: _statusIcon(order),
                         statusMessage: _statusMessage(order),
+                        customerName: user.name,
                         onTap: () => _openOrderDetails(order, user),
                       ),
                     ),
                   ),
               ],
             );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -189,8 +198,16 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final query = _searchQuery.toLowerCase();
     final itemText = order.items.map((item) => '${item.productName} ${item.size}').join(' ').toLowerCase();
     final orderLabel = (order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber).toLowerCase();
+    final atelierText = [
+      order.selectedDesignerName,
+      order.customizationSummary,
+      order.customDesignOptions['fabric'],
+      order.customDesignOptions['fabricType'],
+      order.customDesignOptions['atelierName'],
+    ].whereType<Object>().map((value) => value.toString().toLowerCase()).join(' ');
     return itemText.contains(query) ||
         orderLabel.contains(query) ||
+        atelierText.contains(query) ||
         _statusLabel(order).toLowerCase().contains(query);
   }
 
@@ -198,14 +215,17 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     switch (_activeFilter) {
       case _OrderFilter.all:
         return true;
-      case _OrderFilter.active:
-        final status = _normalizeStatus(order);
-        return status != 'delivered' && status != 'cancelled';
-      case _OrderFilter.delivered:
-        return _normalizeStatus(order) == 'delivered';
-      case _OrderFilter.cancelled:
-        return _normalizeStatus(order) == 'cancelled';
+      case _OrderFilter.atelier:
+        return _isAtelierOrder(order);
+      case _OrderFilter.marketplace:
+        return !_isAtelierOrder(order);
     }
+  }
+
+  bool _isAtelierOrder(OrderModel order) {
+    return order.orderType == 'custom_tailoring' ||
+        order.fulfillmentType == 'custom_tailoring' ||
+        order.items.any((item) => item.isCustomTailoring);
   }
 
   String _normalizeStatus(OrderModel order) {
@@ -236,6 +256,34 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   }
 
   String _statusLabel(OrderModel order) {
+    if (_isAtelierOrder(order)) {
+      final status = order.customOrderStatus.trim().toLowerCase();
+      switch (status) {
+        case 'delivered':
+          return 'Delivered';
+        case 'shipped':
+          return 'Out for Delivery';
+        case 'quality check':
+        case 'quality_check':
+          return 'Quality Check';
+        case 'stitching':
+        case 'in stitching':
+        case 'in_stitching':
+          return 'Stitching in Progress';
+        case 'cutting':
+        case 'fabric cutting':
+        case 'fabric_cutting':
+          return 'Fabric Cutting';
+        case 'accepted':
+        case 'confirmed':
+          return 'Design Confirmed';
+        case 'cancelled':
+        case 'rejected':
+          return 'Cancelled';
+        default:
+          return 'Design Confirmed';
+      }
+    }
     final status = _normalizeStatus(order);
     switch (status) {
       case 'cancelled':
@@ -257,6 +305,27 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   }
 
   IconData _statusIcon(OrderModel order) {
+    if (_isAtelierOrder(order)) {
+      switch (order.customOrderStatus.trim().toLowerCase()) {
+        case 'delivered':
+          return Icons.check_circle_outline_rounded;
+        case 'shipped':
+          return Icons.local_shipping_outlined;
+        case 'quality check':
+        case 'quality_check':
+          return Icons.fact_check_outlined;
+        case 'stitching':
+        case 'in stitching':
+        case 'in_stitching':
+          return Icons.design_services_outlined;
+        case 'cutting':
+        case 'fabric cutting':
+        case 'fabric_cutting':
+          return Icons.content_cut_outlined;
+        default:
+          return Icons.auto_awesome_outlined;
+      }
+    }
     switch (_normalizeStatus(order)) {
       case 'cancelled':
         return Icons.cancel_outlined;
@@ -272,6 +341,19 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   }
 
   Color _statusColor(OrderModel order) {
+    if (_isAtelierOrder(order)) {
+      switch (order.customOrderStatus.trim().toLowerCase()) {
+        case 'cancelled':
+        case 'rejected':
+          return const Color(0xFFB23A3A);
+        case 'delivered':
+          return const Color(0xFF1B8E5A);
+        case 'shipped':
+          return const Color(0xFF9A6B1E);
+        default:
+          return const Color(0xFF8C6A12);
+      }
+    }
     switch (_normalizeStatus(order)) {
       case 'cancelled':
         return const Color(0xFFB23A3A);
@@ -287,6 +369,16 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   }
 
   String _statusMessage(OrderModel order) {
+    if (_isAtelierOrder(order)) {
+      final label = _statusLabel(order);
+      if (label == 'Cancelled') {
+        return 'The atelier journey has been paused.';
+      }
+      if (label == 'Delivered') {
+        return 'Crafted and delivered on ${DateFormat('EEE, dd MMM').format(_estimatedDelivery(order))}';
+      }
+      return 'Your outfit is moving through the atelier.';
+    }
     final label = _statusLabel(order);
     if (label == 'Cancelled') {
       return 'on ${DateFormat('EEE, dd MMM, hh:mm a').format(order.timestamp)} as per your request';
@@ -330,35 +422,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  Future<void> _showFilterSheet() async {
-    final result = await showModalBottomSheet<_OrderFilter>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _OrderFilter.values
-                .map(
-                  (filter) => ListTile(
-                    leading: Icon(
-                      filter == _activeFilter ? Icons.radio_button_checked : Icons.radio_button_off,
-                      color: filter == _activeFilter ? AbzioTheme.accentColor : context.abzioSecondaryText,
-                    ),
-                    title: Text(filter.label),
-                    onTap: () => Navigator.of(context).pop(filter),
-                  ),
-                )
-                .toList(),
-          ),
-        );
-      },
-    );
-    if (result != null && mounted) {
-      setState(() => _activeFilter = result);
-    }
-  }
-
   Future<void> _openOrderDetails(OrderModel order, AppUser user) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -378,9 +441,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
 enum _OrderFilter {
   all('All'),
-  active('Active'),
-  delivered('Delivered'),
-  cancelled('Cancelled');
+  atelier('Atelier ✂️'),
+  marketplace('Orders 🛒');
 
   const _OrderFilter(this.label);
 
@@ -734,6 +796,29 @@ class _OrderDetailsPage extends StatelessWidget {
 
   bool get _canLeaveFitFeedback => _isCustomTailoring && _normalizedStatus == 'delivered';
 
+  int get _atelierJourneyIndex {
+    switch (_normalizedStatus) {
+      case 'cutting':
+      case 'fabric cutting':
+      case 'fabric_cutting':
+        return 1;
+      case 'stitching':
+      case 'in stitching':
+      case 'in_stitching':
+        return 2;
+      case 'quality check':
+      case 'quality_check':
+        return 3;
+      case 'shipped':
+      case 'ready':
+      case 'ready_for_dispatch':
+      case 'delivered':
+        return 4;
+      default:
+        return 0;
+    }
+  }
+
   static String _humanizeKey(String key) {
     return key
         .replaceAll('_', ' ')
@@ -872,8 +957,9 @@ class _OrderDetailsPage extends StatelessWidget {
 
     return AbzioThemeScope.light(
       child: Scaffold(
+        backgroundColor: const Color(0xFFFCF8F2),
         appBar: AppBar(
-          title: const Text('Order Details'),
+          title: Text(_isCustomTailoring ? 'Atelier Order' : 'Order Details'),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 12),
@@ -892,12 +978,24 @@ class _OrderDetailsPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFDF8),
+                  color: _isCustomTailoring ? null : Colors.white,
                   borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: const Color(0xFFF0E3C5)),
+                  gradient: _isCustomTailoring
+                      ? const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFFFCF3E1),
+                            Color(0xFFF8EDDA),
+                            Color(0xFFFFFCF8),
+                          ],
+                        )
+                      : null,
+                  border: _isCustomTailoring ? null : Border.all(color: const Color(0xFFF0E3C5)),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFB8963F).withValues(alpha: 0.08),
+                      color: (_isCustomTailoring ? const Color(0xFF8C6A12) : const Color(0xFFB8963F))
+                          .withValues(alpha: 0.08),
                       blurRadius: 24,
                       offset: const Offset(0, 14),
                     ),
@@ -1262,15 +1360,17 @@ class _OrderDetailsPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _sectionTitle(context, 'Tracking'),
+                  _sectionTitle(context, _isCustomTailoring ? 'Your Outfit Journey' : 'Tracking'),
                   const SizedBox(height: 14),
-                  TrackingTimeline(
-                    steps: steps,
-                    progressAnimation: AlwaysStoppedAnimation<double>(
-                      _currentStepIndex / ((steps.length - 1).clamp(1, 10)),
-                    ),
-                    pulseAnimation: const AlwaysStoppedAnimation<double>(1),
-                  ),
+                  _isCustomTailoring
+                      ? _AtelierJourneyTracker(currentStepIndex: _atelierJourneyIndex)
+                      : TrackingTimeline(
+                          steps: steps,
+                          progressAnimation: AlwaysStoppedAnimation<double>(
+                            _currentStepIndex / ((steps.length - 1).clamp(1, 10)),
+                          ),
+                          pulseAnimation: const AlwaysStoppedAnimation<double>(1),
+                        ),
                 ],
               ),
             ),
@@ -1282,15 +1382,48 @@ class _OrderDetailsPage extends StatelessWidget {
                   children: [
                     _sectionTitle(context, 'Actions'),
                     const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.timeline_rounded),
+                      label: const Text('Track Progress'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E1813),
+                        foregroundColor: const Color(0xFFF4DEAC),
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: onReorder,
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Reorder'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: onSupport,
+                            icon: const Icon(Icons.support_agent_outlined),
+                            label: const Text('Support'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
                     Wrap(
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        _ActionChipButton(
-                          icon: Icons.chat_bubble_outline,
-                          label: 'Contact tailor',
-                          onPressed: onSupport,
-                        ),
                         if (_canRequestChange)
                           _ActionChipButton(
                             icon: Icons.edit_note_outlined,
@@ -1356,7 +1489,7 @@ class _OrderDetailsPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _sectionTitle(context, 'Items that go well with this item'),
+                    _sectionTitle(context, _isCustomTailoring ? 'Complete Your Look' : 'Items that go well with this item'),
                     const SizedBox(height: 12),
                     SizedBox(
                       height: 214,
@@ -2554,6 +2687,124 @@ class _TrackingEmptyHint extends StatelessWidget {
   }
 }
 
+class _AtelierJourneyTracker extends StatelessWidget {
+  const _AtelierJourneyTracker({required this.currentStepIndex});
+
+  final int currentStepIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    const steps = [
+      ('Design Confirmed', Icons.draw_outlined),
+      ('Cutting', Icons.content_cut_outlined),
+      ('Stitching', Icons.design_services_outlined),
+      ('Finishing', Icons.fact_check_outlined),
+      ('Delivered', Icons.local_shipping_outlined),
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: List.generate(steps.length, (index) {
+          final item = steps[index];
+          final active = index <= currentStepIndex;
+          final current = index == currentStepIndex;
+          return Padding(
+            padding: EdgeInsets.only(right: index == steps.length - 1 ? 0 : 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 84,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: active ? const Color(0xFF1E1813) : const Color(0xFFF5EFE4),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: current
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF8C6A12).withValues(alpha: 0.14),
+                              blurRadius: 14,
+                              offset: const Offset(0, 8),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(item.$2, size: 20, color: active ? const Color(0xFFF4DEAC) : const Color(0xFF8E7A58)),
+                      const SizedBox(height: 8),
+                      Text(
+                        item.$1,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: active ? const Color(0xFFF4DEAC) : context.abzioSecondaryText,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (index != steps.length - 1)
+                  Container(
+                    width: 24,
+                    height: 1.5,
+                    margin: const EdgeInsets.symmetric(horizontal: 6),
+                    color: index < currentStepIndex ? const Color(0xFFD1AE52) : context.abzioBorder,
+                  ),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _OrderFilterChip extends StatelessWidget {
+  const _OrderFilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF1E1813) : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.10),
+                    blurRadius: 14,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: selected ? const Color(0xFFF4DEAC) : Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+      ),
+    );
+  }
+}
+
 class _OrderListCard extends StatelessWidget {
   const _OrderListCard({
     required this.order,
@@ -2561,6 +2812,7 @@ class _OrderListCard extends StatelessWidget {
     required this.statusColor,
     required this.statusIcon,
     required this.statusMessage,
+    required this.customerName,
     required this.onTap,
   });
 
@@ -2569,28 +2821,47 @@ class _OrderListCard extends StatelessWidget {
   final Color statusColor;
   final IconData statusIcon;
   final String statusMessage;
+  final String customerName;
   final VoidCallback onTap;
+
+  bool get _isAtelier =>
+      order.orderType == 'custom_tailoring' ||
+      order.fulfillmentType == 'custom_tailoring' ||
+      order.items.any((item) => item.isCustomTailoring);
 
   @override
   Widget build(BuildContext context) {
     final primaryItem = order.items.isEmpty ? null : order.items.first;
     final extraCount = order.items.length > 1 ? order.items.length - 1 : 0;
     final orderLabel = order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
+    final title = primaryItem?.productName ?? 'Order $orderLabel';
 
     return InkWell(
       borderRadius: BorderRadius.circular(22),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(_isAtelier ? 18 : 16),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFDF8),
+          color: _isAtelier ? null : Colors.white,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFF0E3C5)),
+          gradient: _isAtelier
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFFCF4E3),
+                    Color(0xFFF6EAD4),
+                    Color(0xFFFFFCF8),
+                  ],
+                )
+              : null,
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFB8963F).withValues(alpha: 0.06),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
+              color: _isAtelier
+                  ? const Color(0xFF8C6A12).withValues(alpha: 0.10)
+                  : Colors.black.withValues(alpha: 0.05),
+              blurRadius: _isAtelier ? 20 : 16,
+              offset: Offset(0, _isAtelier ? 12 : 10),
             ),
           ],
         ),
@@ -2615,14 +2886,37 @@ class _OrderListCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        statusLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: statusColor,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              statusLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: statusColor,
+                                  ),
                             ),
+                          ),
+                          if (_isAtelier) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.74),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                'Atelier',
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: const Color(0xFF8C6A12),
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -2642,9 +2936,8 @@ class _OrderListCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.white.withValues(alpha: _isAtelier ? 0.74 : 1),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFF0E3C5)),
               ),
               child: Row(
                 children: [
@@ -2676,7 +2969,7 @@ class _OrderListCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          primaryItem?.productName ?? 'Order $orderLabel',
+                          title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(

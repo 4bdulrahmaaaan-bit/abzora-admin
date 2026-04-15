@@ -201,11 +201,12 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
 
     return AbzioThemeScope.light(
       child: Scaffold(
-        backgroundColor: const Color(0xFF050505),
+        backgroundColor: const Color(0xFFFCF8F2),
         appBar: AppBar(
-          title: const Text('Scan Your Body'),
+          title: const Text('Smart Body Scan'),
           backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
+          elevation: 0,
         ),
         body: Stack(
           children: [
@@ -213,14 +214,13 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFF0A0A0A),
-                      const Color(0xFF16120A),
-                      const Color(0xFFFFFDFC),
+                      const Color(0xFFFEFBF6),
+                      const Color(0xFFF7F0E3),
+                      const Color(0xFFFCF8F2),
                     ],
-                    stops: const [0.0, 0.34, 0.34],
                   ),
                 ),
               ),
@@ -268,13 +268,13 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                         child: ElevatedButton.icon(
                           onPressed: _isAnalyzing ? null : _analyze,
                           icon: const Icon(Icons.auto_awesome_rounded),
-                          label: const Text('Analyze my perfect fit'),
+                          label: const Text('✨ Analyze my perfect fit'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AbzioTheme.accentColor,
+                            backgroundColor: const Color(0xFFD7B55C),
                             foregroundColor: Colors.black,
                             padding: const EdgeInsets.symmetric(vertical: 18),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(999),
                             ),
                           ),
                         ),
@@ -360,21 +360,45 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
 
   Widget _heroCard() {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFFFFF8E6),
-            Color(0xFFFFF2C9),
+            Color(0xFFFFF7E7),
+            Color(0xFFF5E7C8),
+            Color(0xFFFFFCF6),
           ],
         ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFB8963F).withValues(alpha: 0.10),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.70),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Text(
+              'ABZORA FIT AI',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
           Text(
             'Smart body scan',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -423,11 +447,10 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
     required VoidCallback onGallery,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: context.abzioBorder.withValues(alpha: 0.75)),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -486,7 +509,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
           ),
           const SizedBox(height: 14),
           ClipRRect(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(22),
             child: AspectRatio(
               aspectRatio: 0.72,
               child: Stack(
@@ -496,31 +519,52 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                     Image.file(File(file.path), fit: BoxFit.cover)
                   else
                     Container(
-                      color: const Color(0xFFFFFBF4),
+                      color: const Color(0xFFFBF7EF),
                       child: Center(
-                        child: Container(
-                          width: 140,
-                          height: 250,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(80),
-                            border: Border.all(
-                              color: accent.withValues(alpha: 0.45),
-                              width: 2,
-                            ),
-                          ),
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0.22, end: 0.80),
+                          duration: const Duration(milliseconds: 1800),
+                          curve: Curves.easeInOut,
+                          builder: (context, glow, _) {
+                            return Container(
+                              width: 150,
+                              height: 262,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(84),
+                                border: Border.all(
+                                  color: accent.withValues(alpha: 0.48),
+                                  width: 1.8,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: accent.withValues(alpha: glow * 0.18),
+                                    blurRadius: 28,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  Icons.accessibility_new_rounded,
+                                  size: 72,
+                                  color: accent.withValues(alpha: 0.32),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
                   IgnorePointer(
                     child: Center(
                       child: Container(
-                        width: 152,
-                        height: 264,
+                        width: 166,
+                        height: 282,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(82),
+                          borderRadius: BorderRadius.circular(90),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.78),
-                            width: 2,
+                            color: Colors.white.withValues(alpha: 0.84),
+                            width: 1.6,
                           ),
                         ),
                       ),
@@ -560,10 +604,18 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
+                child: ElevatedButton.icon(
                   onPressed: onCamera,
                   icon: const Icon(Icons.videocam_outlined),
                   label: const Text('Live Scan'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD7B55C),
+                    foregroundColor: Colors.black,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -572,6 +624,12 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                   onPressed: onGallery,
                   icon: const Icon(Icons.photo_library_outlined),
                   label: const Text('Gallery'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -587,7 +645,13 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: context.abzioBorder.withValues(alpha: 0.75)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -644,20 +708,10 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                 ),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: ['slim', 'regular', 'heavy']
-                .map(
-                  (frame) => ChoiceChip(
-                    label: Text(
-                      '${frame[0].toUpperCase()}${frame.substring(1)}',
-                    ),
-                    selected: _bodyFrame == frame,
-                    onSelected: (_) => setState(() => _bodyFrame = frame),
-                  ),
-                )
-                .toList(),
+          _segmentedRow(
+            options: const ['slim', 'regular', 'heavy'],
+            selected: _bodyFrame,
+            onSelected: (value) => setState(() => _bodyFrame = value),
           ),
           const SizedBox(height: 14),
           Text(
@@ -667,20 +721,10 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                 ),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: ['slim', 'regular', 'loose']
-                .map(
-                  (fit) => ChoiceChip(
-                    label: Text(
-                      '${fit[0].toUpperCase()}${fit.substring(1)}',
-                    ),
-                    selected: _fitPreference == fit,
-                    onSelected: (_) => setState(() => _fitPreference = fit),
-                  ),
-                )
-                .toList(),
+          _segmentedRow(
+            options: const ['slim', 'regular', 'loose'],
+            selected: _fitPreference,
+            onSelected: (value) => setState(() => _fitPreference = value),
           ),
         ],
       ),
@@ -720,19 +764,58 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
     );
   }
 
+  Widget _segmentedRow({
+    required List<String> options,
+    required String selected,
+    required ValueChanged<String> onSelected,
+  }) {
+    return Row(
+      children: options
+          .map(
+            (option) => Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: option == options.last ? 0 : 8),
+                child: TapScale(
+                  onTap: () => onSelected(option),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: selected == option
+                          ? const Color(0xFF1E1813)
+                          : const Color(0xFFF7F1E6),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${option[0].toUpperCase()}${option.substring(1)}',
+                        style: TextStyle(
+                          color: selected == option
+                              ? const Color(0xFFF4DEAC)
+                              : Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
   Widget _resultCard(SizePredictionResult result) {
     return Container(
       key: const ValueKey('scan_result'),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         color: Colors.white,
-        border: Border.all(
-          color: AbzioTheme.accentColor.withValues(alpha: 0.22),
-        ),
         boxShadow: [
           BoxShadow(
-            color: AbzioTheme.accentColor.withValues(alpha: 0.08),
+            color: const Color(0xFFB8963F).withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 12),
           ),
@@ -790,53 +873,56 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            'Body Type: ${result.detectedBodyType}',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
+          Row(
+            children: [
+              Expanded(
+                child: _resultInsight(
+                  title: 'Body Type',
+                  value: result.detectedBodyType,
                 ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Body type confidence: ${(result.bodyTypeConfidence * 100).round()}%',
-            style: TextStyle(color: context.abzioSecondaryText),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Fit type: ${result.fit}',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _resultInsight(
+                  title: 'Confidence',
+                  value: '${(result.bodyTypeConfidence * 100).round()}%',
                 ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _resultInsight(
+                  title: 'Fit Type',
+                  value: result.fit,
+                ),
+              ),
+            ],
           ),
           if (result.usedManualEstimate) ...[
             const SizedBox(height: 8),
             Text(
-              'Using manual estimation',
+              'Manual height, weight, and body frame are influencing this estimate.',
               style: TextStyle(
                 color: context.abzioSecondaryText,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Text(
-            result.message,
-            style: TextStyle(
-              color: context.abzioSecondaryText,
-              height: 1.45,
-            ),
+            'Insights',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
           ),
-          if (result.reasoning.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              result.reasoning,
-              style: TextStyle(
-                color: context.abzioSecondaryText,
-                height: 1.45,
-              ),
-            ),
-          ],
           const SizedBox(height: 10),
+          _insightBullet('We suggest size ${result.shirtSize}.'),
+          _insightBullet(
+            result.usedManualEstimate
+                ? 'Manual height, weight, and body frame are driving this estimate.'
+                : 'Front and side pose detection are driving this estimate.',
+          ),
+          _insightBullet('Shoulder width aligned with ${result.shirtSize} upper-body fit.'),
+          _insightBullet('Waist estimate points to ${result.pantSize} trousers.'),
           ...result.bodyOutlineHighlights.map(
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -871,7 +957,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Text(
-                'Improve accuracy -> Add side scan',
+                'Improve accuracy ? Add side scan',
                 style: TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
@@ -897,11 +983,15 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 28),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: const Color(0xFF141414),
+            color: const Color(0xFF1A1612),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: AbzioTheme.accentColor.withValues(alpha: 0.24),
-            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.24),
+                blurRadius: 30,
+                offset: const Offset(0, 16),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -939,7 +1029,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
               ),
               const SizedBox(height: 18),
               const Text(
-                'Analyzing your body...',
+                'Analyzing your perfect fit...',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 19,
@@ -983,6 +1073,67 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
           Text(
             '${value.toStringAsFixed(0)} cm',
             style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _resultInsight({
+    required String title,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBF7EF),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: context.abzioSecondaryText,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _insightBullet(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Icon(
+              Icons.check_circle_outline_rounded,
+              size: 16,
+              color: AbzioTheme.accentColor,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: context.abzioSecondaryText,
+                height: 1.4,
+              ),
+            ),
           ),
         ],
       ),

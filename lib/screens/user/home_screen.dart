@@ -226,6 +226,7 @@ class _HomeContentState extends State<HomeContent> {
   final _scrollController = ScrollController();
   bool _profileModalShown = false;
   bool _isHeaderScrolled = false;
+  Timer? _loadMoreThrottle;
 
   @override
   void initState() {
@@ -249,13 +250,22 @@ class _HomeContentState extends State<HomeContent> {
       }
       final max = _scrollController.position.maxScrollExtent;
       if (_scrollController.position.pixels > max - 380) {
-        context.read<ProductProvider>().loadMoreLocationProducts();
+        if (_loadMoreThrottle?.isActive ?? false) {
+          return;
+        }
+        _loadMoreThrottle = Timer(const Duration(milliseconds: 280), () {
+          if (!mounted) {
+            return;
+          }
+          context.read<ProductProvider>().loadMoreLocationProducts();
+        });
       }
     });
   }
 
   @override
   void dispose() {
+    _loadMoreThrottle?.cancel();
     _scrollController.dispose();
     super.dispose();
   }

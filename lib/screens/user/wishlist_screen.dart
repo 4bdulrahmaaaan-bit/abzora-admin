@@ -5,6 +5,7 @@ import '../../constants/text_constants.dart';
 import '../../models/models.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../theme.dart';
+import '../../widgets/shimmer_box.dart';
 import '../../widgets/state_views.dart';
 import 'product_detail_screen.dart';
 
@@ -18,9 +19,26 @@ class WishlistScreen extends StatelessWidget {
       body: Consumer<WishlistProvider>(
         builder: (context, wishlist, child) {
           if (wishlist.isLoading) {
-            return const AbzioLoadingView(
-              title: AbzoraText.wishlistLoadingTitle,
-              subtitle: AbzoraText.wishlistLoadingSubtitle,
+            return GridView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: 6,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.7,
+              ),
+              itemBuilder: (context, index) {
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: context.abzioBorder),
+                  ),
+                  child: const ShimmerBox(
+                    borderRadius: BorderRadius.all(Radius.circular(18)),
+                  ),
+                );
+              },
             );
           }
 
@@ -45,6 +63,9 @@ class WishlistScreen extends StatelessWidget {
               mainAxisSpacing: 16,
               childAspectRatio: 0.7,
             ),
+            cacheExtent: 800,
+            addAutomaticKeepAlives: false,
+            addRepaintBoundaries: true,
             itemBuilder: (context, index) {
               final item = wishlist.items[index];
               return _WishlistTile(item: item);
@@ -105,6 +126,8 @@ class _WishlistTile extends StatelessWidget {
                   AbzioNetworkImage(
                     imageUrl: item.image,
                     fallbackLabel: item.name,
+                    maxWidth: 600,
+                    quality: 'eco',
                   ),
                   Positioned(
                     top: 8,

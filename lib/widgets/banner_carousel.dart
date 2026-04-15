@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../models/banner_model.dart';
 import '../providers/banner_provider.dart';
+import '../services/image_url_service.dart';
 import '../theme.dart';
 import 'banner_shimmer.dart';
 import 'shimmer_box.dart';
@@ -50,6 +51,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
       initialPage: _initialPage,
     );
     _scheduleAutoScroll();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _precacheHero());
   }
 
   @override
@@ -58,6 +60,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
     if (oldWidget.banners.length != widget.banners.length) {
       context.read<BannerProvider>().setActiveIndex(0);
       _scheduleAutoScroll();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _precacheHero());
     }
   }
 
@@ -83,6 +86,19 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
   void _resumeAutoScroll() {
     _scheduleAutoScroll();
+  }
+
+  void _precacheHero() {
+    if (!mounted || widget.banners.isEmpty) {
+      return;
+    }
+    final first = widget.banners.first;
+    final url = ImageUrlService.optimizeForDelivery(
+      first.imageUrl,
+      width: 1200,
+      quality: 'good',
+    );
+    precacheImage(CachedNetworkImageProvider(url), context);
   }
 
   @override
@@ -206,19 +222,34 @@ class _BannerCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                CachedNetworkImage(
-                  imageUrl: banner.imageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => const ShimmerBox(),
-                  errorWidget: (context, url, error) => Container(
-                    color: Theme.of(context).cardColor,
-                    alignment: Alignment.center,
-                    child: Text(
-                      banner.title,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-                    ),
-                  ),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final dpr = MediaQuery.of(context).devicePixelRatio;
+                    final targetHeight = constraints.maxHeight;
+                    final targetWidth = constraints.maxWidth;
+                    final memCacheHeight = (targetHeight * dpr).round();
+                    final memCacheWidth = (targetWidth * dpr).round();
+                    return CachedNetworkImage(
+                      imageUrl: ImageUrlService.optimizeForDelivery(
+                        banner.imageUrl,
+                        width: memCacheWidth,
+                        quality: 'good',
+                      ),
+                      fit: BoxFit.cover,
+                      memCacheHeight: memCacheHeight,
+                      memCacheWidth: memCacheWidth,
+                      placeholder: (context, url) => const ShimmerBox(),
+                      errorWidget: (context, url, error) => Container(
+                        color: Theme.of(context).cardColor,
+                        alignment: Alignment.center,
+                        child: Text(
+                          banner.title,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 Positioned.fill(
                   child: DecoratedBox(

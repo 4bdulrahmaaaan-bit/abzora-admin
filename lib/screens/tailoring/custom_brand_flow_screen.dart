@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,6 +17,59 @@ import '../../widgets/state_views.dart';
 import '../user/body_scan_screen.dart';
 import '../user/live_ar_try_on_screen.dart';
 import 'tailoring_flow_screen.dart';
+
+const Color _bg = Color(0xFF0F0D0A);
+const Color _panel = Color(0xFF17130F);
+const Color _panelSoft = Color(0xFF1E1914);
+const Color _gold = Color(0xFFC8A96A);
+const Color _goldSoft = Color(0xFFF0DCA9);
+const Color _textPrimary = Color(0xFFF7F2EA);
+const Color _textMuted = Color(0xFFB7AC9E);
+const Color _border = Color(0x2FFFFFFF);
+const Color _glow = Color(0x33C8A96A);
+
+const Map<String, String> _styleImages = <String, String>{
+  'atelier-oxford':
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80',
+  'atelier-blazer':
+      'https://images.unsplash.com/photo-1484515991647-c5760fcecfc7?auto=format&fit=crop&w=1200&q=80',
+  'atelier-suit':
+      'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80',
+  'atelier-kurta':
+      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=80',
+  'atelier-dress':
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80',
+  'atelier-gown':
+      'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80',
+  'atelier-blouse':
+      'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80',
+};
+
+String _styleImageFor(_StudioStyle style) =>
+    _styleImages[style.id] ??
+    'https://images.unsplash.com/photo-1484515991647-c5760fcecfc7?auto=format&fit=crop&w=1200&q=80';
+
+String _styleTagFor(_StudioStyle style) {
+  if (style.basePrice >= 3600) {
+    return 'Recommended';
+  }
+  if (style.occasionLabel.toLowerCase().contains('evening')) {
+    return 'Couture';
+  }
+  return 'Popular';
+}
+
+List<String> _splitBenefits(String feel) {
+  return feel
+      .split(RegExp(r'[•·]'))
+      .map((entry) => entry.trim())
+      .where((entry) => entry.isNotEmpty)
+      .toList();
+}
+
+void _tapFeedback() {
+  HapticFeedback.selectionClick();
+}
 
 class CustomBrandFlowScreen extends StatefulWidget {
   const CustomBrandFlowScreen({super.key});
@@ -59,10 +114,13 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
   BodyProfile? _savedBodyProfile;
   List<CustomBrand> _brands = const <CustomBrand>[];
   List<CustomBrandProduct> _brandProducts = const <CustomBrandProduct>[];
+  final Map<String, List<CustomBrandProduct>> _demoProductsByBrand =
+      <String, List<CustomBrandProduct>>{};
   CustomBrand? _selectedBrand;
   CustomBrandProduct? _selectedBrandProduct;
   Map<String, String> _designSelections = <String, String>{};
   String _stylistInsight = '';
+  bool _usingDemoAtelier = false;
 
   @override
   void initState() {
@@ -99,22 +157,35 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
       futures.add(_database.getBodyProfile(user.id));
     }
     final results = await Future.wait<dynamic>(futures);
-    final brands = results.first as List<CustomBrand>;
+    final fetchedBrands = results.first as List<CustomBrand>;
     final profiles =
         user == null ? const <MeasurementProfile>[] : results[1] as List<MeasurementProfile>;
     final bodyProfile = user == null ? null : results[2] as BodyProfile?;
-    final products = brands.isEmpty
+    final resolvedBrands = fetchedBrands.isEmpty ? _buildDemoBrands() : fetchedBrands;
+    final usingDemo = fetchedBrands.isEmpty;
+    if (usingDemo) {
+      _demoProductsByBrand
+        ..clear()
+        ..addAll(_buildDemoProducts(resolvedBrands));
+    }
+    final products = resolvedBrands.isEmpty
         ? const <CustomBrandProduct>[]
-        : await _database.getCustomProductsByBrand(brands.first.id);
+        : usingDemo
+            ? (_demoProductsByBrand[resolvedBrands.first.id] ??
+                const <CustomBrandProduct>[])
+            : await _database.getCustomProductsByBrand(resolvedBrands.first.id);
     await _restoreDraft(
-      brands: brands,
+      brands: resolvedBrands,
       profiles: profiles,
       bodyProfile: bodyProfile,
       products: products,
     );
     final restoredBrand = _selectedBrand;
-    if (restoredBrand != null && restoredBrand.id != (brands.isEmpty ? '' : brands.first.id)) {
-      final restoredProducts = await _database.getCustomProductsByBrand(restoredBrand.id);
+    if (restoredBrand != null &&
+        restoredBrand.id != (resolvedBrands.isEmpty ? '' : resolvedBrands.first.id)) {
+      final restoredProducts = usingDemo
+          ? (_demoProductsByBrand[restoredBrand.id] ?? const <CustomBrandProduct>[])
+          : await _database.getCustomProductsByBrand(restoredBrand.id);
       products
         ..clear()
         ..addAll(restoredProducts);
@@ -123,15 +194,16 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
       return;
     }
     setState(() {
-      _brands = brands;
+      _brands = resolvedBrands;
       _brandProducts = products;
-      _selectedBrand ??= brands.isNotEmpty ? brands.first : null;
+      _selectedBrand ??= resolvedBrands.isNotEmpty ? resolvedBrands.first : null;
       _selectedBrandProduct ??= _resolveBrandProduct(
         products: products,
         category: _selectedCategory ?? _tailoredCategories.first,
       );
       _savedBodyProfile = bodyProfile;
       _isBootstrapping = false;
+      _usingDemoAtelier = usingDemo;
       _selectedCategory ??= _tailoredCategories.first;
       _selectedStyle ??= _stylesForCategory(_selectedCategory!).first;
       _selectedFabric ??= _fabrics.first;
@@ -141,6 +213,68 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
     });
     _applySavedBodyProfile(bodyProfile);
     _generateStylistInsight();
+  }
+
+  List<CustomBrand> _buildDemoBrands() {
+    return <CustomBrand>[
+      const CustomBrand(
+        id: 'demo-atelier-noir',
+        name: 'Atelier Noir',
+        bannerUrl:
+            'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80',
+        logoUrl:
+            'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
+        categories: <String>['Formal', 'Wedding', 'Evening'],
+        rating: 4.8,
+        location: 'Hyderabad',
+        priceBand: 'RsRsRsRs',
+        tagline: 'Precision tailoring for modern silhouettes.',
+        description:
+            'A premium atelier blending refined construction with lightweight luxury fabrics.',
+        highlightChips: <String>['Verified Designer', 'Premium Atelier'],
+      ),
+      const CustomBrand(
+        id: 'demo-stitched-society',
+        name: 'Stitched Society',
+        bannerUrl:
+            'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80',
+        logoUrl:
+            'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=400&q=80',
+        categories: <String>['Festive', 'Occasion', 'Custom'],
+        rating: 4.7,
+        location: 'Bengaluru',
+        priceBand: 'RsRsRs',
+        tagline: 'Designed to your body, styled for your moments.',
+        description:
+            'Elegant customwear with a focus on personal fittings and bold finishing.',
+        highlightChips: <String>['Premium Atelier', 'Express Fit'],
+      ),
+    ];
+  }
+
+  Map<String, List<CustomBrandProduct>> _buildDemoProducts(
+    List<CustomBrand> brands,
+  ) {
+    final demoStyles = _allStyles.take(6).toList();
+    final byBrand = <String, List<CustomBrandProduct>>{};
+    if (brands.isEmpty) {
+      return byBrand;
+    }
+    for (var i = 0; i < brands.length; i++) {
+      final brand = brands[i];
+      final styleSlice = demoStyles.skip(i * 2).take(2).toList();
+      byBrand[brand.id] = [
+        for (var j = 0; j < styleSlice.length; j++)
+          CustomBrandProduct(
+            id: 'demo-${brand.id}-$j',
+            brandId: brand.id,
+            name: styleSlice[j].title,
+            basePrice: styleSlice[j].basePrice,
+            category: styleSlice[j].backendCategory,
+          ),
+      ];
+    }
+    return byBrand;
   }
 
   Future<void> _restoreDraft({
@@ -473,7 +607,27 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
     final brands = await _database.getCustomBrands(
       category: (category ?? _selectedCategory)?.title,
     );
-    if (!mounted || brands.isEmpty) {
+    if (!mounted) {
+      return;
+    }
+    if (brands.isEmpty) {
+      if (_usingDemoAtelier) {
+        return;
+      }
+      setState(() {
+        _usingDemoAtelier = true;
+        _brands = _buildDemoBrands();
+        _demoProductsByBrand
+          ..clear()
+          ..addAll(_buildDemoProducts(_brands));
+      });
+      return;
+    }
+    if (_usingDemoAtelier) {
+      setState(() {
+        _usingDemoAtelier = false;
+      });
+      unawaited(_selectBrand(brands.first));
       return;
     }
     final currentBrandId = _selectedBrand?.id;
@@ -502,7 +656,9 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
         _enteredStudio = true;
       }
     });
-    final products = await _database.getCustomProductsByBrand(brand.id);
+    final products = _usingDemoAtelier
+        ? (_demoProductsByBrand[brand.id] ?? const <CustomBrandProduct>[])
+        : await _database.getCustomProductsByBrand(brand.id);
     if (!mounted) {
       return;
     }
@@ -531,7 +687,9 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
   void _startQuickCustom() {
     final fallback = _brands.isNotEmpty ? _brands.first : null;
     if (fallback == null) {
-      _showMessage('No tailoring stores are available right now.');
+      if (!_usingDemoAtelier) {
+        _showMessage('No tailoring stores are available right now.');
+      }
       return;
     }
     unawaited(_selectBrand(fallback, enterStudio: true));
@@ -722,10 +880,20 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
   Widget build(BuildContext context) {
     return AbzioThemeScope.light(
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F3EA),
+        backgroundColor: _bg,
         appBar: AppBar(
-          title: const Text('Tailored Just for You'),
+          title: Text(
+            'ATELIER',
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2,
+              color: _textPrimary,
+            ),
+          ),
           centerTitle: false,
+          backgroundColor: Colors.transparent,
+          foregroundColor: _textPrimary,
+          elevation: 0,
         ),
         bottomNavigationBar:
             !_isBootstrapping &&
@@ -750,36 +918,46 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
                     ),
                   )
                 : SafeArea(
-                    child: _enteredStudio
-                        ? Column(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                                child: _buildStepper(),
-                              ),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                                  child: AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 240),
-                                    child: KeyedSubtree(
-                                      key: ValueKey<int>(_stepIndex),
-                                      child: _buildStepContent(),
+                    child: Stack(
+                      children: [
+                        _enteredStudio
+                            ? Column(
+                                children: [
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                                    child: _buildStepper(),
+                                  ),
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        20,
+                                        20,
+                                        20,
+                                        16,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          _buildStepContent(),
+                                        ],
+                                      ),
                                     ),
                                   ),
+                                  _buildBottomBar(),
+                                ],
+                              )
+                            : RefreshIndicator(
+                                onRefresh: _bootstrap,
+                                child: SingleChildScrollView(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  padding:
+                                      const EdgeInsets.fromLTRB(20, 14, 20, 24),
+                                  child: _buildDiscoveryFlow(),
                                 ),
                               ),
-                              _buildBottomBar(),
-                            ],
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _bootstrap,
-                            child: SingleChildScrollView(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-                              child: _buildDiscoveryFlow(),
-                            ),
-                          ),
+                      ],
+                    ),
                   ),
       ),
     );
@@ -792,6 +970,30 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildHeroCard(),
+        if (_usingDemoAtelier) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.visibility_outlined, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Previewing atelier experience with demo designers until a store is live.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: _textMuted,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 22),
         _sectionTitle('Featured Designers'),
         const SizedBox(height: 10),
@@ -840,8 +1042,8 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                children: [
-                  const Icon(Icons.flash_on_rounded, color: AbzioTheme.accentColor),
+                  children: [
+                    Icon(Icons.flash_on_rounded, color: _gold),
                   const SizedBox(width: 10),
                   Text(
                     'Quick Custom',
@@ -855,7 +1057,7 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
               Text(
                 'Need a faster route? We can auto-match you with a premium store using rating, availability, and delivery promise.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF6C6459),
+                      color: _textMuted,
                     ),
               ),
               const SizedBox(height: 14),
@@ -1003,7 +1205,7 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
               Text(
                 meta.description,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF6C6459),
+                      color: _textMuted,
                     ),
               ),
               const SizedBox(height: 18),
@@ -1152,8 +1354,8 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
         decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE8DECA))),
+          color: _panel,
+          border: Border(top: BorderSide(color: _border)),
         ),
         child: Row(
           children: [
@@ -1166,13 +1368,14 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
                     brand.name,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
+                          color: _textPrimary,
                         ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     'Customize directly with this designer',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF7A705F),
+                          color: _textMuted,
                         ),
                   ),
                 ],
@@ -1194,42 +1397,51 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
   }
 
   Widget _buildStepper() {
-    return Row(
-      children: List<Widget>.generate(_steps.length, (int index) {
-        final bool active = index == _stepIndex;
-        final bool complete = index < _stepIndex;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: index == _steps.length - 1 ? 0 : 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  height: 5,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    color: complete || active
-                        ? AbzioTheme.accentColor
-                        : const Color(0xFFE4DDD0),
+    return SizedBox(
+      height: 44,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: List<Widget>.generate(_steps.length, (int index) {
+            final bool active = index == _stepIndex;
+            final bool complete = index < _stepIndex;
+            return Padding(
+              padding: EdgeInsets.only(right: index == _steps.length - 1 ? 0 : 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _steps[index],
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: complete || active ? _textPrimary : _textMuted,
+                          fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                          letterSpacing: 0.4,
+                        ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _steps[index].toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: complete || active
-                            ? AbzioTheme.accentColor
-                            : const Color(0xFF9B927E),
-                      ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }),
+                  const SizedBox(height: 6),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    height: 3,
+                    width: active ? 46 : 24,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      color: complete || active ? _gold : _border,
+                      boxShadow: [
+                        if (active)
+                          const BoxShadow(
+                            color: _glow,
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
+      ),
     );
   }
 
@@ -1381,76 +1593,189 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
         const SizedBox(height: 10),
         _sectionCopy('Made by ${brand.name}. AI body scan is the primary route. Manual tailoring input stays available when you want absolute control.'),
         const SizedBox(height: 18),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 680;
+            return Container(
+              padding: const EdgeInsets.all(18),
+              decoration: _studioBox(),
+              child: isWide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _buildMeasurementVisual()),
+                        const SizedBox(width: 18),
+                        Expanded(child: _buildMeasurementForm()),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildMeasurementVisual(),
+                        const SizedBox(height: 16),
+                        _buildMeasurementForm(),
+                      ],
+                    ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMeasurementVisual() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: _gold.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: _gold.withValues(alpha: 0.5)),
+              ),
+              child: Text(
+                'Fit Accuracy 92%',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: _goldSoft,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                'Precision fit guaranteed',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: _textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
         Container(
-          padding: const EdgeInsets.all(18),
-          decoration: _studioBox(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          height: 200,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF15110D), Color(0xFF32271B)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            border: Border.all(color: _border),
+          ),
+          child: Stack(
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0E4B4),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Text(
-                      'Precision fit guaranteed',
-                      style: TextStyle(fontWeight: FontWeight.w800, color: Colors.black87),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    _selectedMeasurement?.label ?? 'Estimated measurements (editable)',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF776C58),
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _openBodyScan,
-                      icon: const Icon(Icons.camera_alt_outlined),
-                      label: const Text('AI Body Scan'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _openManualMeasurement,
-                      icon: const Icon(Icons.straighten_rounded),
-                      label: const Text('Manual Input'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _measurementField('Chest', _chestController),
-                  _measurementField('Waist', _waistController),
-                  _measurementField('Hips', _hipsController),
-                  _measurementField('Shoulder', _shoulderController),
-                  _measurementField('Height', _heightController),
-                ],
-              ),
-              if (_savedBodyProfile != null) ...[
-                const SizedBox(height: 14),
-                Text(
-                  'Saved body profile: ${_savedBodyProfile!.recommendedSize} fit · ${((_savedBodyProfile!.confidence ?? 0.82) * 100).round()}% confidence',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6D6455)),
+              Positioned(
+                left: 16,
+                top: 16,
+                child: Icon(
+                  Icons.accessibility_new_rounded,
+                  color: _goldSoft,
+                  size: 56,
                 ),
-              ],
+              ),
+              Positioned(
+                left: 16,
+                bottom: 16,
+                right: 16,
+                child: Text(
+                  'AI scan captures shoulder, waist, and posture for couture-level precision.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: _textMuted,
+                      ),
+                ),
+              ),
             ],
           ),
+        ),
+        if (_savedBodyProfile != null) ...[
+          const SizedBox(height: 14),
+          Text(
+            'Saved body profile: ${_savedBodyProfile!.recommendedSize} fit · ${((_savedBodyProfile!.confidence ?? 0.82) * 100).round()}% confidence',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: _textMuted),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMeasurementForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _selectedMeasurement?.label ?? 'Estimated measurements (editable)',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: _textMuted,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _openBodyScan,
+                icon: const Icon(Icons.camera_alt_outlined),
+                label: const Text('AI Body Scan'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _gold,
+                  foregroundColor: _bg,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _openManualMeasurement,
+                icon: const Icon(Icons.straighten_rounded),
+                label: const Text('Manual Input'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _textPrimary,
+                  side: BorderSide(color: _border.withValues(alpha: 0.6)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final shouldStack = constraints.maxWidth < 360;
+            final fieldWidth =
+                shouldStack ? constraints.maxWidth : (constraints.maxWidth - 12) / 2;
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _measurementField('Chest', _chestController, width: fieldWidth),
+                _measurementField('Waist', _waistController, width: fieldWidth),
+                _measurementField('Hips', _hipsController, width: fieldWidth),
+                _measurementField('Shoulder', _shoulderController, width: fieldWidth),
+                _measurementField('Height', _heightController, width: fieldWidth),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Free alteration included · Tailored to your silhouette',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: _textMuted),
         ),
       ],
     );
@@ -1478,7 +1803,7 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
                 children: [
                   Text(group.title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
-                  Text(group.description, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6C6459))),
+                  Text(group.description, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: _textMuted)),
                   const SizedBox(height: 14),
                   SizedBox(
                     height: 144,
@@ -1510,6 +1835,7 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
     final fabric = _selectedFabric!;
     final groups = _designGroups(_selectedCategory);
     final brand = _resolvedBrand;
+    final previewImage = _styleImageFor(style);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1518,108 +1844,109 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
         _sectionCopy('Made by ${brand.name}. A premium preview that updates as your style, fabric, and detailing change.'),
         const SizedBox(height: 18),
         Container(
-          padding: const EdgeInsets.all(20),
+          height: 460,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(28),
-            gradient: const LinearGradient(
-              colors: <Color>[Color(0xFF111111), Color(0xFF2C2417), Color(0xFFF5E8BD)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+            image: DecorationImage(
+              image: NetworkImage(previewImage),
+              fit: BoxFit.cover,
             ),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 20,
-                offset: const Offset(0, 12),
+                color: Colors.black.withValues(alpha: 0.35),
+                blurRadius: 30,
+                offset: const Offset(0, 18),
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      style.title,
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 24,
-                      ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.15),
+                        Colors.black.withValues(alpha: 0.75),
+                      ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      fabric.name,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 22),
-              Container(
-                height: 340,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  color: Colors.white.withValues(alpha: 0.08),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
                 ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            colors: fabric.colors
-                                .map((color) => color.withValues(alpha: 0.28))
-                                .toList(),
+              ),
+              Positioned(
+                left: 18,
+                right: 18,
+                bottom: 18,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  style.title,
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                        color: _textPrimary,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: _gold.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  fabric.name,
+                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                        color: _goldSoft,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: groups.map((group) {
+                              final optionId = _designSelections[group.id]!;
+                              final option =
+                                  group.options.firstWhere((item) => item.id == optionId);
+                              return _PreviewChip(label: '${group.title}: ${option.title}');
+                            }).toList(),
+                          ),
+                        ],
                       ),
                     ),
-                    const Icon(
-                      Icons.accessibility_new_rounded,
-                      size: 140,
-                      color: Colors.white70,
-                    ),
-                    Positioned(
-                      bottom: 18,
-                      left: 18,
-                      right: 18,
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: groups.map((group) {
-                          final optionId = _designSelections[group.id]!;
-                          final option =
-                              group.options.firstWhere((item) => item.id == optionId);
-                          return _PreviewChip(
-                            label: '${group.title}: ${option.title}',
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _stylistInsight.isEmpty
-                    ? 'Crafted to your body. Designed for your style. Made by ${brand.name}.'
-                    : _stylistInsight,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.88),
-                    ),
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          _stylistInsight.isEmpty
+              ? 'Perfect for: ${style.occasionLabel}. Crafted by ${brand.name} with ${fabric.name}.'
+              : _stylistInsight,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: _textMuted),
         ),
         const SizedBox(height: 16),
         Row(
@@ -1631,13 +1958,13 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
                     MaterialPageRoute(
                       builder: (_) => LiveArTryOnScreen(
                         product: _previewProduct,
-                        accentColor: AbzioTheme.accentColor,
+                        accentColor: _gold,
                       ),
                     ),
                   );
                 },
                 icon: const Icon(Icons.view_in_ar_rounded),
-                label: const Text('Try on your body'),
+                label: const Text('Try On (AR)'),
               ),
             ),
             const SizedBox(width: 12),
@@ -1645,7 +1972,7 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
               child: ElevatedButton.icon(
                 onPressed: _generateStylistInsight,
                 icon: const Icon(Icons.auto_awesome_rounded),
-                label: const Text('Get Style Suggestion'),
+                label: const Text('Style AI'),
               ),
             ),
           ],
@@ -1701,12 +2028,12 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF6F1E3),
+                  color: _panelSoft,
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.schedule_rounded, color: AbzioTheme.accentColor),
+                    Icon(Icons.schedule_rounded, color: _gold),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -1746,8 +2073,8 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
     return Container(
       padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.of(context).padding.bottom + 14),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE6DFD1))),
+        color: _panel,
+        border: Border(top: BorderSide(color: _border)),
       ),
       child: Row(
         children: [
@@ -1760,12 +2087,15 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
                   _stepIndex == 0
                       ? 'Starting from ${_rupee(_startingPrice)}'
                       : 'Made by ${_resolvedBrand.name} • Final price updates live',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF7B705C)),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: _textMuted),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   _rupee(_livePrice),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: _textPrimary,
+                      ),
                 ),
               ],
             ),
@@ -1788,81 +2118,127 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
 
   Widget _buildHeroCard() {
     return Container(
+      height: 240,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        gradient: const LinearGradient(
-          colors: <Color>[Color(0xFF141414), Color(0xFF2D2416), Color(0xFFF6E7B0)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        image: const DecorationImage(
+          image: NetworkImage(
+            'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1400&q=80',
+          ),
+          fit: BoxFit.cover,
         ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 30,
+            offset: const Offset(0, 16),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: const Text(
-              'TAILORED JUST FOR YOU',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x00000000),
+                    Color(0xA6000000),
+                  ],
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Crafted to your body.\nDesigned for your style.',
-            style: GoogleFonts.outfit(
-              fontSize: 30,
-              height: 1.08,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            _selectedBrand == null
-                ? 'Choose your designer first, then build a premium made-to-measure outfit with complete store visibility.'
-                : 'Made by ${_resolvedBrand.name}. A luxury digital tailoring studio for refined shirts, suits, blazers, kurtas, gowns, dresses, and blouses.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.88),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                 ),
+                child: Text(
+                  'MADE-TO-MEASURE LUXURY',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: _goldSoft,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                      ),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Made-to-measure luxury.\nCrafted for your silhouette.',
+                style: GoogleFonts.outfit(
+                  fontSize: 30,
+                  height: 1.08,
+                  fontWeight: FontWeight.w800,
+                  color: _textPrimary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _selectedBrand == null
+                    ? 'Choose your designer first, then begin a private atelier journey with complete store visibility.'
+                    : 'Made by ${_resolvedBrand.name}. A luxury digital tailoring studio for refined shirts, suits, blazers, kurtas, gowns, dresses, and blouses.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: _textMuted,
+                    ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _measurementField(String label, TextEditingController controller) {
+  Widget _measurementField(
+    String label,
+    TextEditingController controller, {
+    double? width,
+  }) {
     return SizedBox(
-      width: (MediaQuery.of(context).size.width - 64) / 2,
+      width: width ?? (MediaQuery.of(context).size.width - 64) / 2,
       child: TextField(
         controller: controller,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
           labelText: label,
           suffixText: 'cm',
+          filled: true,
+          fillColor: _panelSoft,
+          labelStyle: const TextStyle(color: _textMuted),
+          suffixStyle: const TextStyle(color: _textMuted),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: _border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: _gold),
+          ),
         ),
+        style: const TextStyle(color: _textPrimary),
       ),
     );
   }
 
   BoxDecoration _studioBox() {
     return BoxDecoration(
-      color: Colors.white,
+      color: _panelSoft.withValues(alpha: 0.9),
       borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: const Color(0xFFE8DFCF)),
+      border: Border.all(color: _border, width: 1),
       boxShadow: <BoxShadow>[
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.05),
-          blurRadius: 18,
-          offset: const Offset(0, 10),
+          color: Colors.black.withValues(alpha: 0.45),
+          blurRadius: 30,
+          offset: const Offset(0, 16),
         ),
       ],
     );
@@ -1874,7 +2250,8 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
       style: GoogleFonts.outfit(
         fontSize: 24,
         fontWeight: FontWeight.w800,
-        color: const Color(0xFF181512),
+        color: _textPrimary,
+        letterSpacing: 0.2,
       ),
     );
   }
@@ -1883,7 +2260,8 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
     return Text(
       text,
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: const Color(0xFF6B6357),
+            color: _textMuted,
+            height: 1.5,
           ),
     );
   }
@@ -1899,7 +2277,7 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF7A705F),
+                    color: _textMuted,
                   ),
             ),
           ),
@@ -1907,7 +2285,7 @@ class _CustomBrandFlowScreenState extends State<CustomBrandFlowScreen> {
             child: Text(
               value,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF191612),
+                    color: _textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
             ),
@@ -2087,21 +2465,24 @@ class _StoreDiscoveryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        _tapFeedback();
+        onTap();
+      },
       borderRadius: BorderRadius.circular(24),
       child: Ink(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _panel,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: selected ? AbzioTheme.accentColor : const Color(0xFFE6DDCB),
-            width: selected ? 1.6 : 1,
+            color: selected ? _gold : _border,
+            width: selected ? 1.4 : 1,
           ),
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
+              color: Colors.black.withValues(alpha: 0.45),
+              blurRadius: 24,
+              offset: const Offset(0, 14),
             ),
           ],
         ),
@@ -2109,44 +2490,72 @@ class _StoreDiscoveryCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              height: 132,
+              height: 150,
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                gradient: LinearGradient(colors: meta.colors),
+                image: brand.bannerUrl.isEmpty
+                    ? null
+                    : DecorationImage(
+                        image: NetworkImage(brand.bannerUrl),
+                        fit: BoxFit.cover,
+                      ),
+                gradient: brand.bannerUrl.isEmpty
+                    ? LinearGradient(colors: meta.colors)
+                    : null,
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: Colors.white.withValues(alpha: 0.16),
-                      child: Text(
-                        brand.name.isEmpty ? 'A' : brand.name[0].toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        meta.priceBand,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
+                        borderRadius:
+                            const BorderRadius.vertical(top: Radius.circular(24)),
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withValues(alpha: 0.2),
+                            Colors.black.withValues(alpha: 0.7),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Colors.white.withValues(alpha: 0.16),
+                          child: Text(
+                            brand.name.isEmpty ? 'A' : brand.name[0].toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            meta.priceBand,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
             Padding(
@@ -2158,13 +2567,14 @@ class _StoreDiscoveryCard extends StatelessWidget {
                     brand.name,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
+                          color: _textPrimary,
                         ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     '${meta.rating} ★ • ${meta.location}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF6D6455),
+                          color: _textMuted,
                           fontWeight: FontWeight.w600,
                         ),
                   ),
@@ -2172,8 +2582,26 @@ class _StoreDiscoveryCard extends StatelessWidget {
                   Text(
                     meta.tagline,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: const Color(0xFF1C1814),
+                          color: _textPrimary,
                           fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  if (brand.highlightChips.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: brand.highlightChips
+                          .map((chip) => _MetaPill(label: chip))
+                          .toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Text(
+                    'Explore Studio',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: _goldSoft,
+                          fontWeight: FontWeight.w800,
                         ),
                   ),
                   if (meta.highlights.isNotEmpty) ...[
@@ -2188,13 +2616,13 @@ class _StoreDiscoveryCard extends StatelessWidget {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8F1DE),
+                            color: _panelSoft,
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
                             item,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: const Color(0xFF7A602C),
+                                  color: _goldSoft,
                                   fontWeight: FontWeight.w700,
                                 ),
                           ),
@@ -2208,7 +2636,7 @@ class _StoreDiscoveryCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF6D6455),
+                          color: _textMuted,
                         ),
                   ),
                   const SizedBox(height: 14),
@@ -2216,6 +2644,13 @@ class _StoreDiscoveryCard extends StatelessWidget {
                     width: double.infinity,
                     child: OutlinedButton(
                       onPressed: onTap,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _goldSoft,
+                        side: BorderSide(color: _goldSoft.withValues(alpha: 0.4)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
                       child: Text(selected ? 'Selected Store' : 'View Store'),
                     ),
                   ),
@@ -2243,15 +2678,18 @@ class _StoreProductTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        _tapFeedback();
+        onTap();
+      },
       borderRadius: BorderRadius.circular(20),
       child: Ink(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFCF4),
+          color: _panelSoft,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? AbzioTheme.accentColor : const Color(0xFFE6DDCB),
+            color: selected ? _gold : _border,
             width: selected ? 1.4 : 1,
           ),
         ),
@@ -2262,9 +2700,9 @@ class _StoreProductTile extends StatelessWidget {
               width: 56,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                color: const Color(0xFFF4E9C8),
+                color: _panel,
               ),
-              child: const Icon(Icons.checkroom_rounded, color: Color(0xFF6E552B)),
+              child: Icon(Icons.checkroom_rounded, color: _gold),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -2275,13 +2713,14 @@ class _StoreProductTile extends StatelessWidget {
                     product.name,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w800,
+                          color: _textPrimary,
                         ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     product.category,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF6C6459),
+                          color: _textMuted,
                         ),
                   ),
                 ],
@@ -2291,6 +2730,7 @@ class _StoreProductTile extends StatelessWidget {
               'From Rs ${product.basePrice.toStringAsFixed(0)}',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w800,
+                    color: _goldSoft,
                   ),
             ),
           ],
@@ -2314,21 +2754,24 @@ class _CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        _tapFeedback();
+        onTap();
+      },
       borderRadius: BorderRadius.circular(22),
       child: Ink(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
           gradient: LinearGradient(colors: category.colors),
           border: Border.all(
-            color: selected ? AbzioTheme.accentColor : Colors.white.withValues(alpha: 0.26),
-            width: selected ? 1.6 : 1,
+            color: selected ? _gold : Colors.white.withValues(alpha: 0.22),
+            width: selected ? 1.4 : 1,
           ),
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 10),
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 22,
+              offset: const Offset(0, 12),
             ),
           ],
         ),
@@ -2396,79 +2839,133 @@ class _StyleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: selected ? AbzioTheme.accentColor : const Color(0xFFE6DDCB),
-            width: selected ? 1.6 : 1,
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 180),
+      scale: selected ? 1.01 : 1,
+      child: InkWell(
+        onTap: () {
+          _tapFeedback();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: _panel,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: selected ? _gold : _border,
+              width: selected ? 1.4 : 1,
+            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.45),
+                blurRadius: 24,
+                offset: const Offset(0, 14),
+              ),
+            ],
           ),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              height: 180,
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                gradient: LinearGradient(colors: style.colors),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    right: 16,
-                    top: 16,
-                    child: Icon(
-                      selected ? Icons.check_circle_rounded : Icons.star_border_rounded,
-                      color: Colors.white,
+          child: Column(
+            children: [
+              Container(
+                height: 190,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  image: DecorationImage(
+                    image: NetworkImage(_styleImageFor(style)),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius:
+                              const BorderRadius.vertical(top: Radius.circular(24)),
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.black.withValues(alpha: 0.05),
+                              Colors.black.withValues(alpha: 0.65),
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const Center(
-                    child: Icon(
-                      Icons.checkroom_rounded,
-                      size: 76,
-                      color: Colors.white,
+                    Positioned(
+                      left: 14,
+                      top: 14,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                        ),
+                        child: Text(
+                          _styleTagFor(style),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: _goldSoft,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.4,
+                              ),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      right: 14,
+                      top: 14,
+                      child: Icon(
+                        selected ? Icons.check_circle_rounded : Icons.star_border_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Positioned(
+                      left: 14,
+                      right: 14,
+                      bottom: 14,
+                      child: Text(
+                        style.fitLabel,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    style.title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    style.description,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF70675A)),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _MetaPill(label: style.occasionLabel),
-                      const SizedBox(width: 8),
-                      _MetaPill(label: 'Starting ${style.basePrice.toStringAsFixed(0)}'),
-                    ],
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      style.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: _textPrimary,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      style.description,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: _textMuted),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        _MetaPill(label: style.occasionLabel),
+                        const SizedBox(width: 8),
+                        _MetaPill(label: 'Starting ${style.basePrice.toStringAsFixed(0)}'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -2488,16 +2985,20 @@ class _FabricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final benefits = _splitBenefits(fabric.feel);
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        _tapFeedback();
+        onTap();
+      },
       borderRadius: BorderRadius.circular(24),
       child: Ink(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _panel,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: selected ? AbzioTheme.accentColor : const Color(0xFFE6DDCB),
-            width: selected ? 1.6 : 1,
+            color: selected ? _gold : _border,
+            width: selected ? 1.4 : 1,
           ),
         ),
         child: Padding(
@@ -2505,11 +3006,18 @@ class _FabricCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                height: 84,
-                width: 84,
+                height: 96,
+                width: 96,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
                   gradient: LinearGradient(colors: fabric.colors),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      blurRadius: 16,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
                 child: const Icon(
                   Icons.texture_rounded,
@@ -2527,30 +3035,34 @@ class _FabricCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             fabric.name,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: _textPrimary,
+                                ),
                           ),
                         ),
                         Text(
                           '+${fabric.priceImpact.toStringAsFixed(0)}',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: AbzioTheme.accentColor,
+                                color: _goldSoft,
                                 fontWeight: FontWeight.w800,
                               ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      fabric.feel,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: const Color(0xFF7C725F),
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 6),
+                    if (benefits.isNotEmpty)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: benefits
+                            .map((benefit) => _MetaPill(label: benefit))
+                            .toList(),
+                      ),
+                    const SizedBox(height: 8),
                     Text(
                       fabric.description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF70675A)),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: _textMuted),
                     ),
                   ],
                 ),
@@ -2577,15 +3089,18 @@ class _DesignOptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        _tapFeedback();
+        onTap();
+      },
       borderRadius: BorderRadius.circular(20),
       child: Ink(
         width: 150,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          color: selected ? const Color(0xFFF8EBC4) : const Color(0xFFF8F6F0),
+          color: selected ? _panelSoft : _panel,
           border: Border.all(
-            color: selected ? AbzioTheme.accentColor : const Color(0xFFE5DDD0),
+            color: selected ? _gold : _border,
           ),
         ),
         child: Padding(
@@ -2594,27 +3109,38 @@ class _DesignOptionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                height: 52,
-                width: 52,
+                height: 62,
+                width: double.infinity,
                 decoration: BoxDecoration(
-                  color: selected
-                      ? Colors.white.withValues(alpha: 0.72)
-                      : Colors.white,
+                  gradient: LinearGradient(
+                    colors: selected
+                        ? [Colors.black.withValues(alpha: 0.35), _gold.withValues(alpha: 0.25)]
+                        : [_panelSoft, _panel],
+                  ),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(option.icon, color: const Color(0xFF2B231A)),
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Icon(option.icon, color: _goldSoft),
+                  ),
+                ),
               ),
               const Spacer(),
               Text(
                 option.title,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: _textPrimary,
+                    ),
               ),
               const SizedBox(height: 4),
               Text(
                 option.subtitle,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF7A705E)),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: _textMuted),
               ),
               const SizedBox(height: 6),
               Text(
@@ -2622,7 +3148,7 @@ class _DesignOptionCard extends StatelessWidget {
                     ? 'Included'
                     : '+Rs ${option.priceImpact.toStringAsFixed(0)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AbzioTheme.accentColor,
+                      color: _goldSoft,
                       fontWeight: FontWeight.w800,
                     ),
               ),
@@ -2650,12 +3176,12 @@ class _StoreInfoTile extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: AbzioTheme.accentColor, size: 18),
+        Icon(icon, color: _gold, size: 18),
         const SizedBox(height: 8),
         Text(
           title,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF7A705F),
+                color: _textMuted,
               ),
         ),
         const SizedBox(height: 4),
@@ -2663,7 +3189,7 @@ class _StoreInfoTile extends StatelessWidget {
           value,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF181410),
+                color: _textPrimary,
               ),
         ),
       ],
@@ -2769,7 +3295,7 @@ class _StoreReviewCard extends StatelessWidget {
             ),
             child: const Icon(
               Icons.photo_camera_back_outlined,
-              color: AbzioTheme.accentColor,
+              color: _gold,
             ),
           ),
           const SizedBox(width: 14),
@@ -2789,19 +3315,19 @@ class _StoreReviewCard extends StatelessWidget {
                     ),
                     Text(
                       '${review.rating.toStringAsFixed(1)} ★',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AbzioTheme.accentColor,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: _goldSoft,
+                              fontWeight: FontWeight.w800,
+                            ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   review.imageLabel,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF7A705F),
-                      ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: _textMuted,
+                        ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -2829,14 +3355,14 @@ class _PreviewChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
+        color: _panelSoft.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+        border: Border.all(color: _border),
       ),
       child: Text(
         label,
         style: const TextStyle(
-          color: Colors.white,
+          color: _goldSoft,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -2858,7 +3384,7 @@ class _LuxuryNote extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF131313),
+        color: _panelSoft,
         borderRadius: BorderRadius.circular(22),
       ),
       child: Row(
@@ -2868,10 +3394,10 @@ class _LuxuryNote extends StatelessWidget {
             height: 42,
             width: 42,
             decoration: BoxDecoration(
-              color: AbzioTheme.accentColor.withValues(alpha: 0.20),
+              color: _gold.withValues(alpha: 0.20),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.workspace_premium_rounded, color: AbzioTheme.accentColor),
+            child: Icon(Icons.workspace_premium_rounded, color: _gold),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -2881,7 +3407,7 @@ class _LuxuryNote extends StatelessWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
+                        color: _textPrimary,
                         fontWeight: FontWeight.w800,
                       ),
                 ),
@@ -2889,7 +3415,7 @@ class _LuxuryNote extends StatelessWidget {
                 Text(
                   body,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.76),
+                        color: _textMuted,
                       ),
                 ),
               ],
@@ -2911,13 +3437,14 @@ class _MetaPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3EBCF),
+        color: _panelSoft,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _border),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF4B402B),
+              color: _goldSoft,
               fontWeight: FontWeight.w800,
             ),
       ),

@@ -26,6 +26,7 @@ class BackendApiClient {
   const BackendApiClient();
 
   bool get isConfigured => AppConfig.hasBackendBaseUrl;
+  static String? _preferredBaseUrl;
 
   static final ValueNotifier<BackendAvailability> backendAvailability =
       ValueNotifier(const BackendAvailability.available());
@@ -62,10 +63,49 @@ class BackendApiClient {
     return headers;
   }
 
-  Uri _uri(String path, [Map<String, String>? queryParameters]) {
-    final base = AppConfig.backendBaseUrl;
+  Uri _uriForBase(
+    String base,
+    String path, [
+    Map<String, String>? queryParameters,
+  ]) {
     final normalizedPath = path.startsWith('/') ? path : '/$path';
     return Uri.parse('$base$normalizedPath').replace(queryParameters: queryParameters);
+  }
+
+  List<String> _baseUrlCandidates() {
+    final primary = AppConfig.backendBaseUrl.trim();
+    if (primary.isEmpty) {
+      return const <String>[];
+    }
+    final candidates = <String>[primary];
+    const renderOrigin = 'https://gcp-us-west1-1.origin.onrender.com';
+
+    // Keep a hard fallback to Render origin so app traffic survives
+    // temporary DNS propagation/cache issues on custom domains.
+    if (primary != renderOrigin) {
+      candidates.add(renderOrigin);
+    }
+
+    if (primary.contains('abzora-backend.onrender.com')) {
+      candidates.add(
+        primary.replaceFirst(
+          'abzora-backend.onrender.com',
+          'gcp-us-west1-1.origin.onrender.com',
+        ),
+      );
+    }
+    final unique = candidates.toSet().toList();
+    final preferred = _preferredBaseUrl;
+    if (preferred == null || preferred.isEmpty) {
+      return unique;
+    }
+    final preferredIndex = unique.indexOf(preferred);
+    if (preferredIndex > 0) {
+      final reordered = <String>[preferred];
+      reordered.addAll(unique.where((item) => item != preferred));
+      return reordered;
+    }
+    return unique;
   }
 
   bool _isTransientNetworkError(Object error) {
@@ -87,6 +127,44 @@ class BackendApiClient {
         asText.contains('failed host lookup') ||
         asText.contains('software caused connection abort') ||
         asText.contains('connection closed');
+  }
+
+  bool _isDnsLookupError(Object error) {
+    final asText = error.toString().toLowerCase();
+    return asText.contains('failed host lookup') ||
+        asText.contains('no address associated with hostname');
+  }
+
+  Future<T> _executeWithDnsFallback<T>({
+    required String path,
+    Map<String, String>? queryParameters,
+    required Future<T> Function(Uri uri, int candidateIndex) execute,
+  }) async {
+    final bases = _baseUrlCandidates();
+    if (bases.isEmpty) {
+      throw StateError('BACKEND_BASE_URL is not configured.');
+    }
+    Object? lastError;
+    StackTrace? lastStackTrace;
+    for (var i = 0; i < bases.length; i++) {
+      final uri = _uriForBase(bases[i], path, queryParameters);
+      try {
+        final result = await execute(uri, i);
+        _preferredBaseUrl = bases[i];
+        return result;
+      } catch (error, stackTrace) {
+        lastError = error;
+        lastStackTrace = stackTrace;
+        final shouldTryNext =
+            i < bases.length - 1 &&
+            _isTransientNetworkError(error) &&
+            _isDnsLookupError(error);
+        if (!shouldTryNext) {
+          rethrow;
+        }
+      }
+    }
+    Error.throwWithStackTrace(lastError!, lastStackTrace!);
   }
 
   Future<T> withRetry<T>(
@@ -178,13 +256,18 @@ class BackendApiClient {
   }) async {
     try {
       final headers = await _headers(authenticated: authenticated);
-      final response = await withRetry(
-        () => http
-            .get(
-              _uri(path, queryParameters),
-              headers: headers,
-            )
-            .timeout(const Duration(seconds: 20)),
+      final response = await _executeWithDnsFallback(
+        path: path,
+        queryParameters: queryParameters,
+        execute: (uri, candidateIndex) => withRetry(
+          () => http
+              .get(
+                uri,
+                headers: headers,
+              )
+              .timeout(const Duration(seconds: 20)),
+          maxAttempts: candidateIndex == 0 ? 2 : 1,
+        ),
       );
       return _extractPayload(response);
     } on SocketException {
@@ -210,14 +293,18 @@ class BackendApiClient {
     try {
       final headers = await _headers(authenticated: authenticated);
       final payload = jsonEncode(body);
-      final response = await withRetry(
-        () => http
-            .post(
-              _uri(path),
-              headers: headers,
-              body: payload,
-            )
-            .timeout(const Duration(seconds: 25)),
+      final response = await _executeWithDnsFallback(
+        path: path,
+        execute: (uri, candidateIndex) => withRetry(
+          () => http
+              .post(
+                uri,
+                headers: headers,
+                body: payload,
+              )
+              .timeout(const Duration(seconds: 25)),
+          maxAttempts: candidateIndex == 0 ? 2 : 1,
+        ),
       );
       return _extractPayload(response);
     } on SocketException {
@@ -243,14 +330,18 @@ class BackendApiClient {
     try {
       final headers = await _headers(authenticated: authenticated);
       final payload = jsonEncode(body);
-      final response = await withRetry(
-        () => http
-            .put(
-              _uri(path),
-              headers: headers,
-              body: payload,
-            )
-            .timeout(const Duration(seconds: 25)),
+      final response = await _executeWithDnsFallback(
+        path: path,
+        execute: (uri, candidateIndex) => withRetry(
+          () => http
+              .put(
+                uri,
+                headers: headers,
+                body: payload,
+              )
+              .timeout(const Duration(seconds: 25)),
+          maxAttempts: candidateIndex == 0 ? 2 : 1,
+        ),
       );
       return _extractPayload(response);
     } on SocketException {
@@ -276,14 +367,18 @@ class BackendApiClient {
     try {
       final headers = await _headers(authenticated: authenticated);
       final payload = jsonEncode(body);
-      final response = await withRetry(
-        () => http
-            .patch(
-              _uri(path),
-              headers: headers,
-              body: payload,
-            )
-            .timeout(const Duration(seconds: 25)),
+      final response = await _executeWithDnsFallback(
+        path: path,
+        execute: (uri, candidateIndex) => withRetry(
+          () => http
+              .patch(
+                uri,
+                headers: headers,
+                body: payload,
+              )
+              .timeout(const Duration(seconds: 25)),
+          maxAttempts: candidateIndex == 0 ? 2 : 1,
+        ),
       );
       return _extractPayload(response);
     } on SocketException {
@@ -307,13 +402,17 @@ class BackendApiClient {
   }) async {
     try {
       final headers = await _headers(authenticated: authenticated);
-      final response = await withRetry(
-        () => http
-            .delete(
-              _uri(path),
-              headers: headers,
-            )
-            .timeout(const Duration(seconds: 20)),
+      final response = await _executeWithDnsFallback(
+        path: path,
+        execute: (uri, candidateIndex) => withRetry(
+          () => http
+              .delete(
+                uri,
+                headers: headers,
+              )
+              .timeout(const Duration(seconds: 20)),
+          maxAttempts: candidateIndex == 0 ? 2 : 1,
+        ),
       );
       return _extractPayload(response);
     } on SocketException {
@@ -340,20 +439,26 @@ class BackendApiClient {
     bool authenticated = true,
   }) async {
     try {
-      final response = await withRetry(() async {
-        final request = http.MultipartRequest('POST', _uri(path));
-        final headers = await _headers(includeJson: false, authenticated: authenticated);
-        request.headers.addAll(headers);
-        request.files.add(
-          http.MultipartFile.fromBytes(
-            fieldName,
-            bytes,
-            filename: filename,
-            contentType: contentType,
-          ),
-        );
-        return request.send().timeout(const Duration(seconds: 30));
-      });
+      final headers = await _headers(
+        includeJson: false,
+        authenticated: authenticated,
+      );
+      final response = await _executeWithDnsFallback(
+        path: path,
+        execute: (uri, candidateIndex) => withRetry(() async {
+          final request = http.MultipartRequest('POST', uri);
+          request.headers.addAll(headers);
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              fieldName,
+              bytes,
+              filename: filename,
+              contentType: contentType,
+            ),
+          );
+          return request.send().timeout(const Duration(seconds: 30));
+        }, maxAttempts: candidateIndex == 0 ? 2 : 1),
+      );
       final body = await response.stream.bytesToString();
       final wrapped = http.Response(body, response.statusCode, headers: response.headers);
       return _extractPayload(wrapped);

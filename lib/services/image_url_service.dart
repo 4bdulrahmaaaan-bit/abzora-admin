@@ -2,6 +2,7 @@ class ImageUrlService {
   static String optimizeForDelivery(
     String url, {
     int width = 1400,
+    String quality = 'good',
   }) {
     final trimmed = url.trim();
     if (trimmed.isEmpty) {
@@ -26,17 +27,32 @@ class ImageUrlService {
       return raw;
     }
 
+    final normalizedQuality = quality.trim().isEmpty ? 'good' : quality.trim();
+    final qualityParam = RegExp(r'^\d+$').hasMatch(normalizedQuality)
+        ? 'q_$normalizedQuality'
+        : 'q_auto:$normalizedQuality';
+
     return raw.replaceFirst(
       marker,
-      '/image/upload/f_auto,q_auto:good,c_limit,w_$width/',
+      '/image/upload/f_auto,$qualityParam,c_limit,w_$width/',
     );
   }
 
-  static List<String> optimizeAll(Iterable<String> urls, {int width = 1400}) {
-    return urls.map((url) => optimizeForDelivery(url, width: width)).toList();
+  static List<String> optimizeAll(
+    Iterable<String> urls, {
+    int width = 1400,
+    String quality = 'good',
+  }) {
+    return urls
+        .map((url) => optimizeForDelivery(url, width: width, quality: quality))
+        .toList();
   }
 
-  static List<String> normalizeStoredImages(Iterable<dynamic> values, {int width = 1400}) {
+  static List<String> normalizeStoredImages(
+    Iterable<dynamic> values, {
+    int width = 1400,
+    String quality = 'good',
+  }) {
     final rawParts = values
         .map((value) => value?.toString().trim() ?? '')
         .where((value) => value.isNotEmpty)
@@ -77,7 +93,7 @@ class ImageUrlService {
       }
     }
 
-    return optimizeAll(normalized, width: width);
+    return optimizeAll(normalized, width: width, quality: quality);
   }
 
   static String _sanitizeUrl(String value) {

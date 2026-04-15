@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 
 import '../../models/models.dart';
+import 'admin_trial_home_screen.dart';
 import 'admin_management_screen.dart';
 import 'admin_web_panel.dart';
 import '../../providers/auth_provider.dart';
@@ -536,6 +537,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   _AdminAction(title: 'Shop Control', subtitle: 'Approve, reject, activate, feature, and isolate marketplace shops', icon: Icons.verified_user_outlined, color: Colors.orange, onTap: () => _openTab(context, 1)),
                   _AdminAction(title: 'Catalog Controls', subtitle: 'Manage products, categories, and platform merchandising', icon: Icons.category_outlined, color: Colors.purple, onTap: () => _openTab(context, 2)),
                   _AdminAction(title: 'Order Control', subtitle: 'Update order status and oversee fulfillment', icon: Icons.local_shipping_outlined, color: Colors.green, onTap: () => _openTab(context, 3)),
+                  _AdminAction(
+                    title: 'Trial at Home',
+                    subtitle: 'Monitor sessions, delivery progress, and conversion outcomes',
+                    icon: Icons.checkroom_outlined,
+                    color: const Color(0xFF9C7222),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdminTrialHomeScreen(),
+                        ),
+                      );
+                    },
+                  ),
                   _AdminAction(
                     title: 'Migrate to Firebase',
                     subtitle: 'Push all local demo mock data into the connected Firestore project',
