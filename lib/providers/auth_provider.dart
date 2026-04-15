@@ -156,6 +156,20 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<AppUser?> signInWithGoogle() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final result = await _authService.signInWithGoogleUser();
+      _user = result;
+      return result;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> logout() async {
     await _authService.signOut();
     await _liveProfileSubscription?.cancel();

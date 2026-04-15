@@ -21,11 +21,13 @@ class OtpVerificationScreen extends StatefulWidget {
     this.phoneNumber,
     this.mode = AbzioAppMode.unified,
     this.adminEntry = false,
+    this.deferredAction = false,
   });
 
   final String? phoneNumber;
   final AbzioAppMode mode;
   final bool adminEntry;
+  final bool deferredAction;
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -269,6 +271,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
           ),
         );
         Navigator.pushNamedAndRemoveUntil(context, '/admin-login', (route) => false);
+        return;
+      }
+      if (widget.deferredAction) {
+        Navigator.of(context).pop(true);
         return;
       }
       Navigator.pushNamedAndRemoveUntil(

@@ -17,6 +17,7 @@ import '../../providers/cart_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/soft_auth_gate.dart';
 import '../../widgets/animated_wishlist_button.dart';
 import '../../widgets/product_card.dart';
 import '../../widgets/tap_scale.dart';
@@ -373,6 +374,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   Future<void> _openPerfectFitExperience(Product product) async {
+    final allowed = await SoftAuthGate.ensureAuthenticated(
+      context,
+      intentLabel: 'Start Try at Home',
+    );
+    if (!allowed || !mounted) {
+      return;
+    }
     final address = _resolveDeliverySummary(context.read<AuthProvider>());
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -555,18 +563,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 selectedColor: const Color(0xFFC8A44D),
                 unselectedColor: const Color(0xFF1A1A1A),
                 onTap: () async {
-                  try {
-                    await wishlist.toggleWishlist(product);
-                  } catch (error) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          error.toString().replaceFirst('Bad state: ', ''),
-                        ),
-                      ),
-                    );
-                  }
+                  await _toggleWishlistWithAuth(wishlist, product);
                 },
               ),
               const SizedBox(width: 2),
@@ -1613,21 +1610,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                   unselectedColor:
                                       Theme.of(context).colorScheme.onSurface,
                                   onTap: () async {
-                                    try {
-                                      await wishlist.toggleWishlist(product);
-                                    } catch (error) {
-                                      if (!context.mounted) return;
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            error.toString().replaceFirst(
-                                                  'Bad state: ',
-                                                  '',
-                                                ),
-                                          ),
-                                        ),
-                                      );
-                                    }
+                                    await _toggleWishlistWithAuth(
+                                      wishlist,
+                                      product,
+                                    );
                                   },
                                 ),
                                 const SizedBox(width: 10),
@@ -2686,6 +2672,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   Future<void> _handleAddToCartPress() async {
+    final allowed = await SoftAuthGate.ensureAuthenticated(
+      context,
+      intentLabel: 'Add to bag',
+    );
+    if (!allowed || !mounted) {
+      return;
+    }
     final added = _addToBag();
     if (!added) {
       return;
@@ -2734,6 +2727,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     setState(() {
       _showCartFlight = false;
     });
+  }
+
+  Future<void> _toggleWishlistWithAuth(
+    WishlistProvider wishlist,
+    Product product,
+  ) async {
+    final allowed = await SoftAuthGate.ensureAuthenticated(
+      context,
+      intentLabel: 'Save to wishlist',
+    );
+    if (!allowed || !mounted) {
+      return;
+    }
+    try {
+      await wishlist.toggleWishlist(product);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+        ),
+      );
+    }
   }
 
   Future<void> _openGallery() async {
@@ -2921,6 +2939,29 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
     await Share.share(message, subject: widget.product.name);
   }
 
+  Future<void> _toggleWishlistWithAuth(
+    WishlistProvider wishlist,
+    Product product,
+  ) async {
+    final allowed = await SoftAuthGate.ensureAuthenticated(
+      context,
+      intentLabel: 'Save to wishlist',
+    );
+    if (!allowed || !mounted) {
+      return;
+    }
+    try {
+      await wishlist.toggleWishlist(product);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -3086,20 +3127,10 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
                         unselectedColor: Colors.white,
                         selectedColor: const Color(0xFFC8A44D),
                         onTap: () async {
-                          try {
-                            await wishlist.toggleWishlist(widget.product);
-                          } catch (error) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  error
-                                      .toString()
-                                      .replaceFirst('Bad state: ', ''),
-                                ),
-                              ),
-                            );
-                          }
+                          await _toggleWishlistWithAuth(
+                            wishlist,
+                            widget.product,
+                          );
                         },
                       ),
                     ],

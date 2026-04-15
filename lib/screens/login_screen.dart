@@ -16,10 +16,12 @@ class LoginScreen extends StatefulWidget {
     super.key,
     this.mode = AbzioAppMode.unified,
     this.adminEntry = false,
+    this.deferredAction = false,
   });
 
   final AbzioAppMode mode;
   final bool adminEntry;
+  final bool deferredAction;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -107,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) {
         return;
       }
-      await Navigator.push(
+      final verified = await Navigator.push<bool>(
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
@@ -115,6 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
             phoneNumber: phone,
             mode: widget.mode,
             adminEntry: widget.adminEntry,
+            deferredAction: widget.deferredAction,
           ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             final offset = Tween<Offset>(
@@ -131,6 +134,9 @@ class _LoginScreenState extends State<LoginScreen> {
           transitionDuration: const Duration(milliseconds: 260),
         ),
       );
+      if (widget.deferredAction && verified == true && mounted) {
+        Navigator.of(context).pop(true);
+      }
     } catch (error) {
       if (!mounted) {
         return;

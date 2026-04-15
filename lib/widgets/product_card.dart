@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../models/models.dart';
 import '../providers/wishlist_provider.dart';
+import '../utils/soft_auth_gate.dart';
 import 'animated_wishlist_button.dart';
 import 'shimmer_box.dart';
 
@@ -152,6 +153,13 @@ class _ProductCardState extends State<ProductCard> {
                                       iconSize: 17,
                                       backgroundColor: null,
                                       onTap: () async {
+                                        final isAllowed = await SoftAuthGate.ensureAuthenticated(
+                                          context,
+                                          intentLabel: 'Save to wishlist',
+                                        );
+                                        if (!isAllowed || !context.mounted) {
+                                          return;
+                                        }
                                         try {
                                           await wishlist.toggleWishlist(
                                             product,

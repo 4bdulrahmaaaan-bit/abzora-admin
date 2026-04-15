@@ -306,10 +306,13 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     }
 
     if (auth.user == null) {
-      return LoginScreen(
-        mode: widget.mode,
-        adminEntry: kIsWeb && widget.mode == AbzioAppMode.unified,
-      );
+      if (widget.mode == AbzioAppMode.operations) {
+        return LoginScreen(
+          mode: widget.mode,
+          adminEntry: kIsWeb && widget.mode == AbzioAppMode.unified,
+        );
+      }
+      return const HomeScreen();
     }
 
     if (!_didRoute) {

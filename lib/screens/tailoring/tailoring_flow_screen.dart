@@ -7,6 +7,7 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/soft_auth_gate.dart';
 import 'tailor_booking_screen.dart';
 
 enum MeasurementMethod { manual, standard, previous }
@@ -1175,12 +1176,23 @@ class _CustomTailoringFlowScreenState extends State<CustomTailoringFlowScreen> {
     setState(() => _isSaving = true);
     try {
       final auth = context.read<AuthProvider>();
-      final currentUser = auth.user;
+      var currentUser = auth.user;
       var profileToUse = draft;
       if (_saveProfile) {
         if (currentUser == null) {
-          _showSnackBar('Sign in to save this profile to Firebase.');
-        } else if (_profileNameController.text.trim().isEmpty) {
+          final allowed = await SoftAuthGate.ensureAuthenticated(
+            context,
+            intentLabel: 'Save measurements',
+          );
+          if (!allowed || !mounted) {
+            return;
+          }
+          currentUser = context.read<AuthProvider>().user;
+          if (currentUser == null) {
+            return;
+          }
+        }
+        if (_profileNameController.text.trim().isEmpty) {
           _showSnackBar('Add a name for this profile before saving.');
           return;
         } else {

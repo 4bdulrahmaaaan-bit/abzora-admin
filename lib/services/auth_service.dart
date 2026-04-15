@@ -241,6 +241,33 @@ class AuthService {
     }
   }
 
+  Future<AppUser?> signInWithGoogleUser() async {
+    if (!kIsWeb) {
+      throw StateError('Google sign-in is currently available on web.');
+    }
+
+    final auth = _authOrNull;
+    if (auth == null) {
+      throw StateError('Authentication is unavailable right now.');
+    }
+
+    try {
+      final provider = GoogleAuthProvider()
+        ..setCustomParameters(const {'prompt': 'select_account'});
+      final result = await auth.signInWithPopup(provider);
+      final firebaseUser = result.user;
+      if (firebaseUser == null) {
+        return null;
+      }
+      return _ensurePhoneProfile(
+        firebaseUser,
+        phoneNumber: firebaseUser.phoneNumber,
+      );
+    } catch (error) {
+      throw StateError(_mapAuthError(error));
+    }
+  }
+
   Future<void> requestOtp(String phoneNumber) async {
     final auth = _authOrNull;
     if (auth == null) {

@@ -11,6 +11,7 @@ import '../../services/body_scan_service.dart';
 import '../../services/database_service.dart';
 import '../../services/pose_measurement_service.dart';
 import '../../theme.dart';
+import '../../utils/soft_auth_gate.dart';
 import '../../widgets/tap_scale.dart';
 import 'live_body_scan_camera_screen.dart';
 
@@ -136,10 +137,23 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
 
   Future<void> _saveProfile() async {
     final auth = context.read<AuthProvider>();
-    final user = auth.user;
     final result = _result;
-    if (user == null || result == null) {
+    if (result == null) {
       return;
+    }
+    var user = auth.user;
+    if (user == null) {
+      final allowed = await SoftAuthGate.ensureAuthenticated(
+        context,
+        intentLabel: 'Save measurements',
+      );
+      if (!allowed || !mounted) {
+        return;
+      }
+      user = context.read<AuthProvider>().user;
+      if (user == null) {
+        return;
+      }
     }
 
     setState(() => _isSaving = true);

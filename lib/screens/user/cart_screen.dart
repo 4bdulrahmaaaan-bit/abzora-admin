@@ -11,6 +11,7 @@ import '../../providers/product_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/soft_auth_gate.dart';
 import '../../widgets/state_views.dart';
 import 'checkout_screen.dart';
 
@@ -64,6 +65,13 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _addSuggestionToCart(Product product) async {
+    final allowed = await SoftAuthGate.ensureAuthenticated(
+      context,
+      intentLabel: 'Add to bag',
+    );
+    if (!allowed || !mounted) {
+      return;
+    }
     if (_animatingAddIds.contains(product.id)) {
       return;
     }
@@ -88,6 +96,13 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _moveToWishlist(CartItem item) async {
+    final allowed = await SoftAuthGate.ensureAuthenticated(
+      context,
+      intentLabel: 'Save to wishlist',
+    );
+    if (!allowed || !mounted) {
+      return;
+    }
     final wishlist = context.read<WishlistProvider>();
     try {
       await wishlist.addToWishlist(item.product);
@@ -170,6 +185,13 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _openCheckout() async {
+    final allowed = await SoftAuthGate.ensureAuthenticated(
+      context,
+      intentLabel: 'Checkout',
+    );
+    if (!allowed || !mounted) {
+      return;
+    }
     if (_openingCheckout || !mounted) {
       return;
     }
