@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/atelier_models.dart';
+import '../models/banner_model.dart';
+import '../services/database_service.dart';
 
 enum AtelierStep {
   home,
@@ -16,6 +18,8 @@ class AtelierFlowProvider extends ChangeNotifier {
   AtelierFlowProvider() {
     _loadInitial();
   }
+
+  final DatabaseService _db = DatabaseService();
 
   bool _isLoading = true;
   String? _error;
@@ -78,12 +82,48 @@ class AtelierFlowProvider extends ChangeNotifier {
       ),
     ];
     categories = const <AtelierCategory>[
-      AtelierCategory(id: 'formal-shirts', title: 'Formal Shirts', subtitle: 'Clean lines'),
-      AtelierCategory(id: 'blazers', title: 'Blazers', subtitle: 'Structured elegance'),
-      AtelierCategory(id: 'suits', title: 'Suits', subtitle: 'Ceremony ready'),
-      AtelierCategory(id: 'kurtas', title: 'Kurtas', subtitle: 'Festive tailored'),
-      AtelierCategory(id: 'dresses', title: 'Dresses', subtitle: 'Soft structure'),
-      AtelierCategory(id: 'gowns', title: 'Gowns', subtitle: 'Evening couture'),
+      AtelierCategory(
+        id: 'formal-shirts',
+        title: 'Formal Shirts',
+        subtitle: 'Clean lines',
+        imageUrl:
+            'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=1000&q=80',
+      ),
+      AtelierCategory(
+        id: 'blazers',
+        title: 'Blazers',
+        subtitle: 'Structured elegance',
+        imageUrl:
+            'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1000&q=80',
+      ),
+      AtelierCategory(
+        id: 'suits',
+        title: 'Suits',
+        subtitle: 'Ceremony ready',
+        imageUrl:
+            'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?auto=format&fit=crop&w=1000&q=80',
+      ),
+      AtelierCategory(
+        id: 'kurtas',
+        title: 'Kurtas',
+        subtitle: 'Festive tailored',
+        imageUrl:
+            'https://images.unsplash.com/photo-1618886614638-80e3c103d31a?auto=format&fit=crop&w=1000&q=80',
+      ),
+      AtelierCategory(
+        id: 'dresses',
+        title: 'Dresses',
+        subtitle: 'Soft structure',
+        imageUrl:
+            'https://images.unsplash.com/photo-1502716119720-b23a93e5fe1b?auto=format&fit=crop&w=1000&q=80',
+      ),
+      AtelierCategory(
+        id: 'gowns',
+        title: 'Gowns',
+        subtitle: 'Evening couture',
+        imageUrl:
+            'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=1000&q=80',
+      ),
     ];
     fabrics = const <FabricOption>[
       FabricOption(
@@ -224,8 +264,82 @@ class AtelierFlowProvider extends ChangeNotifier {
     for (final group in designGroups) {
       _designChoices[group.id] = group.options.first;
     }
+    await _applyAdminManagedAtelierImages();
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> _applyAdminManagedAtelierImages() async {
+    try {
+      final config = await _db.getHomeVisualConfig(adminView: false);
+      final atelierVisuals = config.categoryVisuals.where((visual) {
+        return visual.isActive && visual.tab.trim().toLowerCase() == 'atelier';
+      }).toList();
+      if (atelierVisuals.isEmpty) {
+        return;
+      }
+
+      final designerImageByKey = <String, String>{};
+      final categoryImageByKey = <String, String>{};
+      for (final visual in atelierVisuals) {
+        final key = _normalizedVisualKey(visual);
+        if (key.isEmpty || visual.imageUrl.trim().isEmpty) {
+          continue;
+        }
+        if (visual.icon.trim().toLowerCase() == 'designer') {
+          designerImageByKey[key] = visual.imageUrl.trim();
+        } else {
+          categoryImageByKey[key] = visual.imageUrl.trim();
+        }
+      }
+
+      designers = designers
+          .map((designer) {
+            final key = _normalizedKey(designer.id, designer.name);
+            final imageUrl = designerImageByKey[key];
+            if (imageUrl == null || imageUrl.isEmpty) {
+              return designer;
+            }
+            return AtelierDesigner(
+              id: designer.id,
+              name: designer.name,
+              city: designer.city,
+              rating: designer.rating,
+              priceBand: designer.priceBand,
+              tags: designer.tags,
+              bannerUrl: imageUrl,
+            );
+          })
+          .toList(growable: false);
+
+      categories = categories
+          .map((category) {
+            final key = _normalizedKey(category.id, category.title);
+            final imageUrl = categoryImageByKey[key];
+            if (imageUrl == null || imageUrl.isEmpty) {
+              return category;
+            }
+            return AtelierCategory(
+              id: category.id,
+              title: category.title,
+              subtitle: category.subtitle,
+              imageUrl: imageUrl,
+            );
+          })
+          .toList(growable: false);
+    } catch (_) {
+      // Fall back to bundled atelier visuals if remote config is unavailable.
+    }
+  }
+
+  String _normalizedVisualKey(HomeCategoryVisualModel visual) {
+    final source = visual.label.trim().isNotEmpty ? visual.label : visual.id;
+    return _normalizedKey(source, source);
+  }
+
+  String _normalizedKey(String primary, String fallback) {
+    final raw = primary.trim().isNotEmpty ? primary : fallback;
+    return raw.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'-+'), '-').trim();
   }
 
   void selectDesigner(AtelierDesigner designer) {

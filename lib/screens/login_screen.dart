@@ -33,6 +33,8 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _phoneError;
 
   bool get _useGoogleAdminLogin => kIsWeb && widget.adminEntry;
+  bool get _isPrimaryFashionLogin =>
+      !widget.adminEntry && widget.mode != AbzioAppMode.operations;
 
   @override
   void initState() {
@@ -171,6 +173,58 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _showPolicySheet({
+    required String title,
+    required String body,
+  }) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  body,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    height: 1.55,
+                    color: context.abzioSecondaryText,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    child: const Text('Close'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -223,12 +277,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ? 'ADMIN LOGIN'
                                 : widget.mode == AbzioAppMode.operations
                                     ? 'OPS LOGIN'
-                                    : 'WELCOME BACK',
+                                    : 'UNLOCK YOUR ABZORA FIT',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.poppins(
-                              fontSize: 30,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.4,
+                              fontSize: 29,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.2,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
@@ -236,7 +290,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           Text(
                             _useGoogleAdminLogin
                                 ? 'Continue with your Google account'
-                                : 'Enter your phone number',
+                                : _isPrimaryFashionLogin
+                                    ? 'Continue where your style journey left off.'
+                                    : 'Enter your phone number',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.inter(
                               fontSize: 15,
@@ -250,6 +306,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ? 'Only approved admin Gmail accounts can access the web control panel.'
                                 : widget.adminEntry
                                 ? 'Secure login. Continue with your phone number for admin access.'
+                                : _isPrimaryFashionLogin
+                                    ? 'Save your trial picks, keep your fit profile, and track every order in one place.'
                                 : 'Secure login. Continue with your phone number.',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.inter(
@@ -312,8 +370,44 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ] else ...[
+                      if (_isPrimaryFashionLogin) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF9F6F1),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color:
+                                  AbzioTheme.accentColor.withValues(alpha: 0.22),
+                            ),
+                          ),
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: const [
+                              _BenefitChip(
+                                icon: Icons.auto_awesome_outlined,
+                                label: 'Resume Trial',
+                              ),
+                              _BenefitChip(
+                                icon: Icons.straighten_outlined,
+                                label: 'Save Fit Profile',
+                              ),
+                              _BenefitChip(
+                                icon: Icons.local_shipping_outlined,
+                                label: 'Track Orders',
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                      ],
                       Text(
-                        'PHONE NUMBER',
+                        _isPrimaryFashionLogin ? 'MOBILE NUMBER' : 'PHONE NUMBER',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.poppins(
                           fontSize: 10,
@@ -327,19 +421,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         duration: const Duration(milliseconds: 180),
                         curve: Curves.easeOutCubic,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
+                          horizontal: 10,
+                          vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
+                          color: const Color(0xFFFBFBFB),
+                          borderRadius: BorderRadius.circular(22),
                           border: Border.all(
                             color: hasError
                                 ? const Color(0xFFD64C4C)
                                 : isFocused
-                                    ? AbzioTheme.accentColor
-                                    : context.abzioBorder,
-                            width: isFocused || hasError ? 1.4 : 1,
+                                    ? AbzioTheme.accentColor.withValues(alpha: 0.78)
+                                    : context.abzioBorder.withValues(alpha: 0.85),
+                            width: isFocused || hasError ? 1.25 : 1,
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -351,7 +445,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       alpha: isFocused ? 0.10 : 0.03,
                                     ),
                               blurRadius: isFocused ? 20 : 12,
-                              offset: const Offset(0, 8),
+                              offset: const Offset(0, 10),
                             ),
                           ],
                         ),
@@ -427,7 +521,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ? 'Only approved admin accounts can continue after OTP verification.'
                                   : widget.mode == AbzioAppMode.operations
                                       ? 'Your access is resolved after OTP verification.'
-                                      : 'Use your phone number to continue securely.'),
+                                      : 'A quick OTP verifies your number and unlocks your saved experience.'),
                           key: ValueKey<String>(_phoneError ?? 'help'),
                           textAlign: TextAlign.center,
                           style: GoogleFonts.inter(
@@ -471,7 +565,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   )
                                 : Text(
-                                    'Send OTP',
+                                    'Continue \u2192',
                                     style: GoogleFonts.poppins(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w800,
@@ -484,7 +578,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         kIsWeb
                             ? 'A quick security check may appear once before the OTP is sent.'
-                            : 'Help is available if you have trouble receiving your OTP.',
+                            : 'Help is available anytime if your OTP is delayed.',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.inter(
                           fontSize: 12,
@@ -506,11 +600,176 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'By continuing, you agree to our policies.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: context.abzioSecondaryText,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 6,
+                      runSpacing: 2,
+                      children: [
+                        _PolicyLinkButton(
+                          label: 'Privacy Policy',
+                          onTap: () => _showPolicySheet(
+                            title: 'Privacy Policy',
+                            body: '''Privacy Policy - ABZORA
+
+Effective Date: [Add Date]
+
+ABZORA ("we", "our", "us") respects your privacy. This policy explains how we collect, use, and protect your information.
+
+1. Information We Collect
+We may collect:
+- Phone number (for OTP login)
+- Name and delivery address
+- Body measurements (for fit recommendations)
+- Order and browsing activity
+- Device and app usage data
+- Location (for delivery and nearby stores)
+
+2. How We Use Your Data
+We use your data to:
+- Provide login and account access
+- Deliver products and manage orders
+- Recommend sizes and styles using AI
+- Improve user experience
+- Prevent fraud and misuse
+
+3. Sharing of Data
+We may share limited data with:
+- Vendors (to fulfill orders or tailoring)
+- Logistics partners (for delivery)
+- Payment providers (for transactions)
+
+We do NOT sell your personal data.
+
+4. Data Security
+We use secure systems and encryption to protect your data. However, no system is 100% secure.
+
+5. Your Rights
+You can:
+- Update your profile
+- Request data deletion
+- Contact us for any privacy concerns
+
+6. Data Retention
+We retain data only as long as needed for services and legal purposes.
+
+7. Contact Us
+Email: support@abzora.com
+
+By using ABZORA, you agree to this policy.''',
+                          ),
+                        ),
+                        _PolicyLinkButton(
+                          label: 'Terms of Use',
+                          onTap: () => _showPolicySheet(
+                            title: 'Terms of Use',
+                            body:
+                                'Using ABZORA means agreeing to platform rules for account usage, acceptable conduct, order flow, and payment handling. Continued usage confirms acceptance of these terms.',
+                          ),
+                        ),
+                        _PolicyLinkButton(
+                          label: 'Try at Home Policy',
+                          onTap: () => _showPolicySheet(
+                            title: 'Try at Home Policy',
+                            body:
+                                'Try-at-home slots are subject to availability and location. Product handling and return timing must follow the listed appointment and pickup guidelines.',
+                          ),
+                        ),
+                        _PolicyLinkButton(
+                          label: 'Refund & Cancellation',
+                          onTap: () => _showPolicySheet(
+                            title: 'Refund and Cancellation Policy',
+                            body:
+                                'Cancellations and refunds depend on order stage, product type, and quality checks. Eligible refunds are processed back to the original payment source as per platform timelines.',
+                          ),
+                        ),
+                        _PolicyLinkButton(
+                          label: 'Shipping Policy',
+                          onTap: () => _showPolicySheet(
+                            title: 'Shipping Policy',
+                            body:
+                                'Delivery timelines vary by seller location, custom-tailoring lead times, and service level. Tracking updates are available inside your order section after dispatch.',
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BenefitChip extends StatelessWidget {
+  const _BenefitChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: context.abzioBorder.withValues(alpha: 0.7)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: AbzioTheme.accentColor),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PolicyLinkButton extends StatelessWidget {
+  const _PolicyLinkButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        minimumSize: const Size(0, 28),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          decoration: TextDecoration.underline,
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.82),
         ),
       ),
     );

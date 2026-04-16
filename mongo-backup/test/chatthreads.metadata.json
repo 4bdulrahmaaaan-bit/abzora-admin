@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"42bd6bda4e4c4dc5b2be84bc28728d37","collectionName":"chatthreads","type":"collection"}

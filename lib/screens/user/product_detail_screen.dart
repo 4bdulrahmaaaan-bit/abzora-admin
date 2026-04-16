@@ -377,6 +377,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Start Try at Home',
+      message:
+          'Sign in to schedule your try-at-home slot and save your fit preferences.',
+      promptStyle: AuthPromptStyle.fullScreen,
     );
     if (!allowed || !mounted) {
       return;
@@ -2675,6 +2678,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Add to bag',
+      promptStyle: AuthPromptStyle.softSheet,
     );
     if (!allowed || !mounted) {
       return;
@@ -2736,6 +2740,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Save to wishlist',
+      promptStyle: AuthPromptStyle.softSheet,
     );
     if (!allowed || !mounted) {
       return;
@@ -2946,6 +2951,7 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Save to wishlist',
+      promptStyle: AuthPromptStyle.softSheet,
     );
     if (!allowed || !mounted) {
       return;

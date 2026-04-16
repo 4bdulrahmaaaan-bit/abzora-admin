@@ -1,13 +1,17 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/auth_service.dart';
+import '../services/backend_api_client.dart';
 import '../services/backend_commerce_service.dart';
 import '../services/database_service.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
+import '../services/app_navigation_service.dart';
 import '../services/storage_service.dart';
 
 class AuthProvider with ChangeNotifier {
@@ -19,17 +23,21 @@ class AuthProvider with ChangeNotifier {
   StreamSubscription<AppUser?>? _userSubscription;
   StreamSubscription<AppUser?>? _liveProfileSubscription;
   AppUser? _user;
+  String? _token;
+  bool _isAuthenticated = false;
   bool _isLoading = false;
   bool _isUpdatingProfile = false;
   bool _isInitialized = false;
+  bool _isLoggingOut = false;
   String? _pendingPhoneNumber;
   String? _lastBackendProfileSyncKey;
 
   AppUser? get user => _user;
+  String? get token => _token;
   bool get isLoading => _isLoading;
   bool get isUpdatingProfile => _isUpdatingProfile;
   bool get isInitialized => _isInitialized;
-  bool get isAuthenticated => _user != null;
+  bool get isAuthenticated => _isAuthenticated;
   bool get isSuperAdmin => _user?.role == 'super_admin' || _user?.role == 'admin';
   bool get isVendor => _user?.role == 'vendor';
   bool get isRider => _user?.role == 'rider';
@@ -44,6 +52,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   AuthProvider() {
+    BackendApiClient.registerUnauthorizedHandler(_handleUnauthorizedSession);
     _restoreSession();
     _userSubscription = _authService.user.listen((user) {
       _bindLiveProfile(user);
@@ -55,19 +64,52 @@ class AuthProvider with ChangeNotifier {
   void _bindLiveProfile(AppUser? user) {
     _liveProfileSubscription?.cancel();
     _user = user;
+    _isAuthenticated = user != null;
     if (user == null) {
+      _token = null;
       _lastBackendProfileSyncKey = null;
       return;
     }
+    unawaited(_refreshAuthToken());
     unawaited(NotificationService().initNotifications());
     _maybeSyncBackendProfile(user);
     _liveProfileSubscription = _db.watchUser(user.id).listen((liveUser) {
       _user = liveUser ?? user;
+      _isAuthenticated = _user != null;
       if (_user != null) {
         _maybeSyncBackendProfile(_user!);
       }
+      unawaited(_refreshAuthToken());
       notifyListeners();
     });
+  }
+
+  Future<void> _refreshAuthToken() async {
+    try {
+      final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+      if (idToken == null || idToken.isEmpty) {
+        if (_user != null && !_isLoggingOut) {
+          await logout();
+          await AppNavigationService.resetToHome(
+            message: 'Session expired. Please sign in again.',
+          );
+          return;
+        }
+        _token = null;
+        _isAuthenticated = false;
+        notifyListeners();
+        return;
+      }
+      if (idToken != _token) {
+        _token = idToken;
+        _isAuthenticated = _user != null && (_token?.isNotEmpty ?? false);
+        notifyListeners();
+      }
+    } catch (_) {
+      _token = null;
+      _isAuthenticated = false;
+      notifyListeners();
+    }
   }
 
   void _maybeSyncBackendProfile(AppUser user) {
@@ -135,6 +177,8 @@ class AuthProvider with ChangeNotifier {
     try {
       final result = await _authService.verifyOtp(otp);
       _user = result;
+      _isAuthenticated = result != null;
+      unawaited(_refreshAuthToken());
       return result;
     } finally {
       _isLoading = false;
@@ -149,6 +193,8 @@ class AuthProvider with ChangeNotifier {
     try {
       final result = await _authService.signInWithGoogleAdmin();
       _user = result;
+      _isAuthenticated = result != null;
+      unawaited(_refreshAuthToken());
       return result;
     } finally {
       _isLoading = false;
@@ -163,6 +209,8 @@ class AuthProvider with ChangeNotifier {
     try {
       final result = await _authService.signInWithGoogleUser();
       _user = result;
+      _isAuthenticated = result != null;
+      unawaited(_refreshAuthToken());
       return result;
     } finally {
       _isLoading = false;
@@ -170,13 +218,68 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<void> logout() async {
-    await _authService.signOut();
-    await _liveProfileSubscription?.cancel();
+  Future<void> logout({
+    bool resetNavigation = false,
+    bool showSuccessMessage = false,
+    String successMessage = 'Logged out successfully',
+  }) async {
+    if (_isLoggingOut) {
+      return;
+    }
+    _isLoggingOut = true;
+    final currentUserId = _user?.id;
+    try {
+      await _authService.signOut();
+    } finally {
+      await _liveProfileSubscription?.cancel();
+      await _clearLocalUserCache(currentUserId);
+      _clearMemoryState();
+      notifyListeners();
+      _isLoggingOut = false;
+    }
+
+    if (resetNavigation) {
+      await AppNavigationService.resetToHome(
+        message: showSuccessMessage ? successMessage : null,
+      );
+    }
+  }
+
+  Future<void> _handleUnauthorizedSession() async {
+    if (!_isAuthenticated || _isLoggingOut) {
+      return;
+    }
+    await logout();
+    await AppNavigationService.resetToHome(
+      message: 'Session expired. Please sign in again.',
+    );
+  }
+
+  Future<void> _clearLocalUserCache(String? userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        final isSessionScoped = key == 'abzora_local_cart_v1' ||
+            key.startsWith('payment_pref_');
+        final isUserScoped = userId != null &&
+            userId.isNotEmpty &&
+            key.contains(userId);
+        if (isSessionScoped || isUserScoped) {
+          await prefs.remove(key);
+        }
+      }
+    } catch (_) {
+      // Keep logout resilient even if cache cleanup fails.
+    }
+  }
+
+  void _clearMemoryState() {
     _user = null;
+    _token = null;
+    _isAuthenticated = false;
     _pendingPhoneNumber = null;
     _lastBackendProfileSyncKey = null;
-    notifyListeners();
   }
 
   void setUser(AppUser user) {
@@ -194,7 +297,8 @@ class AuthProvider with ChangeNotifier {
   Future<void> refreshCurrentUser() async {
     final current = await _authService.getCurrentAppUser();
     if (current != null) {
-      _user = current;
+      _bindLiveProfile(current);
+      unawaited(_refreshAuthToken());
       notifyListeners();
     }
   }
@@ -295,6 +399,7 @@ class AuthProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    BackendApiClient.registerUnauthorizedHandler(null);
     _userSubscription?.cancel();
     _liveProfileSubscription?.cancel();
     super.dispose();

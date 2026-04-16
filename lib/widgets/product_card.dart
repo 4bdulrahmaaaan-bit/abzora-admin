@@ -156,6 +156,7 @@ class _ProductCardState extends State<ProductCard> {
                                         final isAllowed = await SoftAuthGate.ensureAuthenticated(
                                           context,
                                           intentLabel: 'Save to wishlist',
+                                          promptStyle: AuthPromptStyle.softSheet,
                                         );
                                         if (!isAllowed || !context.mounted) {
                                           return;

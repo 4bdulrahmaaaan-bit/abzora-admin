@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 import '../app_shell.dart';
 import '../providers/auth_provider.dart';
 import '../screens/login_screen.dart';
 import '../theme.dart';
+
+enum AuthPromptStyle {
+  softSheet,
+  fullScreen,
+}
 
 class SoftAuthGate {
   const SoftAuthGate._();
@@ -15,162 +19,193 @@ class SoftAuthGate {
     required String intentLabel,
     String message =
         'Sign in to continue your trial, save your size, and track orders.',
+    AuthPromptStyle promptStyle = AuthPromptStyle.softSheet,
+    bool allowSkip = true,
   }) async {
     final auth = context.read<AuthProvider>();
+    final navigator = Navigator.of(context);
     if (auth.isAuthenticated) {
       return true;
     }
 
-    final continueToLogin = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.28),
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          top: false,
-          child: Container(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              18,
-              20,
-              20 + MediaQuery.of(sheetContext).padding.bottom,
-            ),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFDF9),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 24,
-                  offset: const Offset(0, -8),
+    bool? continueToLogin;
+    if (promptStyle == AuthPromptStyle.fullScreen) {
+      continueToLogin = await navigator.push<bool>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => _CriticalAuthPromptPage(
+            intentLabel: intentLabel,
+            message: message,
+            allowSkip: allowSkip,
+          ),
+        ),
+      );
+    } else {
+      continueToLogin = await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black.withValues(alpha: 0.38),
+        isDismissible: true,
+        enableDrag: true,
+        isScrollControlled: true,
+        builder: (sheetContext) {
+          return SafeArea(
+            top: false,
+            child: Container(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                18,
+                20,
+                18 + MediaQuery.of(sheetContext).padding.bottom,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFDF9),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(30),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDED8CC),
-                      borderRadius: BorderRadius.circular(999),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.16),
+                    blurRadius: 34,
+                    offset: const Offset(0, -10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDED8CC),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Sign in to continue',
-                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  message,
-                  style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF68635A),
-                        height: 1.45,
-                      ),
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5EFE2),
-                    borderRadius: BorderRadius.circular(14),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Unlock your perfect fit',
+                    style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                      color: const Color(0xFF181410),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                  child: Text(
-                    'Action: $intentLabel',
+                  const SizedBox(height: 6),
+                  Text(
+                    'Login to continue',
+                    style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF6B6257),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9F3E7),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '- Save your picks',
+                          style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF2A241D),
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '- Get perfect size',
+                          style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF2A241D),
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '- Track your orders',
+                          style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF2A241D),
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'For: $intentLabel',
                     style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF7A6235),
-                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF8B7B65),
+                          fontWeight: FontWeight.w600,
                         ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(sheetContext, true),
-                    icon: const Icon(Icons.phone_android_rounded),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AbzioTheme.accentColor,
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size.fromHeight(50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    label: const Text(
-                      'Continue with Phone OTP',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ),
-                if (kIsWeb) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 14),
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => Navigator.pop(sheetContext, null),
-                      icon: const Icon(Icons.g_mobiledata_rounded),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(46),
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(sheetContext, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AbzioTheme.accentColor,
+                        foregroundColor: const Color(0xFF111111),
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
                       ),
-                      label: const Text('Continue with Google'),
+                      child: Text(
+                        'Continue with OTP',
+                        style: Theme.of(sheetContext).textTheme.bodyLarge?.copyWith(
+                              color: const Color(0xFF111111),
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: TextButton(
+                      onPressed: allowSkip
+                          ? () => Navigator.pop(sheetContext, false)
+                          : null,
+                      child: Text(
+                        allowSkip ? 'Skip for now' : 'Continue',
+                        style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                              color: const Color(0xFF6B6257),
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
                     ),
                   ),
                 ],
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(sheetContext, false),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(46),
-                    ),
-                    child: const Text('Not now'),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        );
-      },
-    );
+          );
+        },
+      );
+    }
 
     if (!context.mounted) {
       return false;
     }
 
-    if (continueToLogin == null && kIsWeb) {
-      try {
-        final signedIn = await context.read<AuthProvider>().signInWithGoogle();
-        return signedIn != null;
-      } catch (error) {
-        if (!context.mounted) {
-          return false;
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            content: Text(error.toString().replaceFirst('Bad state: ', '')),
-          ),
-        );
-        return false;
-      }
+    if (continueToLogin == null) {
+      return false;
     }
 
     if (continueToLogin != true) {
       return false;
     }
 
-    final result = await Navigator.of(context).push<bool>(
+    final result = await navigator.push<bool>(
       MaterialPageRoute(
         builder: (_) => const LoginScreen(
           mode: AbzioAppMode.customer,
@@ -181,9 +216,170 @@ class SoftAuthGate {
     if (!context.mounted) {
       return false;
     }
-    if (result == true || context.read<AuthProvider>().isAuthenticated) {
+    if (result == true || auth.isAuthenticated) {
       return true;
     }
     return false;
   }
 }
+
+class _CriticalAuthPromptPage extends StatelessWidget {
+  const _CriticalAuthPromptPage({
+    required this.intentLabel,
+    required this.message,
+    required this.allowSkip,
+  });
+
+  final String intentLabel;
+  final String message;
+  final bool allowSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFFDF9),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: TextButton(
+                  onPressed: allowSkip
+                      ? () => Navigator.of(context).pop(false)
+                      : null,
+                  child: Text(
+                    allowSkip ? 'Skip for now' : 'Continue',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF6B6257),
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Unlock your perfect fit',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF17120B),
+                          ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Color(0xFFC89D34),
+                    size: 22,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Login to continue',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: const Color(0xFF5E5548),
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                message,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF7A7063),
+                      height: 1.45,
+                    ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9F3E7),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '- Save your picks',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF2A241D),
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '- Get perfect size',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF2A241D),
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '- Track your orders',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF2A241D),
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFAEF),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  'For: $intentLabel',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF8B7B65),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    backgroundColor: AbzioTheme.accentColor,
+                    foregroundColor: const Color(0xFF111111),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                  ),
+                  child: const Text(
+                    'Continue with OTP',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

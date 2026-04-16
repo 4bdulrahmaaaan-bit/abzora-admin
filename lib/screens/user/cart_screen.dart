@@ -68,6 +68,7 @@ class _CartScreenState extends State<CartScreen> {
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Add to bag',
+      promptStyle: AuthPromptStyle.softSheet,
     );
     if (!allowed || !mounted) {
       return;
@@ -99,6 +100,7 @@ class _CartScreenState extends State<CartScreen> {
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Save to wishlist',
+      promptStyle: AuthPromptStyle.softSheet,
     );
     if (!allowed || !mounted) {
       return;
@@ -188,6 +190,9 @@ class _CartScreenState extends State<CartScreen> {
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Checkout',
+      message:
+          'Sign in to place your order, secure payment, and keep your bag synced across devices.',
+      promptStyle: AuthPromptStyle.fullScreen,
     );
     if (!allowed || !mounted) {
       return;

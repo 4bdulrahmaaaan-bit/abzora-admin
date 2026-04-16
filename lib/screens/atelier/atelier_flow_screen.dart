@@ -322,7 +322,7 @@ class _AtelierHome extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 134,
+            height: 186,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: provider.categories.length,
@@ -871,6 +871,7 @@ class _SectionHeader extends StatelessWidget {
         Text(
           title,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: const Color(0xFF1E1913),
                 fontWeight: FontWeight.w800,
               ),
         ),
@@ -900,7 +901,7 @@ class _HeroBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 244,
+      constraints: const BoxConstraints(minHeight: 244),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: const LinearGradient(
@@ -1324,16 +1325,35 @@ class _CategoryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 40,
-              width: 40,
-              decoration: BoxDecoration(
-                color: selected ? const Color(0xFFEFD8A0) : const Color(0xFFF7F1E6),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                Icons.checkroom_rounded,
-                color: selected ? const Color(0xFF7F5E17) : const Color(0xFF8F7A56),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                height: 92,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: selected
+                        ? const [Color(0xFFEFD8A0), Color(0xFFF8ECCA)]
+                        : const [Color(0xFFF7F1E6), Color(0xFFF3EBDD)],
+                  ),
+                ),
+                child: category.imageUrl.trim().isNotEmpty
+                    ? Image.network(
+                        category.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          Icons.checkroom_rounded,
+                          size: 28,
+                          color: selected ? const Color(0xFF7F5E17) : const Color(0xFF8F7A56),
+                        ),
+                      )
+                    : Icon(
+                        Icons.checkroom_rounded,
+                        size: 28,
+                        color: selected ? const Color(0xFF7F5E17) : const Color(0xFF8F7A56),
+                      ),
               ),
             ),
             const SizedBox(height: 10),
@@ -1342,6 +1362,7 @@ class _CategoryCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: const Color(0xFF1E1913),
                     fontWeight: FontWeight.w700,
                   ),
             ),
@@ -1579,9 +1600,20 @@ class _MeasurementInput extends StatelessWidget {
     return TextFormField(
       initialValue: value,
       onChanged: onChanged,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: const Color(0xFF1E1913),
+          ),
+      cursorColor: const Color(0xFF8C6D2E),
       decoration: InputDecoration(
         labelText: label,
         hintText: 'Enter in cm',
+        labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF6C6459),
+              fontWeight: FontWeight.w600,
+            ),
+        hintStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF9A8F7E),
+            ),
         filled: true,
         fillColor: const Color(0xFFFBF7EF),
         border: OutlineInputBorder(
@@ -1709,6 +1741,7 @@ class _DesignOptionCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF1E1913),
                     fontWeight: FontWeight.w700,
                   ),
             ),
@@ -1958,6 +1991,7 @@ class _SelectedSummaryCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF1E1913),
                         fontWeight: FontWeight.w700,
                       ),
                 ),
@@ -2041,6 +2075,7 @@ class _PrimaryButton extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: const Color(0xFF111111),
                   fontWeight: FontWeight.w800,
                 ),
           ),
@@ -2077,6 +2112,7 @@ class _SecondaryButton extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF1E1913),
                 fontWeight: FontWeight.w600,
               ),
         ),
@@ -2115,6 +2151,7 @@ class _OutlinedButton extends StatelessWidget {
         label: Text(
           label,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: const Color(0xFF111111),
                 fontWeight: FontWeight.w600,
               ),
         ),

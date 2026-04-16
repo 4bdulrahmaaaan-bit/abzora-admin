@@ -8,7 +8,9 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
 
   switch (mode) {
     case AbzioAppMode.customer:
-      return user.role == 'user' || user.role == 'customer' ? '/shop' : '/login';
+      // Customer app supports guest-style browsing for all roles.
+      // High-intent actions are gated by soft auth prompts at action time.
+      return '/shop';
     case AbzioAppMode.operations:
       if (user.role == 'vendor' || user.role == 'rider') {
         return '/ops';
@@ -30,7 +32,7 @@ String? accessRestrictionMessage(AppUser? user, AbzioAppMode mode) {
     return null;
   }
   if (mode == AbzioAppMode.customer && user.role != 'user' && user.role != 'customer') {
-    return 'This build is for customer shopping accounts only. Please use the operations app for vendor or rider access.';
+    return null;
   }
   if (mode == AbzioAppMode.operations &&
       user.role != 'vendor' &&

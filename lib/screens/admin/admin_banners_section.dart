@@ -1359,9 +1359,10 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
   final _sortOrderController = TextEditingController();
   final _picker = ImagePicker();
 
-  static const _tabOptions = ['All', 'Men', 'Women', 'Kids'];
+  static const _tabOptions = ['All', 'Men', 'Women', 'Kids', 'Atelier'];
   static const _iconOptions = [
     'category',
+    'designer',
     'male',
     'female',
     'sparkle',
@@ -1485,7 +1486,7 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
                   controller: _labelController,
                   decoration: const InputDecoration(
                     labelText: 'Label',
-                    hintText: 'Casual',
+                    hintText: 'Casual / atelier-noir / blazers',
                   ),
                   validator: (value) =>
                       value == null || value.trim().isEmpty ? 'Label is required.' : null,

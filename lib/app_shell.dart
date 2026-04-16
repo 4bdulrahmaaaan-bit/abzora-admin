@@ -46,6 +46,7 @@ import 'screens/admin/admin_payouts_screen.dart';
 import 'screens/admin/admin_riders_screen.dart';
 import 'screens/admin/admin_vendors_screen.dart';
 import 'screens/vendor/vendor_dashboard.dart';
+import 'services/app_navigation_service.dart';
 import 'services/app_bootstrap_service.dart';
 import 'services/notification_service.dart';
 import 'theme.dart';
@@ -155,14 +156,16 @@ class AbzioApp extends StatelessWidget {
   final AbzioAppMode mode;
   final String initialRoute;
 
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      AppNavigationService.navigatorKey;
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
 
     return MaterialApp(
-      navigatorKey: navigatorKey,
+      navigatorKey: AppNavigationService.navigatorKey,
+      scaffoldMessengerKey: AppNavigationService.messengerKey,
       title: mode == AbzioAppMode.operations ? 'Abzora Partner' : 'Abzora',
       debugShowCheckedModeBanner: false,
       theme: AbzioTheme.lightTheme,
@@ -271,30 +274,35 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       return;
     }
 
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => LoginScreen(
-          mode: widget.mode,
-          adminEntry: kIsWeb && widget.mode == AbzioAppMode.unified,
+    if (widget.mode == AbzioAppMode.operations) {
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => LoginScreen(
+            mode: widget.mode,
+            adminEntry: kIsWeb && widget.mode == AbzioAppMode.unified,
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slideAnimation = Tween<Offset>(
+              begin: const Offset(0.04, 0),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            );
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: slideAnimation,
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 280),
         ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final slideAnimation = Tween<Offset>(
-            begin: const Offset(0.04, 0),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-          );
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: slideAnimation,
-              child: child,
-            ),
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 280),
-      ),
-    );
+      );
+      return;
+    }
+
+    Navigator.of(context).pushReplacementNamed('/home');
   }
 
   @override

@@ -27,9 +27,31 @@ class BackendApiClient {
 
   bool get isConfigured => AppConfig.hasBackendBaseUrl;
   static String? _preferredBaseUrl;
+  static Future<void> Function()? _unauthorizedHandler;
+  static bool _isHandlingUnauthorized = false;
 
   static final ValueNotifier<BackendAvailability> backendAvailability =
       ValueNotifier(const BackendAvailability.available());
+
+  static void registerUnauthorizedHandler(Future<void> Function()? handler) {
+    _unauthorizedHandler = handler;
+  }
+
+  Future<void> _notifyUnauthorized() async {
+    if (_isHandlingUnauthorized) {
+      return;
+    }
+    final handler = _unauthorizedHandler;
+    if (handler == null) {
+      return;
+    }
+    _isHandlingUnauthorized = true;
+    try {
+      await handler();
+    } finally {
+      _isHandlingUnauthorized = false;
+    }
+  }
 
   static void clearBackendAvailability() {
     backendAvailability.value = const BackendAvailability.available();
@@ -56,6 +78,7 @@ class BackendApiClient {
     if (authenticated) {
       final token = await FirebaseAuth.instance.currentUser?.getIdToken();
       if (token == null || token.isEmpty) {
+        unawaited(_notifyUnauthorized());
         throw StateError('Please sign in again to continue.');
       }
       headers['Authorization'] = 'Bearer $token';
@@ -225,6 +248,9 @@ class BackendApiClient {
     }
     if (decoded is Map<String, dynamic>) {
       if (response.statusCode < 200 || response.statusCode >= 300) {
+        if (response.statusCode == 401) {
+          unawaited(_notifyUnauthorized());
+        }
         if (response.statusCode >= 500) {
           _markBackendDown('Backend error (${response.statusCode}).');
         }
@@ -237,6 +263,9 @@ class BackendApiClient {
       return decoded.containsKey('data') ? decoded['data'] : decoded;
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (response.statusCode == 401) {
+        unawaited(_notifyUnauthorized());
+      }
       if (response.statusCode >= 500) {
         _markBackendDown('Backend error (${response.statusCode}).');
       }

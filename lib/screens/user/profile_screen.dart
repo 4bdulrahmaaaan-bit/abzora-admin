@@ -2,8 +2,10 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../app_shell.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/product_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
 import '../../widgets/brand_logo.dart';
@@ -12,6 +14,7 @@ import '../../widgets/shimmer_box.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/tap_scale.dart';
 import '../atelier/atelier_flow_screen.dart';
+import '../login_screen.dart';
 import '../tailoring/tailoring_flow_screen.dart';
 import 'address_screen.dart';
 import 'body_scan_screen.dart';
@@ -76,11 +79,27 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
-    final name = user?.name.trim().isNotEmpty == true ? user!.name.trim() : 'ABZORA Member';
+    if (user == null) {
+      return AbzioThemeScope.dark(
+        child: Scaffold(
+          backgroundColor: const Color(0xFFFFFDFC),
+          appBar: AppBar(title: const Text('Profile')),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
+              child: _buildGuestModeProfile(context),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final name = user.name.trim().isNotEmpty ? user.name.trim() : 'ABZORA Member';
     final nameParts = name.split(' ').where((part) => part.trim().isNotEmpty).toList();
     final firstName = nameParts.isEmpty ? 'there' : nameParts.first;
-    final phone = user?.phone?.trim().isNotEmpty == true ? user!.phone!.trim() : 'No phone linked';
-    final address = user?.address?.trim().isNotEmpty == true ? user!.address!.trim() : 'Set location';
+    final phone = user.phone?.trim().isNotEmpty == true ? user.phone!.trim() : 'No phone linked';
+    final address = user.address?.trim().isNotEmpty == true ? user.address!.trim() : 'Set location';
     final city = _extractCity(address);
 
     return AbzioThemeScope.dark(
@@ -102,7 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Good evening, $firstName ✨',
+                              'Good evening, $firstName âœ¨',
                               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -121,17 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       const SizedBox(height: 14),
                       _reveal(
                         0.02,
-                        user == null
-                            ? _buildEliteCard(
-                                context,
-                                auth: auth,
-                                user: user,
-                                name: name,
-                                phone: phone,
-                                city: city,
-                                address: address,
-                              )
-                            : StreamBuilder<AppUser?>(
+                        StreamBuilder<AppUser?>(
                                 stream: _database.watchUser(user.id),
                                 builder: (context, snapshot) {
                                   if (snapshot.connectionState == ConnectionState.waiting &&
@@ -231,13 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       const SizedBox(height: 14),
                       _reveal(
                         0.70,
-                        user == null
-                            ? _buildAiSupportState(
-                                context,
-                                subtitle: 'Instant help for styling and orders',
-                                badgeLabel: 'Live',
-                              )
-                            : StreamBuilder<List<SupportChat>>(
+                        StreamBuilder<List<SupportChat>>(
                                 stream: _database.watchSupportChatsForUser(actor: user),
                                 builder: (context, snapshot) {
                                   if (snapshot.hasError) {
@@ -277,7 +280,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                                 'Size: ${memory.size.trim()}',
                                               if (memory.lastConversationSummary.trim().isNotEmpty)
                                                 memory.lastConversationSummary.trim(),
-                                            ].join(' • ');
+                                            ].join(' â€¢ ');
                                       final supportSubtitle = unreadCount > 0
                                           ? '$unreadCount new assistant repl${unreadCount == 1 ? 'y' : 'ies'}'
                                           : openChats > 0
@@ -356,6 +359,401 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  Widget _buildGuestModeProfile(BuildContext context) {
+    final productProvider = context.watch<ProductProvider>();
+    final liveProducts = productProvider.trendingProducts
+        .where((product) => product.isActive)
+        .take(8)
+        .toList();
+    final contextProduct = liveProducts.isNotEmpty ? liveProducts.first : null;
+    final recentlyViewed = liveProducts.skip(1).take(6).toList();
+    final hasLastViewedData = recentlyViewed.isNotEmpty;
+    final recommendedSize = _guestSizeRecommendation(contextProduct);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _reveal(
+          0.00,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFFCF5), Color(0xFFF5E9D3)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 22,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome back to your style \u{1F44B}',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF1C1711),
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Pick up where you left off and keep your perfect fit saved',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF6A5E4E),
+                        height: 1.45,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        _reveal(
+          0.03,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFEFE4D3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 62,
+                    height: 62,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF2D2A26), Color(0xFF5C5242)],
+                      ),
+                    ),
+                    child: contextProduct != null && contextProduct.images.isNotEmpty
+                        ? Image.network(
+                            contextProduct.images.first,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.checkroom_rounded,
+                              color: Color(0xFFF6EAD3),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.local_fire_department_rounded,
+                            color: Color(0xFFF6EAD3),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hasLastViewedData ? 'Last viewed' : 'Trending now',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF8A7A63),
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        contextProduct?.name ?? 'Premium Satin Edit',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF20190F),
+                            ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        recommendedSize,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF5E5344),
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        _reveal(
+          0.06,
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LoginScreen(
+                      mode: AbzioAppMode.customer,
+                      deferredAction: true,
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(54),
+                backgroundColor: const Color(0xFF111111),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                elevation: 0,
+                shadowColor: Colors.transparent,
+                padding: EdgeInsets.zero,
+              ),
+              child: Ink(
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Color(0xFFB9924A), Color(0xFFC6A769), Color(0xFFD6BF8B)],
+                  ),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Continue with Phone \u2192',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1A140B),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        _reveal(
+          0.08,
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: const [
+              _GuestBenefitChip(icon: Icons.local_shipping_outlined, label: 'Track your orders'),
+              _GuestBenefitChip(icon: Icons.favorite_border_rounded, label: 'Save your wishlist'),
+              _GuestBenefitChip(icon: Icons.straighten_rounded, label: 'Get AI-powered fit'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        _reveal(
+          0.10,
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.of(context).pushNamed('/home'),
+              child: Text(
+                'Skip for now',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF7D7264),
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _reveal(
+          0.14,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Continue browsing',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF8A7A63),
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Recently Viewed',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1A1712),
+                    ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _reveal(
+          0.18,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: recentlyViewed.isNotEmpty
+                  ? [
+                      for (var i = 0; i < recentlyViewed.length; i++) ...[
+                        _GuestJourneyCard(
+                          title: recentlyViewed[i].name,
+                          subtitle: recentlyViewed[i].brand.trim().isNotEmpty
+                              ? recentlyViewed[i].brand.trim()
+                              : recentlyViewed[i].category,
+                          price: 'Rs ${recentlyViewed[i].effectivePrice.toStringAsFixed(0)}',
+                          accent: i.isEven ? const Color(0xFFF6EAD3) : const Color(0xFFF4EFE4),
+                          imageUrl: recentlyViewed[i].images.isNotEmpty ? recentlyViewed[i].images.first : null,
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            '/product-detail',
+                            arguments: recentlyViewed[i],
+                          ),
+                        ),
+                        if (i != recentlyViewed.length - 1) const SizedBox(width: 12),
+                      ],
+                    ]
+                  : const [
+                      _GuestJourneyCard(
+                        title: 'Satin Drape Dress',
+                        subtitle: 'Modern evening silhouette',
+                        price: 'From Rs 2,499',
+                        accent: Color(0xFFF6EAD3),
+                      ),
+                      SizedBox(width: 12),
+                      _GuestJourneyCard(
+                        title: 'Structured Blazer Set',
+                        subtitle: 'Polished fit for workwear',
+                        price: 'From Rs 1,899',
+                        accent: Color(0xFFF4EFE4),
+                      ),
+                      SizedBox(width: 12),
+                      _GuestJourneyCard(
+                        title: 'Linen Co-ord Edit',
+                        subtitle: 'Breezy premium weekend look',
+                        price: 'From Rs 1,599',
+                        accent: Color(0xFFF8F1DF),
+                      ),
+                    ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        _reveal(
+          0.24,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+              border: Border.all(
+                color: const Color(0xFFEFE5D3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7EEDC),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.home_work_outlined,
+                    color: Color(0xFF8D6A28),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Try at Home',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Try 5 styles at home. Pay only for what you keep',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF6A6156),
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pushNamed('/home'),
+                  child: const Text(
+                    'Explore',
+                    style: TextStyle(
+                      color: Color(0xFF8D6A28),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        _reveal(
+          0.30,
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: const [
+              _GuestTrustBadge(
+                icon: Icons.assignment_return_outlined,
+                label: 'Free returns',
+              ),
+              _GuestTrustBadge(
+                icon: Icons.lock_outline_rounded,
+                label: 'Secure checkout',
+              ),
+              _GuestTrustBadge(
+                icon: Icons.verified_outlined,
+                label: 'Verified sellers',
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+      ],
+    );
+  }
   bool get _showLegacyAtelierTeaser => false;
 
   Widget _buildEliteCard(
@@ -613,7 +1011,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Create Custom Outfit →',
+                        'Create Custom Outfit â†’',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 12,
@@ -729,7 +1127,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         child: Row(
           children: const [
-            Expanded(child: _ProfileValueCell(label: 'Wallet', value: '₹0', icon: Icons.account_balance_wallet_outlined)),
+            Expanded(child: _ProfileValueCell(label: 'Wallet', value: 'â‚¹0', icon: Icons.account_balance_wallet_outlined)),
             _ProfileValueDivider(),
             Expanded(child: _ProfileValueCell(label: 'Rewards', value: '0 pts', icon: Icons.stars_outlined)),
             _ProfileValueDivider(),
@@ -1804,7 +2202,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   String _formatCurrency(double value) {
     final whole = value == value.roundToDouble();
-    return whole ? '₹${value.toStringAsFixed(0)}' : '₹${value.toStringAsFixed(2)}';
+    return whole ? 'â‚¹${value.toStringAsFixed(0)}' : 'â‚¹${value.toStringAsFixed(2)}';
   }
 
   String _extractCity(String address) {
@@ -1916,7 +2314,6 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _confirmLogout(BuildContext context) async {
     final authProvider = context.read<AuthProvider>();
-    final navigator = Navigator.of(context);
     final shouldLogout = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
@@ -1951,15 +2348,31 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (!mounted) {
       return;
     }
-    await authProvider.logout();
-    if (!mounted) {
-      return;
-    }
-    navigator.pushNamedAndRemoveUntil('/login', (_) => false);
+    await authProvider.logout(
+      resetNavigation: true,
+      showSuccessMessage: true,
+    );
   }
 
   void _push(BuildContext context, Widget screen) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
+
+  String _guestSizeRecommendation(Product? product) {
+    if (product == null) {
+      return 'Size recommendation: M (most selected)';
+    }
+    final normalized = product.sizes
+        .map((size) => size.trim().toUpperCase())
+        .where((size) => size.isNotEmpty)
+        .toSet();
+    const preferenceOrder = ['M', 'L', 'S', 'XL', 'XS', 'XXL'];
+    for (final preferred in preferenceOrder) {
+      if (normalized.contains(preferred)) {
+        return 'Size recommendation: $preferred';
+      }
+    }
+    return 'Size recommendation: ${normalized.isEmpty ? 'M' : normalized.first}';
   }
 
   void _showPaymentMethodsSheet(BuildContext context) {
@@ -2322,6 +2735,204 @@ class _StyleProfileSnapshot {
   final BodyProfile? bodyProfile;
 }
 
+class _GuestBenefitChip extends StatelessWidget {
+  const _GuestBenefitChip({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: AbzioTheme.accentColor.withValues(alpha: 0.24),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 15,
+            color: const Color(0xFF7C5E23),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFF3B3022),
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuestJourneyCard extends StatelessWidget {
+  const _GuestJourneyCard({
+    required this.title,
+    required this.subtitle,
+    required this.price,
+    required this.accent,
+    this.imageUrl,
+    this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final String price;
+  final Color accent;
+  final String? imageUrl;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return TapScale(
+      onTap: onTap,
+      scale: 0.98,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Ink(
+            width: 196,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFEFE4D3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 14,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    height: 108,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          accent,
+                          const Color(0xFFF9F4EA),
+                        ],
+                      ),
+                    ),
+                    child: imageUrl?.trim().isNotEmpty == true
+                        ? Image.network(
+                            imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.checkroom_rounded,
+                              color: Color(0xFF8D6A28),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.checkroom_rounded,
+                            color: Color(0xFF8D6A28),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: const Color(0xFF20190F),
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF6F614D),
+                        height: 1.35,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  price,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF8D6A28),
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GuestTrustBadge extends StatelessWidget {
+  const _GuestTrustBadge({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEEE5D4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: const Color(0xFF8D6A28)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFF342A1D),
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProfileValueSnapshot {
   const _ProfileValueSnapshot({
     required this.orderCount,
@@ -2388,3 +2999,4 @@ class _ProfileValueDivider extends StatelessWidget {
     );
   }
 }
+

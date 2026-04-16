@@ -17,6 +17,7 @@ import '../../providers/product_provider.dart';
 import '../../services/backend_api_client.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/soft_auth_gate.dart';
 import '../../widgets/global_skeletons.dart';
 import '../../widgets/home_header.dart';
 import '../../widgets/product_card.dart';
@@ -159,8 +160,12 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: NavigationBar(
                 selectedIndex: _currentIndex,
-                onDestinationSelected: (index) =>
-                    setState(() => _currentIndex = index),
+                onDestinationSelected: (index) async {
+                  if (!mounted) {
+                    return;
+                  }
+                  setState(() => _currentIndex = index);
+                },
                 destinations: const [
                   NavigationDestination(
                     icon: Icon(Icons.home_outlined, color: Color(0xFF666666)),
@@ -313,10 +318,22 @@ class _HomeContentState extends State<HomeContent> {
                   ),
                 ),
               ),
-              onWishlistTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const WishlistScreen()),
-              ),
+              onWishlistTap: () async {
+                final allowed = await SoftAuthGate.ensureAuthenticated(
+                  context,
+                  intentLabel: 'Open wishlist',
+                  message:
+                      'Sign in to save looks and build your personal style shortlist.',
+                  promptStyle: AuthPromptStyle.softSheet,
+                );
+                if (!allowed || !context.mounted) {
+                  return;
+                }
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const WishlistScreen()),
+                );
+              },
               onCartTap: () => Navigator.pushNamed(context, '/cart'),
               onLocationTap: () => showLocationBottomSheet(context),
             ),
