@@ -2512,6 +2512,153 @@ class BackendCommerceService {
     return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
   }
 
+  Future<Map<String, dynamic>> getCtaDecision({
+    required String productId,
+    String userId = '',
+    int? fitConfidence,
+    double? returnHistory,
+    String userType = '',
+    String productType = '',
+    String locationSpeed = '',
+  }) async {
+    final payload = await _client.get(
+      '/cta-decision/$productId',
+      queryParameters: {
+        if (userId.trim().isNotEmpty) 'userId': userId.trim(),
+        if (fitConfidence != null) 'fitConfidence': fitConfidence.toString(),
+        if (returnHistory != null) 'returnHistory': returnHistory.toStringAsFixed(2),
+        if (userType.trim().isNotEmpty) 'userType': userType.trim(),
+        if (productType.trim().isNotEmpty) 'productType': productType.trim(),
+        if (locationSpeed.trim().isNotEmpty) 'locationSpeed': locationSpeed.trim(),
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> getExperienceConfig({
+    required String productId,
+    String userId = '',
+    int? fitConfidence,
+    double? returnRate,
+    int? sessionDepth,
+    double? productFitRisk,
+    bool? sameDayAvailable,
+    String userType = '',
+    String sessionId = '',
+  }) async {
+    final payload = await _client.get(
+      '/experience-config/$productId',
+      queryParameters: {
+        if (userId.trim().isNotEmpty) 'userId': userId.trim(),
+        if (fitConfidence != null) 'fitConfidence': fitConfidence.toString(),
+        if (returnRate != null) 'returnRate': returnRate.toStringAsFixed(2),
+        if (sessionDepth != null) 'sessionDepth': sessionDepth.toString(),
+        if (productFitRisk != null) 'productFitRisk': productFitRisk.toStringAsFixed(4),
+        if (sameDayAvailable != null) 'sameDayAvailable': sameDayAvailable.toString(),
+        if (userType.trim().isNotEmpty) 'userType': userType.trim(),
+        if (sessionId.trim().isNotEmpty) 'sessionId': sessionId.trim(),
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> getMlDecision({
+    required int fitConfidence,
+    required double returnRate,
+    required int sessionDepth,
+    required bool sameDayAvailable,
+    required double productFitRisk,
+    required String userType,
+    String userId = '',
+    String productId = '',
+  }) async {
+    final payload = await _client.get(
+      '/ml/decision',
+      queryParameters: {
+        'fitConfidence': fitConfidence.toString(),
+        'returnRate': returnRate.toStringAsFixed(2),
+        'sessionDepth': sessionDepth.toString(),
+        'sameDayAvailable': sameDayAvailable.toString(),
+        'productFitRisk': productFitRisk.toStringAsFixed(4),
+        'userType': userType,
+        if (userId.trim().isNotEmpty) 'userId': userId.trim(),
+        if (productId.trim().isNotEmpty) 'productId': productId.trim(),
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<void> postMlReward({
+    required String action,
+    required double reward,
+    String decisionId = '',
+    Map<String, dynamic> features = const <String, dynamic>{},
+    bool exploration = false,
+  }) async {
+    await _client.post(
+      '/ml/reward',
+      body: {
+        'action': action,
+        'reward': reward,
+        if (decisionId.trim().isNotEmpty) 'decisionId': decisionId.trim(),
+        if (features.isNotEmpty) 'features': features,
+        'exploration': exploration,
+      },
+    );
+  }
+
+  Future<void> trackAnalyticsEvent({
+    required String eventType,
+    String userId = '',
+    String sessionId = '',
+    String productId = '',
+    String decisionId = '',
+    String cta = '',
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) async {
+    await _client.post(
+      '/analytics/event',
+      body: {
+        'eventType': eventType,
+        if (userId.trim().isNotEmpty) 'userId': userId.trim(),
+        if (sessionId.trim().isNotEmpty) 'sessionId': sessionId.trim(),
+        if (productId.trim().isNotEmpty) 'productId': productId.trim(),
+        if (decisionId.trim().isNotEmpty) 'decisionId': decisionId.trim(),
+        if (cta.trim().isNotEmpty) 'cta': cta.trim(),
+        if (metadata.isNotEmpty) 'metadata': metadata,
+      },
+    );
+  }
+
+  Future<OrderModel> quickCheckoutOrder({
+    required String productId,
+    String size = '',
+    int quantity = 1,
+    String paymentMethod = 'COD',
+    Map<String, String> shippingAddress = const {},
+  }) async {
+    final payload = await _client.post(
+      '/orders/quick-checkout',
+      authenticated: true,
+      body: {
+        'productId': productId,
+        'size': size,
+        'quantity': quantity,
+        'paymentMethod': paymentMethod.toUpperCase() == 'COD' ? 'COD' : 'RAZORPAY',
+        'shippingAddress': {
+          'name': shippingAddress['name'] ?? '',
+          'phone': shippingAddress['phone'] ?? '',
+          'addressLine1': shippingAddress['addressLine1'] ?? '',
+          'addressLine2': shippingAddress['addressLine2'] ?? '',
+          'city': shippingAddress['city'] ?? '',
+          'state': shippingAddress['state'] ?? '',
+          'pincode': shippingAddress['pincode'] ?? '',
+        },
+      },
+    );
+    return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
+  }
+
   Map<String, dynamic> _productPayload(
     Product product, {
     required bool includeStoreId,

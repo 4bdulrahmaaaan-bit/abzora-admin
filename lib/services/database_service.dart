@@ -10277,6 +10277,125 @@ class DatabaseService {
     return config;
   }
 
+  Future<Map<String, dynamic>> getCtaDecision({
+    required String productId,
+    String userId = '',
+    int? fitConfidence,
+    double? returnHistory,
+    String userType = '',
+    String productType = '',
+    String locationSpeed = '',
+  }) async {
+    if (_backendCommerce.isConfigured) {
+      try {
+        final payload = await _backendCommerce.getExperienceConfig(
+          productId: productId,
+          userId: userId,
+          fitConfidence: fitConfidence,
+          returnRate: returnHistory,
+          sessionDepth: 1,
+          sameDayAvailable: null,
+          userType: userType,
+        );
+        if (payload.containsKey('type')) {
+          return payload;
+        }
+        return await _backendCommerce.getCtaDecision(
+          productId: productId,
+          userId: userId,
+          fitConfidence: fitConfidence,
+          returnHistory: returnHistory,
+          userType: userType,
+          productType: productType,
+          locationSpeed: locationSpeed,
+        );
+      } catch (_) {
+        return const <String, dynamic>{
+          'type': 'BUY_NOW_PRIORITY',
+          'fitConfidence': 88,
+          'reason': 'Fallback decision applied.',
+        };
+      }
+    }
+    return const <String, dynamic>{
+      'type': 'BUY_NOW_PRIORITY',
+      'fitConfidence': 88,
+      'reason': 'Backend unavailable; defaulting to fast checkout.',
+    };
+  }
+
+  Future<void> trackExperienceEvent({
+    required String eventType,
+    String userId = '',
+    String sessionId = '',
+    String productId = '',
+    String decisionId = '',
+    String cta = '',
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) async {
+    if (!_backendCommerce.isConfigured) {
+      return;
+    }
+    try {
+      await _backendCommerce.trackAnalyticsEvent(
+        eventType: eventType,
+        userId: userId,
+        sessionId: sessionId,
+        productId: productId,
+        decisionId: decisionId,
+        cta: cta,
+        metadata: metadata,
+      );
+    } catch (_) {
+      // Best-effort analytics should not block product flow.
+    }
+  }
+
+  Future<OrderModel> quickCheckoutOrder({
+    required String productId,
+    String size = '',
+    int quantity = 1,
+    String paymentMethod = 'COD',
+    Map<String, String> shippingAddress = const {},
+    required AppUser actor,
+  }) async {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.quickCheckoutOrder(
+        productId: productId,
+        size: size,
+        quantity: quantity,
+        paymentMethod: paymentMethod,
+        shippingAddress: shippingAddress,
+      );
+    }
+    final items = <OrderItem>[
+      OrderItem(
+        productId: productId,
+        productName: '',
+        quantity: quantity,
+        price: 0,
+        size: size,
+        imageUrl: '',
+      ),
+    ];
+    final shippingLine = [
+      shippingAddress['addressLine1'] ?? '',
+      shippingAddress['addressLine2'] ?? '',
+      shippingAddress['city'] ?? '',
+      shippingAddress['state'] ?? '',
+      shippingAddress['pincode'] ?? '',
+    ].where((item) => item.trim().isNotEmpty).join(', ');
+    return placeOrdersForCart(
+      actor: actor,
+      items: items,
+      paymentMethod: paymentMethod,
+      shippingLabel: shippingAddress['name'] ?? actor.name,
+      shippingAddress: shippingLine,
+      extraCharges: 0,
+      idempotencyKey: 'quick-${DateTime.now().millisecondsSinceEpoch}',
+    );
+  }
+
   Future<void> savePlatformSettings(
     PlatformSettings settings, {
     required AppUser actor,

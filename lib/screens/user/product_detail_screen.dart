@@ -25,6 +25,7 @@ import '../../widgets/state_views.dart';
 import 'ai_stylist_screen.dart';
 import 'avatar_try_on_screen.dart';
 import 'live_ar_try_on_screen.dart';
+import 'order_success_screen.dart';
 import 'trial_booking_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -57,12 +58,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   final GlobalKey _cartIconKey = GlobalKey();
   Offset? _cartFlightStart;
   Offset? _cartFlightEnd;
-  Size _cartFlightSize = const Size(88, 112);
-  bool _showCartFlight = false;
+  final Size _cartFlightSize = const Size(88, 112);
+  final bool _showCartFlight = false;
+  String _ctaDecisionType = 'BUY_NOW_PRIORITY';
+  int _decisionFitConfidence = 88;
+  String _experienceDecisionId = '';
+  late final String _experienceSessionId;
+  bool _ctaShownTracked = false;
 
   @override
   void initState() {
     super.initState();
+    _experienceSessionId = 'pdp-${DateTime.now().millisecondsSinceEpoch}-${widget.product.id}';
     _imageController = PageController();
     _cartFlightController = AnimationController(
       vsync: this,
@@ -114,6 +121,86 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       _resolvedProduct = widget.product;
       _loading = false;
     });
+    unawaited(
+      _trackExperienceEvent(
+        'product_view',
+        metadata: {'screen': 'product_detail'},
+      ),
+    );
+    unawaited(_loadCtaDecision());
+  }
+
+  String _ctaActionFromDecision(String decisionType) {
+    final normalized = decisionType.toUpperCase();
+    if (normalized == 'BUY_NOW_PRIORITY') {
+      return 'BUY_NOW';
+    }
+    if (normalized == 'TRY_AT_HOME_PRIORITY') {
+      return 'TRY_HOME';
+    }
+    return 'HYBRID';
+  }
+
+  Future<void> _trackExperienceEvent(
+    String eventType, {
+    String? cta,
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) async {
+    final userId = context.read<AuthProvider>().user?.id ?? '';
+    await _db.trackExperienceEvent(
+      eventType: eventType,
+      userId: userId,
+      sessionId: _experienceSessionId,
+      productId: _product.id,
+      decisionId: _experienceDecisionId,
+      cta: cta ?? _ctaActionFromDecision(_ctaDecisionType),
+      metadata: metadata,
+    );
+  }
+
+  Future<void> _loadCtaDecision() async {
+    final auth = context.read<AuthProvider>();
+    final user = auth.user;
+    final product = _product;
+    final localDecision = _resolveLocalCtaDecision(user: user, product: product);
+    try {
+      final payload = await _db.getCtaDecision(
+        productId: product.id,
+        userId: user?.id ?? '',
+        fitConfidence: localDecision.fitConfidence,
+        returnHistory: localDecision.returnHistory,
+        userType: localDecision.userType,
+        productType: localDecision.productType,
+        locationSpeed: localDecision.locationSpeed,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _ctaDecisionType = payload['type']?.toString().trim().isNotEmpty == true
+            ? payload['type'].toString().trim()
+            : localDecision.type;
+        _decisionFitConfidence = (payload['fitConfidence'] as num?)?.toInt() ??
+            localDecision.fitConfidence;
+        _experienceDecisionId = payload['decisionId']?.toString() ?? _experienceDecisionId;
+      });
+      if (!_ctaShownTracked) {
+        _ctaShownTracked = true;
+        unawaited(_trackExperienceEvent('cta_shown'));
+      }
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _ctaDecisionType = localDecision.type;
+        _decisionFitConfidence = localDecision.fitConfidence;
+      });
+      if (!_ctaShownTracked) {
+        _ctaShownTracked = true;
+        unawaited(_trackExperienceEvent('cta_shown'));
+      }
+    }
   }
 
 
@@ -373,13 +460,441 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     return 'M';
   }
 
+  String _sameDayCity(AuthProvider auth) {
+    final city = (auth.user?.city ?? '').trim();
+    if (city.isNotEmpty) {
+      return city;
+    }
+    final area = (auth.user?.area ?? '').trim();
+    if (area.isNotEmpty) {
+      return area;
+    }
+    return 'your city';
+  }
+
+  int _sameDayHoursLeft() {
+    final now = DateTime.now();
+    final cutoff = DateTime(now.year, now.month, now.day, 21);
+    if (!now.isBefore(cutoff)) {
+      return 0;
+    }
+    final mins = cutoff.difference(now).inMinutes;
+    return mins <= 0 ? 0 : (mins / 60).ceil();
+  }
+
+  _CtaDecisionSnapshot _resolveLocalCtaDecision({
+    required AppUser? user,
+    required Product product,
+  }) {
+    final productType = _isComplexFitProduct(product) ? 'complex' : 'simple';
+    final locationSpeed = _sameDayCity(context.read<AuthProvider>()) == 'your city'
+        ? 'normal'
+        : 'same_day';
+    final userType = user == null ? 'new' : 'repeat';
+    final fitConfidence = _recommendedFitConfidence(product, userType: userType);
+    const returnHistory = 12.0;
+
+    if (fitConfidence >= 85 && locationSpeed == 'same_day') {
+      return _CtaDecisionSnapshot(
+        type: 'BUY_NOW_PRIORITY',
+        fitConfidence: fitConfidence,
+        reason: 'High fit confidence with same-day fulfillment.',
+        returnHistory: returnHistory,
+        userType: userType,
+        productType: productType,
+        locationSpeed: locationSpeed,
+      );
+    }
+    if (fitConfidence < 70 || returnHistory >= 35) {
+      return _CtaDecisionSnapshot(
+        type: 'TRY_AT_HOME_PRIORITY',
+        fitConfidence: fitConfidence,
+        reason: 'Confidence is lower; trial can reduce return risk.',
+        returnHistory: returnHistory,
+        userType: userType,
+        productType: productType,
+        locationSpeed: locationSpeed,
+      );
+    }
+    if (userType == 'new') {
+      return _CtaDecisionSnapshot(
+        type: 'TRY_AT_HOME_PRIORITY',
+        fitConfidence: fitConfidence,
+        reason: 'New-user confidence flow prefers try-at-home first.',
+        returnHistory: returnHistory,
+        userType: userType,
+        productType: productType,
+        locationSpeed: locationSpeed,
+      );
+    }
+    return _CtaDecisionSnapshot(
+      type: 'HYBRID',
+      fitConfidence: fitConfidence,
+      reason: 'Balanced confidence profile; show both actions.',
+      returnHistory: returnHistory,
+      userType: userType,
+      productType: productType,
+      locationSpeed: locationSpeed,
+    );
+  }
+
+  bool _isComplexFitProduct(Product product) {
+    final category = product.category.trim().toLowerCase();
+    const complex = {
+      'dress',
+      'dresses',
+      'gown',
+      'gowns',
+      'blazer',
+      'blazers',
+      'suit',
+      'suits',
+    };
+    return complex.contains(category);
+  }
+
+  int _recommendedFitConfidence(Product product, {required String userType}) {
+    final base = userType == 'new' ? 74 : 88;
+    final adjusted = _isComplexFitProduct(product) ? base - 12 : base;
+    return adjusted.clamp(55, 98);
+  }
+
+  Future<void> _handleBuyNowTap(Product product) async {
+    await _trackExperienceEvent(
+      'cta_click',
+      cta: 'BUY_NOW',
+      metadata: {'decisionType': _ctaDecisionType},
+    );
+    await _openQuickCheckoutSheet(product);
+  }
+
+  Future<void> _handleTryHomeTap(Product product) async {
+    await _trackExperienceEvent(
+      'cta_click',
+      cta: 'TRY_HOME',
+      metadata: {'decisionType': _ctaDecisionType},
+    );
+    await _openPerfectFitExperience(product);
+  }
+
+  Future<void> _openQuickCheckoutSheet(Product product) async {
+    final auth = context.read<AuthProvider>();
+    unawaited(_trackExperienceEvent('checkout_start', cta: 'BUY_NOW'));
+    final allowed = await SoftAuthGate.ensureAuthenticated(
+      context,
+      intentLabel: 'Quick checkout',
+      promptStyle: AuthPromptStyle.softSheet,
+    );
+    if (!allowed || !mounted) {
+      return;
+    }
+    if (_selectedSize == null || _selectedSize!.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select your size first to continue.')),
+      );
+      return;
+    }
+    final user = auth.user;
+    if (user == null) {
+      return;
+    }
+
+    final defaultAddress = [
+      (user.address ?? '').trim(),
+      (user.city ?? '').trim(),
+    ].where((part) => part.isNotEmpty).join(', ').trim();
+    final addressController = TextEditingController(
+      text: defaultAddress.isEmpty ? 'Add your address' : defaultAddress,
+    );
+    var selectedPayment = 'COD';
+    var editingAddress = false;
+    var placingOrder = false;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final media = MediaQuery.of(context);
+            final currentAddress = addressController.text.trim();
+            return SafeArea(
+              top: false,
+              child: Container(
+                margin: EdgeInsets.only(bottom: media.viewInsets.bottom),
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFDFBF7),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD7CEBF),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Quick Checkout',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Arrives today',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF7F651F),
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE9DFCE)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Address',
+                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const Spacer(),
+                              TextButton(
+                                onPressed: () => setSheetState(() => editingAddress = !editingAddress),
+                                child: Text(editingAddress ? 'Done' : 'Edit'),
+                              ),
+                            ],
+                          ),
+                          if (editingAddress)
+                            TextField(
+                              controller: addressController,
+                              maxLines: 2,
+                              decoration: const InputDecoration(
+                                hintText: 'Flat, area, city',
+                              ),
+                            )
+                          else
+                            Text(
+                              currentAddress.isEmpty ? 'Add your address' : currentAddress,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE9DFCE)),
+                      ),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: SizedBox(
+                              width: 48,
+                              height: 58,
+                              child: AbzioNetworkImage(
+                                imageUrl: product.images.isNotEmpty ? product.images.first : '',
+                                fallbackLabel: product.name,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Size ${_selectedSize!.toUpperCase()}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            _pricing.currentLabel,
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Cash on Delivery'),
+                          selected: selectedPayment == 'COD',
+                          onSelected: (_) => setSheetState(() => selectedPayment = 'COD'),
+                        ),
+                        ChoiceChip(
+                          label: const Text('UPI'),
+                          selected: selectedPayment == 'UPI',
+                          onSelected: (_) => setSheetState(() => selectedPayment = 'UPI'),
+                        ),
+                        ChoiceChip(
+                          label: const Text('Cards'),
+                          selected: selectedPayment == 'CARDS',
+                          onSelected: (_) => setSheetState(() => selectedPayment = 'CARDS'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: placingOrder
+                            ? null
+                            : () async {
+                                final shippingAddress = addressController.text.trim();
+                                final messenger = ScaffoldMessenger.of(context);
+                                final rootNavigator = Navigator.of(context);
+                                final sheetNavigator = Navigator.of(sheetContext);
+                                if (shippingAddress.isEmpty || shippingAddress == 'Add your address') {
+                                  messenger.showSnackBar(
+                                    const SnackBar(content: Text('Please add your address.')),
+                                  );
+                                  return;
+                                }
+                                setSheetState(() => placingOrder = true);
+                                try {
+                                  if (selectedPayment != 'COD') {
+                                    if (mounted) {
+                                      if (sheetNavigator.canPop()) {
+                                        sheetNavigator.pop();
+                                      }
+                                      rootNavigator.pushNamed('/checkout');
+                                    }
+                                    return;
+                                  }
+                                  final order = await _db.quickCheckoutOrder(
+                                    productId: product.id,
+                                    size: _selectedSize ?? '',
+                                    quantity: 1,
+                                    paymentMethod: 'COD',
+                                    actor: user,
+                                    shippingAddress: {
+                                      'name': user.name.trim().isEmpty ? 'ABZORA Member' : user.name.trim(),
+                                      'phone': (user.phone ?? '').trim(),
+                                      'addressLine1': shippingAddress,
+                                      'addressLine2': '',
+                                      'city': (user.city ?? '').trim(),
+                                      'state': '',
+                                      'pincode': '',
+                                    },
+                                  );
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  if (sheetNavigator.canPop()) {
+                                    sheetNavigator.pop();
+                                  }
+                                  unawaited(
+                                    _trackExperienceEvent(
+                                      'purchase',
+                                      cta: 'BUY_NOW',
+                                      metadata: {
+                                        'orderId': order.id,
+                                        'paymentMethod': 'COD',
+                                      },
+                                    ),
+                                  );
+                                  await rootNavigator.push(
+                                    MaterialPageRoute(
+                                      builder: (_) => OrderSuccessScreen(
+                                        orderId: order.id,
+                                        estimatedDelivery: DateTime.now().add(const Duration(hours: 8)),
+                                        paymentMethod: 'COD',
+                                      ),
+                                    ),
+                                  );
+                                } catch (error) {
+                                  if (mounted) {
+                                    messenger.showSnackBar(
+                                      SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+                                    );
+                                  }
+                                } finally {
+                                  if (mounted) {
+                                    setSheetState(() => placingOrder = false);
+                                  }
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFC6A769),
+                          foregroundColor: const Color(0xFF16120D),
+                          minimumSize: const Size.fromHeight(50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: placingOrder
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text(
+                                '⚡ Confirm & get it today',
+                                style: TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    addressController.dispose();
+  }
+
   Future<void> _openPerfectFitExperience(Product product) async {
+    unawaited(_trackExperienceEvent('trial_request', cta: 'TRY_HOME'));
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Start Try at Home',
       message:
           'Sign in to schedule your try-at-home slot and save your fit preferences.',
-      promptStyle: AuthPromptStyle.fullScreen,
+      promptStyle: AuthPromptStyle.softSheet,
     );
     if (!allowed || !mounted) {
       return;
@@ -631,6 +1146,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     String? suggestedSize,
     String deliverySummary,
     String estimatedDelivery,
+    String sameDayCity,
+    int urgencyHoursLeft,
+    String ctaDecisionType,
     Color accentColor,
   ) {
     final brandLabel = product.brand.trim().isNotEmpty
@@ -640,6 +1158,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         ? description.trim()
         : 'Premium finish with a refined fit and a clean, elevated silhouette.';
     final _ = images;
+    final normalizedDecision = ctaDecisionType.toUpperCase();
+    final showBuyPriorityMessage = normalizedDecision != 'TRY_AT_HOME_PRIORITY';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -698,6 +1218,41 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   color: const Color(0xFF666666),
                   height: 1.45,
                 ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF16120D),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  showBuyPriorityMessage
+                      ? '⚡ Delivered today in $sameDayCity'
+                      : '✨ Try 5 styles, pay for what you keep',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFFF2D9A0),
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  showBuyPriorityMessage
+                      ? (urgencyHoursLeft > 0
+                          ? 'Order within $urgencyHoursLeft hrs for same-day delivery'
+                          : 'Order now for the earliest delivery slot')
+                      : 'Use Try at Home for better fit confidence before instant purchase.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.78),
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -758,7 +1313,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           if (suggestedSize != null) ...[
             const SizedBox(height: 8),
             Text(
-              'Recommended: Size $suggestedSize',
+              'Recommended Size: $suggestedSize (${_decisionFitConfidence.clamp(55, 99)}% match)',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -894,7 +1449,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           const SizedBox(height: 8),
           _buildSimpleBullet(
             icon: Icons.local_shipping_outlined,
-            label: 'Delivery by $estimatedDelivery',
+            label: 'Arrives today \u2022 Order within ${urgencyHoursLeft > 0 ? urgencyHoursLeft : 1} hrs',
           ),
           const SizedBox(height: 20),
           Row(
@@ -1220,7 +1775,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final isInCart = cart.items.any((item) => item.product.id == product.id);
     const primaryGold = Color(0xFFC8A96A);
     final canAddToBag = isInCart || hasSelectedSize;
-    const addToBagLabel = 'Add to Bag';
+    final decision = _ctaDecisionType.toUpperCase();
+    final buyNowPriority = decision == 'BUY_NOW_PRIORITY';
+    final tryPriority = decision == 'TRY_AT_HOME_PRIORITY';
 
     void showSelectSizeHint() {
       HapticFeedback.selectionClick();
@@ -1254,52 +1811,151 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: _BottomActionButton(
-                        label: 'Try at Home',
-                        icon: Icons.auto_awesome_rounded,
-                        onTap: hasSelectedSize
-                            ? () {
-                                HapticFeedback.lightImpact();
-                                _openPerfectFitExperience(product);
-                              }
-                            : showSelectSizeHint,
-                        outlined: false,
-                        accentColor: primaryGold,
-                        enabled: hasSelectedSize,
+              if (buyNowPriority)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton(
+                          onPressed: hasSelectedSize
+                              ? () {
+                                  HapticFeedback.lightImpact();
+                                  _handleTryHomeTap(product);
+                                }
+                              : showSelectSizeHint,
+                          child: Text(
+                            'Try at Home',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF6E5A37),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: _BottomActionButton(
-                        label: addToBagLabel,
-                        icon: Icons.shopping_bag_outlined,
-                        onTap: isInCart
-                            ? () {
-                                HapticFeedback.lightImpact();
-                                Navigator.pushNamed(context, '/cart');
-                              }
-                            : (canAddToBag
-                                  ? () {
-                                      HapticFeedback.lightImpact();
-                                      _handleAddToCartPress();
-                                    }
-                                  : showSelectSizeHint),
-                        outlined: true,
-                        accentColor: primaryGold,
-                        enabled: isInCart || canAddToBag,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: isInCart
+                              ? () {
+                                  HapticFeedback.lightImpact();
+                                  _handleBuyNowTap(product);
+                                }
+                              : (canAddToBag
+                                    ? () {
+                                        HapticFeedback.lightImpact();
+                                        _handleBuyNowTap(product);
+                                      }
+                                    : showSelectSizeHint),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryGold,
+                            foregroundColor: const Color(0xFF16120D),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text(
+                            '\u26A1 Get it today \u2192',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                )
+              else if (tryPriority)
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: isInCart
+                            ? () => _handleBuyNowTap(product)
+                            : (canAddToBag ? () => _handleBuyNowTap(product) : showSelectSizeHint),
+                        child: Text(
+                          'Get it today',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF6E5A37),
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: hasSelectedSize
+                              ? () => _handleTryHomeTap(product)
+                              : showSelectSizeHint,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryGold,
+                            foregroundColor: const Color(0xFF16120D),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text(
+                            '\u2728 Try at Home \u2192',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: OutlinedButton(
+                          onPressed: hasSelectedSize
+                              ? () => _handleTryHomeTap(product)
+                              : showSelectSizeHint,
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: primaryGold.withValues(alpha: 0.65)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text(
+                            '\u2728 Try at Home \u2192',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: isInCart
+                              ? () => _handleBuyNowTap(product)
+                              : (canAddToBag ? () => _handleBuyNowTap(product) : showSelectSizeHint),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryGold,
+                            foregroundColor: const Color(0xFF16120D),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text(
+                            '\u26A1 Get it today \u2192',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -1385,6 +2041,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 : null));
     final fixedHeaderHeight = MediaQuery.of(context).padding.top + 52;
     final deliverySummary = _resolveDeliverySummary(auth);
+    final sameDayCity = _sameDayCity(auth);
+    final urgencyHoursLeft = _sameDayHoursLeft();
     final estimatedDelivery = DateFormat(
       'EEE, dd MMM',
     ).format(DateTime.now().add(const Duration(days: 3)));
@@ -1435,6 +2093,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           suggestedSize,
                           deliverySummary,
                           estimatedDelivery,
+                          sameDayCity,
+                          urgencyHoursLeft,
+                          _ctaDecisionType,
                           accentColor,
                         ),
                         const SizedBox(height: 24),
@@ -2653,86 +3314,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
 */
-  bool _addToBag() {
-    if (_selectedSize == null) {
-      HapticFeedback.mediumImpact();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a size.')));
-      return false;
-    }
-    final result = context.read<CartProvider>().addToCart(_product, _selectedSize!);
-    if (result == CartAddResult.storeConflict) {
-      HapticFeedback.mediumImpact();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your bag can contain items from one store at a time. Please clear it or checkout first.')),
-      );
-      return false;
-    }
-    HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result == CartAddResult.updated ? 'Cart quantity updated.' : 'Added to cart.')),
-    );
-    return true;
-  }
-
-  Future<void> _handleAddToCartPress() async {
-    final allowed = await SoftAuthGate.ensureAuthenticated(
-      context,
-      intentLabel: 'Add to bag',
-      promptStyle: AuthPromptStyle.softSheet,
-    );
-    if (!allowed || !mounted) {
-      return;
-    }
-    final added = _addToBag();
-    if (!added) {
-      return;
-    }
-    await _runCartFlightAnimation();
-  }
-
-  Future<void> _runCartFlightAnimation() async {
-    final imageContext = _heroImageKey.currentContext;
-    final cartContext = _cartIconKey.currentContext;
-    if (imageContext == null || cartContext == null) {
-      return;
-    }
-
-    final imageBox = imageContext.findRenderObject() as RenderBox?;
-    final cartBox = cartContext.findRenderObject() as RenderBox?;
-    if (imageBox == null || cartBox == null) {
-      return;
-    }
-
-    final imageTopLeft = imageBox.localToGlobal(Offset.zero);
-    final cartTopLeft = cartBox.localToGlobal(Offset.zero);
-    final startSize = Size(
-      (imageBox.size.width * 0.22).clamp(82.0, 104.0),
-      (imageBox.size.height * 0.22).clamp(106.0, 128.0),
-    );
-
-    setState(() {
-      _cartFlightSize = startSize;
-      _cartFlightStart = Offset(
-        imageTopLeft.dx + (imageBox.size.width - startSize.width) / 2,
-        imageTopLeft.dy + imageBox.size.height * 0.34,
-      );
-      _cartFlightEnd = Offset(
-        cartTopLeft.dx + (cartBox.size.width / 2) - (startSize.width * 0.28) / 2,
-        cartTopLeft.dy + (cartBox.size.height / 2) - (startSize.height * 0.28) / 2,
-      );
-      _showCartFlight = true;
-    });
-
-    _cartPulseController.forward(from: 0);
-    await _cartFlightController.forward(from: 0);
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _showCartFlight = false;
-    });
-  }
-
   Future<void> _toggleWishlistWithAuth(
     WishlistProvider wishlist,
     Product product,
@@ -3364,77 +3945,6 @@ class _ViewerControlButton extends StatelessWidget {
   }
 }
 
-
-class _BottomActionButton extends StatelessWidget {
-  const _BottomActionButton({
-    required this.label,
-    required this.icon,
-    required this.accentColor,
-    required this.outlined,
-    required this.enabled,
-    this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color accentColor;
-  final bool outlined;
-  final bool enabled;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final foreground = outlined
-        ? (enabled ? const Color(0xFF111111) : const Color(0xFF9B9B9B))
-        : (enabled ? Colors.black : const Color(0xFF9B9B9B));
-    final background = outlined
-        ? Colors.white
-        : (enabled ? accentColor : const Color(0xFFE5E1D8));
-    final borderColor =
-        outlined ? const Color(0xFFE5E5E5) : Colors.transparent;
-
-    return TapScale(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Material(
-        color: background,
-        borderRadius: BorderRadius.circular(16),
-        elevation: 0,
-        shadowColor: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: borderColor),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 18, color: foreground),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: foreground,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.1,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // ignore: unused_element
 class _TrialAtHomeButton extends StatelessWidget {
@@ -4514,3 +5024,24 @@ class _DetailPricing {
     );
   }
 }
+
+class _CtaDecisionSnapshot {
+  const _CtaDecisionSnapshot({
+    required this.type,
+    required this.fitConfidence,
+    required this.reason,
+    required this.returnHistory,
+    required this.userType,
+    required this.productType,
+    required this.locationSpeed,
+  });
+
+  final String type;
+  final int fitConfidence;
+  final String reason;
+  final double returnHistory;
+  final String userType;
+  final String productType;
+  final String locationSpeed;
+}
+
