@@ -6014,18 +6014,11 @@ class DatabaseService {
               actor?.role == 'admin' ||
               actor?.role == 'super_admin') &&
           vendorOpsStatus.isNotEmpty) {
-        try {
-          await _backendCommerce.updateVendorOperationsOrderStatus(
-            orderId: orderId,
-            status: vendorOpsStatus,
-          );
-          return;
-        } catch (_) {
-          if (isCustomVendorStatus) {
-            await _backendCommerce.updateCustomVendorOrderStatus(orderId, status);
-            return;
-          }
-        }
+        await _backendCommerce.updateVendorOperationsOrderStatus(
+          orderId: orderId,
+          status: vendorOpsStatus,
+        );
+        return;
       }
       if (normalizedStatus == 'cancelled' && !isStoreManagedActor) {
         await _backendCommerce.cancelOrder(orderId);
@@ -6557,7 +6550,11 @@ class DatabaseService {
   }) async {
     _requireSuperAdmin(actor);
     if (_backendCommerce.isConfigured) {
-      await _backendCommerce.dispatchAssignOrder(orderId);
+      await _backendCommerce.assignRiderTask(
+        taskType: 'ORDER_DELIVERY',
+        orderId: orderId,
+        riderId: rider.id,
+      );
       return;
     }
     final existing = await _fetchDocument(
@@ -6802,7 +6799,20 @@ class DatabaseService {
 
   Future<void> acceptDeliveryRequest(String orderId, AppUser actor) async {
     if (_backendCommerce.isConfigured) {
-      await _backendCommerce.acceptDelivery(orderId);
+      final tasks = await _backendCommerce.getRiderLogisticsTasks(status: 'assigned');
+      final matched = tasks.where((task) => task.orderId == orderId).toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      if (matched.isEmpty) {
+        throw StateError('No assigned logistics task found for this order.');
+      }
+      await _backendCommerce.updateRiderLogisticsTaskStatus(
+        taskId: matched.first.id,
+        status: 'accepted',
+      );
+      await _backendCommerce.postTrackingOrderStatus(
+        orderId: orderId,
+        status: 'Assigned',
+      );
       return;
     }
     if (!isRider(actor) && !isSuperAdmin(actor)) {
@@ -6902,27 +6912,23 @@ class DatabaseService {
         'Delivered' => 'delivered',
         _ => '',
       };
-      if (taskStatus.isNotEmpty) {
-        try {
-          final tasks = await _backendCommerce.getRiderLogisticsTasks();
-          final matched = tasks.where((task) => task.orderId == orderId).toList()
-            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-          if (matched.isNotEmpty) {
-            await _backendCommerce.updateRiderLogisticsTaskStatus(
-              taskId: matched.first.id,
-              status: taskStatus,
-            );
-            await _backendCommerce.postTrackingOrderStatus(
-              orderId: orderId,
-              status: _normalizeRiderDeliveryStatus(deliveryStatus),
-            );
-            return;
-          }
-        } catch (_) {
-          // Fall through to legacy order status endpoint for compatibility.
-        }
+      if (taskStatus.isEmpty) {
+        throw StateError('Unsupported delivery status transition.');
       }
-      await _backendCommerce.updateDeliveryStatus(orderId, deliveryStatus);
+      final tasks = await _backendCommerce.getRiderLogisticsTasks();
+      final matched = tasks.where((task) => task.orderId == orderId).toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      if (matched.isEmpty) {
+        throw StateError('No logistics task found for this order.');
+      }
+      await _backendCommerce.updateRiderLogisticsTaskStatus(
+        taskId: matched.first.id,
+        status: taskStatus,
+      );
+      await _backendCommerce.postTrackingOrderStatus(
+        orderId: orderId,
+        status: _normalizeRiderDeliveryStatus(deliveryStatus),
+      );
       return;
     }
     final existing = await _fetchDocument(
@@ -8030,6 +8036,7 @@ class DatabaseService {
     required String taskType,
     String? orderId,
     String? trialSessionId,
+    String? riderId,
     double? dropLat,
     double? dropLng,
     String? city,
@@ -8041,6 +8048,7 @@ class DatabaseService {
         taskType: taskType,
         orderId: orderId,
         trialSessionId: trialSessionId,
+        riderId: riderId,
         dropLat: dropLat,
         dropLng: dropLng,
         city: city,

@@ -746,20 +746,6 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   Future<void> _assignRider(OrderModel order) async {
-    if (_db.usesBackendCommerce) {
-      await _db.assignRiderToOrder(order.id, _actor!, actor: _actor!);
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('Dispatch assignment triggered in backend mode.'),
-        ),
-      );
-      await _load();
-      return;
-    }
     final riders = _users
         .where(
           (user) =>

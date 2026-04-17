@@ -2513,6 +2513,7 @@ class BackendCommerceService {
     required String taskType,
     String? orderId,
     String? trialSessionId,
+    String? riderId,
     double? dropLat,
     double? dropLng,
     String? city,
@@ -2526,6 +2527,7 @@ class BackendCommerceService {
         if (orderId != null && orderId.trim().isNotEmpty) 'orderId': orderId.trim(),
         if (trialSessionId != null && trialSessionId.trim().isNotEmpty)
           'trialSessionId': trialSessionId.trim(),
+        if (riderId != null && riderId.trim().isNotEmpty) 'riderId': riderId.trim(),
         ..._optionalEntry('dropLat', dropLat),
         ..._optionalEntry('dropLng', dropLng),
         if (city != null && city.trim().isNotEmpty) 'city': city.trim(),
