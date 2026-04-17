@@ -1723,6 +1723,26 @@ class DatabaseService {
     }
   }
 
+  void _requireRiderOrAdmin(AppUser? actor) {
+    if (actor == null) {
+      throw StateError('Rider access denied.');
+    }
+    if (isSuperAdmin(actor) || isRider(actor)) {
+      return;
+    }
+    throw StateError('Rider access denied.');
+  }
+
+  void _requireVendorOrAdmin(AppUser? actor) {
+    if (actor == null) {
+      throw StateError('Vendor access denied.');
+    }
+    if (isSuperAdmin(actor) || actor.role == 'vendor') {
+      return;
+    }
+    throw StateError('Vendor access denied.');
+  }
+
   String _buildTrackingId(String storeId) {
     final seed = DateTime.now().millisecondsSinceEpoch.toString();
     return 'TRK-${storeId.toUpperCase()}-${seed.substring(seed.length - 6)}';
@@ -5962,34 +5982,60 @@ class DatabaseService {
     String status, {
     AppUser? actor,
   }) async {
-      if (_backendCommerce.isConfigured) {
-        final normalizedStatus = status.trim().toLowerCase();
-        final isCustomVendorStatus = <String>{
-          'new_order',
-          'accepted',
-          'needs_clarification',
-          'in_stitching',
-          'quality_check',
-          'ready',
-          'shipped',
-          'delivered',
-          'rejected',
-        }.contains(normalizedStatus);
-        final isStoreManagedActor =
-            actor != null &&
-            (actor.role == 'vendor' ||
-                actor.role == riderRole ||
-                actor.role == 'admin' ||
-                actor.role == 'super_admin');
-        if (normalizedStatus == 'cancelled' && !isStoreManagedActor) {
-          await _backendCommerce.cancelOrder(orderId);
-        } else if (isCustomVendorStatus) {
-          await _backendCommerce.updateCustomVendorOrderStatus(orderId, status);
-        } else {
-          await _backendCommerce.updateOrderStatus(orderId, status);
+    if (_backendCommerce.isConfigured) {
+      final normalizedStatus = status.trim().toLowerCase();
+      final isCustomVendorStatus = <String>{
+        'new_order',
+        'accepted',
+        'needs_clarification',
+        'in_stitching',
+        'quality_check',
+        'ready',
+        'shipped',
+        'delivered',
+        'rejected',
+      }.contains(normalizedStatus);
+      final isStoreManagedActor =
+          actor != null &&
+          (actor.role == 'vendor' ||
+              actor.role == riderRole ||
+              actor.role == 'admin' ||
+              actor.role == 'super_admin');
+      final vendorOpsStatus = switch (normalizedStatus) {
+        'placed' || 'new' || 'new_order' => 'new',
+        'confirmed' || 'accepted' => 'accepted',
+        'processing' || 'packed' || 'ready for pickup' || 'ready' => 'ready',
+        'picked up' || 'out for delivery' || 'shipped' => 'picked_up',
+        'delivered' || 'completed' => 'delivered',
+        'cancelled' || 'rejected' => 'rejected',
+        _ => '',
+      };
+      if ((actor?.role == 'vendor' ||
+              actor?.role == 'admin' ||
+              actor?.role == 'super_admin') &&
+          vendorOpsStatus.isNotEmpty) {
+        try {
+          await _backendCommerce.updateVendorOperationsOrderStatus(
+            orderId: orderId,
+            status: vendorOpsStatus,
+          );
+          return;
+        } catch (_) {
+          if (isCustomVendorStatus) {
+            await _backendCommerce.updateCustomVendorOrderStatus(orderId, status);
+            return;
+          }
         }
-        return;
       }
+      if (normalizedStatus == 'cancelled' && !isStoreManagedActor) {
+        await _backendCommerce.cancelOrder(orderId);
+      } else if (isCustomVendorStatus) {
+        await _backendCommerce.updateCustomVendorOrderStatus(orderId, status);
+      } else {
+        await _backendCommerce.updateOrderStatus(orderId, status);
+      }
+      return;
+    }
     final existing = await _fetchDocument(
       'orders/$orderId',
       (map, id) => OrderModel.fromMap(map, id),
@@ -6510,6 +6556,10 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.dispatchAssignOrder(orderId);
+      return;
+    }
     final existing = await _fetchDocument(
       'orders/$orderId',
       (map, id) => OrderModel.fromMap(map, id),
@@ -6605,36 +6655,46 @@ class DatabaseService {
 
   Future<List<UnifiedRiderTask>> getRiderTasks(AppUser actor) async {
     if (_backendCommerce.isConfigured) {
-      final orders = await _backendCommerce.getAssignedDeliveries();
-      final tasks =
-          orders
-              .map(
-                (order) => UnifiedRiderTask(
-                  id: 'delivery-${order.id}',
-                  type: 'delivery',
-                  orderId: order.id,
-                  userId: order.userId,
-                  address: order.shippingAddress,
-                  status: order.deliveryStatus == 'Delivered'
-                      ? 'completed'
-                      : (order.deliveryStatus == 'Picked up' ||
-                                order.deliveryStatus == 'Out for delivery'
-                            ? 'in_progress'
-                            : 'assigned'),
-                  riderId: actor.id,
-                  createdAt:
-                      order.createdAt ?? order.timestamp.toIso8601String(),
-                  updatedAt:
-                      order.updatedAt ?? order.timestamp.toIso8601String(),
-                ),
-              )
-              .toList()
-            ..sort(
-              (a, b) => a.status == b.status
-                  ? b.updatedAt.compareTo(a.updatedAt)
-                  : a.status.compareTo(b.status),
-            );
-      return tasks;
+      try {
+        final tasks = await _backendCommerce.getRiderLogisticsTasks();
+        tasks.sort(
+          (a, b) => a.status == b.status
+              ? b.updatedAt.compareTo(a.updatedAt)
+              : a.status.compareTo(b.status),
+        );
+        return tasks;
+      } catch (_) {
+        final orders = await _backendCommerce.getAssignedDeliveries();
+        final tasks =
+            orders
+                .map(
+                  (order) => UnifiedRiderTask(
+                    id: 'delivery-${order.id}',
+                    type: 'delivery',
+                    orderId: order.id,
+                    userId: order.userId,
+                    address: order.shippingAddress,
+                    status: order.deliveryStatus == 'Delivered'
+                        ? 'completed'
+                        : (order.deliveryStatus == 'Picked up' ||
+                                  order.deliveryStatus == 'Out for delivery'
+                              ? 'in_progress'
+                              : 'assigned'),
+                    riderId: actor.id,
+                    createdAt:
+                        order.createdAt ?? order.timestamp.toIso8601String(),
+                    updatedAt:
+                        order.updatedAt ?? order.timestamp.toIso8601String(),
+                  ),
+                )
+                .toList()
+              ..sort(
+                (a, b) => a.status == b.status
+                    ? b.updatedAt.compareTo(a.updatedAt)
+                    : a.status.compareTo(b.status),
+              );
+        return tasks;
+      }
     }
     if (!isRider(actor) && !isSuperAdmin(actor)) {
       throw StateError('Rider access denied.');
@@ -6835,6 +6895,33 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
+      final taskStatus = switch (_normalizeRiderDeliveryStatus(deliveryStatus)) {
+        'Assigned' => 'accepted',
+        'Picked up' => 'picked_up',
+        'Out for delivery' => 'out_for_delivery',
+        'Delivered' => 'delivered',
+        _ => '',
+      };
+      if (taskStatus.isNotEmpty) {
+        try {
+          final tasks = await _backendCommerce.getRiderLogisticsTasks();
+          final matched = tasks.where((task) => task.orderId == orderId).toList()
+            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+          if (matched.isNotEmpty) {
+            await _backendCommerce.updateRiderLogisticsTaskStatus(
+              taskId: matched.first.id,
+              status: taskStatus,
+            );
+            await _backendCommerce.postTrackingOrderStatus(
+              orderId: orderId,
+              status: _normalizeRiderDeliveryStatus(deliveryStatus),
+            );
+            return;
+          }
+        } catch (_) {
+          // Fall through to legacy order status endpoint for compatibility.
+        }
+      }
       await _backendCommerce.updateDeliveryStatus(orderId, deliveryStatus);
       return;
     }
@@ -6951,6 +7038,7 @@ class DatabaseService {
         orderId: orderId,
         latitude: latitude,
         longitude: longitude,
+        riderId: actor.id,
       );
       return;
     }
@@ -7685,6 +7773,393 @@ class DatabaseService {
       riderPending: 0,
       pendingWithdrawalAmount: 0,
     );
+  }
+
+  Future<List<OpsAlertItem>> getOpsAlerts({
+    required AppUser actor,
+    int limit = 50,
+    String? severity,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getOpsAlerts(
+        limit: limit,
+        severity: severity,
+      );
+    }
+    return const <OpsAlertItem>[];
+  }
+
+  Future<void> triggerOpsDetection({required AppUser actor}) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.triggerOpsDetection();
+      return;
+    }
+    throw StateError('Operations controls are only supported in backend mode.');
+  }
+
+  Future<void> runOpsAlertAction({
+    required AppUser actor,
+    required String alertId,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.runOpsAlertAction(alertId);
+      return;
+    }
+    throw StateError('Operations controls are only supported in backend mode.');
+  }
+
+  Future<void> opsReassignOrder({
+    required AppUser actor,
+    required String orderId,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.opsReassignOrder(orderId);
+      return;
+    }
+    throw StateError('Operations controls are only supported in backend mode.');
+  }
+
+  Future<void> opsCancelOrder({
+    required AppUser actor,
+    required String orderId,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.opsCancelOrder(orderId);
+      return;
+    }
+    throw StateError('Operations controls are only supported in backend mode.');
+  }
+
+  Future<void> opsForceDispatch({
+    required AppUser actor,
+    required String orderId,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.opsForceDispatch(orderId);
+      return;
+    }
+    throw StateError('Operations controls are only supported in backend mode.');
+  }
+
+  Future<void> opsRetryPayment({
+    required AppUser actor,
+    required String orderId,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.opsRetryPayment(orderId);
+      return;
+    }
+    throw StateError('Operations controls are only supported in backend mode.');
+  }
+
+  Future<List<OpsActionLogEntry>> getOpsLogs({
+    required AppUser actor,
+    int limit = 100,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getOpsLogs(limit: limit);
+    }
+    return const <OpsActionLogEntry>[];
+  }
+
+  Future<List<OpsMetricSnapshot>> getOpsMetrics({
+    required AppUser actor,
+    String type = 'hourly',
+    int limit = 24,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getOpsMetrics(type: type, limit: limit);
+    }
+    return const <OpsMetricSnapshot>[];
+  }
+
+  Future<OpsLiveSnapshot> getOpsLive({required AppUser actor}) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getOpsLive();
+    }
+    return const OpsLiveSnapshot();
+  }
+
+  Future<OpsSimulationOutput> runOpsSimulation({
+    required AppUser actor,
+    required int orders,
+    required int riders,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.runOpsSimulation(orders: orders, riders: riders);
+    }
+    throw StateError('Operations simulation is only supported in backend mode.');
+  }
+
+  Future<Map<String, dynamic>> dispatchAssignOrder({
+    required AppUser actor,
+    required String orderId,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.dispatchAssignOrder(orderId);
+    }
+    throw StateError('Dispatch assignment is only supported in backend mode.');
+  }
+
+  Future<Map<String, dynamic>> dispatchBatchAssign({
+    required AppUser actor,
+    String city = '',
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.dispatchBatchAssign(city: city);
+    }
+    throw StateError('Batch dispatch is only supported in backend mode.');
+  }
+
+  Future<List<Map<String, dynamic>>> getDispatchBatches({
+    required AppUser actor,
+    String? riderId,
+    String? status,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getDispatchBatches(riderId: riderId, status: status);
+    }
+    return const <Map<String, dynamic>>[];
+  }
+
+  Future<Map<String, dynamic>> triggerDispatchRebalance({
+    required AppUser actor,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.triggerDispatchRebalance();
+    }
+    throw StateError('Dispatch rebalance is only supported in backend mode.');
+  }
+
+  Future<Map<String, dynamic>> getDispatchSlaOverview({
+    required AppUser actor,
+    String? riderId,
+    String? vendorId,
+    String? storeId,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getDispatchSlaOverview(
+        riderId: riderId,
+        vendorId: vendorId,
+        storeId: storeId,
+      );
+    }
+    return const <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> getDispatchEta({
+    required AppUser actor,
+    required String orderId,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getDispatchEta(orderId);
+    }
+    return const <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> postTrackingLocationUpdate({
+    required AppUser actor,
+    required String orderId,
+    String? taskId,
+    required double latitude,
+    required double longitude,
+    double? speedKmph,
+    double? heading,
+  }) async {
+    _requireRiderOrAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.postTrackingLocationUpdate(
+        orderId: orderId,
+        taskId: taskId,
+        latitude: latitude,
+        longitude: longitude,
+        riderId: actor.id,
+        speedKmph: speedKmph,
+        heading: heading,
+      );
+    }
+    return const <String, dynamic>{};
+  }
+
+  Future<void> postTrackingOrderStatus({
+    required AppUser actor,
+    required String orderId,
+    required String status,
+  }) async {
+    _requireRiderOrAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.postTrackingOrderStatus(
+        orderId: orderId,
+        status: status,
+      );
+      return;
+    }
+    throw StateError('Tracking status updates are only supported in backend mode.');
+  }
+
+  Future<Map<String, dynamic>> getTrackingEta({
+    required AppUser actor,
+    required String orderId,
+  }) async {
+    _requireRiderOrAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getTrackingEta(orderId);
+    }
+    return const <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> assignRiderTask({
+    required AppUser actor,
+    required String taskType,
+    String? orderId,
+    String? trialSessionId,
+    double? dropLat,
+    double? dropLng,
+    String? city,
+    bool? sameDay,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.assignRiderTask(
+        taskType: taskType,
+        orderId: orderId,
+        trialSessionId: trialSessionId,
+        dropLat: dropLat,
+        dropLng: dropLng,
+        city: city,
+        sameDay: sameDay,
+      );
+    }
+    throw StateError('Rider assignment is only supported in backend mode.');
+  }
+
+  Future<List<UnifiedRiderTask>> getRiderLogisticsTasks({
+    required AppUser actor,
+    String? status,
+    bool activeOnly = false,
+  }) async {
+    _requireRiderOrAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      if (activeOnly) {
+        return _backendCommerce.getRiderActiveLogisticsTasks();
+      }
+      return _backendCommerce.getRiderLogisticsTasks(status: status);
+    }
+    return const <UnifiedRiderTask>[];
+  }
+
+  Future<UnifiedRiderTask> updateRiderLogisticsTaskStatus({
+    required AppUser actor,
+    required String taskId,
+    required String status,
+    String? otp,
+    String? proofPhotoUrl,
+    String? proofNote,
+  }) async {
+    _requireRiderOrAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.updateRiderLogisticsTaskStatus(
+        taskId: taskId,
+        status: status,
+        otp: otp,
+        proofPhotoUrl: proofPhotoUrl,
+        proofNote: proofNote,
+      );
+    }
+    throw StateError('Task updates are only supported in backend mode.');
+  }
+
+  Future<List<OrderModel>> getVendorOperationsOrders({
+    required AppUser actor,
+    String? status,
+    String? storeId,
+  }) async {
+    _requireVendorOrAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getVendorOperationsOrders(
+        status: status,
+        storeId: storeId,
+      );
+    }
+    return const <OrderModel>[];
+  }
+
+  Future<OrderModel> updateVendorOperationsOrderStatus({
+    required AppUser actor,
+    required String orderId,
+    required String status,
+  }) async {
+    _requireVendorOrAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.updateVendorOperationsOrderStatus(
+        orderId: orderId,
+        status: status,
+      );
+    }
+    throw StateError('Vendor order updates are only supported in backend mode.');
+  }
+
+  Future<List<TrialSession>> getVendorOperationsTrialRequests({
+    required AppUser actor,
+    String? status,
+    String? approvalStatus,
+  }) async {
+    _requireVendorOrAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getVendorOperationsTrialRequests(
+        status: status,
+        approvalStatus: approvalStatus,
+      );
+    }
+    return const <TrialSession>[];
+  }
+
+  Future<TrialSession> updateVendorOperationsTrialStatus({
+    required AppUser actor,
+    required String sessionId,
+    required String status,
+    String? note,
+    List<String>? keptItems,
+    List<String>? returnedItems,
+  }) async {
+    _requireVendorOrAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.updateVendorOperationsTrialStatus(
+        sessionId: sessionId,
+        status: status,
+        note: note,
+        keptItems: keptItems,
+        returnedItems: returnedItems,
+      );
+    }
+    throw StateError('Vendor trial updates are only supported in backend mode.');
+  }
+
+  Future<Map<String, dynamic>> getLogisticsOperationsAnalytics({
+    required AppUser actor,
+  }) async {
+    _requireVendorOrAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getLogisticsOperationsAnalytics();
+    }
+    return const <String, dynamic>{};
   }
 
   Future<List<Map<String, dynamic>>> settleRiderPayouts({

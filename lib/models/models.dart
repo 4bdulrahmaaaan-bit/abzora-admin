@@ -4420,6 +4420,207 @@ class GlobalSearchResults {
   });
 }
 
+class OpsAlertItem {
+  final String id;
+  final String alertId;
+  final String entityId;
+  final String entityType;
+  final String orderId;
+  final String taskId;
+  final String type;
+  final String severity;
+  final double score;
+  final String action;
+  final String status;
+  final String actionStatus;
+  final int retryCount;
+  final int maxRetries;
+  final String message;
+  final Map<String, dynamic> payload;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  const OpsAlertItem({
+    required this.id,
+    required this.alertId,
+    required this.entityId,
+    required this.entityType,
+    required this.orderId,
+    required this.taskId,
+    required this.type,
+    required this.severity,
+    required this.score,
+    required this.action,
+    required this.status,
+    required this.actionStatus,
+    required this.retryCount,
+    required this.maxRetries,
+    required this.message,
+    required this.payload,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory OpsAlertItem.fromMap(Map<String, dynamic> map, String docId) {
+    return OpsAlertItem(
+      id: docId,
+      alertId: map['alertId']?.toString() ?? '',
+      entityId: map['entityId']?.toString() ?? '',
+      entityType: map['entityType']?.toString() ?? '',
+      orderId: map['orderId']?.toString() ?? '',
+      taskId: map['taskId']?.toString() ?? '',
+      type: map['type']?.toString() ?? '',
+      severity: map['severity']?.toString() ?? 'LOW',
+      score: ((map['score'] ?? 0) as num).toDouble(),
+      action: map['action']?.toString() ?? '',
+      status: map['status']?.toString() ?? 'OPEN',
+      actionStatus: map['actionStatus']?.toString() ?? 'PENDING',
+      retryCount: ((map['retryCount'] ?? 0) as num).toInt(),
+      maxRetries: ((map['maxRetries'] ?? 0) as num).toInt(),
+      message: map['message']?.toString() ?? '',
+      payload: Map<String, dynamic>.from(map['payload'] as Map? ?? const {}),
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? '') ?? DateTime.now(),
+    );
+  }
+}
+
+class OpsActionLogEntry {
+  final String id;
+  final String alertId;
+  final String action;
+  final String status;
+  final String entityType;
+  final String entityId;
+  final String actorId;
+  final int attempt;
+  final String error;
+  final Map<String, dynamic> details;
+  final DateTime createdAt;
+
+  const OpsActionLogEntry({
+    required this.id,
+    required this.alertId,
+    required this.action,
+    required this.status,
+    required this.entityType,
+    required this.entityId,
+    required this.actorId,
+    required this.attempt,
+    required this.error,
+    required this.details,
+    required this.createdAt,
+  });
+
+  factory OpsActionLogEntry.fromMap(Map<String, dynamic> map, String id) {
+    return OpsActionLogEntry(
+      id: id,
+      alertId: map['alertId']?.toString() ?? '',
+      action: map['action']?.toString() ?? '',
+      status: map['status']?.toString() ?? '',
+      entityType: map['entityType']?.toString() ?? '',
+      entityId: map['entityId']?.toString() ?? '',
+      actorId: map['actorId']?.toString() ?? '',
+      attempt: ((map['attempt'] ?? 0) as num).toInt(),
+      error: map['error']?.toString() ?? '',
+      details: Map<String, dynamic>.from(map['details'] as Map? ?? const {}),
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
+    );
+  }
+}
+
+class OpsMetricSnapshot {
+  final String id;
+  final String bucketType;
+  final DateTime bucketStartAt;
+  final Map<String, dynamic> totals;
+
+  const OpsMetricSnapshot({
+    required this.id,
+    required this.bucketType,
+    required this.bucketStartAt,
+    required this.totals,
+  });
+
+  double get deliveries => ((totals['deliveries'] ?? 0) as num).toDouble();
+  double get delayedDeliveries => ((totals['delayedDeliveries'] ?? 0) as num).toDouble();
+  double get dispatchSuccess => ((totals['dispatchSuccess'] ?? 0) as num).toDouble();
+  double get dispatchFailures => ((totals['dispatchFailures'] ?? 0) as num).toDouble();
+  double get etaAccuracy => ((totals['etaAccuracy'] ?? 0) as num).toDouble();
+  double get autoResolvedAlerts => ((totals['autoResolvedAlerts'] ?? 0) as num).toDouble();
+  double get totalAlerts => ((totals['totalAlerts'] ?? 0) as num).toDouble();
+  double get riderEfficiency => ((totals['riderEfficiency'] ?? 0) as num).toDouble();
+  double get vendorEfficiency => ((totals['vendorEfficiency'] ?? 0) as num).toDouble();
+  double get avgDeliveryMinutes => ((totals['avgDeliveryMinutes'] ?? 0) as num).toDouble();
+  double get delayPercent => ((totals['delayPercent'] ?? 0) as num).toDouble();
+
+  factory OpsMetricSnapshot.fromMap(Map<String, dynamic> map, String id) {
+    return OpsMetricSnapshot(
+      id: id,
+      bucketType: map['bucketType']?.toString() ?? 'hourly',
+      bucketStartAt:
+          DateTime.tryParse(map['bucketStartAt']?.toString() ?? '') ?? DateTime.now(),
+      totals: Map<String, dynamic>.from(map['totals'] as Map? ?? const {}),
+    );
+  }
+}
+
+class OpsLiveSnapshot {
+  final List<OrderModel> liveOrders;
+  final List<AppUser> riders;
+  final List<AppUser> vendors;
+  final List<Map<String, dynamic>> dispatch;
+  final Map<String, int> alertCounts;
+
+  const OpsLiveSnapshot({
+    this.liveOrders = const [],
+    this.riders = const [],
+    this.vendors = const [],
+    this.dispatch = const [],
+    this.alertCounts = const {},
+  });
+}
+
+class OpsSimulationOutput {
+  final int orders;
+  final int riders;
+  final double avgDeliveryMinutes;
+  final double delayPercent;
+  final double dispatchSuccessPercent;
+  final double efficiencyScore;
+  final int delivered;
+  final int delayed;
+  final int dispatchFailures;
+
+  const OpsSimulationOutput({
+    required this.orders,
+    required this.riders,
+    required this.avgDeliveryMinutes,
+    required this.delayPercent,
+    required this.dispatchSuccessPercent,
+    required this.efficiencyScore,
+    required this.delivered,
+    required this.delayed,
+    required this.dispatchFailures,
+  });
+
+  factory OpsSimulationOutput.fromMap(Map<String, dynamic> map) {
+    final input = Map<String, dynamic>.from(map['input'] as Map? ?? const {});
+    final output = Map<String, dynamic>.from(map['output'] as Map? ?? const {});
+    return OpsSimulationOutput(
+      orders: ((input['orders'] ?? 0) as num).toInt(),
+      riders: ((input['riders'] ?? 0) as num).toInt(),
+      avgDeliveryMinutes: ((output['avgDeliveryMinutes'] ?? 0) as num).toDouble(),
+      delayPercent: ((output['delayPercent'] ?? 0) as num).toDouble(),
+      dispatchSuccessPercent: ((output['dispatchSuccessPercent'] ?? 0) as num).toDouble(),
+      efficiencyScore: ((output['efficiencyScore'] ?? 0) as num).toDouble(),
+      delivered: ((output['delivered'] ?? 0) as num).toInt(),
+      delayed: ((output['delayed'] ?? 0) as num).toInt(),
+      dispatchFailures: ((output['dispatchFailures'] ?? 0) as num).toInt(),
+    );
+  }
+}
+
 class CustomBrand {
   final String id;
   final String name;

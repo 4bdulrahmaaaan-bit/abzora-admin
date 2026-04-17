@@ -25,6 +25,13 @@ class BackendCommerceService {
         message.contains('clientexception');
   }
 
+  Map<String, dynamic> _optionalEntry(String key, Object? value) {
+    if (value == null) {
+      return const {};
+    }
+    return <String, dynamic>{key: value};
+  }
+
   Future<AppUser> getCurrentUserProfile() async {
     final payload = await _client.get('/auth/me', authenticated: true);
     final map = payload is Map<String, dynamic>
@@ -1694,6 +1701,251 @@ class BackendCommerceService {
         .toList();
   }
 
+  Future<List<OpsAlertItem>> getOpsAlerts({
+    int limit = 50,
+    String? severity,
+  }) async {
+    final payload = await _client.get(
+      '/ops/alerts',
+      authenticated: true,
+      queryParameters: {
+        'limit': '$limit',
+        if (severity != null && severity.trim().isNotEmpty)
+          'severity': severity.trim().toUpperCase(),
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return OpsAlertItem.fromMap(
+            map,
+            map['id']?.toString() ?? map['_id']?.toString() ?? '',
+          );
+        })
+        .toList();
+  }
+
+  Future<void> triggerOpsDetection() async {
+    await _client.post('/ops/detect', authenticated: true);
+  }
+
+  Future<void> runOpsAlertAction(String alertId) async {
+    await _client.post('/ops/alerts/$alertId/action', authenticated: true);
+  }
+
+  Future<void> opsReassignOrder(String orderId) async {
+    await _client.post('/ops/orders/$orderId/reassign', authenticated: true);
+  }
+
+  Future<void> opsCancelOrder(String orderId) async {
+    await _client.post('/ops/orders/$orderId/cancel', authenticated: true);
+  }
+
+  Future<void> opsForceDispatch(String orderId) async {
+    await _client.post('/ops/dispatch/$orderId/force', authenticated: true);
+  }
+
+  Future<void> opsRetryPayment(String orderId) async {
+    await _client.post('/ops/payments/$orderId/retry', authenticated: true);
+  }
+
+  Future<List<OpsActionLogEntry>> getOpsLogs({int limit = 100}) async {
+    final payload = await _client.get(
+      '/ops/logs',
+      authenticated: true,
+      queryParameters: {'limit': '$limit'},
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return OpsActionLogEntry.fromMap(
+            map,
+            map['id']?.toString() ?? map['_id']?.toString() ?? '',
+          );
+        })
+        .toList();
+  }
+
+  Future<List<OpsMetricSnapshot>> getOpsMetrics({
+    String type = 'hourly',
+    int limit = 24,
+  }) async {
+    final payload = await _client.get(
+      '/ops/metrics',
+      authenticated: true,
+      queryParameters: {
+        'type': type,
+        'limit': '$limit',
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return OpsMetricSnapshot.fromMap(
+            map,
+            map['id']?.toString() ?? map['_id']?.toString() ?? '',
+          );
+        })
+        .toList();
+  }
+
+  Future<OpsLiveSnapshot> getOpsLive() async {
+    final payload = await _client.get('/ops/live', authenticated: true);
+    final map = Map<String, dynamic>.from(payload as Map);
+
+    final liveOrders = ((map['liveOrders'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) {
+          final normalized = Map<String, dynamic>.from(item);
+          normalized['id'] ??= normalized['_id']?.toString() ?? '';
+          return _orderFromBackend(normalized);
+        })
+        .toList();
+
+    final riders = ((map['riders'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) {
+          final raw = Map<String, dynamic>.from(item);
+          return AppUser.fromMap({
+            'id': raw['uid']?.toString() ?? raw['_id']?.toString() ?? '',
+            'uid': raw['uid']?.toString() ?? '',
+            'name': raw['name']?.toString() ?? '',
+            'role': 'rider',
+            'riderApprovalStatus':
+                raw['riderApprovalStatus']?.toString() ?? 'approved',
+            'riderCity': raw['riderCity']?.toString() ?? '',
+            'isActive': true,
+            'latitude': raw['latitude'],
+            'longitude': raw['longitude'],
+          });
+        })
+        .toList();
+
+    final vendors = ((map['vendors'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) {
+          final raw = Map<String, dynamic>.from(item);
+          return AppUser.fromMap({
+            'id': raw['uid']?.toString() ?? raw['_id']?.toString() ?? '',
+            'uid': raw['uid']?.toString() ?? '',
+            'name': raw['name']?.toString() ?? '',
+            'role': 'vendor',
+            'storeId': raw['storeId']?.toString() ?? '',
+            'city': raw['city']?.toString() ?? '',
+            'isActive': true,
+          });
+        })
+        .toList();
+
+    final dispatch = ((map['dispatch'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+
+    final alertCountsRaw = ((map['alertCounts'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    final alertCounts = <String, int>{};
+    for (final row in alertCountsRaw) {
+      final key = row['_id']?.toString().toUpperCase() ?? 'LOW';
+      alertCounts[key] = ((row['count'] ?? 0) as num).toInt();
+    }
+
+    return OpsLiveSnapshot(
+      liveOrders: liveOrders,
+      riders: riders,
+      vendors: vendors,
+      dispatch: dispatch,
+      alertCounts: alertCounts,
+    );
+  }
+
+  Future<OpsSimulationOutput> runOpsSimulation({
+    required int orders,
+    required int riders,
+  }) async {
+    final payload = await _client.post(
+      '/ops/simulate',
+      authenticated: true,
+      body: {
+        'orders': orders,
+        'riders': riders,
+      },
+    );
+    return OpsSimulationOutput.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<Map<String, dynamic>> dispatchAssignOrder(String orderId) async {
+    final payload = await _client.post(
+      '/dispatch/assign',
+      authenticated: true,
+      body: {'orderId': orderId},
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> dispatchBatchAssign({String city = ''}) async {
+    final payload = await _client.post(
+      '/dispatch/batch-assign',
+      authenticated: true,
+      body: {'city': city},
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<List<Map<String, dynamic>>> getDispatchBatches({
+    String? riderId,
+    String? status,
+  }) async {
+    final payload = await _client.get(
+      '/dispatch/batches',
+      authenticated: true,
+      queryParameters: {
+        if (riderId != null && riderId.trim().isNotEmpty) 'riderId': riderId.trim(),
+        if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> triggerDispatchRebalance() async {
+    final payload = await _client.post('/dispatch/rebalance', authenticated: true);
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> getDispatchSlaOverview({
+    String? riderId,
+    String? vendorId,
+    String? storeId,
+  }) async {
+    final payload = await _client.get(
+      '/dispatch/sla',
+      authenticated: true,
+      queryParameters: {
+        if (riderId != null && riderId.trim().isNotEmpty) 'riderId': riderId.trim(),
+        if (vendorId != null && vendorId.trim().isNotEmpty) 'vendorId': vendorId.trim(),
+        if (storeId != null && storeId.trim().isNotEmpty) 'storeId': storeId.trim(),
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> getDispatchEta(String orderId) async {
+    final payload = await _client.get('/dispatch/eta/$orderId', authenticated: true);
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
   Future<List<TrialSession>> getAdminTrialHomeSessions({String? status}) async {
     final payload = await _client.get(
       '/admin/trial-home',
@@ -2187,17 +2439,221 @@ class BackendCommerceService {
     return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
   }
 
+  Future<Map<String, dynamic>> postTrackingLocationUpdate({
+    required String orderId,
+    String? taskId,
+    required double latitude,
+    required double longitude,
+    String? riderId,
+    double? speedKmph,
+    double? heading,
+  }) async {
+    final payload = await _client.post(
+      '/tracking/location-update',
+      authenticated: true,
+      body: {
+        'orderId': orderId,
+        if (taskId != null && taskId.trim().isNotEmpty) 'taskId': taskId.trim(),
+        if (riderId != null && riderId.trim().isNotEmpty) 'riderId': riderId.trim(),
+        'latitude': latitude,
+        'longitude': longitude,
+        ..._optionalEntry('speedKmph', speedKmph),
+        ..._optionalEntry('heading', heading),
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
   Future<OrderModel> updateRiderLocation({
     required String orderId,
     required double latitude,
     required double longitude,
+    String? taskId,
+    String? riderId,
+    double? speedKmph,
+    double? heading,
   }) async {
+    await postTrackingLocationUpdate(
+      orderId: orderId,
+      taskId: taskId,
+      latitude: latitude,
+      longitude: longitude,
+      riderId: riderId,
+      speedKmph: speedKmph,
+      heading: heading,
+    );
     final payload = await _client.patch(
       '/orders/$orderId/rider-location',
       authenticated: true,
       body: {'latitude': latitude, 'longitude': longitude},
     );
     return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<void> postTrackingOrderStatus({
+    required String orderId,
+    required String status,
+  }) async {
+    await _client.post(
+      '/tracking/order-status-update',
+      authenticated: true,
+      body: {
+        'orderId': orderId,
+        'status': status,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> getTrackingEta(String orderId) async {
+    final payload = await _client.get('/tracking/eta/$orderId', authenticated: true);
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> assignRiderTask({
+    required String taskType,
+    String? orderId,
+    String? trialSessionId,
+    double? dropLat,
+    double? dropLng,
+    String? city,
+    bool? sameDay,
+  }) async {
+    final payload = await _client.post(
+      '/assign-rider',
+      authenticated: true,
+      body: {
+        'taskType': taskType,
+        if (orderId != null && orderId.trim().isNotEmpty) 'orderId': orderId.trim(),
+        if (trialSessionId != null && trialSessionId.trim().isNotEmpty)
+          'trialSessionId': trialSessionId.trim(),
+        ..._optionalEntry('dropLat', dropLat),
+        ..._optionalEntry('dropLng', dropLng),
+        if (city != null && city.trim().isNotEmpty) 'city': city.trim(),
+        ..._optionalEntry('sameDay', sameDay),
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<List<UnifiedRiderTask>> getRiderLogisticsTasks({String? status}) async {
+    final payload = await _client.get(
+      '/rider/tasks',
+      authenticated: true,
+      queryParameters: {
+        if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => _riderTaskFromLogisticsMap(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<List<UnifiedRiderTask>> getRiderActiveLogisticsTasks() async {
+    final payload = await _client.get('/rider/tasks/active', authenticated: true);
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => _riderTaskFromLogisticsMap(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<UnifiedRiderTask> updateRiderLogisticsTaskStatus({
+    required String taskId,
+    required String status,
+    String? otp,
+    String? proofPhotoUrl,
+    String? proofNote,
+  }) async {
+    final payload = await _client.patch(
+      '/rider/tasks/$taskId/status',
+      authenticated: true,
+      body: {
+        'status': status,
+        if (otp != null && otp.trim().isNotEmpty) 'otp': otp.trim(),
+        if (proofPhotoUrl != null && proofPhotoUrl.trim().isNotEmpty)
+          'proofPhotoUrl': proofPhotoUrl.trim(),
+        if (proofNote != null && proofNote.trim().isNotEmpty) 'proofNote': proofNote.trim(),
+      },
+    );
+    return _riderTaskFromLogisticsMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<List<OrderModel>> getVendorOperationsOrders({
+    String? status,
+    String? storeId,
+  }) async {
+    final payload = await _client.get(
+      '/vendor/ops/orders',
+      authenticated: true,
+      queryParameters: {
+        if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
+        if (storeId != null && storeId.trim().isNotEmpty) 'storeId': storeId.trim(),
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => _orderFromBackend(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<OrderModel> updateVendorOperationsOrderStatus({
+    required String orderId,
+    required String status,
+  }) async {
+    final payload = await _client.patch(
+      '/vendor/ops/orders/$orderId/status',
+      authenticated: true,
+      body: {'status': status},
+    );
+    return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<List<TrialSession>> getVendorOperationsTrialRequests({
+    String? status,
+    String? approvalStatus,
+  }) async {
+    final payload = await _client.get(
+      '/vendor/ops/trial-requests',
+      authenticated: true,
+      queryParameters: {
+        if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
+        if (approvalStatus != null && approvalStatus.trim().isNotEmpty)
+          'approvalStatus': approvalStatus.trim(),
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => TrialSession.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<TrialSession> updateVendorOperationsTrialStatus({
+    required String sessionId,
+    required String status,
+    String? note,
+    List<String>? keptItems,
+    List<String>? returnedItems,
+  }) async {
+    final payload = await _client.patch(
+      '/vendor/ops/trial-requests/$sessionId/status',
+      authenticated: true,
+      body: {
+        'status': status,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        ..._optionalEntry('keptItems', keptItems),
+        ..._optionalEntry('returnedItems', returnedItems),
+      },
+    );
+    return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<Map<String, dynamic>> getLogisticsOperationsAnalytics() async {
+    final payload = await _client.get('/analytics/ops', authenticated: true);
+    return Map<String, dynamic>.from(payload as Map);
   }
 
   Future<OrderModel> updateOrderStatus(String orderId, String status) async {
@@ -2950,6 +3406,43 @@ class BackendCommerceService {
       default:
         return 'Pending';
     }
+  }
+
+  UnifiedRiderTask _riderTaskFromLogisticsMap(Map<String, dynamic> map) {
+    final rawStatus = map['status']?.toString().toLowerCase().trim() ?? '';
+    final normalizedStatus = switch (rawStatus) {
+      'assigned' => 'assigned',
+      'accepted' => 'assigned',
+      'picked_up' => 'in_progress',
+      'out_for_delivery' => 'in_progress',
+      'delivered' => 'completed',
+      'cancelled' => 'completed',
+      _ => rawStatus.isEmpty ? 'assigned' : rawStatus,
+    };
+    final rawType = map['taskType']?.toString().toUpperCase().trim() ?? '';
+    final taskType = rawType == 'TRIAL_PICKUP'
+        ? 'return'
+        : rawType == 'TRIAL_DELIVERY'
+            ? 'trial_delivery'
+            : 'delivery';
+    return UnifiedRiderTask(
+      id: map['id']?.toString() ?? map['_id']?.toString() ?? '',
+      type: taskType,
+      orderId: map['orderId']?.toString().trim().isEmpty == true
+          ? null
+          : map['orderId']?.toString(),
+      returnId: map['trialSessionId']?.toString().trim().isEmpty == true
+          ? null
+          : map['trialSessionId']?.toString(),
+      userId: map['userId']?.toString() ?? '',
+      address: map['dropAddress']?.toString().trim().isNotEmpty == true
+          ? map['dropAddress'].toString()
+          : (map['pickupAddress']?.toString() ?? ''),
+      status: normalizedStatus,
+      riderId: map['riderId']?.toString() ?? '',
+      createdAt: map['createdAt']?.toString() ?? '',
+      updatedAt: map['updatedAt']?.toString() ?? map['createdAt']?.toString() ?? '',
+    );
   }
 
   SupportChat _supportChatFromBackend(Map<String, dynamic> map) {

@@ -20,6 +20,7 @@ import 'admin_categories_section.dart';
 
 enum AdminWebSection {
   dashboard,
+  operations,
   banners,
   categories,
   kyc,
@@ -80,6 +81,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   List<AiUsageLogEntry> _aiUsageLogs = [];
   List<AiDailyStat> _aiDailyStats = [];
   List<UserAiUsageStat> _userAiUsageStats = [];
+  List<OpsAlertItem> _opsAlerts = [];
+  List<OpsActionLogEntry> _opsLogs = [];
+  List<OpsMetricSnapshot> _opsMetrics = [];
+  OpsLiveSnapshot _opsLive = const OpsLiveSnapshot();
+  OpsSimulationOutput? _lastOpsSimulation;
 
   bool _loading = true;
   bool _runningSearch = false;
@@ -259,6 +265,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         _db.getAiUsageLogs(actor: actor),
         _db.getAiDailyStats(actor: actor),
         _db.getUserAiUsageStats(actor: actor),
+        _safeOpsAlerts(actor),
+        _safeOpsLogs(actor),
+        _safeOpsMetrics(actor),
+        _safeOpsLive(actor),
       ]);
       if (!mounted) {
         return;
@@ -282,6 +292,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         _aiUsageLogs = results[13] as List<AiUsageLogEntry>;
         _aiDailyStats = results[14] as List<AiDailyStat>;
         _userAiUsageStats = results[15] as List<UserAiUsageStat>;
+        _opsAlerts = results[16] as List<OpsAlertItem>;
+        _opsLogs = results[17] as List<OpsActionLogEntry>;
+        _opsMetrics = results[18] as List<OpsMetricSnapshot>;
+        _opsLive = results[19] as OpsLiveSnapshot;
         _selectedSupportChatId ??= _supportChats.isEmpty ? null : _supportChats.first.id;
         _loading = false;
       });
@@ -626,6 +640,61 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     }
   }
 
+  Future<List<OpsAlertItem>> _safeOpsAlerts(AppUser actor) async {
+    try {
+      return await _db.getOpsAlerts(actor: actor, limit: 60);
+    } catch (_) {
+      return const <OpsAlertItem>[];
+    }
+  }
+
+  Future<List<OpsActionLogEntry>> _safeOpsLogs(AppUser actor) async {
+    try {
+      return await _db.getOpsLogs(actor: actor, limit: 120);
+    } catch (_) {
+      return const <OpsActionLogEntry>[];
+    }
+  }
+
+  Future<List<OpsMetricSnapshot>> _safeOpsMetrics(AppUser actor) async {
+    try {
+      return await _db.getOpsMetrics(actor: actor, type: 'hourly', limit: 24);
+    } catch (_) {
+      return const <OpsMetricSnapshot>[];
+    }
+  }
+
+  Future<OpsLiveSnapshot> _safeOpsLive(AppUser actor) async {
+    try {
+      return await _db.getOpsLive(actor: actor);
+    } catch (_) {
+      return const OpsLiveSnapshot();
+    }
+  }
+
+  Future<void> _runOpsAction({
+    required Future<void> Function() action,
+    required String successMessage,
+  }) async {
+    try {
+      await action();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(successMessage)));
+      await _load();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Action failed: $error')),
+      );
+    }
+  }
+
   Future<void> _rejectRefund(RefundRequest request) async {
     final actor = _actor;
     if (actor == null) {
@@ -677,6 +746,20 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   Future<void> _assignRider(OrderModel order) async {
+    if (_db.usesBackendCommerce) {
+      await _db.assignRiderToOrder(order.id, _actor!, actor: _actor!);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Dispatch assignment triggered in backend mode.'),
+        ),
+      );
+      await _load();
+      return;
+    }
     final riders = _users
         .where(
           (user) =>
@@ -1493,6 +1576,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   Widget _buildSidebar(BuildContext context) {
     final items = <(AdminWebSection, IconData, String)>[
       (AdminWebSection.dashboard, Icons.dashboard_outlined, 'Dashboard'),
+      (AdminWebSection.operations, Icons.emergency_outlined, 'Operations'),
       (AdminWebSection.banners, Icons.view_carousel_outlined, 'Banners'),
       (AdminWebSection.categories, Icons.category_outlined, 'Categories'),
       (AdminWebSection.kyc, Icons.verified_user_outlined, 'KYC Requests'),
@@ -1684,6 +1768,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       switch (_tab) {
         case AdminWebSection.dashboard:
           return _buildDashboard();
+        case AdminWebSection.operations:
+          return _buildOperations();
         case AdminWebSection.banners:
           return _usesBackendCommerce
             ? const AdminBannersSection()
@@ -1938,6 +2024,424 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           );
                         }).toList(),
                       ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Color _opsSeverityColor(String severity) {
+    switch (severity.toUpperCase()) {
+      case 'CRITICAL':
+        return const Color(0xFFD92D20);
+      case 'HIGH':
+        return const Color(0xFFDC6803);
+      case 'MEDIUM':
+        return const Color(0xFF2563EB);
+      default:
+        return const Color(0xFF667085);
+    }
+  }
+
+  Widget _buildOperations() {
+    final alerts = _opsAlerts;
+    final logs = _opsLogs;
+    final metrics = _opsMetrics.toList()
+      ..sort((a, b) => a.bucketStartAt.compareTo(b.bucketStartAt));
+    final live = _opsLive;
+
+    final criticalCount = live.alertCounts['CRITICAL'] ?? 0;
+    final highCount = live.alertCounts['HIGH'] ?? 0;
+    final mediumCount = live.alertCounts['MEDIUM'] ?? 0;
+    final lowCount = live.alertCounts['LOW'] ?? 0;
+
+    final latestMetric = metrics.isEmpty ? null : metrics.last;
+    final metricPoints = metrics
+        .take(12)
+        .map(
+          (entry) => AnalyticsPoint(
+            label: DateFormat('HH:mm').format(entry.bucketStartAt),
+            value: entry.delayPercent,
+          ),
+        )
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 136,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _MetricCard(title: 'Critical Alerts', value: '$criticalCount'),
+              _MetricCard(title: 'High Alerts', value: '$highCount'),
+              _MetricCard(title: 'Live Orders', value: '${live.liveOrders.length}'),
+              _MetricCard(title: 'Active Dispatch', value: '${live.dispatch.length}'),
+              _MetricCard(title: 'Active Riders', value: '${live.riders.length}'),
+              _MetricCard(title: 'Active Vendors', value: '${live.vendors.length}'),
+              _MetricCard(
+                title: 'Auto Resolution',
+                value: latestMetric == null
+                    ? '0%'
+                    : latestMetric.totalAlerts <= 0
+                    ? '0%'
+                    : '${((latestMetric.autoResolvedAlerts / latestMetric.totalAlerts) * 100).toStringAsFixed(1)}%',
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            FilledButton.icon(
+              onPressed: () => _runOpsAction(
+                action: () => _db.triggerOpsDetection(actor: _actor!),
+                successMessage: 'Ops detection cycle triggered.',
+              ),
+              icon: const Icon(Icons.radar_rounded),
+              label: const Text('Run Detection'),
+            ),
+            OutlinedButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Refresh'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final ordersController = TextEditingController(text: '300');
+                final ridersController = TextEditingController(text: '60');
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: const Text('Run Ops Simulation'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: ordersController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Orders (N)',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: ridersController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Riders (M)',
+                          ),
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        child: const Text('Run'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed != true) {
+                  return;
+                }
+                final orders = int.tryParse(ordersController.text.trim()) ?? 300;
+                final riders = int.tryParse(ridersController.text.trim()) ?? 60;
+                await _runOpsAction(
+                  action: () async {
+                    final output = await _db.runOpsSimulation(
+                      actor: _actor!,
+                      orders: orders,
+                      riders: riders,
+                    );
+                    if (!mounted) {
+                      return;
+                    }
+                    setState(() => _lastOpsSimulation = output);
+                  },
+                  successMessage: 'Simulation complete.',
+                );
+              },
+              icon: const Icon(Icons.science_outlined),
+              label: const Text('Simulation'),
+            ),
+          ],
+        ),
+        if (_lastOpsSimulation != null) ...[
+          const SizedBox(height: 16),
+          _Panel(
+            title: 'Latest Simulation',
+            subtitle: 'Synthetic stress result for dispatch and delay behavior.',
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _StatusPill(
+                  label: 'N ${_lastOpsSimulation!.orders}',
+                  color: const Color(0xFF175CD3),
+                ),
+                _StatusPill(
+                  label: 'M ${_lastOpsSimulation!.riders}',
+                  color: const Color(0xFF175CD3),
+                ),
+                _StatusPill(
+                  label:
+                      'Dispatch ${_lastOpsSimulation!.dispatchSuccessPercent.toStringAsFixed(1)}%',
+                  color: const Color(0xFF067647),
+                ),
+                _StatusPill(
+                  label: 'Delay ${_lastOpsSimulation!.delayPercent.toStringAsFixed(1)}%',
+                  color: const Color(0xFFB54708),
+                ),
+                _StatusPill(
+                  label: 'Efficiency ${_lastOpsSimulation!.efficiencyScore.toStringAsFixed(1)}',
+                  color: const Color(0xFF364152),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: _Panel(
+                title: 'Priority Alerts',
+                subtitle:
+                    'Top queue ordered by severity and score. Use quick actions for auto-healing and overrides.',
+                child: alerts.isEmpty
+                    ? const AbzioEmptyCard(
+                        title: 'No active alerts',
+                        subtitle: 'Operations queue is clear right now.',
+                      )
+                    : Column(
+                        children: alerts.take(14).map((alert) {
+                          final severityColor = _opsSeverityColor(alert.severity);
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AbzioTheme.grey200),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '${alert.type} • ${alert.entityType}:${alert.entityId}',
+                                        style: GoogleFonts.inter(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                    _StatusPill(
+                                      label:
+                                          '${alert.severity} ${alert.score.toStringAsFixed(0)}',
+                                      color: severityColor,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  alert.message,
+                                  style: GoogleFonts.inter(
+                                    color: AbzioTheme.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    OutlinedButton.icon(
+                                      onPressed: () => _runOpsAction(
+                                        action: () => _db.runOpsAlertAction(
+                                          actor: _actor!,
+                                          alertId: alert.alertId,
+                                        ),
+                                        successMessage:
+                                            'Alert action executed for ${alert.alertId}.',
+                                      ),
+                                      icon: const Icon(Icons.play_arrow_rounded),
+                                      label: const Text('Run Action'),
+                                    ),
+                                    if (alert.orderId.trim().isNotEmpty) ...[
+                                      OutlinedButton(
+                                        onPressed: () => _runOpsAction(
+                                          action: () => _db.opsReassignOrder(
+                                            actor: _actor!,
+                                            orderId: alert.orderId,
+                                          ),
+                                          successMessage:
+                                              'Order ${alert.orderId} reassigned.',
+                                        ),
+                                        child: const Text('Reassign'),
+                                      ),
+                                      OutlinedButton(
+                                        onPressed: () => _runOpsAction(
+                                          action: () => _db.opsForceDispatch(
+                                            actor: _actor!,
+                                            orderId: alert.orderId,
+                                          ),
+                                          successMessage:
+                                              'Force dispatch triggered.',
+                                        ),
+                                        child: const Text('Force Dispatch'),
+                                      ),
+                                      OutlinedButton(
+                                        onPressed: () => _runOpsAction(
+                                          action: () => _db.opsRetryPayment(
+                                            actor: _actor!,
+                                            orderId: alert.orderId,
+                                          ),
+                                          successMessage: 'Payment retry triggered.',
+                                        ),
+                                        child: const Text('Retry Payment'),
+                                      ),
+                                      OutlinedButton(
+                                        onPressed: () => _runOpsAction(
+                                          action: () => _db.opsCancelOrder(
+                                            actor: _actor!,
+                                            orderId: alert.orderId,
+                                          ),
+                                          successMessage: 'Order cancelled by override.',
+                                        ),
+                                        child: const Text('Cancel Order'),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 2,
+              child: Column(
+                children: [
+                  _Panel(
+                    title: 'Live Dispatch Snapshot',
+                    subtitle: 'Current hot-path activity from live orders and dispatch tasks.',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _StatusPill(label: 'Critical $criticalCount', color: _opsSeverityColor('CRITICAL')),
+                            _StatusPill(label: 'High $highCount', color: _opsSeverityColor('HIGH')),
+                            _StatusPill(label: 'Medium $mediumCount', color: _opsSeverityColor('MEDIUM')),
+                            _StatusPill(label: 'Low $lowCount', color: _opsSeverityColor('LOW')),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (live.dispatch.isEmpty)
+                          const AbzioEmptyCard(
+                            title: 'No active dispatch tasks',
+                            subtitle: 'Dispatch queue is stable at the moment.',
+                          )
+                        else
+                          Column(
+                            children: live.dispatch.take(8).map((task) {
+                              final taskId = task['_id']?.toString() ?? '';
+                              final status = task['status']?.toString() ?? '';
+                              final riderId = task['riderId']?.toString() ?? '';
+                              final orderId = task['orderId']?.toString() ?? '';
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.local_shipping_outlined),
+                                title: Text(
+                                  'Task $taskId',
+                                  style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                                ),
+                                subtitle: Text(
+                                  'Order $orderId • Rider $riderId',
+                                  style: GoogleFonts.inter(
+                                    color: AbzioTheme.textSecondary,
+                                  ),
+                                ),
+                                trailing: _StatusPill(
+                                  label: status.toUpperCase(),
+                                  color: const Color(0xFF175CD3),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _Panel(
+                    title: 'Delay Trend',
+                    subtitle:
+                        'Hourly delay percentage from operations metrics (latest 12 buckets).',
+                    child: metricPoints.isEmpty
+                        ? const AbzioEmptyCard(
+                            title: 'No metrics yet',
+                            subtitle: 'Metrics will appear after runtime aggregation cycles.',
+                          )
+                        : _MiniBarChart(
+                            points: metricPoints,
+                            barColor: const Color(0xFFDC6803),
+                            valueFormatter: (value) => '${value.toStringAsFixed(0)}%',
+                          ),
+                  ),
+                  const SizedBox(height: 16),
+                  _Panel(
+                    title: 'Ops Audit Log',
+                    subtitle: 'Latest action outcomes for auto and manual controls.',
+                    child: logs.isEmpty
+                        ? const AbzioEmptyCard(
+                            title: 'No operation logs',
+                            subtitle: 'Action logs will appear once worker actions execute.',
+                          )
+                        : Column(
+                            children: logs.take(10).map((entry) {
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.history_rounded),
+                                title: Text(
+                                  '${entry.action} • ${entry.status}',
+                                  style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                                ),
+                                subtitle: Text(
+                                  '${entry.entityType}:${entry.entityId} • attempt ${entry.attempt}',
+                                  style: GoogleFonts.inter(
+                                    color: AbzioTheme.textSecondary,
+                                  ),
+                                ),
+                                trailing: Text(
+                                  DateFormat('dd MMM HH:mm').format(entry.createdAt),
+                                  style: GoogleFonts.inter(
+                                    color: AbzioTheme.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                  ),
+                ],
               ),
             ),
           ],
