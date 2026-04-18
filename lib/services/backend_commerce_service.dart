@@ -1246,6 +1246,37 @@ class BackendCommerceService {
     return PlatformSettings.fromMap(Map<String, dynamic>.from(payload as Map));
   }
 
+  Future<PricingConfigModel> getAdminPricingConfig() async {
+    final payload = await _client.get('/admin/pricing', authenticated: true);
+    final map = Map<String, dynamic>.from(payload as Map);
+    final config = Map<String, dynamic>.from(map['config'] as Map? ?? const {});
+    config['auditLogs'] = map['auditLogs'] ?? const [];
+    return PricingConfigModel.fromMap(config);
+  }
+
+  Future<PricingConfigModel> updateAdminPricingScope({
+    required String endpoint,
+    required Map<String, dynamic> body,
+  }) async {
+    final payload = await _client.post(
+      endpoint,
+      authenticated: true,
+      body: body,
+    );
+    return PricingConfigModel.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<Map<String, dynamic>> simulateAdminPricing({
+    required Map<String, dynamic> body,
+  }) async {
+    final payload = await _client.post(
+      '/admin/pricing/simulate',
+      authenticated: true,
+      body: body,
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
   Future<List<AppNotification>> getAdminNotifications() async {
     final payload = await _client.get(
       '/admin/notifications',

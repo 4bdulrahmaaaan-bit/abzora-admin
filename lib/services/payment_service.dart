@@ -443,23 +443,14 @@ class PaymentService {
         throw StateError('Saved card response is invalid.');
       }
 
-      final token = finalizePayload['token']?.toString() ?? '';
-      if (token.isEmpty) {
-        throw StateError(
-          finalizePayload['message']?.toString() ??
-              'Razorpay did not return a reusable card token. Check that tokenization is enabled on the account.',
-        );
-      }
-
       return PaymentCardVaultResult(
         success: true,
         paymentId: checkoutResult.paymentId,
         orderId: checkoutResult.orderId,
         signature: checkoutResult.signature,
         card: SavedCardSummary(
-          id: finalizePayload['cardId']?.toString() ?? token,
+          id: finalizePayload['cardId']?.toString() ?? '',
           userId: userId,
-          gatewayToken: token,
           last4: finalizePayload['last4']?.toString() ?? '0000',
           cardType: finalizePayload['cardType']?.toString() ?? 'Card',
           gatewayCustomerId: finalizePayload['gatewayCustomerId']?.toString(),

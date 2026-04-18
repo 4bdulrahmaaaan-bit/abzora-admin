@@ -268,7 +268,6 @@ exports.finalizeCardSetup = onRequest({ cors: true }, async (request, response) 
 
     response.status(200).json({
       cardId: cardRef.id,
-      token,
       last4,
       cardType: String(cardType).toUpperCase(),
       gatewayCustomerId: payment.customer_id || null,

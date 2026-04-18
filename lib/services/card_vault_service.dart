@@ -4,7 +4,6 @@ class SavedCardSummary {
   const SavedCardSummary({
     required this.id,
     required this.userId,
-    required this.gatewayToken,
     required this.last4,
     required this.cardType,
     required this.createdAt,
@@ -13,7 +12,6 @@ class SavedCardSummary {
 
   final String id;
   final String userId;
-  final String gatewayToken;
   final String last4;
   final String cardType;
   final DateTime? createdAt;
@@ -43,7 +41,7 @@ class CardVaultService {
       '/cards',
       authenticated: true,
       body: {
-        'token': card.gatewayToken,
+        'cardRef': card.id,
         'last4': card.last4,
         'cardType': card.cardType,
         'gatewayCustomerId': card.gatewayCustomerId ?? '',
@@ -59,7 +57,6 @@ class CardVaultService {
         .map((item) => SavedCardSummary(
               id: item['id']?.toString() ?? '',
               userId: item['userId']?.toString() ?? '',
-              gatewayToken: item['token']?.toString() ?? '',
               last4: item['last4']?.toString() ?? '0000',
               cardType: item['cardType']?.toString() ?? 'Card',
               gatewayCustomerId: item['gatewayCustomerId']?.toString(),

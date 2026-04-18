@@ -4420,6 +4420,129 @@ class GlobalSearchResults {
   });
 }
 
+class PricingAuditEntry {
+  final String id;
+  final String adminId;
+  final String adminEmail;
+  final String action;
+  final String scope;
+  final Map<String, dynamic> previousValue;
+  final Map<String, dynamic> newValue;
+  final List<String> changedFields;
+  final DateTime timestamp;
+
+  const PricingAuditEntry({
+    required this.id,
+    required this.adminId,
+    required this.adminEmail,
+    required this.action,
+    required this.scope,
+    required this.previousValue,
+    required this.newValue,
+    required this.changedFields,
+    required this.timestamp,
+  });
+
+  factory PricingAuditEntry.fromMap(Map<String, dynamic> map) {
+    return PricingAuditEntry(
+      id: map['id']?.toString() ?? '',
+      adminId: map['adminId']?.toString() ?? '',
+      adminEmail: map['adminEmail']?.toString() ?? '',
+      action: map['action']?.toString() ?? '',
+      scope: map['scope']?.toString() ?? '',
+      previousValue: Map<String, dynamic>.from(
+        map['previousValue'] as Map? ?? const {},
+      ),
+      newValue: Map<String, dynamic>.from(
+        map['newValue'] as Map? ?? const {},
+      ),
+      changedFields: List<String>.from(map['changedFields'] ?? const []),
+      timestamp:
+          DateTime.tryParse(map['timestamp']?.toString() ?? '') ?? DateTime.now(),
+    );
+  }
+}
+
+class PricingConfigModel {
+  final Map<String, dynamic> commission;
+  final Map<String, dynamic> deliveryFees;
+  final Map<String, dynamic> trialPricing;
+  final Map<String, dynamic> discounts;
+  final Map<String, dynamic> riderPayouts;
+  final Map<String, dynamic> dynamicRules;
+  final DateTime? updatedAt;
+  final String updatedBy;
+  final String updateSource;
+  final List<PricingAuditEntry> auditLogs;
+
+  const PricingConfigModel({
+    this.commission = const {},
+    this.deliveryFees = const {},
+    this.trialPricing = const {},
+    this.discounts = const {},
+    this.riderPayouts = const {},
+    this.dynamicRules = const {},
+    this.updatedAt,
+    this.updatedBy = '',
+    this.updateSource = '',
+    this.auditLogs = const [],
+  });
+
+  PricingConfigModel copyWith({
+    Map<String, dynamic>? commission,
+    Map<String, dynamic>? deliveryFees,
+    Map<String, dynamic>? trialPricing,
+    Map<String, dynamic>? discounts,
+    Map<String, dynamic>? riderPayouts,
+    Map<String, dynamic>? dynamicRules,
+    DateTime? updatedAt,
+    String? updatedBy,
+    String? updateSource,
+    List<PricingAuditEntry>? auditLogs,
+  }) {
+    return PricingConfigModel(
+      commission: commission ?? this.commission,
+      deliveryFees: deliveryFees ?? this.deliveryFees,
+      trialPricing: trialPricing ?? this.trialPricing,
+      discounts: discounts ?? this.discounts,
+      riderPayouts: riderPayouts ?? this.riderPayouts,
+      dynamicRules: dynamicRules ?? this.dynamicRules,
+      updatedAt: updatedAt ?? this.updatedAt,
+      updatedBy: updatedBy ?? this.updatedBy,
+      updateSource: updateSource ?? this.updateSource,
+      auditLogs: auditLogs ?? this.auditLogs,
+    );
+  }
+
+  factory PricingConfigModel.fromMap(Map<String, dynamic> map) {
+    return PricingConfigModel(
+      commission: Map<String, dynamic>.from(map['commission'] as Map? ?? const {}),
+      deliveryFees: Map<String, dynamic>.from(
+        map['deliveryFees'] as Map? ?? const {},
+      ),
+      trialPricing: Map<String, dynamic>.from(
+        map['trialPricing'] as Map? ?? const {},
+      ),
+      discounts: Map<String, dynamic>.from(
+        map['discounts'] as Map? ?? const {},
+      ),
+      riderPayouts: Map<String, dynamic>.from(
+        map['riderPayouts'] as Map? ?? const {},
+      ),
+      dynamicRules: Map<String, dynamic>.from(
+        map['dynamicRules'] as Map? ?? const {},
+      ),
+      updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? ''),
+      updatedBy: map['updatedBy']?.toString() ?? '',
+      updateSource: map['updateSource']?.toString() ?? '',
+      auditLogs: (map['auditLogs'] as List? ?? const [])
+          .whereType<Map>()
+          .map((item) => PricingAuditEntry.fromMap(Map<String, dynamic>.from(item)))
+          .toList(),
+    );
+  }
+}
+
 class OpsAlertItem {
   final String id;
   final String alertId;

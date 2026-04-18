@@ -49,22 +49,10 @@ class AppConfig {
     'KYC_FACE_MATCH_ENDPOINT',
     defaultValue: '',
   );
-  static const String openAiApiKey = String.fromEnvironment(
-    'OPENAI_API_KEY',
-    defaultValue: '',
-  );
-  static const String openAiModel = String.fromEnvironment(
-    'OPENAI_MODEL',
-    defaultValue: 'gpt-5-mini',
-  );
-  static const String openAiCheapModel = String.fromEnvironment(
-    'OPENAI_CHEAP_MODEL',
-    defaultValue: 'gpt-5-nano',
-  );
-  static const String openAiResponsesEndpoint = String.fromEnvironment(
-    'OPENAI_RESPONSES_ENDPOINT',
-    defaultValue: 'https://api.openai.com/v1/responses',
-  );
+  static const String openAiApiKey = '';
+  static const String openAiModel = 'gpt-5-mini';
+  static const String openAiCheapModel = 'gpt-5-nano';
+  static const String openAiResponsesEndpoint = '';
   static const String elevenLabsApiKey = String.fromEnvironment(
     'ELEVENLABS_API_KEY',
     defaultValue: '',
@@ -136,7 +124,7 @@ class AppConfig {
   static bool get hasKycFaceMatchEndpoint => kycFaceMatchEndpoint.isNotEmpty;
 
   static bool get hasOpenAiConfig =>
-      openAiApiKey.isNotEmpty && openAiResponsesEndpoint.isNotEmpty;
+      false;
 
   static bool get hasElevenLabsConfig =>
       elevenLabsApiKey.isNotEmpty && elevenLabsVoiceId.isNotEmpty;

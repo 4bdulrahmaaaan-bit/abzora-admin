@@ -10736,6 +10736,48 @@ class DatabaseService {
     return settings ?? const PlatformSettings();
   }
 
+  Future<PricingConfigModel> getAdminPricingConfig({required AppUser actor}) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getAdminPricingConfig();
+    }
+    return const PricingConfigModel();
+  }
+
+  Future<PricingConfigModel> updateAdminPricingScope({
+    required String endpoint,
+    required Map<String, dynamic> body,
+    required AppUser actor,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      final updated = await _backendCommerce.updateAdminPricingScope(
+        endpoint: endpoint,
+        body: body,
+      );
+      await logActivity(
+        action: 'update_pricing_controls',
+        targetType: 'pricing',
+        targetId: endpoint,
+        message: 'Updated admin pricing controls via $endpoint.',
+        actor: actor,
+      );
+      return updated;
+    }
+    return const PricingConfigModel();
+  }
+
+  Future<Map<String, dynamic>> simulateAdminPricing({
+    required Map<String, dynamic> body,
+    required AppUser actor,
+  }) async {
+    _requireSuperAdmin(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.simulateAdminPricing(body: body);
+    }
+    return const <String, dynamic>{};
+  }
+
   Future<HomeVisualConfigModel> getHomeVisualConfig({
     bool adminView = false,
     AppUser? actor,
