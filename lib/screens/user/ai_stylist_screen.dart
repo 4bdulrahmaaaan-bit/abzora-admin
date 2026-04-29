@@ -3,11 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/cart_provider.dart';
 import '../../services/ai_stylist_service.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
 import '../../widgets/tap_scale.dart';
-import 'ai_stylist_quick_checkout_screen.dart';
 import 'product_detail_screen.dart';
 import 'size_recommendation_screen.dart';
 
@@ -647,22 +647,29 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
     if (!mounted) {
       return;
     }
-    final placedOrder = await Navigator.push<OrderModel>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AiStylistQuickCheckoutScreen(
-          product: card.product,
-          recommendedSize: size,
-        ),
-      ),
-    );
-    if (placedOrder == null || !mounted) {
+    final cart = context.read<CartProvider>();
+    final result = cart.addToCart(card.product, size);
+    if (result == CartAddResult.storeConflict) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your bag already contains products from another store.'),
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    await Navigator.pushNamed(context, '/cart');
+    if (!mounted) {
       return;
     }
     setState(() {
       _messages.add(
         _StylistMessage.assistant(
-          text: 'Your order has been placed successfully. Order #${placedOrder.id} is now confirmed for ${card.product.name}.',
+          text: '${card.product.name} is in your bag. Review your cart and complete checkout.',
           quickReplies: const [
             'Track my order',
             'Suggest another outfit',
@@ -675,7 +682,7 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
     await _database.saveAiStylistConversationTurn(
       actor: user,
       userMessage: 'Buy ${card.product.name}',
-      assistantReply: 'Your order has been placed successfully for ${card.product.name}.',
+      assistantReply: '${card.product.name} was added to cart. User redirected to cart for checkout.',
     );
   }
 

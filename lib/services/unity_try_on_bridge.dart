@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../models/ar_try_on_models.dart';
+import '../models/ar_realtime_try_on_result.dart';
 
 class UnityTryOnBridge {
   UnityTryOnBridge._();
@@ -11,13 +12,16 @@ class UnityTryOnBridge {
   static final UnityTryOnBridge instance = UnityTryOnBridge._();
 
   static const MethodChannel _channel = MethodChannel('abzora/unity_try_on');
-  static const EventChannel _events = EventChannel('abzora/unity_try_on/events');
+  static const EventChannel _events = EventChannel(
+    'abzora/unity_try_on/events',
+  );
 
   Stream<Map<String, dynamic>>? _unityEvents;
 
   Future<void> initialize({
     required ArTryOnProductMetadata metadata,
     Map<String, double> measurements = const {},
+    Map<String, dynamic> userProfile = const {},
     bool enableAvatar = true,
   }) async {
     await _channel.invokeMethod<void>('initialize', {
@@ -30,7 +34,13 @@ class UnityTryOnBridge {
       'materialProfile': metadata.materialProfile,
       'overlayAssetUrl': metadata.overlayAssetUrl,
       'alignmentConfig': metadata.alignmentConfig,
+      'templateId': metadata.templateId,
+      'template': metadata.templateData,
+      'garmentConfig': metadata.garmentConfig,
+      'lodModels': metadata.lodModels,
+      'customizableParts': metadata.customizableParts,
       'measurements': measurements,
+      'userProfile': userProfile,
       'enableAvatar': enableAvatar,
       'platform': defaultTargetPlatform.name,
     });
@@ -45,13 +55,16 @@ class UnityTryOnBridge {
       'materialProfile': metadata.materialProfile,
       'overlayAssetUrl': metadata.overlayAssetUrl,
       'alignmentConfig': metadata.alignmentConfig,
+      'templateId': metadata.templateId,
+      'template': metadata.templateData,
+      'garmentConfig': metadata.garmentConfig,
+      'lodModels': metadata.lodModels,
+      'customizableParts': metadata.customizableParts,
     });
   }
 
   Future<void> updatePose(Map<String, dynamic> poseFrame) async {
-    await _channel.invokeMethod<void>('updatePose', {
-      'poseFrame': poseFrame,
-    });
+    await _channel.invokeMethod<void>('updatePose', {'poseFrame': poseFrame});
   }
 
   Future<void> setMeasurements(Map<String, double> measurements) async {
@@ -74,5 +87,16 @@ class UnityTryOnBridge {
       }
       return const <String, dynamic>{};
     });
+  }
+
+  Stream<ArRealtimeTryOnResult> get fitResults {
+    return events
+        .where((event) {
+          final type = event['type']?.toString().toLowerCase() ?? '';
+          return type == 'fit_result' ||
+              type == 'fit-score' ||
+              event.containsKey('fitScore');
+        })
+        .map(ArRealtimeTryOnResult.fromUnityEvent);
   }
 }

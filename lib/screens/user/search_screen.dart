@@ -30,6 +30,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final List<String> _recent = <String>[];
   Timer? _debounce;
   String _query = '';
+  SearchFilter _filter = const SearchFilter();
 
   static const _trending = <String>[
     'Tailored tuxedo',
@@ -71,13 +72,14 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final query = _query.trim().toLowerCase();
-    final results = query.isEmpty
+    final matchedByQuery = query.isEmpty
         ? const <Product>[]
         : widget.allProducts.where((product) {
             return '${product.name} ${product.description} ${product.category}'
                 .toLowerCase()
                 .contains(query);
           }).toList();
+    final results = _applyAdvancedFilters(matchedByQuery, _filter);
 
     return AbzioThemeScope.light(
       child: Scaffold(
@@ -89,6 +91,8 @@ class _SearchScreenState extends State<SearchScreen> {
               _SearchHeader(
                 selectedLocation: widget.selectedLocation,
                 onBack: () => Navigator.pop(context),
+                selectedCount: _filter.selectedFiltersCount,
+                onFilterTap: () => _openFilterSheet(matchedByQuery),
               ),
               Expanded(
                 child: ListView(
@@ -215,6 +219,303 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  List<Product> _applyAdvancedFilters(
+    List<Product> products,
+    SearchFilter filter,
+  ) {
+    final filtered = products.where((product) {
+      if (product.effectivePrice < filter.priceRange.start ||
+          product.effectivePrice > filter.priceRange.end) {
+        return false;
+      }
+      if (filter.category != 'All' && product.category != filter.category) {
+        return false;
+      }
+      if (filter.size != 'All' &&
+          !product.sizes
+              .map((size) => size.toUpperCase())
+              .contains(filter.size.toUpperCase())) {
+        return false;
+      }
+      if (filter.sameDayAvailable &&
+          !_attrBool(product, 'sameDayAvailable', fallback: false)) {
+        return false;
+      }
+      if (filter.tryAtHomeAvailable &&
+          !_attrBool(product, 'tryAtHomeAvailable', fallback: false)) {
+        return false;
+      }
+      if (filter.customizable &&
+          !(product.isCustomTailoring ||
+              _attrBool(product, 'customizable', fallback: false))) {
+        return false;
+      }
+      if (product.rating < filter.minRating) {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    filtered.sort((left, right) {
+      switch (filter.sort) {
+        case ProductSortOption.priceLowToHigh:
+          return left.effectivePrice.compareTo(right.effectivePrice);
+        case ProductSortOption.priceHighToLow:
+          return right.effectivePrice.compareTo(left.effectivePrice);
+        case ProductSortOption.newest:
+          final leftDate = DateTime.tryParse(left.createdAt ?? '') ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          final rightDate = DateTime.tryParse(right.createdAt ?? '') ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          return rightDate.compareTo(leftDate);
+        case ProductSortOption.popularity:
+          return _popularityScore(right).compareTo(_popularityScore(left));
+        case ProductSortOption.sameDayPriority:
+          final leftSameDay = _attrBool(left, 'sameDayAvailable', fallback: false);
+          final rightSameDay =
+              _attrBool(right, 'sameDayAvailable', fallback: false);
+          if (leftSameDay != rightSameDay) {
+            return leftSameDay ? -1 : 1;
+          }
+          return _popularityScore(right).compareTo(_popularityScore(left));
+        case ProductSortOption.relevance:
+          return _relevanceScore(right).compareTo(_relevanceScore(left));
+      }
+    });
+    return filtered;
+  }
+
+  int _popularityScore(Product product) {
+    return (product.demandScore * 100).round() +
+        (product.purchaseCount * 4) +
+        product.viewCount;
+  }
+
+  int _relevanceScore(Product product) {
+    var score = _popularityScore(product);
+    score += (product.rating * 10).round();
+    if (_attrBool(product, 'sameDayAvailable', fallback: false)) {
+      score += 30;
+    }
+    return score;
+  }
+
+  bool _attrBool(Product product, String key, {required bool fallback}) {
+    final value = (product.attributes[key] ?? '').toLowerCase().trim();
+    if (value == 'true' || value == '1') {
+      return true;
+    }
+    if (value == 'false' || value == '0') {
+      return false;
+    }
+    return fallback;
+  }
+
+  Future<void> _openFilterSheet(List<Product> baseMatches) async {
+    var draft = _filter;
+    final categories = <String>{
+      'All',
+      ...widget.allProducts.map((item) => item.category).where((item) => item.isNotEmpty),
+    }.toList();
+    final sizes = const <String>['All', 'XS', 'S', 'M', 'L', 'XL', 'XXL'];
+    final result = await showModalBottomSheet<SearchFilter>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final previewCount = _applyAdvancedFilters(baseMatches, draft).length;
+            return SafeArea(
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.9,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Filters',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: () => setModalState(() {
+                              draft = const SearchFilter();
+                            }),
+                            child: const Text('Clear all'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                        children: [
+                          Text('Category', style: Theme.of(context).textTheme.titleSmall),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: categories
+                                .map(
+                                  (item) => ChoiceChip(
+                                    label: Text(item),
+                                    selected: draft.category == item,
+                                    onSelected: (_) => setModalState(() {
+                                      draft = draft.copyWith(category: item);
+                                    }),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                          const SizedBox(height: 18),
+                          Text('Price', style: Theme.of(context).textTheme.titleSmall),
+                          RangeSlider(
+                            values: draft.priceRange,
+                            min: 0,
+                            max: 5000,
+                            divisions: 50,
+                            labels: RangeLabels(
+                              'Rs ${draft.priceRange.start.round()}',
+                              'Rs ${draft.priceRange.end.round()}',
+                            ),
+                            onChanged: (value) => setModalState(() {
+                              draft = draft.copyWith(priceRange: value);
+                            }),
+                          ),
+                          const SizedBox(height: 12),
+                          Text('Size', style: Theme.of(context).textTheme.titleSmall),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: sizes
+                                .map(
+                                  (item) => ChoiceChip(
+                                    label: Text(item),
+                                    selected: draft.size == item,
+                                    onSelected: (_) => setModalState(() {
+                                      draft = draft.copyWith(size: item);
+                                    }),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                          const SizedBox(height: 18),
+                          Text('Experience', style: Theme.of(context).textTheme.titleSmall),
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Available Today'),
+                            value: draft.sameDayAvailable,
+                            onChanged: (value) => setModalState(() {
+                              draft = draft.copyWith(sameDayAvailable: value);
+                            }),
+                          ),
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Try at Home'),
+                            value: draft.tryAtHomeAvailable,
+                            onChanged: (value) => setModalState(() {
+                              draft = draft.copyWith(tryAtHomeAvailable: value);
+                            }),
+                          ),
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Customizable'),
+                            value: draft.customizable,
+                            onChanged: (value) => setModalState(() {
+                              draft = draft.copyWith(customizable: value);
+                            }),
+                          ),
+                          const SizedBox(height: 10),
+                          Text('Sort by', style: Theme.of(context).textTheme.titleSmall),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<ProductSortOption>(
+                            initialValue: draft.sort,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: ProductSortOption.relevance,
+                                child: Text('Relevance'),
+                              ),
+                              DropdownMenuItem(
+                                value: ProductSortOption.priceLowToHigh,
+                                child: Text('Price: Low to High'),
+                              ),
+                              DropdownMenuItem(
+                                value: ProductSortOption.priceHighToLow,
+                                child: Text('Price: High to Low'),
+                              ),
+                              DropdownMenuItem(
+                                value: ProductSortOption.newest,
+                                child: Text('Newest'),
+                              ),
+                              DropdownMenuItem(
+                                value: ProductSortOption.popularity,
+                                child: Text('Popularity'),
+                              ),
+                              DropdownMenuItem(
+                                value: ProductSortOption.sameDayPriority,
+                                child: Text('Same-Day Priority'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value == null) return;
+                              setModalState(() {
+                                draft = draft.copyWith(sort: value);
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                      decoration: const BoxDecoration(
+                        border: Border(top: BorderSide(color: Color(0xFFEDEDED))),
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () => Navigator.of(context).pop(draft),
+                          child: Text('Show Results ($previewCount)'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _filter = result;
+      });
+    }
+  }
+
   Widget _sectionBlock(
     BuildContext context, {
     required String eyebrow,
@@ -295,10 +596,14 @@ class _SearchHeader extends StatelessWidget {
   const _SearchHeader({
     required this.selectedLocation,
     required this.onBack,
+    required this.onFilterTap,
+    required this.selectedCount,
   });
 
   final String selectedLocation;
   final VoidCallback onBack;
+  final VoidCallback onFilterTap;
+  final int selectedCount;
 
   @override
   Widget build(BuildContext context) {
@@ -357,6 +662,47 @@ class _SearchHeader extends StatelessWidget {
                       ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              onTap: onFilterTap,
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const SizedBox(
+                    height: 44,
+                    width: 44,
+                    child: Icon(Icons.tune_rounded, size: 20),
+                  ),
+                  if (selectedCount > 0)
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '$selectedCount',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
@@ -459,7 +805,7 @@ class _ResultsHeader extends StatelessWidget {
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: const Color(0xFF8E6B22),
                   fontWeight: FontWeight.w800,
-                ),
+            ),
           ),
         ),
       ],

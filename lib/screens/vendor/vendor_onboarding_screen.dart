@@ -6,6 +6,7 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/location_service.dart';
 import '../../services/onboarding_service.dart';
+import '../../utils/app_error_text.dart';
 import '../../widgets/kyc_upload_widget.dart';
 import '../../widgets/state_views.dart';
 
@@ -120,7 +121,7 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
       messenger.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
+          content: Text(AppErrorText.from(error)),
         ),
       );
     } finally {
@@ -264,7 +265,7 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
       messenger.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
+          content: Text(AppErrorText.from(error)),
         ),
       );
     } finally {

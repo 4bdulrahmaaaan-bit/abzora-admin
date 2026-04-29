@@ -5,6 +5,7 @@ import '../models/models.dart';
 import '../models/outfit_recommendation_model.dart';
 import '../models/trial_session.dart';
 import 'package:flutter/foundation.dart';
+import 'package:http_parser/http_parser.dart';
 import 'backend_api_client.dart';
 
 class BackendCommerceService {
@@ -38,6 +39,25 @@ class BackendCommerceService {
         ? payload
         : Map<String, dynamic>.from(payload as Map);
     return _appUserFromBackend(map);
+  }
+
+  Future<AppUser?> getUserById(String id) async {
+    final normalizedId = id.trim();
+    if (normalizedId.isEmpty) {
+      return null;
+    }
+    try {
+      final payload = await _client.get(
+        '/auth/users/$normalizedId',
+        authenticated: true,
+      );
+      final map = payload is Map<String, dynamic>
+          ? payload
+          : Map<String, dynamic>.from(payload as Map);
+      return _appUserFromBackend(map);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<AppUser> saveTestUserPhone(String phone) async {
@@ -427,7 +447,8 @@ class BackendCommerceService {
       authenticated: true,
       queryParameters: {
         'category': category,
-        if (subcategory != null && subcategory.trim().isNotEmpty) 'subcategory': subcategory.trim(),
+        if (subcategory != null && subcategory.trim().isNotEmpty)
+          'subcategory': subcategory.trim(),
       },
     );
     return Map<String, dynamic>.from(payload as Map);
@@ -444,7 +465,8 @@ class BackendCommerceService {
   }) async {
     final body = <String, dynamic>{};
     final normalizedProductId = productId?.trim();
-    body['productId'] = (normalizedProductId == null || normalizedProductId.isEmpty)
+    body['productId'] =
+        (normalizedProductId == null || normalizedProductId.isEmpty)
         ? null
         : normalizedProductId;
     body['name'] = name;
@@ -654,8 +676,28 @@ class BackendCommerceService {
     );
   }
 
-  Future<List<Product>> getProducts() async {
-    final payload = await _client.get('/products');
+  Future<List<Product>> getProducts({
+    Map<String, String>? queryParameters,
+  }) async {
+    final payload = await _client.get(
+      '/products',
+      queryParameters: queryParameters,
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => _productFromBackend(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<List<Product>> getVendorProducts({String? storeId}) async {
+    final payload = await _client.get(
+      '/vendor/products',
+      authenticated: true,
+      queryParameters: {
+        if (storeId != null && storeId.trim().isNotEmpty) 'storeId': storeId.trim(),
+      },
+    );
     final items = payload is List ? payload : const [];
     return items
         .whereType<Map>()
@@ -758,6 +800,259 @@ class BackendCommerceService {
         'metadata': metadata,
       },
     );
+  }
+
+  Future<List<OutfitRecommendation>> getRecommendedOutfits({
+    String? userId,
+    String? productId,
+    String? occasion,
+    String? budget,
+    String? style,
+    int limit = 6,
+    bool authenticated = false,
+  }) async {
+    final payload = await _client.get(
+      '/api/outfits/recommend',
+      authenticated: authenticated,
+      queryParameters: {
+        if (userId != null && userId.trim().isNotEmpty) 'userId': userId.trim(),
+        if (productId != null && productId.trim().isNotEmpty)
+          'productId': productId.trim(),
+        if (occasion != null && occasion.trim().isNotEmpty)
+          'occasion': occasion.trim(),
+        if (budget != null && budget.trim().isNotEmpty) 'budget': budget.trim(),
+        if (style != null && style.trim().isNotEmpty) 'style': style.trim(),
+        'limit': '$limit',
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map(
+          (item) =>
+              OutfitRecommendation.fromMap(Map<String, dynamic>.from(item)),
+        )
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> styleWithAi({
+    required String occasion,
+    String? style,
+    String? budget,
+    String? productId,
+    int limit = 4,
+  }) async {
+    final payload = await _client.post(
+      '/ai/style',
+      authenticated: true,
+      body: {
+        'occasion': occasion.trim(),
+        if (style != null && style.trim().isNotEmpty) 'style': style.trim(),
+        if (budget != null && budget.trim().isNotEmpty) 'budget': budget.trim(),
+        if (productId != null && productId.trim().isNotEmpty)
+          'productId': productId.trim(),
+        'limit': limit,
+      },
+    );
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> shareLook({
+    required String imageUrl,
+    String? lookId,
+    String? outfitId,
+    String? caption,
+    List<String> productIds = const [],
+    String visibility = 'public',
+    String source = 'ar_live',
+  }) async {
+    final payload = await _client.post(
+      '/look/share',
+      authenticated: true,
+      body: {
+        if (lookId != null && lookId.trim().isNotEmpty) 'lookId': lookId.trim(),
+        if (outfitId != null && outfitId.trim().isNotEmpty)
+          'outfitId': outfitId.trim(),
+        if (caption != null && caption.trim().isNotEmpty)
+          'caption': caption.trim(),
+        'imageUrl': imageUrl.trim(),
+        'productIds': productIds.where((id) => id.trim().isNotEmpty).toList(),
+        'visibility': visibility.trim(),
+        'source': source.trim(),
+      },
+    );
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> getSharedLook(String shareId) async {
+    final payload = await _client.get('/look/${shareId.trim()}');
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> voteSharedLook({
+    required String shareId,
+    required String reaction,
+  }) async {
+    final payload = await _client.post(
+      '/look/${shareId.trim()}/vote',
+      authenticated: true,
+      body: {'reaction': reaction.trim()},
+    );
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<List<Map<String, dynamic>>> getTrendingLooks({int limit = 12}) async {
+    final payload = await _client.get(
+      '/looks/trending',
+      queryParameters: {'limit': '$limit'},
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> getLookById(String lookId) async {
+    final payload = await _client.get('/looks/${lookId.trim()}');
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<List<Map<String, dynamic>>> getCommunityFeed({int limit = 12}) async {
+    final payload = await _client.get(
+      '/feed',
+      queryParameters: {'limit': '$limit'},
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> createCommunityPost({
+    required String imageUrl,
+    String? caption,
+    String? lookShareId,
+    List<String> productIds = const [],
+    List<String> tags = const [],
+  }) async {
+    final payload = await _client.post(
+      '/post',
+      authenticated: true,
+      body: {
+        'imageUrl': imageUrl.trim(),
+        if (caption != null && caption.trim().isNotEmpty)
+          'caption': caption.trim(),
+        if (lookShareId != null && lookShareId.trim().isNotEmpty)
+          'lookShareId': lookShareId.trim(),
+        'productIds': productIds.where((id) => id.trim().isNotEmpty).toList(),
+        'tags': tags.where((tag) => tag.trim().isNotEmpty).toList(),
+      },
+    );
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> toggleCommunityPostLike(String postId) async {
+    final payload = await _client.post(
+      '/post/${postId.trim()}/like',
+      authenticated: true,
+    );
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> saveWardrobeOutfit({
+    required List<String> productIds,
+    required String thumbnailUrl,
+    String title = 'Saved Look',
+    double fitConfidence = 0.8,
+    List<String> fitWarnings = const [],
+    List<String> tags = const [],
+  }) async {
+    final payload = await _client.post(
+      '/wardrobe/save',
+      authenticated: true,
+      body: {
+        'productIds': productIds.where((id) => id.trim().isNotEmpty).toList(),
+        'thumbnailUrl': thumbnailUrl.trim(),
+        'title': title.trim(),
+        'fitConfidence': fitConfidence,
+        'fitWarnings': fitWarnings.where((item) => item.trim().isNotEmpty).toList(),
+        'tags': tags.where((item) => item.trim().isNotEmpty).toList(),
+      },
+    );
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<List<Map<String, dynamic>>> getWardrobe({int limit = 24}) async {
+    final payload = await _client.get(
+      '/wardrobe',
+      authenticated: true,
+      queryParameters: {'limit': '$limit'},
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> updateWardrobeOutfit({
+    required String id,
+    String? title,
+    String? thumbnailUrl,
+    List<String>? productIds,
+    bool markRetried = false,
+  }) async {
+    final payload = await _client.put(
+      '/wardrobe/${id.trim()}',
+      authenticated: true,
+      body: {
+        if (title != null) 'title': title.trim(),
+        if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl.trim(),
+        if (productIds != null)
+          'productIds': productIds.where((item) => item.trim().isNotEmpty).toList(),
+        if (markRetried) 'markRetried': true,
+      },
+    );
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<void> deleteWardrobeOutfit(String id) async {
+    await _client.delete('/wardrobe/${id.trim()}', authenticated: true);
+  }
+
+  Future<List<Map<String, dynamic>>> getWardrobeRecommendations({
+    int limit = 12,
+  }) async {
+    final payload = await _client.get(
+      '/wardrobe/recommend',
+      authenticated: true,
+      queryParameters: {'limit': '$limit'},
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
   }
 
   Future<List<ReviewModel>> getProductReviews(String productId) async {
@@ -1138,7 +1433,10 @@ class BackendCommerceService {
   Future<VendorAnalytics> getVendorDashboard() async {
     dynamic payload;
     try {
-      payload = await _client.get('/finance/vendor/dashboard', authenticated: true);
+      payload = await _client.get(
+        '/finance/vendor/dashboard',
+        authenticated: true,
+      );
     } on BackendApiException catch (error) {
       if (error.statusCode != 404) rethrow;
       payload = await _client.get('/vendor/dashboard', authenticated: true);
@@ -1198,7 +1496,10 @@ class BackendCommerceService {
   Future<RiderAnalytics> getRiderDashboard() async {
     dynamic payload;
     try {
-      payload = await _client.get('/finance/rider/dashboard', authenticated: true);
+      payload = await _client.get(
+        '/finance/rider/dashboard',
+        authenticated: true,
+      );
     } on BackendApiException catch (error) {
       if (error.statusCode != 404) rethrow;
       payload = await _client.get('/rider/dashboard', authenticated: true);
@@ -1263,7 +1564,9 @@ class BackendCommerceService {
       authenticated: true,
       body: body,
     );
-    return PricingConfigModel.fromMap(Map<String, dynamic>.from(payload as Map));
+    return PricingConfigModel.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
   }
 
   Future<Map<String, dynamic>> simulateAdminPricing({
@@ -1746,16 +2049,13 @@ class BackendCommerceService {
       },
     );
     final items = payload is List ? payload : const [];
-    return items
-        .whereType<Map>()
-        .map((item) {
-          final map = Map<String, dynamic>.from(item);
-          return OpsAlertItem.fromMap(
-            map,
-            map['id']?.toString() ?? map['_id']?.toString() ?? '',
-          );
-        })
-        .toList();
+    return items.whereType<Map>().map((item) {
+      final map = Map<String, dynamic>.from(item);
+      return OpsAlertItem.fromMap(
+        map,
+        map['id']?.toString() ?? map['_id']?.toString() ?? '',
+      );
+    }).toList();
   }
 
   Future<void> triggerOpsDetection() async {
@@ -1789,16 +2089,13 @@ class BackendCommerceService {
       queryParameters: {'limit': '$limit'},
     );
     final items = payload is List ? payload : const [];
-    return items
-        .whereType<Map>()
-        .map((item) {
-          final map = Map<String, dynamic>.from(item);
-          return OpsActionLogEntry.fromMap(
-            map,
-            map['id']?.toString() ?? map['_id']?.toString() ?? '',
-          );
-        })
-        .toList();
+    return items.whereType<Map>().map((item) {
+      final map = Map<String, dynamic>.from(item);
+      return OpsActionLogEntry.fromMap(
+        map,
+        map['id']?.toString() ?? map['_id']?.toString() ?? '',
+      );
+    }).toList();
   }
 
   Future<List<OpsMetricSnapshot>> getOpsMetrics({
@@ -1808,22 +2105,16 @@ class BackendCommerceService {
     final payload = await _client.get(
       '/ops/metrics',
       authenticated: true,
-      queryParameters: {
-        'type': type,
-        'limit': '$limit',
-      },
+      queryParameters: {'type': type, 'limit': '$limit'},
     );
     final items = payload is List ? payload : const [];
-    return items
-        .whereType<Map>()
-        .map((item) {
-          final map = Map<String, dynamic>.from(item);
-          return OpsMetricSnapshot.fromMap(
-            map,
-            map['id']?.toString() ?? map['_id']?.toString() ?? '',
-          );
-        })
-        .toList();
+    return items.whereType<Map>().map((item) {
+      final map = Map<String, dynamic>.from(item);
+      return OpsMetricSnapshot.fromMap(
+        map,
+        map['id']?.toString() ?? map['_id']?.toString() ?? '',
+      );
+    }).toList();
   }
 
   Future<OpsLiveSnapshot> getOpsLive() async {
@@ -1839,24 +2130,23 @@ class BackendCommerceService {
         })
         .toList();
 
-    final riders = ((map['riders'] as List?) ?? const [])
-        .whereType<Map>()
-        .map((item) {
-          final raw = Map<String, dynamic>.from(item);
-          return AppUser.fromMap({
-            'id': raw['uid']?.toString() ?? raw['_id']?.toString() ?? '',
-            'uid': raw['uid']?.toString() ?? '',
-            'name': raw['name']?.toString() ?? '',
-            'role': 'rider',
-            'riderApprovalStatus':
-                raw['riderApprovalStatus']?.toString() ?? 'approved',
-            'riderCity': raw['riderCity']?.toString() ?? '',
-            'isActive': true,
-            'latitude': raw['latitude'],
-            'longitude': raw['longitude'],
-          });
-        })
-        .toList();
+    final riders = ((map['riders'] as List?) ?? const []).whereType<Map>().map((
+      item,
+    ) {
+      final raw = Map<String, dynamic>.from(item);
+      return AppUser.fromMap({
+        'id': raw['uid']?.toString() ?? raw['_id']?.toString() ?? '',
+        'uid': raw['uid']?.toString() ?? '',
+        'name': raw['name']?.toString() ?? '',
+        'role': 'rider',
+        'riderApprovalStatus':
+            raw['riderApprovalStatus']?.toString() ?? 'approved',
+        'riderCity': raw['riderCity']?.toString() ?? '',
+        'isActive': true,
+        'latitude': raw['latitude'],
+        'longitude': raw['longitude'],
+      });
+    }).toList();
 
     final vendors = ((map['vendors'] as List?) ?? const [])
         .whereType<Map>()
@@ -1905,12 +2195,11 @@ class BackendCommerceService {
     final payload = await _client.post(
       '/ops/simulate',
       authenticated: true,
-      body: {
-        'orders': orders,
-        'riders': riders,
-      },
+      body: {'orders': orders, 'riders': riders},
     );
-    return OpsSimulationOutput.fromMap(Map<String, dynamic>.from(payload as Map));
+    return OpsSimulationOutput.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
   }
 
   Future<Map<String, dynamic>> dispatchAssignOrder(String orderId) async {
@@ -1939,7 +2228,8 @@ class BackendCommerceService {
       '/dispatch/batches',
       authenticated: true,
       queryParameters: {
-        if (riderId != null && riderId.trim().isNotEmpty) 'riderId': riderId.trim(),
+        if (riderId != null && riderId.trim().isNotEmpty)
+          'riderId': riderId.trim(),
         if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
       },
     );
@@ -1951,7 +2241,10 @@ class BackendCommerceService {
   }
 
   Future<Map<String, dynamic>> triggerDispatchRebalance() async {
-    final payload = await _client.post('/dispatch/rebalance', authenticated: true);
+    final payload = await _client.post(
+      '/dispatch/rebalance',
+      authenticated: true,
+    );
     return Map<String, dynamic>.from(payload as Map);
   }
 
@@ -1964,16 +2257,22 @@ class BackendCommerceService {
       '/dispatch/sla',
       authenticated: true,
       queryParameters: {
-        if (riderId != null && riderId.trim().isNotEmpty) 'riderId': riderId.trim(),
-        if (vendorId != null && vendorId.trim().isNotEmpty) 'vendorId': vendorId.trim(),
-        if (storeId != null && storeId.trim().isNotEmpty) 'storeId': storeId.trim(),
+        if (riderId != null && riderId.trim().isNotEmpty)
+          'riderId': riderId.trim(),
+        if (vendorId != null && vendorId.trim().isNotEmpty)
+          'vendorId': vendorId.trim(),
+        if (storeId != null && storeId.trim().isNotEmpty)
+          'storeId': storeId.trim(),
       },
     );
     return Map<String, dynamic>.from(payload as Map);
   }
 
   Future<Map<String, dynamic>> getDispatchEta(String orderId) async {
-    final payload = await _client.get('/dispatch/eta/$orderId', authenticated: true);
+    final payload = await _client.get(
+      '/dispatch/eta/$orderId',
+      authenticated: true,
+    );
     return Map<String, dynamic>.from(payload as Map);
   }
 
@@ -1993,7 +2292,10 @@ class BackendCommerceService {
   }
 
   Future<TrialSession> getAdminTrialHomeSession(String id) async {
-    final payload = await _client.get('/admin/trial-home/$id', authenticated: true);
+    final payload = await _client.get(
+      '/admin/trial-home/$id',
+      authenticated: true,
+    );
     return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
   }
 
@@ -2066,24 +2368,26 @@ class BackendCommerceService {
     return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
   }
 
-  Future<TrialSession> approveTrialHomeRequest(String id, {String note = ''}) async {
+  Future<TrialSession> approveTrialHomeRequest(
+    String id, {
+    String note = '',
+  }) async {
     final payload = await _client.post(
       '/trial-home/$id/approve',
       authenticated: true,
-      body: {
-        if (note.trim().isNotEmpty) 'note': note.trim(),
-      },
+      body: {if (note.trim().isNotEmpty) 'note': note.trim()},
     );
     return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
   }
 
-  Future<TrialSession> rejectTrialHomeRequest(String id, {String note = ''}) async {
+  Future<TrialSession> rejectTrialHomeRequest(
+    String id, {
+    String note = '',
+  }) async {
     final payload = await _client.post(
       '/trial-home/$id/reject',
       authenticated: true,
-      body: {
-        if (note.trim().isNotEmpty) 'note': note.trim(),
-      },
+      body: {if (note.trim().isNotEmpty) 'note': note.trim()},
     );
     return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
   }
@@ -2234,22 +2538,38 @@ class BackendCommerceService {
     }
   }
 
+  Future<Store?> getStoreByOwner(String ownerId) async {
+    final normalizedOwnerId = ownerId.trim();
+    if (normalizedOwnerId.isEmpty) {
+      return null;
+    }
+    try {
+      final payload = await _client.get(
+        '/stores/owner/$normalizedOwnerId',
+        authenticated: true,
+      );
+      return _storeFromBackend(Map<String, dynamic>.from(payload as Map));
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<Store> saveStore(Store store) async {
-      final body = {
-        'name': store.name,
-        'description': store.description,
-        'logoUrl': store.logoUrl.isNotEmpty ? store.logoUrl : store.imageUrl,
-        'isActive': store.isActive,
-        'vendorType': store.vendorType,
-        'address': store.address,
-        'city': store.city,
-        'latitude': store.latitude,
-        'longitude': store.longitude,
-        'tagline': store.tagline,
-        'bannerImageUrl': store.bannerImageUrl,
-        'category': store.category,
-        'customVendorProfile': store.customVendorProfile.toMap(),
-      };
+    final body = {
+      'name': store.name,
+      'description': store.description,
+      'logoUrl': store.logoUrl.isNotEmpty ? store.logoUrl : store.imageUrl,
+      'isActive': store.isActive,
+      'vendorType': store.vendorType,
+      'address': store.address,
+      'city': store.city,
+      'latitude': store.latitude,
+      'longitude': store.longitude,
+      'tagline': store.tagline,
+      'bannerImageUrl': store.bannerImageUrl,
+      'category': store.category,
+      'customVendorProfile': store.customVendorProfile.toMap(),
+    };
     final payload = store.id.isEmpty
         ? await _client.post('/stores', authenticated: true, body: body)
         : await _client.put(
@@ -2301,13 +2621,17 @@ class BackendCommerceService {
         return;
       }
       if (_isTransientNetworkIssue(error)) {
-        debugPrint('sync-profile skipped due to transient network issue: $error');
+        debugPrint(
+          'sync-profile skipped due to transient network issue: $error',
+        );
         return;
       }
       rethrow;
     } catch (error) {
       if (_isTransientNetworkIssue(error)) {
-        debugPrint('sync-profile skipped due to transient network issue: $error');
+        debugPrint(
+          'sync-profile skipped due to transient network issue: $error',
+        );
         return;
       }
       rethrow;
@@ -2402,6 +2726,108 @@ class BackendCommerceService {
     return ArTryOnProductMetadata.fromMap(map);
   }
 
+  Future<List<ArTryOnProductMetadata>> getTryOnGarmentManifest(
+    List<String> productIds,
+  ) async {
+    final ids = productIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toList();
+    if (ids.isEmpty) {
+      return const <ArTryOnProductMetadata>[];
+    }
+    final payload = await _client.get(
+      '/ar/garments/manifest',
+      queryParameters: {'ids': ids.join(',')},
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map(
+          (item) =>
+              ArTryOnProductMetadata.fromMap(Map<String, dynamic>.from(item)),
+        )
+        .toList();
+  }
+
+  Future<List<GarmentTemplateModel>> getGarmentTemplates({
+    String? category,
+    bool includeInactive = false,
+  }) async {
+    final payload = await _client.get(
+      '/ar/templates',
+      queryParameters: {
+        if (category?.trim().isNotEmpty == true) 'category': category!.trim(),
+        if (includeInactive) 'includeInactive': 'true',
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map(
+          (item) => GarmentTemplateModel.fromMap(
+            Map<String, dynamic>.from(item),
+          ),
+        )
+        .toList();
+  }
+
+  Future<GarmentTemplateModel> getGarmentTemplateById(String templateId) async {
+    final payload = await _client.get('/ar/templates/$templateId');
+    final map = payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+    return GarmentTemplateModel.fromMap(map);
+  }
+
+  Future<GarmentTemplateModel> upsertGarmentTemplate({
+    String? id,
+    required String slug,
+    required String name,
+    required String category,
+    Map<String, dynamic> modelUrls = const {},
+    Map<String, dynamic> unity = const {},
+    String rigProfile = '',
+    Map<String, dynamic> blendShapes = const {},
+    Map<String, dynamic> customizableParts = const {},
+    List<String> supportedFits = const [],
+    String defaultMaterialProfile = '',
+    String defaultColorHex = '#C6A769',
+    String defaultFabricTextureUrl = '',
+    Map<String, dynamic> cachePolicy = const {},
+    bool active = true,
+  }) async {
+    final normalizedId = id?.trim();
+    final payload = await _client.post(
+      '/ar/templates/upsert',
+      authenticated: true,
+      body: {
+        ..._optionalEntry(
+          'id',
+          (normalizedId != null && normalizedId.isNotEmpty) ? normalizedId : null,
+        ),
+        'slug': slug.trim(),
+        'name': name.trim(),
+        'category': category.trim().toLowerCase(),
+        'modelUrls': modelUrls,
+        'unity': unity,
+        'rigProfile': rigProfile.trim(),
+        'blendShapes': blendShapes,
+        'customizableParts': customizableParts,
+        'supportedFits': supportedFits,
+        'defaultMaterialProfile': defaultMaterialProfile.trim(),
+        'defaultColorHex': defaultColorHex.trim(),
+        'defaultFabricTextureUrl': defaultFabricTextureUrl.trim(),
+        'cachePolicy': cachePolicy,
+        'active': active,
+      },
+    );
+    final map = payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+    return GarmentTemplateModel.fromMap(map);
+  }
+
   Future<String> saveTryOnSession(ArTryOnSessionPayload session) async {
     final payload = await _client.post(
       '/ar/tryon/session',
@@ -2412,6 +2838,95 @@ class BackendCommerceService {
         ? payload
         : Map<String, dynamic>.from(payload as Map);
     return map['sessionId']?.toString() ?? session.sessionId;
+  }
+
+  Future<ArFitAssessment> getArFitAssessment({
+    String? productId,
+    String? templateId,
+    String? category,
+    String fitPreset = 'regular',
+    Map<String, double> userMeasurements = const {},
+    Map<String, dynamic> sizeChart = const {},
+  }) async {
+    final normalizedProductId = productId?.trim();
+    final normalizedTemplateId = templateId?.trim();
+    final normalizedCategory = category?.trim();
+    final payload = await _client.post(
+      '/ar/fit/score',
+      body: {
+        ..._optionalEntry(
+          'productId',
+          (normalizedProductId != null && normalizedProductId.isNotEmpty)
+              ? normalizedProductId
+              : null,
+        ),
+        ..._optionalEntry(
+          'templateId',
+          (normalizedTemplateId != null && normalizedTemplateId.isNotEmpty)
+              ? normalizedTemplateId
+              : null,
+        ),
+        ..._optionalEntry(
+          'category',
+          (normalizedCategory != null && normalizedCategory.isNotEmpty)
+              ? normalizedCategory
+              : null,
+        ),
+        'fitPreset': fitPreset.trim().isEmpty ? 'regular' : fitPreset.trim(),
+        'userMeasurements': userMeasurements,
+        if (sizeChart.isNotEmpty) 'sizeChart': sizeChart,
+      },
+    );
+    final map = payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+    return ArFitAssessment.fromMap(map);
+  }
+
+  Future<String> uploadArLookImage({
+    required Uint8List bytes,
+    String filename = 'ar_look.png',
+    String mimeSubtype = 'png',
+  }) async {
+    final payload = await _client.multipart(
+      '/upload',
+      authenticated: true,
+      fieldName: 'image',
+      bytes: bytes,
+      filename: filename,
+      contentType: MediaType('image', mimeSubtype),
+    );
+    final map = payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+    return map['url']?.toString() ?? '';
+  }
+
+  Future<Map<String, dynamic>> saveArLook({
+    required String productId,
+    required String templateId,
+    required String imageUrl,
+    String size = '',
+    int fitScore = 0,
+    double confidence = 0,
+    String source = 'ar_live',
+  }) async {
+    final payload = await _client.post(
+      '/ar/looks',
+      authenticated: true,
+      body: {
+        'productId': productId,
+        'templateId': templateId,
+        'imageUrl': imageUrl,
+        'size': size,
+        'fitScore': fitScore,
+        'confidence': confidence,
+        'source': source,
+      },
+    );
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
   }
 
   Future<List<OrderModel>> getStoreOrders(String storeId) async {
@@ -2485,7 +3000,8 @@ class BackendCommerceService {
       body: {
         'orderId': orderId,
         if (taskId != null && taskId.trim().isNotEmpty) 'taskId': taskId.trim(),
-        if (riderId != null && riderId.trim().isNotEmpty) 'riderId': riderId.trim(),
+        if (riderId != null && riderId.trim().isNotEmpty)
+          'riderId': riderId.trim(),
         'latitude': latitude,
         'longitude': longitude,
         ..._optionalEntry('speedKmph', speedKmph),
@@ -2528,15 +3044,15 @@ class BackendCommerceService {
     await _client.post(
       '/tracking/order-status-update',
       authenticated: true,
-      body: {
-        'orderId': orderId,
-        'status': status,
-      },
+      body: {'orderId': orderId, 'status': status},
     );
   }
 
   Future<Map<String, dynamic>> getTrackingEta(String orderId) async {
-    final payload = await _client.get('/tracking/eta/$orderId', authenticated: true);
+    final payload = await _client.get(
+      '/tracking/eta/$orderId',
+      authenticated: true,
+    );
     return Map<String, dynamic>.from(payload as Map);
   }
 
@@ -2555,10 +3071,12 @@ class BackendCommerceService {
       authenticated: true,
       body: {
         'taskType': taskType,
-        if (orderId != null && orderId.trim().isNotEmpty) 'orderId': orderId.trim(),
+        if (orderId != null && orderId.trim().isNotEmpty)
+          'orderId': orderId.trim(),
         if (trialSessionId != null && trialSessionId.trim().isNotEmpty)
           'trialSessionId': trialSessionId.trim(),
-        if (riderId != null && riderId.trim().isNotEmpty) 'riderId': riderId.trim(),
+        if (riderId != null && riderId.trim().isNotEmpty)
+          'riderId': riderId.trim(),
         ..._optionalEntry('dropLat', dropLat),
         ..._optionalEntry('dropLng', dropLng),
         if (city != null && city.trim().isNotEmpty) 'city': city.trim(),
@@ -2568,7 +3086,9 @@ class BackendCommerceService {
     return Map<String, dynamic>.from(payload as Map);
   }
 
-  Future<List<UnifiedRiderTask>> getRiderLogisticsTasks({String? status}) async {
+  Future<List<UnifiedRiderTask>> getRiderLogisticsTasks({
+    String? status,
+  }) async {
     final payload = await _client.get(
       '/rider/tasks',
       authenticated: true,
@@ -2579,16 +3099,23 @@ class BackendCommerceService {
     final items = payload is List ? payload : const [];
     return items
         .whereType<Map>()
-        .map((item) => _riderTaskFromLogisticsMap(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => _riderTaskFromLogisticsMap(Map<String, dynamic>.from(item)),
+        )
         .toList();
   }
 
   Future<List<UnifiedRiderTask>> getRiderActiveLogisticsTasks() async {
-    final payload = await _client.get('/rider/tasks/active', authenticated: true);
+    final payload = await _client.get(
+      '/rider/tasks/active',
+      authenticated: true,
+    );
     final items = payload is List ? payload : const [];
     return items
         .whereType<Map>()
-        .map((item) => _riderTaskFromLogisticsMap(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => _riderTaskFromLogisticsMap(Map<String, dynamic>.from(item)),
+        )
         .toList();
   }
 
@@ -2607,10 +3134,13 @@ class BackendCommerceService {
         if (otp != null && otp.trim().isNotEmpty) 'otp': otp.trim(),
         if (proofPhotoUrl != null && proofPhotoUrl.trim().isNotEmpty)
           'proofPhotoUrl': proofPhotoUrl.trim(),
-        if (proofNote != null && proofNote.trim().isNotEmpty) 'proofNote': proofNote.trim(),
+        if (proofNote != null && proofNote.trim().isNotEmpty)
+          'proofNote': proofNote.trim(),
       },
     );
-    return _riderTaskFromLogisticsMap(Map<String, dynamic>.from(payload as Map));
+    return _riderTaskFromLogisticsMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
   }
 
   Future<List<OrderModel>> getVendorOperationsOrders({
@@ -2622,7 +3152,8 @@ class BackendCommerceService {
       authenticated: true,
       queryParameters: {
         if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
-        if (storeId != null && storeId.trim().isNotEmpty) 'storeId': storeId.trim(),
+        if (storeId != null && storeId.trim().isNotEmpty)
+          'storeId': storeId.trim(),
       },
     );
     final items = payload is List ? payload : const [];
@@ -2705,8 +3236,7 @@ class BackendCommerceService {
     bool? measurementsConfirmedByVendor,
     String? qualityApprovalStatus,
     String? alterationStatus,
-  }
-  ) async {
+  }) async {
     final body = <String, dynamic>{'status': status};
     if (vendorFinalImageUrl?.isNotEmpty == true) {
       body['vendorFinalImageUrl'] = vendorFinalImageUrl!;
@@ -2759,10 +3289,7 @@ class BackendCommerceService {
     final payload = await _client.post(
       '/vendor/custom/sample-review',
       authenticated: true,
-      body: {
-        'sampleImages': sampleImages,
-        'notes': notes,
-      },
+      body: {'sampleImages': sampleImages, 'notes': notes},
     );
     return CustomVendorSampleReview.fromMap(
       Map<String, dynamic>.from(payload as Map),
@@ -3015,10 +3542,12 @@ class BackendCommerceService {
       queryParameters: {
         if (userId.trim().isNotEmpty) 'userId': userId.trim(),
         if (fitConfidence != null) 'fitConfidence': fitConfidence.toString(),
-        if (returnHistory != null) 'returnHistory': returnHistory.toStringAsFixed(2),
+        if (returnHistory != null)
+          'returnHistory': returnHistory.toStringAsFixed(2),
         if (userType.trim().isNotEmpty) 'userType': userType.trim(),
         if (productType.trim().isNotEmpty) 'productType': productType.trim(),
-        if (locationSpeed.trim().isNotEmpty) 'locationSpeed': locationSpeed.trim(),
+        if (locationSpeed.trim().isNotEmpty)
+          'locationSpeed': locationSpeed.trim(),
       },
     );
     return Map<String, dynamic>.from(payload as Map);
@@ -3042,8 +3571,10 @@ class BackendCommerceService {
         if (fitConfidence != null) 'fitConfidence': fitConfidence.toString(),
         if (returnRate != null) 'returnRate': returnRate.toStringAsFixed(2),
         if (sessionDepth != null) 'sessionDepth': sessionDepth.toString(),
-        if (productFitRisk != null) 'productFitRisk': productFitRisk.toStringAsFixed(4),
-        if (sameDayAvailable != null) 'sameDayAvailable': sameDayAvailable.toString(),
+        if (productFitRisk != null)
+          'productFitRisk': productFitRisk.toStringAsFixed(4),
+        if (sameDayAvailable != null)
+          'sameDayAvailable': sameDayAvailable.toString(),
         if (userType.trim().isNotEmpty) 'userType': userType.trim(),
         if (sessionId.trim().isNotEmpty) 'sessionId': sessionId.trim(),
       },
@@ -3133,7 +3664,9 @@ class BackendCommerceService {
         'productId': productId,
         'size': size,
         'quantity': quantity,
-        'paymentMethod': paymentMethod.toUpperCase() == 'COD' ? 'COD' : 'RAZORPAY',
+        'paymentMethod': paymentMethod.toUpperCase() == 'COD'
+            ? 'COD'
+            : 'RAZORPAY',
         'shippingAddress': {
           'name': shippingAddress['name'] ?? '',
           'phone': shippingAddress['phone'] ?? '',
@@ -3170,6 +3703,8 @@ class BackendCommerceService {
       'arAsset': product.arAsset,
       if (product.arAsset.isNotEmpty) 'disableArAssetGeneration': true,
       'isActive': product.isActive,
+      'atelier': product.atelier,
+      'garmentConfig': product.garmentConfig,
     };
   }
 
@@ -3211,18 +3746,18 @@ class BackendCommerceService {
       'isActive': map['isActive'] ?? true,
       'isFeatured': map['isFeatured'] ?? false,
       'approvalStatus': map['approvalStatus'] ?? 'approved',
-        'tagline': map['tagline'] ?? '',
-        'commissionRate': map['commissionRate'] ?? 0.12,
-        'walletBalance': map['walletBalance'] ?? 0,
-        'latitude': map['latitude'],
-        'longitude': map['longitude'],
-        'category': map['category'] ?? '',
-        'vendorType': map['vendorType'] ?? 'standard_vendor',
-        'customVendorProfile': map['customVendorProfile'] ?? const {},
-        'vendorScore': map['vendorScore'] ?? 0,
-        'vendorRank': map['vendorRank'] ?? 0,
-        'vendorVisibility': map['vendorVisibility'] ?? 'normal',
-        'vendorHighlights': map['vendorHighlights'] ?? const <String>[],
+      'tagline': map['tagline'] ?? '',
+      'commissionRate': map['commissionRate'] ?? 0.12,
+      'walletBalance': map['walletBalance'] ?? 0,
+      'latitude': map['latitude'],
+      'longitude': map['longitude'],
+      'category': map['category'] ?? '',
+      'vendorType': map['vendorType'] ?? 'standard_vendor',
+      'customVendorProfile': map['customVendorProfile'] ?? const {},
+      'vendorScore': map['vendorScore'] ?? 0,
+      'vendorRank': map['vendorRank'] ?? 0,
+      'vendorVisibility': map['vendorVisibility'] ?? 'normal',
+      'vendorHighlights': map['vendorHighlights'] ?? const <String>[],
       'performanceMetrics': map['performanceMetrics'] ?? const {},
     }, map['id']?.toString() ?? '');
   }
@@ -3267,6 +3802,8 @@ class BackendCommerceService {
       'fabric': map['fabric'],
       'attributes': map['attributes'] ?? const {},
       'arAsset': map['arAsset'] ?? const {},
+      'atelier': map['atelier'] ?? const {},
+      'garmentConfig': map['garmentConfig'] ?? const {},
       'customizations': map['customizations'] ?? const {},
       'measurements': map['measurements'] ?? const {},
       'addons': map['addons'] ?? const [],
@@ -3337,36 +3874,36 @@ class BackendCommerceService {
       ),
       'assignedDeliveryPartner': map['assignedDeliveryPartner'] ?? 'Unassigned',
       'invoiceNumber': map['id'] ?? '',
-        'orderType': map['fulfillmentType'] == 'custom_tailoring'
-            ? 'custom_tailoring'
-            : 'marketplace',
-        'fulfillmentType': map['fulfillmentType'] ?? 'marketplace',
-        'customOrderStatus': map['customOrderStatus'] ?? 'none',
-        'customMeasurements': map['customMeasurements'] ?? const {},
-        'customDesignOptions': map['customDesignOptions'] ?? const {},
-        'referenceImageUrl': map['referenceImageUrl'] ?? '',
-        'previewImageUrl': map['previewImageUrl'] ?? '',
-        'vendorFinalImageUrl': map['vendorFinalImageUrl'] ?? '',
-        'selectedDesignerName': map['selectedDesignerName'] ?? '',
-        'qualityApprovalStatus': map['qualityApprovalStatus'] ?? 'not_required',
-        'measurementsConfirmedByVendor':
-            map['measurementsConfirmedByVendor'] ?? false,
-        'preDispatchChecklistCompletedAt':
-            map['preDispatchChecklistCompletedAt'] ?? '',
-        'customerFitFeedbackStatus':
-            map['customerFitFeedbackStatus'] ?? 'pending',
-        'customerFitRating': map['customerFitRating'] ?? 0,
-        'customerQualityRating': map['customerQualityRating'] ?? 0,
-        'customerDeliveryRating': map['customerDeliveryRating'] ?? 0,
-        'customerFitFeedbackNotes': map['customerFitFeedbackNotes'] ?? '',
-        'customerFitRespondedAt': map['customerFitRespondedAt'] ?? '',
-        'alterationStatus': map['alterationStatus'] ?? 'none',
-        'alterationRequestedAt': map['alterationRequestedAt'] ?? '',
-        'alterationResolvedAt': map['alterationResolvedAt'] ?? '',
-        'alterationNotes': map['alterationNotes'] ?? '',
-        'customProductionTimeDays': map['customProductionTimeDays'] ?? 0,
-        'customizationSummary': map['customizationSummary'] ?? '',
-        'trackingTimestamps': Map<String, String>.from(
+      'orderType': map['fulfillmentType'] == 'custom_tailoring'
+          ? 'custom_tailoring'
+          : 'marketplace',
+      'fulfillmentType': map['fulfillmentType'] ?? 'marketplace',
+      'customOrderStatus': map['customOrderStatus'] ?? 'none',
+      'customMeasurements': map['customMeasurements'] ?? const {},
+      'customDesignOptions': map['customDesignOptions'] ?? const {},
+      'referenceImageUrl': map['referenceImageUrl'] ?? '',
+      'previewImageUrl': map['previewImageUrl'] ?? '',
+      'vendorFinalImageUrl': map['vendorFinalImageUrl'] ?? '',
+      'selectedDesignerName': map['selectedDesignerName'] ?? '',
+      'qualityApprovalStatus': map['qualityApprovalStatus'] ?? 'not_required',
+      'measurementsConfirmedByVendor':
+          map['measurementsConfirmedByVendor'] ?? false,
+      'preDispatchChecklistCompletedAt':
+          map['preDispatchChecklistCompletedAt'] ?? '',
+      'customerFitFeedbackStatus':
+          map['customerFitFeedbackStatus'] ?? 'pending',
+      'customerFitRating': map['customerFitRating'] ?? 0,
+      'customerQualityRating': map['customerQualityRating'] ?? 0,
+      'customerDeliveryRating': map['customerDeliveryRating'] ?? 0,
+      'customerFitFeedbackNotes': map['customerFitFeedbackNotes'] ?? '',
+      'customerFitRespondedAt': map['customerFitRespondedAt'] ?? '',
+      'alterationStatus': map['alterationStatus'] ?? 'none',
+      'alterationRequestedAt': map['alterationRequestedAt'] ?? '',
+      'alterationResolvedAt': map['alterationResolvedAt'] ?? '',
+      'alterationNotes': map['alterationNotes'] ?? '',
+      'customProductionTimeDays': map['customProductionTimeDays'] ?? 0,
+      'customizationSummary': map['customizationSummary'] ?? '',
+      'trackingTimestamps': Map<String, String>.from(
         (map['trackingTimestamps'] as Map? ?? const {}).map(
           (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
         ),
@@ -3456,8 +3993,8 @@ class BackendCommerceService {
     final taskType = rawType == 'TRIAL_PICKUP'
         ? 'return'
         : rawType == 'TRIAL_DELIVERY'
-            ? 'trial_delivery'
-            : 'delivery';
+        ? 'trial_delivery'
+        : 'delivery';
     return UnifiedRiderTask(
       id: map['id']?.toString() ?? map['_id']?.toString() ?? '',
       type: taskType,
@@ -3474,7 +4011,8 @@ class BackendCommerceService {
       status: normalizedStatus,
       riderId: map['riderId']?.toString() ?? '',
       createdAt: map['createdAt']?.toString() ?? '',
-      updatedAt: map['updatedAt']?.toString() ?? map['createdAt']?.toString() ?? '',
+      updatedAt:
+          map['updatedAt']?.toString() ?? map['createdAt']?.toString() ?? '',
     );
   }
 

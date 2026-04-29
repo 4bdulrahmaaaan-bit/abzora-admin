@@ -15,7 +15,6 @@ import '../../widgets/state_views.dart';
 import '../../widgets/tap_scale.dart';
 import '../atelier/atelier_flow_screen.dart';
 import '../login_screen.dart';
-import '../tailoring/tailoring_flow_screen.dart';
 import 'address_screen.dart';
 import 'body_scan_screen.dart';
 import 'chat_list_screen.dart';
@@ -1465,7 +1464,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     title: 'Saved Measurements',
                     subtitle: measurementsSubtitle,
                     compact: true,
-                    onTap: () => _push(context, const CustomTailoringFlowScreen()),
+                    onTap: () => _push(context, const AtelierFlowScreen()),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -2296,7 +2295,15 @@ class _ProfileScreenState extends State<ProfileScreen>
         bodyProfile: values[1] as BodyProfile?,
       );
     } catch (error) {
-      debugPrint('Profile style snapshot fallback for $userId: $error');
+      final text = error.toString().toLowerCase();
+      final isAuthFallback =
+          text.contains('unauthorized') ||
+          text.contains('sign in again') ||
+          text.contains('session expired') ||
+          text.contains('too many authentication requests');
+      if (!isAuthFallback) {
+        debugPrint('Profile style snapshot fallback for $userId: $error');
+      }
       return const _StyleProfileSnapshot(
         measurementProfiles: <MeasurementProfile>[],
         bodyProfile: null,

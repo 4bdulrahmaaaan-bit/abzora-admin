@@ -7,6 +7,8 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
+import '../../utils/app_mode_routes.dart';
 import '../../widgets/state_views.dart';
 import 'add_product_screen.dart';
 import 'order_management.dart';
@@ -49,27 +51,28 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
 
   Future<void> _load() async {
     final actor = _actor;
-    if (actor == null || actor.role != 'vendor') {
+    if (!hasVendorOperationsAccess(actor)) {
       setState(() {
         _loading = false;
         _error = 'Vendor account required.';
       });
       return;
     }
+    final safeActor = actor!;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final store = await _db.getStoreByOwner(actor.id);
+      final store = await _db.getStoreByOwner(safeActor.id);
       if (store == null) throw Exception('Store not found.');
       final futures = <Future<dynamic>>[
-        _db.getVendorOrders(store.id, actor: actor).first,
-        _db.getVendorAnalytics(store.id, actor: actor),
-        _db.getVendorWallet(actor: actor),
+        _db.getVendorOrders(store.id, actor: safeActor).first,
+        _db.getVendorAnalytics(store.id, actor: safeActor),
+        _db.getVendorWallet(actor: safeActor),
       ];
       if (store.vendorType == 'custom_vendor') {
-        futures.add(_db.getCustomVendorQuality(actor: actor));
+        futures.add(_db.getCustomVendorQuality(actor: safeActor));
       }
       final data = await Future.wait<dynamic>(futures);
       if (!mounted) return;
@@ -88,7 +91,7 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = e.toString().replaceFirst('Exception: ', '');
+        _error = AppErrorText.from(e);
       });
     }
   }

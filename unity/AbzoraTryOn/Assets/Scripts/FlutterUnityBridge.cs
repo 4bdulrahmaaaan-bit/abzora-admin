@@ -1,8 +1,6 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace Abzora.TryOn
 {
@@ -10,12 +8,12 @@ namespace Abzora.TryOn
     {
         public static FlutterUnityBridge Instance { get; private set; }
 
-        [SerializeField] private PoseReceiver poseReceiver;
-        [SerializeField] private GarmentLoader garmentLoader;
-        [SerializeField] private AvatarRigController avatarRigController;
         [SerializeField] private TryOnCaptureController captureController;
+        [SerializeField] private TryOnManager tryOnManager;
 
+        private readonly Queue<string> _eventQueue = new Queue<string>();
         private string _activeProductId = string.Empty;
+        private TryOnPayload _activePayload;
 
         private void Awake()
         {
@@ -27,6 +25,13 @@ namespace Abzora.TryOn
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            if (tryOnManager != null)
+            {
+                tryOnManager.OnLoaded += HandleManagerEvent;
+                tryOnManager.OnFitCalculated += HandleManagerEvent;
+                tryOnManager.OnError += HandleManagerEvent;
+                tryOnManager.OnBodyDetection += HandleManagerEvent;
+            }
             EmitEvent("unity_ready", new Dictionary<string, object>
             {
                 { "renderer", "unity_premium" },
@@ -36,32 +41,15 @@ namespace Abzora.TryOn
 
         public void InitializeTryOn(string json)
         {
-            var payload = JsonUtility.FromJson<UnityTryOnPayload>(json);
-            if (payload == null)
+            if (tryOnManager == null)
             {
-                EmitError("initialize_failed", "Invalid initialization payload.");
+                EmitError("manager_missing", "TryOnManager is not assigned.");
                 return;
             }
-
-            _activeProductId = payload.productId ?? string.Empty;
-            avatarRigController?.ApplyMeasurements(payload.measurements);
-            if (!string.IsNullOrWhiteSpace(payload.unityAssetBundleUrl))
-            {
-                StartCoroutine(LoadGarmentBundle(payload));
-                return;
-            }
-
-            if (!string.IsNullOrWhiteSpace(payload.model3dUrl))
-            {
-                StartCoroutine(LoadModel(payload.model3dUrl, payload));
-                return;
-            }
-
-            EmitEvent("unity_initialized", new Dictionary<string, object>
-            {
-                { "productId", _activeProductId },
-                { "renderer", "unity_premium" },
-            });
+            var payload = TryOnPayloadParser.Parse(json);
+            _activePayload = payload;
+            _activeProductId = payload?.ProductId ?? string.Empty;
+            tryOnManager.InitializeFromJson(json);
         }
 
         public void LoadGarment(string json)
@@ -71,24 +59,42 @@ namespace Abzora.TryOn
 
         public void UpdatePose(string json)
         {
-            var payload = JsonUtility.FromJson<UnityPosePayload>(json);
-            if (payload == null || payload.poseFrame == null)
+            var payload = TryOnPayloadParser.ParsePose(json);
+            if (payload?.PoseFrame == null)
             {
                 return;
             }
-
-            poseReceiver?.ApplyPose(payload.poseFrame);
+            tryOnManager?.UpdatePoseFromJson(json);
         }
 
         public void SetMeasurements(string json)
         {
-            var payload = JsonUtility.FromJson<UnityMeasurementPayload>(json);
+            var payload = TryOnPayloadParser.Parse(json);
             if (payload == null)
             {
                 return;
             }
 
-            avatarRigController?.ApplyMeasurements(payload.measurements);
+            if (_activePayload == null)
+            {
+                _activePayload = payload;
+            }
+            else
+            {
+                _activePayload.Measurements = payload.Measurements ?? _activePayload.Measurements;
+            }
+
+            tryOnManager?.UpdateMeasurementsFromJson(json);
+        }
+
+        public void UpdateGarmentConfig(string json)
+        {
+            tryOnManager?.UpdateGarmentConfigFromJson(json);
+        }
+
+        public void SetViewTransform(string json)
+        {
+            tryOnManager?.SetViewTransformFromJson(json);
         }
 
         public string Capture()
@@ -108,69 +114,67 @@ namespace Abzora.TryOn
             return path;
         }
 
+        public bool StartVideoRecording()
+        {
+            if (captureController == null)
+            {
+                EmitError("recording_unavailable", "Capture controller is missing.");
+                return false;
+            }
+
+            var started = captureController.StartVideoRecording(_activeProductId);
+            EmitEvent("recording_started", new Dictionary<string, object>
+            {
+                { "productId", _activeProductId },
+                { "started", started },
+            });
+            return started;
+        }
+
+        public string StopVideoRecording()
+        {
+            if (captureController == null)
+            {
+                EmitError("recording_unavailable", "Capture controller is missing.");
+                return string.Empty;
+            }
+
+            var manifestPath = captureController.StopVideoRecording();
+            EmitEvent("recording_stopped", new Dictionary<string, object>
+            {
+                { "productId", _activeProductId },
+                { "path", manifestPath },
+                { "format", "frame_sequence" },
+            });
+            return manifestPath;
+        }
+
         public void DisposeSession()
         {
-            garmentLoader?.ClearGarment();
-            poseReceiver?.ResetPose();
+            tryOnManager?.DisposeSession();
+            _activePayload = null;
             EmitEvent("unity_disposed", new Dictionary<string, object>
             {
                 { "productId", _activeProductId },
             });
         }
 
-        private IEnumerator LoadGarmentBundle(UnityTryOnPayload payload)
+        // Exposed for native bridge pull mode if needed.
+        public string DequeueEventJson()
         {
-            EmitEvent("garment_loading", new Dictionary<string, object>
-            {
-                { "productId", payload.productId },
-                { "source", "asset_bundle" },
-            });
-
-            using var request = UnityWebRequestAssetBundle.GetAssetBundle(payload.unityAssetBundleUrl);
-            yield return request.SendWebRequest();
-            if (request.result != UnityWebRequest.Result.Success)
-            {
-                EmitError("bundle_load_failed", request.error);
-                yield break;
-            }
-
-            var bundle = DownloadHandlerAssetBundle.GetContent(request);
-            if (bundle == null)
-            {
-                EmitError("bundle_invalid", "Asset bundle content was null.");
-                yield break;
-            }
-
-            garmentLoader?.LoadFromBundle(bundle, payload);
-            EmitEvent("garment_loaded", new Dictionary<string, object>
-            {
-                { "productId", payload.productId },
-                { "source", "asset_bundle" },
-            });
+            return _eventQueue.Count > 0 ? _eventQueue.Dequeue() : string.Empty;
         }
 
-        private IEnumerator LoadModel(string modelUrl, UnityTryOnPayload payload)
+        private void HandleManagerEvent(Dictionary<string, object> payload)
         {
-            EmitEvent("garment_loading", new Dictionary<string, object>
+            if (payload == null)
             {
-                { "productId", payload.productId },
-                { "source", "model_url" },
-            });
-
-            using var request = UnityWebRequest.Get(modelUrl);
-            yield return request.SendWebRequest();
-            if (request.result != UnityWebRequest.Result.Success)
-            {
-                EmitError("model_load_failed", request.error);
-                yield break;
+                return;
             }
-
-            garmentLoader?.LoadPlaceholderMesh(payload);
-            EmitEvent("garment_loaded", new Dictionary<string, object>
-            {
-                { "productId", payload.productId },
-                { "source", "model_url" },
-            });
+            var type = payload.TryGetValue("type", out var typeValue)
+                ? (typeValue?.ToString() ?? string.Empty)
+                : string.Empty;
+            EmitEvent(type, payload);
         }
 
         private void EmitError(string code, string message)
@@ -184,63 +188,23 @@ namespace Abzora.TryOn
 
         private void EmitEvent(string eventName, Dictionary<string, object> data)
         {
-            Debug.Log($"[ABZORA Unity] {eventName}: {MiniJson.Serialize(data)}");
+            if (data == null)
+            {
+                data = new Dictionary<string, object>();
+            }
+            if (!data.ContainsKey("type"))
+            {
+                data["type"] = eventName;
+            }
+            data["productId"] = data.ContainsKey("productId")
+                ? data["productId"]
+                : _activeProductId;
+            data["timestampMs"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            var json = MiniJson.Serialize(data);
+            _eventQueue.Enqueue(json);
+            Debug.Log($"[ABZORA Unity] {eventName}: {json}");
+            FlutterUnityTransport.SendMessageToFlutter(json);
         }
-    }
-
-    [Serializable]
-    public class UnityTryOnPayload
-    {
-        public string productId;
-        public string name;
-        public string category;
-        public string model3dUrl;
-        public string unityAssetBundleUrl;
-        public string rigProfile;
-        public string materialProfile;
-        public UnityMeasurementMap measurements;
-    }
-
-    [Serializable]
-    public class UnityMeasurementPayload
-    {
-        public UnityMeasurementMap measurements;
-    }
-
-    [Serializable]
-    public class UnityMeasurementMap
-    {
-        public float heightCm;
-        public float shoulderCm;
-        public float chestCm;
-        public float waistCm;
-        public float hipCm;
-    }
-
-    [Serializable]
-    public class UnityPosePayload
-    {
-        public UnityPoseFrame poseFrame;
-    }
-
-    [Serializable]
-    public class UnityPoseFrame
-    {
-        public UnityPosePoint leftShoulder;
-        public UnityPosePoint rightShoulder;
-        public UnityPosePoint leftHip;
-        public UnityPosePoint rightHip;
-        public UnityPosePoint shoulderCenter;
-        public UnityPosePoint hipCenter;
-        public float rotationRadians;
-        public float shoulderWidth;
-        public float torsoHeight;
-    }
-
-    [Serializable]
-    public class UnityPosePoint
-    {
-        public float x;
-        public float y;
     }
 }

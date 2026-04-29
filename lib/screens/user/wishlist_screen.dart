@@ -3,8 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../../constants/text_constants.dart';
 import '../../models/models.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
+import '../../utils/soft_auth_gate.dart';
 import '../../widgets/shimmer_box.dart';
 import '../../widgets/state_views.dart';
 import 'product_detail_screen.dart';
@@ -82,6 +85,14 @@ class _WishlistTile extends StatelessWidget {
 
   final WishlistItem item;
 
+  bool _isAuthSessionError(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('unauthorized') ||
+        text.contains('session expired') ||
+        text.contains('sign in again') ||
+        text.contains('too many authentication requests');
+  }
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -136,7 +147,31 @@ class _WishlistTile extends StatelessWidget {
                       color: Theme.of(context).cardColor.withValues(alpha: 0.92),
                       borderRadius: BorderRadius.circular(99),
                       child: IconButton(
-                        onPressed: () => context.read<WishlistProvider>().removeFromWishlist(item.productId),
+                        onPressed: () async {
+                          try {
+                            await context.read<WishlistProvider>().removeFromWishlist(item.productId);
+                          } catch (error) {
+                            if (!context.mounted) {
+                              return;
+                            }
+                            if (_isAuthSessionError(error)) {
+                              await context.read<AuthProvider>().logout();
+                              if (!context.mounted) {
+                                return;
+                              }
+                              await SoftAuthGate.ensureAuthenticated(
+                                context,
+                                intentLabel: 'Manage wishlist',
+                                trigger: AuthPromptTrigger.wishlist,
+                                promptStyle: AuthPromptStyle.softSheet,
+                              );
+                              return;
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(AppErrorText.from(error))),
+                            );
+                          }
+                        },
                         icon: const Icon(Icons.close_rounded, size: 18),
                       ),
                     ),

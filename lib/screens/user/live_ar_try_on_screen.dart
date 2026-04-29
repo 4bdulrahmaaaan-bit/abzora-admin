@@ -13,9 +13,11 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/ar_try_on_models.dart';
+import '../../models/ar_realtime_try_on_result.dart';
 import '../../models/models.dart';
 import '../../models/outfit_recommendation_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/cart_provider.dart';
 import '../../services/ar_try_on_service.dart';
 import '../../services/backend_commerce_service.dart';
 import '../../services/body_scan_service.dart';
@@ -25,25 +27,33 @@ import '../../services/pose_measurement_service.dart';
 import '../../services/real_time_ar_try_on_bridge.dart';
 import '../../services/unity_try_on_bridge.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 import '../../widgets/ar_native_try_on_view.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/unity_try_on_view.dart';
+import 'avatar_try_on_screen.dart';
+import 'trial_booking_screen.dart';
 
 class LiveArTryOnScreen extends StatefulWidget {
   const LiveArTryOnScreen({
     super.key,
     required this.product,
     required this.accentColor,
+    this.heroImageTag,
+    this.entryImageUrl,
   });
 
   final Product product;
   final Color accentColor;
+  final String? heroImageTag;
+  final String? entryImageUrl;
 
   @override
   State<LiveArTryOnScreen> createState() => _LiveArTryOnScreenState();
 }
 
 enum _TryOnMode { single, outfit }
+
 enum _ArRendererMode { auto, flutter, native, unity }
 
 class _ArFitSummary {
@@ -78,7 +88,8 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
   final PoseMeasurementService _poseService = const PoseMeasurementService();
   final ArTryOnService _tryOnService = const ArTryOnService();
   final BodyScanService _bodyScanService = const BodyScanService();
-  final BackendCommerceService _backendCommerceService = BackendCommerceService();
+  final BackendCommerceService _backendCommerceService =
+      BackendCommerceService();
 
   late final ArGarmentMetadata _garment;
   List<CameraDescription> _cameras = const [];
@@ -119,32 +130,87 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
   int _tryOnCaptureCount = 0;
   int _tryOnOutfitSwitchCount = 0;
   final List<ArTryOnFrameStat> _tryOnFrameStats = <ArTryOnFrameStat>[];
+  StreamSubscription<ArRealtimeTryOnResult>? _unityFitSubscription;
+  double? _unityFitScore;
+  String? _unityRecommendedSize;
+  late Color _selectedTryOnColor;
+  double _manualRotation = 0;
+  DateTime _cameraEntryStartedAt = DateTime.now();
+  Duration? _bodyDetectionLatency;
+  bool _autoFitApplied = false;
+  bool _showAiSuggestion = false;
+  String? _aiSuggestionText;
+  bool _showEntryHero = false;
 
   @override
   void initState() {
     super.initState();
     _garment = _tryOnService.metadataFor(widget.product);
+    _selectedTryOnColor = widget.accentColor;
     _tryOnSessionId =
         'tryon_${widget.product.id}_${DateTime.now().millisecondsSinceEpoch}';
+    _cameraEntryStartedAt = DateTime.now();
+    _showEntryHero =
+        (widget.heroImageTag ?? '').isNotEmpty &&
+        (widget.entryImageUrl ?? '').trim().isNotEmpty;
     _initializeCamera();
     Future.microtask(_loadIntelligence);
     Future.microtask(() => _configureNativeRenderer(widget.product));
     Future.microtask(() => _configureUnityRenderer(widget.product));
+    _subscribeToUnityFitResults();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
       setState(() => _overlayEntryScale = 1.0);
     });
+    if (_showEntryHero) {
+      Future<void>.delayed(const Duration(milliseconds: 560), () {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _showEntryHero = false);
+      });
+    }
   }
 
   @override
   void dispose() {
+    _unityFitSubscription?.cancel();
     unawaited(_persistTryOnSession());
     unawaited(RealTimeArTryOnBridge.instance.dispose());
     unawaited(UnityTryOnBridge.instance.dispose());
     _controller?.dispose();
     super.dispose();
+  }
+
+  void _subscribeToUnityFitResults() {
+    _unityFitSubscription?.cancel();
+    _unityFitSubscription = UnityTryOnBridge.instance.fitResults.listen((
+      event,
+    ) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _unityFitScore = event.fitScore;
+        _unityRecommendedSize = event.recommendedSize;
+        if (_fitSummary != null) {
+          _fitSummary = _ArFitSummary(
+            recommendedSize: event.recommendedSize,
+            wearingSize: _fitSummary!.wearingSize,
+            fitConfidence: event.fitScore.round().clamp(0, 100),
+            fitType: _fitSummary!.fitType,
+            bodyType: _fitSummary!.bodyType,
+            sourceLabel: 'Unity realtime',
+            shoulderCm: _fitSummary!.shoulderCm,
+            chestCm: _fitSummary!.chestCm,
+            waistCm: _fitSummary!.waistCm,
+            hipCm: _fitSummary!.hipCm,
+          );
+        }
+      });
+    });
   }
 
   Future<void> _initializeCamera({bool? useFrontCamera}) async {
@@ -192,7 +258,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
         return;
       }
       setState(() {
-        _error = error.toString();
+        _error = AppErrorText.from(error);
         _isLoading = false;
       });
     }
@@ -406,7 +472,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
     final poseConfidence = frame == null
         ? 0.0
         : (frame.feedback.progress.clamp(0.0, 1.0) * 0.6) +
-            (frame.feedback.isAligned ? 0.35 : 0.1);
+              (frame.feedback.isAligned ? 0.35 : 0.1);
     _tryOnFrameStats.add(
       ArTryOnFrameStat(
         timestampMs: DateTime.now().millisecondsSinceEpoch,
@@ -450,12 +516,11 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       return;
     }
     final summary = _fitSummary;
-    final avgFps = _tryOnFrameStats.fold<double>(
-          0,
-          (sum, item) => sum + item.fps,
-        ) /
+    final avgFps =
+        _tryOnFrameStats.fold<double>(0, (sum, item) => sum + item.fps) /
         _tryOnFrameStats.length;
-    final avgPoseConfidence = _tryOnFrameStats.fold<double>(
+    final avgPoseConfidence =
+        _tryOnFrameStats.fold<double>(
           0,
           (sum, item) => sum + item.poseConfidence,
         ) /
@@ -477,8 +542,10 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       peakFps: peakFps,
       averagePoseConfidence: avgPoseConfidence,
       bodyProfileSnapshot: {
-        if (_savedBodyProfile?.heightCm != null) 'heightCm': _savedBodyProfile!.heightCm,
-        if (_savedBodyProfile?.weightKg != null) 'weightKg': _savedBodyProfile!.weightKg,
+        if (_savedBodyProfile?.heightCm != null)
+          'heightCm': _savedBodyProfile!.heightCm,
+        if (_savedBodyProfile?.weightKg != null)
+          'weightKg': _savedBodyProfile!.weightKg,
       },
       measurements: {
         if (summary != null) 'shoulderCm': summary.shoulderCm,
@@ -541,8 +608,11 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
     final bodyType = _bodyTypeFromRatio(
       liveMetrics.chestCm / math.max(1, liveMetrics.waistCm),
     );
-    final weightKg = (profile?.weightKg ?? _estimatedWeightKg(heightCm, bodyType.$1))
-        .clamp(42.0, 120.0);
+    final weightKg =
+        (profile?.weightKg ?? _estimatedWeightKg(heightCm, bodyType.$1)).clamp(
+          42.0,
+          120.0,
+        );
     final refinement = PoseRefinementResult(
       chestAdjustment: 0,
       waistAdjustment: 0,
@@ -556,7 +626,9 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
         else
           'Using saved body profile until live tracking locks on',
       ],
-      accuracyLabel: frame != null ? 'High' : (profile != null ? 'Medium' : 'Low'),
+      accuracyLabel: frame != null
+          ? 'High'
+          : (profile != null ? 'Medium' : 'Low'),
       detectedBodyType: bodyType.$1,
       bodyTypeConfidence: bodyType.$2,
       shoulderWidthCm: liveMetrics.shoulderCm,
@@ -579,10 +651,13 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       widget.product,
       result,
     );
-    final wearing = selectedSizeOverride ??
+    final wearing =
+        selectedSizeOverride ??
         (widget.product.sizes.contains(recommended)
             ? recommended
-            : (widget.product.sizes.isNotEmpty ? widget.product.sizes.first : recommended));
+            : (widget.product.sizes.isNotEmpty
+                  ? widget.product.sizes.first
+                  : recommended));
     final confidence = ((result.confidence * 100) + (frame != null ? 6 : 0))
         .round()
         .clamp(68, 98);
@@ -595,8 +670,8 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       sourceLabel: frame != null
           ? 'AR live measurements'
           : profile != null
-              ? 'Saved body profile'
-              : 'Manual estimation',
+          ? 'Saved body profile'
+          : 'Manual estimation',
       shoulderCm: result.shoulderCm,
       chestCm: result.chestCm,
       waistCm: result.waistCm,
@@ -604,7 +679,8 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
     );
   }
 
-  ({double shoulderCm, double chestCm, double waistCm, double hipCm}) _liveMeasurementMetrics(
+  ({double shoulderCm, double chestCm, double waistCm, double hipCm})
+  _liveMeasurementMetrics(
     TryOnPoseFrame? frame,
     BodyProfile? profile,
     double heightCm,
@@ -675,7 +751,9 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       return _fitAdjustment;
     }
     const order = <String>['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
-    final recommendedIndex = order.indexOf(reference.recommendedSize.toUpperCase());
+    final recommendedIndex = order.indexOf(
+      reference.recommendedSize.toUpperCase(),
+    );
     final selectedIndex = order.indexOf(selected.toUpperCase());
     final delta = recommendedIndex < 0 || selectedIndex < 0
         ? 0
@@ -775,6 +853,24 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
           selectedSizeOverride: _selectedSizeOverride,
         );
         _selectedSizeOverride ??= _fitSummary?.wearingSize;
+        if (smoothedFrame != null && _bodyDetectionLatency == null) {
+          _bodyDetectionLatency = DateTime.now().difference(
+            _cameraEntryStartedAt,
+          );
+        }
+        if (!_autoFitApplied && smoothedFrame?.feedback.isAligned == true) {
+          _autoFitApplied = true;
+          _fitAdjustment = 0;
+        }
+        if (!_showAiSuggestion && _fitSummary != null) {
+          final suggestion =
+              _fitSummary!.recommendedSize.toUpperCase() !=
+                  _fitSummary!.wearingSize.toUpperCase()
+              ? 'AI fit tip: ${_fitSummary!.recommendedSize} may drape better for ${widget.product.name}.'
+              : 'AI style tip: This fit looks strong. Try a darker color for evening wear.';
+          _aiSuggestionText = suggestion;
+          _showAiSuggestion = true;
+        }
       });
       final isAligned = smoothedFrame?.feedback.isAligned ?? false;
       if (!wasAligned && isAligned) {
@@ -800,6 +896,190 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       );
     } catch (_) {}
     await _initializeCamera(useFrontCamera: !_useFrontCamera);
+  }
+
+  Future<void> _showTryLiveHelp() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF161616),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        final textTheme = Theme.of(context).textTheme;
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Try Live Tips',
+                  style: textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '1. Stand about 1.5m away\n2. Keep your full body visible\n3. Hold still for 2 seconds for auto-fit',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _autoFitNow() {
+    final summary = _fitSummary;
+    HapticFeedback.selectionClick();
+    setState(() {
+      _fitAdjustment = 0;
+      _manualRotation = 0;
+      if (summary != null) {
+        _selectedSizeOverride = summary.recommendedSize;
+        _fitSummary = _buildFitSummary(
+          frame: _trackingFrame,
+          profile: _savedBodyProfile,
+          selectedSizeOverride: _selectedSizeOverride,
+        );
+      }
+      if (_previewCanvasSize != null) {
+        _overlayLayout = _tryOnService.buildLayout(
+          canvasSize: _previewCanvasSize!,
+          guideRect: _guideRectFor(_previewCanvasSize!),
+          frame: _trackingFrame,
+          metadata: _garmentForMode,
+          fitAdjustment: _effectiveFitAdjustment(),
+          previous: _overlayLayout,
+        );
+      }
+    });
+  }
+
+  void _calibrateTracking() {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _recentPoseFrames.clear();
+      _trackingFrame = null;
+      _overlayLayout = null;
+      _bodyDetectionLatency = null;
+      _autoFitApplied = false;
+      _cameraEntryStartedAt = DateTime.now();
+    });
+  }
+
+  Future<void> _openAvatarFallback() async {
+    final activeProduct = _selectedProductOverride ?? widget.product;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AvatarTryOnScreen(
+          product: activeProduct,
+          accentColor: _selectedTryOnColor,
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _handleExitRequested() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF171717),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _exitAction('buy', Icons.shopping_bag_outlined, 'Buy now'),
+                const SizedBox(height: 8),
+                _exitAction('home', Icons.home_work_outlined, 'Try at home'),
+                const SizedBox(height: 8),
+                _exitAction('save', Icons.bookmark_border_rounded, 'Save look'),
+                const SizedBox(height: 8),
+                _exitAction('leave', Icons.close_rounded, 'Close Try Live'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || choice == null) {
+      return false;
+    }
+    if (choice == 'buy') {
+      final activeProduct = _selectedProductOverride ?? widget.product;
+      final size =
+          _fitSummary?.wearingSize ??
+          (activeProduct.sizes.isNotEmpty ? activeProduct.sizes.first : 'M');
+      context.read<CartProvider>().addToCart(activeProduct, size);
+      await Navigator.of(context).pushNamed('/cart');
+      return false;
+    }
+    if (choice == 'home') {
+      final activeProduct = _selectedProductOverride ?? widget.product;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => TrialBookingScreen(
+            availableItems: const <Product>[],
+            seedProduct: activeProduct,
+            addressLabel: 'Home address selected at checkout',
+            recommendedSize: _fitSummary?.recommendedSize ?? 'M',
+            fitConfidence: (_fitSummary?.fitConfidence ?? 88).toDouble(),
+          ),
+        ),
+      );
+      return false;
+    }
+    if (choice == 'save') {
+      await _capturePhoto();
+      return false;
+    }
+    return choice == 'leave';
+  }
+
+  Widget _exitAction(String value, IconData icon, String label) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => Navigator.of(context).pop(value),
+        icon: Icon(icon),
+        label: Align(alignment: Alignment.centerLeft, child: Text(label)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _setZoom(double value) async {
@@ -883,9 +1163,9 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       }
       HapticFeedback.mediumImpact();
       setState(() => _lastCapturePath = nativePath);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Native AR capture saved.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Native AR capture saved.')));
     } catch (error) {
       if (!mounted) {
         return;
@@ -1035,7 +1315,9 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
     final base = _savedBodyProfile;
     final profile = BodyProfile(
       heightCm: base?.heightCm ?? 170,
-      weightKg: base?.weightKg ?? _estimatedWeightKg(base?.heightCm ?? 170, summary.bodyType),
+      weightKg:
+          base?.weightKg ??
+          _estimatedWeightKg(base?.heightCm ?? 170, summary.bodyType),
       bodyType: summary.bodyType.toLowerCase(),
       recommendedSize: summary.recommendedSize,
       pantSize: base?.pantSize ?? '',
@@ -1069,10 +1351,9 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       );
       return;
     }
-    await Share.shareXFiles(
-      [XFile(path)],
-      text: 'Trying on ${widget.product.name} with ABZORA AR.',
-    );
+    await Share.shareXFiles([
+      XFile(path),
+    ], text: 'Trying on ${widget.product.name} with ABZORA AR.');
   }
 
   bool get _shouldUseNativeRenderer {
@@ -1089,7 +1370,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       _ArRendererMode.unity => _unityTryOnMetadata != null,
       _ArRendererMode.auto =>
         _unityTryOnMetadata != null &&
-        _unityTryOnMetadata!.unityAssetBundleUrl.trim().isNotEmpty,
+            _unityTryOnMetadata!.unityAssetBundleUrl.trim().isNotEmpty,
       _ArRendererMode.flutter => false,
       _ArRendererMode.native => false,
     };
@@ -1106,6 +1387,10 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
   String _statusText() {
     if (_error != null) {
       return 'Using image try-on fallback';
+    }
+    if (_unityFitScore != null) {
+      final size = _unityRecommendedSize ?? _fitSummary?.recommendedSize ?? 'M';
+      return 'Realtime Fit ${_unityFitScore!.round()}% · Size $size';
     }
     final feedback = _trackingFrame?.feedback;
     if (feedback == null) {
@@ -1352,299 +1637,424 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
   @override
   Widget build(BuildContext context) {
     return AbzioThemeScope.dark(
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: SafeArea(
-          bottom: false,
-          child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    color: AbzioTheme.accentColor,
-                  ),
-                )
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    final canvasSize = Size(
-                      constraints.maxWidth,
-                      constraints.maxHeight,
-                    );
-                    final fitSummary = _fitSummary;
-                    final lightingHint = _lightingHintText();
-                    final activeOutfit = _selectedOutfit;
-                    final activePrimaryProduct =
-                        _selectedProductOverride ??
-                        (_mode == _TryOnMode.outfit && activeOutfit != null
-                            ? (_primaryOutfitItem(activeOutfit) ??
-                                  widget.product)
-                            : widget.product);
-                    final activePrimaryMetadata = _tryOnService.metadataFor(
-                      activePrimaryProduct,
-                    );
-                    _previewCanvasSize = canvasSize;
-                    final guideRect = _guideRectFor(canvasSize);
-                    final overlayLayout =
-                        _overlayLayout ??
-                        _tryOnService.buildLayout(
-                          canvasSize: canvasSize,
-                          guideRect: guideRect,
-                          frame: _trackingFrame,
-                          metadata: activePrimaryMetadata,
-                          fitAdjustment: _effectiveFitAdjustment(
-                            summary: fitSummary,
-                          ),
-                        );
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (bool didPop, Object? result) {
+          if (didPop) {
+            return;
+          }
+          unawaited(_handleBackNavigation());
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: SafeArea(
+            bottom: false,
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: AbzioTheme.accentColor,
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final canvasSize = Size(
+                        constraints.maxWidth,
+                        constraints.maxHeight,
+                      );
+                      final fitSummary = _fitSummary;
+                      final lightingHint = _lightingHintText();
+                      final activeOutfit = _selectedOutfit;
+                      final activePrimaryProduct =
+                          _selectedProductOverride ??
+                          (_mode == _TryOnMode.outfit && activeOutfit != null
+                              ? (_primaryOutfitItem(activeOutfit) ??
+                                    widget.product)
+                              : widget.product);
+                      final activePrimaryMetadata = _tryOnService.metadataFor(
+                        activePrimaryProduct,
+                      );
+                      _previewCanvasSize = canvasSize;
+                      final guideRect = _guideRectFor(canvasSize);
+                      final overlayLayout =
+                          _overlayLayout ??
+                          _tryOnService.buildLayout(
+                            canvasSize: canvasSize,
+                            guideRect: guideRect,
+                            frame: _trackingFrame,
+                            metadata: activePrimaryMetadata,
+                            fitAdjustment: _effectiveFitAdjustment(
+                              summary: fitSummary,
+                            ),
+                          );
 
-                    return Stack(
-                      children: [
-                        Positioned.fill(
-                          child: _error == null && _controller != null
-                              ? CameraPreview(_controller!)
-                              : _FallbackTryOnPreview(
-                                  product: widget.product,
-                                  accentColor: widget.accentColor,
-                                ),
-                        ),
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: ClipRect(
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 0.8, sigmaY: 0.8),
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.045),
+                      return Stack(
+                        children: [
+                          Positioned.fill(
+                            child: _error == null && _controller != null
+                                ? CameraPreview(_controller!)
+                                : _FallbackTryOnPreview(
+                                    product: widget.product,
+                                    accentColor: _selectedTryOnColor,
+                                  ),
+                          ),
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: ClipRect(
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: 0.8,
+                                    sigmaY: 0.8,
+                                  ),
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.045,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.black.withValues(alpha: 0.54),
-                                    Colors.transparent,
-                                    Colors.black.withValues(alpha: 0.64),
-                                  ],
-                                  stops: const [0, 0.38, 1],
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.black.withValues(alpha: 0.54),
+                                      Colors.transparent,
+                                      Colors.black.withValues(alpha: 0.64),
+                                    ],
+                                    stops: const [0, 0.38, 1],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 130),
-                              opacity: _showCaptureFlash ? 0.26 : 0,
-                              child: const ColoredBox(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: CustomPaint(
-                              painter: _TryOnGuidePainter(
-                                guideRect: guideRect,
-                                accentColor: widget.accentColor,
-                                isAligned:
-                                    _trackingFrame?.feedback.isAligned ?? false,
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (_showOverlay && _shouldUseUnityRenderer)
                           Positioned.fill(
                             child: IgnorePointer(
-                              child: UnityTryOnView(
-                                metadata: _unityTryOnMetadata!,
-                                measurements: {
-                                  if (_savedBodyProfile?.heightCm != null)
-                                    'heightCm': _savedBodyProfile!.heightCm,
-                                  if (fitSummary != null)
-                                    'shoulderCm': fitSummary.shoulderCm,
-                                  if (fitSummary != null)
-                                    'chestCm': fitSummary.chestCm,
-                                  if (fitSummary != null)
-                                    'waistCm': fitSummary.waistCm,
-                                  if (fitSummary != null)
-                                    'hipCm': fitSummary.hipCm,
-                                },
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 130),
+                                opacity: _showCaptureFlash ? 0.26 : 0,
+                                child: const ColoredBox(color: Colors.white),
                               ),
                             ),
                           ),
-                        if (_showOverlay &&
-                            !_shouldUseUnityRenderer &&
-                            _shouldUseNativeRenderer)
                           Positioned.fill(
                             child: IgnorePointer(
-                              child: ArNativeTryOnView(
-                                metadata: _nativeTryOnMetadata!,
+                              child: CustomPaint(
+                                painter: _TryOnGuidePainter(
+                                  guideRect: guideRect,
+                                  accentColor: _selectedTryOnColor,
+                                  isAligned:
+                                      _trackingFrame?.feedback.isAligned ??
+                                      false,
+                                ),
                               ),
                             ),
                           ),
-                        if (_showOverlay &&
-                            !_shouldUseUnityRenderer &&
-                            !_shouldUseNativeRenderer)
-                          _GarmentOverlay(
-                            product: activePrimaryProduct,
-                            metadata: activePrimaryMetadata,
-                            layout: overlayLayout,
-                            accentColor: widget.accentColor,
-                            sceneLuma: _sceneLuma,
-                            entryScale: _overlayEntryScale,
-                            occlusionEnabled:
-                                (_trackingFrame?.feedback.isAligned ?? false) &&
-                                (_trackingFrame?.shoulderWidth ?? 0) > 0.08,
+                          if (_showOverlay && _shouldUseUnityRenderer)
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: UnityTryOnView(
+                                  metadata: _unityTryOnMetadata!,
+                                  measurements: {
+                                    if (_savedBodyProfile?.heightCm != null)
+                                      'heightCm': _savedBodyProfile!.heightCm,
+                                    if (fitSummary != null)
+                                      'shoulderCm': fitSummary.shoulderCm,
+                                    if (fitSummary != null)
+                                      'chestCm': fitSummary.chestCm,
+                                    if (fitSummary != null)
+                                      'waistCm': fitSummary.waistCm,
+                                    if (fitSummary != null)
+                                      'hipCm': fitSummary.hipCm,
+                                  },
+                                ),
+                              ),
+                            ),
+                          if (_showOverlay &&
+                              !_shouldUseUnityRenderer &&
+                              _shouldUseNativeRenderer)
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: ArNativeTryOnView(
+                                  metadata: _nativeTryOnMetadata!,
+                                ),
+                              ),
+                            ),
+                          if (_showOverlay &&
+                              !_shouldUseUnityRenderer &&
+                              !_shouldUseNativeRenderer)
+                            _GarmentOverlay(
+                              product: activePrimaryProduct,
+                              metadata: activePrimaryMetadata,
+                              layout: overlayLayout,
+                              accentColor: _selectedTryOnColor,
+                              sceneLuma: _sceneLuma,
+                              entryScale: _overlayEntryScale,
+                              manualRotationDegrees: _manualRotation,
+                              occlusionEnabled:
+                                  (_trackingFrame?.feedback.isAligned ??
+                                      false) &&
+                                  (_trackingFrame?.shoulderWidth ?? 0) > 0.08,
+                            ),
+                          Positioned(
+                            top: 12,
+                            left: 16,
+                            right: 16,
+                              child: _TopControls(
+                              onBack: () {
+                                unawaited(_handleBackNavigation());
+                              },
+                              onHelpTap: _showTryLiveHelp,
+                              subtitle: activePrimaryProduct.name,
+                              fitSummary: fitSummary == null
+                                  ? null
+                                  : 'Wearing Size ${fitSummary.wearingSize} · ${fitSummary.fitConfidence}% fit',
+                            ),
                           ),
-                        Positioned(
-                          top: 12,
-                          left: 16,
-                          right: 16,
-                          child: _TopControls(
-                            onBack: () => Navigator.pop(context),
-                            title: activePrimaryProduct.name,
-                            fitSummary: fitSummary == null
-                                ? null
-                                : 'Wearing Size ${fitSummary.wearingSize} · ${fitSummary.fitConfidence}% fit',
-                          ),
-                        ),
-                        if (lightingHint != null)
                           Positioned(
                             top: 86,
                             left: 16,
-                            child: _GuidanceChip(
-                              icon: Icons.wb_incandescent_rounded,
-                              label: lightingHint,
+                            child: const _GuidanceChip(
+                              icon: Icons.accessibility_new_rounded,
+                              label: 'Stand 1.5m away · Full body visible',
                             ),
                           ),
-                        Positioned(
-                          left: 16,
-                          right: 16,
-                          bottom: 24,
-                          child: _BottomControls(
-                            productSizes: widget.product.sizes,
-                            fitSummary: fitSummary,
-                            statusText: _statusText(),
-                            rendererMode: _rendererMode,
-                            nativeRendererAvailable: _nativeTryOnMetadata != null,
-                            unityRendererAvailable: _unityTryOnMetadata != null,
-                            fitAdjustment: _fitAdjustment,
-                            zoomLevel: _zoomLevel,
-                            minZoomLevel: _minZoomLevel,
-                            maxZoomLevel: _maxZoomLevel,
-                            isCapturing: _isCapturing,
-                            onZoomChanged: _setZoom,
-                            onCapture: _capturePhoto,
-                            onShare: _shareLastCapture,
-                            canSwitchCamera: _cameras.length > 1,
-                            onSwitchCamera: _switchCamera,
-                            onChangeProduct: _openProductPicker,
-                            onRendererModeChanged: (mode) async {
-                              HapticFeedback.selectionClick();
-                              setState(() => _rendererMode = mode);
-                              if (mode == _ArRendererMode.unity ||
-                                  mode == _ArRendererMode.auto) {
-                                await _configureUnityRenderer(
-                                  _selectedProductOverride ?? widget.product,
-                                );
-                              }
-                              if (mode != _ArRendererMode.flutter &&
-                                  mode != _ArRendererMode.unity) {
-                                await _configureNativeRenderer(
-                                  _selectedProductOverride ?? widget.product,
-                                );
-                              }
-                            },
-                            showOverlay: _showOverlay,
-                            onToggleBeforeAfter: () {
-                              HapticFeedback.selectionClick();
-                              setState(() {
-                                final next = !_showOverlay;
-                                _showOverlay = next;
-                                if (next) {
-                                  _overlayEntryScale = 0.965;
-                                }
-                              });
-                              if (_showOverlay) {
-                                Future<void>.delayed(
-                                  const Duration(milliseconds: 16),
-                                  () {
-                                    if (!mounted) {
-                                      return;
-                                    }
-                                    setState(() => _overlayEntryScale = 1.0);
-                                  },
-                                );
-                              }
-                            },
-                            onSelectSize: (size) {
-                              HapticFeedback.selectionClick();
-                              setState(() {
-                                _selectedSizeOverride = size;
-                                _fitSummary = _buildFitSummary(
-                                  frame: _trackingFrame,
-                                  profile: _savedBodyProfile,
-                                  selectedSizeOverride: size,
-                                );
-                                _overlayLayout = _tryOnService.buildLayout(
-                                  canvasSize: canvasSize,
-                                  guideRect: guideRect,
-                                  frame: _trackingFrame,
-                                  metadata: _garmentForMode,
-                                  fitAdjustment: _effectiveFitAdjustment(
-                                    summary: _fitSummary,
+                          if (_bodyDetectionLatency != null)
+                            Positioned(
+                              top: 122,
+                              left: 16,
+                              child: _GuidanceChip(
+                                icon: Icons.verified_rounded,
+                                label:
+                                    'Body detected in ${_bodyDetectionLatency!.inMilliseconds < 1000 ? '<1' : (_bodyDetectionLatency!.inMilliseconds / 1000).toStringAsFixed(1)}s',
+                              ),
+                            ),
+                          if (lightingHint != null)
+                            Positioned(
+                              top: 158,
+                              left: 16,
+                              child: _GuidanceChip(
+                                icon: Icons.wb_incandescent_rounded,
+                                label: lightingHint,
+                              ),
+                            ),
+                          if (_showAiSuggestion &&
+                              (_aiSuggestionText ?? '').isNotEmpty)
+                            Positioned(
+                              left: 16,
+                              right: 16,
+                              bottom: 230,
+                              child: GestureDetector(
+                                onTap: () =>
+                                    setState(() => _showAiSuggestion = false),
+                                child: _AiSuggestionCard(
+                                  message: _aiSuggestionText!,
+                                ),
+                              ),
+                            ),
+                          if (_error != null)
+                            Positioned(
+                              right: 16,
+                              bottom: 230,
+                              child: FilledButton.icon(
+                                onPressed: _openAvatarFallback,
+                                icon: const Icon(Icons.view_in_ar_rounded),
+                                label: const Text('Use 3D Avatar'),
+                              ),
+                            ),
+                          if (_showEntryHero &&
+                              (widget.heroImageTag ?? '').isNotEmpty &&
+                              (widget.entryImageUrl ?? '').isNotEmpty)
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: Center(
+                                  child: Hero(
+                                    tag: widget.heroImageTag!,
+                                    child: TweenAnimationBuilder<double>(
+                                      tween: Tween<double>(begin: 1, end: 1.08),
+                                      duration: const Duration(
+                                        milliseconds: 520,
+                                      ),
+                                      builder: (context, value, child) {
+                                        return Opacity(
+                                          opacity: (1.12 - value).clamp(0, 1),
+                                          child: Transform.scale(
+                                            scale: value,
+                                            child: child,
+                                          ),
+                                        );
+                                      },
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(22),
+                                        child: SizedBox(
+                                          width: 168,
+                                          height: 220,
+                                          child: CachedNetworkImage(
+                                            imageUrl: widget.entryImageUrl!,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                  previous: _overlayLayout,
-                                );
-                              });
-                            },
-                            onFitChanged: (value) {
-                              HapticFeedback.selectionClick();
-                              setState(() {
-                                _fitAdjustment = value;
-                                _fitSummary = _buildFitSummary(
-                                  frame: _trackingFrame,
-                                  profile: _savedBodyProfile,
-                                  selectedSizeOverride: _selectedSizeOverride,
-                                );
-                                if (_previewCanvasSize != null) {
-                                  _overlayLayout = _tryOnService.buildLayout(
-                                    canvasSize: _previewCanvasSize!,
-                                    guideRect: _guideRectFor(_previewCanvasSize!),
-                                    frame: _trackingFrame,
-                                    metadata: _garmentForMode,
-                                    fitAdjustment: _effectiveFitAdjustment(),
-                                    previous: _overlayLayout,
+                                ),
+                              ),
+                            ),
+                          Positioned(
+                            left: 16,
+                            right: 16,
+                            bottom: 24,
+                            child: _BottomControls(
+                              productSizes: widget.product.sizes,
+                              fitSummary: fitSummary,
+                              statusText: _statusText(),
+                              rendererMode: _rendererMode,
+                              nativeRendererAvailable:
+                                  _nativeTryOnMetadata != null,
+                              unityRendererAvailable:
+                                  _unityTryOnMetadata != null,
+                              fitAdjustment: _fitAdjustment,
+                              zoomLevel: _zoomLevel,
+                              minZoomLevel: _minZoomLevel,
+                              maxZoomLevel: _maxZoomLevel,
+                              isCapturing: _isCapturing,
+                              onZoomChanged: _setZoom,
+                              onCapture: _capturePhoto,
+                              onShare: _shareLastCapture,
+                              canSwitchCamera: _cameras.length > 1,
+                              onSwitchCamera: _switchCamera,
+                              onAutoFit: _autoFitNow,
+                              onCalibrate: _calibrateTracking,
+                              onSaveLook: _capturePhoto,
+                              onChangeProduct: _openProductPicker,
+                              onRendererModeChanged: (mode) async {
+                                HapticFeedback.selectionClick();
+                                setState(() => _rendererMode = mode);
+                                if (mode == _ArRendererMode.unity ||
+                                    mode == _ArRendererMode.auto) {
+                                  await _configureUnityRenderer(
+                                    _selectedProductOverride ?? widget.product,
                                   );
                                 }
-                              });
-                            },
+                                if (mode != _ArRendererMode.flutter &&
+                                    mode != _ArRendererMode.unity) {
+                                  await _configureNativeRenderer(
+                                    _selectedProductOverride ?? widget.product,
+                                  );
+                                }
+                              },
+                              showOverlay: _showOverlay,
+                              onToggleBeforeAfter: () {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  final next = !_showOverlay;
+                                  _showOverlay = next;
+                                  if (next) {
+                                    _overlayEntryScale = 0.965;
+                                  }
+                                });
+                                if (_showOverlay) {
+                                  Future<void>.delayed(
+                                    const Duration(milliseconds: 16),
+                                    () {
+                                      if (!mounted) {
+                                        return;
+                                      }
+                                      setState(() => _overlayEntryScale = 1.0);
+                                    },
+                                  );
+                                }
+                              },
+                              onSelectSize: (size) {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  _selectedSizeOverride = size;
+                                  _fitSummary = _buildFitSummary(
+                                    frame: _trackingFrame,
+                                    profile: _savedBodyProfile,
+                                    selectedSizeOverride: size,
+                                  );
+                                  _overlayLayout = _tryOnService.buildLayout(
+                                    canvasSize: canvasSize,
+                                    guideRect: guideRect,
+                                    frame: _trackingFrame,
+                                    metadata: _garmentForMode,
+                                    fitAdjustment: _effectiveFitAdjustment(
+                                      summary: _fitSummary,
+                                    ),
+                                    previous: _overlayLayout,
+                                  );
+                                });
+                              },
+                              onFitChanged: (value) {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  _fitAdjustment = value;
+                                  _fitSummary = _buildFitSummary(
+                                    frame: _trackingFrame,
+                                    profile: _savedBodyProfile,
+                                    selectedSizeOverride: _selectedSizeOverride,
+                                  );
+                                  if (_previewCanvasSize != null) {
+                                    _overlayLayout = _tryOnService.buildLayout(
+                                      canvasSize: _previewCanvasSize!,
+                                      guideRect: _guideRectFor(
+                                        _previewCanvasSize!,
+                                      ),
+                                      frame: _trackingFrame,
+                                      metadata: _garmentForMode,
+                                      fitAdjustment: _effectiveFitAdjustment(),
+                                      previous: _overlayLayout,
+                                    );
+                                  }
+                                });
+                              },
+                              selectedColor: _selectedTryOnColor,
+                              onColorChanged: (color) {
+                                HapticFeedback.selectionClick();
+                                setState(() => _selectedTryOnColor = color);
+                              },
+                              rotationDegrees: _manualRotation,
+                              onRotationChanged: (value) {
+                                setState(() => _manualRotation = value);
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
+                        ],
+                      );
+                    },
+                  ),
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _handleBackNavigation() async {
+    final shouldLeave = await _handleExitRequested();
+    if (shouldLeave && mounted) {
+      Navigator.of(context).pop();
+    }
   }
 }
 
 class _TopControls extends StatelessWidget {
   const _TopControls({
     required this.onBack,
-    required this.title,
+    required this.onHelpTap,
+    required this.subtitle,
     this.fitSummary,
   });
 
   final VoidCallback onBack;
-  final String title;
+  final VoidCallback onHelpTap;
+  final String subtitle;
   final String? fitSummary;
 
   @override
@@ -1659,18 +2069,23 @@ class _TopControls extends StatelessWidget {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.14),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      title,
+                      'Try Live',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -1681,7 +2096,7 @@ class _TopControls extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'AR Try-On',
+                      subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -1709,6 +2124,8 @@ class _TopControls extends StatelessWidget {
             ),
           ),
         ),
+        const SizedBox(width: 10),
+        _GlassIconButton(icon: Icons.help_outline_rounded, onTap: onHelpTap),
       ],
     );
   }
@@ -1732,12 +2149,19 @@ class _BottomControls extends StatelessWidget {
     required this.onShare,
     required this.canSwitchCamera,
     required this.onSwitchCamera,
+    required this.onAutoFit,
+    required this.onCalibrate,
+    required this.onSaveLook,
     required this.onChangeProduct,
     required this.onRendererModeChanged,
     required this.showOverlay,
     required this.onToggleBeforeAfter,
     required this.onSelectSize,
     required this.onFitChanged,
+    required this.selectedColor,
+    required this.onColorChanged,
+    required this.rotationDegrees,
+    required this.onRotationChanged,
   });
 
   final List<String> productSizes;
@@ -1756,12 +2180,19 @@ class _BottomControls extends StatelessWidget {
   final VoidCallback onShare;
   final bool canSwitchCamera;
   final VoidCallback onSwitchCamera;
+  final VoidCallback onAutoFit;
+  final VoidCallback onCalibrate;
+  final VoidCallback onSaveLook;
   final VoidCallback onChangeProduct;
   final ValueChanged<_ArRendererMode> onRendererModeChanged;
   final bool showOverlay;
   final VoidCallback onToggleBeforeAfter;
   final ValueChanged<String> onSelectSize;
   final ValueChanged<double> onFitChanged;
+  final Color selectedColor;
+  final ValueChanged<Color> onColorChanged;
+  final double rotationDegrees;
+  final ValueChanged<double> onRotationChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1856,7 +2287,8 @@ class _BottomControls extends StatelessWidget {
                         const SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final size = productSizes[index];
-                      final selected = fitSummary!.wearingSize.toUpperCase() ==
+                      final selected =
+                          fitSummary!.wearingSize.toUpperCase() ==
                           size.toUpperCase();
                       return ChoiceChip(
                         label: Text(size),
@@ -1891,22 +2323,67 @@ class _BottomControls extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: canSwitchCamera ? onSwitchCamera : null,
+                      icon: const Icon(Icons.flip_camera_android_rounded),
+                      label: const Text('Flip'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onAutoFit,
+                      icon: const Icon(Icons.auto_fix_high_rounded),
+                      label: const Text('Auto fit'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onCalibrate,
+                      icon: const Icon(Icons.tune_rounded),
+                      label: const Text('Calibrate'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
                   for (final option in _ArRendererMode.values)
                     ChoiceChip(
-                      label: Text(
-                        switch (option) {
-                          _ArRendererMode.auto => 'Auto',
-                          _ArRendererMode.flutter => 'Flutter',
-                          _ArRendererMode.native => 'Native',
-                          _ArRendererMode.unity => 'Unity',
-                        },
-                      ),
+                      label: Text(switch (option) {
+                        _ArRendererMode.auto => 'Auto',
+                        _ArRendererMode.flutter => 'Flutter',
+                        _ArRendererMode.native => 'Native',
+                        _ArRendererMode.unity => 'Unity',
+                      }),
                       selected: rendererMode == option,
-                      onSelected: ((option == _ArRendererMode.native &&
+                      onSelected:
+                          ((option == _ArRendererMode.native &&
                                   !nativeRendererAvailable) ||
                               (option == _ArRendererMode.unity &&
                                   !unityRendererAvailable))
@@ -1919,11 +2396,11 @@ class _BottomControls extends StatelessWidget {
                         color: rendererMode == option
                             ? Colors.black
                             : (((option == _ArRendererMode.native &&
-                                            !nativeRendererAvailable) ||
-                                        (option == _ArRendererMode.unity &&
-                                            !unityRendererAvailable)))
-                                ? Colors.white38
-                                : Colors.white,
+                                      !nativeRendererAvailable) ||
+                                  (option == _ArRendererMode.unity &&
+                                      !unityRendererAvailable)))
+                            ? Colors.white38
+                            : Colors.white,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1956,6 +2433,82 @@ class _BottomControls extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Icons.rotate_right_rounded, color: Colors.white70),
+                  Expanded(
+                    child: Slider(
+                      value: rotationDegrees.clamp(-18, 18),
+                      min: -18,
+                      max: 18,
+                      onChanged: onRotationChanged,
+                    ),
+                  ),
+                  Text(
+                    '${rotationDegrees.toStringAsFixed(0)}°',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text(
+                    'Colors',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  for (final color in const [
+                    Color(0xFFC6A769),
+                    Color(0xFF1F7A8C),
+                    Color(0xFF6A4C93),
+                    Color(0xFF2F6B3A),
+                    Color(0xFFB23A48),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: () => onColorChanged(color),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: selectedColor.toARGB32() == color.toARGB32()
+                                  ? Colors.white
+                                  : Colors.white24,
+                              width: selectedColor.toARGB32() == color.toARGB32()
+                                  ? 2
+                                  : 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  const Spacer(),
+                  OutlinedButton.icon(
+                    onPressed: onSaveLook,
+                    icon: const Icon(Icons.bookmark_add_outlined),
+                    label: const Text('Save look'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   const Icon(Icons.zoom_in_rounded, color: Colors.white70),
@@ -2005,7 +2558,9 @@ class _BottomControls extends StatelessWidget {
                             ? const SizedBox(
                                 width: 14,
                                 height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.camera_alt_rounded),
                         label: Text(isCapturing ? 'Capturing' : 'Capture'),
@@ -2077,6 +2632,53 @@ class _BottomControls extends StatelessWidget {
   }
 }
 
+class _AiSuggestionCard extends StatelessWidget {
+  const _AiSuggestionCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.44),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.auto_awesome_rounded,
+                color: AbzioTheme.accentColor,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _GarmentOverlay extends StatelessWidget {
   const _GarmentOverlay({
     required this.product,
@@ -2085,6 +2687,7 @@ class _GarmentOverlay extends StatelessWidget {
     required this.accentColor,
     required this.sceneLuma,
     required this.entryScale,
+    this.manualRotationDegrees = 0,
     this.occlusionEnabled = false,
   });
 
@@ -2094,6 +2697,7 @@ class _GarmentOverlay extends StatelessWidget {
   final Color accentColor;
   final double sceneLuma;
   final double entryScale;
+  final double manualRotationDegrees;
   final bool occlusionEnabled;
 
   @override
@@ -2127,10 +2731,26 @@ class _GarmentOverlay extends StatelessWidget {
     final brightnessShift = 255 * exposureDelta;
     final colorMatchedGarment = ColorFiltered(
       colorFilter: ColorFilter.matrix([
-        1, 0, 0, 0, brightnessShift,
-        0, 1, 0, 0, brightnessShift,
-        0, 0, 1, 0, brightnessShift,
-        0, 0, 0, 1, 0,
+        1,
+        0,
+        0,
+        0,
+        brightnessShift,
+        0,
+        1,
+        0,
+        0,
+        brightnessShift,
+        0,
+        0,
+        1,
+        0,
+        brightnessShift,
+        0,
+        0,
+        0,
+        1,
+        0,
       ]),
       child: garmentChild,
     );
@@ -2140,7 +2760,9 @@ class _GarmentOverlay extends StatelessWidget {
       top: layout.center.dy - (layout.size.height / 2),
       child: IgnorePointer(
         child: Transform.rotate(
-          angle: layout.rotationRadians,
+          angle:
+              layout.rotationRadians +
+              ((manualRotationDegrees.clamp(-18, 18) * math.pi) / 180),
           child: AnimatedScale(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
@@ -2153,87 +2775,85 @@ class _GarmentOverlay extends StatelessWidget {
                 width: layout.size.width,
                 height: layout.size.height,
                 child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned(
-                    left: layout.size.width * 0.08,
-                    right: layout.size.width * 0.08,
-                    bottom: -layout.size.height * 0.05,
-                    height: layout.size.height * 0.16,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.16),
-                            blurRadius: 22,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: ShaderMask(
-                      shaderCallback: (bounds) => RadialGradient(
-                        center: const Alignment(0, -0.08),
-                        radius: 0.98,
-                        colors: const [
-                          Colors.white,
-                          Colors.white,
-                          Colors.transparent,
-                        ],
-                        stops: const [0.0, 0.88, 1.0],
-                      ).createShader(bounds),
-                      blendMode: BlendMode.dstIn,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Opacity(
-                            opacity: 0.16,
-                            child: ImageFiltered(
-                              imageFilter: ImageFilter.blur(
-                                sigmaX: 1.0,
-                                sigmaY: 1.0,
-                              ),
-                              child: colorMatchedGarment,
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      left: layout.size.width * 0.08,
+                      right: layout.size.width * 0.08,
+                      bottom: -layout.size.height * 0.05,
+                      height: layout.size.height * 0.16,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.16),
+                              blurRadius: 22,
+                              spreadRadius: 1,
                             ),
-                          ),
-                          if (occlusionEnabled &&
-                              _supportsFakeOcclusion(metadata.type))
-                            CustomPaint(
-                              foregroundPainter:
-                                  const _ArmOcclusionCutoutPainter(),
-                              child: colorMatchedGarment,
-                            )
-                          else
-                            colorMatchedGarment,
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.white.withValues(alpha: 0.06),
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.11),
                           ],
-                          stops: const [0.0, 0.52, 1.0],
                         ),
                       ),
                     ),
-                  ),
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _FabricNoisePainter(),
+                    Positioned.fill(
+                      child: ShaderMask(
+                        shaderCallback: (bounds) => RadialGradient(
+                          center: const Alignment(0, -0.08),
+                          radius: 0.98,
+                          colors: const [
+                            Colors.white,
+                            Colors.white,
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.88, 1.0],
+                        ).createShader(bounds),
+                        blendMode: BlendMode.dstIn,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Opacity(
+                              opacity: 0.16,
+                              child: ImageFiltered(
+                                imageFilter: ImageFilter.blur(
+                                  sigmaX: 1.0,
+                                  sigmaY: 1.0,
+                                ),
+                                child: colorMatchedGarment,
+                              ),
+                            ),
+                            if (occlusionEnabled &&
+                                _supportsFakeOcclusion(metadata.type))
+                              CustomPaint(
+                                foregroundPainter:
+                                    const _ArmOcclusionCutoutPainter(),
+                                child: colorMatchedGarment,
+                              )
+                            else
+                              colorMatchedGarment,
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.white.withValues(alpha: 0.06),
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.11),
+                            ],
+                            stops: const [0.0, 0.52, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: CustomPaint(painter: _FabricNoisePainter()),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -2619,13 +3239,12 @@ class _FallbackGarmentPainter extends CustomPainter {
   }
 
   Path _accessoryPath(Size size) {
-    return Path()
-      ..addOval(
-        Rect.fromCenter(
-          center: Offset(size.width * 0.5, size.height * 0.48),
-          width: size.width * 0.64,
-          height: size.height * 0.52,
-        ),
-      );
+    return Path()..addOval(
+      Rect.fromCenter(
+        center: Offset(size.width * 0.5, size.height * 0.48),
+        width: size.width * 0.64,
+        height: size.height * 0.52,
+      ),
+    );
   }
 }

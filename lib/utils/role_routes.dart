@@ -1,11 +1,7 @@
+import '../app_shell.dart';
 import '../models/models.dart';
+import 'app_mode_routes.dart';
 
 String routeForUser(AppUser? user) {
-  if (user == null) {
-    return '/login';
-  }
-  if (user.role == 'vendor' || user.role == 'rider') {
-    return '/ops';
-  }
-  return '/shop';
+  return routeForUserInMode(user, AbzioAppMode.unified);
 }

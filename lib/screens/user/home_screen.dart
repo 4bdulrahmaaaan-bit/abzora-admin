@@ -25,7 +25,7 @@ import '../../widgets/product_grid.dart';
 import '../../widgets/shimmer_box.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/tap_scale.dart';
-import '../tailoring/custom_brand_flow_screen.dart';
+import '../atelier/atelier_flow_screen.dart';
 import 'ai_stylist_screen.dart';
 import 'location_bottom_sheet.dart';
 import 'order_tracking_screen.dart';
@@ -48,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final List<Widget?> _lazyScreens = List<Widget?>.filled(4, null);
 
   bool _hasUsedAi = false;
+  bool _isNavVisible = true;
 
   @override
   void initState() {
@@ -106,9 +107,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildScreen(int index) {
     switch (index) {
       case 0:
-        return HomeContent(onOpenAiStylist: _openAiStylist);
+        return HomeContent(
+          onOpenAiStylist: _openAiStylist,
+          onNavVisibilityChanged: (visible) {
+            if (!mounted || _isNavVisible == visible) {
+              return;
+            }
+            setState(() => _isNavVisible = visible);
+          },
+        );
       case 1:
-        return const CustomBrandFlowScreen();
+        return const AtelierFlowScreen();
       case 2:
         return const OrderTrackingScreen();
       case 3:
@@ -130,85 +139,114 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return AbzioThemeScope.light(
-      child: Scaffold(
-        body: IndexedStack(index: _currentIndex, children: _screens()),
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: DecoratedBox(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                top: BorderSide(color: Color(0xFFE6E6E6), width: 1),
-              ),
-            ),
-            child: NavigationBarTheme(
-              data: NavigationBarThemeData(
-                height: 62,
-                backgroundColor: Colors.white,
-                indicatorColor: Colors.transparent,
-                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-                labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                  final selected = states.contains(WidgetState.selected);
-                  return TextStyle(
-                    fontSize: 11,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    color: selected
-                        ? const Color(0xFF111111)
-                        : const Color(0xFF666666),
-                  );
-                }),
-              ),
-              child: NavigationBar(
-                selectedIndex: _currentIndex,
-                onDestinationSelected: (index) async {
-                  if (!mounted) {
-                    return;
-                  }
-                  setState(() => _currentIndex = index);
-                },
-                destinations: const [
-                  NavigationDestination(
-                    icon: Icon(Icons.home_outlined, color: Color(0xFF666666)),
-                    selectedIcon: Icon(
-                      Icons.home_rounded,
-                      color: Color(0xFF111111),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFFF9F8F5), Color(0xFFF1EEE8)],
+          ),
+        ),
+        child: Scaffold(
+          extendBody: true,
+          backgroundColor: Colors.transparent,
+          body: IndexedStack(index: _currentIndex, children: _screens()),
+          bottomNavigationBar: AnimatedSlide(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            offset: _isNavVisible ? Offset.zero : const Offset(0, 1),
+            child: SafeArea(
+              top: false,
+              minimum: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xCCFCFBF8),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: const Color(0xFFE6DFD1)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 18,
+                          offset: const Offset(0, -4),
+                        ),
+                      ],
                     ),
-                    label: 'Home',
+                    child: NavigationBarTheme(
+                      data: NavigationBarThemeData(
+                        height: 62,
+                        backgroundColor: Colors.transparent,
+                        indicatorColor: Colors.transparent,
+                        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                          final selected = states.contains(WidgetState.selected);
+                          return TextStyle(
+                            fontSize: 11,
+                            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                            color: selected
+                                ? const Color(0xFFC6A769)
+                                : const Color(0xFF666666),
+                          );
+                        }),
+                      ),
+                      child: NavigationBar(
+                        selectedIndex: _currentIndex,
+                        onDestinationSelected: (index) async {
+                          if (!mounted) {
+                            return;
+                          }
+                          setState(() => _currentIndex = index);
+                        },
+                        destinations: const [
+                          NavigationDestination(
+                            icon: Icon(Icons.home_outlined, color: Color(0xFF666666)),
+                            selectedIcon: Icon(
+                              Icons.home_rounded,
+                              color: Color(0xFFC6A769),
+                            ),
+                            label: 'Home',
+                          ),
+                          NavigationDestination(
+                            icon: Icon(
+                              Icons.design_services_outlined,
+                              color: Color(0xFF666666),
+                            ),
+                            selectedIcon: Icon(
+                              Icons.design_services_rounded,
+                              color: Color(0xFFC6A769),
+                            ),
+                            label: AbzoraText.customNavLabel,
+                          ),
+                          NavigationDestination(
+                            icon: Icon(
+                              Icons.receipt_long_outlined,
+                              color: Color(0xFF666666),
+                            ),
+                            selectedIcon: Icon(
+                              Icons.receipt_long_rounded,
+                              color: Color(0xFFC6A769),
+                            ),
+                            label: 'Orders',
+                          ),
+                          NavigationDestination(
+                            icon: Icon(
+                              Icons.person_outline_rounded,
+                              color: Color(0xFF666666),
+                            ),
+                            selectedIcon: Icon(
+                              Icons.person_rounded,
+                              color: Color(0xFFC6A769),
+                            ),
+                            label: 'Profile',
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  NavigationDestination(
-                    icon: Icon(
-                      Icons.design_services_outlined,
-                      color: Color(0xFF666666),
-                    ),
-                    selectedIcon: Icon(
-                      Icons.design_services_rounded,
-                      color: Color(0xFF111111),
-                    ),
-                    label: AbzoraText.customNavLabel,
-                  ),
-                  NavigationDestination(
-                    icon: Icon(
-                      Icons.receipt_long_outlined,
-                      color: Color(0xFF666666),
-                    ),
-                    selectedIcon: Icon(
-                      Icons.receipt_long_rounded,
-                      color: Color(0xFF111111),
-                    ),
-                    label: 'Orders',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(
-                      Icons.person_outline_rounded,
-                      color: Color(0xFF666666),
-                    ),
-                    selectedIcon: Icon(
-                      Icons.person_rounded,
-                      color: Color(0xFF111111),
-                    ),
-                    label: 'Profile',
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -219,9 +257,14 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class HomeContent extends StatefulWidget {
-  const HomeContent({super.key, required this.onOpenAiStylist});
+  const HomeContent({
+    super.key,
+    required this.onOpenAiStylist,
+    this.onNavVisibilityChanged,
+  });
 
   final VoidCallback onOpenAiStylist;
+  final ValueChanged<bool>? onNavVisibilityChanged;
 
   @override
   State<HomeContent> createState() => _HomeContentState();
@@ -232,6 +275,10 @@ class _HomeContentState extends State<HomeContent> {
   bool _profileModalShown = false;
   bool _isHeaderScrolled = false;
   Timer? _loadMoreThrottle;
+  double _lastScrollOffset = 0;
+  double _scrollDeltaAccumulator = 0;
+  bool _navVisible = true;
+  static const double _navToggleThreshold = 20;
 
   @override
   void initState() {
@@ -248,6 +295,28 @@ class _HomeContentState extends State<HomeContent> {
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) {
         return;
+      }
+      final offset = _scrollController.offset;
+      final delta = offset - _lastScrollOffset;
+      _lastScrollOffset = offset;
+      if (offset <= 0) {
+        _scrollDeltaAccumulator = 0;
+        if (!_navVisible) {
+          _navVisible = true;
+          widget.onNavVisibilityChanged?.call(true);
+        }
+      } else {
+        _scrollDeltaAccumulator += delta;
+        if (_scrollDeltaAccumulator >= _navToggleThreshold && _navVisible) {
+          _navVisible = false;
+          _scrollDeltaAccumulator = 0;
+          widget.onNavVisibilityChanged?.call(false);
+        } else if (_scrollDeltaAccumulator <= -_navToggleThreshold &&
+            !_navVisible) {
+          _navVisible = true;
+          _scrollDeltaAccumulator = 0;
+          widget.onNavVisibilityChanged?.call(true);
+        }
       }
       final shouldCompressHeader = _scrollController.offset > 18;
       if (shouldCompressHeader != _isHeaderScrolled && mounted) {
@@ -306,6 +375,7 @@ class _HomeContentState extends State<HomeContent> {
           top: true,
           bottom: false,
           child: Scaffold(
+            backgroundColor: const Color(0xFFF8F8F8),
             appBar: HomeHeader(
               location: headline,
               isScrolled: _isHeaderScrolled,
@@ -322,8 +392,7 @@ class _HomeContentState extends State<HomeContent> {
                 final allowed = await SoftAuthGate.ensureAuthenticated(
                   context,
                   intentLabel: 'Open wishlist',
-                  message:
-                      'Sign in to save looks and build your personal style shortlist.',
+                  trigger: AuthPromptTrigger.wishlist,
                   promptStyle: AuthPromptStyle.softSheet,
                 );
                 if (!allowed || !context.mounted) {
@@ -383,7 +452,7 @@ class _HomeContentState extends State<HomeContent> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) =>
-                                            const CustomBrandFlowScreen(),
+                                            const AtelierFlowScreen(),
                                       ),
                                     ),
                                   ),
@@ -1071,7 +1140,7 @@ Widget _tailoringHighlight({required VoidCallback onStart}) {
       onTap: onStart,
       child: Container(
         constraints: const BoxConstraints(minHeight: 292),
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+        padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
           gradient: const LinearGradient(
@@ -1086,8 +1155,14 @@ Widget _tailoringHighlight({required VoidCallback onStart}) {
           border: Border.all(color: const Color(0x24FFFFFF)),
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.14),
-              blurRadius: 24,
+              color: const Color(0xFFC6A769).withValues(alpha: 0.10),
+              blurRadius: 18,
+              spreadRadius: 1,
+              offset: const Offset(0, 6),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 26,
               offset: const Offset(0, 14),
             ),
           ],
@@ -1104,14 +1179,17 @@ Widget _tailoringHighlight({required VoidCallback onStart}) {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFC8A96A).withValues(alpha: 0.18),
+                    color: const Color(0xFF101010).withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: const Color(0xFFC6A769).withValues(alpha: 0.35),
+                    ),
                   ),
                   child: const Text(
                     'ATELIER',
                     style: TextStyle(
-                      color: Color(0xFFF6E6BE),
-                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFC6A769),
+                      fontWeight: FontWeight.w800,
                       letterSpacing: 0.8,
                     ),
                   ),
@@ -1136,7 +1214,7 @@ Widget _tailoringHighlight({required VoidCallback onStart}) {
               AbzoraText.customClothingTitle,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 color: Colors.white,
-                fontSize: 28,
+                fontSize: 30,
                 fontWeight: FontWeight.w800,
                 height: 1.05,
               ),
@@ -1150,7 +1228,7 @@ Widget _tailoringHighlight({required VoidCallback onStart}) {
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -1182,19 +1260,20 @@ Widget _tailoringHighlight({required VoidCallback onStart}) {
                 ],
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onStart,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC8A96A),
+                      backgroundColor: const Color(0xFFC6A769),
                       foregroundColor: Colors.black,
                       minimumSize: const Size.fromHeight(46),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(20),
                       ),
+                      elevation: 1.5,
                     ),
                     child: const Text(
                       'Enter Atelier',
@@ -1210,6 +1289,10 @@ Widget _tailoringHighlight({required VoidCallback onStart}) {
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 14,
+                    ),
+                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   child: const Text('Explore Designers'),
@@ -1233,8 +1316,9 @@ class _AtelierChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
       ),
       child: Text(
         label,
@@ -1633,7 +1717,7 @@ class _CategorySectionState extends State<CategorySection> {
                   itemCount: categories.length,
                   padding: EdgeInsets.zero,
                   separatorBuilder: (context, index) =>
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 14),
                   itemBuilder: (context, index) {
                     final category = categories[index];
                     final isSelected = selectedIndex == index;
@@ -1654,7 +1738,7 @@ class _CategorySectionState extends State<CategorySection> {
                         },
                         borderRadius: BorderRadius.circular(12),
                         child: SizedBox(
-                          width: 88,
+                          width: 92,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
@@ -1664,15 +1748,33 @@ class _CategorySectionState extends State<CategorySection> {
                                 width: 88,
                                 height: 96,
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: isSelected
-                                        ? const Color(0xFFC8A96A)
+                                        ? const Color(0xFFC6A769)
                                         : const Color(0xFFE6E6E6),
+                                    width: isSelected ? 1.4 : 1,
                                   ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.05,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 5),
+                                    ),
+                                    if (isSelected)
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFFC6A769,
+                                        ).withValues(alpha: 0.22),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                  ],
                                 ),
                                 child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(15),
                                   child: Stack(
                                     fit: StackFit.expand,
                                     children: [
@@ -1710,7 +1812,7 @@ class _CategorySectionState extends State<CategorySection> {
                                       fontSize: 12,
                                       fontWeight: isSelected
                                           ? FontWeight.w800
-                                          : FontWeight.w600,
+                                          : FontWeight.w700,
                                       color: isSelected
                                           ? const Color(0xFF111111)
                                           : const Color(0xFF666666),
@@ -1755,11 +1857,11 @@ Widget _sectionHeader({required String title, required String subtitle}) {
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
-            fontSize: 18,
+            fontSize: 19,
             color: const Color(0xFF111111),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           subtitle,
           maxLines: 1,
@@ -2183,16 +2285,23 @@ class _HomeBannerState extends State<HomeBanner> {
                   return Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(slide.imageUrl, fit: BoxFit.cover),
+                      TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 1, end: 1.03),
+                        duration: const Duration(seconds: 14),
+                        curve: Curves.easeInOut,
+                        builder: (context, value, child) =>
+                            Transform.scale(scale: value, child: child),
+                        child: Image.network(slide.imageUrl, fit: BoxFit.cover),
+                      ),
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withValues(alpha: 0.12),
                               Colors.black.withValues(alpha: 0.16),
-                              Colors.black.withValues(alpha: 0.70),
+                              Colors.black.withValues(alpha: 0.22),
+                              Colors.black.withValues(alpha: 0.78),
                             ],
                           ),
                         ),
@@ -2250,7 +2359,7 @@ class _HomeBannerState extends State<HomeBanner> {
                             FilledButton(
                               onPressed: () => widget.onBannerTap(slide),
                               style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFFC8A96A),
+                                backgroundColor: const Color(0xFFC6A769),
                                 foregroundColor: const Color(0xFF111111),
                                 visualDensity: VisualDensity.compact,
                                 padding: const EdgeInsets.symmetric(
@@ -2258,7 +2367,7 @@ class _HomeBannerState extends State<HomeBanner> {
                                   vertical: 12,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                               ),
                               child: Text(
@@ -3327,7 +3436,7 @@ Widget _productSection(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _sectionHeader(title: title, subtitle: subtitle),
-      const SizedBox(height: 12),
+      const SizedBox(height: 14),
       ProductGrid(
         products: products,
         shrinkWrap: true,

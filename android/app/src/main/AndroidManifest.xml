@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
@@ -13,9 +14,28 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round">
+        <!-- Force Flutter activity to stay app launcher even if Unity export re-adds launcher filters. -->
+        <activity
+            android:name="com.unity3d.player.UnityPlayerGameActivity"
+            android:exported="false"
+            tools:replace="android:exported"
+            tools:node="merge">
+            <intent-filter tools:node="removeAll" />
+        </activity>
+        <meta-data
+            android:name="unity.splash-enable"
+            tools:node="remove" />
+        <meta-data
+            android:name="unity.splash-mode"
+            tools:node="remove" />
+
         <meta-data
             android:name="io.flutter.embedding.android.EnableImpeller"
             android:value="false" />
+        <meta-data
+            android:name="com.google.ar.core.min_apk_version"
+            android:value="242040000"
+            tools:replace="android:value" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

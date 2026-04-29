@@ -70,20 +70,45 @@ class BackendApiClient {
   Future<Map<String, String>> _headers({
     bool includeJson = true,
     bool authenticated = false,
+    bool forceRefreshToken = false,
   }) async {
     final headers = <String, String>{};
     if (includeJson) {
       headers['Content-Type'] = 'application/json';
     }
     if (authenticated) {
-      final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+      final token = await FirebaseAuth.instance.currentUser?.getIdToken(
+        forceRefreshToken,
+      );
       if (token == null || token.isEmpty) {
-        unawaited(_notifyUnauthorized());
         throw StateError('Please sign in again to continue.');
       }
       headers['Authorization'] = 'Bearer $token';
     }
     return headers;
+  }
+
+  Future<http.Response> _sendWithUnauthorizedRetry({
+    required bool authenticated,
+    required bool includeJson,
+    required Future<http.Response> Function(Map<String, String> headers) send,
+  }) async {
+    var headers = await _headers(
+      includeJson: includeJson,
+      authenticated: authenticated,
+    );
+    var response = await send(headers);
+    if (!authenticated || response.statusCode != 401) {
+      return response;
+    }
+
+    headers = await _headers(
+      includeJson: includeJson,
+      authenticated: authenticated,
+      forceRefreshToken: true,
+    );
+    response = await send(headers);
+    return response;
   }
 
   Uri _uriForBase(
@@ -92,7 +117,9 @@ class BackendApiClient {
     Map<String, String>? queryParameters,
   ]) {
     final normalizedPath = path.startsWith('/') ? path : '/$path';
-    return Uri.parse('$base$normalizedPath').replace(queryParameters: queryParameters);
+    return Uri.parse(
+      '$base$normalizedPath',
+    ).replace(queryParameters: queryParameters);
   }
 
   List<String> _baseUrlCandidates() {
@@ -249,13 +276,19 @@ class BackendApiClient {
     if (decoded is Map<String, dynamic>) {
       if (response.statusCode < 200 || response.statusCode >= 300) {
         if (response.statusCode == 401) {
-          unawaited(_notifyUnauthorized());
+          final message = decoded['message']?.toString() ?? 'Request failed.';
+          if (_shouldNotifyUnauthorizedSession(message)) {
+            unawaited(_notifyUnauthorized());
+          }
         }
         if (response.statusCode >= 500) {
           _markBackendDown('Backend error (${response.statusCode}).');
         }
         throw BackendApiException(
-          decoded['message']?.toString() ?? 'Request failed.',
+          _normalizeErrorMessage(
+            decoded['message']?.toString() ?? 'Request failed.',
+            response.statusCode,
+          ),
           statusCode: response.statusCode,
         );
       }
@@ -264,18 +297,42 @@ class BackendApiClient {
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       if (response.statusCode == 401) {
-        unawaited(_notifyUnauthorized());
+        // Non-JSON 401 payloads are ambiguous; avoid forcing logout here.
       }
       if (response.statusCode >= 500) {
         _markBackendDown('Backend error (${response.statusCode}).');
       }
       throw BackendApiException(
-        'Request failed.',
+        _normalizeErrorMessage('Request failed.', response.statusCode),
         statusCode: response.statusCode,
       );
     }
     _markBackendOk();
     return decoded;
+  }
+
+  String _normalizeErrorMessage(String message, int statusCode) {
+    if (statusCode == 401 && message.trim().toLowerCase() == 'unauthorized') {
+      return 'Session expired. Please sign in again.';
+    }
+    return message;
+  }
+
+  bool _shouldNotifyUnauthorizedSession(String message) {
+    final text = message.trim().toLowerCase();
+    if (text.isEmpty) {
+      return false;
+    }
+    return text.contains('session expired') ||
+        text.contains('sign in again') ||
+        text.contains('token expired') ||
+        text.contains('id token has expired') ||
+        text.contains('token has expired') ||
+        text.contains('token revoked') ||
+        text.contains('revoked') ||
+        text.contains('invalid token') ||
+        text.contains('no token') ||
+        text.contains('bearer token');
   }
 
   Future<dynamic> get(
@@ -284,17 +341,16 @@ class BackendApiClient {
     Map<String, String>? queryParameters,
   }) async {
     try {
-      final headers = await _headers(authenticated: authenticated);
       final response = await _executeWithDnsFallback(
         path: path,
         queryParameters: queryParameters,
         execute: (uri, candidateIndex) => withRetry(
-          () => http
-              .get(
-                uri,
-                headers: headers,
-              )
-              .timeout(const Duration(seconds: 20)),
+          () => _sendWithUnauthorizedRetry(
+            authenticated: authenticated,
+            includeJson: true,
+            send: (headers) =>
+                http.get(uri, headers: headers).timeout(const Duration(seconds: 20)),
+          ),
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
@@ -320,18 +376,17 @@ class BackendApiClient {
     Map<String, dynamic> body = const {},
   }) async {
     try {
-      final headers = await _headers(authenticated: authenticated);
       final payload = jsonEncode(body);
       final response = await _executeWithDnsFallback(
         path: path,
         execute: (uri, candidateIndex) => withRetry(
-          () => http
-              .post(
-                uri,
-                headers: headers,
-                body: payload,
-              )
-              .timeout(const Duration(seconds: 25)),
+          () => _sendWithUnauthorizedRetry(
+            authenticated: authenticated,
+            includeJson: true,
+            send: (headers) => http
+                .post(uri, headers: headers, body: payload)
+                .timeout(const Duration(seconds: 25)),
+          ),
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
@@ -357,18 +412,17 @@ class BackendApiClient {
     Map<String, dynamic> body = const {},
   }) async {
     try {
-      final headers = await _headers(authenticated: authenticated);
       final payload = jsonEncode(body);
       final response = await _executeWithDnsFallback(
         path: path,
         execute: (uri, candidateIndex) => withRetry(
-          () => http
-              .put(
-                uri,
-                headers: headers,
-                body: payload,
-              )
-              .timeout(const Duration(seconds: 25)),
+          () => _sendWithUnauthorizedRetry(
+            authenticated: authenticated,
+            includeJson: true,
+            send: (headers) => http
+                .put(uri, headers: headers, body: payload)
+                .timeout(const Duration(seconds: 25)),
+          ),
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
@@ -394,18 +448,17 @@ class BackendApiClient {
     Map<String, dynamic> body = const {},
   }) async {
     try {
-      final headers = await _headers(authenticated: authenticated);
       final payload = jsonEncode(body);
       final response = await _executeWithDnsFallback(
         path: path,
         execute: (uri, candidateIndex) => withRetry(
-          () => http
-              .patch(
-                uri,
-                headers: headers,
-                body: payload,
-              )
-              .timeout(const Duration(seconds: 25)),
+          () => _sendWithUnauthorizedRetry(
+            authenticated: authenticated,
+            includeJson: true,
+            send: (headers) => http
+                .patch(uri, headers: headers, body: payload)
+                .timeout(const Duration(seconds: 25)),
+          ),
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
@@ -425,21 +478,18 @@ class BackendApiClient {
     }
   }
 
-  Future<dynamic> delete(
-    String path, {
-    bool authenticated = false,
-  }) async {
+  Future<dynamic> delete(String path, {bool authenticated = false}) async {
     try {
-      final headers = await _headers(authenticated: authenticated);
       final response = await _executeWithDnsFallback(
         path: path,
         execute: (uri, candidateIndex) => withRetry(
-          () => http
-              .delete(
-                uri,
-                headers: headers,
-              )
-              .timeout(const Duration(seconds: 20)),
+          () => _sendWithUnauthorizedRetry(
+            authenticated: authenticated,
+            includeJson: true,
+            send: (headers) => http
+                .delete(uri, headers: headers)
+                .timeout(const Duration(seconds: 20)),
+          ),
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
@@ -468,28 +518,47 @@ class BackendApiClient {
     bool authenticated = true,
   }) async {
     try {
-      final headers = await _headers(
-        includeJson: false,
-        authenticated: authenticated,
-      );
+      Future<http.StreamedResponse> sendMultipart({
+        required Uri uri,
+        required Map<String, String> headers,
+      }) {
+        final request = http.MultipartRequest('POST', uri);
+        request.headers.addAll(headers);
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            fieldName,
+            bytes,
+            filename: filename,
+            contentType: contentType,
+          ),
+        );
+        return request.send().timeout(const Duration(seconds: 30));
+      }
       final response = await _executeWithDnsFallback(
         path: path,
         execute: (uri, candidateIndex) => withRetry(() async {
-          final request = http.MultipartRequest('POST', uri);
-          request.headers.addAll(headers);
-          request.files.add(
-            http.MultipartFile.fromBytes(
-              fieldName,
-              bytes,
-              filename: filename,
-              contentType: contentType,
-            ),
+          var headers = await _headers(
+            includeJson: false,
+            authenticated: authenticated,
           );
-          return request.send().timeout(const Duration(seconds: 30));
+          var streamed = await sendMultipart(uri: uri, headers: headers);
+          if (authenticated && streamed.statusCode == 401) {
+            headers = await _headers(
+              includeJson: false,
+              authenticated: authenticated,
+              forceRefreshToken: true,
+            );
+            streamed = await sendMultipart(uri: uri, headers: headers);
+          }
+          return streamed;
         }, maxAttempts: candidateIndex == 0 ? 2 : 1),
       );
       final body = await response.stream.bytesToString();
-      final wrapped = http.Response(body, response.statusCode, headers: response.headers);
+      final wrapped = http.Response(
+        body,
+        response.statusCode,
+        headers: response.headers,
+      );
       return _extractPayload(wrapped);
     } on SocketException {
       _markBackendDown('Backend unreachable.');

@@ -43,6 +43,8 @@ class LocationProvider with ChangeNotifier {
   bool _isManualLocation = false;
   bool _isUsingNearestFallback = false;
   bool _isWatchingLocation = false;
+  DateTime? _lastAutoGpsRefreshAt;
+  static const Duration _autoGpsRefreshInterval = Duration(minutes: 2);
 
   List<NearbyStore> get nearbyStores => _nearbyStores;
   Position? get userPosition => _userPosition;
@@ -88,11 +90,39 @@ class LocationProvider with ChangeNotifier {
       if (appliedSaved) {
         _recalculateNearbyStores();
         notifyListeners();
+        final now = DateTime.now();
+        final shouldAutoRefresh =
+            _lastAutoGpsRefreshAt == null ||
+            now.difference(_lastAutoGpsRefreshAt!) >= _autoGpsRefreshInterval;
+        if (shouldAutoRefresh) {
+          _lastAutoGpsRefreshAt = now;
+          unawaited(
+            refreshCurrentLocation(
+              user: _currentUser,
+              forceRefresh: false,
+              notifyAfter: true,
+            ),
+          );
+        }
         return;
       }
     }
 
-    await refreshCurrentLocation(user: _currentUser, forceRefresh: forceRefresh, notifyAfter: true);
+    try {
+      await refreshCurrentLocation(
+        user: _currentUser,
+        forceRefresh: forceRefresh,
+        notifyAfter: true,
+      );
+    } catch (error) {
+      debugPrint('Location bootstrap fallback engaged: $error');
+      final fallbackCity = _currentUser?.city?.trim().isNotEmpty == true
+          ? _currentUser!.city!.trim()
+          : _activeLocation;
+      await setManualLocation(fallbackCity, user: _currentUser);
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   void updateStores(List<Store> stores, {bool notify = true}) {
@@ -157,24 +187,41 @@ class LocationProvider with ChangeNotifier {
       notifyListeners();
     }
 
-    final result = await _locationService.getCurrentLocation(forceRefresh: forceRefresh);
-    _status = result.status;
+    try {
+      final result = await _locationService.getCurrentLocation(
+        forceRefresh: forceRefresh,
+      );
+      _status = result.status;
 
-    if (result.status == LocationStatus.success && result.position != null) {
-      _isManualLocation = false;
-      _userPosition = result.position;
-      _resolvedAddress = result.address;
-      _activeLocation = result.address?.city.trim().isNotEmpty == true ? result.address!.city : _activeLocation;
-      _errorMessage = null;
-      _recalculateNearbyStores();
-      await _persistLocation(_activeLocation, _resolvedAddress, _userPosition!);
-    } else if (_currentUser != null && _applySavedUserLocation(_currentUser!, notify: false)) {
-      _errorMessage = result.message ?? 'Using your saved delivery location.';
-      _recalculateNearbyStores();
-    } else {
-      final fallbackCity = _currentUser?.city?.trim().isNotEmpty == true ? _currentUser!.city!.trim() : _activeLocation;
+      if (result.status == LocationStatus.success && result.position != null) {
+        _isManualLocation = false;
+        _userPosition = result.position;
+        _resolvedAddress = result.address;
+        _activeLocation = result.address?.city.trim().isNotEmpty == true
+            ? result.address!.city
+            : _activeLocation;
+        _errorMessage = null;
+        _recalculateNearbyStores();
+        await _persistLocation(_activeLocation, _resolvedAddress, _userPosition!);
+      } else if (_currentUser != null &&
+          _applySavedUserLocation(_currentUser!, notify: false)) {
+        _errorMessage = result.message ?? 'Using your saved delivery location.';
+        _recalculateNearbyStores();
+      } else {
+        final fallbackCity = _currentUser?.city?.trim().isNotEmpty == true
+            ? _currentUser!.city!.trim()
+            : _activeLocation;
+        await setManualLocation(fallbackCity, user: _currentUser);
+        _errorMessage = result.message ?? _friendlyError(result.status);
+      }
+    } catch (error) {
+      debugPrint('refreshCurrentLocation fallback engaged: $error');
+      final fallbackCity = _currentUser?.city?.trim().isNotEmpty == true
+          ? _currentUser!.city!.trim()
+          : _activeLocation;
       await setManualLocation(fallbackCity, user: _currentUser);
-      _errorMessage = result.message ?? _friendlyError(result.status);
+      _errorMessage = 'Using fallback location while GPS recovers.';
+      _status = LocationStatus.manual;
     }
 
     _isLoading = false;
@@ -290,7 +337,11 @@ class LocationProvider with ChangeNotifier {
       locationUpdatedAt: DateTime.now().toIso8601String(),
     );
     _currentUser = updated;
-    await _db.saveUser(updated);
+    try {
+      await _db.saveUser(updated, bestEffort: true);
+    } catch (error) {
+      debugPrint('Persist location skipped: $error');
+    }
   }
 
   Future<void> persistRadiusOnly() async {
@@ -306,7 +357,11 @@ class LocationProvider with ChangeNotifier {
       locationUpdatedAt: currentUser.locationUpdatedAt ?? DateTime.now().toIso8601String(),
     );
     _currentUser = updated;
-    await _db.saveUser(updated);
+    try {
+      await _db.saveUser(updated, bestEffort: true);
+    } catch (error) {
+      debugPrint('Persist radius skipped: $error');
+    }
   }
 
   void _recalculateNearbyStores() {

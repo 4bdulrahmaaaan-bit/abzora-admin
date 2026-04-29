@@ -98,7 +98,10 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
 
   Future<void> _loadProducts() async {
     final actor = context.read<AuthProvider>().user;
-    final products = await _db.getProductsByStore(widget.storeId);
+    final products = await _db.getProductsByStore(
+      widget.storeId,
+      includeInactive: true,
+    );
     if (!mounted) {
       return;
     }

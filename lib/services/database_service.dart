@@ -14,6 +14,7 @@ import '../models/banner_model.dart';
 import '../models/models.dart';
 import '../models/outfit_recommendation_model.dart';
 import '../models/trial_session.dart';
+import '../utils/app_mode_routes.dart';
 import 'backend_api_client.dart';
 import 'backend_commerce_service.dart';
 import 'firebase_database_service.dart';
@@ -100,7 +101,10 @@ class DatabaseService {
 
   bool _isTransientBackendIssue(Object error) {
     final message = error.toString().toLowerCase();
-    if (error is BackendApiException && error.statusCode == 404) {
+    if (error is BackendApiException &&
+        (error.statusCode == 404 ||
+            error.statusCode == 401 ||
+            error.statusCode == 403)) {
       return true;
     }
     return error is SocketException ||
@@ -110,6 +114,20 @@ class DatabaseService {
         message.contains('backend unreachable') ||
         message.contains('connection closed') ||
         message.contains('clientexception');
+  }
+
+  bool _isAuthSessionIssue(Object error) {
+    final message = error.toString().toLowerCase();
+    if (error is BackendApiException &&
+        (error.isUnauthorized || error.isForbidden)) {
+      return true;
+    }
+    return message.contains('unauthorized') ||
+        message.contains('session expired') ||
+        message.contains('sign in again') ||
+        message.contains('too many authentication requests') ||
+        message.contains('token expired') ||
+        message.contains('id token has expired');
   }
 
   List<MapEntry<String, Map<String, dynamic>>> _asCollectionEntries(
@@ -1618,13 +1636,14 @@ class DatabaseService {
 
   bool isSuperAdmin(AppUser? actor) =>
       actor != null && (actor.role == superAdminRole || actor.role == 'admin');
-  bool isRider(AppUser? actor) => actor != null && actor.role == riderRole;
+  bool isRider(AppUser? actor) => hasRiderOperationsAccess(actor);
+  bool isVendor(AppUser? actor) => hasVendorOperationsAccess(actor);
 
   bool canAccessStore(AppUser? actor, String storeId) {
     if (isSuperAdmin(actor)) {
       return true;
     }
-    return actor != null && actor.role == 'vendor' && actor.storeId == storeId;
+    return actor != null && isVendor(actor) && actor.storeId == storeId;
   }
 
   bool canAccessAssignedOrder(AppUser? actor, OrderModel order) {
@@ -1737,7 +1756,7 @@ class DatabaseService {
     if (actor == null) {
       throw StateError('Vendor access denied.');
     }
-    if (isSuperAdmin(actor) || actor.role == 'vendor') {
+    if (isSuperAdmin(actor) || isVendor(actor)) {
       return;
     }
     throw StateError('Vendor access denied.');
@@ -2102,7 +2121,19 @@ class DatabaseService {
   Stream<List<Product>> watchAllProducts() {
     if (_backendCommerce.isConfigured) {
       return _backendPollingStream<List<Product>>(
-        loader: _backendCommerce.getProducts,
+        loader: () async {
+          final backendProducts = await _backendCommerce.getProducts();
+          if (backendProducts.isNotEmpty) {
+            return backendProducts.map(_decorateProduct).toList();
+          }
+          debugPrint(
+            'Backend realtime products empty, attempting local fallback stream.',
+          );
+          final localProducts = (await _productService.fetchAll())
+              .map(_decorateProduct)
+              .toList();
+          return localProducts;
+        },
         interval: const Duration(seconds: 20),
         backgroundInterval: const Duration(seconds: 45),
       );
@@ -2733,8 +2764,15 @@ class DatabaseService {
 
   Future<List<Store>> getStores() async {
     if (_backendCommerce.isConfigured) {
-      final stores = await _backendCommerce.getStores();
-      return stores.map(_decorateStore).toList();
+      try {
+        final stores = await _backendCommerce.getStores();
+        if (stores.isNotEmpty) {
+          return stores.map(_decorateStore).toList();
+        }
+        debugPrint('Backend stores returned empty list, using local fallback.');
+      } catch (error) {
+        debugPrint('Backend stores fetch failed, falling back locally: $error');
+      }
     }
     final stores = await _fetchCollection(
       'stores',
@@ -2778,7 +2816,18 @@ class DatabaseService {
 
   Future<Store?> getStoreByOwner(String ownerId) async {
     if (_backendCommerce.isConfigured) {
-      return _backendCommerce.getOwnStore();
+      final normalizedOwnerId = ownerId.trim();
+      final current = await _backendCommerce.getCurrentUserProfile();
+      if (current.id == normalizedOwnerId) {
+        return _backendCommerce.getOwnStore();
+      }
+      final backendStore = await _backendCommerce.getStoreByOwner(
+        normalizedOwnerId,
+      );
+      if (backendStore != null) {
+        return _decorateStore(backendStore);
+      }
+      return null;
     }
     final stores = await getAdminStores();
     for (final store in stores) {
@@ -2789,9 +2838,18 @@ class DatabaseService {
     return null;
   }
 
-  Future<List<Product>> getProductsByStore(String storeId) async {
+  Future<List<Product>> getProductsByStore(
+    String storeId, {
+    bool includeInactive = false,
+  }) async {
     if (_backendCommerce.isConfigured) {
-      final products = await _backendCommerce.getProducts();
+      final products = includeInactive
+          ? await _backendCommerce.getVendorProducts(storeId: storeId)
+          : await _backendCommerce.getProducts(
+              queryParameters: {
+                if (storeId.trim().isNotEmpty) 'storeId': storeId.trim(),
+              },
+            );
       return products
           .where((product) => product.storeId == storeId)
           .map(_decorateProduct)
@@ -2845,32 +2903,62 @@ class DatabaseService {
   Future<ProductPageResult> getProductsPage({
     int limit = 20,
     String? startAfterKey,
+    SearchFilter? filter,
+    int page = 1,
   }) async {
     if (_backendCommerce.isConfigured) {
-      final products = (await _backendCommerce.getProducts())
-          .map(_decorateProduct)
-          .toList();
-      final startIndex = startAfterKey == null
-          ? 0
-          : products.indexWhere((item) => item.id == startAfterKey) + 1;
-      final safeStart = startIndex < 0 ? 0 : startIndex;
-      final pageItems = products.skip(safeStart).take(limit).toList();
-      final lastKey = pageItems.isEmpty ? startAfterKey : pageItems.last.id;
-      final hasMore = safeStart + pageItems.length < products.length;
-      return ProductPageResult(
-        items: pageItems,
-        lastKey: lastKey,
-        hasMore: hasMore,
-      );
+      try {
+        final canUseServerPaging = startAfterKey == null;
+        if (canUseServerPaging) {
+          final query = <String, String>{
+            'limit': '$limit',
+            'page': '${page < 1 ? 1 : page}',
+            if (filter != null) ...filter.toBackendQuery(),
+          };
+          final serverItems = (await _backendCommerce.getProducts(
+            queryParameters: query,
+          )).map(_decorateProduct).toList();
+          return ProductPageResult(
+            items: serverItems,
+            lastKey: serverItems.isEmpty ? null : serverItems.last.id,
+            hasMore: serverItems.length >= limit,
+          );
+        }
+
+        final products = (await _backendCommerce.getProducts()).map(
+          _decorateProduct,
+        ).toList();
+        if (products.isEmpty) {
+          debugPrint(
+            'Backend products page returned empty list, using local fallback.',
+          );
+        } else {
+          final startIndex =
+              products.indexWhere((item) => item.id == startAfterKey) + 1;
+          final safeStart = startIndex < 0 ? 0 : startIndex;
+          final pageItems = products.skip(safeStart).take(limit).toList();
+          final lastKey = pageItems.isEmpty ? startAfterKey : pageItems.last.id;
+          final hasMore = safeStart + pageItems.length < products.length;
+          return ProductPageResult(
+            items: pageItems,
+            lastKey: lastKey,
+            hasMore: hasMore,
+          );
+        }
+      } catch (error) {
+        debugPrint(
+          'Backend products page fetch failed, falling back locally: $error',
+        );
+      }
     }
-    final page = await _productService.fetchPage(
+    final pageResult = await _productService.fetchPage(
       limit: limit,
       startAfterKey: startAfterKey,
     );
     return ProductPageResult(
-      items: page.items.map(_decorateProduct).toList(),
-      lastKey: page.lastKey,
-      hasMore: page.hasMore,
+      items: pageResult.items.map(_decorateProduct).toList(),
+      lastKey: pageResult.lastKey,
+      hasMore: pageResult.hasMore,
     );
   }
 
@@ -3674,7 +3762,7 @@ class DatabaseService {
     if (!_backendCommerce.isConfigured) {
       throw StateError('Custom vendor quality requires backend mode.');
     }
-    if (actor.role != 'vendor') {
+    if (!isVendor(actor)) {
       throw StateError('Vendor access required.');
     }
     return _backendCommerce.getCustomVendorQuality();
@@ -3688,7 +3776,7 @@ class DatabaseService {
     if (!_backendCommerce.isConfigured) {
       throw StateError('Custom vendor training requires backend mode.');
     }
-    if (actor.role != 'vendor') {
+    if (!isVendor(actor)) {
       throw StateError('Vendor access required.');
     }
     return _backendCommerce.completeCustomVendorTrainingModule(
@@ -3705,7 +3793,7 @@ class DatabaseService {
     if (!_backendCommerce.isConfigured) {
       throw StateError('Sample review requires backend mode.');
     }
-    if (actor.role != 'vendor') {
+    if (!isVendor(actor)) {
       throw StateError('Vendor access required.');
     }
     return _backendCommerce.submitCustomVendorSampleReview(
@@ -3838,7 +3926,14 @@ class DatabaseService {
 
   Future<List<MeasurementProfile>> getMeasurementProfiles(String userId) async {
     if (_backendCommerce.isConfigured) {
-      return _backendCommerce.getMeasurementProfiles();
+      try {
+        return _backendCommerce.getMeasurementProfiles();
+      } on BackendApiException catch (error) {
+        if (error.isUnauthorized || error.isForbidden) {
+          return const <MeasurementProfile>[];
+        }
+        rethrow;
+      }
     }
     try {
       final scopedProfiles = await _fetchCollection(
@@ -3895,7 +3990,14 @@ class DatabaseService {
 
   Future<BodyProfile?> getBodyProfile(String userId) async {
     if (_backendCommerce.isConfigured) {
-      return _backendCommerce.getBodyProfile();
+      try {
+        return _backendCommerce.getBodyProfile();
+      } on BackendApiException catch (error) {
+        if (error.isUnauthorized || error.isForbidden) {
+          return null;
+        }
+        rethrow;
+      }
     }
     final snapshot = await _ref('users/$userId/bodyProfile').get();
     if (!snapshot.exists) {
@@ -5458,9 +5560,29 @@ class DatabaseService {
     });
   }
 
-  Future<void> saveUser(AppUser user) async {
+  bool _isSessionExpiredError(Object error) {
+    if (error is BackendApiException) {
+      return error.isUnauthorized;
+    }
+    final text = error.toString().toLowerCase();
+    return text.contains('session expired') ||
+        text.contains('sign in again') ||
+        text.contains('unauthorized');
+  }
+
+  Future<void> saveUser(AppUser user, {bool bestEffort = false}) async {
     if (_backendCommerce.isConfigured) {
-      await _backendCommerce.syncUserProfile(user);
+      try {
+        await _backendCommerce.syncUserProfile(user);
+      } catch (error) {
+        if (bestEffort && _isSessionExpiredError(error)) {
+          debugPrint(
+            'Skipping backend user sync for ${user.id} because the session needs to be refreshed.',
+          );
+          return;
+        }
+        rethrow;
+      }
       return;
     }
     await _ref('users/${user.id}').update(user.toMap());
@@ -5536,7 +5658,7 @@ class DatabaseService {
       return users
           .where(
             (user) =>
-                user.role == riderRole &&
+                hasRiderOperationsAccess(user) &&
                 user.isActive &&
                 user.riderApprovalStatus == 'approved',
           )
@@ -5549,7 +5671,7 @@ class DatabaseService {
     return users
         .where(
           (user) =>
-              user.role == riderRole &&
+              hasRiderOperationsAccess(user) &&
               user.isActive &&
               user.riderApprovalStatus == 'approved',
         )
@@ -5661,6 +5783,7 @@ class DatabaseService {
         if (current.id == uid) {
           return current;
         }
+        return await _backendCommerce.getUserById(uid);
       } catch (_) {
         return null;
       }
@@ -5673,9 +5796,15 @@ class DatabaseService {
       return (() async* {
         try {
           final current = await _backendCommerce.getCurrentUserProfile();
-          yield current.id == uid ? current : null;
+          if (current.id == uid) {
+            yield current;
+          } else {
+            yield await _backendCommerce.getUserById(uid);
+            return;
+          }
         } catch (_) {
           yield null;
+          return;
         }
         while (true) {
           await Future<void>.delayed(const Duration(seconds: 20));
@@ -5848,7 +5977,7 @@ class DatabaseService {
     Store resolvedStore;
     if (actor != null &&
         !isSuperAdmin(actor) &&
-        actor.role == 'vendor' &&
+        isVendor(actor) &&
         store.id.isNotEmpty) {
       final existing = await _fetchDocument(
         'stores/${store.id}',
@@ -5932,18 +6061,18 @@ class DatabaseService {
   Future<List<Product>> getAllProducts({AppUser? actor}) async {
     if (_backendCommerce.isConfigured) {
       if (actor != null && !isSuperAdmin(actor)) {
-        if (actor.role != 'vendor' || actor.storeId == null) {
+        if (!isVendor(actor) || actor.storeId == null) {
           throw StateError('Product access denied.');
         }
-        return getProductsByStore(actor.storeId!);
+        return getProductsByStore(actor.storeId!, includeInactive: true);
       }
       return _backendCommerce.getAdminProducts();
     }
     if (actor != null && !isSuperAdmin(actor)) {
-      if (actor.role != 'vendor' || actor.storeId == null) {
+      if (!isVendor(actor) || actor.storeId == null) {
         throw StateError('Product access denied.');
       }
-      return getProductsByStore(actor.storeId!);
+      return getProductsByStore(actor.storeId!, includeInactive: true);
     }
     return (await _productService.fetchAll()).map(_decorateProduct).toList();
   }
@@ -5951,10 +6080,10 @@ class DatabaseService {
   Future<List<OrderModel>> getAllOrders({AppUser? actor}) async {
     if (_backendCommerce.isConfigured) {
       if (actor != null && !isSuperAdmin(actor)) {
-        if (actor.role == 'vendor' && actor.storeId != null) {
+        if (isVendor(actor) && actor.storeId != null) {
           return _backendCommerce.getStoreOrders(actor.storeId!);
         }
-        if (actor.role == riderRole) {
+        if (isRider(actor)) {
           return _backendCommerce.getAssignedDeliveries();
         }
         throw StateError('Order access denied.');
@@ -5966,10 +6095,10 @@ class DatabaseService {
       (map, id) => OrderModel.fromMap(map, id),
     );
     if (actor != null && !isSuperAdmin(actor)) {
-      if (actor.role == 'vendor' && actor.storeId != null) {
+      if (isVendor(actor) && actor.storeId != null) {
         return orders.where((order) => order.storeId == actor.storeId).toList();
       }
-      if (actor.role == riderRole) {
+      if (isRider(actor)) {
         return orders.where((order) => order.riderId == actor.id).toList();
       }
       throw StateError('Order access denied.');
@@ -5997,8 +6126,8 @@ class DatabaseService {
       }.contains(normalizedStatus);
       final isStoreManagedActor =
           actor != null &&
-          (actor.role == 'vendor' ||
-              actor.role == riderRole ||
+          (isVendor(actor) ||
+              isRider(actor) ||
               actor.role == 'admin' ||
               actor.role == 'super_admin');
       final vendorOpsStatus = switch (normalizedStatus) {
@@ -6010,7 +6139,7 @@ class DatabaseService {
         'cancelled' || 'rejected' => 'rejected',
         _ => '',
       };
-      if ((actor?.role == 'vendor' ||
+      if ((isVendor(actor) ||
               actor?.role == 'admin' ||
               actor?.role == 'super_admin') &&
           vendorOpsStatus.isNotEmpty) {
@@ -6040,7 +6169,7 @@ class DatabaseService {
       _requireStoreAccess(actor, existing.storeId);
     }
     final normalizedStatus =
-        actor != null && actor.role == 'vendor' && !isSuperAdmin(actor)
+        actor != null && isVendor(actor) && !isSuperAdmin(actor)
         ? _normalizeVendorStatus(status)
         : status;
     if (existing.status == normalizedStatus) {
@@ -6049,7 +6178,7 @@ class DatabaseService {
 
     final updates = <String, dynamic>{};
     final validatedStatus =
-        actor != null && actor.role == 'vendor' && !isSuperAdmin(actor)
+        actor != null && isVendor(actor) && !isSuperAdmin(actor)
         ? _validatedVendorOrderStatus(existing.status, status)
         : status;
     final nowIso = _nowIso();
@@ -7112,7 +7241,6 @@ class DatabaseService {
           await _backendCommerce.getAdminNotifications(),
         );
       }
-      return [];
     }
     try {
       if (isSuperAdmin(user)) {
@@ -7130,7 +7258,7 @@ class DatabaseService {
         ]);
       }
 
-      if (user.role == 'vendor' &&
+      if (hasVendorOperationsAccess(user) &&
           user.storeId != null &&
           user.storeId!.isNotEmpty) {
         final vendorNotifications = await _fetchQueryCollection(
@@ -7149,7 +7277,7 @@ class DatabaseService {
         (map, _) => AppNotification.fromMap(map),
       );
 
-      if (user.role == riderRole) {
+      if (hasRiderOperationsAccess(user)) {
         final riderBroadcastNotifications = await _fetchQueryCollection(
           _ref('notifications').orderByChild('audienceRole').equalTo('rider'),
           (map, _) => AppNotification.fromMap(map),
@@ -7578,7 +7706,7 @@ class DatabaseService {
 
   Future<WalletSummary> getVendorWallet({required AppUser actor}) async {
     if (_backendCommerce.isConfigured) {
-      if (actor.role != 'vendor') {
+      if (!isVendor(actor)) {
         throw StateError('Vendor access required.');
       }
       return _backendCommerce.getVendorWallet();
@@ -7626,7 +7754,7 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
-      if (actor.role != 'vendor') {
+      if (!isVendor(actor)) {
         throw StateError('Vendor access required.');
       }
       return _backendCommerce.requestVendorWithdraw(amount);
@@ -7671,7 +7799,7 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
-      if (actor.role != 'vendor') {
+      if (!isVendor(actor)) {
         throw StateError('Vendor access required.');
       }
       return _backendCommerce.getVendorPayoutProfile();
@@ -7691,7 +7819,7 @@ class DatabaseService {
     String bankName = '',
   }) async {
     if (_backendCommerce.isConfigured) {
-      if (actor.role != 'vendor') {
+      if (!isVendor(actor)) {
         throw StateError('Vendor access required.');
       }
       return _backendCommerce.saveVendorPayoutProfile(
@@ -9048,7 +9176,9 @@ class DatabaseService {
         return orders;
       } catch (error) {
         if (_isTransientBackendIssue(error)) {
-          debugPrint('Orders fallback active for $userId: $error');
+          if (!_isAuthSessionIssue(error)) {
+            debugPrint('Orders fallback active for $userId: $error');
+          }
           return const <OrderModel>[];
         }
         rethrow;
@@ -11027,7 +11157,7 @@ class DatabaseService {
   }
 
   void _requireVendorActor(AppUser actor) {
-    if (actor.role != 'vendor') {
+    if (!isVendor(actor)) {
       throw StateError('Vendor access required.');
     }
   }

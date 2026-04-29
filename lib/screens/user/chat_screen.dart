@@ -10,6 +10,7 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 import '../../widgets/tap_scale.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -164,12 +165,12 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       setState(() {
         _lastFailedMessage = text;
-        _lastSendError = error.toString();
+        _lastSendError = AppErrorText.from(error);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(error.toString()),
+          content: Text(AppErrorText.from(error)),
         ),
       );
     } finally {

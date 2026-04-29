@@ -32,7 +32,10 @@ class _VendorProductListScreenState extends State<VendorProductListScreen> {
   }
 
   Future<void> _fetchProducts() async {
-    final products = await _db.getProductsByStore(widget.storeId);
+    final products = await _db.getProductsByStore(
+      widget.storeId,
+      includeInactive: true,
+    );
     if (!mounted) {
       return;
     }

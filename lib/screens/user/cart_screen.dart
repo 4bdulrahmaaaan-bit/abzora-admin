@@ -11,6 +11,7 @@ import '../../providers/product_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 import '../../utils/soft_auth_gate.dart';
 import '../../widgets/state_views.dart';
 import 'checkout_screen.dart';
@@ -68,6 +69,12 @@ class _CartScreenState extends State<CartScreen> {
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Add to bag',
+      trigger: AuthPromptTrigger.cart,
+      productId: product.id,
+      productPreview: AuthPromptProductPreview(
+        name: product.name,
+        imageUrl: product.images.isEmpty ? null : product.images.first,
+      ),
       promptStyle: AuthPromptStyle.softSheet,
     );
     if (!allowed || !mounted) {
@@ -91,15 +98,23 @@ class _CartScreenState extends State<CartScreen> {
     final message = result == CartAddResult.storeConflict
         ? 'Your bag already has items from another store.'
         : '${product.name} added to your bag.';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _moveToWishlist(CartItem item) async {
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Save to wishlist',
+      trigger: AuthPromptTrigger.wishlist,
+      productId: item.product.id,
+      productPreview: AuthPromptProductPreview(
+        name: item.product.name,
+        imageUrl: item.product.images.isEmpty
+            ? null
+            : item.product.images.first,
+      ),
       promptStyle: AuthPromptStyle.softSheet,
     );
     if (!allowed || !mounted) {
@@ -119,11 +134,9 @@ class _CartScreenState extends State<CartScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Bad state: ', '')),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     }
   }
 
@@ -136,16 +149,16 @@ class _CartScreenState extends State<CartScreen> {
     for (var index = 0; index < quantity; index++) {
       cart.addToCart(item.product, size);
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Size updated to $size.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Size updated to $size.')));
   }
 
   String _deliveryEstimate(CartProvider cart) {
     final baseDays = cart.hasCustomTailoring ? 6 : 3;
-    return DateFormat('EEE, dd MMM').format(
-      DateTime.now().add(Duration(days: baseDays)),
-    );
+    return DateFormat(
+      'EEE, dd MMM',
+    ).format(DateTime.now().add(Duration(days: baseDays)));
   }
 
   String _addressLine(AppUser? user) {
@@ -157,12 +170,15 @@ class _CartScreenState extends State<CartScreen> {
       user.area?.trim() ?? '',
       user.city?.trim() ?? '',
     ].where((element) => element.isNotEmpty).toList();
-    return parts.isEmpty ? 'Add your delivery address to continue.' : parts.join(', ');
+    return parts.isEmpty
+        ? 'Add your delivery address to continue.'
+        : parts.join(', ');
   }
 
   double _originalMrp(CartProvider cart) {
     return cart.items.fold<double>(0, (sum, item) {
-      final original = item.product.originalPrice ??
+      final original =
+          item.product.originalPrice ??
           item.product.basePrice ??
           item.product.effectivePrice;
       return sum + (original * item.quantity);
@@ -178,8 +194,10 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   double _totalSavings(CartProvider cart) {
-    return (_catalogSavings(cart) + cart.discountAmount)
-        .clamp(0.0, double.infinity);
+    return (_catalogSavings(cart) + cart.discountAmount).clamp(
+      0.0,
+      double.infinity,
+    );
   }
 
   double _totalAmount(CartProvider cart) {
@@ -190,8 +208,7 @@ class _CartScreenState extends State<CartScreen> {
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Checkout',
-      message:
-          'Sign in to place your order, secure payment, and keep your bag synced across devices.',
+      trigger: AuthPromptTrigger.cart,
       promptStyle: AuthPromptStyle.fullScreen,
     );
     if (!allowed || !mounted) {
@@ -202,9 +219,9 @@ class _CartScreenState extends State<CartScreen> {
     }
     _openingCheckout = true;
     try {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const CheckoutScreen()),
-      );
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const CheckoutScreen()));
     } finally {
       _openingCheckout = false;
     }
@@ -223,9 +240,7 @@ class _CartScreenState extends State<CartScreen> {
             _ensureRecommendations(cart);
 
             if (cart.items.isEmpty) {
-              return _EmptyBagView(
-                onBack: () => Navigator.pop(context),
-              );
+              return _EmptyBagView(onBack: () => Navigator.pop(context));
             }
 
             final totalSavings = _totalSavings(cart);
@@ -247,151 +262,153 @@ class _CartScreenState extends State<CartScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 108),
                   sliver: SliverList(
-                    delegate: SliverChildListDelegate(
-                      [
-                        _AddressCard(
-                          user: auth.user,
-                          deliveryEstimate: _deliveryEstimate(cart),
-                          addressLine: _addressLine(auth.user),
-                        ),
-                        const SizedBox(height: 12),
-                        FutureBuilder<List<Product>>(
-                          future: dealsFuture,
-                          builder: (context, snapshot) {
-                            final products = (snapshot.data ?? const <Product>[])
-                                .where((product) => !cart.items.any(
-                                      (item) => item.product.id == product.id,
-                                    ))
-                                .take(6)
-                                .toList();
-                            return _DealsUnlockSection(
-                              amountLeft: (500 - cart.subtotal)
-                                  .clamp(0.0, double.infinity),
-                              products: products,
-                              currency: _currency,
-                              animatingIds: _animatingAddIds,
-                              onAdd: _addSuggestionToCart,
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        ...cart.items.map(
-                          (item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _CartLineItem(
-                              item: item,
-                              currency: _currency,
-                              onDecrease: () => cart.updateQuantity(
-                                item.product.id,
-                                item.size,
-                                -1,
-                              ),
-                              onIncrease: () => cart.updateQuantity(
-                                item.product.id,
-                                item.size,
-                                1,
-                              ),
-                              onRemove: () => cart.removeFromCart(
-                                item.product.id,
-                                item.size,
-                              ),
-                              onMoveToWishlist: () => _moveToWishlist(item),
-                              onSelectSize: (size) =>
-                                  _changeSize(cart, item, size),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _OffersSection(
-                          expanded: _offersExpanded,
-                          onToggle: () => setState(
-                            () => _offersExpanded = !_offersExpanded,
-                          ),
-                          appliedCoupon: cart.appliedCoupon,
-                        ),
-                        const SizedBox(height: 12),
-                        _DonationSection(
-                          selectedAmount: _selectedDonation,
-                          onSelect: (value) =>
-                              setState(() => _selectedDonation = value),
-                        ),
-                        const SizedBox(height: 12),
-                        FutureBuilder<List<Product>>(
-                          future: completeLookFuture,
-                          builder: (context, snapshot) {
-                            final fallback = productProvider.trendingProducts
-                                .where((product) => !cart.items.any(
-                                      (item) => item.product.id == product.id,
-                                    ))
-                                .take(6)
-                                .toList();
-                            final suggestions = (snapshot.data?.isNotEmpty ?? false)
-                                ? snapshot.data!
-                                : fallback;
-                            return _RecommendationsSection(
-                              title: 'You may also like',
-                              products: suggestions,
-                              currency: _currency,
-                              animatingIds: _animatingAddIds,
-                              onAdd: _addSuggestionToCart,
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        _PriceDetailsCard(
-                          currency: _currency,
-                          totalMrp: _originalMrp(cart),
-                          discount: _totalSavings(cart),
-                          deliveryFee: _deliveryFee(cart),
-                          platformFee: _platformFee(cart),
-                          totalAmount: totalAmount,
-                        ),
-                        const SizedBox(height: 12),
-                        _ReminderButton(
-                          onTap: () async {
-                            final user = auth.user;
-                            if (user == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Sign in to save a reminder for this bag.',
-                                  ),
+                    delegate: SliverChildListDelegate([
+                      _AddressCard(
+                        user: auth.user,
+                        deliveryEstimate: _deliveryEstimate(cart),
+                        addressLine: _addressLine(auth.user),
+                      ),
+                      const SizedBox(height: 12),
+                      FutureBuilder<List<Product>>(
+                        future: dealsFuture,
+                        builder: (context, snapshot) {
+                          final products = (snapshot.data ?? const <Product>[])
+                              .where(
+                                (product) => !cart.items.any(
+                                  (item) => item.product.id == product.id,
                                 ),
-                              );
-                              return;
-                            }
-                            final items = cart.items
-                                .map(
-                                  (item) => OrderItem(
-                                    productId: item.product.id,
-                                    productName: item.product.name,
-                                    quantity: item.quantity,
-                                    price: item.product.effectivePrice,
-                                    size: item.size,
-                                    imageUrl: item.product.images.isNotEmpty
-                                        ? item.product.images.first
-                                        : '',
-                                  ),
-                                )
-                                .toList();
-                            await _database.createAbandonedCartReminder(
-                              user: user,
-                              items: items,
-                            );
-                            if (!context.mounted) {
-                              return;
-                            }
+                              )
+                              .take(6)
+                              .toList();
+                          return _DealsUnlockSection(
+                            amountLeft: (500 - cart.subtotal).clamp(
+                              0.0,
+                              double.infinity,
+                            ),
+                            products: products,
+                            currency: _currency,
+                            animatingIds: _animatingAddIds,
+                            onAdd: _addSuggestionToCart,
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      ...cart.items.map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _CartLineItem(
+                            item: item,
+                            currency: _currency,
+                            onDecrease: () => cart.updateQuantity(
+                              item.product.id,
+                              item.size,
+                              -1,
+                            ),
+                            onIncrease: () => cart.updateQuantity(
+                              item.product.id,
+                              item.size,
+                              1,
+                            ),
+                            onRemove: () =>
+                                cart.removeFromCart(item.product.id, item.size),
+                            onMoveToWishlist: () => _moveToWishlist(item),
+                            onSelectSize: (size) =>
+                                _changeSize(cart, item, size),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _OffersSection(
+                        expanded: _offersExpanded,
+                        onToggle: () =>
+                            setState(() => _offersExpanded = !_offersExpanded),
+                        appliedCoupon: cart.appliedCoupon,
+                      ),
+                      const SizedBox(height: 12),
+                      _DonationSection(
+                        selectedAmount: _selectedDonation,
+                        onSelect: (value) =>
+                            setState(() => _selectedDonation = value),
+                      ),
+                      const SizedBox(height: 12),
+                      FutureBuilder<List<Product>>(
+                        future: completeLookFuture,
+                        builder: (context, snapshot) {
+                          final fallback = productProvider.trendingProducts
+                              .where(
+                                (product) => !cart.items.any(
+                                  (item) => item.product.id == product.id,
+                                ),
+                              )
+                              .take(6)
+                              .toList();
+                          final suggestions =
+                              (snapshot.data?.isNotEmpty ?? false)
+                              ? snapshot.data!
+                              : fallback;
+                          return _RecommendationsSection(
+                            title: 'You may also like',
+                            products: suggestions,
+                            currency: _currency,
+                            animatingIds: _animatingAddIds,
+                            onAdd: _addSuggestionToCart,
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _PriceDetailsCard(
+                        currency: _currency,
+                        totalMrp: _originalMrp(cart),
+                        discount: _totalSavings(cart),
+                        deliveryFee: _deliveryFee(cart),
+                        platformFee: _platformFee(cart),
+                        totalAmount: totalAmount,
+                      ),
+                      const SizedBox(height: 12),
+                      _ReminderButton(
+                        onTap: () async {
+                          final user = auth.user;
+                          if (user == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                  'We will remind you to come back to your bag.',
+                                  'Sign in to save a reminder for this bag.',
                                 ),
                               ),
                             );
-                          },
-                        ),
-                      ],
-                    ),
+                            return;
+                          }
+                          final items = cart.items
+                              .map(
+                                (item) => OrderItem(
+                                  productId: item.product.id,
+                                  productName: item.product.name,
+                                  quantity: item.quantity,
+                                  price: item.product.effectivePrice,
+                                  size: item.size,
+                                  imageUrl: item.product.images.isNotEmpty
+                                      ? item.product.images.first
+                                      : '',
+                                ),
+                              )
+                              .toList();
+                          await _database.createAbandonedCartReminder(
+                            user: user,
+                            items: items,
+                          );
+                          if (!context.mounted) {
+                            return;
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'We will remind you to come back to your bag.',
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ]),
                   ),
                 ),
               ],
@@ -416,10 +433,7 @@ class _CartScreenState extends State<CartScreen> {
 }
 
 class _BagHeader extends StatelessWidget {
-  const _BagHeader({
-    required this.savingsLabel,
-    required this.onBack,
-  });
+  const _BagHeader({required this.savingsLabel, required this.onBack});
 
   final String savingsLabel;
   final VoidCallback onBack;
@@ -432,9 +446,7 @@ class _BagHeader extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
         decoration: BoxDecoration(
           color: const Color(0xFFFFFDF8),
-          border: Border(
-            bottom: BorderSide(color: const Color(0xFFF0E3C5)),
-          ),
+          border: Border(bottom: BorderSide(color: const Color(0xFFF0E3C5))),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFFB8963F).withValues(alpha: 0.08),
@@ -462,9 +474,9 @@ class _BagHeader extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF202020),
-                            ),
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF202020),
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -472,16 +484,16 @@ class _BagHeader extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFF1D8B4D),
-                              fontWeight: FontWeight.w700,
-                            ),
+                          color: const Color(0xFF1D8B4D),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-                        const SizedBox(height: 12),
+            const SizedBox(height: 12),
             const _ProgressStepper(),
           ],
         ),
@@ -502,11 +514,7 @@ class _ProgressStepper extends StatelessWidget {
       builder: (context, progress, child) {
         return Row(
           children: [
-            const _StepperDot(
-              label: 'Bag',
-              active: true,
-              complete: true,
-            ),
+            const _StepperDot(label: 'Bag', active: true, complete: true),
             Expanded(
               child: Stack(
                 alignment: Alignment.centerLeft,
@@ -514,10 +522,7 @@ class _ProgressStepper extends StatelessWidget {
                   Container(height: 2, color: const Color(0xFFE6E3D7)),
                   FractionallySizedBox(
                     widthFactor: progress,
-                    child: Container(
-                      height: 2,
-                      color: const Color(0xFFC8A95D),
-                    ),
+                    child: Container(height: 2, color: const Color(0xFFC8A95D)),
                   ),
                 ],
               ),
@@ -581,12 +586,12 @@ class _StepperDot extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontSize: 11,
-                    color: active || complete
-                        ? const Color(0xFF403A2C)
-                        : const Color(0xFF8C877A),
-                    fontWeight: FontWeight.w700,
-                  ),
+                fontSize: 11,
+                color: active || complete
+                    ? const Color(0xFF403A2C)
+                    : const Color(0xFF8C877A),
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -640,9 +645,9 @@ class _AddressCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: const Color(0xFF222222),
-                            fontWeight: FontWeight.w800,
-                          ),
+                        color: const Color(0xFF222222),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -650,9 +655,9 @@ class _AddressCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: const Color(0xFF5E5B55),
-                            fontSize: 12,
-                          ),
+                        color: const Color(0xFF5E5B55),
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -662,7 +667,10 @@ class _AddressCard extends StatelessWidget {
                 style: TextButton.styleFrom(
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 4,
+                  ),
                 ),
                 child: const Text('Change'),
               ),
@@ -689,10 +697,10 @@ class _AddressCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF2D2B26),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
+                      color: const Color(0xFF2D2B26),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ],
@@ -733,18 +741,18 @@ class _DealsUnlockSection extends StatelessWidget {
         Text(
           'Deals for you',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xFF201F1B),
-                fontWeight: FontWeight.w800,
-              ),
+            color: const Color(0xFF201F1B),
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
           title,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF6A655A),
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6A655A)),
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -805,7 +813,9 @@ class _MiniDealCard extends StatelessWidget {
                     height: 96,
                     width: double.infinity,
                     child: AbzioNetworkImage(
-                      imageUrl: product.images.isNotEmpty ? product.images.first : '',
+                      imageUrl: product.images.isNotEmpty
+                          ? product.images.first
+                          : '',
                       fallbackLabel: product.name,
                       fit: BoxFit.cover,
                     ),
@@ -829,9 +839,7 @@ class _MiniDealCard extends StatelessWidget {
                               product.rating.toStringAsFixed(1),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                           ),
@@ -843,10 +851,10 @@ class _MiniDealCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFF201F1B),
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                            ),
+                          color: const Color(0xFF201F1B),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -854,9 +862,9 @@ class _MiniDealCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: const Color(0xFF201F1B),
-                              fontWeight: FontWeight.w800,
-                            ),
+                          color: const Color(0xFF201F1B),
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       SizedBox(
@@ -937,10 +945,10 @@ class _CartLineItem extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: const Color(0xFF7D786F),
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11,
-                      ),
+                    color: const Color(0xFF7D786F),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -948,10 +956,10 @@ class _CartLineItem extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: const Color(0xFF1F1F1C),
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
+                    color: const Color(0xFF1F1F1C),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Wrap(
@@ -964,10 +972,10 @@ class _CartLineItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: const Color(0xFF1E1D1A),
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                          ),
+                        color: const Color(0xFF1E1D1A),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
                     ),
                     if (originalPrice > currentPrice)
                       Text(
@@ -975,11 +983,11 @@ class _CartLineItem extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFF918D85),
-                              decoration: TextDecoration.lineThrough,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
+                          color: const Color(0xFF918D85),
+                          decoration: TextDecoration.lineThrough,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
                       ),
                     if (discountPercent > 0)
                       Text(
@@ -987,10 +995,10 @@ class _CartLineItem extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFF1D8B4D),
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12,
-                            ),
+                          color: const Color(0xFF1D8B4D),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
                       ),
                   ],
                 ),
@@ -1091,10 +1099,7 @@ class _CartLineItem extends StatelessWidget {
 }
 
 class _PillSelector extends StatelessWidget {
-  const _PillSelector({
-    required this.label,
-    required this.onTap,
-  });
+  const _PillSelector({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;
@@ -1120,10 +1125,10 @@ class _PillSelector extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF25231F),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
+                color: const Color(0xFF25231F),
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
             ),
             const SizedBox(width: 4),
             const Icon(Icons.keyboard_arrow_down_rounded, size: 16),
@@ -1176,10 +1181,10 @@ class _QuantitySelector extends StatelessWidget {
               '$quantity',
               key: ValueKey<int>(quantity),
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: const Color(0xFF25231F),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
+                color: const Color(0xFF25231F),
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
             ),
           ),
           InkWell(
@@ -1210,10 +1215,12 @@ class _BadgeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background =
-        danger ? const Color(0xFFFFF1EE) : const Color(0xFFF4F7F1);
-    final foreground =
-        danger ? const Color(0xFFC4462D) : const Color(0xFF287048);
+    final background = danger
+        ? const Color(0xFFFFF1EE)
+        : const Color(0xFFF4F7F1);
+    final foreground = danger
+        ? const Color(0xFFC4462D)
+        : const Color(0xFF287048);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -1230,10 +1237,10 @@ class _BadgeChip extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: foreground,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                ),
+              color: foreground,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+            ),
           ),
         ],
       ),
@@ -1269,10 +1276,10 @@ class _InlineAction extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF5B564B),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
+                color: const Color(0xFF5B564B),
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
             ),
           ],
         ),
@@ -1325,7 +1332,8 @@ class _OffersSection extends StatelessWidget {
                         'Offers & Coupons',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
                               color: const Color(0xFF201F1B),
                               fontWeight: FontWeight.w800,
                             ),
@@ -1338,9 +1346,9 @@ class _OffersSection extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFF6A655A),
-                              fontSize: 12,
-                            ),
+                          color: const Color(0xFF6A655A),
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -1388,10 +1396,7 @@ class _OffersSection extends StatelessWidget {
 }
 
 class _OfferRow extends StatelessWidget {
-  const _OfferRow({
-    required this.title,
-    required this.subtitle,
-  });
+  const _OfferRow({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -1401,7 +1406,11 @@ class _OfferRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.check_circle_rounded, color: Color(0xFF1D8B4D), size: 16),
+        const Icon(
+          Icons.check_circle_rounded,
+          color: Color(0xFF1D8B4D),
+          size: 16,
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -1412,9 +1421,9 @@ class _OfferRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF23211C),
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: const Color(0xFF23211C),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 1),
               Text(
@@ -1422,9 +1431,9 @@ class _OfferRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF6A655A),
-                      fontSize: 11,
-                    ),
+                  color: const Color(0xFF6A655A),
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
@@ -1454,18 +1463,18 @@ class _DonationSection extends StatelessWidget {
           Text(
             'Support social cause',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: const Color(0xFF201F1B),
-                  fontWeight: FontWeight.w800,
-                ),
+              color: const Color(0xFF201F1B),
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             'Add a small donation to support community-led fashion education.',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF6A655A),
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6A655A)),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -1513,9 +1522,9 @@ class _RecommendationsSection extends StatelessWidget {
         Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xFF201F1B),
-                fontWeight: FontWeight.w800,
-              ),
+            color: const Color(0xFF201F1B),
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(height: 10),
         GridView.builder(
@@ -1565,11 +1574,15 @@ class _RecommendationCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(18),
+              ),
               child: AspectRatio(
                 aspectRatio: 0.75,
                 child: AbzioNetworkImage(
-                  imageUrl: product.images.isNotEmpty ? product.images.first : '',
+                  imageUrl: product.images.isNotEmpty
+                      ? product.images.first
+                      : '',
                   fallbackLabel: product.name,
                   fit: BoxFit.cover,
                 ),
@@ -1585,10 +1598,10 @@ class _RecommendationCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFFB38B2C),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 11,
-                        ),
+                      color: const Color(0xFFB38B2C),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -1596,10 +1609,10 @@ class _RecommendationCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF201F1B),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
+                      color: const Color(0xFF201F1B),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -1607,9 +1620,9 @@ class _RecommendationCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: const Color(0xFF201F1B),
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: const Color(0xFF201F1B),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
@@ -1661,9 +1674,9 @@ class _PriceDetailsCard extends StatelessWidget {
           Text(
             'Price Details',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: const Color(0xFF201F1B),
-                  fontWeight: FontWeight.w800,
-                ),
+              color: const Color(0xFF201F1B),
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 10),
           _PriceLine(label: 'Total MRP', value: currency.format(totalMrp)),
@@ -1677,8 +1690,9 @@ class _PriceDetailsCard extends StatelessWidget {
           _PriceLine(
             label: 'Delivery Fee',
             value: deliveryFee == 0 ? 'Free' : currency.format(deliveryFee),
-            valueColor:
-                deliveryFee == 0 ? const Color(0xFF1D8B4D) : const Color(0xFF201F1B),
+            valueColor: deliveryFee == 0
+                ? const Color(0xFF1D8B4D)
+                : const Color(0xFF201F1B),
           ),
           const SizedBox(height: 6),
           _PriceLine(
@@ -1717,13 +1731,13 @@ class _PriceLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = emphasize
         ? Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: const Color(0xFF201F1B),
-              fontWeight: FontWeight.w800,
-            )
+            color: const Color(0xFF201F1B),
+            fontWeight: FontWeight.w800,
+          )
         : Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF4F4B43),
-              fontWeight: FontWeight.w600,
-            );
+            color: const Color(0xFF4F4B43),
+            fontWeight: FontWeight.w600,
+          );
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1740,9 +1754,7 @@ class _PriceLine extends StatelessWidget {
           value,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: style?.copyWith(
-            color: valueColor ?? style.color,
-          ),
+          style: style?.copyWith(color: valueColor ?? style.color),
         ),
       ],
     );
@@ -1750,9 +1762,7 @@ class _PriceLine extends StatelessWidget {
 }
 
 class _ReminderButton extends StatelessWidget {
-  const _ReminderButton({
-    required this.onTap,
-  });
+  const _ReminderButton({required this.onTap});
 
   final Future<void> Function() onTap;
 
@@ -1769,7 +1779,7 @@ class _ReminderButton extends StatelessWidget {
   }
 }
 
-class _BagFooter extends StatelessWidget {
+class _BagFooter extends StatefulWidget {
   const _BagFooter({
     required this.amountLabel,
     required this.onViewDetails,
@@ -1781,6 +1791,82 @@ class _BagFooter extends StatelessWidget {
   final VoidCallback onPlaceOrder;
 
   @override
+  State<_BagFooter> createState() => _BagFooterState();
+}
+
+class _BagFooterState extends State<_BagFooter>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _intentController;
+  late final Animation<double> _liftY;
+  late final Animation<double> _scale;
+  late final Animation<double> _iconBounceY;
+  bool _intentRunning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _intentController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
+    _liftY = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0, end: -6),
+        weight: 58,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: -6, end: 0),
+        weight: 42,
+      ),
+    ]).animate(
+      CurvedAnimation(parent: _intentController, curve: Curves.easeOutCubic),
+    );
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1, end: 1.05),
+        weight: 58,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.05, end: 1),
+        weight: 42,
+      ),
+    ]).animate(
+      CurvedAnimation(parent: _intentController, curve: Curves.easeOutCubic),
+    );
+    _iconBounceY = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0, end: -5),
+        weight: 45,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: -5, end: 0),
+        weight: 55,
+      ),
+    ]).animate(
+      CurvedAnimation(parent: _intentController, curve: Curves.easeOutCubic),
+    );
+  }
+
+  @override
+  void dispose() {
+    _intentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handlePlaceOrder() async {
+    if (_intentRunning) {
+      return;
+    }
+    _intentRunning = true;
+    HapticFeedback.lightImpact();
+    await _intentController.forward(from: 0);
+    if (mounted) {
+      widget.onPlaceOrder();
+    }
+    _intentRunning = false;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
@@ -1790,10 +1876,7 @@ class _BagFooter extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFEFDFC),
-              Colors.white,
-            ],
+            colors: [Color(0xFFFEFDFC), Colors.white],
           ),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
           border: Border(top: BorderSide(color: const Color(0xFFF0ECE2))),
@@ -1813,7 +1896,10 @@ class _BagFooter extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF7F1DF),
                     borderRadius: BorderRadius.circular(999),
@@ -1823,28 +1909,31 @@ class _BagFooter extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF8D6D20),
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.2,
-                        ),
+                      color: const Color(0xFF8D6D20),
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  amountLabel,
+                  widget.amountLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: const Color(0xFF201F1B),
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: const Color(0xFF201F1B),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 1),
                 InkWell(
-                  onTap: onViewDetails,
+                  onTap: widget.onViewDetails,
                   borderRadius: BorderRadius.circular(999),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 2,
+                      vertical: 2,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1852,7 +1941,8 @@ class _BagFooter extends StatelessWidget {
                           'View Details',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 color: const Color(0xFF6A655A),
                                 fontWeight: FontWeight.w700,
                               ),
@@ -1870,41 +1960,62 @@ class _BagFooter extends StatelessWidget {
               ],
             );
 
-            final actionButton = DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFD6B76F), Color(0xFFBC9543)],
-                ),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFC8A95D).withValues(alpha: 0.25),
-                    blurRadius: 14,
-                    offset: const Offset(0, 8),
+            final actionButton = AnimatedBuilder(
+              animation: _intentController,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, _liftY.value),
+                  child: Transform.scale(scale: _scale.value, child: child),
+                );
+              },
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFD6B76F), Color(0xFFBC9543)],
                   ),
-                ],
-              ),
-              child: ElevatedButton(
-                onPressed: onPlaceOrder,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(46),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.lock_rounded, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'PLACE ORDER',
-                      style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.2),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFC8A95D).withValues(alpha: 0.25),
+                      blurRadius: 14,
+                      offset: const Offset(0, 8),
                     ),
                   ],
+                ),
+                child: ElevatedButton(
+                  onPressed: _handlePlaceOrder,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedBuilder(
+                        animation: _intentController,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(0, _iconBounceY.value),
+                            child: child,
+                          );
+                        },
+                        child: const Icon(Icons.shopping_bag_rounded, size: 18),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'PLACE ORDER',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -1935,9 +2046,7 @@ class _BagFooter extends StatelessWidget {
 }
 
 class _EmptyBagView extends StatelessWidget {
-  const _EmptyBagView({
-    required this.onBack,
-  });
+  const _EmptyBagView({required this.onBack});
 
   final VoidCallback onBack;
 
@@ -1977,17 +2086,17 @@ class _EmptyBagView extends StatelessWidget {
             Text(
               'Your bag is empty',
               style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    fontSize: 28,
-                    color: const Color(0xFF22211D),
-                  ),
+                fontSize: 28,
+                color: const Color(0xFF22211D),
+              ),
             ),
             const SizedBox(height: 10),
             Text(
               'Add standout pieces from nearby stores and return here for a smoother checkout.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: const Color(0xFF6A655A),
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: const Color(0xFF6A655A)),
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -2036,10 +2145,7 @@ class _BagCard extends StatelessWidget {
 }
 
 class _HeaderCircleButton extends StatelessWidget {
-  const _HeaderCircleButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _HeaderCircleButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;

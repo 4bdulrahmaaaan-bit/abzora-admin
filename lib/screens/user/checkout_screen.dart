@@ -15,6 +15,7 @@ import '../../services/app_config.dart';
 import '../../services/database_service.dart';
 import '../../services/payment_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 import '../../widgets/state_views.dart';
 import 'address_screen.dart';
 import 'order_success_screen.dart';
@@ -682,7 +683,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (!mounted) {
         return;
       }
-      final message = error.toString().replaceFirst('Exception: ', '').replaceFirst('StateError: ', '');
+      final message = AppErrorText.from(error);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -1719,10 +1720,16 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             border: Border.all(color: Colors.white.withValues(alpha: 0.45)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.88,
+            ),
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               Center(
                 child: Container(
                   width: 44,
@@ -1830,7 +1837,9 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
                   ),
                 ),
               ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

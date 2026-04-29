@@ -45,7 +45,7 @@ class LocationService {
         try {
           position = await Geolocator.getCurrentPosition(
             locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.best,
+              accuracy: LocationAccuracy.high,
               distanceFilter: 50,
             ),
           ).timeout(timeout);
@@ -58,6 +58,19 @@ class LocationService {
             break;
           }
           await Future<void>.delayed(Duration(milliseconds: 350 * (attempt + 1)));
+        }
+      }
+
+      if (position == null) {
+        try {
+          position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              distanceFilter: 50,
+            ),
+          ).timeout(const Duration(seconds: 8));
+        } catch (error) {
+          lastError = error;
         }
       }
 

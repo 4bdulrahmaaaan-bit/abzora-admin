@@ -146,6 +146,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
       final allowed = await SoftAuthGate.ensureAuthenticated(
         context,
         intentLabel: 'Save measurements',
+        trigger: AuthPromptTrigger.tryOn,
       );
       if (!allowed || !mounted) {
         return;
@@ -178,8 +179,9 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
       inseamCm: result.inseamCm,
       confidence: result.confidence,
       scanFrameCount: 45,
-      scanSource:
-          (_frontImage != null && _sideImage != null) ? 'front_side' : 'front_only',
+      scanSource: (_frontImage != null && _sideImage != null)
+          ? 'front_side'
+          : 'front_only',
       updatedAt: DateTime.now().toIso8601String(),
     );
     await _database.saveMeasurementProfile(profile);
@@ -262,7 +264,8 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                     const SizedBox(height: 14),
                     _captureCard(
                       title: 'Side view',
-                      subtitle: 'Optional, but improves torso depth confidence.',
+                      subtitle:
+                          'Optional, but improves torso depth confidence.',
                       file: _sideImage,
                       refinement: _sidePoseRefinement,
                       accent: const Color(0xFFD7B149),
@@ -334,14 +337,15 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                                 user == null
                                     ? 'Sign in to save'
                                     : _isSaving
-                                        ? 'Saving...'
-                                        : 'Save & Continue',
+                                    ? 'Saving...'
+                                    : 'Save & Continue',
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AbzioTheme.accentColor,
                                 foregroundColor: Colors.black,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
@@ -380,11 +384,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFF7E7),
-            Color(0xFFF5E7C8),
-            Color(0xFFFFFCF6),
-          ],
+          colors: [Color(0xFFFFF7E7), Color(0xFFF5E7C8), Color(0xFFFFFCF6)],
         ),
         boxShadow: [
           BoxShadow(
@@ -415,17 +415,17 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
           const SizedBox(height: 14),
           Text(
             'Smart body scan',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
             'Live pose detection maps shoulders, chest, waist, hips, and knees. Front + side scans unlock higher accuracy while your manual inputs stay as fallback.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.black.withValues(alpha: 0.68),
-                  height: 1.5,
-                ),
+              color: Colors.black.withValues(alpha: 0.68),
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 14),
           Wrap(
@@ -492,7 +492,10 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                    Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
@@ -551,7 +554,9 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: accent.withValues(alpha: glow * 0.18),
+                                    color: accent.withValues(
+                                      alpha: glow * 0.18,
+                                    ),
                                     blurRadius: 28,
                                     spreadRadius: 2,
                                   ),
@@ -672,9 +677,9 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
         children: [
           Text(
             'Fine tune your scan',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(
@@ -690,10 +695,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
             ),
             child: Text(
               'Your images are never stored. Only measurements are محفوظ.',
-              style: TextStyle(
-                color: context.abzioSecondaryText,
-                height: 1.4,
-              ),
+              style: TextStyle(color: context.abzioSecondaryText, height: 1.4),
             ),
           ),
           const SizedBox(height: 14),
@@ -717,9 +719,9 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
           const SizedBox(height: 14),
           Text(
             'Body frame',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           _segmentedRow(
@@ -730,9 +732,9 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
           const SizedBox(height: 14),
           Text(
             'Fit preference',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           _segmentedRow(
@@ -847,23 +849,24 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                     Text(
                       'Your Fit Profile Ready ✅',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: AbzioTheme.accentColor,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        color: AbzioTheme.accentColor,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'Recommended Size: ${result.shirtSize}',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF6DA),
                   borderRadius: BorderRadius.circular(999),
@@ -904,10 +907,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _resultInsight(
-                  title: 'Fit Type',
-                  value: result.fit,
-                ),
+                child: _resultInsight(title: 'Fit Type', value: result.fit),
               ),
             ],
           ),
@@ -924,9 +924,9 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
           const SizedBox(height: 14),
           Text(
             'Insights',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           _insightBullet('We suggest size ${result.shirtSize}.'),
@@ -935,8 +935,12 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                 ? 'Manual height, weight, and body frame are driving this estimate.'
                 : 'Front and side pose detection are driving this estimate.',
           ),
-          _insightBullet('Shoulder width aligned with ${result.shirtSize} upper-body fit.'),
-          _insightBullet('Waist estimate points to ${result.pantSize} trousers.'),
+          _insightBullet(
+            'Shoulder width aligned with ${result.shirtSize} upper-body fit.',
+          ),
+          _insightBullet(
+            'Waist estimate points to ${result.pantSize} trousers.',
+          ),
           ...result.bodyOutlineHighlights.map(
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -979,10 +983,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
           const SizedBox(height: 12),
           Text(
             result.privacyNote,
-            style: TextStyle(
-              color: context.abzioSecondaryText,
-              height: 1.45,
-            ),
+            style: TextStyle(color: context.abzioSecondaryText, height: 1.45),
           ),
         ],
       ),
@@ -1078,10 +1079,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
         children: [
           Text(
             label,
-            style: TextStyle(
-              color: context.abzioSecondaryText,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: context.abzioSecondaryText, fontSize: 12),
           ),
           const SizedBox(height: 4),
           Text(
@@ -1093,10 +1091,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
     );
   }
 
-  Widget _resultInsight({
-    required String title,
-    required String value,
-  }) {
+  Widget _resultInsight({required String title, required String value}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
@@ -1108,18 +1103,10 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
         children: [
           Text(
             title,
-            style: TextStyle(
-              color: context.abzioSecondaryText,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: context.abzioSecondaryText, fontSize: 12),
           ),
           const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
         ],
       ),
     );
@@ -1143,10 +1130,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                color: context.abzioSecondaryText,
-                height: 1.4,
-              ),
+              style: TextStyle(color: context.abzioSecondaryText, height: 1.4),
             ),
           ),
         ],
@@ -1156,10 +1140,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
 }
 
 class _ScanStepChip extends StatelessWidget {
-  const _ScanStepChip({
-    required this.icon,
-    required this.label,
-  });
+  const _ScanStepChip({required this.icon, required this.label});
 
   final IconData icon;
   final String label;

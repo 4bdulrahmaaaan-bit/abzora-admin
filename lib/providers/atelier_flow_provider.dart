@@ -5,13 +5,12 @@ import '../models/banner_model.dart';
 import '../services/database_service.dart';
 
 enum AtelierStep {
-  home,
-  style,
+  product,
   fabric,
-  measurements,
-  design,
-  preview,
-  summary,
+  style,
+  fit,
+  measurement,
+  review,
 }
 
 class AtelierFlowProvider extends ChangeNotifier {
@@ -23,247 +22,226 @@ class AtelierFlowProvider extends ChangeNotifier {
 
   bool _isLoading = true;
   String? _error;
+  AtelierStep _step = AtelierStep.product;
 
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-
-  final int basePrice = 2499;
-  AtelierStep _step = AtelierStep.home;
+  final int itemPrice = 4299;
+  final int deliveryFee = 149;
 
   AtelierDesigner? _selectedDesigner;
   AtelierCategory? _selectedCategory;
   FabricOption? _selectedFabric;
-  MeasurementData _measurements = const MeasurementData();
-  final Map<String, DesignOption> _designChoices = <String, DesignOption>{};
+  FitOption? _selectedFit;
+  MeasurementOption? _selectedMeasurementOption;
+  final Map<String, StyleOption> _styleSelections = <String, StyleOption>{};
 
   List<AtelierDesigner> designers = const <AtelierDesigner>[];
   List<AtelierCategory> categories = const <AtelierCategory>[];
   List<FabricOption> fabrics = const <FabricOption>[];
-  List<DesignOptionGroup> designGroups = const <DesignOptionGroup>[];
+  List<StyleOptionGroup> styleGroups = const <StyleOptionGroup>[];
+  List<FitOption> fitOptions = const <FitOption>[];
+  List<MeasurementOption> measurementOptions = const <MeasurementOption>[];
 
+  bool get isLoading => _isLoading;
+  String? get error => _error;
   AtelierStep get step => _step;
   AtelierDesigner? get selectedDesigner => _selectedDesigner;
   AtelierCategory? get selectedCategory => _selectedCategory;
   FabricOption? get selectedFabric => _selectedFabric;
-  MeasurementData get measurements => _measurements;
-  Map<String, DesignOption> get designChoices => Map.unmodifiable(_designChoices);
+  FitOption? get selectedFit => _selectedFit;
+  MeasurementOption? get selectedMeasurementOption => _selectedMeasurementOption;
+  Map<String, StyleOption> get styleSelections => Map.unmodifiable(_styleSelections);
 
-  int get totalPrice {
+  String get productName => selectedCategory?.title ?? 'Tailored Signature Shirt';
+  String get storeName => selectedDesigner?.name ?? 'Atelier Noir';
+  String get productImageUrl {
+    if (selectedCategory?.imageUrl.trim().isNotEmpty == true) {
+      return selectedCategory!.imageUrl;
+    }
+    if (selectedDesigner?.bannerUrl.trim().isNotEmpty == true) {
+      return selectedDesigner!.bannerUrl;
+    }
+    return '';
+  }
+
+  int get customizationPrice {
     final fabricDelta = _selectedFabric?.priceDelta ?? 0;
-    final designDelta = _designChoices.values.fold<int>(
+    final styleDelta = _styleSelections.values.fold<int>(
       0,
       (sum, option) => sum + option.priceDelta,
     );
-    return basePrice + fabricDelta + designDelta;
+    final fitDelta = _selectedFit?.priceDelta ?? 0;
+    final measurementDelta = _selectedMeasurementOption?.priceDelta ?? 0;
+    return fabricDelta + styleDelta + fitDelta + measurementDelta;
   }
 
+  int get totalPrice => itemPrice + customizationPrice + deliveryFee;
+
   Future<void> _loadInitial() async {
-    await Future<void>.delayed(const Duration(milliseconds: 400));
+    await Future<void>.delayed(const Duration(milliseconds: 300));
     designers = const <AtelierDesigner>[
       AtelierDesigner(
         id: 'atelier-noir',
         name: 'Atelier Noir',
         city: 'Hyderabad',
         rating: 4.8,
-        priceBand: '₹₹₹₹',
-        tags: ['Premium Atelier', 'Verified Designer'],
+        priceBand: 'Premium',
+        tags: ['Luxury tailoring', '2-day dispatch'],
         bannerUrl:
-            'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=80',
+            'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80',
       ),
       AtelierDesigner(
-        id: 'stitched-society',
-        name: 'Stitched Society',
+        id: 'house-of-arc',
+        name: 'House of Arc',
         city: 'Bengaluru',
         rating: 4.7,
-        priceBand: '₹₹₹',
-        tags: ['Express Fit', 'Luxury Tailoring'],
+        priceBand: 'Premium',
+        tags: ['Precision fit', 'Private fittings'],
         bannerUrl:
-            'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1000&q=80',
+            'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80',
       ),
     ];
     categories = const <AtelierCategory>[
       AtelierCategory(
-        id: 'formal-shirts',
-        title: 'Formal Shirts',
-        subtitle: 'Clean lines',
+        id: 'signature-shirt',
+        title: 'Signature Shirt',
+        subtitle: 'Minimal structure',
         imageUrl:
-            'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=1000&q=80',
+            'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80',
       ),
       AtelierCategory(
-        id: 'blazers',
-        title: 'Blazers',
-        subtitle: 'Structured elegance',
+        id: 'soft-blazer',
+        title: 'Soft Blazer',
+        subtitle: 'Clean evening form',
         imageUrl:
-            'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1000&q=80',
-      ),
-      AtelierCategory(
-        id: 'suits',
-        title: 'Suits',
-        subtitle: 'Ceremony ready',
-        imageUrl:
-            'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?auto=format&fit=crop&w=1000&q=80',
-      ),
-      AtelierCategory(
-        id: 'kurtas',
-        title: 'Kurtas',
-        subtitle: 'Festive tailored',
-        imageUrl:
-            'https://images.unsplash.com/photo-1618886614638-80e3c103d31a?auto=format&fit=crop&w=1000&q=80',
-      ),
-      AtelierCategory(
-        id: 'dresses',
-        title: 'Dresses',
-        subtitle: 'Soft structure',
-        imageUrl:
-            'https://images.unsplash.com/photo-1502716119720-b23a93e5fe1b?auto=format&fit=crop&w=1000&q=80',
-      ),
-      AtelierCategory(
-        id: 'gowns',
-        title: 'Gowns',
-        subtitle: 'Evening couture',
-        imageUrl:
-            'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=1000&q=80',
+            'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=1200&q=80',
       ),
     ];
     fabrics = const <FabricOption>[
       FabricOption(
-        id: 'egyptian-cotton',
-        name: 'Egyptian Cotton',
-        tags: ['Soft', 'Crisp', 'Luxurious'],
-        description: 'Lightweight premium cotton with a refined sheen.',
+        id: 'italian-cotton',
+        name: 'Italian Cotton',
+        tags: ['Breathable', 'Soft touch'],
+        description: 'Smooth weave with crisp structure for everyday polish.',
+        priceDelta: 450,
+        imageUrl:
+            'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80',
+      ),
+      FabricOption(
+        id: 'silk-cotton',
+        name: 'Silk Cotton',
+        tags: ['Luminous', 'Fluid drape'],
+        description: 'A refined blend with a soft glow for elevated dressing.',
+        priceDelta: 850,
+        imageUrl:
+            'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80',
+      ),
+      FabricOption(
+        id: 'linen-signature',
+        name: 'Signature Linen',
+        tags: ['Airy', 'Tailored'],
+        description: 'Lightweight texture that keeps the silhouette relaxed and premium.',
         priceDelta: 650,
+        imageUrl:
+            'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80',
       ),
       FabricOption(
-        id: 'italian-wool',
-        name: 'Italian Wool',
-        tags: ['Structured', 'Breathable', 'Premium'],
-        description: 'All-season wool with elevated drape and polish.',
-        priceDelta: 980,
-      ),
-      FabricOption(
-        id: 'silk-blend',
-        name: 'Silk Blend',
-        tags: ['Smooth', 'Gloss', 'Lightweight'],
-        description: 'A luxe blend for fluid silhouettes and shine.',
-        priceDelta: 1200,
+        id: 'satin-stretch',
+        name: 'Satin Stretch',
+        tags: ['Sculpted', 'Comfort'],
+        description: 'Soft stretch with a polished finish for a more evening-led look.',
+        priceDelta: 950,
+        imageUrl:
+            'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=900&q=80',
       ),
     ];
-    designGroups = const <DesignOptionGroup>[
-      DesignOptionGroup(
+    styleGroups = const <StyleOptionGroup>[
+      StyleOptionGroup(
         id: 'collar',
         title: 'Collar Type',
         options: [
-          DesignOption(
-            id: 'spread',
-            title: 'Spread',
-            subtitle: 'Balanced formal spread',
-            iconKey: 'collar',
-            priceDelta: 0,
-          ),
-          DesignOption(
-            id: 'cutaway',
-            title: 'Cutaway',
-            subtitle: 'Wide modern opening',
-            iconKey: 'collar',
-            priceDelta: 120,
-          ),
-          DesignOption(
-            id: 'band',
-            title: 'Band',
-            subtitle: 'Minimal and sharp',
-            iconKey: 'collar',
-            priceDelta: 80,
-          ),
+          StyleOption(id: 'spread', title: 'Spread'),
+          StyleOption(id: 'band', title: 'Band', priceDelta: 80),
+          StyleOption(id: 'cutaway', title: 'Cutaway', priceDelta: 120),
         ],
       ),
-      DesignOptionGroup(
-        id: 'cuff',
-        title: 'Cuff Style',
+      StyleOptionGroup(
+        id: 'sleeve',
+        title: 'Sleeve Type',
         options: [
-          DesignOption(
-            id: 'barrel',
-            title: 'Barrel',
-            subtitle: 'Classic everyday fit',
-            iconKey: 'cuff',
-            priceDelta: 0,
-          ),
-          DesignOption(
-            id: 'french',
-            title: 'French',
-            subtitle: 'Luxury fold finish',
-            iconKey: 'cuff',
-            priceDelta: 180,
-          ),
-          DesignOption(
-            id: 'round',
-            title: 'Round',
-            subtitle: 'Soft tailored curve',
-            iconKey: 'cuff',
-            priceDelta: 90,
-          ),
+          StyleOption(id: 'full', title: 'Full Sleeve'),
+          StyleOption(id: 'three-quarter', title: '3/4 Sleeve', priceDelta: 60),
+          StyleOption(id: 'short', title: 'Short Sleeve'),
         ],
       ),
-      DesignOptionGroup(
-        id: 'buttons',
-        title: 'Buttons',
+      StyleOptionGroup(
+        id: 'length',
+        title: 'Length',
         options: [
-          DesignOption(
-            id: 'pearl',
-            title: 'Mother of Pearl',
-            subtitle: 'Luminous finish',
-            iconKey: 'button',
-            priceDelta: 210,
-          ),
-          DesignOption(
-            id: 'matte',
-            title: 'Matte Resin',
-            subtitle: 'Minimal luxe',
-            iconKey: 'button',
-            priceDelta: 0,
-          ),
-          DesignOption(
-            id: 'metal',
-            title: 'Brushed Metal',
-            subtitle: 'Statement edge',
-            iconKey: 'button',
-            priceDelta: 150,
-          ),
-        ],
-      ),
-      DesignOptionGroup(
-        id: 'pocket',
-        title: 'Pocket',
-        options: [
-          DesignOption(
-            id: 'none',
-            title: 'No Pocket',
-            subtitle: 'Clean silhouette',
-            iconKey: 'pocket',
-            priceDelta: 0,
-          ),
-          DesignOption(
-            id: 'single',
-            title: 'Single',
-            subtitle: 'Classic detail',
-            iconKey: 'pocket',
-            priceDelta: 80,
-          ),
-          DesignOption(
-            id: 'hidden',
-            title: 'Hidden',
-            subtitle: 'Minimal utility',
-            iconKey: 'pocket',
-            priceDelta: 120,
-          ),
+          StyleOption(id: 'regular', title: 'Regular'),
+          StyleOption(id: 'cropped', title: 'Cropped', priceDelta: 90),
+          StyleOption(id: 'longline', title: 'Longline', priceDelta: 140),
         ],
       ),
     ];
+    fitOptions = const <FitOption>[
+      FitOption(
+        id: 'slim',
+        label: 'Slim Fit',
+        description: 'Sharper waist and shoulder shape.',
+        iconKey: 'slim',
+      ),
+      FitOption(
+        id: 'regular',
+        label: 'Regular Fit',
+        description: 'Balanced room with polished structure.',
+        iconKey: 'regular',
+      ),
+      FitOption(
+        id: 'relaxed',
+        label: 'Relaxed Fit',
+        description: 'Soft drape with more movement.',
+        iconKey: 'relaxed',
+      ),
+    ];
+    measurementOptions = const <MeasurementOption>[
+      MeasurementOption(
+        id: 'standard-size',
+        title: 'Standard Size',
+        description: 'Quickest route with atelier size matching.',
+        iconKey: 'hanger',
+      ),
+      MeasurementOption(
+        id: 'enter-measurements',
+        title: 'Enter Measurements',
+        description: 'Manual dimensions for a more exact first fit.',
+        iconKey: 'ruler',
+        priceDelta: 120,
+      ),
+      MeasurementOption(
+        id: 'try-at-home-fit',
+        title: 'Try at Home Fit',
+        description: 'Try a fit sample before final tailoring.',
+        iconKey: 'home',
+        priceDelta: 199,
+      ),
+      MeasurementOption(
+        id: 'schedule-home-visit',
+        title: 'Schedule Home Visit',
+        description: 'A stylist visits for guided measuring.',
+        iconKey: 'calendar',
+        priceDelta: 299,
+      ),
+    ];
+
     _selectedDesigner = designers.first;
     _selectedCategory = categories.first;
     _selectedFabric = fabrics.first;
-    for (final group in designGroups) {
-      _designChoices[group.id] = group.options.first;
+    _selectedFit = fitOptions[1];
+    _selectedMeasurementOption = measurementOptions.first;
+    for (final group in styleGroups) {
+      _styleSelections[group.id] = group.options.first;
     }
+
     await _applyAdminManagedAtelierImages();
     _isLoading = false;
     notifyListeners();
@@ -328,7 +306,7 @@ class AtelierFlowProvider extends ChangeNotifier {
           })
           .toList(growable: false);
     } catch (_) {
-      // Fall back to bundled atelier visuals if remote config is unavailable.
+      // Fall back to bundled visuals if remote config is unavailable.
     }
   }
 
@@ -339,7 +317,11 @@ class AtelierFlowProvider extends ChangeNotifier {
 
   String _normalizedKey(String primary, String fallback) {
     final raw = primary.trim().isNotEmpty ? primary : fallback;
-    return raw.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'-+'), '-').trim();
+    return raw
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'-+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
   }
 
   void selectDesigner(AtelierDesigner designer) {
@@ -357,25 +339,28 @@ class AtelierFlowProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateMeasurement({
-    String? chest,
-    String? waist,
-    String? hips,
-    String? shoulder,
-    String? height,
-  }) {
-    _measurements = _measurements.copyWith(
-      chest: chest,
-      waist: waist,
-      hips: hips,
-      shoulder: shoulder,
-      height: height,
-    );
+  void selectStyle(String groupId, StyleOption option) {
+    _styleSelections[groupId] = option;
     notifyListeners();
   }
 
-  void selectDesignChoice(String groupId, DesignOption option) {
-    _designChoices[groupId] = option;
+  void selectFit(FitOption option) {
+    _selectedFit = option;
+    notifyListeners();
+  }
+
+  void selectMeasurementOption(MeasurementOption option) {
+    _selectedMeasurementOption = option;
+    notifyListeners();
+  }
+
+  void startCustomization() {
+    _step = AtelierStep.fabric;
+    notifyListeners();
+  }
+
+  void goToProduct() {
+    _step = AtelierStep.product;
     notifyListeners();
   }
 
@@ -392,7 +377,7 @@ class AtelierFlowProvider extends ChangeNotifier {
   }
 
   void previousStep() {
-    if (_step.index > 0) {
+    if (_step.index > AtelierStep.product.index) {
       _step = AtelierStep.values[_step.index - 1];
       notifyListeners();
     }

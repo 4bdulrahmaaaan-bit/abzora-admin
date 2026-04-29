@@ -70,3 +70,6 @@ Thumbs.db
 android/app/debug
 android/app/profile
 android/app/release
+
+.vercel
+.env*.local

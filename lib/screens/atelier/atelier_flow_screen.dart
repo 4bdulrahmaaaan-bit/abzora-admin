@@ -1,736 +1,847 @@
+﻿
+import 'dart:ui';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../models/atelier_models.dart';
-import '../../providers/atelier_flow_provider.dart';
-import '../tailoring/custom_brand_flow_screen.dart';
+import '../../providers/auth_provider.dart';
+import '../../utils/soft_auth_gate.dart';
+import '../../widgets/tap_scale.dart';
+import 'atelier_flow_data.dart';
 
-class AtelierFlowScreen extends StatelessWidget {
+class AtelierFlowScreen extends StatefulWidget {
   const AtelierFlowScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AtelierFlowProvider(),
-      child: const _AtelierFlowBody(),
+  State<AtelierFlowScreen> createState() => _AtelierFlowScreenState();
+}
+
+enum _Step {
+  entry,
+  store,
+  style,
+  fabric,
+  design,
+  measurement,
+  preview,
+  pricing,
+  checkout,
+  tracking,
+}
+
+enum _StoreTab { recommended, nearby, designers }
+
+class _AtelierFlowScreenState extends State<AtelierFlowScreen>
+    with SingleTickerProviderStateMixin {
+  static const Color _bg = Color(0xFFF6F2EA);
+  static const Color _ink = Color(0xFF1E1A15);
+  static const Color _muted = Color(0xFF6D655A);
+  static const Color _gold = Color(0xFFBA944E);
+  static const Color _line = Color(0xFFE8DEC9);
+  static const Color _card = Color(0xFFFFFCF7);
+
+  final NumberFormat _money = NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: 'Rs ',
+    decimalDigits: 0,
+  );
+
+  late final AnimationController _entryController;
+
+  final TextEditingController _chest = TextEditingController();
+  final TextEditingController _waist = TextEditingController();
+  final TextEditingController _length = TextEditingController();
+
+  _Step _step = _Step.entry;
+  _StoreTab _storeTab = _StoreTab.recommended;
+
+  int _selectedStore = 0;
+  int _selectedStyle = 0;
+  int _selectedFabric = 0;
+  int _selectedNeck = 0;
+  int _selectedSleeve = 0;
+  int _selectedLength = 0;
+
+  String _measurementMode = 'manual';
+  String _materialFilter = 'All';
+  String _priceFilter = 'All';
+  String _occasionFilter = 'All';
+
+  bool _frontView = true;
+  bool _savedMeasurements = false;
+  bool _orderPlaced = false;
+
+  final List<String> _materials = const <String>[
+    'All',
+    'Cotton',
+    'Linen',
+    'Wool',
+    'Silk',
+  ];
+  final List<String> _priceBands = const <String>[
+    'All',
+    'Under 1500',
+    '1500-2500',
+    '2500+',
+  ];
+  final List<String> _occasions = const <String>[
+    'All',
+    'Office',
+    'Festive',
+    'Formal',
+    'Wedding',
+  ];
+
+  final List<String> _necks = const <String>['Classic', 'Band', 'Cutaway'];
+  final List<String> _sleeves = const <String>['Full', '3/4', 'Short'];
+  final List<String> _lengths = const <String>['Regular', 'Longline', 'Cropped'];
+
+  @override
+  void initState() {
+    super.initState();
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    _chest.dispose();
+    _waist.dispose();
+    _length.dispose();
+    super.dispose();
+  }
+
+  List<AtelierStore> get _storesForTab {
+    switch (_storeTab) {
+      case _StoreTab.recommended:
+        return atelierRecommendedStores;
+      case _StoreTab.nearby:
+        return atelierNearbyStores;
+      case _StoreTab.designers:
+        return atelierDesignerStores;
+    }
+  }
+
+  int get _basePrice => atelierStyles[_selectedStyle].basePrice;
+  int get _fabricDelta => atelierFabrics[_selectedFabric].delta;
+  int get _stitching => (_basePrice * 0.35).round();
+  int get _addons {
+    return (_selectedNeck * 180) +
+        (_selectedSleeve * 140) +
+        (_selectedLength * 160) +
+        (_measurementMode == 'manual' ? 100 : 0);
+  }
+
+  int get _total => _basePrice + _fabricDelta + _stitching + _addons;
+
+  List<int> get _filteredFabricIndexes {
+    return List<int>.generate(atelierFabrics.length, (int i) => i).where((int i) {
+      final fabric = atelierFabrics[i];
+      if (_materialFilter != 'All' && fabric.material != _materialFilter) {
+        return false;
+      }
+      if (_occasionFilter != 'All' && fabric.occasion != _occasionFilter) {
+        return false;
+      }
+      if (_priceFilter == 'Under 1500' && fabric.delta >= 1500) {
+        return false;
+      }
+      if (_priceFilter == '1500-2500' &&
+          (fabric.delta < 1500 || fabric.delta > 2500)) {
+        return false;
+      }
+      if (_priceFilter == '2500+' && fabric.delta < 2500) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false);
+  }
+
+  String get _cta => switch (_step) {
+        _Step.entry => 'Enter Atelier',
+        _Step.store => 'Start with this Boutique',
+        _Step.style => 'Continue to Fabrics',
+        _Step.fabric => 'Continue to Design',
+        _Step.design => 'Continue to Measurements',
+        _Step.measurement => 'Continue to Preview',
+        _Step.preview => 'Review Pricing',
+        _Step.pricing => 'Proceed to Checkout',
+        _Step.checkout => 'Place Atelier Order',
+        _Step.tracking => 'Back to Home',
+      };
+
+  Future<void> _next() async {
+    if (_step == _Step.checkout) {
+      await _placeOrder();
+      return;
+    }
+    if (_step == _Step.tracking) {
+      Navigator.of(context).maybePop();
+      return;
+    }
+    setState(() => _step = _Step.values[_step.index + 1]);
+  }
+
+  void _back() {
+    if (_step == _Step.entry) {
+      Navigator.of(context).maybePop();
+      return;
+    }
+    setState(() => _step = _Step.values[_step.index - 1]);
+  }
+
+  Future<void> _saveMeasurements() async {
+    if (!context.read<AuthProvider>().isAuthenticated) {
+      final ok = await SoftAuthGate.ensureAuthenticated(
+        context,
+        intentLabel: 'Save measurements to your Atelier profile',
+        trigger: AuthPromptTrigger.cart,
+        promptStyle: AuthPromptStyle.softSheet,
+      );
+      if (!ok || !mounted) return;
+    }
+    setState(() => _savedMeasurements = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Measurements saved to your profile.',
+          style: GoogleFonts.manrope(),
+        ),
+      ),
     );
   }
-}
 
-class _AtelierFlowBody extends StatefulWidget {
-  const _AtelierFlowBody();
-
-  @override
-  State<_AtelierFlowBody> createState() => _AtelierFlowBodyState();
-}
-
-class _AtelierFlowBodyState extends State<_AtelierFlowBody> {
-  static const Color _bg = Color(0xFFF6F0E6);
+  Future<void> _placeOrder() async {
+    if (!context.read<AuthProvider>().isAuthenticated) {
+      final ok = await SoftAuthGate.ensureAuthenticated(
+        context,
+        intentLabel: 'Place your atelier order',
+        trigger: AuthPromptTrigger.orders,
+        promptStyle: AuthPromptStyle.softSheet,
+      );
+      if (!ok || !mounted) return;
+    }
+    setState(() {
+      _orderPlaced = true;
+      _step = _Step.tracking;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<AtelierFlowProvider>();
     return Scaffold(
       backgroundColor: _bg,
-      bottomNavigationBar: provider.step == AtelierStep.home
-          ? null
-          : _StickyPriceBar(provider: provider),
       body: SafeArea(
         child: Column(
-          children: [
-            _AtelierTopBar(
-              title: provider.step == AtelierStep.home
-                  ? 'ABZORA Atelier'
-                  : 'ABZORA Atelier - ${provider.step.name}',
-              canGoBack: provider.step != AtelierStep.home,
-              onBack: () => provider.goToStep(AtelierStep.home),
-            ),
-            Expanded(child: _buildBody(provider)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBody(AtelierFlowProvider provider) {
-    if (provider.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (provider.error != null) {
-      return _EmptyState(
-        title: 'Studio unavailable',
-        subtitle: provider.error!,
-        onRetry: () => provider.setError(null),
-      );
-    }
-    if (provider.designers.isEmpty) {
-      return _EmptyState(
-        title: 'No designers available',
-        subtitle: 'We are onboarding new ateliers near you.',
-        onRetry: () => provider.setError(null),
-      );
-    }
-
-    if (provider.step != AtelierStep.home) {
-      return _buildStepsBody(provider);
-    }
-
-    return _AtelierHome(provider: provider);
-  }
-
-  Widget _buildStepsBody(AtelierFlowProvider provider) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _StepIndicator(step: provider.step),
-          const SizedBox(height: 12),
-          _stepWidgetFor(provider),
-          const SizedBox(height: 120),
-        ],
-      ),
-    );
-  }
-
-  Widget _stepWidgetFor(AtelierFlowProvider provider) {
-    switch (provider.step) {
-      case AtelierStep.style:
-        return _StyleStep(provider: provider);
-      case AtelierStep.fabric:
-        return _FabricStep(provider: provider);
-      case AtelierStep.measurements:
-        return _MeasurementStep(provider: provider);
-      case AtelierStep.design:
-        return _DesignStep(provider: provider);
-      case AtelierStep.preview:
-        return _PreviewStep(provider: provider);
-      case AtelierStep.summary:
-        return _SummaryStep(provider: provider);
-      case AtelierStep.home:
-        return const SizedBox.shrink();
-    }
-  }
-}
-
-class _StepIndicator extends StatelessWidget {
-  const _StepIndicator({required this.step});
-
-  final AtelierStep step;
-
-  @override
-  Widget build(BuildContext context) {
-    final titles = <AtelierStep, String>{
-      AtelierStep.style: 'Style',
-      AtelierStep.fabric: 'Fabric',
-      AtelierStep.measurements: 'Measurements',
-      AtelierStep.design: 'Design',
-      AtelierStep.preview: 'Preview',
-      AtelierStep.summary: 'Summary',
-    };
-    final orderedSteps = <AtelierStep>[
-      AtelierStep.style,
-      AtelierStep.fabric,
-      AtelierStep.measurements,
-      AtelierStep.design,
-      AtelierStep.preview,
-      AtelierStep.summary,
-    ];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x12000000),
-              blurRadius: 14,
-              offset: Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  titles[step] ?? '',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF111111),
-                      ),
+          children: <Widget>[
+            _header(),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 360),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  final slide = Tween<Offset>(
+                    begin: const Offset(0.03, 0.02),
+                    end: Offset.zero,
+                  ).animate(animation);
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(position: slide, child: child),
+                  );
+                },
+                child: KeyedSubtree(
+                  key: ValueKey<_Step>(_step),
+                  child: _body(),
                 ),
-                const Spacer(),
-                Text(
-                  '${step.index}/6',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF6C6459),
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: List.generate(orderedSteps.length, (index) {
-                final item = orderedSteps[index];
-                final isActive = item == step;
-                final isComplete = item.index < step.index;
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(right: index == orderedSteps.length - 1 ? 0 : 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 220),
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: isActive || isComplete ? const Color(0xFFC8A96A) : const Color(0xFFE9E0D2),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          titles[item]!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: isActive || isComplete ? const Color(0xFF8C6D2E) : const Color(0xFF9A8F7E),
-                                fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _AtelierTopBar extends StatelessWidget {
-  const _AtelierTopBar({
-    required this.title,
-    required this.canGoBack,
-    required this.onBack,
-  });
-
-  final String title;
-  final bool canGoBack;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      color: const Color(0xFFF6F0E6),
-      child: Row(
-        children: [
-          if (canGoBack)
-            SizedBox(
-              width: 40,
-              child: IconButton(
-                onPressed: onBack,
-                icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                color: const Color(0xFF111111),
-              ),
-            )
-          else
-            const SizedBox(width: 40),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF111111),
-                      ),
-                ),
-                if (!canGoBack)
-                  Text(
-                    'Luxury tailoring, designer-led',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF6C6459),
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 28),
-        ],
-      ),
-    );
-  }
-}
-
-class _AtelierHome extends StatelessWidget {
-  const _AtelierHome({required this.provider});
-
-  final AtelierFlowProvider provider;
-
-  @override
-  Widget build(BuildContext context) {
-    final selectedDesigner = provider.selectedDesigner;
-    final selectedCategory = provider.selectedCategory;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _HeroBanner(
-            selectedDesigner: selectedDesigner?.name,
-            onTap: () => _openSteps(context, provider),
-          ),
-          const SizedBox(height: 18),
-          _AtelierValueStrip(
-            selectedDesigner: selectedDesigner?.name,
-            selectedCategory: selectedCategory?.title,
-          ),
-          const SizedBox(height: 28),
-          _SectionHeader(
-            title: 'Choose Your Atelier',
-            subtitle: 'Begin with a designer you trust, then shape the garment around your occasion and fit.',
-          ),
-          const SizedBox(height: 16),
-          ...provider.designers.map(
-            (designer) => Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: _DesignerCard(
-                designer: designer,
-                selected: provider.selectedDesigner?.id == designer.id,
-                onTap: () => provider.selectDesigner(designer),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          _SectionHeader(
-            title: 'Curated Categories',
-            subtitle: 'Formal, occasion, and couture silhouettes tailored for a more personal wardrobe.',
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 186,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: provider.categories.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final category = provider.categories[index];
-                return _CategoryCard(
-                  category: category,
-                  selected: provider.selectedCategory?.id == category.id,
-                  onTap: () => provider.selectCategory(category),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 24),
-          _AtelierTrustPanel(designer: selectedDesigner),
-          const SizedBox(height: 20),
-          _PrimaryButton(
-            label: selectedDesigner == null ? 'Begin Atelier Journey' : 'Customize With This Atelier',
-            onTap: () => _openSteps(context, provider),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            selectedDesigner == null
-                ? 'Preview styles, fabrics, and pricing before confirming.'
-                : 'Your selected atelier will carry your style, fabric, and fit choices into the studio.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF6C6459),
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-void _openSteps(BuildContext context, AtelierFlowProvider provider) {
-  provider.goToStep(AtelierStep.home);
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => const CustomBrandFlowScreen(),
-    ),
-  );
-}
-
-class _StyleStep extends StatelessWidget {
-  const _StyleStep({required this.provider});
-
-  final AtelierFlowProvider provider;
-
-  @override
-  Widget build(BuildContext context) {
-    return _StepScaffold(
-      title: 'Select Style',
-      subtitle: 'Start with a silhouette designed for you.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: provider.categories.map((category) {
-              return _CategoryChip(
-                category: category,
-                selected: provider.selectedCategory?.id == category.id,
-                onTap: () => provider.selectCategory(category),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 20),
-          _SelectedSummaryCard(
-            title: 'Selected Style',
-            description: provider.selectedCategory?.title ?? 'Formal Shirts',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FabricStep extends StatelessWidget {
-  const _FabricStep({required this.provider});
-
-  final AtelierFlowProvider provider;
-
-  @override
-  Widget build(BuildContext context) {
-    return _StepScaffold(
-      title: 'Fabric',
-      subtitle: 'Choose a premium fabric that defines drape, comfort, and the final presence of the piece.',
-      child: provider.fabrics.isEmpty
-          ? const _StepEmptyMessage(
-              title: 'No fabrics loaded',
-              subtitle: 'Please go back and try again.',
-            )
-          : Column(
-              children: provider.fabrics.map((fabric) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _FabricCard(
-                    fabric: fabric,
-                    selected: provider.selectedFabric?.id == fabric.id,
-                    onTap: () => provider.selectFabric(fabric),
-                  ),
-                );
-              }).toList(),
-            ),
-    );
-  }
-}
-
-class _MeasurementStep extends StatelessWidget {
-  const _MeasurementStep({required this.provider});
-
-  final AtelierFlowProvider provider;
-
-  @override
-  Widget build(BuildContext context) {
-    final measurements = provider.measurements;
-    return _StepScaffold(
-      title: 'Measurements',
-      subtitle: 'Capture precise measurements with premium guidance and alteration confidence built in.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF191510),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x18000000),
-                  blurRadius: 18,
-                  offset: Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Fit intelligence',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Use AI body scan or refine manually. Your atelier will keep these measurements attached to the final piece.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFFD1C5B6),
-                        height: 1.45,
-                      ),
-                ),
-                const SizedBox(height: 14),
-                _OutlinedButton(
-                  label: 'AI Body Scan',
-                  icon: Icons.document_scanner_outlined,
-                  onTap: () {},
-                ),
-                const SizedBox(height: 12),
-                _SecondaryButton(
-                  label: 'Manual Input',
-                  onTap: () {},
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x12000000),
-                  blurRadius: 14,
-                  offset: Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Measurement profile',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Enter key dimensions in centimeters for a cleaner first fit.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF6C6459),
-                      ),
-                ),
-                const SizedBox(height: 16),
-                _MeasurementFields(
-                  measurements: measurements,
-                  onChanged: provider.updateMeasurement,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          const _HelperPanel(),
-        ],
-      ),
-    );
-  }
-}
-
-class _DesignStep extends StatelessWidget {
-  const _DesignStep({required this.provider});
-
-  final AtelierFlowProvider provider;
-
-  @override
-  Widget build(BuildContext context) {
-    return _StepScaffold(
-      title: 'Design Details',
-      subtitle: 'Shape the garment through the details that define the finish.',
-      child: provider.designGroups.isEmpty
-          ? const _StepEmptyMessage(
-              title: 'No design options',
-              subtitle: 'Please go back and try again.',
-            )
-          : Column(
-              children: provider.designGroups.map((group) {
-                return _DesignGroupSection(
-                  group: group,
-                  selected: provider.designChoices[group.id],
-                  onSelect: (option) =>
-                      provider.selectDesignChoice(group.id, option),
-                );
-              }).toList(),
-            ),
-    );
-  }
-}
-
-class _PreviewStep extends StatelessWidget {
-  const _PreviewStep({required this.provider});
-
-  final AtelierFlowProvider provider;
-
-  @override
-  Widget build(BuildContext context) {
-    return _StepScaffold(
-      title: 'Preview Your Piece',
-      subtitle: 'Review your custom build in one polished editorial view.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _PreviewCard(provider: provider),
-          const SizedBox(height: 16),
-          Text(
-            'Stylist note: This pairing enhances structure while keeping the look effortless.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF6C6459),
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SummaryStep extends StatelessWidget {
-  const _SummaryStep({required this.provider});
-
-  final AtelierFlowProvider provider;
-
-  @override
-  Widget build(BuildContext context) {
-    final designer = provider.selectedDesigner;
-    final category = provider.selectedCategory;
-    final fabric = provider.selectedFabric;
-    return _StepScaffold(
-      title: 'Confirm Atelier Order',
-      subtitle: 'Everything is aligned and ready for your atelier to begin.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF16120D), Color(0xFF46331A)],
-              ),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Your Atelier Look',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${category?.title ?? 'Selected style'} in ${fabric?.name ?? 'premium fabric'}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFFDCCFB9),
-                        height: 1.45,
-                      ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _SummaryRow(label: 'Style', value: category?.title ?? '-'),
-          _SummaryRow(label: 'Fabric', value: fabric?.name ?? '-'),
-          _SummaryRow(label: 'Atelier', value: designer?.name ?? '-'),
-          _SummaryRow(label: 'Measurements', value: 'Saved measurements'),
-          const SizedBox(height: 12),
-          _SectionHeader(title: 'Design choices', subtitle: ''),
-          const SizedBox(height: 8),
-          ...provider.designChoices.entries.map(
-            (entry) => _SummaryRow(
-              label: entry.key.toUpperCase(),
-              value: entry.value.title,
-            ),
-          ),
-          const SizedBox(height: 20),
-          _PrimaryButton(label: 'Add to Cart', onTap: () {}),
-        ],
-      ),
-    );
-  }
-}
-
-class _StickyPriceBar extends StatelessWidget {
-  const _StickyPriceBar({required this.provider});
-
-  final AtelierFlowProvider provider;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.96),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 18,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
+      bottomNavigationBar: SafeArea(
         top: false,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 380;
-            return Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFBF7EF),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: compact
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _StickyPriceMeta(
-                          totalPrice: provider.totalPrice,
-                          supportingLine: _supportingLine(provider.step),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: _PrimaryButton(
-                            label: _ctaLabel(provider.step),
-                            onTap: provider.nextStep,
-                            compact: true,
-                          ),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        Expanded(
-                          child: _StickyPriceMeta(
-                            totalPrice: provider.totalPrice,
-                            supportingLine: _supportingLine(provider.step),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        _PrimaryButton(
-                          label: _ctaLabel(provider.step),
-                          onTap: provider.nextStep,
-                          compact: true,
-                        ),
-                      ],
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _back,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _ink,
+                    side: const BorderSide(color: _line),
+                    minimumSize: const Size.fromHeight(54),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
                     ),
+                  ),
+                  child: Text(
+                    'Back',
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: _next,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _gold,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(54),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  child: Text(
+                    _cta,
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _header() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _line),
+                ),
+                child: IconButton(
+                  onPressed: _back,
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'ABZORA Atelier',
+                      style: GoogleFonts.cormorantGaramond(
+                        color: _ink,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 32,
+                        height: 1,
+                      ),
+                    ),
+                    Text(
+                      'Premium guided tailoring • Step ${_step.index + 1} of ${_Step.values.length}',
+                      style: GoogleFonts.manrope(
+                        color: _muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: (_step.index + 1) / _Step.values.length,
+              minHeight: 6,
+              backgroundColor: _line,
+              valueColor: const AlwaysStoppedAnimation<Color>(_gold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _body() {
+    switch (_step) {
+      case _Step.entry:
+        return _entryStep();
+      case _Step.store:
+        return _storeStep();
+      case _Step.style:
+        return _styleStep();
+      case _Step.fabric:
+        return _fabricStep();
+      case _Step.design:
+        return _designStep();
+      case _Step.measurement:
+        return _measurementStep();
+      case _Step.preview:
+        return _previewStep();
+      case _Step.pricing:
+        return _pricingStep();
+      case _Step.checkout:
+        return _checkoutStep();
+      case _Step.tracking:
+        return _trackingStep();
+    }
+  }
+
+  Widget _entryStep() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: AnimatedBuilder(
+          animation: _entryController,
+          builder: (BuildContext context, Widget? child) {
+            final t = Curves.easeOutCubic.transform(_entryController.value);
+            return Opacity(
+              opacity: t,
+              child: Transform.scale(scale: 1.08 - (0.08 * t), child: child),
+            );
+          },
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              _image(
+                'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80',
+              ),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Colors.black.withValues(alpha: 0.2),
+                      Colors.black.withValues(alpha: 0.56),
+                      Colors.black.withValues(alpha: 0.76),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Text(
+                    'Private Atelier\nJourney',
+                    style: GoogleFonts.cormorantGaramond(
+                      color: Colors.white,
+                      fontSize: 52,
+                      height: 0.92,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _storeStep() {
+    final tabs = <(_StoreTab, String)>[
+      (_StoreTab.recommended, 'Recommended'),
+      (_StoreTab.nearby, 'Nearby'),
+      (_StoreTab.designers, 'Designers'),
+    ];
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      children: <Widget>[
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: tabs.map((tab) {
+            final selected = tab.$1 == _storeTab;
+            return ChoiceChip(
+              label: Text(tab.$2, style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
+              selected: selected,
+              showCheckmark: false,
+              side: BorderSide(color: selected ? _gold : _line),
+              selectedColor: _gold.withValues(alpha: 0.16),
+              backgroundColor: _card,
+              onSelected: (bool value) {
+                if (!value) return;
+                setState(() {
+                  _storeTab = tab.$1;
+                  _selectedStore = 0;
+                });
+              },
+            );
+          }).toList(growable: false),
+        ),
+        const SizedBox(height: 10),
+        ...List<Widget>.generate(_storesForTab.length, (int index) {
+          final store = _storesForTab[index];
+          final selected = _selectedStore == index;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: TapScale(
+              onTap: () => setState(() => _selectedStore = index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                height: 188,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: _card,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: selected ? _gold : _line,
+                    width: selected ? 2 : 1,
+                  ),
+                ),
+                child: Stack(
+                  children: <Widget>[
+                    Positioned.fill(child: _image(store.image)),
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: <Color>[
+                              Colors.black.withValues(alpha: 0.08),
+                              Colors.black.withValues(alpha: 0.66),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 12,
+                      right: 12,
+                      bottom: 12,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(store.name, style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+                          Text(store.tagline, style: GoogleFonts.manrope(color: Colors.white.withValues(alpha: 0.88), fontSize: 12)),
+                          Row(
+                            children: <Widget>[
+                              Text('★ ${store.rating}', style: GoogleFonts.manrope(color: Colors.white, fontSize: 12)),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(store.distance, style: GoogleFonts.manrope(color: Colors.white, fontSize: 12))),
+                              Text('From ${_money.format(store.startPrice)}', style: GoogleFonts.manrope(color: const Color(0xFFFFD88C), fontSize: 12, fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _styleStep() {
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      itemCount: atelierStyles.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.74,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+      ),
+      itemBuilder: (BuildContext context, int i) {
+        final style = atelierStyles[i];
+        final selected = _selectedStyle == i;
+        return TapScale(
+          onTap: () => setState(() => _selectedStyle = i),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            decoration: BoxDecoration(
+              color: _card,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: selected ? _gold : _line, width: selected ? 2 : 1),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(child: _image(style.image)),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Text('${style.name}\n${style.subtitle}', style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w700, fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _fabricStep() {
+    final list = _filteredFabricIndexes;
+    if (!list.contains(_selectedFabric) && list.isNotEmpty) {
+      _selectedFabric = list.first;
+    }
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      children: <Widget>[
+        _chipFilters(_materials, _materialFilter, (v) => setState(() => _materialFilter = v)),
+        _chipFilters(_priceBands, _priceFilter, (v) => setState(() => _priceFilter = v)),
+        _chipFilters(_occasions, _occasionFilter, (v) => setState(() => _occasionFilter = v)),
+        const SizedBox(height: 8),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: list.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.82,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+          ),
+          itemBuilder: (BuildContext context, int j) {
+            final i = list[j];
+            final fabric = atelierFabrics[i];
+            final selected = _selectedFabric == i;
+            return TapScale(
+              onTap: () => setState(() => _selectedFabric = i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                decoration: BoxDecoration(
+                  color: _card,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: selected ? _gold : _line, width: selected ? 2 : 1),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      child: Stack(
+                        children: <Widget>[
+                          Positioned.fill(child: _image(fabric.image)),
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: IconButton(
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.black.withValues(alpha: 0.45),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.all(4),
+                              ),
+                              onPressed: () => _zoomFabric(fabric),
+                              icon: const Icon(Icons.zoom_in_rounded, size: 18),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Text('${fabric.name}\n${fabric.description}', maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.manrope(color: _ink, fontSize: 11, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _designStep() => ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        children: <Widget>[
+          _optionCard('Neckline', _necks, _selectedNeck, (v) => setState(() => _selectedNeck = v)),
+          const SizedBox(height: 12),
+          _optionCard('Sleeve', _sleeves, _selectedSleeve, (v) => setState(() => _selectedSleeve = v)),
+          const SizedBox(height: 12),
+          _optionCard('Length', _lengths, _selectedLength, (v) => setState(() => _selectedLength = v)),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
+            child: Text('Live preview updates as you customize.', style: GoogleFonts.manrope(color: _muted, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      );
+
+  Widget _measurementStep() => ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        children: <Widget>[
+          _measurementCard('Manual Input', 'Enter chest, waist, and length', Icons.straighten_rounded, _measurementMode == 'manual', () => setState(() => _measurementMode = 'manual')),
+          _measurementCard('Saved Profile', 'Use previous verified measurements', Icons.bookmark_rounded, _measurementMode == 'saved', () => setState(() => _measurementMode = 'saved')),
+          _measurementCard('AI Body Scan', 'Coming soon for precision scan', Icons.camera_alt_rounded, _measurementMode == 'ai', () {}, enabled: false),
+          if (_measurementMode == 'manual')
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
+              child: Column(
+                children: <Widget>[
+                  _inputField('Chest (inches)', _chest),
+                  const SizedBox(height: 8),
+                  _inputField('Waist (inches)', _waist),
+                  const SizedBox(height: 8),
+                  _inputField('Length (inches)', _length),
+                ],
+              ),
+            ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: _saveMeasurements,
+            icon: const Icon(Icons.bookmark_add_rounded),
+            style: ElevatedButton.styleFrom(backgroundColor: _ink, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+            label: Text(_savedMeasurements ? 'Measurements Saved' : 'Save Measurements (Login Required)', style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      );
+
+  Widget _previewStep() => ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        children: <Widget>[
+          Container(
+            height: 360,
+            decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(24), border: Border.all(color: _line)),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                _image(atelierStyles[_selectedStyle].image),
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 16,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        color: Colors.black.withValues(alpha: 0.4),
+                        child: Text(_frontView ? 'Front View' : 'Back View', style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: <Widget>[
+              Expanded(child: _toggle('Front', _frontView, () => setState(() => _frontView = true))),
+              const SizedBox(width: 8),
+              Expanded(child: _toggle('Back', !_frontView, () => setState(() => _frontView = false))),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _toggle('3D Try-On', false, () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('3D try-on can be enabled as next phase.', style: GoogleFonts.manrope())),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ],
+      );
+
+  Widget _pricingStep() => ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        children: <Widget>[
+          _priceRow('Garment Base (${atelierStyles[_selectedStyle].name})', _basePrice),
+          _priceRow('Fabric (${atelierFabrics[_selectedFabric].name})', _fabricDelta),
+          _priceRow('Stitching & Tailoring', _stitching),
+          _priceRow('Add-ons & Measurement', _addons),
+          const Divider(height: 28, color: _line),
+          _priceRow('Total', _total, highlight: true),
+        ],
+      );
+
+  Widget _checkoutStep() => ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        children: <Widget>[
+          _checkoutTile(Icons.storefront_rounded, 'Boutique', _storesForTab[_selectedStore].name),
+          _checkoutTile(Icons.schedule_rounded, 'Delivery Timeline', '10-14 days including fit confirmation'),
+          _checkoutTile(Icons.payments_rounded, 'Order Value', _money.format(_total)),
+          Text('Browsing stays open without login. Login is required only for saving measurements and placing order.', style: GoogleFonts.manrope(color: _muted, fontSize: 12)),
+        ],
+      );
+
+  Widget _trackingStep() {
+    final milestones = <AtelierTrackingMilestone>[
+      AtelierTrackingMilestone(title: 'Fabric Cutting', completed: _orderPlaced),
+      AtelierTrackingMilestone(title: 'Stitching', completed: _orderPlaced),
+      AtelierTrackingMilestone(title: 'Finishing', completed: _orderPlaced),
+      const AtelierTrackingMilestone(title: 'Delivery', completed: false),
+    ];
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      children: <Widget>[
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(18), border: Border.all(color: _line)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text('Order #ATL-ABZORA-2401', style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              for (int i = 0; i < milestones.length; i++) ...<Widget>[
+                Row(
+                  children: <Widget>[
+                    Icon(milestones[i].completed ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: milestones[i].completed ? _gold : _muted, size: 20),
+                    const SizedBox(width: 10),
+                    Text(milestones[i].title, style: GoogleFonts.manrope(color: milestones[i].completed ? _ink : _muted, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+                if (i != milestones.length - 1)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 9, top: 4, bottom: 6),
+                    child: Container(width: 2, height: 20, color: _line),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _chipFilters(List<String> opts, String selected, ValueChanged<String> onSelect) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: SizedBox(
+        height: 36,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: opts.length,
+          separatorBuilder: (BuildContext context, int index) =>
+              const SizedBox(width: 8),
+          itemBuilder: (BuildContext context, int i) {
+            final option = opts[i];
+            final isSelected = option == selected;
+            return ChoiceChip(
+              label: Text(option, style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 12)),
+              selected: isSelected,
+              showCheckmark: false,
+              side: BorderSide(color: isSelected ? _gold : _line),
+              selectedColor: _gold.withValues(alpha: 0.16),
+              backgroundColor: _card,
+              onSelected: (bool value) {
+                if (value) onSelect(option);
+              },
             );
           },
         ),
@@ -738,1263 +849,128 @@ class _StickyPriceBar extends StatelessWidget {
     );
   }
 
-  String _ctaLabel(AtelierStep step) {
-    switch (step) {
-      case AtelierStep.style:
-        return 'Next: Fabric';
-      case AtelierStep.fabric:
-        return 'Next: Measure';
-      case AtelierStep.measurements:
-        return 'Next: Design';
-      case AtelierStep.design:
-        return 'Next: Preview';
-      case AtelierStep.preview:
-        return 'Next: Summary';
-      case AtelierStep.summary:
-        return 'Confirm Look';
-      case AtelierStep.home:
-        return 'Start';
-    }
-  }
-
-  String _supportingLine(AtelierStep step) {
-    switch (step) {
-      case AtelierStep.style:
-        return 'Next, refine the fabric story';
-      case AtelierStep.fabric:
-        return 'Next, set the fit profile';
-      case AtelierStep.measurements:
-        return 'Next, shape the details';
-      case AtelierStep.design:
-        return 'Next, review the piece';
-      case AtelierStep.preview:
-        return 'Next, confirm your atelier order';
-      case AtelierStep.summary:
-        return 'Ready for atelier checkout';
-      case AtelierStep.home:
-        return 'Begin your atelier journey';
-    }
-  }
-}
-
-class _StickyPriceMeta extends StatelessWidget {
-  const _StickyPriceMeta({
-    required this.totalPrice,
-    required this.supportingLine,
-  });
-
-  final int totalPrice;
-  final String supportingLine;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Atelier Total',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF6C6459),
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          '₹$totalPrice',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          supportingLine,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF8A7D6A),
-              ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StepScaffold extends StatelessWidget {
-  const _StepScaffold({
-    required this.title,
-    required this.subtitle,
-    required this.child,
-  });
-
-  final String title;
-  final String subtitle;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _optionCard(String title, List<String> options, int selected, ValueChanged<int> onChanged) {
     return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 16,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionHeader(title: title, subtitle: subtitle),
-          const SizedBox(height: 18),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: const Color(0xFF1E1913),
-                fontWeight: FontWeight.w800,
-              ),
-        ),
-        if (subtitle.trim().isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF6C6459),
-                ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _HeroBanner extends StatelessWidget {
-  const _HeroBanner({
-    required this.onTap,
-    this.selectedDesigner,
-  });
-
-  final String? selectedDesigner;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 244),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF15120D), Color(0xFF4E3B20), Color(0xFF8A6A34)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 18,
-            offset: Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFAE7AA).withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    'ABZORA Atelier',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: const Color(0xFFEADAB5),
-                          letterSpacing: 1.1,
-                        ),
-                  ),
-                ),
-                const Spacer(),
-                if (selectedDesigner != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      selectedDesigner!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Designed around your body.\nCrafted for the way you arrive.',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    height: 1.2,
-                  ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Choose your atelier, refine the silhouette, and step into a custom journey that feels personal from the first detail.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.78),
-                    height: 1.45,
-                  ),
-            ),
-            const Spacer(),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: const [
-                _HeroPill(label: 'Designer-first'),
-                _HeroPill(label: 'Made to measure'),
-                _HeroPill(label: 'Premium fabrics'),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _PrimaryButton(label: 'Start Customizing', onTap: onTap),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HeroPill extends StatelessWidget {
-  const _HeroPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xFFF4E7C7),
-              fontWeight: FontWeight.w700,
-            ),
-      ),
-    );
-  }
-}
-
-class _AtelierValueStrip extends StatelessWidget {
-  const _AtelierValueStrip({
-    this.selectedDesigner,
-    this.selectedCategory,
-  });
-
-  final String? selectedDesigner;
-  final String? selectedCategory;
-
-  @override
-  Widget build(BuildContext context) {
-    final items = <({String label, String value})>[
-      (label: 'Atelier', value: selectedDesigner ?? 'Choose one'),
-      (label: 'Category', value: selectedCategory ?? 'Ready to explore'),
-      (label: 'Experience', value: 'Luxury guided flow'),
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 360;
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x12000000),
-                blurRadius: 14,
-                offset: Offset(0, 8),
-              ),
-            ],
-          ),
-          child: compact
-              ? Column(
-                  children: List.generate(items.length, (index) {
-                    final item = items[index];
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: index == items.length - 1 ? 0 : 12),
-                      child: _ValueStripItem(label: item.label, value: item.value),
-                    );
-                  }),
-                )
-              : Row(
-                  children: List.generate(items.length, (index) {
-                    final item = items[index];
-                    return Expanded(
-                      child: Row(
-                        children: [
-                          if (index > 0)
-                            Container(
-                              width: 1,
-                              height: 34,
-                              margin: const EdgeInsets.only(right: 12),
-                              color: const Color(0xFFE7DDCD),
-                            ),
-                          Expanded(
-                            child: _ValueStripItem(label: item.label, value: item.value),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ),
-        );
-      },
-    );
-  }
-}
-
-class _ValueStripItem extends StatelessWidget {
-  const _ValueStripItem({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF8A7D6A),
-              ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF111111),
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AtelierTrustPanel extends StatelessWidget {
-  const _AtelierTrustPanel({this.designer});
-
-  final AtelierDesigner? designer;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1612),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x18000000),
-            blurRadius: 18,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'A more trustworthy tailoring experience',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
+        children: <Widget>[
+          Text(title, style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
-          Text(
-            designer == null
-                ? 'Select an atelier first to personalize fabrics, fit notes, and design details around a single studio.'
-                : '${designer!.name} will carry your measurements, design notes, and fit preferences through one continuous atelier journey.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFFD1C5B6),
-                  height: 1.45,
-                ),
-          ),
-          const SizedBox(height: 14),
-          const Wrap(
+          Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [
-              _MiniChip(label: 'Verified atelier'),
-              _MiniChip(label: 'Fit-focused process'),
-              _MiniChip(label: 'Premium finish'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DesignerCard extends StatelessWidget {
-  const _DesignerCard({
-    required this.designer,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final AtelierDesigner designer;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final headlineTag = designer.tags.isNotEmpty ? designer.tags.first : 'Premium atelier';
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFFFF7E8) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: selected ? const Color(0x26C8A96A) : const Color(0x14000000),
-              blurRadius: selected ? 20 : 16,
-              offset: const Offset(0, 10),
-            ),
-          ],
-          border: Border.all(
-            color: selected ? const Color(0xFFC8A96A) : const Color(0xFFF0E8DB),
-            width: 1.2,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                image: DecorationImage(
-                  image: NetworkImage(designer.bannerUrl),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF7EFDC),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      headlineTag,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF8C6D2E),
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    designer.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${designer.city} · ${designer.priceBand}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF6C6459),
-                        ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    selected
-                        ? 'Selected for your atelier journey'
-                        : 'Boutique tailoring with a premium, made-to-measure workflow.',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF6C6459),
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: designer.tags
-                        .map((tag) => _MiniChip(label: tag))
-                        .toList(),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({
-    required this.category,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final AtelierCategory category;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 176,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF6EEDC) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? const Color(0xFFC8A96A) : const Color(0xFFF0E8DB),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: selected ? const Color(0x1FC8A96A) : const Color(0x14000000),
-              blurRadius: selected ? 18 : 14,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                height: 92,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: selected
-                        ? const [Color(0xFFEFD8A0), Color(0xFFF8ECCA)]
-                        : const [Color(0xFFF7F1E6), Color(0xFFF3EBDD)],
-                  ),
-                ),
-                child: category.imageUrl.trim().isNotEmpty
-                    ? Image.network(
-                        category.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          Icons.checkroom_rounded,
-                          size: 28,
-                          color: selected ? const Color(0xFF7F5E17) : const Color(0xFF8F7A56),
-                        ),
-                      )
-                    : Icon(
-                        Icons.checkroom_rounded,
-                        size: 28,
-                        color: selected ? const Color(0xFF7F5E17) : const Color(0xFF8F7A56),
-                      ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              category.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: const Color(0xFF1E1913),
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              category.subtitle,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF6C6459),
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              selected ? 'Selected' : 'Explore style',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: selected ? const Color(0xFF8C6D2E) : const Color(0xFF8A7D6A),
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({
-    required this.category,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final AtelierCategory category;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFEFE5D4) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? const Color(0xFFC8A96A) : Colors.transparent,
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x12000000),
-              blurRadius: 10,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Text(
-          category.title,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FabricCard extends StatelessWidget {
-  const _FabricCard({
-    required this.fabric,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final FabricOption fabric;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFFFF7E8) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: selected ? const Color(0xFFC8A96A) : const Color(0xFFF0E8DB),
-            width: 1.3,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: selected ? const Color(0x22C8A96A) : const Color(0x14000000),
-              blurRadius: selected ? 18 : 16,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7EFDC),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    selected ? 'Selected fabric' : 'Fabric pick',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF8C6D2E),
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '+₹${fabric.priceDelta}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFFC8A96A),
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              fabric.name,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-            ),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: fabric.tags.map((tag) => _MiniChip(label: tag)).toList(),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              fabric.description,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF6C6459),
-                    height: 1.45,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '+₹${fabric.priceDelta}',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFFC8A96A),
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MeasurementFields extends StatelessWidget {
-  const _MeasurementFields({
-    required this.measurements,
-    required this.onChanged,
-  });
-
-  final MeasurementData measurements;
-  final void Function({
-    String? chest,
-    String? waist,
-    String? hips,
-    String? shoulder,
-    String? height,
-  }) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _MeasurementInput(
-          label: 'Chest',
-          value: measurements.chest,
-          onChanged: (value) => onChanged(chest: value),
-        ),
-        const SizedBox(height: 12),
-        _MeasurementInput(
-          label: 'Waist',
-          value: measurements.waist,
-          onChanged: (value) => onChanged(waist: value),
-        ),
-        const SizedBox(height: 12),
-        _MeasurementInput(
-          label: 'Hips',
-          value: measurements.hips,
-          onChanged: (value) => onChanged(hips: value),
-        ),
-        const SizedBox(height: 12),
-        _MeasurementInput(
-          label: 'Shoulder',
-          value: measurements.shoulder,
-          onChanged: (value) => onChanged(shoulder: value),
-        ),
-        const SizedBox(height: 12),
-        _MeasurementInput(
-          label: 'Height',
-          value: measurements.height,
-          onChanged: (value) => onChanged(height: value),
-        ),
-      ],
-    );
-  }
-}
-
-class _MeasurementInput extends StatelessWidget {
-  const _MeasurementInput({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final String value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      initialValue: value,
-      onChanged: onChanged,
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: const Color(0xFF1E1913),
-          ),
-      cursorColor: const Color(0xFF8C6D2E),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: 'Enter in cm',
-        labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF6C6459),
-              fontWeight: FontWeight.w600,
-            ),
-        hintStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF9A8F7E),
-            ),
-        filled: true,
-        fillColor: const Color(0xFFFBF7EF),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-}
-
-class _HelperPanel extends StatelessWidget {
-  const _HelperPanel();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFBF7EF),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: const Column(
-        children: [
-          _HelperRow(text: 'Precision fit guaranteed'),
-          SizedBox(height: 8),
-          _HelperRow(text: 'Free alteration included'),
-          SizedBox(height: 8),
-          _HelperRow(text: 'Your atelier keeps these measurements linked to the order'),
-        ],
-      ),
-    );
-  }
-}
-
-class _DesignGroupSection extends StatelessWidget {
-  const _DesignGroupSection({
-    required this.group,
-    required this.selected,
-    required this.onSelect,
-  });
-
-  final DesignOptionGroup group;
-  final DesignOption? selected;
-  final ValueChanged<DesignOption> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionHeader(title: group.title, subtitle: ''),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: group.options.map((option) {
-              return _DesignOptionCard(
-                option: option,
-                selected: selected?.id == option.id,
-                onTap: () => onSelect(option),
+            children: List<Widget>.generate(options.length, (int i) {
+              final isSelected = selected == i;
+              return ChoiceChip(
+                label: Text(options[i], style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 12)),
+                selected: isSelected,
+                showCheckmark: false,
+                side: BorderSide(color: isSelected ? _gold : _line),
+                selectedColor: _gold.withValues(alpha: 0.16),
+                backgroundColor: _card,
+                onSelected: (bool value) {
+                  if (value) onChanged(i);
+                },
               );
-            }).toList(),
+            }),
           ),
         ],
       ),
     );
   }
-}
 
-class _DesignOptionCard extends StatelessWidget {
-  const _DesignOptionCard({
-    required this.option,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final DesignOption option;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 160,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF6EEDC) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: selected ? const Color(0x20C8A96A) : const Color(0x12000000),
-              blurRadius: selected ? 16 : 12,
-              offset: const Offset(0, 8),
-            ),
-          ],
-          border: Border.all(
-            color: selected ? const Color(0xFFC8A96A) : const Color(0xFFF0E8DB),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 38,
-              width: 38,
-              decoration: BoxDecoration(
-                color: selected ? const Color(0xFFEFD8A0) : const Color(0xFFF7F1E6),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                _iconFor(option.iconKey),
-                size: 20,
-                color: selected ? const Color(0xFF7F5E17) : const Color(0xFF8F7A56),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              option.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF1E1913),
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              option.subtitle,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF6C6459),
-                  ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              selected ? 'Selected detail' : 'Tap to apply',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: selected ? const Color(0xFF8C6D2E) : const Color(0xFF8A7D6A),
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _iconFor(String key) {
-    switch (key) {
-      case 'collar':
-        return Icons.checkroom_outlined;
-      case 'cuff':
-        return Icons.crop_16_9_outlined;
-      case 'button':
-        return Icons.circle_outlined;
-      case 'pocket':
-        return Icons.wallet_outlined;
-      default:
-        return Icons.auto_awesome_outlined;
-    }
-  }
-}
-
-class _PreviewCard extends StatelessWidget {
-  const _PreviewCard({required this.provider});
-
-  final AtelierFlowProvider provider;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 16,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 208,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: const LinearGradient(
-                colors: [Color(0xFF111111), Color(0xFF5D4A2A), Color(0xFF8A6A34)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.all(18),
-                  child: _MiniChip(label: 'Editorial preview'),
-                ),
-                const Spacer(),
-                const Center(
-                  child: Icon(Icons.auto_awesome, color: Colors.white, size: 42),
-                ),
-                const Spacer(),
-                Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Text(
-                    'Your atelier is now seeing the piece the way your final look will be built.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.82),
-                          height: 1.4,
-                        ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            provider.selectedCategory?.title ?? 'Formal Shirts',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            provider.selectedFabric?.name ?? 'Egyptian Cotton',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFFC8A96A),
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Container(
+  Widget _measurementCard(String title, String subtitle, IconData icon, bool selected, VoidCallback onTap, {bool enabled = true}) {
+    return Opacity(
+      opacity: enabled ? 1 : 0.56,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: TapScale(
+          onTap: enabled ? onTap : null,
+          child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFFBF7EF),
-              borderRadius: BorderRadius.circular(18),
+              color: _card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: selected ? _gold : _line, width: selected ? 2 : 1),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Design selections',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                ...provider.designChoices.values.map(
-                  (option) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      option.title,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF6C6459),
-                          ),
-                    ),
+            child: Row(
+              children: <Widget>[
+                Icon(icon, color: _ink),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(title, style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w800)),
+                      Text(subtitle, style: GoogleFonts.manrope(color: _muted, fontSize: 12)),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _inputField(String hint, TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w700),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.manrope(color: _muted),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _line)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _line)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _gold)),
+      ),
+    );
+  }
+
+  Widget _toggle(String label, bool selected, VoidCallback onTap) {
+    return TapScale(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(color: selected ? _gold.withValues(alpha: 0.16) : _card, borderRadius: BorderRadius.circular(14), border: Border.all(color: selected ? _gold : _line)),
+        child: Center(child: Text(label, style: GoogleFonts.manrope(color: selected ? _ink : _muted, fontWeight: FontWeight.w700, fontSize: 12))),
+      ),
+    );
+  }
+
+  Widget _priceRow(String label, int amount, {bool highlight = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: <Widget>[
+          Expanded(child: Text(label, style: GoogleFonts.manrope(color: highlight ? _ink : _muted, fontWeight: highlight ? FontWeight.w800 : FontWeight.w600, fontSize: highlight ? 16 : 13))),
+          Text(_money.format(amount), style: GoogleFonts.manrope(color: highlight ? _gold : _ink, fontWeight: FontWeight.w800, fontSize: highlight ? 24 : 14)),
         ],
       ),
     );
   }
-}
 
-class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _checkoutTile(IconData icon, String title, String value) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFBF7EF),
-        borderRadius: BorderRadius.circular(16),
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
       child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF6C6459),
-                  ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF111111),
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SelectedSummaryCard extends StatelessWidget {
-  const _SelectedSummaryCard({
-    required this.title,
-    required this.description,
-  });
-
-  final String title;
-  final String description;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF4),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF0E8DB)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 12,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 42,
-            width: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF6EBCB),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.auto_awesome, color: Color(0xFFC8A96A)),
-          ),
+        children: <Widget>[
+          Icon(icon, color: _ink),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF8A7D6A),
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF1E1913),
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
+              children: <Widget>[
+                Text(title, style: GoogleFonts.manrope(color: _muted, fontSize: 12)),
+                Text(value, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w800)),
               ],
             ),
           ),
@@ -2002,274 +978,54 @@ class _SelectedSummaryCard extends StatelessWidget {
       ),
     );
   }
-}
 
-class _MiniChip extends StatelessWidget {
-  const _MiniChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1E7D6),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF6C6459),
-              fontWeight: FontWeight.w600,
-            ),
-      ),
-    );
-  }
-}
-
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({
-    required this.label,
-    required this.onTap,
-    this.compact = false,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: compact ? 48 : 52,
-      width: compact ? null : double.infinity,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFE0C36C), Color(0xFFC89D34)],
-          ),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFC89D34).withValues(alpha: 0.18),
-              blurRadius: 16,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: ElevatedButton(
-          onPressed: onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            foregroundColor: const Color(0xFF111111),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-          ),
-          child: Text(
-            label,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: const Color(0xFF111111),
-                  fontWeight: FontWeight.w800,
+  Future<void> _zoomFabric(AtelierFabric fabric) async {
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: <Widget>[
+              SizedBox(height: 430, child: _image(fabric.image)),
+              Positioned(
+                right: 10,
+                top: 10,
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded, color: Colors.white),
                 ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SecondaryButton extends StatelessWidget {
-  const _SecondaryButton({
-    required this.label,
-    required this.onTap,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 46,
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          side: const BorderSide(color: Color(0xFFE0D6C4)),
-        ),
-        child: Text(
-          label,
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF1E1913),
-                fontWeight: FontWeight.w600,
               ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OutlinedButton extends StatelessWidget {
-  const _OutlinedButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 54,
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, color: const Color(0xFF111111)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF111111),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          elevation: 0,
-        ),
-        label: Text(
-          label,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: const Color(0xFF111111),
-                fontWeight: FontWeight.w600,
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.58),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text('${fabric.name} • ${fabric.description}', style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.w600)),
+                ),
               ),
+            ],
+          ),
         ),
       ),
     );
   }
-}
 
-class _HelperRow extends StatelessWidget {
-  const _HelperRow({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Icon(Icons.check_circle, color: Color(0xFFC8A96A), size: 18),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF6C6459),
-                ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.title,
-    required this.subtitle,
-    required this.onRetry,
-  });
-
-  final String title;
-  final String subtitle;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.storefront_outlined, size: 48),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF6C6459),
-                  ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            _PrimaryButton(label: 'Retry', onTap: onRetry),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StepEmptyMessage extends StatelessWidget {
-  const _StepEmptyMessage({
-    required this.title,
-    required this.subtitle,
-  });
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 10,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF6C6459),
-                ),
-          ),
-        ],
+  Widget _image(String url) {
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.cover,
+      placeholder: (BuildContext context, String _) =>
+          const ColoredBox(color: Color(0xFFEADFCF)),
+      errorWidget: (BuildContext context, String _, Object error) => const ColoredBox(
+        color: Color(0xFFEADFCF),
+        child: Icon(Icons.broken_image_outlined, color: Color(0xFF7E7465)),
       ),
     );
   }

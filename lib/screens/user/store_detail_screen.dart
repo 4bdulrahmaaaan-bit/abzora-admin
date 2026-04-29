@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 import '../../widgets/product_card.dart';
 import '../../widgets/state_views.dart';
 
@@ -106,7 +107,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             behavior: SnackBarBehavior.floating,
-                            content: Text(error.toString().replaceFirst('Bad state: ', '')),
+                            content: Text(AppErrorText.from(error)),
                           ),
                         );
                       }

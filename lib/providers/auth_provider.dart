@@ -13,6 +13,7 @@ import '../services/location_service.dart';
 import '../services/notification_service.dart';
 import '../services/app_navigation_service.dart';
 import '../services/storage_service.dart';
+import '../utils/app_mode_routes.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -29,6 +30,12 @@ class AuthProvider with ChangeNotifier {
   bool _isUpdatingProfile = false;
   bool _isInitialized = false;
   bool _isLoggingOut = false;
+  bool _isRefreshingAuthToken = false;
+  DateTime? _lastSignInAt;
+  DateTime? _lastTokenRefreshAt;
+  DateTime? _lastUnauthorizedSignalAt;
+  DateTime? _lastUnauthorizedRecoveryAttemptAt;
+  int _consecutiveUnauthorizedSignals = 0;
   String? _pendingPhoneNumber;
   String? _lastBackendProfileSyncKey;
 
@@ -38,9 +45,10 @@ class AuthProvider with ChangeNotifier {
   bool get isUpdatingProfile => _isUpdatingProfile;
   bool get isInitialized => _isInitialized;
   bool get isAuthenticated => _isAuthenticated;
-  bool get isSuperAdmin => _user?.role == 'super_admin' || _user?.role == 'admin';
-  bool get isVendor => _user?.role == 'vendor';
-  bool get isRider => _user?.role == 'rider';
+  bool get isSuperAdmin =>
+      _user?.role == 'super_admin' || _user?.role == 'admin';
+  bool get isVendor => hasVendorOperationsAccess(_user);
+  bool get isRider => hasRiderOperationsAccess(_user);
   bool get isUser => _user?.role == 'user' || _user?.role == 'customer';
   String? get pendingPhoneNumber => _pendingPhoneNumber;
   bool get requiresProfileSetup {
@@ -48,7 +56,8 @@ class AuthProvider with ChangeNotifier {
     if (current == null) {
       return false;
     }
-    return current.name.trim().isEmpty || (current.address ?? '').trim().isEmpty;
+    return current.name.trim().isEmpty ||
+        (current.address ?? '').trim().isEmpty;
   }
 
   AuthProvider() {
@@ -64,56 +73,83 @@ class AuthProvider with ChangeNotifier {
   void _bindLiveProfile(AppUser? user) {
     _liveProfileSubscription?.cancel();
     _user = user;
-    _isAuthenticated = user != null;
+    _isAuthenticated = user != null && (_token?.isNotEmpty ?? false);
     if (user == null) {
       _token = null;
       _lastBackendProfileSyncKey = null;
       return;
     }
     unawaited(_refreshAuthToken());
-    unawaited(NotificationService().initNotifications());
+    unawaited(_syncNotificationChannels(user));
     _maybeSyncBackendProfile(user);
     _liveProfileSubscription = _db.watchUser(user.id).listen((liveUser) {
       _user = liveUser ?? user;
-      _isAuthenticated = _user != null;
+      _isAuthenticated = _user != null && (_token?.isNotEmpty ?? false);
       if (_user != null) {
         _maybeSyncBackendProfile(_user!);
+        unawaited(_syncNotificationChannels(_user!));
       }
       unawaited(_refreshAuthToken());
       notifyListeners();
     });
   }
 
-  Future<void> _refreshAuthToken() async {
+  Future<void> _syncNotificationChannels(AppUser user) async {
+    final notifications = NotificationService();
+    final initialized = await notifications.initNotifications();
+    if (!initialized) {
+      return;
+    }
+    await notifications.syncToken(user);
+  }
+
+  Future<void> _refreshAuthToken({bool forceRefresh = false}) async {
+    if (_isRefreshingAuthToken) {
+      return;
+    }
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        _lastTokenRefreshAt != null &&
+        now.difference(_lastTokenRefreshAt!).inSeconds < 30) {
+      return;
+    }
+    _isRefreshingAuthToken = true;
     try {
-      final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
-      if (idToken == null || idToken.isEmpty) {
-        if (_user != null && !_isLoggingOut) {
-          await logout();
-          await AppNavigationService.resetToHome(
-            message: 'Session expired. Please sign in again.',
-          );
-          return;
-        }
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) {
         _token = null;
         _isAuthenticated = false;
         notifyListeners();
         return;
       }
+      var idToken = await firebaseUser.getIdToken(forceRefresh);
+      if (idToken == null || idToken.isEmpty) {
+        idToken = await firebaseUser.getIdToken(true);
+      }
+      if (idToken == null || idToken.isEmpty) {
+        _lastTokenRefreshAt = DateTime.now();
+        return;
+      }
+      _lastTokenRefreshAt = DateTime.now();
       if (idToken != _token) {
         _token = idToken;
         _isAuthenticated = _user != null && (_token?.isNotEmpty ?? false);
+        if (_user != null) {
+          _maybeSyncBackendProfile(_user!);
+        }
         notifyListeners();
       }
     } catch (_) {
-      _token = null;
-      _isAuthenticated = false;
-      notifyListeners();
+      _lastTokenRefreshAt = DateTime.now();
+      // Keep existing session state on transient token refresh failures.
+    } finally {
+      _isRefreshingAuthToken = false;
     }
   }
 
   void _maybeSyncBackendProfile(AppUser user) {
-    if (!_backendCommerce.isConfigured) {
+    if (!_backendCommerce.isConfigured ||
+        (_token?.isNotEmpty ?? false) == false) {
       return;
     }
     final syncKey = [
@@ -176,13 +212,32 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final result = await _authService.verifyOtp(otp);
+      _lastSignInAt = DateTime.now();
       _user = result;
-      _isAuthenticated = result != null;
+      _isAuthenticated = result != null && (_token?.isNotEmpty ?? false);
       unawaited(_refreshAuthToken());
       return result;
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<AppUser?> refreshProfileFromBackendIfPossible() async {
+    if (!_backendCommerce.isConfigured) {
+      return _user;
+    }
+    try {
+      final backendUser = await _backendCommerce.getCurrentUserProfile();
+      _user = backendUser;
+      _isAuthenticated = _user != null && (_token?.isNotEmpty ?? false);
+      _maybeSyncBackendProfile(backendUser);
+      unawaited(_syncNotificationChannels(backendUser));
+      unawaited(_db.saveUser(backendUser));
+      notifyListeners();
+      return backendUser;
+    } catch (_) {
+      return _user;
     }
   }
 
@@ -192,8 +247,9 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final result = await _authService.signInWithGoogleAdmin();
+      _lastSignInAt = DateTime.now();
       _user = result;
-      _isAuthenticated = result != null;
+      _isAuthenticated = result != null && (_token?.isNotEmpty ?? false);
       unawaited(_refreshAuthToken());
       return result;
     } finally {
@@ -208,8 +264,9 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final result = await _authService.signInWithGoogleUser();
+      _lastSignInAt = DateTime.now();
       _user = result;
-      _isAuthenticated = result != null;
+      _isAuthenticated = result != null && (_token?.isNotEmpty ?? false);
       unawaited(_refreshAuthToken());
       return result;
     } finally {
@@ -249,6 +306,29 @@ class AuthProvider with ChangeNotifier {
     if (!_isAuthenticated || _isLoggingOut) {
       return;
     }
+    final signedInJustNow = _lastSignInAt != null &&
+        DateTime.now().difference(_lastSignInAt!).inSeconds < 30;
+    if (signedInJustNow) {
+      return;
+    }
+    final now = DateTime.now();
+    if (_lastUnauthorizedRecoveryAttemptAt != null &&
+        now.difference(_lastUnauthorizedRecoveryAttemptAt!).inSeconds < 30) {
+      return;
+    }
+    if (_lastUnauthorizedSignalAt == null ||
+        now.difference(_lastUnauthorizedSignalAt!).inMinutes >= 2) {
+      _consecutiveUnauthorizedSignals = 1;
+    } else {
+      _consecutiveUnauthorizedSignals += 1;
+    }
+    _lastUnauthorizedSignalAt = now;
+    _lastUnauthorizedRecoveryAttemptAt = now;
+
+    await _refreshAuthToken(forceRefresh: true);
+    if (_token != null && _token!.isNotEmpty && _consecutiveUnauthorizedSignals < 2) {
+      return;
+    }
     await logout();
     await AppNavigationService.resetToHome(
       message: 'Session expired. Please sign in again.',
@@ -260,11 +340,10 @@ class AuthProvider with ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final keys = prefs.getKeys();
       for (final key in keys) {
-        final isSessionScoped = key == 'abzora_local_cart_v1' ||
-            key.startsWith('payment_pref_');
-        final isUserScoped = userId != null &&
-            userId.isNotEmpty &&
-            key.contains(userId);
+        final isSessionScoped =
+            key == 'abzora_local_cart_v1' || key.startsWith('payment_pref_');
+        final isUserScoped =
+            userId != null && userId.isNotEmpty && key.contains(userId);
         if (isSessionScoped || isUserScoped) {
           await prefs.remove(key);
         }
@@ -280,6 +359,11 @@ class AuthProvider with ChangeNotifier {
     _isAuthenticated = false;
     _pendingPhoneNumber = null;
     _lastBackendProfileSyncKey = null;
+    _lastSignInAt = null;
+    _lastTokenRefreshAt = null;
+    _lastUnauthorizedSignalAt = null;
+    _lastUnauthorizedRecoveryAttemptAt = null;
+    _consecutiveUnauthorizedSignals = 0;
   }
 
   void setUser(AppUser user) {
@@ -332,7 +416,7 @@ class AuthProvider with ChangeNotifier {
             : current.locationUpdatedAt,
         createdAt: current.createdAt ?? DateTime.now().toIso8601String(),
       );
-      await _db.saveUser(updated);
+      await _db.saveUser(updated, bestEffort: true);
       _user = updated;
     } finally {
       _isUpdatingProfile = false;
@@ -348,12 +432,20 @@ class AuthProvider with ChangeNotifier {
     _isUpdatingProfile = true;
     notifyListeners();
     try {
-      final location = await _locationService.getCurrentLocation(forceRefresh: true);
-      if (location.status != LocationStatus.success || location.position == null) {
+      final location = await _locationService.getCurrentLocation(
+        forceRefresh: true,
+      );
+      if (location.status != LocationStatus.success ||
+          location.position == null) {
         throw StateError('Unable to detect location');
       }
       final position = location.position!;
-      final resolvedAddress = location.address ?? await _locationService.reverseGeocode(position.latitude, position.longitude);
+      final resolvedAddress =
+          location.address ??
+          await _locationService.reverseGeocode(
+            position.latitude,
+            position.longitude,
+          );
       final updated = current.copyWith(
         name: (fallbackName ?? current.name).trim(),
         address: resolvedAddress.address,
@@ -364,7 +456,7 @@ class AuthProvider with ChangeNotifier {
         locationUpdatedAt: DateTime.now().toIso8601String(),
         createdAt: current.createdAt ?? DateTime.now().toIso8601String(),
       );
-      await _db.saveUser(updated);
+      await _db.saveUser(updated, bestEffort: true);
       _user = updated;
     } finally {
       _isUpdatingProfile = false;

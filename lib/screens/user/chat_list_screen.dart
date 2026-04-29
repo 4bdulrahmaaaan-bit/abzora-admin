@@ -5,6 +5,7 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 import '../../widgets/tap_scale.dart';
 import 'chat_screen.dart';
 import 'faq_screen.dart';
@@ -62,7 +63,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
+        SnackBar(content: Text(AppErrorText.from(error))),
       );
     } finally {
       if (mounted) {
@@ -258,7 +259,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
+        SnackBar(content: Text(AppErrorText.from(error))),
       );
     } finally {
       if (mounted) {

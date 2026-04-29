@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 
 import '../models/models.dart';
 import '../models/trial_session.dart';
-import '../services/backend_api_client.dart';
 import '../services/trial_home_api.dart';
+import '../utils/app_error_text.dart';
 
 class TrialHomeProvider with ChangeNotifier {
   TrialHomeProvider({TrialHomeApi? api}) : _api = api ?? TrialHomeApi();
@@ -197,11 +197,8 @@ class TrialHomeProvider with ChangeNotifier {
 
     try {
       return await action();
-    } on BackendApiException catch (error) {
-      _error = error.message;
-      rethrow;
     } catch (error) {
-      _error = error.toString().replaceFirst('Exception: ', '');
+      _error = AppErrorText.from(error);
       rethrow;
     } finally {
       _loading = false;

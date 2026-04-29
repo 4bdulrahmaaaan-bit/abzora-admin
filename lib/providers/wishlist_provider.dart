@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
+import '../services/backend_api_client.dart';
 import '../services/wishlist_service.dart';
 
 class WishlistProvider with ChangeNotifier {
@@ -49,13 +50,23 @@ class WishlistProvider with ChangeNotifier {
 
     _isLoading = true;
     notifyListeners();
-    _subscription = _wishlistService.watchWishlist(_userId!).listen((items) {
-      _cache
-        ..clear()
-        ..addEntries(items.map((item) => MapEntry(item.productId, item)));
-      _isLoading = false;
-      notifyListeners();
-    });
+    _subscription = _wishlistService.watchWishlist(_userId!).listen(
+      (items) {
+        _cache
+          ..clear()
+          ..addEntries(items.map((item) => MapEntry(item.productId, item)));
+        _isLoading = false;
+        notifyListeners();
+      },
+      onError: (_) {
+        _isLoading = false;
+        notifyListeners();
+      },
+      onDone: () {
+        _isLoading = false;
+        notifyListeners();
+      },
+    );
   }
 
   Future<void> addToWishlist(Product product) async {
@@ -75,9 +86,9 @@ class WishlistProvider with ChangeNotifier {
     notifyListeners();
     try {
       await _wishlistService.addToWishlist(userId: userId, product: product);
-    } catch (_) {
+    } catch (error) {
       _cache.remove(product.id);
-      rethrow;
+      throw _normalizeWishlistError(error);
     } finally {
       _pendingProductIds.remove(product.id);
       notifyListeners();
@@ -92,11 +103,11 @@ class WishlistProvider with ChangeNotifier {
     notifyListeners();
     try {
       await _wishlistService.removeFromWishlist(userId: userId, productId: productId);
-    } catch (_) {
+    } catch (error) {
       if (existing != null) {
         _cache[productId] = existing;
       }
-      rethrow;
+      throw _normalizeWishlistError(error);
     } finally {
       _pendingProductIds.remove(productId);
       notifyListeners();
@@ -123,6 +134,20 @@ class WishlistProvider with ChangeNotifier {
       throw StateError('Sign in to save products to your wishlist.');
     }
     return _userId!;
+  }
+
+  Object _normalizeWishlistError(Object error) {
+    if (error is BackendApiException && error.isUnauthorized) {
+      return StateError('Please sign in again to continue.');
+    }
+    final text = error.toString().toLowerCase();
+    if (text.contains('unauthorized') ||
+        text.contains('sign in again') ||
+        text.contains('session expired') ||
+        text.contains('too many authentication requests')) {
+      return StateError('Please sign in again to continue.');
+    }
+    return error;
   }
 
   @override

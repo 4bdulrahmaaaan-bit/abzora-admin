@@ -1,10 +1,14 @@
+import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
+import '../providers/auth_provider.dart';
 import '../providers/wishlist_provider.dart';
+import '../utils/app_error_text.dart';
 import '../utils/soft_auth_gate.dart';
 import 'animated_wishlist_button.dart';
 import 'shimmer_box.dart';
@@ -41,7 +45,7 @@ class _ProductCardState extends State<ProductCard> {
         final isPending = wishlist.isPending(product.id);
 
         return AnimatedScale(
-          scale: _pressed ? 0.985 : 1,
+          scale: _pressed ? 0.97 : 1,
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOut,
           child: RepaintBoundary(
@@ -55,11 +59,18 @@ class _ProductCardState extends State<ProductCard> {
                   }
                   setState(() => _pressed = value);
                 },
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(18),
                 child: Ink(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
@@ -69,7 +80,7 @@ class _ProductCardState extends State<ProductCard> {
                         Expanded(
                           flex: 7,
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
@@ -100,7 +111,7 @@ class _ProductCardState extends State<ProductCard> {
                                           placeholder: (context, url) =>
                                               const ShimmerBox(
                                                 borderRadius: BorderRadius.all(
-                                                  Radius.circular(12),
+                                                  Radius.circular(16),
                                                 ),
                                               ),
                                           errorWidget: (context, url, error) =>
@@ -131,14 +142,42 @@ class _ProductCardState extends State<ProductCard> {
                                   Positioned(
                                     left: 10,
                                     bottom: 10,
-                                    child: Text(
-                                      'TRY ON',
-                                      style: theme.textTheme.labelSmall
-                                          ?.copyWith(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 0.6,
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(999),
+                                      child: BackdropFilter(
+                                        filter: ImageFilter.blur(
+                                          sigmaX: 6,
+                                          sigmaY: 6,
+                                        ),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
                                           ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.32,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              999,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.18,
+                                              ),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'TRY ON',
+                                            style: theme.textTheme.labelSmall
+                                                ?.copyWith(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w700,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 Positioned(
@@ -149,24 +188,78 @@ class _ProductCardState extends State<ProductCard> {
                                     child: AnimatedWishlistButton(
                                       isSelected: isWishlisted,
                                       isLoading: isPending,
+                                      usePremiumIntentAnimation: true,
                                       size: 28,
                                       iconSize: 17,
                                       backgroundColor: null,
                                       onTap: () async {
-                                        final isAllowed = await SoftAuthGate.ensureAuthenticated(
-                                          context,
-                                          intentLabel: 'Save to wishlist',
-                                          promptStyle: AuthPromptStyle.softSheet,
-                                        );
+                                        final isAllowed =
+                                            await SoftAuthGate.ensureAuthenticated(
+                                              context,
+                                              intentLabel: 'Save to wishlist',
+                                              trigger:
+                                                  AuthPromptTrigger.wishlist,
+                                              productId: product.id,
+                                              productPreview:
+                                                  AuthPromptProductPreview(
+                                                    name: product.name,
+                                                    imageUrl:
+                                                        product.images.isEmpty
+                                                        ? null
+                                                        : product.images.first,
+                                                  ),
+                                              promptStyle:
+                                                  AuthPromptStyle.softSheet,
+                                            );
                                         if (!isAllowed || !context.mounted) {
                                           return;
                                         }
                                         try {
+                                          final wasWishlisted = wishlist
+                                              .isWishlisted(product.id);
                                           await wishlist.toggleWishlist(
                                             product,
                                           );
+                                          if (!context.mounted) {
+                                            return;
+                                          }
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                              content: Text(
+                                                wasWishlisted
+                                                    ? 'Removed from Wishlist'
+                                                    : 'Added to Wishlist',
+                                              ),
+                                              duration: const Duration(
+                                                milliseconds: 1300,
+                                              ),
+                                            ),
+                                          );
                                         } catch (error) {
                                           if (!context.mounted) {
+                                            return;
+                                          }
+                                          if (_isAuthSessionError(error)) {
+                                            await context.read<AuthProvider>().logout();
+                                            if (!context.mounted) {
+                                              return;
+                                            }
+                                            await SoftAuthGate.ensureAuthenticated(
+                                              context,
+                                              intentLabel: 'Save to wishlist',
+                                              trigger: AuthPromptTrigger.wishlist,
+                                              productId: product.id,
+                                              productPreview: AuthPromptProductPreview(
+                                                name: product.name,
+                                                imageUrl: product.images.isEmpty
+                                                    ? null
+                                                    : product.images.first,
+                                              ),
+                                              promptStyle: AuthPromptStyle.softSheet,
+                                            );
                                             return;
                                           }
                                           ScaffoldMessenger.of(
@@ -174,10 +267,7 @@ class _ProductCardState extends State<ProductCard> {
                                           ).showSnackBar(
                                             SnackBar(
                                               content: Text(
-                                                error.toString().replaceFirst(
-                                                  'Bad state: ',
-                                                  '',
-                                                ),
+                                                AppErrorText.from(error),
                                               ),
                                             ),
                                           );
@@ -198,7 +288,7 @@ class _ProductCardState extends State<ProductCard> {
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(
                               fontSize: 11,
-                              color: const Color(0xFF777777),
+                              color: const Color(0xFF8A8A8A),
                               fontWeight: FontWeight.w500,
                               letterSpacing: 0.15,
                             ),
@@ -227,7 +317,7 @@ class _ProductCardState extends State<ProductCard> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.titleMedium?.copyWith(
-                                  fontSize: 18,
+                                  fontSize: 19,
                                   fontWeight: FontWeight.w800,
                                   color: const Color(0xFF111111),
                                 ),
@@ -303,16 +393,16 @@ class _MetaChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.transparent,
+        color: const Color(0xFFF4F4F4),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE6E6E6)),
+        border: Border.all(color: const Color(0xFFEAEAEA)),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontSize: 10,
-          color: const Color(0xFF666666),
-          fontWeight: FontWeight.w600,
+          color: const Color(0xFF8D8D8D),
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -385,3 +475,10 @@ class _ProductPricing {
 
   const _ProductPricing({this.originalPrice, this.discountPercent = 0});
 }
+  bool _isAuthSessionError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('unauthorized') ||
+        message.contains('session expired') ||
+        message.contains('sign in again') ||
+        message.contains('too many authentication requests');
+  }

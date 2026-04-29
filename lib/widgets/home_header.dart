@@ -23,20 +23,20 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
   final bool isScrolled;
 
   @override
-  Size get preferredSize => const Size.fromHeight(88);
+  Size get preferredSize => const Size.fromHeight(124);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Material(
-      color: Colors.white,
+      color: const Color(0xFFF8F8F8),
       elevation: 0,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.fromLTRB(16, 1, 16, 1),
-        decoration: BoxDecoration(color: Colors.white),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        decoration: const BoxDecoration(color: Color(0xFFF8F8F8)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -62,7 +62,7 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
-                          fontSize: 16,
+                          fontSize: 17,
                           letterSpacing: 0.3,
                           color: const Color(0xFF111111),
                         ),
@@ -77,6 +77,7 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                           fontSize: 9,
                           fontWeight: FontWeight.w400,
                           letterSpacing: 0.15,
+                          height: 1.1,
                         ),
                       ),
                     ],
@@ -98,7 +99,7 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 8),
             AnimatedSlide(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
@@ -129,10 +130,10 @@ class _HeaderIconButton extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(999),
           child: SizedBox(
-            width: 30,
-            height: 30,
+            width: 34,
+            height: 34,
             child: Center(
-              child: Icon(icon, color: const Color(0xFF111111), size: 19),
+              child: Icon(icon, color: const Color(0xFF222222), size: 20),
             ),
           ),
         ),
@@ -156,23 +157,30 @@ class _LocationBar extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
-            height: 40,
+            height: 52,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE6E6E6)),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE7E2D7)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
             child: Row(
               children: [
                 const Icon(
                   Icons.location_on_rounded,
-                  size: 16,
-                  color: Color(0xFFC8A44D),
+                  size: 18,
+                  color: Color(0xFFC6A769),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -182,24 +190,27 @@ class _LocationBar extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      fontSize: 12,
+                      fontSize: 12.5,
                       color: const Color(0xFF111111),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Flexible(
-                  fit: FlexFit.loose,
-                  child: Text(
-                    'Change',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                    textAlign: TextAlign.right,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF666666),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 64),
+                    child: Text(
+                      'Change',
+                      maxLines: 1,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                      textAlign: TextAlign.right,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFFC6A769),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                 ),

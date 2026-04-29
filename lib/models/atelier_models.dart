@@ -39,6 +39,7 @@ class FabricOption {
     required this.tags,
     required this.description,
     required this.priceDelta,
+    this.imageUrl = '',
   });
 
   final String id;
@@ -46,10 +47,11 @@ class FabricOption {
   final List<String> tags;
   final String description;
   final int priceDelta;
+  final String imageUrl;
 }
 
-class DesignOptionGroup {
-  const DesignOptionGroup({
+class StyleOptionGroup {
+  const StyleOptionGroup({
     required this.id,
     required this.title,
     required this.options,
@@ -57,53 +59,49 @@ class DesignOptionGroup {
 
   final String id;
   final String title;
-  final List<DesignOption> options;
+  final List<StyleOption> options;
 }
 
-class DesignOption {
-  const DesignOption({
+class StyleOption {
+  const StyleOption({
     required this.id,
     required this.title,
-    required this.subtitle,
-    required this.iconKey,
-    required this.priceDelta,
+    this.priceDelta = 0,
   });
 
   final String id;
   final String title;
-  final String subtitle;
+  final int priceDelta;
+}
+
+class FitOption {
+  const FitOption({
+    required this.id,
+    required this.label,
+    required this.description,
+    required this.iconKey,
+    this.priceDelta = 0,
+  });
+
+  final String id;
+  final String label;
+  final String description;
   final String iconKey;
   final int priceDelta;
 }
 
-class MeasurementData {
-  const MeasurementData({
-    this.chest = '',
-    this.waist = '',
-    this.hips = '',
-    this.shoulder = '',
-    this.height = '',
+class MeasurementOption {
+  const MeasurementOption({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.iconKey,
+    this.priceDelta = 0,
   });
 
-  final String chest;
-  final String waist;
-  final String hips;
-  final String shoulder;
-  final String height;
-
-  MeasurementData copyWith({
-    String? chest,
-    String? waist,
-    String? hips,
-    String? shoulder,
-    String? height,
-  }) {
-    return MeasurementData(
-      chest: chest ?? this.chest,
-      waist: waist ?? this.waist,
-      hips: hips ?? this.hips,
-      shoulder: shoulder ?? this.shoulder,
-      height: height ?? this.height,
-    );
-  }
+  final String id;
+  final String title;
+  final String description;
+  final String iconKey;
+  final int priceDelta;
 }

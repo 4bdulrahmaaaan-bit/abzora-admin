@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
 import '../models/models.dart';
+import '../utils/app_mode_routes.dart';
 import 'database_service.dart';
 
 class NotificationService {
@@ -77,13 +78,16 @@ class NotificationService {
         debugPrint('FCM token synced to Realtime Database');
       }
       
-      if (user.role == 'super_admin' || user.role == 'admin') {
+      final normalizedRole = user.role.toLowerCase().trim();
+      if (normalizedRole == 'super_admin' || normalizedRole == 'admin') {
         await _fcm.subscribeToTopic('admin_alerts');
         debugPrint('Subscribed to admin_alerts');
-      } else if (user.role == 'vendor' && user.storeId != null) {
+      } else if (hasVendorOperationsAccess(user) &&
+          user.storeId != null &&
+          user.storeId!.trim().isNotEmpty) {
         await _fcm.subscribeToTopic('store_alerts_${user.storeId}');
         debugPrint('Subscribed to store_alerts_${user.storeId}');
-      } else if (user.role == 'rider') {
+      } else if (hasRiderOperationsAccess(user)) {
         await _fcm.subscribeToTopic('rider_${user.id}');
         debugPrint('Subscribed to rider_${user.id}');
       }

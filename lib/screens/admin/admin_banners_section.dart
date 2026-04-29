@@ -10,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/backend_commerce_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 import '../../widgets/state_views.dart';
 
 class AdminBannersSection extends StatefulWidget {
@@ -60,7 +61,7 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
         return;
       }
       setState(() {
-        _error = error.toString();
+        _error = AppErrorText.from(error);
         _loading = false;
       });
     }
@@ -121,7 +122,7 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
+        SnackBar(content: Text(AppErrorText.from(error))),
       );
     } finally {
       if (mounted) {
@@ -149,7 +150,7 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
+        SnackBar(content: Text(AppErrorText.from(error))),
       );
     } finally {
       if (mounted) {
@@ -171,7 +172,7 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
+        SnackBar(content: Text(AppErrorText.from(error))),
       );
       setState(() => _saving = false);
     }
@@ -216,7 +217,7 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
+        SnackBar(content: Text(AppErrorText.from(error))),
       );
       setState(() => _saving = false);
     }
@@ -1869,3 +1870,4 @@ class _PromoBlockFormResult {
   final HomePromoBlockModel block;
   final XFile? imageFile;
 }
+

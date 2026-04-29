@@ -5,6 +5,7 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/onboarding_service.dart';
+import '../../utils/app_error_text.dart';
 import '../../widgets/state_views.dart';
 import 'vendor_onboarding_screen.dart';
 
@@ -81,7 +82,7 @@ class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
                 padding: const EdgeInsets.all(24),
                 child: AbzioEmptyCard(
                   title: 'Could not verify account status',
-                  subtitle: snapshot.error.toString().replaceFirst('Exception: ', ''),
+                  subtitle: AppErrorText.from(snapshot.error ?? 'Could not verify account status'),
                   ctaLabel: 'TRY AGAIN',
                   onTap: () {
                     setState(() {

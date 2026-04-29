@@ -32,6 +32,7 @@ import 'screens/user/add_card_screen.dart';
 import 'screens/user/home_screen.dart';
 import 'screens/user/notifications_screen.dart';
 import 'screens/user/order_tracking_screen.dart';
+import 'screens/user/fast_delivery_tracking_screen.dart';
 import 'screens/user/payment_methods_screen.dart';
 import 'screens/user/product_detail_screen.dart';
 import 'screens/user/profile_screen.dart';
@@ -227,6 +228,15 @@ class AbzioApp extends StatelessWidget {
         '/rider-dashboard': (context) => const RiderDashboard(),
       },
       onGenerateRoute: (settings) {
+        if (settings.name == '/fast-tracking' &&
+            settings.arguments is OrderModel) {
+          return MaterialPageRoute(
+            builder: (_) => FastDeliveryTrackingScreen(
+              order: settings.arguments as OrderModel,
+            ),
+            settings: settings,
+          );
+        }
         if (settings.name == '/product-detail' && settings.arguments is Product) {
           return MaterialPageRoute(
             builder: (_) => ProductDetailScreen(product: settings.arguments as Product),

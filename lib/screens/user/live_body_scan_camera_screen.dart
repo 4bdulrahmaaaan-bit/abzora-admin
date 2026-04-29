@@ -7,6 +7,7 @@ import '../../services/camera_frame_encoder.dart';
 import '../../services/mediapipe_pose_bridge.dart';
 import '../../services/pose_measurement_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 
 class LiveBodyScanCapture {
   const LiveBodyScanCapture({
@@ -99,7 +100,7 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
         return;
       }
       setState(() {
-        _error = error.toString();
+        _error = AppErrorText.from(error);
         _isLoading = false;
       });
     }
@@ -217,7 +218,7 @@ class _LiveBodyScanCameraScreenState extends State<LiveBodyScanCameraScreen>
       }
       setState(() {
         _isCapturing = false;
-        _error = error.toString();
+        _error = AppErrorText.from(error);
       });
     }
   }

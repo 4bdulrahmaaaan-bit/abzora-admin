@@ -7,6 +7,8 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
+import '../../utils/app_mode_routes.dart';
 import '../../widgets/payout_account_dialog.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/vendor_orders_tab.dart';
@@ -233,7 +235,7 @@ class _VendorDashboardState extends State<VendorDashboard>
       messenger.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
+          content: Text(AppErrorText.from(error)),
         ),
       );
     }
@@ -301,7 +303,7 @@ class _VendorDashboardState extends State<VendorDashboard>
       messenger.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
+          content: Text(AppErrorText.from(error)),
         ),
       );
     }
@@ -372,12 +374,7 @@ class _VendorDashboardState extends State<VendorDashboard>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(
-            error
-                .toString()
-                .replaceFirst('Bad state: ', '')
-                .replaceFirst('Exception: ', ''),
-          ),
+          content: Text(AppErrorText.from(error)),
         ),
       );
     }
@@ -422,12 +419,7 @@ class _VendorDashboardState extends State<VendorDashboard>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(
-            error
-                .toString()
-                .replaceFirst('Bad state: ', '')
-                .replaceFirst('Exception: ', ''),
-          ),
+          content: Text(AppErrorText.from(error)),
         ),
       );
     }
@@ -445,7 +437,7 @@ class _VendorDashboardState extends State<VendorDashboard>
         ),
       );
     }
-    if (actor.role != 'vendor') {
+    if (!hasVendorOperationsAccess(actor)) {
       return _buildRoot(
         context,
         const Center(

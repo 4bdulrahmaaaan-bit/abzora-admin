@@ -33,6 +33,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     productFlavors {
@@ -53,6 +57,19 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt")
+            )
+        }
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+            excludes += setOf("**/libVkLayer_khronos_validation.so")
+            excludes += setOf("**/*.sym.so", "**/*.dbg.so")
         }
     }
 }
@@ -63,5 +80,4 @@ flutter {
 
 dependencies {
     implementation("com.google.mediapipe:tasks-vision:0.10.14")
-    implementation("com.google.ar:core:1.46.0")
 }

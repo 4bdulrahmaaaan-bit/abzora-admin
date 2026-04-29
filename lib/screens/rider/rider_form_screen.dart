@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/onboarding_service.dart';
+import '../../utils/app_error_text.dart';
 import '../../widgets/kyc_upload_widget.dart';
 import '../../widgets/state_views.dart';
 
@@ -128,7 +129,7 @@ class _RiderFormScreenState extends State<RiderFormScreen> {
       messenger.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
+          content: Text(AppErrorText.from(error)),
         ),
       );
     } finally {

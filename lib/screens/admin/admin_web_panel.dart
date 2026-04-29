@@ -12,6 +12,8 @@ import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/onboarding_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
+import '../../utils/app_mode_routes.dart';
 import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
 import 'admin_ar_moderation_section.dart';
@@ -117,6 +119,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
 
   AppUser? get _actor => context.read<AuthProvider>().user;
   bool get _usesBackendCommerce => _db.usesBackendCommerce;
+
+  bool _isVendorUser(AppUser user) => hasVendorOperationsAccess(user);
+
+  bool _isRiderUser(AppUser user) => hasRiderOperationsAccess(user);
 
   @override
   void initState() {
@@ -316,7 +322,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       }
       setState(() {
         _loading = false;
-        _loadError = error.toString();
+        _loadError = AppErrorText.from(error);
       });
     }
   }
@@ -605,7 +611,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message.toString())),
+        SnackBar(content: Text(AppErrorText.from(error))),
       );
       await _load();
     }
@@ -817,7 +823,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     final riders = _users
         .where(
           (user) =>
-              user.role == 'rider' &&
+              _isRiderUser(user) &&
               user.riderApprovalStatus == 'approved' &&
               user.isActive,
         )
@@ -1198,7 +1204,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   List<AppUser> get _filteredRiders {
     final query = _riderSearchController.text.trim().toLowerCase();
     final filtered = _users.where((user) {
-      final isRider = user.role == 'rider' || user.roles['rider'] == true;
+      final isRider = _isRiderUser(user);
       if (!isRider) {
         return false;
       }
@@ -1310,7 +1316,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   int get _activeRiderCount => _users
       .where(
         (user) =>
-            (user.role == 'rider' || user.roles['rider'] == true) &&
+            _isRiderUser(user) &&
             user.isActive &&
             user.riderApprovalStatus == 'approved',
       )
@@ -1897,7 +1903,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
 
   Widget _buildDashboard() {
     final analytics = _analytics;
-    final vendorCount = _users.where((user) => user.role == 'vendor').length;
+    final vendorCount = _users.where(_isVendorUser).length;
     final recentOrders = _orders.toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
     return Column(
@@ -3262,7 +3268,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                       label: user.isActive ? 'ACTIVE' : 'BLOCKED',
                                       color: user.isActive ? Colors.green : Colors.red,
                                     ),
-                                    if (user.role == 'rider') ...[
+                                    if (_isRiderUser(user)) ...[
                                       const SizedBox(height: 6),
                                       _StatusPill(
                                         label: user.riderApprovalStatus.toUpperCase(),
@@ -3283,7 +3289,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                       onPressed: () => _toggleUserActive(user),
                                       child: Text(user.isActive ? 'Disable' : 'Enable'),
                                     ),
-                                    if (user.role == 'rider')
+                                    if (_isRiderUser(user))
                                       TextButton(
                                         onPressed: () => _toggleRiderApproval(user),
                                         child: Text(

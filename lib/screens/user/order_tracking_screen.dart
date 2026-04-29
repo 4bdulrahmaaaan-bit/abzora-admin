@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/tracking_step_widget.dart';
 import '../../widgets/tracking_timeline.dart';
@@ -423,6 +424,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   }
 
   Future<void> _openOrderDetails(OrderModel order, AppUser user) async {
+    if (_isFastDeliveryEligible(order)) {
+      await Navigator.of(context).pushNamed(
+        '/fast-tracking',
+        arguments: order,
+      );
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => _OrderDetailsPage(
@@ -436,6 +444,33 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         ),
       ),
     );
+  }
+
+  bool _isFastDeliveryEligible(OrderModel order) {
+    if (_isAtelierOrder(order)) {
+      return false;
+    }
+    final deliveryPromise = order.deliveryPromise.trim().toLowerCase();
+    if (order.sameDayOrder ||
+        deliveryPromise == 'same_day' ||
+        deliveryPromise == 'one_day' ||
+        deliveryPromise == '1_day' ||
+        deliveryPromise == 'fast_delivery') {
+      return true;
+    }
+    final status =
+        (order.deliveryStatus.isNotEmpty ? order.deliveryStatus : order.status)
+            .trim()
+            .toLowerCase();
+    if (status == 'cancelled') {
+      return false;
+    }
+    final ageHours = DateTime.now().difference(order.timestamp).inHours;
+    if (ageHours > 48) {
+      return false;
+    }
+    return order.orderType != 'custom_tailoring' &&
+        order.fulfillmentType != 'custom_tailoring';
   }
 }
 
@@ -2452,7 +2487,7 @@ class _ActionPanelBodyState extends State<_ActionPanelBody> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
+        SnackBar(content: Text(AppErrorText.from(error))),
       );
     } finally {
       if (mounted) {
@@ -2489,7 +2524,7 @@ class _ActionPanelBodyState extends State<_ActionPanelBody> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
+        SnackBar(content: Text(AppErrorText.from(error))),
       );
     } finally {
       if (mounted) {

@@ -7,6 +7,7 @@ import '../../providers/network_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/local_cache_service.dart';
 import '../../theme.dart';
+import '../../utils/app_mode_routes.dart';
 import '../../widgets/offline_widgets.dart';
 import '../../widgets/state_views.dart';
 
@@ -96,7 +97,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final unreadCount = _notifications.where((notification) => !notification.isRead).length;
-    final role = context.watch<AuthProvider>().user?.role ?? 'user';
+    final user = context.watch<AuthProvider>().user;
 
     return Scaffold(
       appBar: AppBar(
@@ -164,10 +165,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           const SizedBox(width: 14),
                           Expanded(
                             child: Text(
-                              role == 'vendor'
+                              hasVendorOperationsAccess(user)
                                   ? 'New order alerts, payout updates, and fulfillment changes appear here.'
-                                  : role == 'super_admin'
+                                  : normalizedUserRole(user) == 'super_admin' ||
+                                          normalizedUserRole(user) == 'admin'
                                       ? 'Platform events, vendor approvals, and payout activity appear here.'
+                                      : hasRiderOperationsAccess(user)
+                                          ? 'Delivery updates, assignment changes, and payout alerts appear here.'
                                       : 'Order updates, offers, and style reminders appear here.',
                               style: TextStyle(color: context.abzioSecondaryText, height: 1.45),
                             ),

@@ -28,6 +28,11 @@ class UnityTryOnView extends StatelessWidget {
       'materialProfile': metadata.materialProfile,
       'overlayAssetUrl': metadata.overlayAssetUrl,
       'alignmentConfig': metadata.alignmentConfig,
+      'templateId': metadata.templateId,
+      'template': metadata.templateData,
+      'garmentConfig': metadata.garmentConfig,
+      'lodModels': metadata.lodModels,
+      'customizableParts': metadata.customizableParts,
       'measurements': measurements,
       'enableAvatar': enableAvatar,
     };

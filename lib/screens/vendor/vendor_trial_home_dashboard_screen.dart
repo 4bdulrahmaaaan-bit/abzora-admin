@@ -8,6 +8,8 @@ import '../../models/trial_session.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
+import '../../utils/app_mode_routes.dart';
 
 class VendorTrialHomeDashboardScreen extends StatefulWidget {
   const VendorTrialHomeDashboardScreen({super.key});
@@ -53,22 +55,23 @@ class _VendorTrialHomeDashboardScreenState
 
   Future<void> _load() async {
     final actor = _actor;
-    if (actor == null || actor.role != 'vendor') {
+    if (!hasVendorOperationsAccess(actor)) {
       setState(() {
         _loading = false;
         _error = 'Vendor account required.';
       });
       return;
     }
+    final safeActor = actor!;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final data = await Future.wait<dynamic>([
-        _db.getVendorTrialHomeDashboard(actor: actor),
-        _db.getVendorTrialHomeSessions(actor: actor),
-        _db.getVendorTrialHomeProductSettings(actor: actor),
+        _db.getVendorTrialHomeDashboard(actor: safeActor),
+        _db.getVendorTrialHomeSessions(actor: safeActor),
+        _db.getVendorTrialHomeProductSettings(actor: safeActor),
       ]);
       if (!mounted) {
         return;
@@ -82,7 +85,7 @@ class _VendorTrialHomeDashboardScreenState
       if (!mounted) {
         return;
       }
-      setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
+      setState(() => _error = AppErrorText.from(error));
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -169,7 +172,7 @@ class _VendorTrialHomeDashboardScreenState
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+        SnackBar(content: Text(AppErrorText.from(error))),
       );
     } finally {
       if (mounted) {

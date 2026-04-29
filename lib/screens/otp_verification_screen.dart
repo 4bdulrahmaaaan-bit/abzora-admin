@@ -12,6 +12,7 @@ import '../providers/auth_provider.dart';
 import '../services/database_service.dart';
 import '../theme.dart';
 import '../utils/app_mode_routes.dart';
+import '../utils/app_error_text.dart';
 import '../widgets/brand_logo.dart';
 import '../widgets/tap_scale.dart';
 
@@ -90,6 +91,26 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         false;
     pinController.dispose();
     return isValid;
+  }
+
+  Future<AppUser> _resolveOperationsProfile(
+    AuthProvider authProvider,
+    AppUser fallback,
+  ) async {
+    var resolved = fallback;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final refreshed = await authProvider.refreshProfileFromBackendIfPossible();
+      if (refreshed != null) {
+        resolved = refreshed;
+      }
+      if (canAccessOperationsMode(resolved)) {
+        return resolved;
+      }
+      if (attempt < 2) {
+        await Future<void>.delayed(const Duration(milliseconds: 700));
+      }
+    }
+    return resolved;
   }
 
   @override
@@ -235,13 +256,38 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         _triggerOtpErrorFeedback();
         return;
       }
-      final restriction = widget.adminEntry ? null : accessRestrictionMessage(user, widget.mode);
+      var resolvedUser =
+          await authProvider.refreshProfileFromBackendIfPossible() ?? user;
+      if (!widget.adminEntry && widget.mode == AbzioAppMode.operations) {
+        resolvedUser = await _resolveOperationsProfile(authProvider, resolvedUser);
+      }
+      final restriction = widget.adminEntry
+          ? null
+          : accessRestrictionMessage(resolvedUser, widget.mode);
       final adminRestriction =
-          widget.adminEntry && user.role != 'admin' && user.role != 'super_admin'
+          widget.adminEntry &&
+                  resolvedUser.role != 'admin' &&
+                  resolvedUser.role != 'super_admin'
               ? 'This OTP entry is reserved for super admin access.'
               : null;
       final combinedRestriction = adminRestriction ?? restriction;
       if (combinedRestriction != null) {
+        if (!widget.adminEntry && widget.mode == AbzioAppMode.operations) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text(
+                'Profile sync is taking longer than expected. Opening operations workspace...',
+              ),
+            ),
+          );
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/ops',
+            (route) => false,
+          );
+          return;
+        }
         await authProvider.logout();
         if (!mounted) {
           return;
@@ -255,7 +301,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         Navigator.pushNamedAndRemoveUntil(context, widget.adminEntry ? '/admin-login' : '/login', (route) => false);
         return;
       }
-      final adminPinOk = await _verifyAdminPinIfRequired(user);
+      final adminPinOk = await _verifyAdminPinIfRequired(resolvedUser);
       if (!mounted) {
         return;
       }
@@ -279,14 +325,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       }
       Navigator.pushNamedAndRemoveUntil(
         context,
-        routeForUserInMode(user, widget.mode),
+        routeForUserInMode(resolvedUser, widget.mode),
         (route) => false,
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      final message = error.toString().replaceFirst('Bad state: ', '').trim();
+      final message = AppErrorText.from(error).trim();
       setState(() {
         _inlineError = message.isEmpty ? 'Invalid OTP. Try again.' : message;
       });
@@ -334,7 +380,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       if (!mounted) {
         return;
       }
-      final message = error.toString().replaceFirst('Bad state: ', '').trim();
+      final message = AppErrorText.from(error).trim();
       setState(() {
         _inlineError = message.isEmpty ? 'Unable to resend OTP right now' : message;
       });

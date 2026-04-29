@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/image_url_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 
 class AddProductScreen extends StatefulWidget {
   final String storeId;
@@ -33,6 +34,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _stockController = TextEditingController();
   final _imageUrlsController = TextEditingController();
   final _model3dController = TextEditingController();
+  final _unityAssetBundleUrlController = TextEditingController();
+  final _rigProfileController = TextEditingController();
+  final _materialProfileController = TextEditingController();
   final _subcategoryController = TextEditingController();
   String _selectedCategory = 'MEN';
   bool _isActive = true;
@@ -91,6 +95,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _stockController.text = product.stock.toString();
       _imageUrlsController.text = product.images.join('\n');
       _model3dController.text = product.model3d ?? '';
+      _unityAssetBundleUrlController.text = product.unityAssetBundleUrl ?? '';
+      _rigProfileController.text = product.rigProfile ?? '';
+      _materialProfileController.text = product.materialProfile ?? '';
       _subcategoryController.text = product.subcategory;
       _selectedCategory = product.category;
       _isActive = product.isActive;
@@ -114,6 +121,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _stockController.dispose();
     _imageUrlsController.dispose();
     _model3dController.dispose();
+    _unityAssetBundleUrlController.dispose();
+    _rigProfileController.dispose();
+    _materialProfileController.dispose();
     _subcategoryController.dispose();
     for (final controller in _attributeControllers.values) {
       controller.dispose();
@@ -246,6 +256,41 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     'shirt_001.glb or https://cdn.example.com/models/shirt_001.glb',
                 helperText:
                     'Optional: used for avatar try-on and AR experiences.',
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            _buildLabel('Unity AssetBundle URL'),
+            TextField(
+              controller: _unityAssetBundleUrlController,
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(
+                hintText:
+                    'https://cdn.example.com/unity/female_dress_bundle',
+                helperText:
+                    'Optional: if set with a valid rig profile, this product can open in Unity AR.',
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            _buildLabel('Rig Profile'),
+            TextField(
+              controller: _rigProfileController,
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(
+                hintText:
+                    'female_dress_v1, female_top_v1, male_shirt_v1, unisex_torso_v1',
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            _buildLabel('Material Profile'),
+            TextField(
+              controller: _materialProfileController,
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(
+                hintText:
+                    'cotton_matte, silk_sheen, linen_soft, structured_formal',
               ),
             ),
             const SizedBox(height: 20),
@@ -441,6 +486,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
       model3d: _model3dController.text.trim().isEmpty
           ? null
           : _model3dController.text.trim(),
+      unityAssetBundleUrl: _unityAssetBundleUrlController.text.trim().isEmpty
+          ? null
+          : _unityAssetBundleUrlController.text.trim(),
+      rigProfile: _rigProfileController.text.trim().isEmpty
+          ? null
+          : _rigProfileController.text.trim(),
+      materialProfile: _materialProfileController.text.trim().isEmpty
+          ? null
+          : _materialProfileController.text.trim(),
       attributes: attributes,
       customizations: existing?.customizations ?? const {},
       measurements: existing?.measurements ?? const {},
@@ -487,7 +541,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+          content: Text(AppErrorText.from(error)),
         ),
       );
     } finally {
@@ -535,12 +589,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            error
-                    .toString()
-                    .replaceFirst('Bad state: ', '')
-                    .contains('Cloudinary')
+            AppErrorText.from(error).contains('Cloudinary')
                 ? 'Cloudinary upload is not configured yet. Paste a public image URL instead.'
-                : error.toString().replaceFirst('Bad state: ', ''),
+                : AppErrorText.from(error),
           ),
         ),
       );

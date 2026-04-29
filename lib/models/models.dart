@@ -195,6 +195,7 @@ class Store {
   final String category;
   final String vendorType;
   final CustomVendorProfile customVendorProfile;
+  final Map<String, dynamic> atelierConfig;
   final double vendorScore;
   final int vendorRank;
   final String vendorVisibility;
@@ -226,6 +227,7 @@ class Store {
     this.category = '',
     this.vendorType = 'standard_vendor',
     this.customVendorProfile = const CustomVendorProfile(),
+    this.atelierConfig = const {},
     this.vendorScore = 0,
     this.vendorRank = 0,
     this.vendorVisibility = 'normal',
@@ -258,6 +260,7 @@ class Store {
     'category': category,
     'vendorType': vendorType,
     'customVendorProfile': customVendorProfile.toMap(),
+    'atelierConfig': atelierConfig,
     'vendorScore': vendorScore,
     'vendorRank': vendorRank,
     'vendorVisibility': vendorVisibility,
@@ -298,6 +301,9 @@ class Store {
     customVendorProfile: CustomVendorProfile.fromMap(
       Map<String, dynamic>.from(map['customVendorProfile'] ?? const {}),
     ),
+    atelierConfig: Map<String, dynamic>.from(
+      map['atelierConfig'] ?? const {},
+    ),
     vendorScore: (map['vendorScore'] ?? 0.0).toDouble(),
     vendorRank: map['vendorRank'] ?? 0,
     vendorVisibility: map['vendorVisibility'] ?? 'normal',
@@ -334,6 +340,7 @@ class Store {
     String? category,
     String? vendorType,
     CustomVendorProfile? customVendorProfile,
+    Map<String, dynamic>? atelierConfig,
     double? vendorScore,
     int? vendorRank,
     String? vendorVisibility,
@@ -365,6 +372,7 @@ class Store {
       category: category ?? this.category,
       vendorType: vendorType ?? this.vendorType,
       customVendorProfile: customVendorProfile ?? this.customVendorProfile,
+      atelierConfig: atelierConfig ?? this.atelierConfig,
       vendorScore: vendorScore ?? this.vendorScore,
       vendorRank: vendorRank ?? this.vendorRank,
       vendorVisibility: vendorVisibility ?? this.vendorVisibility,
@@ -879,6 +887,8 @@ class Product {
   final Map<String, String> customizations;
   final Map<String, double> measurements;
   final List<String> addons;
+  final Map<String, dynamic> atelier;
+  final Map<String, dynamic> garmentConfig;
   final String? measurementProfileLabel;
   final DateTime? neededBy;
   final String? tailoringDeliveryMode;
@@ -920,6 +930,8 @@ class Product {
     this.customizations = const {},
     this.measurements = const {},
     this.addons = const [],
+    this.atelier = const {},
+    this.garmentConfig = const {},
     this.measurementProfileLabel,
     this.neededBy,
     this.tailoringDeliveryMode,
@@ -961,6 +973,8 @@ class Product {
     'customizations': customizations,
     'measurements': measurements,
     'addons': addons,
+    'atelier': atelier,
+    'garmentConfig': garmentConfig,
     'measurementProfileLabel': measurementProfileLabel,
     'neededBy': neededBy?.toIso8601String(),
     'tailoringDeliveryMode': tailoringDeliveryMode,
@@ -1044,6 +1058,10 @@ class Product {
       (key, value) => MapEntry(key.toString(), (value as num).toDouble()),
     ),
     addons: List<String>.from(map['addons'] ?? const []),
+    atelier: Map<String, dynamic>.from(map['atelier'] ?? const {}),
+    garmentConfig: Map<String, dynamic>.from(
+      map['garmentConfig'] ?? const {},
+    ),
     measurementProfileLabel: map['measurementProfileLabel'],
     neededBy: map['neededBy'] != null
         ? DateTime.tryParse(map['neededBy'])
@@ -1084,6 +1102,8 @@ class OrderModel {
   final String assignedDeliveryPartner;
   final String invoiceNumber;
   final String orderType;
+  final bool sameDayOrder;
+  final String deliveryPromise;
   final Map<String, String> trackingTimestamps;
   final double? riderLatitude;
   final double? riderLongitude;
@@ -1102,7 +1122,13 @@ class OrderModel {
   final double walletCreditUsed;
   final String fulfillmentType;
   final String customOrderStatus;
+  final String measurementMethod;
+  final String atelierStatus;
   final Map<String, dynamic> customMeasurements;
+  final Map<String, dynamic> atelierCustomization;
+  final double atelierTailoringCharge;
+  final double atelierCustomizationCharge;
+  final double atelierHomeVisitCharge;
   final Map<String, dynamic> customDesignOptions;
   final String referenceImageUrl;
   final String previewImageUrl;
@@ -1148,6 +1174,8 @@ class OrderModel {
     this.assignedDeliveryPartner = 'Unassigned',
     this.invoiceNumber = '',
     this.orderType = 'marketplace',
+    this.sameDayOrder = false,
+    this.deliveryPromise = '',
     this.trackingTimestamps = const {},
     this.riderLatitude,
     this.riderLongitude,
@@ -1166,7 +1194,13 @@ class OrderModel {
     this.walletCreditUsed = 0,
     this.fulfillmentType = 'marketplace',
     this.customOrderStatus = 'none',
+    this.measurementMethod = '',
+    this.atelierStatus = 'none',
     this.customMeasurements = const {},
+    this.atelierCustomization = const {},
+    this.atelierTailoringCharge = 0,
+    this.atelierCustomizationCharge = 0,
+    this.atelierHomeVisitCharge = 0,
     this.customDesignOptions = const {},
     this.referenceImageUrl = '',
     this.previewImageUrl = '',
@@ -1212,6 +1246,8 @@ class OrderModel {
     'assignedDeliveryPartner': assignedDeliveryPartner,
     'invoiceNumber': invoiceNumber,
     'orderType': orderType,
+    'sameDayOrder': sameDayOrder,
+    'deliveryPromise': deliveryPromise,
     'trackingTimestamps': trackingTimestamps,
     'riderLatitude': riderLatitude,
     'riderLongitude': riderLongitude,
@@ -1230,7 +1266,13 @@ class OrderModel {
     'walletCreditUsed': walletCreditUsed,
     'fulfillmentType': fulfillmentType,
     'customOrderStatus': customOrderStatus,
+    'measurementMethod': measurementMethod,
+    'atelierStatus': atelierStatus,
     'customMeasurements': customMeasurements,
+    'atelierCustomization': atelierCustomization,
+    'atelierTailoringCharge': atelierTailoringCharge,
+    'atelierCustomizationCharge': atelierCustomizationCharge,
+    'atelierHomeVisitCharge': atelierHomeVisitCharge,
     'customDesignOptions': customDesignOptions,
     'referenceImageUrl': referenceImageUrl,
     'previewImageUrl': previewImageUrl,
@@ -1282,6 +1324,8 @@ class OrderModel {
         assignedDeliveryPartner: map['assignedDeliveryPartner'] ?? 'Unassigned',
         invoiceNumber: map['invoiceNumber'] ?? '',
         orderType: map['orderType'] ?? 'marketplace',
+        sameDayOrder: map['sameDayOrder'] == true,
+        deliveryPromise: map['deliveryPromise']?.toString() ?? '',
         trackingTimestamps: Map<String, String>.from(
           map['trackingTimestamps'] ?? const {},
         ),
@@ -1306,9 +1350,20 @@ class OrderModel {
         walletCreditUsed: ((map['walletCreditUsed'] ?? 0) as num).toDouble(),
         fulfillmentType: map['fulfillmentType'] ?? 'marketplace',
         customOrderStatus: map['customOrderStatus'] ?? 'none',
+        measurementMethod: map['measurementMethod'] ?? '',
+        atelierStatus: map['atelierStatus'] ?? 'none',
         customMeasurements: Map<String, dynamic>.from(
           map['customMeasurements'] ?? const {},
         ),
+        atelierCustomization: Map<String, dynamic>.from(
+          map['atelierCustomization'] ?? const {},
+        ),
+        atelierTailoringCharge:
+            ((map['atelierTailoringCharge'] ?? 0) as num).toDouble(),
+        atelierCustomizationCharge:
+            ((map['atelierCustomizationCharge'] ?? 0) as num).toDouble(),
+        atelierHomeVisitCharge:
+            ((map['atelierHomeVisitCharge'] ?? 0) as num).toDouble(),
         customDesignOptions: Map<String, dynamic>.from(
           map['customDesignOptions'] ?? const {},
         ),
@@ -4140,12 +4195,33 @@ class RiderAnalytics {
   });
 }
 
+enum ProductSortOption {
+  relevance,
+  priceLowToHigh,
+  priceHighToLow,
+  newest,
+  popularity,
+  sameDayPriority,
+}
+
 class SearchFilter {
   final String query;
   final RangeValues priceRange;
   final String category;
   final String occasion;
   final String storeId;
+  final String gender;
+  final String size;
+  final String color;
+  final String brand;
+  final bool sameDayAvailable;
+  final bool tryAtHomeAvailable;
+  final bool customizable;
+  final String deliveryTime;
+  final String fitConfidence;
+  final String returnRisk;
+  final double minRating;
+  final ProductSortOption sort;
 
   const SearchFilter({
     this.query = '',
@@ -4153,6 +4229,18 @@ class SearchFilter {
     this.category = 'All',
     this.occasion = 'All',
     this.storeId = 'All',
+    this.gender = 'All',
+    this.size = 'All',
+    this.color = 'All',
+    this.brand = 'All',
+    this.sameDayAvailable = false,
+    this.tryAtHomeAvailable = false,
+    this.customizable = false,
+    this.deliveryTime = 'All',
+    this.fitConfidence = 'All',
+    this.returnRisk = 'All',
+    this.minRating = 0,
+    this.sort = ProductSortOption.relevance,
   });
 
   SearchFilter copyWith({
@@ -4161,6 +4249,18 @@ class SearchFilter {
     String? category,
     String? occasion,
     String? storeId,
+    String? gender,
+    String? size,
+    String? color,
+    String? brand,
+    bool? sameDayAvailable,
+    bool? tryAtHomeAvailable,
+    bool? customizable,
+    String? deliveryTime,
+    String? fitConfidence,
+    String? returnRisk,
+    double? minRating,
+    ProductSortOption? sort,
   }) {
     return SearchFilter(
       query: query ?? this.query,
@@ -4168,7 +4268,71 @@ class SearchFilter {
       category: category ?? this.category,
       occasion: occasion ?? this.occasion,
       storeId: storeId ?? this.storeId,
+      gender: gender ?? this.gender,
+      size: size ?? this.size,
+      color: color ?? this.color,
+      brand: brand ?? this.brand,
+      sameDayAvailable: sameDayAvailable ?? this.sameDayAvailable,
+      tryAtHomeAvailable: tryAtHomeAvailable ?? this.tryAtHomeAvailable,
+      customizable: customizable ?? this.customizable,
+      deliveryTime: deliveryTime ?? this.deliveryTime,
+      fitConfidence: fitConfidence ?? this.fitConfidence,
+      returnRisk: returnRisk ?? this.returnRisk,
+      minRating: minRating ?? this.minRating,
+      sort: sort ?? this.sort,
     );
+  }
+
+  int get selectedFiltersCount {
+    var count = 0;
+    if (category != 'All') count += 1;
+    if (storeId != 'All') count += 1;
+    if (gender != 'All') count += 1;
+    if (size != 'All') count += 1;
+    if (color != 'All') count += 1;
+    if (brand != 'All') count += 1;
+    if (sameDayAvailable) count += 1;
+    if (tryAtHomeAvailable) count += 1;
+    if (customizable) count += 1;
+    if (deliveryTime != 'All') count += 1;
+    if (fitConfidence != 'All') count += 1;
+    if (returnRisk != 'All') count += 1;
+    if (minRating > 0) count += 1;
+    if (priceRange.start > 0 || priceRange.end < 10000) count += 1;
+    return count;
+  }
+
+  Map<String, String> toBackendQuery({
+    int? page,
+    int? limit,
+  }) {
+    final query = <String, String>{};
+    if (category != 'All') query['category'] = category;
+    if (storeId != 'All') query['storeId'] = storeId;
+    if (gender != 'All') query['gender'] = gender;
+    if (size != 'All') query['size'] = size;
+    if (color != 'All') query['color'] = color;
+    if (brand != 'All') query['brand'] = brand;
+    if (sameDayAvailable) query['sameDayAvailable'] = 'true';
+    if (tryAtHomeAvailable) query['tryAtHomeAvailable'] = 'true';
+    if (customizable) query['customizable'] = 'true';
+    if (deliveryTime != 'All') query['deliveryTime'] = deliveryTime;
+    if (fitConfidence != 'All') query['fitConfidence'] = fitConfidence;
+    if (returnRisk != 'All') query['returnRisk'] = returnRisk;
+    if (minRating > 0) query['rating'] = minRating.toStringAsFixed(1);
+    query['minPrice'] = priceRange.start.round().toString();
+    query['maxPrice'] = priceRange.end.round().toString();
+    query['sort'] = switch (sort) {
+      ProductSortOption.relevance => 'relevance',
+      ProductSortOption.priceLowToHigh => 'price_low_to_high',
+      ProductSortOption.priceHighToLow => 'price_high_to_low',
+      ProductSortOption.newest => 'newest',
+      ProductSortOption.popularity => 'popularity',
+      ProductSortOption.sameDayPriority => 'same_day_priority',
+    };
+    if (page != null && page > 0) query['page'] = '$page';
+    if (limit != null && limit > 0) query['limit'] = '$limit';
+    return query;
   }
 }
 

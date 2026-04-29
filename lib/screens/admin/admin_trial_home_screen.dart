@@ -5,6 +5,7 @@ import '../../models/trial_session.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 
 class AdminTrialHomeScreen extends StatefulWidget {
   const AdminTrialHomeScreen({super.key});
@@ -48,7 +49,7 @@ class _AdminTrialHomeScreenState extends State<AdminTrialHomeScreen> {
       if (!mounted) {
         return;
       }
-      setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
+      setState(() => _error = AppErrorText.from(error));
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -86,7 +87,7 @@ class _AdminTrialHomeScreenState extends State<AdminTrialHomeScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+        SnackBar(content: Text(AppErrorText.from(error))),
       );
     }
   }

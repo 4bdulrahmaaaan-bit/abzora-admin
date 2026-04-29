@@ -5,7 +5,11 @@
   "scripts": {
     "test:rtdb-rules": "node --test test/rtdb_rules.test.mjs",
     "test:rtdb-rules:emulator": "firebase emulators:exec --only database \"npm run test:rtdb-rules\"",
-    "logs:archive": "node scripts/archive_old_logs.mjs"
+    "logs:archive": "node scripts/archive_old_logs.mjs",
+    "release:backend": "node scripts/release_backend.mjs",
+    "release:admin": "node scripts/release_admin_next.mjs",
+    "release:ar-assets": "node scripts/release_validate_ar_assets.mjs",
+    "release:all": "node scripts/release_all.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",

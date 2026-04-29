@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Color
 import android.view.View
 import android.widget.FrameLayout
-import com.google.ar.core.ArCoreApk
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
@@ -101,7 +100,12 @@ class RealTimeArTryOnPlugin(
 
     private fun isArCoreSupported(): Boolean {
         return try {
-            ArCoreApk.getInstance().checkAvailability(context).isSupported
+            val packageManager = context.packageManager
+            packageManager.hasSystemFeature("android.hardware.camera.ar") ||
+                runCatching {
+                    packageManager.getPackageInfo("com.google.ar.core", 0)
+                    true
+                }.getOrDefault(false)
         } catch (_: Throwable) {
             false
         }

@@ -15,17 +15,21 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/wishlist_provider.dart';
+import '../../models/abzora_unity_try_on_payload.dart';
+import '../../models/ar_try_on_models.dart';
+import '../../services/backend_commerce_service.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 import '../../utils/soft_auth_gate.dart';
 import '../../widgets/animated_wishlist_button.dart';
 import '../../widgets/product_card.dart';
 import '../../widgets/tap_scale.dart';
 import '../../widgets/state_views.dart';
 import 'ai_stylist_screen.dart';
+import 'abzora_ar_screen.dart';
 import 'avatar_try_on_screen.dart';
 import 'live_ar_try_on_screen.dart';
-import 'order_success_screen.dart';
 import 'trial_booking_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -42,6 +46,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   static final Map<String, Color> _accentColorCache = <String, Color>{};
 
   final _db = DatabaseService();
+  final _backendCommerce = BackendCommerceService();
   final _picker = ImagePicker();
   String? _selectedSize;
   bool _descriptionExpanded = false;
@@ -69,7 +74,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   @override
   void initState() {
     super.initState();
-    _experienceSessionId = 'pdp-${DateTime.now().millisecondsSinceEpoch}-${widget.product.id}';
+    _experienceSessionId =
+        'pdp-${DateTime.now().millisecondsSinceEpoch}-${widget.product.id}';
     _imageController = PageController();
     _cartFlightController = AnimationController(
       vsync: this,
@@ -81,15 +87,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     );
     _cartPulseScale = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1, end: 1.16).chain(
-          CurveTween(curve: Curves.easeOutCubic),
-        ),
+        tween: Tween<double>(
+          begin: 1,
+          end: 1.16,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
         weight: 50,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.16, end: 1).chain(
-          CurveTween(curve: Curves.easeOutBack),
-        ),
+        tween: Tween<double>(
+          begin: 1.16,
+          end: 1,
+        ).chain(CurveTween(curve: Curves.easeOutBack)),
         weight: 50,
       ),
     ]).animate(_cartPulseController);
@@ -162,7 +170,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final auth = context.read<AuthProvider>();
     final user = auth.user;
     final product = _product;
-    final localDecision = _resolveLocalCtaDecision(user: user, product: product);
+    final localDecision = _resolveLocalCtaDecision(
+      user: user,
+      product: product,
+    );
     try {
       final payload = await _db.getCtaDecision(
         productId: product.id,
@@ -180,9 +191,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         _ctaDecisionType = payload['type']?.toString().trim().isNotEmpty == true
             ? payload['type'].toString().trim()
             : localDecision.type;
-        _decisionFitConfidence = (payload['fitConfidence'] as num?)?.toInt() ??
+        _decisionFitConfidence =
+            (payload['fitConfidence'] as num?)?.toInt() ??
             localDecision.fitConfidence;
-        _experienceDecisionId = payload['decisionId']?.toString() ?? _experienceDecisionId;
+        _experienceDecisionId =
+            payload['decisionId']?.toString() ?? _experienceDecisionId;
       });
       if (!_ctaShownTracked) {
         _ctaShownTracked = true;
@@ -203,17 +216,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     }
   }
 
-
   Product get _product => _resolvedProduct ?? widget.product;
 
   _DetailPricing get _pricing => _DetailPricing.fromProduct(_product);
 
   Color _heroAccentColor(Product product, List<String> images) {
-    final seed = '${product.category}|${images.isEmpty ? product.id : images.first}';
+    final seed =
+        '${product.category}|${images.isEmpty ? product.id : images.first}';
     final hue = (seed.hashCode.abs() % 360).toDouble();
     return HSVColor.fromAHSV(1, hue, 0.48, 0.82).toColor();
   }
-
 
   String _heroTagFor(Product product, int index) =>
       'product-hero-${product.id}-$index';
@@ -281,8 +293,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           final pixelRed = pixels[index];
           final pixelGreen = pixels[index + 1];
           final pixelBlue = pixels[index + 2];
-          final brightness =
-              (pixelRed + pixelGreen + pixelBlue) / (3 * 255.0);
+          final brightness = (pixelRed + pixelGreen + pixelBlue) / (3 * 255.0);
           if (brightness < 0.1 || brightness > 0.96) {
             continue;
           }
@@ -315,7 +326,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
   Future<void> _openReviewSheet([ReviewModel? existing]) async {
     final auth = context.read<AuthProvider>();
-    final commentController = TextEditingController(text: existing?.comment ?? '');
+    final commentController = TextEditingController(
+      text: existing?.comment ?? '',
+    );
     double rating = existing?.rating ?? 5;
     String? imagePath = existing?.imagePath;
 
@@ -324,12 +337,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       isScrollControlled: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.fromLTRB(16, 20, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            20,
+            16,
+            MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(existing == null ? 'Write Review' : 'Edit Review', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                existing == null ? 'Write Review' : 'Edit Review',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 16),
               Text('Rating: ${rating.toStringAsFixed(1)}'),
               Slider(
@@ -339,13 +360,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 divisions: 8,
                 onChanged: (value) => setModalState(() => rating = value),
               ),
-              TextField(controller: commentController, maxLines: 4, decoration: const InputDecoration(hintText: 'Tell others what stood out')),
+              TextField(
+                controller: commentController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  hintText: 'Tell others what stood out',
+                ),
+              ),
               const SizedBox(height: 12),
               Row(
                 children: [
                   OutlinedButton.icon(
                     onPressed: () async {
-                      final file = await _picker.pickImage(source: ImageSource.gallery);
+                      final file = await _picker.pickImage(
+                        source: ImageSource.gallery,
+                      );
                       if (file != null) {
                         setModalState(() => imagePath = file.path);
                       }
@@ -354,31 +383,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     label: const Text('ADD IMAGE'),
                   ),
                   const SizedBox(width: 12),
-                  if (imagePath != null) Expanded(child: Text(File(imagePath!).uri.pathSegments.last, overflow: TextOverflow.ellipsis)),
+                  if (imagePath != null)
+                    Expanded(
+                      child: Text(
+                        File(imagePath!).uri.pathSegments.last,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final currentUser = auth.user;
-                      if (currentUser == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            behavior: SnackBarBehavior.floating,
-                            content: Text('Sign in to leave a review.'),
-                          ),
-                        );
-                        return;
-                      }
-                      final review = ReviewModel(
-                        id: existing?.id ?? '',
-                        userId: currentUser.id,
-                        userName: currentUser.name,
-                        targetId: widget.product.id,
-                        targetType: 'product',
-                        rating: rating,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final currentUser = auth.user;
+                    if (currentUser == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          behavior: SnackBarBehavior.floating,
+                          content: Text('Sign in to leave a review.'),
+                        ),
+                      );
+                      return;
+                    }
+                    final review = ReviewModel(
+                      id: existing?.id ?? '',
+                      userId: currentUser.id,
+                      userName: currentUser.name,
+                      targetId: widget.product.id,
+                      targetType: 'product',
+                      rating: rating,
                       comment: commentController.text.trim(),
                       imagePath: imagePath,
                       createdAt: DateTime.now(),
@@ -390,7 +425,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             behavior: SnackBarBehavior.floating,
-                            content: Text(error.toString().replaceFirst('Bad state: ', '')),
+                            content: Text(AppErrorText.from(error)),
                           ),
                         );
                       }
@@ -423,7 +458,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: Text(error.toString().replaceFirst('Bad state: ', '')),
+            content: Text(AppErrorText.from(error)),
           ),
         );
       }
@@ -487,11 +522,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     required Product product,
   }) {
     final productType = _isComplexFitProduct(product) ? 'complex' : 'simple';
-    final locationSpeed = _sameDayCity(context.read<AuthProvider>()) == 'your city'
+    final locationSpeed =
+        _sameDayCity(context.read<AuthProvider>()) == 'your city'
         ? 'normal'
         : 'same_day';
     final userType = user == null ? 'new' : 'repeat';
-    final fitConfidence = _recommendedFitConfidence(product, userType: userType);
+    final fitConfidence = _recommendedFitConfidence(
+      product,
+      userType: userType,
+    );
     const returnHistory = 12.0;
 
     if (fitConfidence >= 85 && locationSpeed == 'same_day') {
@@ -565,7 +604,46 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       cta: 'BUY_NOW',
       metadata: {'decisionType': _ctaDecisionType},
     );
-    await _openQuickCheckoutSheet(product);
+    if (!mounted) {
+      return;
+    }
+    final selectedSize = (_selectedSize ?? '').trim();
+    if (selectedSize.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Select your size first to continue.')),
+        );
+      }
+      return;
+    }
+
+    final cart = context.read<CartProvider>();
+    final result = cart.addToCart(product, selectedSize);
+    if (result == CartAddResult.storeConflict) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Your bag already contains products from another store.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result == CartAddResult.updated
+                ? '${product.name} quantity updated in your bag.'
+                : '${product.name} added to your bag.',
+          ),
+        ),
+      );
+      Navigator.pushNamed(context, '/cart');
+    }
   }
 
   Future<void> _handleTryHomeTap(Product product) async {
@@ -577,328 +655,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     await _openPerfectFitExperience(product);
   }
 
-  Future<void> _openQuickCheckoutSheet(Product product) async {
-    final auth = context.read<AuthProvider>();
-    unawaited(_trackExperienceEvent('checkout_start', cta: 'BUY_NOW'));
-    final allowed = await SoftAuthGate.ensureAuthenticated(
-      context,
-      intentLabel: 'Quick checkout',
-      promptStyle: AuthPromptStyle.softSheet,
-    );
-    if (!allowed || !mounted) {
-      return;
-    }
-    if (_selectedSize == null || _selectedSize!.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select your size first to continue.')),
-      );
-      return;
-    }
-    final user = auth.user;
-    if (user == null) {
-      return;
-    }
-
-    final defaultAddress = [
-      (user.address ?? '').trim(),
-      (user.city ?? '').trim(),
-    ].where((part) => part.isNotEmpty).join(', ').trim();
-    final addressController = TextEditingController(
-      text: defaultAddress.isEmpty ? 'Add your address' : defaultAddress,
-    );
-    var selectedPayment = 'COD';
-    var editingAddress = false;
-    var placingOrder = false;
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            final media = MediaQuery.of(context);
-            final currentAddress = addressController.text.trim();
-            return SafeArea(
-              top: false,
-              child: Container(
-                margin: EdgeInsets.only(bottom: media.viewInsets.bottom),
-                padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFDFBF7),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 44,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD7CEBF),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Quick Checkout',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Arrives today',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: const Color(0xFF7F651F),
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 14),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE9DFCE)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                'Address',
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                              ),
-                              const Spacer(),
-                              TextButton(
-                                onPressed: () => setSheetState(() => editingAddress = !editingAddress),
-                                child: Text(editingAddress ? 'Done' : 'Edit'),
-                              ),
-                            ],
-                          ),
-                          if (editingAddress)
-                            TextField(
-                              controller: addressController,
-                              maxLines: 2,
-                              decoration: const InputDecoration(
-                                hintText: 'Flat, area, city',
-                              ),
-                            )
-                          else
-                            Text(
-                              currentAddress.isEmpty ? 'Add your address' : currentAddress,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE9DFCE)),
-                      ),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: SizedBox(
-                              width: 48,
-                              height: 58,
-                              child: AbzioNetworkImage(
-                                imageUrl: product.images.isNotEmpty ? product.images.first : '',
-                                fallbackLabel: product.name,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  product.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Size ${_selectedSize!.toUpperCase()}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            _pricing.currentLabel,
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Cash on Delivery'),
-                          selected: selectedPayment == 'COD',
-                          onSelected: (_) => setSheetState(() => selectedPayment = 'COD'),
-                        ),
-                        ChoiceChip(
-                          label: const Text('UPI'),
-                          selected: selectedPayment == 'UPI',
-                          onSelected: (_) => setSheetState(() => selectedPayment = 'UPI'),
-                        ),
-                        ChoiceChip(
-                          label: const Text('Cards'),
-                          selected: selectedPayment == 'CARDS',
-                          onSelected: (_) => setSheetState(() => selectedPayment = 'CARDS'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: placingOrder
-                            ? null
-                            : () async {
-                                final shippingAddress = addressController.text.trim();
-                                final messenger = ScaffoldMessenger.of(context);
-                                final rootNavigator = Navigator.of(context);
-                                final sheetNavigator = Navigator.of(sheetContext);
-                                if (shippingAddress.isEmpty || shippingAddress == 'Add your address') {
-                                  messenger.showSnackBar(
-                                    const SnackBar(content: Text('Please add your address.')),
-                                  );
-                                  return;
-                                }
-                                setSheetState(() => placingOrder = true);
-                                try {
-                                  if (selectedPayment != 'COD') {
-                                    if (mounted) {
-                                      if (sheetNavigator.canPop()) {
-                                        sheetNavigator.pop();
-                                      }
-                                      rootNavigator.pushNamed('/checkout');
-                                    }
-                                    return;
-                                  }
-                                  final order = await _db.quickCheckoutOrder(
-                                    productId: product.id,
-                                    size: _selectedSize ?? '',
-                                    quantity: 1,
-                                    paymentMethod: 'COD',
-                                    actor: user,
-                                    shippingAddress: {
-                                      'name': user.name.trim().isEmpty ? 'ABZORA Member' : user.name.trim(),
-                                      'phone': (user.phone ?? '').trim(),
-                                      'addressLine1': shippingAddress,
-                                      'addressLine2': '',
-                                      'city': (user.city ?? '').trim(),
-                                      'state': '',
-                                      'pincode': '',
-                                    },
-                                  );
-                                  if (!mounted) {
-                                    return;
-                                  }
-                                  if (sheetNavigator.canPop()) {
-                                    sheetNavigator.pop();
-                                  }
-                                  unawaited(
-                                    _trackExperienceEvent(
-                                      'purchase',
-                                      cta: 'BUY_NOW',
-                                      metadata: {
-                                        'orderId': order.id,
-                                        'paymentMethod': 'COD',
-                                      },
-                                    ),
-                                  );
-                                  await rootNavigator.push(
-                                    MaterialPageRoute(
-                                      builder: (_) => OrderSuccessScreen(
-                                        orderId: order.id,
-                                        estimatedDelivery: DateTime.now().add(const Duration(hours: 8)),
-                                        paymentMethod: 'COD',
-                                      ),
-                                    ),
-                                  );
-                                } catch (error) {
-                                  if (mounted) {
-                                    messenger.showSnackBar(
-                                      SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
-                                    );
-                                  }
-                                } finally {
-                                  if (mounted) {
-                                    setSheetState(() => placingOrder = false);
-                                  }
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFC6A769),
-                          foregroundColor: const Color(0xFF16120D),
-                          minimumSize: const Size.fromHeight(50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        child: placingOrder
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text(
-                                '⚡ Confirm & get it today',
-                                style: TextStyle(fontWeight: FontWeight.w800),
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-    addressController.dispose();
-  }
-
   Future<void> _openPerfectFitExperience(Product product) async {
     unawaited(_trackExperienceEvent('trial_request', cta: 'TRY_HOME'));
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Start Try at Home',
-      message:
-          'Sign in to schedule your try-at-home slot and save your fit preferences.',
+      trigger: AuthPromptTrigger.tryOn,
+      productId: product.id,
+      productPreview: AuthPromptProductPreview(
+        name: product.name,
+        imageUrl: product.images.isEmpty ? null : product.images.first,
+      ),
       promptStyle: AuthPromptStyle.softSheet,
     );
     if (!allowed || !mounted) {
       return;
     }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text('Try-On Ready'),
+        duration: Duration(milliseconds: 1200),
+      ),
+    );
     final address = _resolveDeliverySummary(context.read<AuthProvider>());
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -932,15 +711,170 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     );
   }
 
-
   Future<void> _openLiveTryOn(Product product, Color accentColor) async {
+    var usingFallbackTryOn = false;
+    if (_backendCommerce.isConfigured) {
+      try {
+        final metadata = await _backendCommerce.getTryOnProductMetadata(product.id);
+        if (!mounted) return;
+
+        if (_hasUsableUnityGarmentAsset(metadata)) {
+          final payload = _buildAbzoraUnityPayload(metadata);
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AbzoraArScreen(
+                payload: payload,
+                onError: (message) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(message)),
+                  );
+                },
+              ),
+            ),
+          );
+          return;
+        }
+        usingFallbackTryOn = true;
+      } catch (_) {
+        // Fall back to existing in-app AR try-on if Unity flow is unavailable.
+        usingFallbackTryOn = true;
+      }
+    }
+
+    if (!mounted) return;
+    if (usingFallbackTryOn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Opening Try Live in compatibility mode for this product.'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            LiveArTryOnScreen(product: product, accentColor: accentColor),
+        builder: (_) => LiveArTryOnScreen(
+          product: product,
+          accentColor: accentColor,
+          heroImageTag: _heroTagFor(product, _imageIndex),
+          entryImageUrl: product.images.isEmpty
+              ? null
+              : product.images[_imageIndex.clamp(0, product.images.length - 1)],
+        ),
       ),
     );
+  }
+
+  AbzoraUnityTryOnPayload _buildAbzoraUnityPayload(
+    ArTryOnProductMetadata metadata,
+  ) {
+    final resolvedModelUrl = _resolveUnityModelUrl(metadata);
+    final resolvedBundleUrl = _resolveUnityBundleUrl(metadata);
+    final resolvedRigProfile = _resolveUnityRigProfile(metadata);
+    final resolvedMaterialProfile = _resolveUnityMaterialProfile(metadata);
+    return AbzoraUnityTryOnPayload(
+      productId: metadata.id,
+      name: metadata.name,
+      category: metadata.category,
+      templateId: metadata.templateId,
+      template: metadata.templateData,
+      garmentConfig: metadata.garmentConfig,
+      alignmentConfig: metadata.alignmentConfig,
+      model3dUrl: resolvedModelUrl,
+      unityAssetBundleUrl: resolvedBundleUrl,
+      rigProfile: resolvedRigProfile,
+      materialProfile: resolvedMaterialProfile,
+      overlayAssetUrl: metadata.overlayAssetUrl,
+      measurements: const <String, double>{},
+    );
+  }
+
+  bool _hasUsableUnityGarmentAsset(ArTryOnProductMetadata metadata) {
+    return _resolveUnityBundleUrl(metadata).isNotEmpty ||
+        _resolveUnityModelUrl(metadata).isNotEmpty;
+  }
+
+  String _resolveUnityModelUrl(ArTryOnProductMetadata metadata) {
+    return _firstNonBlankString(<Object?>[
+      metadata.model3dUrl,
+      metadata.arAsset['model3d'],
+      metadata.arAsset['model3dUrl'],
+      metadata.arAsset['modelUrl'],
+      metadata.arAsset['glbUrl'],
+      metadata.arAsset['gltfUrl'],
+      metadata.templateData['model3d'],
+      metadata.templateData['model3dUrl'],
+      metadata.garmentConfig['model3d'],
+      metadata.garmentConfig['model3dUrl'],
+      metadata.lodModels['lod0'],
+      metadata.lodModels['high'],
+      metadata.lodModels['medium'],
+      metadata.lodModels['default'],
+      _mapValue(metadata.templateData['modelUrls'], 'lod0'),
+      _mapValue(metadata.templateData['modelUrls'], 'glb'),
+      _mapValue(metadata.templateData['modelUrls'], 'gltf'),
+      _mapValue(metadata.templateData['modelUrls'], 'default'),
+      _mapValue(metadata.garmentConfig['modelUrls'], 'lod0'),
+      _mapValue(metadata.garmentConfig['modelUrls'], 'glb'),
+      _mapValue(metadata.garmentConfig['modelUrls'], 'gltf'),
+      _mapValue(metadata.garmentConfig['modelUrls'], 'default'),
+    ]);
+  }
+
+  String _resolveUnityBundleUrl(ArTryOnProductMetadata metadata) {
+    return _firstNonBlankString(<Object?>[
+      metadata.unityAssetBundleUrl,
+      metadata.arAsset['unityAssetBundleUrl'],
+      metadata.arAsset['assetBundleUrl'],
+      metadata.arAsset['bundleUrl'],
+      _mapValue(metadata.templateData['unity'], 'assetBundleUrl'),
+      _mapValue(metadata.templateData['unity'], 'bundleUrl'),
+      _mapValue(metadata.templateData['unity'], 'androidBundleUrl'),
+      _mapValue(metadata.garmentConfig['unity'], 'assetBundleUrl'),
+      _mapValue(metadata.garmentConfig['unity'], 'bundleUrl'),
+      _mapValue(metadata.garmentConfig['unity'], 'androidBundleUrl'),
+    ]);
+  }
+
+  String _resolveUnityRigProfile(ArTryOnProductMetadata metadata) {
+    return _firstNonBlankString(<Object?>[
+      metadata.rigProfile,
+      metadata.arAsset['rigProfile'],
+      metadata.templateData['rigProfile'],
+      _mapValue(metadata.templateData['unity'], 'rigProfile'),
+      metadata.garmentConfig['rigProfile'],
+    ]);
+  }
+
+  String _resolveUnityMaterialProfile(ArTryOnProductMetadata metadata) {
+    return _firstNonBlankString(<Object?>[
+      metadata.materialProfile,
+      metadata.arAsset['materialProfile'],
+      metadata.templateData['materialProfile'],
+      _mapValue(metadata.templateData['unity'], 'materialProfile'),
+      metadata.garmentConfig['materialProfile'],
+      metadata.templateData['defaultMaterialProfile'],
+    ]);
+  }
+
+  Object? _mapValue(Object? source, String key) {
+    if (source is Map) {
+      return source[key];
+    }
+    return null;
+  }
+
+  String _firstNonBlankString(List<Object?> candidates) {
+    for (final candidate in candidates) {
+      final value = candidate?.toString().trim() ?? '';
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+    return '';
   }
 
   Future<void> _openAvatarTryOn(Product product, Color accentColor) async {
@@ -1075,6 +1009,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               AnimatedWishlistButton(
                 isSelected: isWishlisted,
                 isLoading: isWishlistPending,
+                usePremiumIntentAnimation: true,
                 size: 38,
                 iconSize: 18,
                 backgroundColor: Colors.transparent,
@@ -1087,10 +1022,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               const SizedBox(width: 2),
               AnimatedBuilder(
                 animation: _cartPulseScale,
-                builder: (context, child) => Transform.scale(
-                  scale: _cartPulseScale.value,
-                  child: child,
-                ),
+                builder: (context, child) =>
+                    Transform.scale(scale: _cartPulseScale.value, child: child),
                 child: _HeroIconButton(
                   key: _cartIconKey,
                   icon: Icons.shopping_bag_outlined,
@@ -1106,7 +1039,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   Widget _buildHeaderSearchBar(BuildContext context, bool isCollapsed) {
-    final bg = isCollapsed ? const Color(0xFFF3F3F3) : Colors.white.withValues(alpha: 0.88);
+    final bg = isCollapsed
+        ? const Color(0xFFF3F3F3)
+        : Colors.white.withValues(alpha: 0.88);
     final fg = isCollapsed ? const Color(0xFF4A4A4A) : const Color(0xFF3E3E3E);
     return Container(
       height: 36,
@@ -1126,10 +1061,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: fg,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
+                color: fg,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -1164,328 +1099,341 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-          if (brandLabel.isNotEmpty)
-            Text(
-              brandLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF777777),
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
-                  ),
-            ),
-          const SizedBox(height: 6),
+        if (brandLabel.isNotEmpty)
           Text(
-            product.name,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontSize: 26,
-                  height: 1.15,
-                  color: const Color(0xFF111111),
+            brandLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF777777),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+        const SizedBox(height: 6),
+        Text(
+          product.name,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontSize: 26,
+            height: 1.15,
+            color: const Color(0xFF111111),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              pricing.currentLabel,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF111111),
+              ),
+            ),
+            const SizedBox(width: 10),
+            if (pricing.originalLabel != null)
+              Text(
+                pricing.originalLabel!,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF9B9B9B),
+                  decoration: TextDecoration.lineThrough,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          shortDescription,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: const Color(0xFF666666),
+            height: 1.45,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF16120D),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                showBuyPriorityMessage
+                    ? '⚡ Delivered today in $sameDayCity'
+                    : '✨ Try 5 styles, pay for what you keep',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFFF2D9A0),
                   fontWeight: FontWeight.w800,
                 ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                pricing.currentLabel,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF111111),
-                    ),
               ),
-              const SizedBox(width: 10),
-              if (pricing.originalLabel != null)
-                Text(
-                  pricing.originalLabel!,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF9B9B9B),
-                        decoration: TextDecoration.lineThrough,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            shortDescription,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF666666),
-                  height: 1.45,
-                ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF16120D),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  showBuyPriorityMessage
-                      ? '⚡ Delivered today in $sameDayCity'
-                      : '✨ Try 5 styles, pay for what you keep',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFFF2D9A0),
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  showBuyPriorityMessage
-                      ? (urgencyHoursLeft > 0
+              const SizedBox(height: 4),
+              Text(
+                showBuyPriorityMessage
+                    ? (urgencyHoursLeft > 0
                           ? 'Order within $urgencyHoursLeft hrs for same-day delivery'
                           : 'Order now for the earliest delivery slot')
-                      : 'Use Try at Home for better fit confidence before instant purchase.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.78),
-                        fontWeight: FontWeight.w600,
-                      ),
+                    : 'Use Try at Home for better fit confidence before instant purchase.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.78),
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Select size',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF111111),
-                  fontWeight: FontWeight.w700,
-                ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Select size',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: const Color(0xFF111111),
+            fontWeight: FontWeight.w700,
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: product.sizes.map((size) {
-              final selected = _selectedSize == size;
-              final soldOut = product.stock <= 0;
-              return ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 64),
-                child: TapScale(
-                  scale: 0.98,
-                  onTap: soldOut ? null : () => setState(() => _selectedSize = size),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOut,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: product.sizes.map((size) {
+            final selected = _selectedSize == size;
+            final soldOut = product.stock <= 0;
+            return ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 64),
+              child: TapScale(
+                scale: 0.98,
+                onTap: soldOut
+                    ? null
+                    : () => setState(() => _selectedSize = size),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: soldOut
+                        ? const Color(0xFFF5F5F5)
+                        : selected
+                        ? const Color(0xFFF7F4ED)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
                       color: soldOut
-                          ? const Color(0xFFF5F5F5)
+                          ? const Color(0xFFE0E0E0)
                           : selected
-                              ? const Color(0xFFF7F4ED)
-                              : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: soldOut
-                            ? const Color(0xFFE0E0E0)
-                            : selected
-                                ? const Color(0xFF111111)
-                                : const Color(0xFFE5E5E5),
-                        width: selected ? 1.5 : 1,
-                      ),
+                          ? const Color(0xFF111111)
+                          : const Color(0xFFE5E5E5),
+                      width: selected ? 1.5 : 1,
                     ),
-                    child: Text(
-                      size,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: soldOut ? const Color(0xFF9B9B9B) : const Color(0xFF111111),
-                        fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                        decoration: soldOut ? TextDecoration.lineThrough : null,
-                      ),
+                  ),
+                  child: Text(
+                    size,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: soldOut
+                          ? const Color(0xFF9B9B9B)
+                          : const Color(0xFF111111),
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                      decoration: soldOut ? TextDecoration.lineThrough : null,
                     ),
                   ),
                 ),
-              );
-            }).toList(),
-          ),
-          if (suggestedSize != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Recommended Size: $suggestedSize (${_decisionFitConfidence.clamp(55, 99)}% match)',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF666666),
-                    fontWeight: FontWeight.w600,
               ),
-            ),
-          ],
-          const SizedBox(height: 18),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9F7F2),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE8E1D6)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Try before you buy',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: const Color(0xFF111111),
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Try before you pay',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF666666),
-                        height: 1.45,
-                      ),
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: const [
-                    _TrustMiniBadge(label: 'Free returns'),
-                    _TrustMiniBadge(label: 'No questions asked'),
-                    _TrustMiniBadge(label: 'AI-selected size'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAF7F0),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Try Experience',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: const Color(0xFF111111),
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: 12),
-                _buildExperienceRow(
-                  icon: Icons.view_in_ar_rounded,
-                  title: 'Try Live (AR)',
-                  onTap: () => _openLiveTryOn(product, accentColor),
-                ),
-                const SizedBox(height: 12),
-                _buildExperienceRow(
-                  icon: Icons.accessibility_new_rounded,
-                  title: 'Try 3D Avatar',
-                  onTap: () => _openAvatarTryOn(product, accentColor),
-                ),
-                const SizedBox(height: 12),
-                _buildExperienceRow(
-                  icon: Icons.auto_awesome_rounded,
-                  title: 'Ask AI Stylist',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AiStylistScreen(
-                        product: product,
-                        initialPrompt: 'How should I style this?',
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Trust',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF111111),
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _buildOutlineChip('Verified Store', icon: Icons.verified_rounded),
-              _buildOutlineChip('Fast Delivery', icon: Icons.local_shipping_outlined),
-              _buildOutlineChip('Secure Payment', icon: Icons.lock_outline_rounded),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Text(
-            'Delivery',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF111111),
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: 10),
-          _buildSimpleBullet(
-            icon: Icons.location_on_outlined,
-            label: deliverySummary,
-          ),
+            );
+          }).toList(),
+        ),
+        if (suggestedSize != null) ...[
           const SizedBox(height: 8),
-          _buildSimpleBullet(
-            icon: Icons.local_shipping_outlined,
-            label: 'Arrives today \u2022 Order within ${urgencyHoursLeft > 0 ? urgencyHoursLeft : 1} hrs',
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Description',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: const Color(0xFF111111),
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              TextButton(
-                onPressed: () => setState(
-                  () => _descriptionExpanded = !_descriptionExpanded,
-                ),
-                child: Text(_descriptionExpanded ? 'Read less' : 'Read more'),
-              ),
-            ],
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-            child: Text(
-              description,
-              maxLines: _descriptionExpanded ? null : 3,
-              overflow: _descriptionExpanded
-                  ? TextOverflow.visible
-                  : TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    height: 1.55,
-                    color: const Color(0xFF666666),
-                  ),
+          Text(
+            'Recommended Size: $suggestedSize (${_decisionFitConfidence.clamp(55, 99)}% match)',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF666666),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
+        const SizedBox(height: 18),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9F7F2),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE8E1D6)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Try before you buy',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: const Color(0xFF111111),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Try before you pay',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF666666),
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: const [
+                  _TrustMiniBadge(label: 'Free returns'),
+                  _TrustMiniBadge(label: 'No questions asked'),
+                  _TrustMiniBadge(label: 'AI-selected size'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFAF7F0),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Try Experience',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: const Color(0xFF111111),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildExperienceRow(
+                icon: Icons.view_in_ar_rounded,
+                title: 'Try Live (AR)',
+                onTap: () => _openLiveTryOn(product, accentColor),
+              ),
+              const SizedBox(height: 12),
+              _buildExperienceRow(
+                icon: Icons.accessibility_new_rounded,
+                title: 'Try 3D Avatar',
+                onTap: () => _openAvatarTryOn(product, accentColor),
+              ),
+              const SizedBox(height: 12),
+              _buildExperienceRow(
+                icon: Icons.auto_awesome_rounded,
+                title: 'Ask AI Stylist',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AiStylistScreen(
+                      product: product,
+                      initialPrompt: 'How should I style this?',
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Trust',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: const Color(0xFF111111),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _buildOutlineChip('Verified Store', icon: Icons.verified_rounded),
+            _buildOutlineChip(
+              'Fast Delivery',
+              icon: Icons.local_shipping_outlined,
+            ),
+            _buildOutlineChip(
+              'Secure Payment',
+              icon: Icons.lock_outline_rounded,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          'Delivery',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: const Color(0xFF111111),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 10),
+        _buildSimpleBullet(
+          icon: Icons.location_on_outlined,
+          label: deliverySummary,
+        ),
+        const SizedBox(height: 8),
+        _buildSimpleBullet(
+          icon: Icons.local_shipping_outlined,
+          label:
+              'Arrives today \u2022 Order within ${urgencyHoursLeft > 0 ? urgencyHoursLeft : 1} hrs',
+        ),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Description',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: const Color(0xFF111111),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            TextButton(
+              onPressed: () =>
+                  setState(() => _descriptionExpanded = !_descriptionExpanded),
+              child: Text(_descriptionExpanded ? 'Read less' : 'Read more'),
+            ),
+          ],
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          child: Text(
+            description,
+            maxLines: _descriptionExpanded ? null : 3,
+            overflow: _descriptionExpanded
+                ? TextOverflow.visible
+                : TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              height: 1.55,
+              color: const Color(0xFF666666),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1516,9 +1464,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF111111),
-                  ),
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF111111),
+              ),
             ),
           ),
           const Icon(
@@ -1549,19 +1497,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF666666),
-                  fontWeight: FontWeight.w600,
-                ),
+              color: const Color(0xFF666666),
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSimpleBullet({
-    required IconData icon,
-    required String label,
-  }) {
+  Widget _buildSimpleBullet({required IconData icon, required String label}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1572,9 +1517,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             label,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF666666),
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF666666)),
           ),
         ),
       ],
@@ -1651,8 +1596,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             padding: EdgeInsets.symmetric(vertical: 24),
             child: AbzioLoadingView(
               title: 'Loading reviews',
-              subtitle:
-                  'Fetching ratings and styling feedback for this piece.',
+              subtitle: 'Fetching ratings and styling feedback for this piece.',
             ),
           )
         else if (_reviews.isEmpty)
@@ -1663,23 +1607,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               children: [
                 Text(
                   'No reviews yet',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Share your experience and help other shoppers decide with confidence.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF666666),
-                      ),
+                    color: const Color(0xFF666666),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextButton(
                   onPressed: () => _openReviewSheet(myReview),
                   style: TextButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
                   ),
                   child: const Text('Be the first to review'),
                 ),
@@ -1691,9 +1637,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             (review) => Container(
               padding: const EdgeInsets.only(top: 12, bottom: 12),
               decoration: const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Color(0xFFEAEAEA)),
-                ),
+                border: Border(bottom: BorderSide(color: Color(0xFFEAEAEA))),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1766,12 +1710,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     );
   }
 
-  Widget _buildBottomActionBar(
-    BuildContext context,
-    Product product,
-  ) {
+  Widget _buildBottomActionBar(BuildContext context, Product product) {
     final cart = context.watch<CartProvider>();
-    final hasSelectedSize = _selectedSize != null && _selectedSize!.trim().isNotEmpty;
+    final hasSelectedSize =
+        _selectedSize != null && _selectedSize!.trim().isNotEmpty;
     final isInCart = cart.items.any((item) => item.product.id == product.id);
     const primaryGold = Color(0xFFC8A96A);
     final canAddToBag = isInCart || hasSelectedSize;
@@ -1804,9 +1746,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
           decoration: BoxDecoration(
             color: Colors.white,
-            border: const Border(
-              top: BorderSide(color: Color(0xFFEAEAEA)),
-            ),
+            border: const Border(top: BorderSide(color: Color(0xFFEAEAEA))),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1826,7 +1766,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                               : showSelectSizeHint,
                           child: Text(
                             'Try at Home',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
                                   color: const Color(0xFF6E5A37),
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -1874,10 +1815,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                       child: TextButton(
                         onPressed: isInCart
                             ? () => _handleBuyNowTap(product)
-                            : (canAddToBag ? () => _handleBuyNowTap(product) : showSelectSizeHint),
+                            : (canAddToBag
+                                  ? () => _handleBuyNowTap(product)
+                                  : showSelectSizeHint),
                         child: Text(
                           'Get it today',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
                                 color: const Color(0xFF6E5A37),
                                 fontWeight: FontWeight.w700,
                               ),
@@ -1920,7 +1864,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                               ? () => _handleTryHomeTap(product)
                               : showSelectSizeHint,
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: primaryGold.withValues(alpha: 0.65)),
+                            side: BorderSide(
+                              color: primaryGold.withValues(alpha: 0.65),
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -1939,7 +1885,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         child: ElevatedButton(
                           onPressed: isInCart
                               ? () => _handleBuyNowTap(product)
-                              : (canAddToBag ? () => _handleBuyNowTap(product) : showSelectSizeHint),
+                              : (canAddToBag
+                                    ? () => _handleBuyNowTap(product)
+                                    : showSelectSizeHint),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryGold,
                             foregroundColor: const Color(0xFF16120D),
@@ -1990,17 +1938,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       builder: (context, child) {
         final progress = _cartFlightController.value;
         final curved = Curves.easeInOutCubic.transform(progress);
-        final current = Offset.lerp(
-          _cartFlightStart,
-          _cartFlightEnd,
-          curved,
-        )!;
+        final current = Offset.lerp(_cartFlightStart, _cartFlightEnd, curved)!;
         final scale = lerpDouble(1, 0.28, curved)!;
-        final opacity = lerpDouble(
-          1,
-          0.0,
-          Curves.easeIn.transform(progress),
-        )!;
+        final opacity = lerpDouble(1, 0.0, Curves.easeIn.transform(progress))!;
         return Positioned(
           left: current.dx,
           top: current.dy,
@@ -2033,12 +1973,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final pricing = _pricing;
     final description = product.description.trim();
     final accentColor = primaryGold;
-    final suggestedSize = _selectedSize ??
+    final suggestedSize =
+        _selectedSize ??
         (product.sizes.contains('M')
             ? 'M'
             : (product.sizes.isNotEmpty
-                ? product.sizes[product.sizes.length ~/ 2]
-                : null));
+                  ? product.sizes[product.sizes.length ~/ 2]
+                  : null));
     final fixedHeaderHeight = MediaQuery.of(context).padding.top + 52;
     final deliverySummary = _resolveDeliverySummary(auth);
     final sameDayCity = _sameDayCity(auth);
@@ -2059,17 +2000,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       child: Scaffold(
         extendBodyBehindAppBar: true,
         backgroundColor: screenBackground,
-        bottomNavigationBar: _buildBottomActionBar(
-          context,
-          product,
-        ),
+        bottomNavigationBar: _buildBottomActionBar(context, product),
         body: Stack(
           children: [
             CustomScrollView(
               slivers: [
-                SliverToBoxAdapter(
-                  child: SizedBox(height: fixedHeaderHeight),
-                ),
+                SliverToBoxAdapter(child: SizedBox(height: fixedHeaderHeight)),
                 _buildHeroSliver(
                   context,
                   product,
@@ -2099,10 +2035,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           accentColor,
                         ),
                         const SizedBox(height: 24),
-                        _buildCompleteTheLookSection(
-                          context,
-                          lookCardWidth,
-                        ),
+                        _buildCompleteTheLookSection(context, lookCardWidth),
                         if (_completeTheLook.isNotEmpty)
                           const SizedBox(height: 24),
                         _buildReviewsSection(context, auth, myReview),
@@ -2135,7 +2068,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   @override
   Widget build(BuildContext context) => _buildFixedScreen(context);
 
-/*
+  /*
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -2267,6 +2200,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                 AnimatedWishlistButton(
                                   isSelected: isWishlisted,
                                   isLoading: isWishlistPending,
+                                  usePremiumIntentAnimation: true,
                                   size: 42,
                                   iconSize: 20,
                                   backgroundColor:
@@ -3321,22 +3255,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Save to wishlist',
+      trigger: AuthPromptTrigger.wishlist,
+      productId: product.id,
+      productPreview: AuthPromptProductPreview(
+        name: product.name,
+        imageUrl: product.images.isEmpty ? null : product.images.first,
+      ),
       promptStyle: AuthPromptStyle.softSheet,
     );
     if (!allowed || !mounted) {
       return;
     }
     try {
+      final wasWishlisted = wishlist.isWishlisted(product.id);
       await wishlist.toggleWishlist(product);
-    } catch (error) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            wasWishlisted ? 'Removed from Wishlist' : 'Added to Wishlist',
+          ),
+          duration: const Duration(milliseconds: 1300),
         ),
       );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     }
   }
 
@@ -3349,8 +3300,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         opaque: true,
         transitionDuration: const Duration(milliseconds: 240),
         reverseTransitionDuration: const Duration(milliseconds: 220),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            FadeTransition(
+        pageBuilder: (context, animation, secondaryAnimation) => FadeTransition(
           opacity: CurvedAnimation(
             parent: animation,
             curve: Curves.easeOutCubic,
@@ -3532,20 +3482,35 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
       intentLabel: 'Save to wishlist',
+      trigger: AuthPromptTrigger.wishlist,
+      productId: product.id,
+      productPreview: AuthPromptProductPreview(
+        name: product.name,
+        imageUrl: product.images.isEmpty ? null : product.images.first,
+      ),
       promptStyle: AuthPromptStyle.softSheet,
     );
     if (!allowed || !mounted) {
       return;
     }
     try {
+      final wasWishlisted = wishlist.isWishlisted(product.id);
       await wishlist.toggleWishlist(product);
-    } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            wasWishlisted ? 'Removed from Wishlist' : 'Added to Wishlist',
+          ),
+          duration: const Duration(milliseconds: 1300),
         ),
       );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     }
   }
 
@@ -3580,8 +3545,7 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
                 itemBuilder: (context, index) {
                   final controller = _controllerFor(index);
                   return GestureDetector(
-                    onDoubleTapDown: (details) =>
-                        _doubleTapDetails = details,
+                    onDoubleTapDown: (details) => _doubleTapDetails = details,
                     onDoubleTap: () => _handleDoubleTap(index),
                     child: InteractiveViewer(
                       transformationController: controller,
@@ -3613,7 +3577,9 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
                             errorWidget: (context, url, error) => Container(
                               color: Colors.black,
                               alignment: Alignment.center,
-                              padding: const EdgeInsets.symmetric(horizontal: 32),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                              ),
                               child: Text(
                                 widget.product.name,
                                 textAlign: TextAlign.center,
@@ -3662,8 +3628,10 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
                 duration: const Duration(milliseconds: 180),
                 opacity: _isZoomed ? 0.6 : 1.0,
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       _ViewerControlButton(
@@ -3675,7 +3643,10 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
                         duration: const Duration(milliseconds: 180),
                         transitionBuilder: (child, animation) => FadeTransition(
                           opacity: animation,
-                          child: ScaleTransition(scale: animation, child: child),
+                          child: ScaleTransition(
+                            scale: animation,
+                            child: child,
+                          ),
                         ),
                         child: Container(
                           key: ValueKey<int>(_currentIndex),
@@ -3708,6 +3679,7 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
                       AnimatedWishlistButton(
                         isSelected: isWishlisted,
                         isLoading: isWishlistPending,
+                        usePremiumIntentAnimation: true,
                         size: 42,
                         iconSize: 20,
                         backgroundColor: Colors.white.withValues(alpha: 0.12),
@@ -3751,8 +3723,9 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
                 child: Center(
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 180),
-                    opacity:
-                        _currentIndex == widget.images.length - 1 ? 0.0 : 1.0,
+                    opacity: _currentIndex == widget.images.length - 1
+                        ? 0.0
+                        : 1.0,
                     child: IgnorePointer(
                       ignoring: _currentIndex == widget.images.length - 1,
                       child: _ViewerControlButton(
@@ -3815,8 +3788,9 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
                                   boxShadow: isSelected
                                       ? [
                                           BoxShadow(
-                                            color: const Color(0xFFC9A74E)
-                                                .withValues(alpha: 0.22),
+                                            color: const Color(
+                                              0xFFC9A74E,
+                                            ).withValues(alpha: 0.22),
                                             blurRadius: 18,
                                             offset: const Offset(0, 8),
                                           ),
@@ -3829,19 +3803,18 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
                                     imageUrl: widget.images[index],
                                     fit: BoxFit.cover,
                                     memCacheWidth: 240,
-                                    placeholder: (context, url) => Container(
-                                      color: Colors.white12,
-                                    ),
+                                    placeholder: (context, url) =>
+                                        Container(color: Colors.white12),
                                     errorWidget: (context, url, error) =>
                                         Container(
-                                      color: Colors.white10,
-                                      alignment: Alignment.center,
-                                      child: const Icon(
-                                        Icons.image_not_supported_outlined,
-                                        color: Colors.white54,
-                                        size: 18,
-                                      ),
-                                    ),
+                                          color: Colors.white10,
+                                          alignment: Alignment.center,
+                                          child: const Icon(
+                                            Icons.image_not_supported_outlined,
+                                            color: Colors.white54,
+                                            size: 18,
+                                          ),
+                                        ),
                                   ),
                                 ),
                               ),
@@ -3919,10 +3892,7 @@ class _HeroIconButton extends StatelessWidget {
 }
 
 class _ViewerControlButton extends StatelessWidget {
-  const _ViewerControlButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _ViewerControlButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -3944,7 +3914,6 @@ class _ViewerControlButton extends StatelessWidget {
     );
   }
 }
-
 
 // ignore: unused_element
 class _TrialAtHomeButton extends StatelessWidget {
@@ -3984,16 +3953,16 @@ class _TrialAtHomeButton extends StatelessWidget {
                   Text(
                     'Try at Home',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Try before you pay � Perfect fit guaranteed',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.78),
-                        ),
+                      color: Colors.white.withValues(alpha: 0.78),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -4001,7 +3970,10 @@ class _TrialAtHomeButton extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       const _TrustMiniBadge(label: 'Free returns', dark: true),
-                      const _TrustMiniBadge(label: 'No questions asked', dark: true),
+                      const _TrustMiniBadge(
+                        label: 'No questions asked',
+                        dark: true,
+                      ),
                       _TrustMiniBadge(
                         label: 'AI-selected size: $recommendedSize',
                         dark: true,
@@ -4012,10 +3984,7 @@ class _TrialAtHomeButton extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            const Icon(
-              Icons.arrow_forward_rounded,
-              color: Color(0xFFC8A96A),
-            ),
+            const Icon(Icons.arrow_forward_rounded, color: Color(0xFFC8A96A)),
           ],
         ),
       ),
@@ -4034,15 +4003,17 @@ class _TrustMiniBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: dark ? Colors.white.withValues(alpha: 0.10) : const Color(0xFFF3E8D2),
+        color: dark
+            ? Colors.white.withValues(alpha: 0.10)
+            : const Color(0xFFF3E8D2),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: dark ? Colors.white : const Color(0xFF6F5226),
-              fontWeight: FontWeight.w700,
-            ),
+          color: dark ? Colors.white : const Color(0xFF6F5226),
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -4066,7 +4037,8 @@ class _PerfectFitExperienceSheet extends StatefulWidget {
       _PerfectFitExperienceSheetState();
 }
 
-class _PerfectFitExperienceSheetState extends State<_PerfectFitExperienceSheet> {
+class _PerfectFitExperienceSheetState
+    extends State<_PerfectFitExperienceSheet> {
   int _step = 0;
   late final List<Product> _selectedItems;
   late final List<Product> _styleSuggestions;
@@ -4102,10 +4074,7 @@ class _PerfectFitExperienceSheetState extends State<_PerfectFitExperienceSheet> 
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFCFAF6),
-              Color(0xFFF7F1E7),
-            ],
+            colors: [Color(0xFFFCFAF6), Color(0xFFF7F1E7)],
           ),
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
@@ -4163,9 +4132,7 @@ class _PerfectFitExperienceSheetState extends State<_PerfectFitExperienceSheet> 
                         children: [
                           Text(
                             'Perfect Fit Experience at Home',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w800,
@@ -4174,9 +4141,7 @@ class _PerfectFitExperienceSheetState extends State<_PerfectFitExperienceSheet> 
                           const SizedBox(height: 8),
                           Text(
                             'Personal stylist, trial room, and tailor brought directly to your door.',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: Colors.white.withValues(alpha: 0.78),
                                   height: 1.45,
@@ -4271,7 +4236,9 @@ class _PerfectFitExperienceSheetState extends State<_PerfectFitExperienceSheet> 
           subtitle: 'Select up to 5 pieces for your Perfect Fit Experience.',
           child: Column(
             children: items.map((product) {
-              final selected = _selectedItems.any((item) => item.id == product.id);
+              final selected = _selectedItems.any(
+                (item) => item.id == product.id,
+              );
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _TrialSelectableCard(
@@ -4316,15 +4283,17 @@ class _PerfectFitExperienceSheetState extends State<_PerfectFitExperienceSheet> 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ...slots.map((slot) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _SelectionRowCard(
-                      title: slot,
-                      subtitle: 'Delivered in 24 hours',
-                      selected: _slot == slot,
-                      onTap: () => setState(() => _slot = slot),
-                    ),
-                  )),
+              ...slots.map(
+                (slot) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _SelectionRowCard(
+                    title: slot,
+                    subtitle: 'Delivered in 24 hours',
+                    selected: _slot == slot,
+                    onTap: () => setState(() => _slot = slot),
+                  ),
+                ),
+              ),
               const SizedBox(height: 8),
               _SelectionRowCard(
                 title: 'Deliver to',
@@ -4377,10 +4346,12 @@ class _PerfectFitExperienceSheetState extends State<_PerfectFitExperienceSheet> 
                 onTap: () {},
               ),
               const SizedBox(height: 12),
-              ..._selectedItems.map((product) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _MiniSelectionCard(product: product),
-                  )),
+              ..._selectedItems.map(
+                (product) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _MiniSelectionCard(product: product),
+                ),
+              ),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -4447,17 +4418,17 @@ class _TrialFitFeedbackSheetState extends State<_TrialFitFeedbackSheet> {
             const SizedBox(height: 18),
             Text(
               'How did it fit?',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(
               'Tell us about ${widget.product.name} so we can sharpen every future recommendation.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF666666),
-                    height: 1.45,
-                  ),
+                color: const Color(0xFF666666),
+                height: 1.45,
+              ),
             ),
             const SizedBox(height: 16),
             _SelectionRowCard(
@@ -4495,10 +4466,10 @@ class _TrialFitFeedbackSheetState extends State<_TrialFitFeedbackSheet> {
                       child: Text(
                         'Perfect. We’ll use this fit outcome to sharpen your future recommendations.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFF7B5B27),
-                              fontWeight: FontWeight.w700,
-                              height: 1.45,
-                            ),
+                          color: const Color(0xFF7B5B27),
+                          fontWeight: FontWeight.w700,
+                          height: 1.45,
+                        ),
                       ),
                     )
                   : Container(
@@ -4521,14 +4492,14 @@ class _TrialFitFeedbackSheetState extends State<_TrialFitFeedbackSheet> {
                         children: [
                           Text(
                             'Adjust with custom tailoring',
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'We can refine this piece so it fits like it was made only for you.',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
                                   color: const Color(0xFF666666),
                                   height: 1.45,
                                 ),
@@ -4558,8 +4529,8 @@ class _TrialFitFeedbackSheetState extends State<_TrialFitFeedbackSheet> {
                   Text(
                     'Make this perfect for you',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -4620,26 +4591,26 @@ class _TrialStepShell extends StatelessWidget {
         Text(
           stepLabel,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: const Color(0xFFC39A4E),
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-              ),
+            color: const Color(0xFFC39A4E),
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.6,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
           title,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF111111),
-              ),
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF111111),
+          ),
         ),
         const SizedBox(height: 8),
         Text(
           subtitle,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF666666),
-                height: 1.45,
-              ),
+            color: const Color(0xFF666666),
+            height: 1.45,
+          ),
         ),
         const SizedBox(height: 18),
         Container(
@@ -4715,8 +4686,8 @@ class _TrialSelectableCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -4736,7 +4707,9 @@ class _TrialSelectableCard extends StatelessWidget {
               selected
                   ? Icons.check_circle_rounded
                   : Icons.radio_button_unchecked_rounded,
-              color: selected ? const Color(0xFFC8A96A) : const Color(0xFF9E968A),
+              color: selected
+                  ? const Color(0xFFC8A96A)
+                  : const Color(0xFF9E968A),
             ),
           ],
         ),
@@ -4780,16 +4753,16 @@ class _TrialStyledCard extends StatelessWidget {
                   Text(
                     product.name,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Complete the look with a more polished at-home edit.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF666666),
-                          height: 1.4,
-                        ),
+                      color: const Color(0xFF666666),
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),
@@ -4840,9 +4813,7 @@ class _SelectionRowCard extends StatelessWidget {
               : (selected ? const Color(0xFFF7F1E7) : Colors.white),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: selected
-                ? const Color(0xFFC8A96A)
-                : const Color(0xFFE7E0D7),
+            color: selected ? const Color(0xFFC8A96A) : const Color(0xFFE7E0D7),
           ),
         ),
         child: Row(
@@ -4856,28 +4827,28 @@ class _SelectionRowCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: highlighted ? Colors.white : const Color(0xFF111111),
+                                color: highlighted
+                                    ? Colors.white
+                                    : const Color(0xFF111111),
                               ),
                         ),
                       ),
                       if (badge != null)
-                        _LightChip(
-                          label: badge!,
-                          dark: highlighted,
-                        ),
+                        _LightChip(label: badge!, dark: highlighted),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: highlighted
-                              ? Colors.white.withValues(alpha: 0.78)
-                              : const Color(0xFF666666),
-                          height: 1.4,
-                        ),
+                      color: highlighted
+                          ? Colors.white.withValues(alpha: 0.78)
+                          : const Color(0xFF666666),
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),
@@ -4888,7 +4859,9 @@ class _SelectionRowCard extends StatelessWidget {
                 selected
                     ? Icons.check_circle_rounded
                     : Icons.radio_button_unchecked_rounded,
-                color: selected ? const Color(0xFFC8A96A) : const Color(0xFF9E968A),
+                color: selected
+                    ? const Color(0xFFC8A96A)
+                    : const Color(0xFF9E968A),
               ),
             ],
           ],
@@ -4918,9 +4891,9 @@ class _MiniSelectionCard extends StatelessWidget {
               product.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
           const SizedBox(width: 12),
@@ -4930,9 +4903,9 @@ class _MiniSelectionCard extends StatelessWidget {
               symbol: '₹',
               decimalDigits: 0,
             ).format(product.effectivePrice),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -4959,9 +4932,9 @@ class _LightChip extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: dark ? Colors.white : const Color(0xFF7B5B27),
-              fontWeight: FontWeight.w700,
-            ),
+          color: dark ? Colors.white : const Color(0xFF7B5B27),
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -4983,9 +4956,9 @@ class _AdjustmentChip extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: const Color(0xFF7B5B27),
-              fontWeight: FontWeight.w700,
-            ),
+          color: const Color(0xFF7B5B27),
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -5011,15 +4984,18 @@ class _DetailPricing {
     final currentPrice = product.effectivePrice;
     final originalPrice =
         (product.basePrice != null && product.basePrice! > currentPrice)
-            ? product.basePrice
-            : product.originalPrice;
-    final discountPercent = originalPrice == null || originalPrice <= currentPrice
+        ? product.basePrice
+        : product.originalPrice;
+    final discountPercent =
+        originalPrice == null || originalPrice <= currentPrice
         ? 0
         : (((originalPrice - currentPrice) / originalPrice) * 100).round();
 
     return _DetailPricing(
       currentLabel: formatter.format(currentPrice),
-      originalLabel: originalPrice == null ? null : formatter.format(originalPrice),
+      originalLabel: originalPrice == null
+          ? null
+          : formatter.format(originalPrice),
       discountPercent: discountPercent,
     );
   }
@@ -5044,4 +5020,3 @@ class _CtaDecisionSnapshot {
   final String productType;
   final String locationSpeed;
 }
-

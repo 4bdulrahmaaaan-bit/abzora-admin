@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/rider_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 import '../../widgets/payout_account_dialog.dart';
 import '../../widgets/state_views.dart';
 import 'delivery_screen.dart';
@@ -69,7 +70,7 @@ class RiderDashboard extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', '')),
+          content: Text(AppErrorText.from(error)),
         ),
       );
     }
@@ -114,9 +115,7 @@ class RiderDashboard extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(
-            error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', ''),
-          ),
+          content: Text(AppErrorText.from(error)),
         ),
       );
     }

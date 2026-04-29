@@ -9,6 +9,7 @@ import '../../services/database_service.dart';
 import '../../services/image_url_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 
 class StoreSettingsScreen extends StatefulWidget {
   final Store store;
@@ -135,7 +136,7 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+        SnackBar(content: Text(AppErrorText.from(error))),
       );
     } finally {
       if (mounted) {

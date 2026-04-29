@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../theme.dart';
+import '../../utils/app_mode_routes.dart';
 import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
 import 'ops_account_screen.dart';
@@ -34,11 +35,11 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
       );
     }
 
-    final isVendor = auth.isVendor;
-    final isRider = auth.isRider;
+    final isVendor = hasVendorOperationsAccess(user);
+    final isRider = hasRiderOperationsAccess(user);
     if (!isVendor && !isRider) {
-      return const Scaffold(
-        body: AbzioEmptyCard(
+      return Scaffold(
+        body: const AbzioEmptyCard(
           title: 'Operations access only',
           subtitle: 'This workspace is reserved for vendor and rider accounts.',
         ),
@@ -46,7 +47,10 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
     }
 
     if (isVendor) {
-      return const VendorWorkspaceScreen();
+      return Scaffold(
+        backgroundColor: AbzioTheme.grey50,
+        body: const VendorWorkspaceScreen(),
+      );
     }
 
     final pages = [
