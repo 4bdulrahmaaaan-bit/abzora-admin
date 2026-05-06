@@ -67,7 +67,7 @@ class WishlistScreen extends StatelessWidget {
               mainAxisSpacing: 16,
               childAspectRatio: 0.7,
             ),
-            scrollCacheExtent: const ScrollCacheExtent.pixels(800),
+            cacheExtent: 800.0,
             addAutomaticKeepAlives: false,
             addRepaintBoundaries: true,
             itemBuilder: (context, index) {

@@ -292,7 +292,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             padding: EdgeInsets.zero,
-                            scrollCacheExtent: const ScrollCacheExtent.pixels(800),
+                            cacheExtent: 800.0,
                             addAutomaticKeepAlives: false,
                             addRepaintBoundaries: true,
                             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

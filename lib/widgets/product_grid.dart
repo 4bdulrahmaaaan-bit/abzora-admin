@@ -46,7 +46,7 @@ class ProductGrid extends StatelessWidget {
         return GridView.builder(
           shrinkWrap: shrinkWrap,
           physics: physics ?? const NeverScrollableScrollPhysics(),
-          scrollCacheExtent: const ScrollCacheExtent.pixels(800),
+          cacheExtent: 800.0,
           addAutomaticKeepAlives: false,
           addRepaintBoundaries: true,
           padding: EdgeInsets.zero,
