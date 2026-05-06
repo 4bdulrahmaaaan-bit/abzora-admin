@@ -28,7 +28,6 @@ import '../../widgets/tap_scale.dart';
 import '../../widgets/state_views.dart';
 import 'ai_stylist_screen.dart';
 import 'abzora_ar_screen.dart';
-import 'avatar_try_on_screen.dart';
 import 'live_ar_try_on_screen.dart';
 import 'trial_booking_screen.dart';
 
@@ -771,8 +770,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   AbzoraUnityTryOnPayload _buildAbzoraUnityPayload(
     ArTryOnProductMetadata metadata,
   ) {
-    final resolvedModelUrl = _resolveUnityModelUrl(metadata);
-    final resolvedBundleUrl = _resolveUnityBundleUrl(metadata);
+    var resolvedModelUrl = _resolveUnityModelUrl(metadata);
+    var resolvedBundleUrl = _resolveUnityBundleUrl(metadata);
+    if (_looksLikeModelUrl(resolvedBundleUrl)) {
+      if (resolvedModelUrl.isEmpty) {
+        resolvedModelUrl = resolvedBundleUrl;
+      }
+      resolvedBundleUrl = '';
+    }
     final resolvedRigProfile = _resolveUnityRigProfile(metadata);
     final resolvedMaterialProfile = _resolveUnityMaterialProfile(metadata);
     return AbzoraUnityTryOnPayload(
@@ -825,7 +830,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   String _resolveUnityBundleUrl(ArTryOnProductMetadata metadata) {
-    return _firstNonBlankString(<Object?>[
+    final bundle = _firstNonBlankString(<Object?>[
       metadata.unityAssetBundleUrl,
       metadata.arAsset['unityAssetBundleUrl'],
       metadata.arAsset['assetBundleUrl'],
@@ -837,6 +842,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       _mapValue(metadata.garmentConfig['unity'], 'bundleUrl'),
       _mapValue(metadata.garmentConfig['unity'], 'androidBundleUrl'),
     ]);
+    return _looksLikeModelUrl(bundle) ? '' : bundle;
   }
 
   String _resolveUnityRigProfile(ArTryOnProductMetadata metadata) {
@@ -877,14 +883,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     return '';
   }
 
-  Future<void> _openAvatarTryOn(Product product, Color accentColor) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            AvatarTryOnScreen(product: product, accentColor: accentColor),
-      ),
-    );
+  bool _looksLikeModelUrl(String value) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return false;
+    }
+    return normalized.endsWith('.glb') ||
+        normalized.endsWith('.gltf') ||
+        normalized.endsWith('.fbx') ||
+        normalized.endsWith('.obj') ||
+        normalized.endsWith('.usdz');
   }
 
   Widget _buildHeroSliver(
@@ -1191,7 +1199,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         ),
         const SizedBox(height: 16),
         Text(
-          'Select size',
+          'Size + Fit',
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
             color: const Color(0xFF111111),
             fontWeight: FontWeight.w700,
@@ -1255,12 +1263,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         if (suggestedSize != null) ...[
           const SizedBox(height: 8),
           Text(
-            'Recommended Size: $suggestedSize (${_decisionFitConfidence.clamp(55, 99)}% match)',
+            'Recommended for you: $suggestedSize (${_decisionFitConfidence.clamp(55, 99)}% match)',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: const Color(0xFF666666),
               fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Most users prefer M',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF8A8479),
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -1284,7 +1300,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Try before you buy',
+                'Try Before You Buy',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: const Color(0xFF111111),
                   fontWeight: FontWeight.w800,
@@ -1333,12 +1349,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 icon: Icons.view_in_ar_rounded,
                 title: 'Try Live (AR)',
                 onTap: () => _openLiveTryOn(product, accentColor),
-              ),
-              const SizedBox(height: 12),
-              _buildExperienceRow(
-                icon: Icons.accessibility_new_rounded,
-                title: 'Try 3D Avatar',
-                onTap: () => _openAvatarTryOn(product, accentColor),
               ),
               const SizedBox(height: 12),
               _buildExperienceRow(
@@ -1717,10 +1727,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final isInCart = cart.items.any((item) => item.product.id == product.id);
     const primaryGold = Color(0xFFC8A96A);
     final canAddToBag = isInCart || hasSelectedSize;
-    final decision = _ctaDecisionType.toUpperCase();
-    final buyNowPriority = decision == 'BUY_NOW_PRIORITY';
-    final tryPriority = decision == 'TRY_AT_HOME_PRIORITY';
-
     void showSelectSizeHint() {
       HapticFeedback.selectionClick();
       ScaffoldMessenger.of(
@@ -1745,165 +1751,70 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: const Border(top: BorderSide(color: Color(0xFFEAEAEA))),
+            color: const Color(0xFFFFFDF8),
+            border: const Border(top: BorderSide(color: Color(0xFFF0E8DA))),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (buyNowPriority)
-                Row(
-                  children: [
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton(
-                          onPressed: hasSelectedSize
-                              ? () {
-                                  HapticFeedback.lightImpact();
-                                  _handleTryHomeTap(product);
-                                }
-                              : showSelectSizeHint,
-                          child: Text(
-                            'Try at Home',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: const Color(0xFF6E5A37),
-                                  fontWeight: FontWeight.w700,
-                                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: OutlinedButton(
+                        onPressed: hasSelectedSize
+                            ? () {
+                                HapticFeedback.lightImpact();
+                                _handleTryHomeTap(product);
+                              }
+                            : showSelectSizeHint,
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: primaryGold.withValues(alpha: 0.72)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
+                        ),
+                        child: const Text(
+                          'Try at Home \u2192',
+                          style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 2,
-                      child: SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: isInCart
-                              ? () {
-                                  HapticFeedback.lightImpact();
-                                  _handleBuyNowTap(product);
-                                }
-                              : (canAddToBag
-                                    ? () {
-                                        HapticFeedback.lightImpact();
-                                        _handleBuyNowTap(product);
-                                      }
-                                    : showSelectSizeHint),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryGold,
-                            foregroundColor: const Color(0xFF16120D),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            '\u26A1 Get it today \u2192',
-                            style: TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              else if (tryPriority)
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
                         onPressed: isInCart
-                            ? () => _handleBuyNowTap(product)
+                            ? () {
+                                HapticFeedback.lightImpact();
+                                _handleBuyNowTap(product);
+                              }
                             : (canAddToBag
-                                  ? () => _handleBuyNowTap(product)
+                                  ? () {
+                                      HapticFeedback.lightImpact();
+                                      _handleBuyNowTap(product);
+                                    }
                                   : showSelectSizeHint),
-                        child: Text(
-                          'Get it today',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: const Color(0xFF6E5A37),
-                                fontWeight: FontWeight.w700,
-                              ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryGold,
+                          foregroundColor: const Color(0xFF16120D),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text(
+                          'Get it today \u2192',
+                          style: TextStyle(fontWeight: FontWeight.w800),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 2,
-                      child: SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: hasSelectedSize
-                              ? () => _handleTryHomeTap(product)
-                              : showSelectSizeHint,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryGold,
-                            foregroundColor: const Color(0xFF16120D),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            '\u2728 Try at Home \u2192',
-                            style: TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 48,
-                        child: OutlinedButton(
-                          onPressed: hasSelectedSize
-                              ? () => _handleTryHomeTap(product)
-                              : showSelectSizeHint,
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(
-                              color: primaryGold.withValues(alpha: 0.65),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            '\u2728 Try at Home \u2192',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: isInCart
-                              ? () => _handleBuyNowTap(product)
-                              : (canAddToBag
-                                    ? () => _handleBuyNowTap(product)
-                                    : showSelectSizeHint),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryGold,
-                            foregroundColor: const Color(0xFF16120D),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            '\u26A1 Get it today \u2192',
-                            style: TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -2297,35 +2208,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         product.name,
                         style: Theme.of(context).textTheme.displayMedium
                             ?.copyWith(fontSize: 28, height: 1.1),
-                      ),
-                      const SizedBox(height: 14),
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 10,
-                        runSpacing: 6,
-                        children: [
-                          Text(
-                            pricing.currentLabel,
-                            style: Theme.of(context).textTheme.displayMedium?.copyWith(fontSize: 30),
-                          ),
-                          if (pricing.originalLabel != null)
-                            Text(
-                              pricing.originalLabel!,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: context.abzioSecondaryText,
-                                    decoration: TextDecoration.lineThrough,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          if (pricing.discountPercent > 0)
-                            Text(
-                              '${pricing.discountPercent}% OFF',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: const Color(0xFF218B5B),
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                        ],
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -3959,7 +3841,7 @@ class _TrialAtHomeButton extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Try before you pay � Perfect fit guaranteed',
+                    'Try before you pay - Perfect fit guaranteed',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.white.withValues(alpha: 0.78),
                     ),
@@ -4042,7 +3924,7 @@ class _PerfectFitExperienceSheetState
   int _step = 0;
   late final List<Product> _selectedItems;
   late final List<Product> _styleSuggestions;
-  String _slot = 'Tomorrow � 6 PM to 9 PM';
+  String _slot = 'Tomorrow - 6 PM to 9 PM';
   String _experienceType = 'premium';
 
   @override
@@ -4271,9 +4153,9 @@ class _PerfectFitExperienceSheetState
         );
       case 2:
         final slots = [
-          'Today � 7 PM to 10 PM',
-          'Tomorrow � 6 PM to 9 PM',
-          'Weekend � 11 AM to 2 PM',
+          'Today - 7 PM to 10 PM',
+          'Tomorrow - 6 PM to 9 PM',
+          'Weekend - 11 AM to 2 PM',
         ];
         return _TrialStepShell(
           key: const ValueKey('slot'),
@@ -4901,7 +4783,7 @@ class _MiniSelectionCard extends StatelessWidget {
             NumberFormat.currency(
               locale: 'en_IN',
               symbol: '₹',
-              decimalDigits: 0,
+      decimalDigits: 0,
             ).format(product.effectivePrice),
             style: Theme.of(
               context,
@@ -5020,3 +4902,5 @@ class _CtaDecisionSnapshot {
   final String productType;
   final String locationSpeed;
 }
+
+

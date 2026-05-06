@@ -24,6 +24,7 @@ import 'screens/rider/rider_dashboard.dart';
 import 'screens/splash_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/admin/admin_analytics_screen.dart';
+import 'screens/admin/admin_web_panel.dart';
 import 'screens/user/cart_screen.dart';
 import 'screens/user/chat_list_screen.dart';
 import 'screens/user/checkout_screen.dart';
@@ -54,11 +55,7 @@ import 'theme.dart';
 import 'widgets/offline_widgets.dart';
 import 'widgets/safe_widget.dart';
 
-enum AbzioAppMode {
-  unified,
-  customer,
-  operations,
-}
+enum AbzioAppMode { unified, customer, operations, vendor, rider }
 
 Future<void> bootstrapAndRun(AbzioAppMode mode) async {
   await bootstrapAndRunWithInitialRoute(mode);
@@ -68,57 +65,60 @@ Future<void> bootstrapAndRunWithInitialRoute(
   AbzioAppMode mode, {
   String initialRoute = '/',
 }) async {
-  await runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    _installGlobalErrorHandling();
-    await AppBootstrapService().initialize();
-    final imageCache = PaintingBinding.instance.imageCache;
-    imageCache.maximumSizeBytes = 200 << 20;
-    imageCache.maximumSize = 1000;
+  await runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      _installGlobalErrorHandling();
+      await AppBootstrapService().initialize();
+      final imageCache = PaintingBinding.instance.imageCache;
+      imageCache.maximumSizeBytes = 200 << 20;
+      imageCache.maximumSize = 1000;
 
-    runApp(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => BannerProvider()),
-        ChangeNotifierProxyProvider<AuthProvider, CartProvider>(
-          create: (_) => CartProvider(),
-          update: (_, authProvider, cartProvider) {
-            final provider = cartProvider ?? CartProvider();
-            unawaited(provider.syncUser(authProvider.user));
-            return provider;
-          },
+      runApp(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => AuthProvider()),
+            ChangeNotifierProvider(create: (_) => BannerProvider()),
+            ChangeNotifierProxyProvider<AuthProvider, CartProvider>(
+              create: (_) => CartProvider(),
+              update: (_, authProvider, cartProvider) {
+                final provider = cartProvider ?? CartProvider();
+                unawaited(provider.syncUser(authProvider.user));
+                return provider;
+              },
+            ),
+            ChangeNotifierProvider(create: (_) => LocationProvider()),
+            ChangeNotifierProvider(
+              create: (_) => NetworkProvider()..initialize(),
+            ),
+            ChangeNotifierProxyProvider<LocationProvider, ProductProvider>(
+              create: (_) => ProductProvider(),
+              update: (_, locationProvider, productProvider) {
+                final provider = productProvider ?? ProductProvider();
+                provider.attachLocationProvider(locationProvider);
+                return provider;
+              },
+            ),
+            ChangeNotifierProxyProvider<AuthProvider, WishlistProvider>(
+              create: (_) => WishlistProvider(),
+              update: (_, authProvider, wishlistProvider) {
+                final provider = wishlistProvider ?? WishlistProvider();
+                provider.syncUser(authProvider.user);
+                return provider;
+              },
+            ),
+            ChangeNotifierProvider(create: (_) => TrialHomeProvider()),
+            ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ],
+          child: AbzioApp(mode: mode, initialRoute: initialRoute),
         ),
-        ChangeNotifierProvider(create: (_) => LocationProvider()),
-        ChangeNotifierProvider(
-          create: (_) => NetworkProvider()..initialize(),
-        ),
-        ChangeNotifierProxyProvider<LocationProvider, ProductProvider>(
-            create: (_) => ProductProvider(),
-            update: (_, locationProvider, productProvider) {
-              final provider = productProvider ?? ProductProvider();
-              provider.attachLocationProvider(locationProvider);
-              return provider;
-            },
-          ),
-        ChangeNotifierProxyProvider<AuthProvider, WishlistProvider>(
-            create: (_) => WishlistProvider(),
-            update: (_, authProvider, wishlistProvider) {
-              final provider = wishlistProvider ?? WishlistProvider();
-              provider.syncUser(authProvider.user);
-              return provider;
-            },
-          ),
-          ChangeNotifierProvider(create: (_) => TrialHomeProvider()),
-          ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ],
-        child: AbzioApp(mode: mode, initialRoute: initialRoute),
-      ),
-    );
-  }, (error, stackTrace) {
-    debugPrint('ABZORA zoned error: $error');
-    debugPrintStack(stackTrace: stackTrace);
-  });
+      );
+    },
+    (error, stackTrace) {
+      debugPrint('ABZORA zoned error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    },
+  );
 }
 
 void _installGlobalErrorHandling() {
@@ -132,7 +132,8 @@ void _installGlobalErrorHandling() {
 
   ErrorWidget.builder = (details) {
     return AbzioGlobalErrorView(
-      message: 'This part of the app had a problem, but you can keep using ABZORA.',
+      message:
+          'This part of the app had a problem, but you can keep using ABZORA.',
       onRetry: () {
         final navigator = AbzioApp.navigatorKey.currentState;
         navigator?.pushNamedAndRemoveUntil('/', (route) => false);
@@ -167,7 +168,7 @@ class AbzioApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: AppNavigationService.navigatorKey,
       scaffoldMessengerKey: AppNavigationService.messengerKey,
-      title: mode == AbzioAppMode.operations ? 'Abzora Partner' : 'Abzora',
+      title: appTitleForMode(mode),
       debugShowCheckedModeBanner: false,
       theme: AbzioTheme.lightTheme,
       darkTheme: AbzioTheme.darkTheme,
@@ -178,12 +179,17 @@ class AbzioApp extends StatelessWidget {
           children: [
             AbzioSafeWidget(
               builder: (_) => child,
-              fallbackBuilder: (context, error, stackTrace) => AbzioGlobalErrorView(
-                message: 'We hit a UI issue, but you can safely return to the app.',
-                onRetry: () {
-                  Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil('/', (route) => false);
-                },
-              ),
+              fallbackBuilder: (context, error, stackTrace) =>
+                  AbzioGlobalErrorView(
+                    message:
+                        'We hit a UI issue, but you can safely return to the app.',
+                    onRetry: () {
+                      Navigator.of(
+                        context,
+                        rootNavigator: true,
+                      ).pushNamedAndRemoveUntil('/', (route) => false);
+                    },
+                  ),
             ),
             const AbzioNetworkBanner(),
           ],
@@ -193,24 +199,33 @@ class AbzioApp extends StatelessWidget {
       routes: {
         '/': (context) => _AppLaunchGate(mode: mode),
         '/login': (context) => LoginScreen(
-              mode: mode,
-              adminEntry: kIsWeb && mode == AbzioAppMode.unified,
-            ),
-        '/admin-login': (context) => const LoginScreen(mode: AbzioAppMode.unified, adminEntry: true),
+          mode: mode,
+          adminEntry: kIsWeb && mode == AbzioAppMode.unified,
+        ),
+        '/admin-login': (context) =>
+            const LoginScreen(mode: AbzioAppMode.unified, adminEntry: true),
         '/otp': (context) => OtpVerificationScreen(mode: mode),
-          '/admin': (context) => _AdminRoute(mode: mode),
-          '/admin-orders': (context) => const AdminOrdersScreen(),
-          '/admin-vendors': (context) => const AdminVendorsScreen(),
-          '/admin-riders': (context) => const AdminRidersScreen(),
-          '/admin-payouts': (context) => const AdminPayoutsScreen(),
-          '/admin-analytics': (context) => const AdminAnalyticsScreen(),
-          '/signup': (context) => const SignupScreen(),
+        '/admin': (context) => _AdminRoute(mode: mode),
+        '/admin-orders': (context) => const AdminOrdersScreen(),
+        '/admin-vendors': (context) => const AdminVendorsScreen(),
+        '/admin-riders': (context) => const AdminRidersScreen(),
+        '/admin-payouts': (context) => const AdminPayoutsScreen(),
+        '/admin-analytics': (context) => const AdminAnalyticsScreen(),
+        '/signup': (context) => const SignupScreen(),
         '/shop': (context) => const HomeScreen(),
         '/home': (context) => const HomeScreen(),
         '/atelier-flow': (context) => const AtelierFlowScreen(),
-        '/ops': (context) => const OpsShellScreen(),
-        '/profile': (context) => mode == AbzioAppMode.operations
-            ? const OpsAccountScreen()
+        '/ops': (context) {
+          if (mode == AbzioAppMode.vendor) {
+            return const VendorDashboard();
+          }
+          if (mode == AbzioAppMode.rider) {
+            return const RiderDashboard();
+          }
+          return const OpsShellScreen();
+        },
+        '/profile': (context) => isPartnerMode(mode)
+            ? OpsAccountScreen(mode: mode)
             : const ProfileScreen(),
         '/addresses': (context) => const AddressScreen(),
         '/add-card': (context) => const AddCardScreen(),
@@ -237,9 +252,11 @@ class AbzioApp extends StatelessWidget {
             settings: settings,
           );
         }
-        if (settings.name == '/product-detail' && settings.arguments is Product) {
+        if (settings.name == '/product-detail' &&
+            settings.arguments is Product) {
           return MaterialPageRoute(
-            builder: (_) => ProductDetailScreen(product: settings.arguments as Product),
+            builder: (_) =>
+                ProductDetailScreen(product: settings.arguments as Product),
             settings: settings,
           );
         }
@@ -261,6 +278,16 @@ class _AppLaunchGate extends StatefulWidget {
 class _AppLaunchGateState extends State<_AppLaunchGate> {
   bool _didRoute = false;
 
+  bool get _wantsAdminEntryFromUrl {
+    if (!kIsWeb) {
+      return false;
+    }
+    final path = Uri.base.path.toLowerCase();
+    return path == '/admin' ||
+        path == '/admin-login' ||
+        path.startsWith('/admin/');
+  }
+
   void _navigateToResolvedRoute(AuthProvider auth) {
     if (!mounted || _didRoute) {
       return;
@@ -270,9 +297,9 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     _didRoute = true;
 
     if (user != null) {
-      Navigator.of(context).pushReplacementNamed(
-        routeForUserInMode(user, widget.mode),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacementNamed(routeForUserInMode(user, widget.mode));
       unawaited(
         Future<void>.delayed(const Duration(milliseconds: 900), () async {
           if (!mounted) {
@@ -284,7 +311,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       return;
     }
 
-    if (widget.mode == AbzioAppMode.operations) {
+    if (isPartnerMode(widget.mode)) {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => LoginScreen(
@@ -292,18 +319,49 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
             adminEntry: kIsWeb && widget.mode == AbzioAppMode.unified,
           ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            final slideAnimation = Tween<Offset>(
-              begin: const Offset(0.04, 0),
-              end: Offset.zero,
-            ).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-            );
+            final slideAnimation =
+                Tween<Offset>(
+                  begin: const Offset(0.04, 0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
+                );
             return FadeTransition(
               opacity: animation,
-              child: SlideTransition(
-                position: slideAnimation,
-                child: child,
+              child: SlideTransition(position: slideAnimation, child: child),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 280),
+        ),
+      );
+      return;
+    }
+
+    if (widget.mode == AbzioAppMode.unified && _wantsAdminEntryFromUrl) {
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const LoginScreen(
+                mode: AbzioAppMode.unified,
+                adminEntry: true,
               ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slideAnimation =
+                Tween<Offset>(
+                  begin: const Offset(0.04, 0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
+                );
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(position: slideAnimation, child: child),
             );
           },
           transitionDuration: const Duration(milliseconds: 280),
@@ -324,7 +382,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     }
 
     if (auth.user == null) {
-      if (widget.mode == AbzioAppMode.operations) {
+      if (isPartnerMode(widget.mode)) {
         return LoginScreen(
           mode: widget.mode,
           adminEntry: kIsWeb && widget.mode == AbzioAppMode.unified,
@@ -390,7 +448,7 @@ class _AdminRoute extends StatelessWidget {
       );
     }
 
-    return const AdminDashboard();
+    return const AdminWebPanel();
   }
 }
 
@@ -398,11 +456,7 @@ class AuthGuard extends StatefulWidget {
   final Widget child;
   final AbzioAppMode mode;
 
-  const AuthGuard({
-    super.key,
-    required this.child,
-    required this.mode,
-  });
+  const AuthGuard({super.key, required this.child, required this.mode});
 
   @override
   State<AuthGuard> createState() => _AuthGuardState();
@@ -416,10 +470,7 @@ class _AuthGuardState extends State<AuthGuard> {
     final navContext = AbzioApp.navigatorKey.currentContext ?? context;
     if (navContext.mounted) {
       ScaffoldMessenger.of(navContext).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(message),
-        ),
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
       );
     }
 

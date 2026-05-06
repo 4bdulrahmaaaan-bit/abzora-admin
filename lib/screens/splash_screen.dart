@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../app_shell.dart';
+import '../utils/app_mode_routes.dart';
 import '../widgets/brand_logo.dart';
 
 class SplashScreen extends StatelessWidget {
-  const SplashScreen({
-    super.key,
-    this.mode = AbzioAppMode.unified,
-  });
+  const SplashScreen({super.key, this.mode = AbzioAppMode.unified});
 
   final AbzioAppMode mode;
 
@@ -16,13 +14,11 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final logoSize = (screenHeight * 0.20).clamp(148.0, 160.0);
-    final title = mode == AbzioAppMode.operations ? 'ABZORA PARTNER' : 'ABZORA';
-    final subtitle = mode == AbzioAppMode.operations
-        ? 'Premium operations for vendors and riders'
-        : 'Premium marketplace and custom clothing';
-    final asset = mode == AbzioAppMode.operations
-        ? 'assets/branding/abzora_partner_icon.png'
-        : 'assets/branding/abzora_customer_icon.png';
+    final title = splashTitleForMode(mode);
+    final subtitle = splashSubtitleForMode(mode);
+    final asset = mode == AbzioAppMode.rider
+        ? 'assets/branding/abzora_rider_icon.png'
+        : brandAssetForMode(mode);
 
     return Scaffold(
       backgroundColor: const Color(0xFF000000),
@@ -45,7 +41,7 @@ class SplashScreen extends StatelessWidget {
               title,
               style: GoogleFonts.outfit(
                 color: const Color(0xFFFFFFFF),
-                fontSize: mode == AbzioAppMode.operations ? 30 : 32,
+                fontSize: isPartnerMode(mode) ? 30 : 32,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5,
               ),

@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../widgets/state_views.dart';
 import 'add_product_screen.dart';
+import 'pricing_management_screen.dart';
 
 class ProductManagementScreen extends StatefulWidget {
   const ProductManagementScreen({
@@ -36,7 +37,8 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     final filtered = _products.where((product) {
       final matchesStatus = _statusFilter == 'All' ||
           (_statusFilter == 'Active' && product.isActive) ||
-          (_statusFilter == 'Hidden' && !product.isActive);
+          (_statusFilter == 'Hidden' && !product.isActive) ||
+          (_statusFilter == 'Out of Stock' && product.stock <= 0);
       final matchesCategory = _categoryFilter == 'All' || product.category == _categoryFilter;
       final haystack = '${product.name} ${product.brand} ${product.category}'.toLowerCase();
       final matchesQuery = query.isEmpty || haystack.contains(query);
@@ -138,11 +140,30 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     final filteredCount = _filteredProducts.length;
     final activeCount = _products.where((product) => product.isActive).length;
     final hiddenCount = _products.length - activeCount;
+    final outOfStockCount = _products.where((product) => product.stock <= 0).length;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFFAF6EE),
       appBar: AppBar(
-        title: const Text('PRODUCT MANAGEMENT'),
+        title: Text('Product Management', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
         actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.checklist_rounded),
+            tooltip: 'Bulk actions',
+          ),
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PricingManagementScreen(storeId: widget.storeId),
+                ),
+              );
+            },
+            icon: const Icon(Icons.price_change_outlined),
+            tooltip: 'Pricing Management',
+          ),
           IconButton(
             onPressed: () => _openProductEditor(),
             icon: const Icon(Icons.add_rounded),
@@ -173,15 +194,17 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                         value: '$activeCount',
                       ),
                       _SummaryMetric(
+                        label: 'Out of stock',
+                        value: '$outOfStockCount',
+                      ),
+                      _SummaryMetric(
                         label: 'Hidden',
                         value: '$hiddenCount',
                       ),
-                      _SummaryMetric(
-                        label: 'Filtered',
-                        value: '$filteredCount',
-                      ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  _InsightsCard(products: _products),
                   const SizedBox(height: 16),
                   Card(
                     child: Padding(
@@ -197,7 +220,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                           TextField(
                             controller: _searchController,
                             decoration: const InputDecoration(
-                              hintText: 'Search by name, brand, or category',
+                              hintText: 'Search products, brand, category',
                               prefixIcon: Icon(Icons.search_rounded),
                             ),
                           ),
@@ -211,7 +234,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                                 child: DropdownButtonFormField<String>(
                                   initialValue: _statusFilter,
                                   decoration: const InputDecoration(labelText: 'Status'),
-                                  items: const ['All', 'Active', 'Hidden']
+                                  items: const ['All', 'Active', 'Hidden', 'Out of Stock']
                                       .map((value) => DropdownMenuItem(value: value, child: Text(value)))
                                       .toList(),
                                   onChanged: (value) => setState(() {
@@ -268,7 +291,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openProductEditor(),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('ADD PRODUCT'),
+        label: const Text('Add Product'),
       ),
     );
   }
@@ -318,6 +341,10 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                       _TagChip(label: product.category),
                       _TagChip(label: product.isActive ? 'Active' : 'Hidden'),
                       _TagChip(label: 'Stock ${product.stock}'),
+                      if (product.stock <= 0) _TagChip(label: 'Out of Stock', bg: const Color(0xFFFBE8E5), fg: const Color(0xFFC03C2E)),
+                      if (product.stock > 0 && product.stock < 5) _TagChip(label: 'Low Stock', bg: const Color(0xFFFFF2DF), fg: const Color(0xFFB27A1D)),
+                      if (product.stock >= 10) _TagChip(label: 'High Demand', bg: const Color(0xFFFFF7E2), fg: const Color(0xFFAA7F14)),
+                      if (product.stock > 20) _TagChip(label: 'Low Conversion', bg: const Color(0xFFFBE8E5), fg: const Color(0xFFC03C2E)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -403,21 +430,55 @@ class _SummaryMetric extends StatelessWidget {
 }
 
 class _TagChip extends StatelessWidget {
-  const _TagChip({required this.label});
+  const _TagChip({required this.label, this.bg, this.fg});
 
   final String label;
+  final Color? bg;
+  final Color? fg;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: bg ?? Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
-        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: fg),
+      ),
+    );
+  }
+}
+
+class _InsightsCard extends StatelessWidget {
+  const _InsightsCard({required this.products});
+
+  final List<Product> products;
+
+  @override
+  Widget build(BuildContext context) {
+    final lowStock = products.where((p) => p.stock > 0 && p.stock < 5).length;
+    final outOfStock = products.where((p) => p.stock <= 0).length;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Product Insights', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            Text('Running Sneakers -> High demand', style: GoogleFonts.inter()),
+            Text('Denim Jacket -> Reduce price by Rs200', style: GoogleFonts.inter()),
+            Text('Out-of-stock products: $outOfStock | Low-stock products: $lowStock', style: GoogleFonts.inter()),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton(onPressed: () {}, child: const Text('Fix Now')),
+            ),
+          ],
+        ),
       ),
     );
   }

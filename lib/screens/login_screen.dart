@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +10,7 @@ import '../app_shell.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../utils/app_error_text.dart';
+import '../utils/app_mode_routes.dart';
 import '../widgets/brand_logo.dart';
 import '../widgets/tap_scale.dart';
 import 'otp_verification_screen.dart';
@@ -32,10 +35,41 @@ class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _phoneFocusNode = FocusNode();
   String? _phoneError;
+  Timer? _adminCooldownTimer;
+  int _adminCooldownSeconds = 0;
 
   bool get _useGoogleAdminLogin => kIsWeb && widget.adminEntry;
   bool get _isPrimaryFashionLogin =>
-      !widget.adminEntry && widget.mode != AbzioAppMode.operations;
+      !widget.adminEntry && isCustomerMode(widget.mode);
+  bool get _isPartnerLogin => !widget.adminEntry && isPartnerMode(widget.mode);
+
+  String get _headline {
+    switch (widget.mode) {
+      case AbzioAppMode.vendor:
+        return 'Vendor Sign In';
+      case AbzioAppMode.rider:
+        return 'Rider Sign In';
+      case AbzioAppMode.operations:
+        return 'Partner Sign In';
+      case AbzioAppMode.customer:
+      case AbzioAppMode.unified:
+        return 'Welcome Back';
+    }
+  }
+
+  String get _subheading {
+    switch (widget.mode) {
+      case AbzioAppMode.vendor:
+        return 'Manage your store, orders, and payouts';
+      case AbzioAppMode.rider:
+        return 'Accept deliveries, routes, and payouts';
+      case AbzioAppMode.operations:
+        return 'Access your vendor or rider workspace';
+      case AbzioAppMode.customer:
+      case AbzioAppMode.unified:
+        return 'Access your style, fits, and orders';
+    }
+  }
 
   @override
   void initState() {
@@ -90,6 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _adminCooldownTimer?.cancel();
     _phoneFocusNode.removeListener(_handleFocusChange);
     _phoneController.removeListener(_handlePhoneChange);
     _phoneController.dispose();
@@ -158,6 +193,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInWithGoogleAdmin() async {
+    if (_adminCooldownSeconds > 0) {
+      return;
+    }
     final authProvider = context.read<AuthProvider>();
     try {
       final user = await authProvider.signInWithGoogleAdmin();
@@ -169,13 +207,41 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) {
         return;
       }
+      final message = AppErrorText.from(error);
+      final normalized = message.toLowerCase();
+      if (normalized.contains('too many') ||
+          normalized.contains('too-many-requests') ||
+          normalized.contains('authentication requests')) {
+        _startAdminCooldown();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(AppErrorText.from(error)),
+          content: Text(
+            _adminCooldownSeconds > 0
+                ? 'Too many login attempts. Try again in ${_adminCooldownSeconds}s.'
+                : message,
+          ),
         ),
       );
     }
+  }
+
+  void _startAdminCooldown([int seconds = 45]) {
+    _adminCooldownTimer?.cancel();
+    setState(() => _adminCooldownSeconds = seconds);
+    _adminCooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_adminCooldownSeconds <= 1) {
+        timer.cancel();
+        setState(() => _adminCooldownSeconds = 0);
+        return;
+      }
+      setState(() => _adminCooldownSeconds -= 1);
+    });
   }
 
   @override
@@ -183,6 +249,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final auth = context.watch<AuthProvider>();
     final isFocused = _phoneFocusNode.hasFocus;
     final hasError = _phoneError != null;
+    final logoAsset = widget.mode == AbzioAppMode.rider
+        ? 'assets/branding/abzora_rider_icon.png'
+        : brandAssetForMode(widget.mode);
 
     return AbzioThemeScope.light(
       child: Scaffold(
@@ -212,6 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               size: 72,
                               radius: 20,
                               backgroundColor: Colors.white,
+                              assetPath: logoAsset,
                               padding: const EdgeInsets.all(4),
                               shadows: [
                                 BoxShadow(
@@ -224,7 +294,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 24),
                           Text(
-                            'Welcome Back',
+                            _headline,
                             textAlign: TextAlign.center,
                             style: GoogleFonts.poppins(
                               fontSize: 26,
@@ -237,7 +307,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Access your style, fits, and orders',
+                            _subheading,
                             textAlign: TextAlign.center,
                             style: GoogleFonts.inter(
                               fontSize: 14,
@@ -253,11 +323,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
                     if (_useGoogleAdminLogin) ...[
                       TapScale(
-                        onTap: auth.isLoading ? null : _signInWithGoogleAdmin,
+                        onTap: (auth.isLoading || _adminCooldownSeconds > 0)
+                            ? null
+                            : _signInWithGoogleAdmin,
                         child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: auth.isLoading
+                            onPressed: auth.isLoading || _adminCooldownSeconds > 0
                                 ? null
                                 : _signInWithGoogleAdmin,
                             style: ElevatedButton.styleFrom(
@@ -282,7 +354,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   )
                                 : Text(
-                                    'Continue With Google',
+                                    _adminCooldownSeconds > 0
+                                        ? 'Try again in ${_adminCooldownSeconds}s'
+                                        : 'Continue With Google',
                                     style: GoogleFonts.poppins(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w800,
@@ -340,7 +414,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 32),
                       ],
                       Text(
-                        'Mobile Number',
+                        _isPartnerLogin ? 'Partner Number' : 'Mobile Number',
                         textAlign: TextAlign.left,
                         style: GoogleFonts.poppins(
                           fontSize: 12,

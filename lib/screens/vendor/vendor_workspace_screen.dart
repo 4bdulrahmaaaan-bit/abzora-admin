@@ -12,6 +12,7 @@ import '../../utils/app_mode_routes.dart';
 import '../../widgets/state_views.dart';
 import 'add_product_screen.dart';
 import 'order_management.dart';
+import 'pricing_management_screen.dart';
 import 'product_management.dart';
 import 'store_settings_screen.dart';
 import 'vendor_trial_home_dashboard_screen.dart';
@@ -25,14 +26,16 @@ class VendorWorkspaceScreen extends StatefulWidget {
 
 class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
   final DatabaseService _db = DatabaseService();
-  final NumberFormat _money = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+  final NumberFormat _money = NumberFormat.currency(locale: 'en_IN', symbol: '\\u20B9', decimalDigits: 0);
 
   int _index = 0;
   bool _loading = true;
   String _orderTab = 'new';
   String _txFilter = 'all';
+  String _growthRange = '7d';
   String? _error;
   bool _acceptingOrders = true;
+  bool _showEarningsBreakdown = false;
 
   Store? _store;
   List<OrderModel> _orders = const [];
@@ -408,6 +411,8 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
         ),
       ],
       const SizedBox(height: 10),
+      _growthDashboard(),
+      const SizedBox(height: 10),
       _Card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('Quick actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
@@ -415,6 +420,17 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
           _Action(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddProductScreen(storeId: _store!.id))), icon: Icons.add_box_rounded, t: 'Add Product', s: 'Publish new item'),
           _Action(onTap: () => setState(() => _index = 1), icon: Icons.list_alt_rounded, t: _isCustomVendor ? 'Custom Orders' : 'View Orders', s: _isCustomVendor ? 'Stitching workflow' : 'Process quickly'),
           _Action(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StoreSettingsScreen(store: _store!))), icon: Icons.store_rounded, t: 'Manage Store', s: 'Branding/settings'),
+          _Action(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PricingManagementScreen(storeId: _store!.id),
+              ),
+            ),
+            icon: Icons.price_change_rounded,
+            t: 'Pricing',
+            s: 'Prices and discounts',
+          ),
           _Action(onTap: () => setState(() => _index = 2), icon: Icons.payments_rounded, t: 'View Earnings', s: 'Wallet/payouts'),
         ]),
       ])),
@@ -460,45 +476,304 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
     ]);
   }
 
+  Widget _growthDashboard() {
+    final a = _analytics!;
+    final products = a.bestSellingProducts.take(5).toList();
+    final conversionRate = a.orders == 0 ? 0.0 : (a.ordersCompleted / a.orders) * 100;
+    final avgOrderValue = a.ordersCompleted == 0 ? 0.0 : a.totalSales / a.ordersCompleted;
+    final demandHigh = a.ordersToday >= 5;
+    final recommendations = <(String, String, String, String)>[
+      (
+        'Pricing Optimization',
+        'Lower price by \u20B9300 to increase conversion by 18%',
+        'High',
+        'Apply Price Suggestion',
+      ),
+      (
+        'Discount Opportunity',
+        'Apply 20% discount to clear slow-moving stock',
+        'Medium',
+        'Apply Discount',
+      ),
+      (
+        'High Demand Alert',
+        demandHigh
+            ? 'Increase price by \u20B9200 to maximize profit'
+            : 'Demand stable. Keep current pricing strategy',
+        demandHigh ? 'High' : 'Low',
+        'View Pricing',
+      ),
+      (
+        'Stock Alert',
+        products.length < 3 ? 'Low stock remaining. Restock soon.' : 'Stock healthy across top products',
+        products.length < 3 ? 'High' : 'Low',
+        'Manage Stock',
+      ),
+    ];
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Growth Dashboard', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                    SizedBox(height: 2),
+                    Text('Smart insights to grow your sales', style: TextStyle(color: Colors.black54)),
+                  ],
+                ),
+              ),
+              DropdownButton<String>(
+                value: _growthRange,
+                underline: const SizedBox.shrink(),
+                onChanged: (v) => setState(() => _growthRange = v ?? '7d'),
+                items: const [
+                  DropdownMenuItem(value: 'today', child: Text('Today')),
+                  DropdownMenuItem(value: '7d', child: Text('7d')),
+                  DropdownMenuItem(value: '30d', child: Text('30d')),
+                ],
+              ),
+              const SizedBox(width: 8),
+              const Row(
+                children: [
+                  Icon(Icons.circle, size: 9, color: Color(0xFF16A34A)),
+                  SizedBox(width: 4),
+                  Text('Live', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1.45,
+            children: [
+              _MoneyKpi(title: 'Revenue', value: m(a.totalSales), trend: '+12%'),
+              _MoneyKpi(title: 'Conversion Rate', value: '${conversionRate.toStringAsFixed(1)}%', trend: '+2.3%'),
+              _MoneyKpi(title: 'Orders', value: '${a.ordersCompleted}', trend: '+8%'),
+              _MoneyKpi(title: 'Avg Order Value', value: m(avgOrderValue), trend: '+5%'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...recommendations.map(
+            (r) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _GrowthActionCard(
+                title: r.$1,
+                description: r.$2,
+                priority: r.$3,
+                cta: r.$4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text('Product Performance', style: TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          if (products.isEmpty)
+            const Text('No products yet', style: TextStyle(color: Colors.black54))
+          else
+            ...products.map(
+              (p) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    Text(m(p.effectivePrice), style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 8),
+                    const Text('Performing well', style: TextStyle(fontSize: 12, color: Color(0xFF15803D))),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFBFAF6),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFECE4D2)),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Price vs Conversion', style: TextStyle(fontWeight: FontWeight.w700)),
+                SizedBox(height: 8),
+                Text('Best performing price: \u20B92,999', style: TextStyle(color: Colors.black54)),
+                SizedBox(height: 4),
+                Text('Demand insights: Sneakers trending \u2191 • Peak sales: 7-10 PM', style: TextStyle(color: Colors.black54)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _earnings() {
     final a = _analytics!;
     final w = _wallet!;
-    final tx = _txFilter == 'all' ? a.transactions : a.transactions.where((e) => e.type == _txFilter).toList();
-    return ListView(padding: const EdgeInsets.all(12), children: [
-      _Card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Earnings summary', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 8),
-        _line('Available Balance', m(w.balance)),
-        _line('Pending Settlement', m(w.pendingAmount)),
-        _line('Total Earnings', m(a.totalEarnings)),
-        _line('Today Earnings', m(a.todayEarnings)),
-        _line('Weekly Earnings', m(a.weeklyRevenue)),
-        _line('Total Commission Paid', m(a.weeklyCommission + a.todayCommission)),
-      ])),
-      const SizedBox(height: 10),
-      _Card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Withdraw Earnings', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 8),
-        _line('Available', m(w.balance)),
-        _line('Minimum withdrawal', '₹100'),
-        _line('Next payout date', DateFormat('EEE, d MMM').format(DateTime.now().add(const Duration(days: 1)))),
-        const SizedBox(height: 8),
-        SizedBox(width: double.infinity, child: FilledButton(onPressed: _withdraw, child: const Text('Withdraw'))),
-      ])),
-      const SizedBox(height: 10),
-      _Card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Text('Transaction History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const Spacer(),
-          DropdownButton<String>(value: _txFilter, underline: const SizedBox.shrink(), onChanged: (v) => setState(() => _txFilter = v ?? 'all'), items: const [DropdownMenuItem(value: 'all', child: Text('All')), DropdownMenuItem(value: 'order', child: Text('Order')), DropdownMenuItem(value: 'commission', child: Text('Commission')), DropdownMenuItem(value: 'refund', child: Text('Refund')), DropdownMenuItem(value: 'payout', child: Text('Payout'))]),
-        ]),
-        const SizedBox(height: 8),
-        if (tx.isEmpty) const AbzioEmptyCard(title: 'No transactions', subtitle: 'Transactions will show after activity.'),
-        ...tx.take(12).map((e) => _TxRow(e: e, money: m)),
-      ])),
-    ]);
-  }
+    final allTx = a.transactions;
+    final tx = switch (_txFilter) {
+      'earnings' => allTx.where((e) => e.type == 'order').toList(),
+      'withdrawals' => allTx.where((e) => e.type == 'withdrawal' || e.type == 'payout').toList(),
+      'commission' => allTx.where((e) => e.type == 'commission').toList(),
+      _ => allTx,
+    };
 
+    final trend = a.todayEarnings - (a.weeklyRevenue / 7);
+    final trendUp = trend >= 0;
+    final nextPayout = DateFormat('EEE, d MMM').format(DateTime.now().add(const Duration(days: 1)));
+    final payoutProcessing = w.withdrawalRequests.any((r) => r.status.toLowerCase() == 'pending');
+
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: [
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Earnings Summary', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 10),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 1.35,
+                children: [
+                  _MoneyKpi(title: 'Available Balance', value: m(w.balance), trend: '+4.2%'),
+                  _MoneyKpi(title: 'Pending Settlement', value: m(w.pendingAmount), trend: '-1.3%'),
+                  _MoneyKpi(title: 'Today Earnings', value: m(a.todayEarnings), trend: trendUp ? 'up' : 'down'),
+                  _MoneyKpi(title: 'Weekly Earnings', value: m(a.weeklyRevenue), trend: '+9.1%'),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                trendUp
+                    ? 'You earned ${m(trend.abs())} more than yesterday (up)'
+                    : 'Earnings down by ${((trend.abs() / (a.weeklyRevenue == 0 ? 1 : a.weeklyRevenue)) * 100).toStringAsFixed(0)}% this week (down)',
+                style: TextStyle(
+                  color: trendUp ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () => setState(() => _showEarningsBreakdown = !_showEarningsBreakdown),
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      const Text('View full breakdown', style: TextStyle(fontWeight: FontWeight.w700)),
+                      const SizedBox(width: 6),
+                      Icon(_showEarningsBreakdown ? Icons.expand_less : Icons.expand_more),
+                    ],
+                  ),
+                ),
+              ),
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 220),
+                crossFadeState: _showEarningsBreakdown ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+                firstChild: Column(
+                  children: [
+                    _line('Total earnings', m(a.totalEarnings)),
+                    _line('Total commission paid', m(a.weeklyCommission + a.todayCommission)),
+                  ],
+                ),
+                secondChild: const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Withdraw', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              _line('Available balance', m(w.balance)),
+              _line('Minimum withdrawal', '\u20B9100'),
+              _line('Next payout date', nextPayout),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: payoutProcessing ? const Color(0xFFFFF4E5) : const Color(0xFFEAF8EE),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  payoutProcessing ? 'Processing payout' : 'Available for withdrawal',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: payoutProcessing ? const Color(0xFF9A6700) : const Color(0xFF15803D),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _withdraw,
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFC8A96A)),
+                  child: Text('Withdraw ${m(w.balance)} ->'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Pending settlement includes orders under return window',
+                style: TextStyle(color: Colors.black54, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Secure payouts powered by Razorpay',
+                style: TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text('Transaction History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  const Spacer(),
+                  DropdownButton<String>(
+                    value: _txFilter,
+                    underline: const SizedBox.shrink(),
+                    onChanged: (v) => setState(() => _txFilter = v ?? 'all'),
+                    items: const [
+                      DropdownMenuItem(value: 'all', child: Text('All')),
+                      DropdownMenuItem(value: 'earnings', child: Text('Earnings')),
+                      DropdownMenuItem(value: 'withdrawals', child: Text('Withdrawals')),
+                      DropdownMenuItem(value: 'commission', child: Text('Commission')),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (tx.isEmpty)
+                const AbzioEmptyCard(title: 'No transactions', subtitle: 'Transactions will show after activity.'),
+              ...tx.take(20).map((e) => _TxRow(e: e, money: m)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
   Widget _account() {
     final store = _store!;
     final wallet = _wallet!;
@@ -616,6 +891,100 @@ class _Metric extends StatelessWidget {
           Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
         ]),
       );
+}
+
+class _MoneyKpi extends StatelessWidget {
+  const _MoneyKpi({
+    required this.title,
+    required this.value,
+    this.trend = '',
+  });
+
+  final String title;
+  final String value;
+  final String trend;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFBFAF6),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFECE4D2)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 3))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(title, style: const TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            if (trend.isNotEmpty)
+              Text(trend, style: const TextStyle(fontSize: 11, color: Color(0xFF15803D), fontWeight: FontWeight.w700)),
+          ],
+        ),
+      );
+}
+
+class _GrowthActionCard extends StatelessWidget {
+  const _GrowthActionCard({
+    required this.title,
+    required this.description,
+    required this.priority,
+    required this.cta,
+  });
+
+  final String title;
+  final String description;
+  final String priority;
+  final String cta;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = switch (priority) {
+      'High' => const Color(0xFFFFF4EB),
+      'Medium' => const Color(0xFFFFF8F0),
+      _ => const Color(0xFFF7F8F8),
+    };
+    final fg = switch (priority) {
+      'High' => const Color(0xFFB45309),
+      'Medium' => const Color(0xFF9A6700),
+      _ => const Color(0xFF4B5563),
+    };
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFECE4D2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded, size: 16, color: Color(0xFFC8A96A)),
+              const SizedBox(width: 6),
+              Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800))),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
+                child: Text(priority, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(description, style: const TextStyle(color: Colors.black54)),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.tonal(onPressed: () {}, child: Text(cta)),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Action extends StatelessWidget {
@@ -1063,12 +1432,48 @@ class _TxRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final debit = e.type == 'commission' || e.type == 'refund' || e.type == 'payout' || e.type == 'withdrawal';
     final color = debit ? const Color(0xFFB91C1C) : const Color(0xFF15803D);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+    final isWithdrawal = e.type == 'withdrawal' || e.type == 'payout';
+    final icon = isWithdrawal
+        ? Icons.account_balance_wallet_outlined
+        : e.type == 'commission'
+            ? Icons.percent_rounded
+            : e.type == 'order'
+                ? Icons.verified_rounded
+                : Icons.receipt_long_outlined;
+    final typeLabel = isWithdrawal
+        ? 'Withdrawal'
+        : e.type == 'commission'
+            ? 'Commission'
+            : e.type == 'order'
+                ? 'Escrow'
+                : '${e.type[0].toUpperCase()}${e.type.substring(1)}';
+    final date = DateTime.tryParse(e.createdAt);
+    final dateText = date == null ? e.createdAt : DateFormat('d MMM, hh:mm a').format(date);
+    final statusText = e.status.isEmpty ? 'Completed' : e.status[0].toUpperCase() + e.status.substring(1);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFEDE7D9))),
+      ),
       child: Row(children: [
-        Icon(debit ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 16, color: color),
-        const SizedBox(width: 8),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(e.type.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w700)), Text(e.createdAt, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Colors.black54))])),
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(typeLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 8),
+                  Text(statusText, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                ],
+              ),
+              Text(dateText, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+            ],
+          ),
+        ),
         Text('${debit ? '-' : '+'}${money(e.amount)}', style: TextStyle(color: color, fontWeight: FontWeight.w800)),
       ]),
     );

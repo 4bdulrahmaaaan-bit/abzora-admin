@@ -21,6 +21,16 @@ class VendorTrialHomeDashboardScreen extends StatefulWidget {
 
 class _VendorTrialHomeDashboardScreenState
     extends State<VendorTrialHomeDashboardScreen> {
+  static const Color _bg = Color(0xFFF8F5EF);
+  static const Color _muted = Color(0xFF6D685F);
+  static const Color _gold = Color(0xFFC8A96A);
+  static const Color _goldSoft = Color(0xFFF1E8D8);
+  static const double _cardRadius = 16;
+  static const double _cardPadding = 14;
+  static const double _sectionGap = 12;
+  static const double _titleSize = 15;
+  static const double _metaSize = 12.5;
+
   final DatabaseService _db = DatabaseService();
   final NumberFormat _money = NumberFormat.currency(
     locale: 'en_IN',
@@ -30,17 +40,16 @@ class _VendorTrialHomeDashboardScreenState
   final List<String> _sections = const <String>[
     'Overview',
     'Queue',
-    'Settings',
-    'Analytics',
     'Active',
     'Returns',
-    'Risk',
+    'Analytics',
+    'Settings',
   ];
 
   bool _loading = true;
   bool _actionBusy = false;
   String? _error;
-  int _sectionIndex = 0;
+  int _activeTab = 0;
   Map<String, dynamic> _dashboard = const <String, dynamic>{};
   List<TrialSession> _sessions = const <TrialSession>[];
   List<Map<String, dynamic>> _productSettings = const <Map<String, dynamic>>[];
@@ -200,9 +209,55 @@ class _VendorTrialHomeDashboardScreenState
           session.returnedItems.isNotEmpty)
       .toList();
 
-  List<TrialSession> get _riskSessions => _sessions
-      .where((session) => session.userRiskScore >= 70 || session.userFlagged)
-      .toList();
+  _RiskScore _computeRisk(TrialSession session) {
+    final itemCount = session.items.isEmpty ? 1 : session.items.length;
+    final returnRate = (session.returnedItems.length / itemCount) * 100;
+    final cancellations = session.approvalStatus == 'rejected' ? 100.0 : 20.0;
+    final deviceRisk = session.userFlagged ? 100.0 : 20.0;
+    final locationRisk = session.userCity.trim().isEmpty ? 70.0 : 20.0;
+    final highValueOrder = session.subtotal >= 10000 ? 100.0 : 20.0;
+    final abnormalBehavior = session.userTrialScore < 40 ? 80.0 : 20.0;
+
+    final score = ((returnRate * 0.30) +
+            (cancellations * 0.15) +
+            (deviceRisk * 0.20) +
+            (locationRisk * 0.15) +
+            (highValueOrder * 0.10) +
+            (abnormalBehavior * 0.10))
+        .round()
+        .clamp(0, 100);
+
+    final reasons = <String>[];
+    if (returnRate > 35) reasons.add('High return history');
+    if (session.userFlagged) reasons.add('Device/account risk signal');
+    if (session.subtotal >= 10000) reasons.add('High-value product request');
+    if (session.userCity.trim().isEmpty) reasons.add('Location confidence low');
+    if (session.userTrialScore < 40) reasons.add('Abnormal trial behavior');
+    if (reasons.isEmpty) reasons.add('Stable profile and fit behavior');
+
+    if (score <= 30) {
+      return _RiskScore(
+        score: score,
+        level: 'Low',
+        recommendation: score < 25 ? 'Auto approve' : 'Approve',
+        reasons: reasons,
+      );
+    }
+    if (score <= 70) {
+      return _RiskScore(
+        score: score,
+        level: 'Medium',
+        recommendation: 'Manual review',
+        reasons: reasons,
+      );
+    }
+    return _RiskScore(
+      score: score,
+      level: 'High',
+      recommendation: 'Reject / Restrict',
+      reasons: reasons,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -231,27 +286,49 @@ class _VendorTrialHomeDashboardScreenState
         ),
       );
     }
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 12),
-          _buildSectionSwitcher(),
-          const SizedBox(height: 12),
-          _buildSection(),
-        ],
+    return Container(
+      color: _bg,
+      child: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
+          children: [
+            Row(
+              children: [
+                const Text(
+                  'ABZORA PARTNER',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Refresh',
+                  onPressed: _load,
+                  icon: const Icon(Icons.refresh_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _buildHeader(),
+            const SizedBox(height: _sectionGap),
+            _buildSectionSwitcher(),
+            const SizedBox(height: _sectionGap),
+            _buildSection(),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(_cardPadding),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(_cardRadius),
         boxShadow: const [
           BoxShadow(
             color: Color(0x10000000),
@@ -274,7 +351,7 @@ class _VendorTrialHomeDashboardScreenState
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'Manage approvals, returns, and conversion quality.',
+                  'Manage approvals, returns, and conversion quality',
                   style: TextStyle(color: Colors.black54),
                 ),
               ],
@@ -291,42 +368,102 @@ class _VendorTrialHomeDashboardScreenState
   }
 
   Widget _buildSectionSwitcher() {
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (_, index) => ChoiceChip(
-          selected: _sectionIndex == index,
-          label: Text(_sections[index]),
-          onSelected: (_) => setState(() => _sectionIndex = index),
-          selectedColor: AbzioTheme.accentColor.withValues(alpha: 0.16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+    final queueCount = _pendingSessions.length;
+    final activeCount = _activeSessions.length;
+    final returnsCount = _returnSessions.length;
+    String labelFor(int index) {
+      final tab = _sections[index];
+      if (tab == 'Queue') return 'Queue ($queueCount)';
+      if (tab == 'Active') return 'Active ($activeCount)';
+      if (tab == 'Returns') return 'Returns ($returnsCount)';
+      return tab;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: _goldSoft,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: SizedBox(
+        height: 42,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (_, index) {
+            final selected = _activeTab == index;
+            return InkWell(
+              borderRadius: BorderRadius.circular(999),
+              onTap: () => setState(() => _activeTab = index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                decoration: BoxDecoration(
+                  color: selected ? const Color(0xFFE8C97C) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: selected
+                      ? const [
+                          BoxShadow(
+                            color: Color(0x22000000),
+                            blurRadius: 8,
+                            offset: Offset(0, 3),
+                          ),
+                        ]
+                      : null,
+                  border: Border(
+                    bottom: BorderSide(
+                      color:
+                          selected ? const Color(0xFFD5AD43) : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                child: Text(
+                  labelFor(index),
+                  style: TextStyle(
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    color:
+                        selected ? Colors.black : const Color(0xFF7D776E),
+                  ),
+                ),
+              ),
+            );
+          },
+          separatorBuilder: (_, _) => const SizedBox(width: 8),
+          itemCount: _sections.length,
         ),
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
-        itemCount: _sections.length,
       ),
     );
   }
 
   Widget _buildSection() {
-    switch (_sectionIndex) {
-      case 0:
-        return _buildOverviewSection();
-      case 1:
-        return _buildQueueSection();
-      case 2:
-        return _buildSettingsSection();
-      case 3:
-        return _buildAnalyticsSection();
-      case 4:
-        return _buildActiveSection();
-      case 5:
-        return _buildReturnsSection();
-      case 6:
-        return _buildRiskSection();
-      default:
-        return const SizedBox.shrink();
-    }
+    final current = switch (_activeTab) {
+      0 => _buildOverviewSection(),
+      1 => _buildQueueSection(),
+      2 => _buildActiveSection(),
+      3 => _buildReturnsSection(),
+      4 => _buildAnalyticsSection(),
+      5 => _buildSettingsSection(),
+      _ => const SizedBox.shrink(),
+    };
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 240),
+      switchInCurve: Curves.easeOutCubic,
+      transitionBuilder: (child, animation) {
+        final slide = Tween<Offset>(
+          begin: const Offset(0.02, 0),
+          end: Offset.zero,
+        ).animate(animation);
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(position: slide, child: child),
+        );
+      },
+      child: KeyedSubtree(
+        key: ValueKey<int>(_activeTab),
+        child: current,
+      ),
+    );
   }
 
   Widget _buildOverviewSection() {
@@ -349,62 +486,97 @@ class _VendorTrialHomeDashboardScreenState
   Widget _buildQueueSection() {
     final queue = _pendingSessions;
     if (queue.isEmpty) {
-      return _empty('No pending approvals.');
+      return _empty('No requests right now\nNew try-at-home requests will appear here');
     }
     return Column(
-      children: queue
-          .map(
-            (session) => _surface(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      children: queue.map((session) {
+        final score = _computeRisk(session);
+        final productName = session.items.isNotEmpty ? session.items.first.name : 'ABZORA Item';
+        final size = session.recommendedSize.trim().isNotEmpty
+            ? session.recommendedSize
+            : (session.items.isNotEmpty ? session.items.first.recommendedSize : 'N/A');
+        return _surface(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          session.userName.isEmpty ? session.userId : session.userName,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
+                  Expanded(
+                    child: Text(
+                      productName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: _titleSize,
                       ),
-                      _pill(_prettyStatus(session.approvalStatus)),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${session.items.length} items | ${_money.format(session.subtotal)} | ${session.userCity.isEmpty ? 'Location pending' : session.userCity}',
-                    style: const TextStyle(color: Colors.black54),
+                  _riskPill(score.level),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Customer: ${session.userName.isEmpty ? session.userId : session.userName}',
+                style: const TextStyle(color: _muted, fontSize: _metaSize),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Size: ${size.isEmpty ? 'N/A' : size} | Order value: ${_money.format(session.subtotal)}',
+                style: const TextStyle(color: _muted, fontSize: _metaSize),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'AI insight: ${score.reasons.first}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              Text(
+                'Recommendation: ${score.recommendation} (Risk ${score.score}/100)',
+                style: const TextStyle(color: _muted, fontSize: _metaSize),
+              ),
+              if (score.score > 70)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Restriction suggested: require prepaid and limit premium trials.',
+                    style: TextStyle(color: Color(0xFF9A3A2A), fontSize: 12),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Fit confidence ${session.fitConfidence.toStringAsFixed(0)}% • User score ${session.userTrialScore.toStringAsFixed(0)}',
-                    style: const TextStyle(color: Colors.black54),
+                ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _actionBusy ? null : () => _reject(session),
+                      child: const Text('Reject'),
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _actionBusy ? null : () => _reject(session),
-                          child: const Text('Reject'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: _actionBusy ? null : () => _approve(session),
-                          child: const Text('Approve'),
-                        ),
-                      ),
-                    ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _actionBusy ? null : () => _approve(session),
+                      style: FilledButton.styleFrom(backgroundColor: _gold),
+                      child: const Text('Approve'),
+                    ),
                   ),
                 ],
               ),
-            ),
-          )
-          .toList(),
+              Row(
+                children: [
+                  const Text('Manual Review', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 8),
+                  Switch.adaptive(
+                    value: score.level != 'Low',
+                    onChanged: (_) {},
+                    activeThumbColor: _gold,
+                    activeTrackColor: _gold.withValues(alpha: 0.35),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
-
   Widget _buildSettingsSection() {
     if (_productSettings.isEmpty) {
       return _empty('No products found for trial settings.');
@@ -429,7 +601,10 @@ class _VendorTrialHomeDashboardScreenState
                   Expanded(
                     child: Text(
                       product['name']?.toString() ?? 'ABZORA Item',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: _titleSize,
+                      ),
                     ),
                   ),
                   Switch(
@@ -443,8 +618,8 @@ class _VendorTrialHomeDashboardScreenState
                 ],
               ),
               Text(
-                'Stock ${product['stock'] ?? 0} • ${product['category'] ?? ''}',
-                style: const TextStyle(color: Colors.black54),
+                'Stock ${product['stock'] ?? 0} â€¢ ${product['category'] ?? ''}',
+                style: const TextStyle(color: _muted, fontSize: _metaSize),
               ),
               const SizedBox(height: 10),
               Wrap(
@@ -484,7 +659,7 @@ class _VendorTrialHomeDashboardScreenState
   Widget _buildAnalyticsSection() {
     final conversion = ((_dashboard['conversionRate'] ?? 0) as num).toDouble();
     final returnRate = ((_dashboard['returnRate'] ?? 0) as num).toDouble();
-    final riskAlerts = (_dashboard['riskAlerts'] ?? _riskSessions.length) as num;
+    final riskAlerts = _sessions.where((s) => _computeRisk(s).level == 'High').length;
     final sessionCount = (_dashboard['sessionCount'] ?? _sessions.length) as num;
     return Column(
       children: [
@@ -494,11 +669,13 @@ class _VendorTrialHomeDashboardScreenState
           ('Risk alerts', riskAlerts.toString(), Icons.warning_amber_rounded),
           ('Sessions', sessionCount.toString(), Icons.dataset_outlined),
         ]),
-        const SizedBox(height: 12),
+        const SizedBox(height: _sectionGap),
         _surface(
-          child: Column(
+          child: const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
+              Text('Last 7 days', style: TextStyle(color: _muted)),
+              SizedBox(height: 6),
               Text(
                 'Insights',
                 style: TextStyle(fontWeight: FontWeight.w800),
@@ -506,12 +683,12 @@ class _VendorTrialHomeDashboardScreenState
               SizedBox(height: 6),
               Text(
                 'Approve high-fit requests quickly to improve conversion and reduce returns.',
-                style: TextStyle(color: Colors.black54),
+                style: TextStyle(color: _muted),
               ),
               SizedBox(height: 4),
               Text(
                 'Use manual approval for high-risk users and high-value outfits.',
-                style: TextStyle(color: Colors.black54),
+                style: TextStyle(color: _muted),
               ),
             ],
           ),
@@ -519,7 +696,6 @@ class _VendorTrialHomeDashboardScreenState
       ],
     );
   }
-
   Widget _buildActiveSection() {
     if (_activeSessions.isEmpty) {
       return _empty('No active trials right now.');
@@ -536,33 +712,35 @@ class _VendorTrialHomeDashboardScreenState
                       Expanded(
                         child: Text(
                           session.userName.isEmpty ? session.userId : session.userName,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: _titleSize,
+                          ),
                         ),
                       ),
-                      _pill(_prettyStatus(session.status)),
+                      _pill(_activeStatusText(session)),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Text(
-                    '${session.deliverySlot} • ${session.deliveryWindowLabel}',
-                    style: const TextStyle(color: Colors.black54),
+                    _activeDurationText(session),
+                    style: const TextStyle(color: _muted, fontSize: _metaSize),
                   ),
                   const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                  Row(
                     children: [
-                      _miniAction(
-                        label: 'Out for trial',
-                        onTap: () => _setStatus(session, 'out_for_trial_delivery'),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _actionBusy ? null : () => _setStatus(session, 'completed'),
+                          child: const Text('Mark completed'),
+                        ),
                       ),
-                      _miniAction(
-                        label: 'In progress',
-                        onTap: () => _setStatus(session, 'trial_in_progress'),
-                      ),
-                      _miniAction(
-                        label: 'Completed',
-                        onTap: () => _setStatus(session, 'completed'),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton.tonal(
+                          onPressed: _actionBusy ? null : () => _setStatus(session, 'return_initiated'),
+                          child: const Text('Initiate return'),
+                        ),
                       ),
                     ],
                   ),
@@ -573,7 +751,6 @@ class _VendorTrialHomeDashboardScreenState
           .toList(),
     );
   }
-
   Widget _buildReturnsSection() {
     if (_returnSessions.isEmpty) {
       return _empty('No return reviews pending.');
@@ -586,39 +763,54 @@ class _VendorTrialHomeDashboardScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    session.userName.isEmpty ? session.userId : session.userName,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
+                    session.items.isNotEmpty ? session.items.first.name : 'ABZORA Item',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: _titleSize,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Returned ${session.returnedItems.length} • Kept ${session.keptItems.length}',
-                    style: const TextStyle(color: Colors.black54),
+                    'Customer: ${session.userName.isEmpty ? session.userId : session.userName}',
+                    style: const TextStyle(color: _muted, fontSize: _metaSize),
                   ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
+                  const SizedBox(height: 4),
+                  Text(
+                    'Reason: ${session.returnedItems.isEmpty ? 'Not provided' : 'Item return requested'}',
+                    style: const TextStyle(color: _muted, fontSize: _metaSize),
+                  ),
+                  const SizedBox(height: 4),
+                  _pill('Status: ${_prettyStatus(session.status)}'),
+                  const SizedBox(height: 10),
+                  Row(
                     children: [
-                      OutlinedButton(
-                        onPressed: _actionBusy
-                            ? null
-                            : () => _setStatus(
-                                  session,
-                                  session.status,
-                                  note: 'Return approved',
-                                  returnDecision: 'approved',
-                                ),
-                        child: const Text('Approve Return'),
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(backgroundColor: _gold),
+                          onPressed: _actionBusy
+                              ? null
+                              : () => _setStatus(
+                                    session,
+                                    session.status,
+                                    note: 'Return approved',
+                                    returnDecision: 'approved',
+                                  ),
+                          child: const Text('Approve return'),
+                        ),
                       ),
-                      OutlinedButton(
-                        onPressed: _actionBusy
-                            ? null
-                            : () => _setStatus(
-                                  session,
-                                  session.status,
-                                  note: 'Condition issue flagged',
-                                  returnDecision: 'flagged',
-                                ),
-                        child: const Text('Flag Issue'),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _actionBusy
+                              ? null
+                              : () => _setStatus(
+                                    session,
+                                    session.status,
+                                    note: 'Return rejected',
+                                    returnDecision: 'rejected',
+                                  ),
+                          child: const Text('Reject return'),
+                        ),
                       ),
                     ],
                   ),
@@ -629,40 +821,48 @@ class _VendorTrialHomeDashboardScreenState
           .toList(),
     );
   }
-
-  Widget _buildRiskSection() {
-    if (_riskSessions.isEmpty) {
-      return _empty('No active risk alerts for trial users.');
+  String _activeStatusText(TrialSession session) {
+    switch (session.status) {
+      case 'out_for_trial_delivery':
+        return 'Out for trial';
+      case 'trial_in_progress':
+        return 'At customer';
+      case 'return_initiated':
+        return 'Return initiated';
+      default:
+        return _prettyStatus(session.status);
     }
-    return Column(
-      children: _riskSessions
-          .map(
-            (session) => _surface(
-              child: Row(
-                children: [
-                  const Icon(Icons.shield_outlined, color: Color(0xFFB45309)),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          session.userName.isEmpty ? session.userId : session.userName,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Risk ${session.userRiskScore.toStringAsFixed(0)} • Score ${session.userTrialScore.toStringAsFixed(0)}${session.userFlagged ? ' • Flagged' : ''}',
-                          style: const TextStyle(color: Colors.black54),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-          .toList(),
+  }
+
+  String _activeDurationText(TrialSession session) {
+    final created = session.createdAt;
+    if (created == null) {
+      return 'Duration unavailable';
+    }
+    final hours = DateTime.now().difference(created).inHours;
+    return 'Duration: ${hours}h';
+  }
+
+  Widget _riskPill(String level) {
+    Color bg;
+    Color fg;
+    if (level == 'Low') {
+      bg = const Color(0xFFE8F7EB);
+      fg = const Color(0xFF2A8C47);
+    } else if (level == 'Medium') {
+      bg = const Color(0xFFFFF3E3);
+      fg = const Color(0xFFAF6B16);
+    } else {
+      bg = const Color(0xFFFFE8E3);
+      fg = const Color(0xFFB23A2A);
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+      child: Text(
+        '$level Risk',
+        style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 11),
+      ),
     );
   }
 
@@ -710,10 +910,10 @@ class _VendorTrialHomeDashboardScreenState
   Widget _surface({required Widget child}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(_cardPadding),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(_cardRadius),
         boxShadow: const [
           BoxShadow(
             color: Color(0x10000000),
@@ -730,6 +930,7 @@ class _VendorTrialHomeDashboardScreenState
     return OutlinedButton(
       onPressed: _actionBusy ? null : onTap,
       style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 42),
         side: const BorderSide(color: Color(0xFFE2DED4)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -744,14 +945,13 @@ class _VendorTrialHomeDashboardScreenState
         color: AbzioTheme.accentColor.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: AbzioTheme.accentColor,
-          fontWeight: FontWeight.w700,
-          fontSize: 11,
-        ),
-      ),
+      child: Text(text,
+          style: const TextStyle(
+            color: AbzioTheme.accentColor,
+            fontWeight: FontWeight.w700,
+            fontSize: 11,
+            letterSpacing: 0.1,
+          )),
     );
   }
 
@@ -759,10 +959,24 @@ class _VendorTrialHomeDashboardScreenState
     return _surface(
       child: Text(
         text,
-        style: const TextStyle(color: Colors.black54),
+        style: const TextStyle(color: _muted, height: 1.35),
       ),
     );
   }
 
-  String _prettyStatus(String status) => status.replaceAll('_', ' ').toUpperCase();
+String _prettyStatus(String status) => status.replaceAll('_', ' ').toUpperCase();
+}
+
+class _RiskScore {
+  const _RiskScore({
+    required this.score,
+    required this.level,
+    required this.recommendation,
+    required this.reasons,
+  });
+
+  final int score;
+  final String level;
+  final String recommendation;
+  final List<String> reasons;
 }

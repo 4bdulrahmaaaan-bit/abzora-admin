@@ -36,8 +36,10 @@ class OtpVerificationScreen extends StatefulWidget {
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     with SingleTickerProviderStateMixin, CodeAutoFill {
-  final List<TextEditingController> _controllers =
-      List.generate(6, (_) => TextEditingController());
+  final List<TextEditingController> _controllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   late final AnimationController _errorShakeController;
   late final Animation<double> _errorShakeAnimation;
@@ -47,7 +49,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   String? _inlineError;
 
   Future<bool> _verifyAdminPinIfRequired(AppUser user) async {
-    if (!widget.adminEntry || (user.role != 'admin' && user.role != 'super_admin')) {
+    if (!widget.adminEntry ||
+        (user.role != 'admin' && user.role != 'super_admin')) {
       return true;
     }
 
@@ -60,7 +63,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     }
 
     final pinController = TextEditingController();
-    final isValid = await showDialog<bool>(
+    final isValid =
+        await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (dialogContext) => AlertDialog(
@@ -82,7 +86,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                 child: const Text('Cancel'),
               ),
               ElevatedButton(
-                onPressed: () => Navigator.pop(dialogContext, pinController.text.trim() == settings.adminPin),
+                onPressed: () => Navigator.pop(
+                  dialogContext,
+                  pinController.text.trim() == settings.adminPin,
+                ),
                 child: const Text('Verify'),
               ),
             ],
@@ -99,7 +106,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   ) async {
     var resolved = fallback;
     for (var attempt = 0; attempt < 3; attempt++) {
-      final refreshed = await authProvider.refreshProfileFromBackendIfPossible();
+      final refreshed = await authProvider
+          .refreshProfileFromBackendIfPossible();
       if (refreshed != null) {
         resolved = refreshed;
       }
@@ -113,6 +121,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     return resolved;
   }
 
+  bool get _needsPartnerProfileResolution {
+    return !widget.adminEntry && isPartnerMode(widget.mode);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -120,15 +132,19 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       vsync: this,
       duration: const Duration(milliseconds: 360),
     );
-    _errorShakeAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0.0, end: -10.0), weight: 1),
-      TweenSequenceItem(tween: Tween(begin: -10.0, end: 10.0), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: 10.0, end: -6.0), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: -6.0, end: 6.0), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: 6.0, end: 0.0), weight: 2),
-    ]).animate(
-      CurvedAnimation(parent: _errorShakeController, curve: Curves.easeOutCubic),
-    );
+    _errorShakeAnimation =
+        TweenSequence<double>([
+          TweenSequenceItem(tween: Tween(begin: 0.0, end: -10.0), weight: 1),
+          TweenSequenceItem(tween: Tween(begin: -10.0, end: 10.0), weight: 2),
+          TweenSequenceItem(tween: Tween(begin: 10.0, end: -6.0), weight: 2),
+          TweenSequenceItem(tween: Tween(begin: -6.0, end: 6.0), weight: 2),
+          TweenSequenceItem(tween: Tween(begin: 6.0, end: 0.0), weight: 2),
+        ]).animate(
+          CurvedAnimation(
+            parent: _errorShakeController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
     _startTimer();
     _listenForOtpCode();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -210,7 +226,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     });
   }
 
-  String get _otpCode => _controllers.map((controller) => controller.text).join();
+  String get _otpCode =>
+      _controllers.map((controller) => controller.text).join();
 
   bool get _isOtpComplete => _otpCode.length == 6;
 
@@ -221,7 +238,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     }
     final visiblePrefix = digits.substring(0, digits.length.clamp(0, 3));
     final visibleSuffix = digits.substring(digits.length - 2);
-    final hiddenCount = (digits.length - visiblePrefix.length - visibleSuffix.length).clamp(0, 8);
+    final hiddenCount =
+        (digits.length - visiblePrefix.length - visibleSuffix.length).clamp(
+          0,
+          8,
+        );
     return '$visiblePrefix${'X' * hiddenCount}$visibleSuffix';
   }
 
@@ -258,32 +279,58 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       }
       var resolvedUser =
           await authProvider.refreshProfileFromBackendIfPossible() ?? user;
-      if (!widget.adminEntry && widget.mode == AbzioAppMode.operations) {
-        resolvedUser = await _resolveOperationsProfile(authProvider, resolvedUser);
+      if (_needsPartnerProfileResolution) {
+        resolvedUser = await _resolveOperationsProfile(
+          authProvider,
+          resolvedUser,
+        );
+      }
+      if (!mounted) {
+        return;
       }
       final restriction = widget.adminEntry
           ? null
           : accessRestrictionMessage(resolvedUser, widget.mode);
       final adminRestriction =
           widget.adminEntry &&
-                  resolvedUser.role != 'admin' &&
-                  resolvedUser.role != 'super_admin'
-              ? 'This OTP entry is reserved for super admin access.'
-              : null;
-      final combinedRestriction = adminRestriction ?? restriction;
+              resolvedUser.role != 'admin' &&
+              resolvedUser.role != 'super_admin'
+          ? 'This OTP entry is reserved for super admin access.'
+          : null;
+      var combinedRestriction = adminRestriction ?? restriction;
+      if (combinedRestriction != null && !widget.adminEntry) {
+        final refreshed = await authProvider.refreshProfileFromBackendIfPossible();
+        if (refreshed != null) {
+          resolvedUser = refreshed;
+          if (_needsPartnerProfileResolution) {
+            resolvedUser = await _resolveOperationsProfile(
+              authProvider,
+              resolvedUser,
+            );
+          }
+          combinedRestriction = accessRestrictionMessage(
+            resolvedUser,
+            widget.mode,
+          );
+        }
+      }
       if (combinedRestriction != null) {
-        if (!widget.adminEntry && widget.mode == AbzioAppMode.operations) {
+        if (_needsPartnerProfileResolution &&
+            canAccessMode(resolvedUser, widget.mode)) {
+          if (!mounted) {
+            return;
+          }
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               behavior: SnackBarBehavior.floating,
               content: Text(
-                'Profile sync is taking longer than expected. Opening operations workspace...',
+                'Profile sync is taking longer than expected. Opening your workspace...',
               ),
             ),
           );
           Navigator.pushNamedAndRemoveUntil(
             context,
-            '/ops',
+            routeForUserInMode(resolvedUser, widget.mode),
             (route) => false,
           );
           return;
@@ -298,7 +345,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
             content: Text(combinedRestriction),
           ),
         );
-        Navigator.pushNamedAndRemoveUntil(context, widget.adminEntry ? '/admin-login' : '/login', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          widget.adminEntry ? '/admin-login' : '/login',
+          (route) => false,
+        );
         return;
       }
       final adminPinOk = await _verifyAdminPinIfRequired(resolvedUser);
@@ -316,7 +367,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
             content: Text('Admin PIN verification failed.'),
           ),
         );
-        Navigator.pushNamedAndRemoveUntil(context, '/admin-login', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/admin-login',
+          (route) => false,
+        );
         return;
       }
       if (widget.deferredAction) {
@@ -382,7 +437,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       }
       final message = AppErrorText.from(error).trim();
       setState(() {
-        _inlineError = message.isEmpty ? 'Unable to resend OTP right now' : message;
+        _inlineError = message.isEmpty
+            ? 'Unable to resend OTP right now'
+            : message;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -412,7 +469,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     setState(() {});
 
     if (_isOtpComplete) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _verifyOtp(autoTriggered: true));
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _verifyOtp(autoTriggered: true),
+      );
     }
   }
 
@@ -426,6 +485,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     final auth = context.watch<AuthProvider>();
     final phone = widget.phoneNumber ?? auth.pendingPhoneNumber ?? '';
     final isBusy = auth.isLoading || _autoSubmitting;
+    final logoAsset = widget.mode == AbzioAppMode.rider
+        ? 'assets/branding/abzora_rider_icon.png'
+        : brandAssetForMode(widget.mode);
 
     return AbzioThemeScope.light(
       child: Scaffold(
@@ -433,7 +495,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         appBar: AppBar(
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Theme.of(context).colorScheme.onSurface,
+              size: 20,
+            ),
             onPressed: isBusy ? null : () => Navigator.pop(context),
           ),
         ),
@@ -459,11 +525,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                         child: BrandLogo.hero(
                           size: 82,
                           radius: 22,
-                          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                          assetPath: logoAsset,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).scaffoldBackgroundColor,
                           padding: const EdgeInsets.all(6),
                           shadows: [
                             BoxShadow(
-                              color: AbzioTheme.accentColor.withValues(alpha: 0.12),
+                              color: AbzioTheme.accentColor.withValues(
+                                alpha: 0.12,
+                              ),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -472,7 +543,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                       ),
                       const SizedBox(height: 22),
                       Text(
-                        widget.adminEntry ? 'VERIFY ACCESS' : 'VERIFY YOUR NUMBER',
+                        widget.adminEntry
+                            ? 'VERIFY ACCESS'
+                            : 'VERIFY YOUR NUMBER',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.poppins(
                           fontSize: 28,
@@ -492,7 +565,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                             fontWeight: FontWeight.w500,
                           ),
                           children: [
-                            const TextSpan(text: 'Enter the 6-digit code sent to '),
+                            const TextSpan(
+                              text: 'Enter the 6-digit code sent to ',
+                            ),
                             TextSpan(
                               text: _maskedPhone(phone),
                               style: GoogleFonts.inter(
@@ -554,7 +629,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                           children: List.generate(
                             6,
                             (index) => Padding(
-                              padding: EdgeInsets.only(right: index == 5 ? 0 : 8),
+                              padding: EdgeInsets.only(
+                                right: index == 5 ? 0 : 8,
+                              ),
                               child: _OtpDigitBox(
                                 controller: _controllers[index],
                                 focusNode: _focusNodes[index],
@@ -562,7 +639,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                                 isActive: _focusNodes[index].hasFocus,
                                 isFilled: _controllers[index].text.isNotEmpty,
                                 hasError: _inlineError != null,
-                                onChanged: (value) => _handleOtpChange(index, value),
+                                onChanged: (value) =>
+                                    _handleOtpChange(index, value),
                               ),
                             ),
                           ),
@@ -602,8 +680,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                               )
                             : TextButton(
                                 key: const ValueKey('resend'),
-                                onPressed: isBusy ? null : () => _resendOtp(phone),
-                                style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                                onPressed: isBusy
+                                    ? null
+                                    : () => _resendOtp(phone),
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                ),
                                 child: Text(
                                   'Resend OTP',
                                   style: GoogleFonts.poppins(
@@ -619,23 +701,38 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                         child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: (!isBusy && _isOtpComplete) ? () => _verifyOtp() : null,
+                            onPressed: (!isBusy && _isOtpComplete)
+                                ? () => _verifyOtp()
+                                : null,
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size.fromHeight(56),
                               elevation: 1,
-                              shadowColor: AbzioTheme.accentColor.withValues(alpha: 0.18),
-                              backgroundColor: Theme.of(context).colorScheme.onSurface,
-                              foregroundColor: Theme.of(context).colorScheme.surface,
-                              disabledBackgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.18),
-                              disabledForegroundColor: context.abzioSecondaryText,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                              shadowColor: AbzioTheme.accentColor.withValues(
+                                alpha: 0.18,
+                              ),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.onSurface,
+                              foregroundColor: Theme.of(
+                                context,
+                              ).colorScheme.surface,
+                              disabledBackgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.18),
+                              disabledForegroundColor:
+                                  context.abzioSecondaryText,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
                             ),
                             child: isBusy
                                 ? SizedBox(
                                     width: 20,
                                     height: 20,
                                     child: CircularProgressIndicator(
-                                      color: Theme.of(context).colorScheme.surface,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.surface,
                                       strokeWidth: 2,
                                     ),
                                   )
@@ -713,15 +810,18 @@ class _OtpDigitBox extends StatelessWidget {
           color: hasError
               ? const Color(0xFFD64C4C)
               : isActive
-                  ? AbzioTheme.accentColor
-                  : context.abzioBorder,
+              ? AbzioTheme.accentColor
+              : context.abzioBorder,
           width: isActive ? 1.6 : 1,
         ),
         boxShadow: isActive || hasError
             ? [
                 BoxShadow(
-                  color: (hasError ? const Color(0xFFD64C4C) : AbzioTheme.accentColor)
-                      .withValues(alpha: 0.12),
+                  color:
+                      (hasError
+                              ? const Color(0xFFD64C4C)
+                              : AbzioTheme.accentColor)
+                          .withValues(alpha: 0.12),
                   blurRadius: 14,
                   offset: const Offset(0, 4),
                 ),

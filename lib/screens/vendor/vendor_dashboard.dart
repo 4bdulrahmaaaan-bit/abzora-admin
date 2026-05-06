@@ -11,11 +11,10 @@ import '../../utils/app_error_text.dart';
 import '../../utils/app_mode_routes.dart';
 import '../../widgets/payout_account_dialog.dart';
 import '../../widgets/state_views.dart';
-import '../../widgets/vendor_orders_tab.dart';
-import '../../widgets/vendor_quick_actions.dart';
-import '../../widgets/vendor_summary_cards.dart';
+import '../../widgets/tap_scale.dart';
 import 'add_product_screen.dart';
 import 'order_management.dart';
+import 'pricing_management_screen.dart';
 import 'product_management.dart';
 import 'store_settings_screen.dart';
 import 'vendor_registration_screen.dart';
@@ -33,7 +32,6 @@ class _VendorDashboardState extends State<VendorDashboard>
     with SingleTickerProviderStateMixin {
   final DatabaseService _db = DatabaseService();
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey _earningsSectionKey = GlobalKey();
   late final TabController _tabController;
 
   Future<Store?>? _storeFuture;
@@ -41,6 +39,7 @@ class _VendorDashboardState extends State<VendorDashboard>
   Future<VendorAnalytics>? _analyticsFuture;
   String? _boundActorId;
   String? _boundStoreId;
+  bool _showMoreInsights = false;
 
   @override
   void initState() {
@@ -142,18 +141,6 @@ class _VendorDashboardState extends State<VendorDashboard>
         .fold<double>(0, (sum, order) => sum + order.totalAmount);
   }
 
-  double _weeklyRevenue(List<OrderModel> orders) {
-    final now = DateTime.now();
-    final start = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday - 1));
-    return orders
-        .where((order) => !order.timestamp.isBefore(start))
-        .fold<double>(0, (sum, order) => sum + order.totalAmount);
-  }
-
   double _todayCommission(List<OrderModel> orders) {
     final now = DateTime.now();
     return orders
@@ -166,16 +153,60 @@ class _VendorDashboardState extends State<VendorDashboard>
         .fold<double>(0, (sum, order) => sum + order.platformCommission);
   }
 
-  double _weeklyCommission(List<OrderModel> orders) {
+  String _trendVsYesterday(List<OrderModel> orders) {
     final now = DateTime.now();
-    final start = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday - 1));
-    return orders
-        .where((order) => !order.timestamp.isBefore(start))
-        .fold<double>(0, (sum, order) => sum + order.platformCommission);
+    final todayRevenue = orders
+        .where(
+          (order) =>
+              order.timestamp.year == now.year &&
+              order.timestamp.month == now.month &&
+              order.timestamp.day == now.day,
+        )
+        .fold<double>(0, (sum, order) => sum + order.totalAmount);
+    final yesterday = now.subtract(const Duration(days: 1));
+    final yesterdayRevenue = orders
+        .where(
+          (order) =>
+              order.timestamp.year == yesterday.year &&
+              order.timestamp.month == yesterday.month &&
+              order.timestamp.day == yesterday.day,
+        )
+        .fold<double>(0, (sum, order) => sum + order.totalAmount);
+    if (yesterdayRevenue <= 0) {
+      return todayRevenue > 0 ? '+100%' : '0%';
+    }
+    final trend = ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+    final sign = trend >= 0 ? '+' : '';
+    return '$sign${trend.toStringAsFixed(0)}%';
+  }
+
+  List<String> _aiInsights({
+    required List<OrderModel> orders,
+    required List<Product> products,
+    required int pendingOrders,
+  }) {
+    final insights = <String>[];
+    final lowStockCount = products.where((p) => p.stock > 0 && p.stock <= 5).length;
+    if (lowStockCount > 0) {
+      insights.add('Low stock alert: $lowStockCount styles are moving quickly today.');
+    }
+    final discountedProducts = products.where((p) {
+      final original = p.originalPrice ?? p.basePrice;
+      return original != null && original > p.effectivePrice;
+    }).length;
+    if (discountedProducts > 0) {
+      insights.add('Products with discounts are converting faster in your catalog.');
+    }
+    if (pendingOrders >= 6) {
+      insights.add('High pending queue: process top orders now to protect delivery speed.');
+    }
+    if (_todayOrderCount(orders) >= 8) {
+      insights.add('Strong demand today. Prioritize best sellers and low-stock SKUs.');
+    }
+    if (insights.isEmpty) {
+      insights.add('Reduce price by ₹200 on slow movers to lift conversion.');
+    }
+    return insights.take(3).toList();
   }
 
   List<String> _buildAlerts(List<OrderModel> orders) {
@@ -212,33 +243,6 @@ class _VendorDashboardState extends State<VendorDashboard>
       );
     }
     return alerts;
-  }
-
-  Future<void> _handleStatusUpdate(
-    OrderModel order,
-    String status,
-    AppUser actor,
-  ) async {
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      await _db.updateOrderStatus(order.id, status, actor: actor);
-      messenger.showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(
-            'Order ${order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber} updated to $status.',
-          ),
-        ),
-      );
-      await _refresh(actor);
-    } catch (error) {
-      messenger.showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(AppErrorText.from(error)),
-        ),
-      );
-    }
   }
 
   Future<void> _openAddProduct(AppUser actor) async {
@@ -307,19 +311,6 @@ class _VendorDashboardState extends State<VendorDashboard>
         ),
       );
     }
-  }
-
-  Future<void> _scrollToEarnings() async {
-    final earningsContext = _earningsSectionKey.currentContext;
-    if (earningsContext == null) {
-      return;
-    }
-    await Scrollable.ensureVisible(
-      earningsContext,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-      alignment: 0.12,
-    );
   }
 
   Future<void> _requestVendorWithdrawal(AppUser actor) async {
@@ -521,27 +512,6 @@ class _VendorDashboardState extends State<VendorDashboard>
                     )..sort((a, b) => b.timestamp.compareTo(a.timestamp));
                     final products =
                         analytics?.bestSellingProducts ?? const <Product>[];
-                    final newOrders = orders
-                        .where((order) => order.status == 'Placed')
-                        .toList();
-                    final processingOrders = orders
-                        .where(
-                          (order) =>
-                              order.status == 'Confirmed' ||
-                              order.status == 'Packed',
-                        )
-                        .toList();
-                    final readyOrders = orders
-                        .where((order) => order.status == 'Ready for pickup')
-                        .toList();
-                    final completedOrders = orders
-                        .where(
-                          (order) =>
-                              order.status == 'Delivered' ||
-                              order.status == 'Out for delivery' ||
-                              order.status == 'Picked up',
-                        )
-                        .toList();
                     final pendingOrders = orders
                         .where(
                           (order) =>
@@ -564,338 +534,162 @@ class _VendorDashboardState extends State<VendorDashboard>
                           (sum, order) => sum + order.vendorEarnings,
                         );
                     final alerts = _buildAlerts(orders);
+                    final trendText = _trendVsYesterday(orders);
+                    final insights = _aiInsights(
+                      orders: orders,
+                      products: products,
+                      pendingOrders: pendingOrders,
+                    );
+                    final completedToday = orders
+                        .where((order) => order.status == 'Delivered')
+                        .length;
+                    final refundsCount = orders
+                        .where(
+                          (order) =>
+                              order.refundStatus.toLowerCase() != 'none',
+                        )
+                        .length;
+                    final averageOrderValue = orders.isEmpty
+                        ? 0.0
+                        : totalRevenue / orders.length;
 
                     return ListView(
                       controller: _scrollController,
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                       children: [
-                        _VendorWelcomeBanner(
-                          vendorName: actor.name.trim().isEmpty
-                              ? 'Vendor'
-                              : actor.name.trim(),
-                          store: store,
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'Today at a glance',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: 1),
+                          duration: const Duration(milliseconds: 320),
+                          builder: (context, opacity, child) => Opacity(
+                            opacity: opacity,
+                            child: Transform.translate(
+                              offset: Offset(0, (1 - opacity) * 8),
+                              child: child,
+                            ),
+                          ),
+                          child: _LuxuryHeaderCard(
+                            storeName: store.name.trim().isEmpty
+                                ? 'ABZORA Partner'
+                                : store.name,
+                            acceptingOrders: store.isActive,
+                            onToggle: (value) =>
+                                _toggleAcceptingOrders(store, value, actor),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        VendorSummaryCards(
-                          metrics: [
-                            VendorSummaryMetric(
-                              label: "Today's Orders",
-                              value: '${_todayOrderCount(orders)}',
-                              icon: Icons.local_mall_outlined,
-                              tint: const Color(0xFFD4AF37),
-                              subtext: 'Live order volume',
-                            ),
-                            VendorSummaryMetric(
-                              label: 'Pending Orders',
-                              value: '$pendingOrders',
-                              icon: Icons.hourglass_top_rounded,
-                              tint: const Color(0xFFB76E00),
-                              subtext: 'Needs action',
-                            ),
-                            VendorSummaryMetric(
-                              label: 'Revenue Today',
-                              value: _money(todayRevenue),
-                              icon: Icons.trending_up_rounded,
-                              tint: const Color(0xFF1C9A5F),
-                              subtext: 'Gross sales today',
-                            ),
-                            VendorSummaryMetric(
-                              label: 'Total Revenue',
-                              value: _money(totalRevenue),
-                              icon: Icons.account_balance_wallet_outlined,
-                              tint: const Color(0xFF635BFF),
-                              subtext: 'Lifetime gross sales',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'Quick actions',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        VendorQuickActions(
-                          actions: [
-                            VendorQuickActionItem(
-                              icon: Icons.add_box_outlined,
-                              label: 'Add Product',
-                              onTap: () => _openAddProduct(actor),
-                            ),
-                            VendorQuickActionItem(
-                              icon: Icons.receipt_long_outlined,
-                              label: 'View Orders',
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => OrderManagementScreen(
-                                      actor: actor,
-                                      store: store,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                            VendorQuickActionItem(
-                              icon: Icons.storefront_outlined,
-                              label: 'Manage Store',
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        StoreSettingsScreen(store: store),
-                                  ),
-                                );
-                              },
-                            ),
-                            VendorQuickActionItem(
-                              icon: Icons.payments_outlined,
-                              label: 'View Earnings',
-                              onTap: _scrollToEarnings,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        _StoreStatusCard(
-                          store: store,
-                          onChanged: (value) =>
-                              _toggleAcceptingOrders(store, value, actor),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Orders to process',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
+                        const SizedBox(height: 16),
+                        _PriorityOrdersCard(
+                          pendingOrders: pendingOrders,
+                          onProcessOrders: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => OrderManagementScreen(
+                                  actor: actor,
+                                  store: store,
                                 ),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => OrderManagementScreen(
-                                      actor: actor,
-                                      store: store,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: const Text('Open full queue'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF6F2E4),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: TabBar(
-                            controller: _tabController,
-                            labelColor: Colors.white,
-                            unselectedLabelColor: const Color(0xFF6E6E6E),
-                            indicator: BoxDecoration(
-                              color: const Color(0xFFD4AF37),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            labelStyle: GoogleFonts.inter(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                            ),
-                            tabs: const [
-                              Tab(text: 'New'),
-                              Tab(text: 'Processing'),
-                              Tab(text: 'Ready'),
-                              Tab(text: 'Completed'),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        SizedBox(
-                          height: 360,
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              SingleChildScrollView(
-                                child: VendorOrdersTab(
-                                  orders: newOrders,
-                                  emptyTitle: 'No new orders yet',
-                                  emptySubtitle:
-                                      'Fresh orders will appear here the moment shoppers place them.',
-                                  onConfirm: (order) => _handleStatusUpdate(
-                                    order,
-                                    'Confirmed',
-                                    actor,
-                                  ),
-                                  onPacked: (order) => _handleStatusUpdate(
-                                    order,
-                                    'Packed',
-                                    actor,
-                                  ),
-                                  formatCurrency: _money,
-                                ),
-                              ),
-                              SingleChildScrollView(
-                                child: VendorOrdersTab(
-                                  orders: processingOrders,
-                                  emptyTitle: 'Processing queue is clear',
-                                  emptySubtitle:
-                                      'Confirmed and packed orders will appear here for quick action.',
-                                  onConfirm: (order) => _handleStatusUpdate(
-                                    order,
-                                    'Confirmed',
-                                    actor,
-                                  ),
-                                  onPacked: (order) => _handleStatusUpdate(
-                                    order,
-                                    'Packed',
-                                    actor,
-                                  ),
-                                  formatCurrency: _money,
-                                ),
-                              ),
-                              SingleChildScrollView(
-                                child: VendorOrdersTab(
-                                  orders: readyOrders,
-                                  emptyTitle: 'Nothing waiting for pickup',
-                                  emptySubtitle:
-                                      'Orders marked ready will show here until a rider accepts them.',
-                                  onConfirm: (order) => _handleStatusUpdate(
-                                    order,
-                                    'Confirmed',
-                                    actor,
-                                  ),
-                                  onPacked: (order) => _handleStatusUpdate(
-                                    order,
-                                    'Packed',
-                                    actor,
-                                  ),
-                                  formatCurrency: _money,
-                                ),
-                              ),
-                              SingleChildScrollView(
-                                child: VendorOrdersTab(
-                                  orders: completedOrders,
-                                  emptyTitle: 'Completed orders will land here',
-                                  emptySubtitle:
-                                      'This view helps you review delivered and in-flight fulfillment quickly.',
-                                  onConfirm: (order) => _handleStatusUpdate(
-                                    order,
-                                    'Confirmed',
-                                    actor,
-                                  ),
-                                  onPacked: (order) => _handleStatusUpdate(
-                                    order,
-                                    'Packed',
-                                    actor,
-                                  ),
-                                  formatCurrency: _money,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        FutureBuilder<WalletSummary>(
-                          future: _db.getVendorWallet(actor: actor),
-                          builder: (context, walletSnapshot) {
-                            final wallet = walletSnapshot.data;
-                            return KeyedSubtree(
-                              key: _earningsSectionKey,
-                              child: _EarningsSection(
-                                todayRevenue:
-                                    analytics?.todayRevenue ??
-                                    _todayRevenue(orders),
-                                todayEarnings:
-                                    analytics?.todayEarnings ??
-                                    orders
-                                        .where((order) {
-                                          final now = DateTime.now();
-                                          return order.timestamp.year ==
-                                                  now.year &&
-                                              order.timestamp.month ==
-                                                  now.month &&
-                                              order.timestamp.day == now.day;
-                                        })
-                                        .fold<double>(
-                                          0,
-                                          (sum, order) =>
-                                              sum + order.vendorEarnings,
-                                        ),
-                                todayCommission:
-                                    analytics?.todayCommission ??
-                                    _todayCommission(orders),
-                                weeklyRevenue:
-                                    analytics?.weeklyRevenue ??
-                                    _weeklyRevenue(orders),
-                                weeklyCommission:
-                                    analytics?.weeklyCommission ??
-                                    _weeklyCommission(orders),
-                                pendingPayouts:
-                                    wallet?.pendingAmount ?? pendingPayouts,
-                                availableBalance:
-                                    wallet?.balance ??
-                                    analytics?.availableBalance ??
-                                    store.walletBalance,
-                                reservedWithdrawals:
-                                    wallet?.reservedAmount ?? 0,
-                                commissionRate:
-                                    wallet?.commissionRate ??
-                                    store.commissionRate,
-                                payoutProfile:
-                                    wallet?.payoutProfile ??
-                                    const PayoutProfileSummary.empty(),
-                                lastPayoutAmount:
-                                    analytics?.lastPayoutAmount ?? 0,
-                                lastPayoutAt: analytics?.lastPayoutAt ?? '',
-                                ordersCompleted:
-                                    analytics?.ordersCompleted ??
-                                    completedOrders.length,
-                                salesTrend:
-                                    analytics?.salesTrend ??
-                                    const <AnalyticsPoint>[],
-                                transactions:
-                                    analytics?.transactions ??
-                                    const <WalletTransaction>[],
-                                formatCurrency: _money,
-                                onWithdraw: () {
-                                  final profile =
-                                      wallet?.payoutProfile ??
-                                      const PayoutProfileSummary.empty();
-                                  if (!profile.isConfigured) {
-                                    _manageVendorPayoutAccount(actor, profile);
-                                    return;
-                                  }
-                                  _requestVendorWithdrawal(actor);
-                                },
-                                onManagePayoutAccount: () =>
-                                    _manageVendorPayoutAccount(
-                                      actor,
-                                      wallet?.payoutProfile ??
-                                          const PayoutProfileSummary.empty(),
-                                    ),
                               ),
                             );
                           },
                         ),
-                        const SizedBox(height: 20),
-                        _AlertsSection(alerts: alerts),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
+                        _PrimaryMetricsRow(
+                          revenueToday: _money(todayRevenue),
+                          trend: trendText,
+                          completedCount: completedToday,
+                          pendingCount: pendingOrders,
+                        ),
+                        const SizedBox(height: 16),
+                        _AiInsightsCard(
+                          insights: insights,
+                          onViewPricing: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => PricingManagementScreen(
+                                  storeId: store.id,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _QuickActionGrid(
+                          onAddProduct: () => _openAddProduct(actor),
+                          onOrders: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => OrderManagementScreen(
+                                  actor: actor,
+                                  store: store,
+                                ),
+                              ),
+                            );
+                          },
+                          onPricing: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => PricingManagementScreen(
+                                  storeId: store.id,
+                                ),
+                              ),
+                            );
+                          },
+                          onManageStore: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => StoreSettingsScreen(store: store),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        FutureBuilder<WalletSummary>(
+                          future: _db.getVendorWallet(actor: actor),
+                          builder: (context, walletSnapshot) {
+                            final wallet = walletSnapshot.data;
+                            return _MergedEarningsCard(
+                              availableBalance: _money(
+                                (wallet?.balance ??
+                                        analytics?.availableBalance ??
+                                        store.walletBalance)
+                                    .toDouble(),
+                              ),
+                              pendingSettlement: _money(
+                                (wallet?.pendingAmount ?? pendingPayouts)
+                                    .toDouble(),
+                              ),
+                              onWithdraw: () {
+                                final profile =
+                                    wallet?.payoutProfile ??
+                                    const PayoutProfileSummary.empty();
+                                if (!profile.isConfigured) {
+                                  _manageVendorPayoutAccount(actor, profile);
+                                  return;
+                                }
+                                _requestVendorWithdrawal(actor);
+                              },
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _MoreInsightsCard(
+                          expanded: _showMoreInsights,
+                          onToggle: () {
+                            setState(() {
+                              _showMoreInsights = !_showMoreInsights;
+                            });
+                          },
+                          commissionToday: _money(_todayCommission(orders)),
+                          avgOrderValue: _money(averageOrderValue),
+                          refundsCount: refundsCount,
+                        ),
+                        const SizedBox(height: 16),
+                        if (orders.isEmpty && products.isEmpty)
+                          _VendorEmptyState(
+                            onAddProduct: () => _openAddProduct(actor),
+                          )
+                        else
+                          _AlertsSection(alerts: alerts),
+                        if (orders.isNotEmpty || products.isNotEmpty) ...[
+                          const SizedBox(height: 16),
                         _ProductPreviewSection(
                           products: products,
                           formatCurrency: _money,
@@ -909,6 +703,7 @@ class _VendorDashboardState extends State<VendorDashboard>
                             );
                           },
                         ),
+                        ],
                       ],
                     );
                   },
@@ -949,7 +744,7 @@ class _VendorDashboardState extends State<VendorDashboard>
                 style: GoogleFonts.poppins(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
-                  fontSize: 18,
+                  fontSize: 20,
                 ),
               ),
             ),
@@ -960,7 +755,7 @@ class _VendorDashboardState extends State<VendorDashboard>
                 Text(
                   'ABZORA Vendor',
                   style: GoogleFonts.poppins(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF111111),
                   ),
@@ -983,107 +778,28 @@ class _VendorDashboardState extends State<VendorDashboard>
   }
 }
 
-class _VendorWelcomeBanner extends StatelessWidget {
-  const _VendorWelcomeBanner({required this.vendorName, required this.store});
+class _LuxuryHeaderCard extends StatelessWidget {
+  const _LuxuryHeaderCard({
+    required this.storeName,
+    required this.acceptingOrders,
+    required this.onToggle,
+  });
 
-  final String vendorName;
-  final Store store;
+  final String storeName;
+  final bool acceptingOrders;
+  final ValueChanged<bool> onToggle;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFF8E6), Color(0xFFFFFFFF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(color: const Color(0xFFF0DFC0)),
+        color: const Color(0xFFFFFCF7),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome back, $vendorName',
-                  style: GoogleFonts.poppins(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF111111),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  store.name,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF7A5A00),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  store.city.trim().isEmpty
-                      ? 'Keep products fresh, move orders faster, and stay ready for peak demand.'
-                      : 'Serving shoppers in ${store.city} with faster order processing and clearer revenue visibility.',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    height: 1.45,
-                    color: const Color(0xFF5E5E5E),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: const Color(0xFFD4AF37).withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: const Icon(
-              Icons.insights_rounded,
-              color: Color(0xFFD4AF37),
-              size: 32,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StoreStatusCard extends StatelessWidget {
-  const _StoreStatusCard({required this.store, required this.onChanged});
-
-  final Store store;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AbzioTheme.grey100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.035),
-            blurRadius: 18,
+            blurRadius: 20,
             offset: const Offset(0, 8),
           ),
         ],
@@ -1095,32 +811,147 @@ class _StoreStatusCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Accepting Orders',
+                  storeName,
                   style: GoogleFonts.poppins(
-                    fontSize: 16,
+                    fontSize: 20,
                     fontWeight: FontWeight.w700,
+                    color: const Color(0xFF171717),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: acceptingOrders
+                            ? const Color(0xFF2FA36B)
+                            : const Color(0xFFB5B5B5),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      acceptingOrders
+                          ? 'You are visible to customers'
+                          : 'Store visibility paused',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF6B6A68),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'Accepting Orders',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF5E5A53),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Switch.adaptive(
+                value: acceptingOrders,
+                activeThumbColor: const Color(0xFFC8A96A),
+                activeTrackColor: const Color(
+                  0xFFC8A96A,
+                ).withValues(alpha: 0.35),
+                onChanged: onToggle,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PriorityOrdersCard extends StatelessWidget {
+  const _PriorityOrdersCard({
+    required this.pendingOrders,
+    required this.onProcessOrders,
+  });
+
+  final int pendingOrders;
+  final VoidCallback onProcessOrders;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: pendingOrders > 0 ? const Color(0xFFFFF0EA) : const Color(0xFFF8F6F2),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFD27F58).withValues(alpha: pendingOrders > 0 ? 0.16 : 0.06),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Orders Pending',
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF222222),
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  store.isActive
-                      ? 'Your storefront is visible and ready to receive new orders.'
-                      : 'Pause incoming orders while you update stock, staffing, or delivery timing.',
+                  '$pendingOrders',
+                  style: GoogleFonts.poppins(
+                    fontSize: 38,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF111111),
+                  ),
+                ),
+                Text(
+                  'Needs action now',
                   style: GoogleFonts.inter(
-                    fontSize: 13,
-                    height: 1.45,
-                    color: const Color(0xFF6C6C6C),
+                    fontSize: 12,
+                    color: const Color(0xFF7A6D66),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          Switch.adaptive(
-            value: store.isActive,
-            activeThumbColor: const Color(0xFFD4AF37),
-            activeTrackColor: const Color(0xFFD4AF37).withValues(alpha: 0.34),
-            onChanged: onChanged,
+          TapScale(
+            onTap: onProcessOrders,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFC8A96A),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                'Process Orders',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -1128,46 +959,53 @@ class _StoreStatusCard extends StatelessWidget {
   }
 }
 
-class _EarningsSection extends StatelessWidget {
-  const _EarningsSection({
-    required this.todayRevenue,
-    required this.todayEarnings,
-    required this.todayCommission,
-    required this.weeklyRevenue,
-    required this.weeklyCommission,
-    required this.pendingPayouts,
-    required this.availableBalance,
-    required this.reservedWithdrawals,
-    required this.commissionRate,
-    required this.payoutProfile,
-    required this.lastPayoutAmount,
-    required this.lastPayoutAt,
-    required this.ordersCompleted,
-    required this.salesTrend,
-    required this.transactions,
-    required this.formatCurrency,
-    this.onWithdraw,
-    this.onManagePayoutAccount,
+class _PrimaryMetricsRow extends StatelessWidget {
+  const _PrimaryMetricsRow({
+    required this.revenueToday,
+    required this.trend,
+    required this.completedCount,
+    required this.pendingCount,
   });
 
-  final double todayRevenue;
-  final double todayEarnings;
-  final double todayCommission;
-  final double weeklyRevenue;
-  final double weeklyCommission;
-  final double pendingPayouts;
-  final double availableBalance;
-  final double reservedWithdrawals;
-  final double? commissionRate;
-  final PayoutProfileSummary payoutProfile;
-  final double lastPayoutAmount;
-  final String lastPayoutAt;
-  final int ordersCompleted;
-  final List<AnalyticsPoint> salesTrend;
-  final List<WalletTransaction> transactions;
-  final String Function(double amount) formatCurrency;
-  final VoidCallback? onWithdraw;
-  final VoidCallback? onManagePayoutAccount;
+  final String revenueToday;
+  final String trend;
+  final int completedCount;
+  final int pendingCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _MetricCard(
+            title: 'Revenue Today',
+            value: revenueToday,
+            subtitle: '$trend vs yesterday',
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _MetricCard(
+            title: 'Orders Today',
+            value: 'Completed $completedCount',
+            subtitle: 'Pending $pendingCount',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String value;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -1175,502 +1013,416 @@ class _EarningsSection extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AbzioTheme.grey100),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.035),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Earnings',
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Available ${formatCurrency(availableBalance)} • Reserved ${formatCurrency(reservedWithdrawals)} • Commission ${((commissionRate ?? 0.12) * 100).toStringAsFixed(0)}%',
-            style: GoogleFonts.inter(color: AbzioTheme.grey500, fontSize: 12),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Revenue = gross customer payments. Earnings = net after commission.',
-            style: GoogleFonts.inter(color: AbzioTheme.grey500, fontSize: 11),
-          ),
-          const SizedBox(height: 12),
-          PayoutAccountSummaryCard(
-            title: 'Settlement destination',
-            profile: payoutProfile,
-            onManage: onManagePayoutAccount ?? () {},
-          ),
-          const SizedBox(height: 10),
-          _PayoutCycleCard(
-            pendingPayouts: pendingPayouts,
-            lastPayoutAt: lastPayoutAt,
-            formatCurrency: formatCurrency,
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _EarningTile(
-                  label: 'Orders completed',
-                  value: '$ordersCompleted',
-                  tint: const Color(0xFF111111),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _EarningTile(
-                  label: 'Last payout',
-                  value: lastPayoutAmount > 0
-                      ? formatCurrency(lastPayoutAmount)
-                      : 'Pending',
-                  tint: const Color(0xFF8B5CF6),
-                ),
-              ),
-            ],
-          ),
-          if (lastPayoutAt.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Last payout on $lastPayoutAt',
-              style: GoogleFonts.inter(color: AbzioTheme.grey500, fontSize: 12),
-            ),
-          ],
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _EarningTile(
-                  label: 'Revenue today',
-                  value: formatCurrency(todayRevenue),
-                  tint: const Color(0xFF1F7A8C),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _EarningTile(
-                  label: 'Earnings today',
-                  value: formatCurrency(todayEarnings),
-                  tint: const Color(0xFF1C9A5F),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _EarningTile(
-                  label: 'Commission today',
-                  value: formatCurrency(todayCommission),
-                  tint: const Color(0xFFB65E2A),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _EarningTile(
-                  label: 'Weekly revenue',
-                  value: formatCurrency(weeklyRevenue),
-                  tint: const Color(0xFF635BFF),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _EarningTile(
-                  label: 'Weekly commission',
-                  value: formatCurrency(weeklyCommission),
-                  tint: const Color(0xFFD97A00),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _EarningTile(
-                  label: 'Pending payouts',
-                  value: formatCurrency(pendingPayouts),
-                  tint: const Color(0xFF9C6F19),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          if (salesTrend.isNotEmpty) ...[
-            _CompactEarningsChart(
-              title: 'Daily earnings',
-              points: salesTrend,
-              accent: const Color(0xFFD4AF37),
-            ),
-            const SizedBox(height: 14),
-          ],
-          if (transactions.isNotEmpty) ...[
-            _TransactionHistoryPanel(
-              transactions: transactions,
-              formatCurrency: formatCurrency,
-            ),
-            const SizedBox(height: 6),
-          ],
-          Align(
-            alignment: Alignment.centerRight,
-            child: OutlinedButton.icon(
-              onPressed: onWithdraw,
-              icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
-              label: const Text('Withdraw'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PayoutCycleCard extends StatelessWidget {
-  const _PayoutCycleCard({
-    required this.pendingPayouts,
-    required this.lastPayoutAt,
-    required this.formatCurrency,
-  });
-
-  final double pendingPayouts;
-  final String lastPayoutAt;
-  final String Function(double amount) formatCurrency;
-
-  DateTime _nextPayoutDate() {
-    final now = DateTime.now();
-    final dayStart = DateTime(now.year, now.month, now.day);
-    final daysUntilMonday = (DateTime.monday - dayStart.weekday + 7) % 7;
-    final addDays = daysUntilMonday == 0 ? 7 : daysUntilMonday;
-    return dayStart.add(Duration(days: addDays));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final nextPayout = _nextPayoutDate();
-    final nextPayoutLabel = DateFormat('EEE, d MMM').format(nextPayout);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9F7F1),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFEADAA7)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.calendar_month_outlined, size: 18, color: Color(0xFF8A6C19)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Settlement cycle: Weekly (Monday) • Next payout: $nextPayoutLabel',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF5D4A13),
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                pendingPayouts > 0 ? formatCurrency(pendingPayouts) : 'Clear',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF7A5A00),
-                ),
-              ),
-              if (lastPayoutAt.trim().isNotEmpty)
-                Text(
-                  'Last: $lastPayoutAt',
-                  style: GoogleFonts.inter(
-                    fontSize: 10,
-                    color: const Color(0xFF8B8B8B),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TransactionHistoryPanel extends StatefulWidget {
-  const _TransactionHistoryPanel({
-    required this.transactions,
-    required this.formatCurrency,
-  });
-
-  final List<WalletTransaction> transactions;
-  final String Function(double amount) formatCurrency;
-
-  @override
-  State<_TransactionHistoryPanel> createState() => _TransactionHistoryPanelState();
-}
-
-class _TransactionHistoryPanelState extends State<_TransactionHistoryPanel> {
-  String _selected = 'all';
-
-  List<WalletTransaction> _filteredTransactions() {
-    if (_selected == 'all') {
-      return widget.transactions;
-    }
-    return widget.transactions.where((transaction) {
-      final type = transaction.type.toLowerCase();
-      switch (_selected) {
-        case 'earnings':
-          return type == 'order' || type == 'escrow' || type == 'commission';
-        case 'payouts':
-          return type == 'payout';
-        case 'refunds':
-          return type == 'refund';
-        default:
-          return true;
-      }
-    }).toList();
-  }
-
-  String _dateLabel(String value) {
-    final parsed = DateTime.tryParse(value);
-    if (parsed == null) {
-      return value;
-    }
-    return DateFormat('d MMM, hh:mm a').format(parsed);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final filtered = _filteredTransactions();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Transaction history',
-          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: const [
-            ('all', 'All'),
-            ('earnings', 'Earnings'),
-            ('payouts', 'Payouts'),
-            ('refunds', 'Refunds'),
-          ].map((entry) {
-            return ChoiceChip(
-              label: Text(entry.$2),
-              selected: _selected == entry.$1,
-              onSelected: (selected) {
-                if (!selected) {
-                  return;
-                }
-                setState(() {
-                  _selected = entry.$1;
-                });
-              },
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 10),
-        if (filtered.isEmpty)
-          Text(
-            'No transactions in this filter yet.',
-            style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF777777)),
-          ),
-        ...filtered.take(8).map((transaction) {
-          final isCredit = transaction.amount >= 0;
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAFAFA),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  isCredit ? Icons.south_west_rounded : Icons.north_east_rounded,
-                  size: 16,
-                  color: isCredit ? const Color(0xFF1D8B4D) : const Color(0xFFD35454),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        transaction.note.isEmpty ? transaction.type : transaction.note,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF333333),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${transaction.status} • ${_dateLabel(transaction.createdAt)}',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: const Color(0xFF777777),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  widget.formatCurrency(transaction.amount.abs()),
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: isCredit ? const Color(0xFF1D8B4D) : const Color(0xFFD35454),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-      ],
-    );
-  }
-}
-
-class _EarningTile extends StatelessWidget {
-  const _EarningTile({
-    required this.label,
-    required this.value,
-    required this.tint,
-  });
-
-  final String label;
-  final String value;
-  final Color tint;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF666666),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF111111),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CompactEarningsChart extends StatelessWidget {
-  const _CompactEarningsChart({
-    required this.title,
-    required this.points,
-    required this.accent,
-  });
-
-  final String title;
-  final List<AnalyticsPoint> points;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final maxValue = points.fold<double>(
-      1,
-      (current, point) => point.value > current ? point.value : current,
-    );
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: GoogleFonts.poppins(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: const Color(0xFF6F6A63),
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 104,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: points.map((point) {
-                final height = maxValue == 0
-                    ? 8.0
-                    : ((point.value / maxValue) * 64).clamp(8, 64).toDouble();
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          height: height,
-                          decoration: BoxDecoration(
-                            color: accent,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          point.label,
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            color: const Color(0xFF666666),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF151515),
             ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: const Color(0xFF7B756E),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiInsightsCard extends StatelessWidget {
+  const _AiInsightsCard({required this.insights, required this.onViewPricing});
+
+  final List<String> insights;
+  final VoidCallback onViewPricing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF6),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, color: Color(0xFFC8A96A), size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'AI Insights',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...insights.map(
+            (text) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                '- $text',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: const Color(0xFF504B45),
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: onViewPricing,
+              child: const Text('View Pricing'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickActionGrid extends StatelessWidget {
+  const _QuickActionGrid({
+    required this.onAddProduct,
+    required this.onOrders,
+    required this.onPricing,
+    required this.onManageStore,
+  });
+
+  final VoidCallback onAddProduct;
+  final VoidCallback onOrders;
+  final VoidCallback onPricing;
+  final VoidCallback onManageStore;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      mainAxisSpacing: 14,
+      crossAxisSpacing: 14,
+      childAspectRatio: 1.35,
+      children: [
+        _QuickActionTile(
+          icon: Icons.add_box_outlined,
+          label: 'Add Product',
+          onTap: onAddProduct,
+        ),
+        _QuickActionTile(
+          icon: Icons.receipt_long_outlined,
+          label: 'Orders',
+          onTap: onOrders,
+        ),
+        _QuickActionTile(
+          icon: Icons.price_change_outlined,
+          label: 'Pricing',
+          onTap: onPricing,
+        ),
+        _QuickActionTile(
+          icon: Icons.storefront_outlined,
+          label: 'Manage Store',
+          onTap: onManageStore,
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickActionTile extends StatelessWidget {
+  const _QuickActionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return TapScale(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: const Color(0xFFC8A96A)),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF2A2723),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MergedEarningsCard extends StatelessWidget {
+  const _MergedEarningsCard({
+    required this.availableBalance,
+    required this.pendingSettlement,
+    required this.onWithdraw,
+  });
+
+  final String availableBalance;
+  final String pendingSettlement;
+  final VoidCallback onWithdraw;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Earnings Overview',
+            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _MetricCard(
+                  title: 'Available Balance',
+                  value: availableBalance,
+                  subtitle: 'Ready to withdraw',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _MetricCard(
+                  title: 'Pending Settlement',
+                  value: pendingSettlement,
+                  subtitle: 'Will settle soon',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton(
+              onPressed: onWithdraw,
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFC8A96A),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Withdraw'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MoreInsightsCard extends StatelessWidget {
+  const _MoreInsightsCard({
+    required this.expanded,
+    required this.onToggle,
+    required this.commissionToday,
+    required this.avgOrderValue,
+    required this.refundsCount,
+  });
+
+  final bool expanded;
+  final VoidCallback onToggle;
+  final String commissionToday;
+  final String avgOrderValue;
+  final int refundsCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: onToggle,
+            child: Row(
+              children: [
+                Text(
+                  expanded ? 'More Insights ▲' : 'More Insights ▼',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF3D3A36),
+                  ),
+                ),
+                const Spacer(),
+              ],
+            ),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Column(
+                children: [
+                  _InsightLine(label: 'Commission Today', value: commissionToday),
+                  _InsightLine(label: 'Avg Order Value', value: avgOrderValue),
+                  _InsightLine(label: 'Refunds', value: '$refundsCount'),
+                ],
+              ),
+            ),
+            crossFadeState: expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 240),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InsightLine extends StatelessWidget {
+  const _InsightLine({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF67635E)),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1D1C1A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VendorEmptyState extends StatelessWidget {
+  const _VendorEmptyState({required this.onAddProduct});
+  final VoidCallback onAddProduct;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.035),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Start selling on Abzora',
+            style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Add your first product to receive orders',
+            style: GoogleFonts.inter(color: const Color(0xFF6D6A65)),
+          ),
+          const SizedBox(height: 14),
+          FilledButton(
+            onPressed: onAddProduct,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFC8A96A),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Add Product'),
           ),
         ],
       ),
@@ -1686,7 +1438,7 @@ class _AlertsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
@@ -1705,7 +1457,7 @@ class _AlertsSection extends StatelessWidget {
           Text(
             'Notifications',
             style: GoogleFonts.poppins(
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1779,7 +1531,7 @@ class _ProductPreviewSection extends StatelessWidget {
               child: Text(
                 'Your Products',
                 style: GoogleFonts.poppins(
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1854,7 +1606,7 @@ class _ProductPreviewCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1932,7 +1684,7 @@ class _AddProductCard extends StatelessWidget {
             ),
             color: const Color(0xFFFFFBF0),
           ),
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1971,3 +1723,5 @@ class _AddProductCard extends StatelessWidget {
     );
   }
 }
+
+
