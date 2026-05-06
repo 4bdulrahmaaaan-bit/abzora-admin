@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +11,7 @@ import '../providers/wishlist_provider.dart';
 import '../utils/app_error_text.dart';
 import '../utils/soft_auth_gate.dart';
 import 'animated_wishlist_button.dart';
+import 'premium_price_row.dart';
 import 'shimmer_box.dart';
 
 class ProductCard extends StatefulWidget {
@@ -308,36 +309,14 @@ class _ProductCardState extends State<ProductCard> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                _currency(product.effectivePrice),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF111111),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            if (pricing.originalPrice != null)
-                              Flexible(
-                                child: Text(
-                                  _currency(pricing.originalPrice!),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: const Color(0xFF9B9385),
-                                    decoration: TextDecoration.lineThrough,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                          ],
+                        PremiumPriceRow(
+                          currentPriceLabel: _currency(product.effectivePrice),
+                          originalPriceLabel: pricing.originalPrice == null
+                              ? null
+                              : _currency(pricing.originalPrice!),
+                          discountPercent: pricing.discountPercent,
+                          compact: true,
+                          showLimitedOffer: false,
                         ),
                         const SizedBox(height: 6),
                         if (primaryTag != null)
@@ -482,3 +461,5 @@ class _ProductPricing {
         message.contains('sign in again') ||
         message.contains('too many authentication requests');
   }
+
+

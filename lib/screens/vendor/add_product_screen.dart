@@ -459,6 +459,41 @@ class _AddProductScreenState extends State<AddProductScreen> {
       return;
     }
 
+    final model3dUrl = _model3dController.text.trim();
+    final unityBundleUrl = _unityAssetBundleUrlController.text.trim();
+    if (model3dUrl.isNotEmpty &&
+        _isValidHttpUrl(model3dUrl) &&
+        !_looksLikeModelFileUrl(model3dUrl)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '3D Model URL must end with .glb or .gltf (or use a valid model asset key).',
+          ),
+        ),
+      );
+      return;
+    }
+    if (unityBundleUrl.isNotEmpty) {
+      if (!_isValidHttpUrl(unityBundleUrl)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unity AssetBundle URL must be a valid http/https URL.'),
+          ),
+        );
+        return;
+      }
+      if (_looksLikeModelFileUrl(unityBundleUrl)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unity AssetBundle URL cannot be .glb/.gltf. Use 3D Model URL for GLB/GLTF.',
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isUploading = true);
 
     final existing = widget.existingProduct;
@@ -485,10 +520,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
       fabric: attributes['fabric'] ?? existing?.fabric,
       model3d: _model3dController.text.trim().isEmpty
           ? null
-          : _model3dController.text.trim(),
+          : model3dUrl,
       unityAssetBundleUrl: _unityAssetBundleUrlController.text.trim().isEmpty
           ? null
-          : _unityAssetBundleUrlController.text.trim(),
+          : unityBundleUrl,
       rigProfile: _rigProfileController.text.trim().isEmpty
           ? null
           : _rigProfileController.text.trim(),
@@ -625,6 +660,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return uri.hasScheme &&
         (uri.scheme == 'http' || uri.scheme == 'https') &&
         uri.host.isNotEmpty;
+  }
+
+  bool _isValidHttpUrl(String value) {
+    final uri = Uri.tryParse(value.trim());
+    if (uri == null) {
+      return false;
+    }
+    return (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
+  }
+
+  bool _looksLikeModelFileUrl(String value) {
+    final lower = value.trim().toLowerCase();
+    return lower.endsWith('.glb') ||
+        lower.endsWith('.gltf') ||
+        lower.endsWith('.fbx') ||
+        lower.endsWith('.obj') ||
+        lower.endsWith('.usdz');
   }
 
   List<String> _parseImageUrls(String raw) {

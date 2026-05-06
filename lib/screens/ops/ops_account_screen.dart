@@ -2,19 +2,54 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import '../../app_shell.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme.dart';
 import '../../widgets/brand_logo.dart';
 import '../rider/rider_onboarding_screen.dart';
 
 class OpsAccountScreen extends StatelessWidget {
-  const OpsAccountScreen({super.key});
+  const OpsAccountScreen({super.key, this.mode = AbzioAppMode.operations});
+
+  final AbzioAppMode mode;
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
-    final roleLabel = auth.isVendor ? 'VENDOR' : auth.isRider ? 'RIDER' : 'OPS';
+    final roleLabel = switch (mode) {
+      AbzioAppMode.vendor => 'VENDOR',
+      AbzioAppMode.rider => 'RIDER',
+      _ =>
+        auth.isVendor
+            ? 'VENDOR'
+            : auth.isRider
+            ? 'RIDER'
+            : 'OPS',
+    };
+    final accessTitle = switch (mode) {
+      AbzioAppMode.vendor => 'Vendor access',
+      AbzioAppMode.rider => 'Rider access',
+      _ => auth.isVendor ? 'Operations access' : 'Delivery access',
+    };
+    final accessSubtitle = switch (mode) {
+      AbzioAppMode.vendor => 'You are signed into the dedicated vendor app.',
+      AbzioAppMode.rider => 'You are signed into the dedicated rider app.',
+      _ =>
+        auth.isVendor
+            ? 'You are signed into the merchant operations app.'
+            : 'You are signed into the rider operations app.',
+    };
+    final accessModelSubtitle = switch (mode) {
+      AbzioAppMode.vendor =>
+        'Your account can only manage your own store, products, orders, and payouts.',
+      AbzioAppMode.rider =>
+        'Your account can only view and update deliveries assigned to you.',
+      _ =>
+        auth.isVendor
+            ? 'Your account can only manage your own store and store orders.'
+            : 'Your account can only view and update orders assigned to you.',
+    };
 
     return Scaffold(
       backgroundColor: AbzioTheme.grey50,
@@ -33,13 +68,21 @@ class OpsAccountScreen extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.black, size: 20),
+            icon: const Icon(
+              Icons.logout_rounded,
+              color: Colors.black,
+              size: 20,
+            ),
             onPressed: () async {
               await context.read<AuthProvider>().logout();
               if (!context.mounted) {
                 return;
               }
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/login',
+                (route) => false,
+              );
             },
           ),
           const SizedBox(width: 8),
@@ -76,14 +119,14 @@ class OpsAccountScreen extends StatelessWidget {
                 Text(
                   user?.email ?? '',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    color: Colors.white70,
-                    fontSize: 13,
-                  ),
+                  style: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
                 ),
                 const SizedBox(height: 14),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AbzioTheme.accentColor,
                     borderRadius: BorderRadius.circular(999),
@@ -103,23 +146,22 @@ class OpsAccountScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           _OpsTile(
-            icon: auth.isVendor ? Icons.storefront_outlined : Icons.delivery_dining_outlined,
-            title: auth.isVendor ? 'Operations access' : 'Delivery access',
-            subtitle: auth.isVendor
-                ? 'You are signed into the merchant operations app.'
-                : 'You are signed into the rider operations app.',
+            icon: auth.isVendor
+                ? Icons.storefront_outlined
+                : Icons.delivery_dining_outlined,
+            title: accessTitle,
+            subtitle: accessSubtitle,
           ),
           _OpsTile(
             icon: Icons.verified_user_outlined,
             title: 'Access model',
-            subtitle: auth.isVendor
-                ? 'Your account can only manage your own store and store orders.'
-                : 'Your account can only view and update orders assigned to you.',
+            subtitle: accessModelSubtitle,
           ),
           _OpsTile(
             icon: Icons.support_agent_outlined,
             title: 'Support',
-            subtitle: 'Reach platform support from the operations channel when needed.',
+            subtitle:
+                'Reach platform support from the operations channel when needed.',
           ),
           if (auth.isRider) ...[
             _OpsTile(
@@ -136,11 +178,15 @@ class OpsAccountScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const RiderOnboardingScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const RiderOnboardingScreen(),
+                    ),
                   );
                 },
                 child: Text(
-                  user?.riderApprovalStatus == 'approved' ? 'EDIT RIDER PROFILE' : 'COMPLETE RIDER PROFILE',
+                  user?.riderApprovalStatus == 'approved'
+                      ? 'EDIT RIDER PROFILE'
+                      : 'COMPLETE RIDER PROFILE',
                 ),
               ),
             ),
@@ -152,7 +198,11 @@ class OpsAccountScreen extends StatelessWidget {
               if (!context.mounted) {
                 return;
               }
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/login',
+                (route) => false,
+              );
             },
             child: Text(
               'LOG OUT',

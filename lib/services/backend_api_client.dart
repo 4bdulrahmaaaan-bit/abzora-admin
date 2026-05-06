@@ -238,7 +238,31 @@ class BackendApiClient {
     }
   }
 
-  dynamic _extractPayload(http.Response response) {
+  bool _isServiceabilityError(String message) {
+    final text = message.toLowerCase();
+    return text.contains('unserviceable') ||
+        text.contains('not serviceable') ||
+        text.contains('serviceability');
+  }
+
+  String _augmentServiceabilityMessage(
+    String message, {
+    required String method,
+    required String path,
+  }) {
+    if (!_isServiceabilityError(message)) {
+      return message;
+    }
+    final endpoint = '$method $path';
+    debugPrint('ABZORA serviceability failure at $endpoint: $message');
+    return '$message (endpoint: $endpoint)';
+  }
+
+  dynamic _extractPayload(
+    http.Response response, {
+    required String method,
+    required String path,
+  }) {
     final rawBody = response.body.trim();
     if (rawBody.isEmpty) {
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -284,10 +308,13 @@ class BackendApiClient {
         if (response.statusCode >= 500) {
           _markBackendDown('Backend error (${response.statusCode}).');
         }
+        final backendMessage =
+            decoded['message']?.toString() ?? 'Request failed.';
         throw BackendApiException(
-          _normalizeErrorMessage(
-            decoded['message']?.toString() ?? 'Request failed.',
-            response.statusCode,
+          _augmentServiceabilityMessage(
+            _normalizeErrorMessage(backendMessage, response.statusCode),
+            method: method,
+            path: path,
           ),
           statusCode: response.statusCode,
         );
@@ -354,7 +381,7 @@ class BackendApiClient {
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
-      return _extractPayload(response);
+      return _extractPayload(response, method: 'GET', path: path);
     } on SocketException {
       _markBackendDown('Backend unreachable.');
       rethrow;
@@ -390,7 +417,7 @@ class BackendApiClient {
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
-      return _extractPayload(response);
+      return _extractPayload(response, method: 'POST', path: path);
     } on SocketException {
       _markBackendDown('Backend unreachable.');
       rethrow;
@@ -426,7 +453,7 @@ class BackendApiClient {
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
-      return _extractPayload(response);
+      return _extractPayload(response, method: 'PUT', path: path);
     } on SocketException {
       _markBackendDown('Backend unreachable.');
       rethrow;
@@ -462,7 +489,7 @@ class BackendApiClient {
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
-      return _extractPayload(response);
+      return _extractPayload(response, method: 'PATCH', path: path);
     } on SocketException {
       _markBackendDown('Backend unreachable.');
       rethrow;
@@ -493,7 +520,7 @@ class BackendApiClient {
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
-      return _extractPayload(response);
+      return _extractPayload(response, method: 'DELETE', path: path);
     } on SocketException {
       _markBackendDown('Backend unreachable.');
       rethrow;
@@ -559,7 +586,7 @@ class BackendApiClient {
         response.statusCode,
         headers: response.headers,
       );
-      return _extractPayload(wrapped);
+      return _extractPayload(wrapped, method: 'POST', path: path);
     } on SocketException {
       _markBackendDown('Backend unreachable.');
       rethrow;

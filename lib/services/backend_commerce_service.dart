@@ -705,6 +705,175 @@ class BackendCommerceService {
         .toList();
   }
 
+  Future<List<Map<String, dynamic>>> getVendorPricingProducts({
+    String? storeId,
+    String? category,
+    String? sortBy,
+    double? minPrice,
+    double? maxPrice,
+  }) async {
+    final payload = await _client.get(
+      '/vendor/products',
+      authenticated: true,
+      queryParameters: {
+        if (storeId != null && storeId.trim().isNotEmpty) 'storeId': storeId.trim(),
+        if (category != null && category.trim().isNotEmpty && category.trim().toLowerCase() != 'all')
+          'category': category.trim(),
+        if (sortBy != null && sortBy.trim().isNotEmpty) 'sortBy': sortBy.trim(),
+        if (minPrice != null) 'minPrice': minPrice.toStringAsFixed(0),
+        if (maxPrice != null) 'maxPrice': maxPrice.toStringAsFixed(0),
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> updateVendorProductPriceRaw({
+    required String productId,
+    required double price,
+    double? originalPrice,
+    DateTime? discountStartDate,
+    DateTime? discountEndDate,
+  }) async {
+    final payload = await _client.post(
+      '/vendor/product/price',
+      authenticated: true,
+      body: {
+        'product_id': productId,
+        'price': price,
+        'original_price': originalPrice,
+        'discount_start_date': discountStartDate?.toIso8601String(),
+        'discount_end_date': discountEndDate?.toIso8601String(),
+      }..removeWhere((key, value) => value == null),
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> bulkUpdateVendorProductPrices({
+    required List<String> productIds,
+    required String mode,
+    required String unit,
+    required double changeValue,
+    double? setMrp,
+    double? discountPercent,
+    bool removeDiscount = false,
+    DateTime? discountStartDate,
+    DateTime? discountEndDate,
+    bool previewOnly = false,
+  }) async {
+    final payload = await _client.post(
+      '/vendor/product/price/bulk',
+      authenticated: true,
+      body: {
+        'product_ids': productIds,
+        'mode': mode,
+        'unit': unit,
+        'change_value': changeValue,
+        'set_mrp': setMrp,
+        'discount_percent': discountPercent,
+        'remove_discount': removeDiscount,
+        'discount_start_date': discountStartDate?.toIso8601String(),
+        'discount_end_date': discountEndDate?.toIso8601String(),
+        'preview_only': previewOnly,
+      }..removeWhere((key, value) => value == null),
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> getAnalyticsProduct(
+    String productId, {
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final payload = await _client.get(
+      '/analytics/product/$productId',
+      authenticated: true,
+      queryParameters: {
+        if (from != null) 'from': from.toIso8601String(),
+        if (to != null) 'to': to.toIso8601String(),
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<List<Map<String, dynamic>>> getAnalyticsPriceConversionChart(
+    String productId, {
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final payload = await _client.get(
+      '/analytics/chart/price-conversion/$productId',
+      authenticated: true,
+      queryParameters: {
+        if (from != null) 'from': from.toIso8601String(),
+        if (to != null) 'to': to.toIso8601String(),
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getAnalyticsDiscountSalesChart(
+    String productId, {
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final payload = await _client.get(
+      '/analytics/chart/discount-sales/$productId',
+      authenticated: true,
+      queryParameters: {
+        if (from != null) 'from': from.toIso8601String(),
+        if (to != null) 'to': to.toIso8601String(),
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getAnalyticsTimeSeriesChart(
+    String productId, {
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final payload = await _client.get(
+      '/analytics/chart/time-series/$productId',
+      authenticated: true,
+      queryParameters: {
+        if (from != null) 'from': from.toIso8601String(),
+        if (to != null) 'to': to.toIso8601String(),
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> getAnalyticsSummary({
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final payload = await _client.get(
+      '/analytics/summary',
+      authenticated: true,
+      queryParameters: {
+        if (from != null) 'from': from.toIso8601String(),
+        if (to != null) 'to': to.toIso8601String(),
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
   Future<List<OutfitRecommendation>> getOutfits({
     String? userId,
     String? productId,

@@ -275,6 +275,8 @@ class _HomeContentState extends State<HomeContent> {
   bool _profileModalShown = false;
   bool _isHeaderScrolled = false;
   Timer? _loadMoreThrottle;
+  String? _lastHydratedUserId;
+  bool _isHydratingForUser = false;
   double _lastScrollOffset = 0;
   double _scrollDeltaAccumulator = 0;
   bool _navVisible = true;
@@ -335,6 +337,39 @@ class _HomeContentState extends State<HomeContent> {
         });
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = context.read<AuthProvider>();
+    final userId = auth.user?.id;
+    if (userId == _lastHydratedUserId) {
+      return;
+    }
+    _lastHydratedUserId = userId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _refreshForCurrentUser();
+    });
+  }
+
+  Future<void> _refreshForCurrentUser() async {
+    if (_isHydratingForUser || !mounted) {
+      return;
+    }
+    _isHydratingForUser = true;
+    try {
+      final auth = context.read<AuthProvider>();
+      await context.read<ProductProvider>().fetchHomeData(
+        user: auth.user,
+        forceLocationRefresh: true,
+      );
+    } finally {
+      _isHydratingForUser = false;
+    }
   }
 
   @override
@@ -2178,6 +2213,8 @@ class _HomeBannerState extends State<HomeBanner> {
   final BackendApiClient _apiClient = const BackendApiClient();
 
   late final Future<List<BannerModel>> _bannersFuture;
+  Timer? _autoSlideTimer;
+  int _autoSlideCount = 0;
 
   int _currentIndex = 0;
 
@@ -2219,8 +2256,34 @@ class _HomeBannerState extends State<HomeBanner> {
 
   @override
   void dispose() {
+    _autoSlideTimer?.cancel();
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _ensureAutoSlide(int slideCount) {
+    if (slideCount <= 1) {
+      _autoSlideTimer?.cancel();
+      _autoSlideTimer = null;
+      _autoSlideCount = slideCount;
+      return;
+    }
+    if (_autoSlideTimer != null && _autoSlideCount == slideCount) {
+      return;
+    }
+    _autoSlideTimer?.cancel();
+    _autoSlideCount = slideCount;
+    _autoSlideTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_pageController.hasClients) {
+        return;
+      }
+      final next = (_currentIndex + 1) % slideCount;
+      _pageController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   Future<List<BannerModel>> fetchBanners() async {
@@ -2258,6 +2321,7 @@ class _HomeBannerState extends State<HomeBanner> {
                   ? widget.fallbackBanners
                   : _staticFallbackBanners)
             : snapshot.data!;
+        _ensureAutoSlide(slides.length);
 
         if (snapshot.connectionState == ConnectionState.waiting &&
             (snapshot.data == null || snapshot.data!.isEmpty)) {

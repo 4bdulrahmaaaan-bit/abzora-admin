@@ -88,7 +88,7 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   adaptive_icon_background: "#000000"
   adaptive_icon_foreground: assets/branding/abzora_customer_icon.png
-  adaptive_icon_foreground_inset: 8
+  adaptive_icon_foreground_inset: 20
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -104,6 +104,7 @@ flutter:
   assets:
     - assets/branding/abzora_customer_icon.png
     - assets/branding/abzora_partner_icon.png
+    - assets/branding/abzora_rider_icon.png
     - assets/3d/
     - assets/ml/
 

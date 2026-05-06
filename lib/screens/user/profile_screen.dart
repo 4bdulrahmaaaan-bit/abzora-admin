@@ -1,6 +1,7 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../app_shell.dart';
 import '../../models/models.dart';
@@ -20,6 +21,7 @@ import 'body_scan_screen.dart';
 import 'chat_list_screen.dart';
 import 'edit_profile_screen.dart';
 import 'faq_screen.dart';
+import 'find_my_fit_flow_screen.dart';
 import 'notifications_screen.dart';
 import 'order_tracking_screen.dart';
 import 'referral_screen.dart';
@@ -120,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Good evening, $firstName âœ¨',
+                              'Good evening, $firstName ✨',
                               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -198,9 +200,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       _reveal(
                         0.22,
                         _sectionTitle(
-                          eyebrow: 'Style Profile',
-                          title: 'Fit intelligence and tailoring',
-                          subtitle: 'Body scan insights, saved measurements, and custom-piece progress in one luxury workspace.',
+                          eyebrow: 'Profile · Fit Profile',
+                          title: 'Your Fit Profile',
+                          subtitle: 'Personalized sizing and tailoring, designed for you',
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -279,7 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                                 'Size: ${memory.size.trim()}',
                                               if (memory.lastConversationSummary.trim().isNotEmpty)
                                                 memory.lastConversationSummary.trim(),
-                                            ].join(' â€¢ ');
+                                            ].join(' • ');
                                       final supportSubtitle = unreadCount > 0
                                           ? '$unreadCount new assistant repl${unreadCount == 1 ? 'y' : 'ies'}'
                                           : openChats > 0
@@ -619,7 +621,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           subtitle: recentlyViewed[i].brand.trim().isNotEmpty
                               ? recentlyViewed[i].brand.trim()
                               : recentlyViewed[i].category,
-                          price: 'Rs ${recentlyViewed[i].effectivePrice.toStringAsFixed(0)}',
+                          price: _formatCurrency(recentlyViewed[i].effectivePrice),
                           accent: i.isEven ? const Color(0xFFF6EAD3) : const Color(0xFFF4EFE4),
                           imageUrl: recentlyViewed[i].images.isNotEmpty ? recentlyViewed[i].images.first : null,
                           onTap: () => Navigator.pushNamed(
@@ -635,21 +637,21 @@ class _ProfileScreenState extends State<ProfileScreen>
                       _GuestJourneyCard(
                         title: 'Satin Drape Dress',
                         subtitle: 'Modern evening silhouette',
-                        price: 'From Rs 2,499',
+                        price: 'From ₹2,499',
                         accent: Color(0xFFF6EAD3),
                       ),
                       SizedBox(width: 12),
                       _GuestJourneyCard(
                         title: 'Structured Blazer Set',
                         subtitle: 'Polished fit for workwear',
-                        price: 'From Rs 1,899',
+                        price: 'From ₹1,899',
                         accent: Color(0xFFF4EFE4),
                       ),
                       SizedBox(width: 12),
                       _GuestJourneyCard(
                         title: 'Linen Co-ord Edit',
                         subtitle: 'Breezy premium weekend look',
-                        price: 'From Rs 1,599',
+                        price: 'From ₹1,599',
                         accent: Color(0xFFF8F1DF),
                       ),
                     ],
@@ -1010,7 +1012,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Create Custom Outfit â†’',
+                        'Create Custom Outfit →',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 12,
@@ -1124,13 +1126,31 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ],
         ),
-        child: Row(
-          children: const [
-            Expanded(child: _ProfileValueCell(label: 'Wallet', value: 'â‚¹0', icon: Icons.account_balance_wallet_outlined)),
+        child: const Row(
+          children: [
+            Expanded(
+              child: _ProfileValueCell(
+                label: 'Wallet',
+                value: '₹0',
+                icon: Icons.account_balance_wallet_outlined,
+              ),
+            ),
             _ProfileValueDivider(),
-            Expanded(child: _ProfileValueCell(label: 'Rewards', value: '0 pts', icon: Icons.stars_outlined)),
+            Expanded(
+              child: _ProfileValueCell(
+                label: 'Rewards',
+                value: '0 pts',
+                icon: Icons.stars_outlined,
+              ),
+            ),
             _ProfileValueDivider(),
-            Expanded(child: _ProfileValueCell(label: 'Orders', value: '0', icon: Icons.shopping_bag_outlined)),
+            Expanded(
+              child: _ProfileValueCell(
+                label: 'Orders',
+                value: '0',
+                icon: Icons.shopping_bag_outlined,
+              ),
+            ),
           ],
         ),
       );
@@ -1359,23 +1379,23 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _styleSection(BuildContext context, AppUser? user) {
-      if (user == null) {
-        return const AbzioEmptyCard(
-          title: 'Sign in to unlock custom clothing',
-          subtitle: 'Your measurements, made-to-order fits, and styling progress will appear here.',
-        );
-      }
+    if (user == null) {
+      return const AbzioEmptyCard(
+        title: 'Sign in to unlock custom clothing',
+        subtitle: 'Your measurements, made-to-order fits, and styling progress will appear here.',
+      );
+    }
 
-      final normalizedRole = user.role.trim().toLowerCase();
-      if (normalizedRole == 'vendor' || normalizedRole == 'rider') {
-        return const AbzioEmptyCard(
-          title: 'Customer style profile only',
-          subtitle: 'Measurements, body scans, and fit memory are available in the customer shopping experience.',
-        );
-      }
+    final normalizedRole = user.role.trim().toLowerCase();
+    if (normalizedRole == 'vendor' || normalizedRole == 'rider') {
+      return const AbzioEmptyCard(
+        title: 'Customer style profile only',
+        subtitle: 'Measurements, body scans, and fit memory are available in the customer shopping experience.',
+      );
+    }
 
-      return FutureBuilder<_StyleProfileSnapshot>(
-        future: _styleSnapshotFor(user.id),
+    return FutureBuilder<_StyleProfileSnapshot>(
+      future: _styleSnapshotFor(user.id),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const AbzioEmptyCard(
@@ -1383,84 +1403,39 @@ class _ProfileScreenState extends State<ProfileScreen>
             subtitle: 'Measurements and smart-fit details could not be loaded, but the rest of your profile is still available.',
           );
         }
+
         final styleSnapshot = snapshot.data;
         final measurementProfiles =
             styleSnapshot?.measurementProfiles ?? const <MeasurementProfile>[];
         final bodyProfile = styleSnapshot?.bodyProfile;
         final measurementsSubtitle = snapshot.connectionState == ConnectionState.waiting
-            ? 'Checking your saved fit profiles'
+            ? 'Checking your saved fit details'
             : measurementProfiles.isEmpty
-                ? 'Save your measurements for perfect fit'
-                : '${measurementProfiles.length} saved profile${measurementProfiles.length == 1 ? '' : 's'} ready to use';
+                ? 'View and edit your fit details'
+                : '${measurementProfiles.length} saved profile${measurementProfiles.length == 1 ? '' : 's'}';
         final scanSubtitle = snapshot.connectionState == ConnectionState.waiting
-            ? 'Preparing your smart fit status'
+            ? 'Improve accuracy with AI-assisted scanning'
             : bodyProfile == null
-                ? 'Get perfect fit using camera'
+                ? 'Improve accuracy with AI-assisted scanning'
                 : 'Last scanned ${_relativeScanTime(bodyProfile.updatedAt)}';
-
-        final fitInsight = bodyProfile == null
-            ? 'Complete a scan to unlock better fit recommendations.'
-            : bodyProfile.recommendedSize.trim().isNotEmpty
-                ? 'Fit insight: ${bodyProfile.recommendedSize.trim()} works best with your saved profile.'
-                : 'Fit insight: your body profile is ready for smarter tailoring suggestions.';
 
         return Column(
           children: [
             _styleHighlightCard(
               context,
-              icon: Icons.accessibility_new_rounded,
-              title: 'Scan My Body',
-              subtitle: scanSubtitle,
-              badgeLabel: bodyProfile == null ? 'Recommended' : 'Fit Ready',
+              icon: Icons.auto_awesome_outlined,
+              title: 'Find My Fit',
+              subtitle: 'Get your perfect size in seconds',
               highlighted: true,
-              onTap: () => _push(context, const BodyScanScreen()),
+              onTap: () => _openQuickFitFlow(context),
             ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFBF2),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.14)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: AbzioTheme.accentColor.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.insights_rounded,
-                      color: AbzioTheme.accentColor,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      fitInsight,
-                      style: TextStyle(
-                        color: context.abzioSecondaryText,
-                        height: 1.45,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: _styleHighlightCard(
                     context,
-                    icon: Icons.straighten_rounded,
+                    icon: Icons.straighten_outlined,
                     title: 'Saved Measurements',
                     subtitle: measurementsSubtitle,
                     compact: true,
@@ -1471,14 +1446,24 @@ class _ProfileScreenState extends State<ProfileScreen>
                 Expanded(
                   child: _styleHighlightCard(
                     context,
-                    icon: Icons.auto_awesome_outlined,
+                    icon: Icons.content_cut_outlined,
                     title: 'Custom Orders',
-                    subtitle: 'Review your bespoke pieces',
+                    subtitle: 'Track your bespoke pieces',
                     compact: true,
                     onTap: () => _push(context, const AtelierFlowScreen()),
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            _styleHighlightCard(
+              context,
+              icon: Icons.document_scanner_outlined,
+              title: 'Body Scan (Optional)',
+              subtitle: scanSubtitle,
+              neutral: true,
+              noteLabel: 'Takes ~30 seconds',
+              onTap: () => _push(context, const BodyScanScreen()),
             ),
           ],
         );
@@ -1493,71 +1478,81 @@ class _ProfileScreenState extends State<ProfileScreen>
     required String subtitle,
     required VoidCallback onTap,
     bool highlighted = false,
-    String? badgeLabel,
+    bool neutral = false,
+    String? noteLabel,
     bool compact = false,
   }) {
+    final radius = compact ? 18.0 : 20.0;
+    final cardGradient = highlighted
+        ? const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF6E9CE), Color(0xFFE9D4A6)],
+          )
+        : null;
+    final cardColor = neutral ? const Color(0xFFFCFAF6) : Colors.white;
+
     return TapScale(
       onTap: onTap,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(radius),
           child: Ink(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              color: highlighted ? const Color(0xFFFFFBF4) : Colors.white,
-              border: Border.all(
-                color: highlighted
-                    ? AbzioTheme.accentColor.withValues(alpha: 0.20)
-                    : context.abzioBorder.withValues(alpha: 0.55),
-                width: 1,
-              ),
+              borderRadius: BorderRadius.circular(radius),
+              gradient: cardGradient,
+              color: cardGradient == null ? cardColor : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: highlighted ? 0.07 : 0.045),
+                  blurRadius: highlighted ? 22 : 16,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-              child: Padding(
-                padding: EdgeInsets.all(compact ? 16 : highlighted ? 20 : 18),
-                child: Row(
-                  children: [
-                  if (!compact) ...[
-                    Container(
-                      width: 3,
-                      height: 54,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        color: const Color(0xFFD8BE74),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                  ],
+            child: Padding(
+              padding: EdgeInsets.all(compact ? 16 : highlighted ? 20 : 18),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Container(
                     width: compact ? 42 : 48,
                     height: compact ? 42 : 48,
                     decoration: BoxDecoration(
-                      color: highlighted ? const Color(0xFFFFF7E7) : const Color(0xFFF7F3EB),
+                      color: highlighted
+                          ? Colors.white.withValues(alpha: 0.45)
+                          : const Color(0xFFF3EFE8),
                       borderRadius: BorderRadius.circular(compact ? 14 : 16),
                     ),
-                    child: Icon(icon, color: const Color(0xFF9F8452)),
+                    child: Icon(
+                      icon,
+                      color: const Color(0xFF8E7446),
+                      size: compact ? 20 : 22,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (badgeLabel != null) ...[
+                        if (noteLabel != null) ...[
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
-                              vertical: 4,
+                              vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF8EDC9),
+                              color: const Color(0xFFF1ECE1),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
-                              badgeLabel,
-                              style: const TextStyle(
+                              noteLabel,
+                              style: TextStyle(
                                 fontSize: 10,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w600,
+                                color: context.abzioSecondaryText,
                               ),
                             ),
                           ),
@@ -1567,8 +1562,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                           title,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: compact ? 15 : highlighted ? 17 : 16,
-                            fontWeight: FontWeight.w800,
+                            fontSize: compact ? 15 : highlighted ? 18 : 16,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -1583,13 +1578,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Icon(Icons.arrow_forward_ios_rounded, size: 16, color: context.abzioSecondaryText),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: highlighted ? 16 : 14,
+                    color: const Color(0xFF8E7446).withValues(alpha: highlighted ? 0.9 : 0.65),
+                  ),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _openQuickFitFlow(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const FindMyFitFlowScreen()),
     );
   }
 
@@ -2201,7 +2206,11 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   String _formatCurrency(double value) {
     final whole = value == value.roundToDouble();
-    return whole ? 'â‚¹${value.toStringAsFixed(0)}' : 'â‚¹${value.toStringAsFixed(2)}';
+    return NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+      decimalDigits: whole ? 0 : 2,
+    ).format(value);
   }
 
   String _extractCity(String address) {
@@ -3006,4 +3015,5 @@ class _ProfileValueDivider extends StatelessWidget {
     );
   }
 }
+
 

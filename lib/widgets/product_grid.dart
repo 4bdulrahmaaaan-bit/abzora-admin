@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../models/models.dart';
 import 'product_card.dart';
@@ -45,7 +46,7 @@ class ProductGrid extends StatelessWidget {
         return GridView.builder(
           shrinkWrap: shrinkWrap,
           physics: physics ?? const NeverScrollableScrollPhysics(),
-          cacheExtent: 800,
+          scrollCacheExtent: const ScrollCacheExtent.pixels(800),
           addAutomaticKeepAlives: false,
           addRepaintBoundaries: true,
           padding: EdgeInsets.zero,
