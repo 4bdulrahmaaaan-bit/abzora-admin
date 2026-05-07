@@ -29,6 +29,10 @@ class BackendApiClient {
   static String? _preferredBaseUrl;
   static Future<void> Function()? _unauthorizedHandler;
   static bool _isHandlingUnauthorized = false;
+  static int _consecutiveBackendFailures = 0;
+  static DateTime? _lastBackendFailureAt;
+  static const int _backendFailureThreshold = 2;
+  static const Duration _backendFailureWindow = Duration(seconds: 45);
 
   static final ValueNotifier<BackendAvailability> backendAvailability =
       ValueNotifier(const BackendAvailability.available());
@@ -54,14 +58,31 @@ class BackendApiClient {
   }
 
   static void clearBackendAvailability() {
+    _consecutiveBackendFailures = 0;
+    _lastBackendFailureAt = null;
     backendAvailability.value = const BackendAvailability.available();
   }
 
   void _markBackendDown(String message) {
+    final now = DateTime.now();
+    final lastFailure = _lastBackendFailureAt;
+    if (lastFailure == null ||
+        now.difference(lastFailure) > _backendFailureWindow) {
+      _consecutiveBackendFailures = 1;
+    } else {
+      _consecutiveBackendFailures += 1;
+    }
+    _lastBackendFailureAt = now;
+
+    if (_consecutiveBackendFailures < _backendFailureThreshold) {
+      return;
+    }
     backendAvailability.value = BackendAvailability.unavailable(message);
   }
 
   void _markBackendOk() {
+    _consecutiveBackendFailures = 0;
+    _lastBackendFailureAt = null;
     if (!backendAvailability.value.isAvailable) {
       backendAvailability.value = const BackendAvailability.available();
     }
