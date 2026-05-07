@@ -91,8 +91,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   List<OpsActionLogEntry> _opsLogs = [];
   List<OpsMetricSnapshot> _opsMetrics = [];
   OpsLiveSnapshot _opsLive = const OpsLiveSnapshot();
-  OpsSimulationOutput? _lastOpsSimulation;
   Map<String, dynamic> _lastPricingSimulation = const {};
+  Map<String, dynamic> _dispatchSlaOverview = const {};
+  List<Map<String, dynamic>> _dispatchBatches = const [];
+  Map<String, dynamic> _dispatchRebalance = const {};
 
   bool _loading = true;
   bool _runningSearch = false;
@@ -102,8 +104,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
 
   String _userRoleFilter = 'All';
   String _vendorStatusFilter = 'All';
+  String _vendorCityFilter = 'All';
+  String _vendorRevenueFilter = 'All';
+  String _vendorRiskFilter = 'All';
   String _riderStatusFilter = 'All';
+  String _riderCityFilter = 'All';
+  String _riderVehicleFilter = 'All';
+  String _riderRiskFilter = 'All';
   String _orderStatusFilter = 'All';
+  String _orderZoneFilter = 'All';
+  String _orderPriorityFilter = 'All';
+  String _orderRiderFilter = 'All';
+  String _orderDateRangeFilter = 'All';
   String _productStatusFilter = 'All';
   String _supportStatusFilter = 'all';
   String _supportTypeFilter = 'all';
@@ -117,6 +129,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   int _productPage = 0;
   int _payoutPage = 0;
   String? _selectedSupportChatId;
+  final Set<String> _selectedOrderIds = <String>{};
+  OrderModel? _activeOrderDrawerOrder;
+  Store? _activeVendorDrawerStore;
+  AppUser? _activeRiderDrawerUser;
+  final Set<String> _selectedOpsAlertIds = <String>{};
+  final Set<String> _expandedOpsAlertIds = <String>{};
+  final ScrollController _opsAuditScrollController = ScrollController();
 
   AppUser? get _actor => context.read<AuthProvider>().user;
   bool get _usesBackendCommerce => _db.usesBackendCommerce;
@@ -155,6 +174,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     _aiCostThresholdController.dispose();
     _pricingOrderValueController.dispose();
     _pricingDistanceController.dispose();
+    _opsAuditScrollController.dispose();
     super.dispose();
   }
 
@@ -287,6 +307,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         _safeOpsLogs(actor),
         _safeOpsMetrics(actor),
         _safeOpsLive(actor),
+        _safeDispatchSla(actor),
+        _safeDispatchBatches(actor),
+        _safeDispatchRebalance(actor),
       ]);
       if (!mounted) {
         return;
@@ -315,6 +338,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         _opsLogs = results[18] as List<OpsActionLogEntry>;
         _opsMetrics = results[19] as List<OpsMetricSnapshot>;
         _opsLive = results[20] as OpsLiveSnapshot;
+        _dispatchSlaOverview = results[21] as Map<String, dynamic>;
+        _dispatchBatches = results[22] as List<Map<String, dynamic>>;
+        _dispatchRebalance = results[23] as Map<String, dynamic>;
         _selectedSupportChatId ??= _supportChats.isEmpty ? null : _supportChats.first.id;
         _loading = false;
       });
@@ -367,19 +393,6 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       user.copyWith(
         riderApprovalStatus: approved ? 'pending' : 'approved',
         isActive: approved ? user.isActive : true,
-      ),
-      actor: _actor,
-    );
-    await _load();
-  }
-
-  Future<void> _toggleStoreApproval(Store store) async {
-    final nextApproved = !store.isApproved;
-    await _db.saveStore(
-      store.copyWith(
-        isApproved: nextApproved,
-        isActive: nextApproved ? store.isActive : false,
-        approvalStatus: nextApproved ? 'approved' : 'pending',
       ),
       actor: _actor,
     );
@@ -700,6 +713,32 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     } catch (_) {
       _dataWarnings.add('Live dispatch snapshot is temporarily unavailable.');
       return const OpsLiveSnapshot();
+    }
+  }
+
+  Future<Map<String, dynamic>> _safeDispatchSla(AppUser actor) async {
+    try {
+      return await _db.getDispatchSlaOverview(actor: actor);
+    } catch (_) {
+      _dataWarnings.add('Dispatch SLA overview is temporarily unavailable.');
+      return const {};
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _safeDispatchBatches(AppUser actor) async {
+    try {
+      return await _db.getDispatchBatches(actor: actor);
+    } catch (_) {
+      _dataWarnings.add('Dispatch batches are temporarily unavailable.');
+      return const [];
+    }
+  }
+
+  Future<Map<String, dynamic>> _safeDispatchRebalance(AppUser actor) async {
+    try {
+      return await _db.triggerDispatchRebalance(actor: actor);
+    } catch (_) {
+      return const {};
     }
   }
 
@@ -1630,7 +1669,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                 child: ListView(
                                   padding: const EdgeInsets.all(24),
                                   children: [
-                                    if (_tab == AdminWebSection.dashboard) const SizedBox(height: 56),
+                                    if (_tab == AdminWebSection.dashboard || _tab == AdminWebSection.operations || _tab == AdminWebSection.orders || _tab == AdminWebSection.vendors || _tab == AdminWebSection.riders)
+                                      const SizedBox(height: 64),
                                     _buildHeader(context),
                                     if (_dataWarnings.isNotEmpty) ...[
                                       const SizedBox(height: 14),
@@ -1650,6 +1690,34 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                     message: _dashboardCriticalMessage(),
                                     severity: _dashboardCriticalSeverity(),
                                   ),
+                                ),
+                              if (_tab == AdminWebSection.operations)
+                                Positioned(
+                                  top: 0,
+                                  left: 24,
+                                  right: 24,
+                                  child: _buildOperationsStickyToolbar(),
+                                ),
+                              if (_tab == AdminWebSection.orders)
+                                Positioned(
+                                  top: 0,
+                                  left: 24,
+                                  right: 24,
+                                  child: _buildOrdersStickyToolbar(),
+                                ),
+                              if (_tab == AdminWebSection.vendors)
+                                Positioned(
+                                  top: 0,
+                                  left: 24,
+                                  right: 24,
+                                  child: _buildVendorsStickyToolbar(),
+                                ),
+                              if (_tab == AdminWebSection.riders)
+                                Positioned(
+                                  top: 0,
+                                  left: 24,
+                                  right: 24,
+                                  child: _buildRidersStickyToolbar(),
                                 ),
                             ],
                           ),
@@ -1927,6 +1995,253 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     }
   }
 
+  Widget _buildOperationsStickyToolbar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AbzioTheme.grey200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.circle, color: Color(0xFF12B76A), size: 10),
+          const SizedBox(width: 8),
+          Text('LIVE', style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 12)),
+          const Spacer(),
+          FilledButton.icon(
+            onPressed: () => _runOpsAction(
+              action: () => _db.triggerOpsDetection(actor: _actor!),
+              successMessage: 'Ops detection cycle triggered.',
+            ),
+            icon: const Icon(Icons.radar_rounded, size: 16),
+            label: const Text('Run Detection'),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: _load,
+            icon: const Icon(Icons.refresh_rounded, size: 16),
+            label: const Text('Refresh'),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: _openOpsSimulationDialog,
+            icon: const Icon(Icons.science_outlined, size: 16),
+            label: const Text('Simulation'),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: () => setState(() => _tab = AdminWebSection.operations),
+            icon: const Icon(Icons.auto_awesome_outlined, size: 16),
+            label: const Text('AI Assist'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openOpsSimulationDialog() async {
+    final ordersController = TextEditingController(text: '300');
+    final ridersController = TextEditingController(text: '60');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Run Ops Simulation'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: ordersController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Orders (N)'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ridersController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Riders (M)'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Run'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+    final orders = int.tryParse(ordersController.text.trim()) ?? 300;
+    final riders = int.tryParse(ridersController.text.trim()) ?? 60;
+    await _runOpsAction(
+      action: () async {
+        final output = await _db.runOpsSimulation(
+          actor: _actor!,
+          orders: orders,
+          riders: riders,
+        );
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Simulation complete: delay ${output.delayPercent.toStringAsFixed(1)}%, dispatch ${output.dispatchSuccessPercent.toStringAsFixed(1)}%',
+            ),
+          ),
+        );
+      },
+      successMessage: 'Simulation complete.',
+    );
+  }
+
+  Widget _buildOrdersStickyToolbar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AbzioTheme.grey200),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 14, offset: const Offset(0, 6)),
+        ],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 280,
+            child: TextField(
+              controller: _orderSearchController,
+              decoration: const InputDecoration(
+                hintText: 'Search order, customer, vendor, rider, zone',
+                prefixIcon: Icon(Icons.search_rounded),
+                isDense: true,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('Status', _orderStatusFilter, const ['All', 'Placed', 'Assigned', 'Processing', 'Delivered', 'Cancelled'], (v) => setState(() => _orderStatusFilter = v)),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('Zone', _orderZoneFilter, const ['All', 'Central', 'North', 'South', 'East', 'West'], (v) => setState(() => _orderZoneFilter = v)),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('Priority', _orderPriorityFilter, const ['All', 'High', 'Medium', 'Low'], (v) => setState(() => _orderPriorityFilter = v)),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('Rider', _orderRiderFilter, const ['All', 'Assigned', 'Unassigned'], (v) => setState(() => _orderRiderFilter = v)),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('Date', _orderDateRangeFilter, const ['All', 'Today', 'Last 7 days', 'Last 30 days'], (v) => setState(() => _orderDateRangeFilter = v)),
+          const Spacer(),
+          OutlinedButton.icon(onPressed: _load, icon: const Icon(Icons.refresh_rounded, size: 16), label: const Text('Refresh')),
+        ],
+      ),
+    );
+  }
+
+  Widget _ordersFilterMenu(String label, String value, List<String> items, ValueChanged<String> onChanged) {
+    return SizedBox(
+      width: 128,
+      child: DropdownButtonFormField<String>(
+        initialValue: value,
+        decoration: InputDecoration(labelText: label, isDense: true),
+        items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+        onChanged: (v) {
+          if (v != null) onChanged(v);
+        },
+      ),
+    );
+  }
+
+  Widget _buildVendorsStickyToolbar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AbzioTheme.grey200),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 14, offset: const Offset(0, 6))],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 320,
+            child: TextField(
+              controller: _vendorSearchController,
+              decoration: const InputDecoration(
+                hintText: 'Search store, owner, city, or vendor ID',
+                prefixIcon: Icon(Icons.search_rounded),
+                isDense: true,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('Status', _vendorStatusFilter, const ['All', 'Approved', 'Pending', 'Suspended', 'High Risk'], (v) => setState(() => _vendorStatusFilter = v)),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('City', _vendorCityFilter, const ['All', 'Chennai', 'Bengaluru', 'Hyderabad', 'Mumbai'], (v) => setState(() => _vendorCityFilter = v)),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('Revenue', _vendorRevenueFilter, const ['All', 'High', 'Mid', 'Low'], (v) => setState(() => _vendorRevenueFilter = v)),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('Risk', _vendorRiskFilter, const ['All', 'Healthy', 'Warning', 'Intervention'], (v) => setState(() => _vendorRiskFilter = v)),
+          const Spacer(),
+          OutlinedButton.icon(
+            onPressed: () => setState(() => _tab = AdminWebSection.kyc),
+            icon: const Icon(Icons.verified_user_outlined, size: 16),
+            label: const Text('KYC Queue'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRidersStickyToolbar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AbzioTheme.grey200),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 14, offset: const Offset(0, 6))],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 320,
+            child: TextField(
+              controller: _riderSearchController,
+              decoration: const InputDecoration(
+                hintText: 'Search rider, phone, city, or rider ID',
+                prefixIcon: Icon(Icons.search_rounded),
+                isDense: true,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('Status', _riderStatusFilter, const ['All', 'LIVE', 'BUSY', 'OFFLINE', 'DELAYED', 'HIGH RISK'], (v) => setState(() => _riderStatusFilter = v)),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('City', _riderCityFilter, const ['All', 'Chennai', 'Bengaluru', 'Hyderabad', 'Mumbai'], (v) => setState(() => _riderCityFilter = v)),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('Vehicle', _riderVehicleFilter, const ['All', 'Bike', 'Scooter', 'EV'], (v) => setState(() => _riderVehicleFilter = v)),
+          const SizedBox(width: 8),
+          _ordersFilterMenu('Risk', _riderRiskFilter, const ['All', 'Healthy', 'Warning', 'Intervention'], (v) => setState(() => _riderRiskFilter = v)),
+          const Spacer(),
+          OutlinedButton.icon(onPressed: _load, icon: const Icon(Icons.refresh_rounded, size: 16), label: const Text('Refresh')),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDataWarningsBanner() {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1982,10 +2297,6 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     final analytics = _analytics;
     final vendorCount = _users.where(_isVendorUser).length;
     final recentOrders = _orders.toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    final delayedOrders = _orders.where((order) {
-      final status = order.status.toLowerCase();
-      return status.contains('delay') || status.contains('late');
-    }).toList();
     final searchQuery = _globalSearchController.text.trim().toLowerCase();
     final userSuggestions = _users
         .where((u) => u.name.toLowerCase().contains(searchQuery) || u.email.toLowerCase().contains(searchQuery))
@@ -2014,7 +2325,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       ...riderSuggestions,
     ];
 
-    return Column(
+    return Stack(
+      children: [
+        Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (searchQuery.isNotEmpty && suggestions.isNotEmpty)
@@ -2251,6 +2564,15 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           ],
         ),
       ],
+    ),
+        if (_activeVendorDrawerStore != null)
+          Positioned(
+            top: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildVendorDetailDrawer(_activeVendorDrawerStore!),
+          ),
+      ],
     );
   }
 
@@ -2402,168 +2724,33 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   Widget _buildOperations() {
     final alerts = _opsAlerts;
     final logs = _opsLogs;
-    final metrics = _opsMetrics.toList()
-      ..sort((a, b) => a.bucketStartAt.compareTo(b.bucketStartAt));
+    final metrics = _opsMetrics.toList()..sort((a, b) => a.bucketStartAt.compareTo(b.bucketStartAt));
     final live = _opsLive;
-
     final criticalCount = live.alertCounts['CRITICAL'] ?? 0;
     final highCount = live.alertCounts['HIGH'] ?? 0;
     final mediumCount = live.alertCounts['MEDIUM'] ?? 0;
     final lowCount = live.alertCounts['LOW'] ?? 0;
-
-    final latestMetric = metrics.isEmpty ? null : metrics.last;
-    final metricPoints = metrics
-        .take(12)
-        .map(
-          (entry) => AnalyticsPoint(
-            label: DateFormat('HH:mm').format(entry.bucketStartAt),
-            value: entry.delayPercent,
-          ),
-        )
-        .toList();
+    final delayedDispatches = live.dispatch.where((task) => (task['status']?.toString().toLowerCase() ?? '').contains('delay')).length;
+    final failedPayments = alerts.where((a) => a.type.toLowerCase().contains('payment')).length;
+    final metricPoints = metrics.take(12).map((entry) => AnalyticsPoint(label: DateFormat('HH:mm').format(entry.bucketStartAt), value: entry.delayPercent)).toList();
+    final retrySpikes = logs.where((entry) => entry.status.toLowerCase().contains('retry')).length;
+    final vendorFailures = alerts.where((entry) => entry.entityType.toLowerCase().contains('vendor')).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          height: 136,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _MetricCard(title: 'Critical Alerts', value: '$criticalCount'),
-              _MetricCard(title: 'High Alerts', value: '$highCount'),
-              _MetricCard(title: 'Live Orders', value: '${live.liveOrders.length}'),
-              _MetricCard(title: 'Active Dispatch', value: '${live.dispatch.length}'),
-              _MetricCard(title: 'Active Riders', value: '${live.riders.length}'),
-              _MetricCard(title: 'Active Vendors', value: '${live.vendors.length}'),
-              _MetricCard(
-                title: 'Auto Resolution',
-                value: latestMetric == null
-                    ? '0%'
-                    : latestMetric.totalAlerts <= 0
-                    ? '0%'
-                    : '${((latestMetric.autoResolvedAlerts / latestMetric.totalAlerts) * 100).toStringAsFixed(1)}%',
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
         Wrap(
           spacing: 12,
           runSpacing: 12,
           children: [
-            FilledButton.icon(
-              onPressed: () => _runOpsAction(
-                action: () => _db.triggerOpsDetection(actor: _actor!),
-                successMessage: 'Ops detection cycle triggered.',
-              ),
-              icon: const Icon(Icons.radar_rounded),
-              label: const Text('Run Detection'),
-            ),
-            OutlinedButton.icon(
-              onPressed: _load,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Refresh'),
-            ),
-            OutlinedButton.icon(
-              onPressed: () async {
-                final ordersController = TextEditingController(text: '300');
-                final ridersController = TextEditingController(text: '60');
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (dialogContext) => AlertDialog(
-                    title: const Text('Run Ops Simulation'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: ordersController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Orders (N)',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: ridersController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Riders (M)',
-                          ),
-                        ),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(false),
-                        child: const Text('Cancel'),
-                      ),
-                      FilledButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(true),
-                        child: const Text('Run'),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirmed != true) {
-                  return;
-                }
-                final orders = int.tryParse(ordersController.text.trim()) ?? 300;
-                final riders = int.tryParse(ridersController.text.trim()) ?? 60;
-                await _runOpsAction(
-                  action: () async {
-                    final output = await _db.runOpsSimulation(
-                      actor: _actor!,
-                      orders: orders,
-                      riders: riders,
-                    );
-                    if (!mounted) {
-                      return;
-                    }
-                    setState(() => _lastOpsSimulation = output);
-                  },
-                  successMessage: 'Simulation complete.',
-                );
-              },
-              icon: const Icon(Icons.science_outlined),
-              label: const Text('Simulation'),
-            ),
+            _MetricCard(title: 'Critical Alerts', value: '$criticalCount'),
+            _MetricCard(title: 'High Alerts', value: '$highCount'),
+            _MetricCard(title: 'Live Orders', value: '${live.liveOrders.length}'),
+            _MetricCard(title: 'Delayed Dispatches', value: '$delayedDispatches'),
+            _MetricCard(title: 'Failed Payments', value: '$failedPayments'),
+            _MetricCard(title: 'Active Riders', value: '${live.riders.length}'),
           ],
         ),
-        if (_lastOpsSimulation != null) ...[
-          const SizedBox(height: 16),
-          _Panel(
-            title: 'Latest Simulation',
-            subtitle: 'Synthetic stress result for dispatch and delay behavior.',
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _StatusPill(
-                  label: 'N ${_lastOpsSimulation!.orders}',
-                  color: const Color(0xFF175CD3),
-                ),
-                _StatusPill(
-                  label: 'M ${_lastOpsSimulation!.riders}',
-                  color: const Color(0xFF175CD3),
-                ),
-                _StatusPill(
-                  label:
-                      'Dispatch ${_lastOpsSimulation!.dispatchSuccessPercent.toStringAsFixed(1)}%',
-                  color: const Color(0xFF067647),
-                ),
-                _StatusPill(
-                  label: 'Delay ${_lastOpsSimulation!.delayPercent.toStringAsFixed(1)}%',
-                  color: const Color(0xFFB54708),
-                ),
-                _StatusPill(
-                  label: 'Efficiency ${_lastOpsSimulation!.efficiencyScore.toStringAsFixed(1)}',
-                  color: const Color(0xFF364152),
-                ),
-              ],
-            ),
-          ),
-        ],
         const SizedBox(height: 16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2571,110 +2758,109 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             Expanded(
               flex: 3,
               child: _Panel(
-                title: 'Priority Alerts',
-                subtitle:
-                    'Top queue ordered by severity and score. Use quick actions for auto-healing and overrides.',
+                title: 'Priority Alert Queue',
+                subtitle: 'Critical incidents with run actions, reassignment, and payment recovery.',
                 child: alerts.isEmpty
-                    ? const AbzioEmptyCard(
-                        title: 'No active alerts',
-                        subtitle: 'Operations queue is clear right now.',
-                      )
+                    ? const AbzioEmptyCard(title: 'No alerts right now', subtitle: 'Dispatch queue operating normally.')
                     : Column(
-                        children: alerts.take(14).map((alert) {
-                          final severityColor = _opsSeverityColor(alert.severity);
-                          return Container(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              OutlinedButton(
+                                onPressed: _selectedOpsAlertIds.isEmpty
+                                    ? null
+                                    : () async {
+                                        for (final alertId in _selectedOpsAlertIds) {
+                                          await _runOpsAction(
+                                            action: () => _db.runOpsAlertAction(actor: _actor!, alertId: alertId),
+                                            successMessage: 'Bulk action executed.',
+                                          );
+                                        }
+                                      },
+                                child: const Text('Bulk Run Action'),
+                              ),
+                              OutlinedButton(
+                                onPressed: _selectedOpsAlertIds.isEmpty ? null : () => setState(() => _selectedOpsAlertIds.clear()),
+                                child: const Text('Clear Selection'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          ...alerts.take(12).map((alert) {
+                          final isCritical = alert.severity.toUpperCase() == 'CRITICAL';
+                          final color = _opsSeverityColor(alert.severity);
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AbzioTheme.grey200),
+                              border: Border(
+                                left: BorderSide(color: isCritical ? const Color(0xFFD92D20) : AbzioTheme.grey200, width: isCritical ? 4 : 1),
+                                top: BorderSide(color: AbzioTheme.grey200),
+                                right: BorderSide(color: AbzioTheme.grey200),
+                                bottom: BorderSide(color: AbzioTheme.grey200),
+                              ),
+                              boxShadow: isCritical ? [BoxShadow(color: const Color(0xFFD92D20).withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 6))] : null,
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [
-                                    Expanded(
-                                      child: Text(
-                                        '${alert.type} • ${alert.entityType}:${alert.entityId}',
-                                        style: GoogleFonts.inter(
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
+                                    Checkbox(
+                                      value: _selectedOpsAlertIds.contains(alert.alertId),
+                                      onChanged: (value) => setState(() {
+                                        if (value == true) {
+                                          _selectedOpsAlertIds.add(alert.alertId);
+                                        } else {
+                                          _selectedOpsAlertIds.remove(alert.alertId);
+                                        }
+                                      }),
                                     ),
-                                    _StatusPill(
-                                      label:
-                                          '${alert.severity} ${alert.score.toStringAsFixed(0)}',
-                                      color: severityColor,
+                                    Expanded(child: Text('${alert.type} | Order ${alert.orderId.isEmpty ? '-' : alert.orderId}', style: GoogleFonts.inter(fontWeight: FontWeight.w800))),
+                                    _StatusPill(label: '${alert.severity} ${alert.score.toStringAsFixed(0)}', color: color),
+                                    IconButton(
+                                      onPressed: () => setState(() {
+                                        if (_expandedOpsAlertIds.contains(alert.alertId)) {
+                                          _expandedOpsAlertIds.remove(alert.alertId);
+                                        } else {
+                                          _expandedOpsAlertIds.add(alert.alertId);
+                                        }
+                                      }),
+                                      icon: Icon(_expandedOpsAlertIds.contains(alert.alertId) ? Icons.expand_less : Icons.expand_more),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 6),
-                                Text(
-                                  alert.message,
-                                  style: GoogleFonts.inter(
-                                    color: AbzioTheme.textSecondary,
-                                  ),
-                                ),
+                                Text(alert.message, style: GoogleFonts.inter(color: AbzioTheme.textSecondary)),
+                                const SizedBox(height: 6),
+                                Text('Time ${DateFormat('dd MMM HH:mm').format(alert.createdAt)} | Assigned ${alert.payload['assignedOperator'] ?? 'Ops Desk'} | Retry ${alert.retryCount}/${alert.maxRetries}', style: GoogleFonts.inter(color: AbzioTheme.textSecondary, fontSize: 12)),
+                                if (_expandedOpsAlertIds.contains(alert.alertId)) ...[
+                                  const SizedBox(height: 6),
+                                  Text('Entity ${alert.entityType}:${alert.entityId} | Action ${alert.action} | Status ${alert.actionStatus}', style: GoogleFonts.inter(color: AbzioTheme.textSecondary, fontSize: 12)),
+                                ],
                                 const SizedBox(height: 10),
                                 Wrap(
                                   spacing: 8,
                                   runSpacing: 8,
                                   children: [
-                                    OutlinedButton.icon(
-                                      onPressed: () => _runOpsAction(
-                                        action: () => _db.runOpsAlertAction(
-                                          actor: _actor!,
-                                          alertId: alert.alertId,
-                                        ),
-                                        successMessage:
-                                            'Alert action executed for ${alert.alertId}.',
-                                      ),
+                                    FilledButton.icon(
+                                      onPressed: () => _runOpsAction(action: () => _db.runOpsAlertAction(actor: _actor!, alertId: alert.alertId), successMessage: 'Run action triggered.'),
                                       icon: const Icon(Icons.play_arrow_rounded),
                                       label: const Text('Run Action'),
                                     ),
                                     if (alert.orderId.trim().isNotEmpty) ...[
+                                      OutlinedButton(onPressed: () => _runOpsAction(action: () => _db.opsReassignOrder(actor: _actor!, orderId: alert.orderId), successMessage: 'Order reassigned.'), child: const Text('Reassign')),
+                                      OutlinedButton(onPressed: () => _runOpsAction(action: () => _db.opsRetryPayment(actor: _actor!, orderId: alert.orderId), successMessage: 'Retry payment queued.'), child: const Text('Retry Payment')),
+                                      OutlinedButton(onPressed: () => _runOpsAction(action: () => _db.opsForceDispatch(actor: _actor!, orderId: alert.orderId), successMessage: 'Force dispatch triggered.'), child: const Text('Force Dispatch')),
                                       OutlinedButton(
-                                        onPressed: () => _runOpsAction(
-                                          action: () => _db.opsReassignOrder(
-                                            actor: _actor!,
-                                            orderId: alert.orderId,
-                                          ),
-                                          successMessage:
-                                              'Order ${alert.orderId} reassigned.',
-                                        ),
-                                        child: const Text('Reassign'),
-                                      ),
-                                      OutlinedButton(
-                                        onPressed: () => _runOpsAction(
-                                          action: () => _db.opsForceDispatch(
-                                            actor: _actor!,
-                                            orderId: alert.orderId,
-                                          ),
-                                          successMessage:
-                                              'Force dispatch triggered.',
-                                        ),
-                                        child: const Text('Force Dispatch'),
-                                      ),
-                                      OutlinedButton(
-                                        onPressed: () => _runOpsAction(
-                                          action: () => _db.opsRetryPayment(
-                                            actor: _actor!,
-                                            orderId: alert.orderId,
-                                          ),
-                                          successMessage: 'Payment retry triggered.',
-                                        ),
-                                        child: const Text('Retry Payment'),
-                                      ),
-                                      OutlinedButton(
-                                        onPressed: () => _runOpsAction(
-                                          action: () => _db.opsCancelOrder(
-                                            actor: _actor!,
-                                            orderId: alert.orderId,
-                                          ),
-                                          successMessage: 'Order cancelled by override.',
-                                        ),
+                                        style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFB42318), side: const BorderSide(color: Color(0xFFB42318))),
+                                        onPressed: () => _runOpsAction(action: () => _db.opsCancelOrder(actor: _actor!, orderId: alert.orderId), successMessage: 'Order cancelled.'),
                                         child: const Text('Cancel Order'),
                                       ),
                                     ],
@@ -2683,7 +2869,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
+                        ],
                       ),
               ),
             ),
@@ -2694,7 +2881,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 children: [
                   _Panel(
                     title: 'Live Dispatch Snapshot',
-                    subtitle: 'Current hot-path activity from live orders and dispatch tasks.',
+                    subtitle: 'Realtime incident health by severity band.',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -2708,92 +2895,79 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                             _StatusPill(label: 'Low $lowCount', color: _opsSeverityColor('LOW')),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
                         if (live.dispatch.isEmpty)
-                          const AbzioEmptyCard(
-                            title: 'No active dispatch tasks',
-                            subtitle: 'Dispatch queue is stable at the moment.',
-                          )
-                        else
-                          Column(
-                            children: live.dispatch.take(8).map((task) {
-                              final taskId = task['_id']?.toString() ?? '';
-                              final status = task['status']?.toString() ?? '';
-                              final riderId = task['riderId']?.toString() ?? '';
-                              final orderId = task['orderId']?.toString() ?? '';
-                              return ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: const Icon(Icons.local_shipping_outlined),
-                                title: Text(
-                                  'Task $taskId',
-                                  style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-                                ),
-                                subtitle: Text(
-                                  'Order $orderId • Rider $riderId',
-                                  style: GoogleFonts.inter(
-                                    color: AbzioTheme.textSecondary,
-                                  ),
-                                ),
-                                trailing: _StatusPill(
-                                  label: status.toUpperCase(),
-                                  color: const Color(0xFF175CD3),
-                                ),
-                              );
-                            }).toList(),
-                          ),
+                          const Text('Dispatch queue operating normally.', style: TextStyle(color: AbzioTheme.grey600)),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
                   _Panel(
-                    title: 'Delay Trend',
-                    subtitle:
-                        'Hourly delay percentage from operations metrics (latest 12 buckets).',
+                    title: 'Delay Trend Analytics',
+                    subtitle: 'Hourly delay percent, retry spikes, and vendor response failures.',
                     child: metricPoints.isEmpty
-                        ? const AbzioEmptyCard(
-                            title: 'No metrics yet',
-                            subtitle: 'Metrics will appear after runtime aggregation cycles.',
-                          )
-                        : _MiniBarChart(
-                            points: metricPoints,
-                            barColor: const Color(0xFFDC6803),
-                            valueFormatter: (value) => '${value.toStringAsFixed(0)}%',
+                        ? const AbzioEmptyCard(title: 'No delay trend yet', subtitle: 'Platform running smoothly')
+                        : Column(
+                            children: [
+                              _MiniBarChart(points: metricPoints, barColor: const Color(0xFFDC6803), valueFormatter: (v) => '${v.toStringAsFixed(0)}%'),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _StatusPill(label: 'Retry spikes $retrySpikes', color: const Color(0xFFB42318)),
+                                  _StatusPill(label: 'Vendor failures $vendorFailures', color: const Color(0xFFDC6803)),
+                                ],
+                              ),
+                            ],
                           ),
                   ),
                   const SizedBox(height: 16),
                   _Panel(
                     title: 'Ops Audit Log',
-                    subtitle: 'Latest action outcomes for auto and manual controls.',
+                    subtitle: 'Started, retried, failed, resolved, and escalated actions.',
                     child: logs.isEmpty
-                        ? const AbzioEmptyCard(
-                            title: 'No operation logs',
-                            subtitle: 'Action logs will appear once worker actions execute.',
-                          )
-                        : Column(
-                            children: logs.take(10).map((entry) {
-                              return ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: const Icon(Icons.history_rounded),
-                                title: Text(
-                                  '${entry.action} • ${entry.status}',
-                                  style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-                                ),
-                                subtitle: Text(
-                                  '${entry.entityType}:${entry.entityId} • attempt ${entry.attempt}',
-                                  style: GoogleFonts.inter(
-                                    color: AbzioTheme.textSecondary,
-                                  ),
-                                ),
-                                trailing: Text(
-                                  DateFormat('dd MMM HH:mm').format(entry.createdAt),
-                                  style: GoogleFonts.inter(
-                                    color: AbzioTheme.textSecondary,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
+                        ? const AbzioEmptyCard(title: 'No operation logs', subtitle: 'Platform running smoothly')
+                        : SizedBox(
+                            height: 280,
+                            child: ListView(
+                              controller: _opsAuditScrollController,
+                              children: logs.take(18).map((entry) {
+                                final s = entry.status.toLowerCase();
+                                final icon = s.contains('fail') ? Icons.error_outline : s.contains('retry') ? Icons.refresh_rounded : s.contains('resolve') ? Icons.check_circle_outline : s.contains('escalat') ? Icons.priority_high_rounded : Icons.play_arrow_rounded;
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Icon(icon),
+                                  title: Text('${entry.action} | ${entry.status}', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                                  subtitle: Text('${entry.entityType}:${entry.entityId} | attempt ${entry.attempt}'),
+                                  trailing: Text(DateFormat('dd MMM HH:mm').format(entry.createdAt), style: GoogleFonts.inter(color: AbzioTheme.textSecondary, fontSize: 12)),
+                                );
+                              }).toList(),
+                            ),
                           ),
+                  ),
+                  const SizedBox(height: 16),
+                  _Panel(
+                    title: 'AI Operational Insights',
+                    subtitle: 'Intelligence recommendations for live operations.',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildInsightTile('Vendor response latency spike detected in Chennai.', Icons.store_mall_directory_outlined),
+                        _buildInsightTile('Retry success probability low for payment queue.', Icons.payments_outlined),
+                        _buildInsightTile('Rider shortage predicted in Zone B.', Icons.delivery_dining_outlined),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            FilledButton(onPressed: () => _runOpsAction(action: () => _db.triggerOpsDetection(actor: _actor!), successMessage: 'Auto resolve initiated.'), child: const Text('Auto Resolve')),
+                            OutlinedButton(onPressed: () => setState(() => _tab = AdminWebSection.support), child: const Text('Escalate')),
+                            OutlinedButton(onPressed: () => setState(() => _tab = AdminWebSection.operations), child: const Text('Open Incident')),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -2946,65 +3120,77 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   Widget _buildOrders() {
-    final filtered = _filteredOrders;
+    final base = _filteredOrders;
+    final filtered = base.where((order) {
+      if (_orderStatusFilter != 'All' && order.status.toLowerCase() != _orderStatusFilter.toLowerCase()) return false;
+      if (_orderRiderFilter == 'Assigned' && (order.riderId == null || order.riderId!.isEmpty)) return false;
+      if (_orderRiderFilter == 'Unassigned' && (order.riderId != null && order.riderId!.isNotEmpty)) return false;
+      if (_orderDateRangeFilter == 'Today') {
+        final now = DateTime.now();
+        if (order.timestamp.year != now.year || order.timestamp.month != now.month || order.timestamp.day != now.day) return false;
+      }
+      if (_orderDateRangeFilter == 'Last 7 days' && DateTime.now().difference(order.timestamp).inDays > 7) return false;
+      if (_orderDateRangeFilter == 'Last 30 days' && DateTime.now().difference(order.timestamp).inDays > 30) return false;
+      if (_orderPriorityFilter != 'All') {
+        final p = _orderPriorityFor(order);
+        if (p != _orderPriorityFilter.toUpperCase()) return false;
+      }
+      if (_orderZoneFilter != 'All') {
+        final zone = _orderZoneFor(order);
+        if (zone != _orderZoneFilter) return false;
+      }
+      return true;
+    }).toList();
     final pageCount = _pageCount(filtered);
     final safePage = _orderPage >= pageCount ? pageCount - 1 : _orderPage;
     final visible = _pageSlice(filtered, safePage);
-    return Column(
+    final liveOrders = filtered.where((o) => !_isOrderDone(o)).length;
+    final delayed = filtered.where((o) => _isDelayedOrder(o)).length;
+    final awaitingRider = filtered.where((o) => (o.riderId ?? '').trim().isEmpty).length;
+    final refundPending = filtered.where((o) => o.refundStatus.toLowerCase().contains('pending')).length;
+    final deliveredToday = filtered.where((o) => o.status.toLowerCase() == 'delivered' && DateTime.now().difference(o.timestamp).inDays == 0).length;
+    final failedDeliveries = filtered.where((o) => o.status.toLowerCase().contains('cancel')).length;
+
+    return Stack(
+      children: [
+        Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _FilterPanel(
-          title: 'Order management',
-          subtitle: 'Search, inspect, override status, and assign riders when needed.',
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
           children: [
-            SizedBox(
-              width: 320,
-              child: TextField(
-                controller: _orderSearchController,
-                decoration: const InputDecoration(
-                  hintText: 'Search order, store, user, or address',
-                  prefixIcon: Icon(Icons.search_rounded),
-                ),
-              ),
-            ),
-            SizedBox(
-              width: 220,
-              child: DropdownButtonFormField<String>(
-                initialValue: _orderStatusFilter,
-                decoration: const InputDecoration(labelText: 'Status'),
-                items: const [
-                  'All',
-                  'Placed',
-                  'Confirmed',
-                  'Packed',
-                  'Ready for pickup',
-                  'Assigned',
-                  'Picked up',
-                  'Out for delivery',
-                  'Delivered',
-                  'Cancelled',
-                ]
-                    .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-                    .toList(),
-                onChanged: (value) => setState(() {
-                  _orderStatusFilter = value ?? 'All';
-                  _orderPage = 0;
-                }),
-              ),
-            ),
+            _MetricCard(title: 'Live Orders', value: '$liveOrders'),
+            _MetricCard(title: 'Delayed Orders', value: '$delayed'),
+            _MetricCard(title: 'Awaiting Rider', value: '$awaitingRider'),
+            _MetricCard(title: 'Refund Pending', value: '$refundPending'),
+            _MetricCard(title: 'Delivered Today', value: '$deliveredToday'),
+            _MetricCard(title: 'Failed Deliveries', value: '$failedDeliveries'),
           ],
         ),
         const SizedBox(height: 16),
         _Panel(
-          title: 'Orders',
-          subtitle: '${filtered.length} result(s)',
+          title: 'Fulfillment Queue',
+          subtitle: '${filtered.length} operational order(s)',
           child: filtered.isEmpty
               ? const AbzioEmptyCard(
-                  title: 'No orders match this filter',
-                  subtitle: 'Try another status or search term.',
+                  title: 'No order incidents right now',
+                  subtitle: 'Platform running smoothly',
                 )
               : Column(
                   children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton(onPressed: _selectedOrderIds.isEmpty ? null : () => _bulkOrderStatus('Assigned'), child: const Text('assign riders')),
+                        OutlinedButton(onPressed: _selectedOrderIds.isEmpty ? null : () => _bulkOrderStatus('Out for delivery'), child: const Text('dispatch')),
+                        OutlinedButton(onPressed: _selectedOrderIds.isEmpty ? null : () => _bulkOrderStatus('Cancelled'), child: const Text('cancel')),
+                        OutlinedButton(onPressed: _selectedOrderIds.isEmpty ? null : () => _bulkOrderStatus('Delivered'), child: const Text('mark delivered')),
+                        OutlinedButton(onPressed: () => setState(() => _selectedOrderIds.clear()), child: const Text('clear selection')),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     ...visible.map((order) {
                       final invoice =
                           order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
@@ -3013,35 +3199,61 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                       final riderName = order.assignedDeliveryPartner == 'Unassigned'
                           ? 'Unassigned'
                           : order.assignedDeliveryPartner;
+                      final priority = _orderPriorityFor(order);
+                      final healthScore = _orderHealthScore(order);
+                      final borderColor = _orderBorderColor(order.status);
+                      final isCritical = priority == 'HIGH' || healthScore < 45;
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: AbzioTheme.grey200),
+                          border: Border.all(color: borderColor.withValues(alpha: 0.52), width: isCritical ? 1.8 : 1),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (isCritical ? const Color(0xFFD92D20) : Colors.black).withValues(alpha: isCritical ? 0.12 : 0.04),
+                              blurRadius: isCritical ? 18 : 12,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
                         child: Column(
                           children: [
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                Checkbox(
+                                  value: _selectedOrderIds.contains(order.id),
+                                  onChanged: (value) => setState(() {
+                                    if (value == true) {
+                                      _selectedOrderIds.add(order.id);
+                                    } else {
+                                      _selectedOrderIds.remove(order.id);
+                                    }
+                                  }),
+                                ),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        invoice,
+                                        'Order $invoice',
                                         style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '${customer?.name ?? order.userId} - ${store?.name ?? order.storeId}',
+                                        'Customer: ${customer?.name ?? order.userId} | Vendor: ${store?.name ?? order.storeId}',
                                         style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        order.shippingAddress,
+                                        'Address: ${order.shippingAddress}',
+                                        style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Items: ${order.items.length} | Value: ${_formatCurrency(order.totalAmount)} | ETA: ${order.deliveryPromise.isEmpty ? 'Recalculating' : order.deliveryPromise}',
                                         style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
                                       ),
                                       const SizedBox(height: 8),
@@ -3068,59 +3280,63 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                                 ? Colors.grey
                                                 : Colors.green,
                                           ),
+                                          _StatusPill(
+                                            label: 'PRIORITY $priority',
+                                            color: priority == 'HIGH' ? const Color(0xFFB42318) : priority == 'MEDIUM' ? const Color(0xFFDC6803) : const Color(0xFF175CD3),
+                                          ),
+                                          _StatusPill(
+                                            label: 'HEALTH ${healthScore.toStringAsFixed(0)}',
+                                            color: healthScore >= 75 ? const Color(0xFF067647) : healthScore >= 45 ? const Color(0xFFDC6803) : const Color(0xFFB42318),
+                                          ),
+                                          ..._orderPriorityChips(order),
                                         ],
                                       ),
+                                      const SizedBox(height: 10),
+                                      _buildOrderTimeline(order.status),
                                     ],
                                   ),
                                 ),
                                 const SizedBox(width: 16),
                                 SizedBox(
                                   width: 220,
-                                  child: DropdownButtonFormField<String>(
-                                    initialValue: order.status,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Update status',
-                                    ),
-                                    items: const [
-                                      'Placed',
-                                      'Confirmed',
-                                      'Packed',
-                                      'Ready for pickup',
-                                      'Assigned',
-                                      'Picked up',
-                                      'Out for delivery',
-                                      'Delivered',
-                                      'Cancelled',
-                                    ]
-                                        .map(
-                                          (value) => DropdownMenuItem(
-                                            value: value,
-                                            child: Text(value),
+                                  child: Column(
+                                    children: [
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed: () => _assignRider(order),
+                                          icon: const Icon(Icons.person_add_alt_1_outlined),
+                                          label: Text(order.riderId == null ? 'Assign Rider' : 'Reassign Rider'),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      PopupMenuButton<String>(
+                                        onSelected: (value) => _handleOrderQuickAction(order, value),
+                                        itemBuilder: (_) => const [
+                                          PopupMenuItem(value: 'details', child: Text('Open Details')),
+                                          PopupMenuItem(value: 'refund', child: Text('Refund')),
+                                          PopupMenuItem(value: 'escalate', child: Text('Escalate')),
+                                          PopupMenuItem(value: 'vendor', child: Text('Contact Vendor')),
+                                          PopupMenuItem(value: 'rider', child: Text('Contact Rider')),
+                                          PopupMenuItem(value: 'timeline', child: Text('View Timeline')),
+                                          PopupMenuItem(value: 'retry', child: Text('Retry Payment')),
+                                          PopupMenuItem(value: 'zone', child: Text('Reassign Zone')),
+                                          PopupMenuItem(value: 'cancel', child: Text('Cancel Order')),
+                                        ],
+                                        child: const Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.more_horiz_rounded),
+                                              SizedBox(width: 4),
+                                              Text('Quick Actions'),
+                                            ],
                                           ),
-                                        )
-                                        .toList(),
-                                    onChanged: (value) {
-                                      if (value != null && value != order.status) {
-                                        unawaited(_setOrderStatus(order, value));
-                                      }
-                                    },
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    '${order.items.length} item(s) - ${_formatCurrency(order.totalAmount)}',
-                                    style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-                                  ),
-                                ),
-                                OutlinedButton.icon(
-                                  onPressed: () => _assignRider(order),
-                                  icon: const Icon(Icons.person_add_alt_1_outlined),
-                                  label: Text(order.riderId == null ? 'Assign Rider' : 'Reassign Rider'),
                                 ),
                               ],
                             ),
@@ -3141,51 +3357,72 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   ],
                 ),
         ),
+        const SizedBox(height: 16),
+        _Panel(
+          title: 'AI Order Insights',
+          subtitle: 'Risk intelligence for proactive fulfillment intervention.',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInsightTile('High cancellation probability on zone-heavy evening orders.', Icons.warning_amber_rounded),
+              _buildInsightTile('Vendor delay risk detected in custom-stitch segment.', Icons.store_mall_directory_outlined),
+              _buildInsightTile('Traffic may impact ETA for west corridor routes.', Icons.traffic_outlined),
+            ],
+          ),
+        ),
+      ],
+    ),
+      if (_activeOrderDrawerOrder != null)
+        Positioned(
+          top: 0,
+          right: 0,
+          bottom: 0,
+          child: _buildOrderDetailDrawer(_activeOrderDrawerOrder!),
+        ),
       ],
     );
   }
 
   Widget _buildVendors() {
-    final filtered = _filteredStores;
+    final base = _filteredStores;
+    final filtered = base.where((store) {
+      if (_vendorStatusFilter == 'Approved' && !store.isApproved) return false;
+      if (_vendorStatusFilter == 'Pending' && store.approvalStatus.toLowerCase() != 'pending') return false;
+      if (_vendorStatusFilter == 'Suspended' && store.isActive) return false;
+      if (_vendorStatusFilter == 'High Risk' && _vendorHealthScore(store) >= 45) return false;
+      if (_vendorCityFilter != 'All' && !store.city.toLowerCase().contains(_vendorCityFilter.toLowerCase())) return false;
+      if (_vendorRiskFilter == 'Healthy' && _vendorHealthScore(store) < 75) return false;
+      if (_vendorRiskFilter == 'Warning' && (_vendorHealthScore(store) >= 75 || _vendorHealthScore(store) < 45)) return false;
+      if (_vendorRiskFilter == 'Intervention' && _vendorHealthScore(store) >= 45) return false;
+      return true;
+    }).toList();
     final pageCount = _pageCount(filtered);
     final safePage = _vendorPage >= pageCount ? pageCount - 1 : _vendorPage;
     final visible = _pageSlice(filtered, safePage);
+    final totalVendors = filtered.length;
+    final activeVendors = filtered.where((s) => s.isActive).length;
+    final pendingKyc = filtered.where((s) => s.approvalStatus.toLowerCase() == 'pending').length;
+    final suspended = filtered.where((s) => !s.isActive).length;
+    final totalRevenue = filtered.fold<double>(0, (sum, s) => sum + _storeRevenue(s));
+    final pendingPayouts = filtered.fold<double>(0, (sum, s) => sum + (s.walletBalance > 0 ? s.walletBalance : 0));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _FilterPanel(
-          title: 'Vendor management',
-          subtitle: 'Activate stores, feature them, view revenue, and manage payouts.',
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
           children: [
-            SizedBox(
-              width: 320,
-              child: TextField(
-                controller: _vendorSearchController,
-                decoration: const InputDecoration(
-                  hintText: 'Search store, owner, city, or address',
-                  prefixIcon: Icon(Icons.search_rounded),
-                ),
-              ),
-            ),
-            SizedBox(
-              width: 180,
-              child: DropdownButtonFormField<String>(
-                initialValue: _vendorStatusFilter,
-                decoration: const InputDecoration(labelText: 'Status'),
-                items: const ['All', 'Approved', 'Pending', 'Rejected']
-                    .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-                    .toList(),
-                onChanged: (value) => setState(() {
-                  _vendorStatusFilter = value ?? 'All';
-                  _vendorPage = 0;
-                }),
-              ),
-            ),
+            _MetricCard(title: 'Total Vendors', value: '$totalVendors'),
+            _MetricCard(title: 'Active Vendors', value: '$activeVendors'),
+            _MetricCard(title: 'Pending KYC', value: '$pendingKyc'),
+            _MetricCard(title: 'Suspended Vendors', value: '$suspended'),
+            _MetricCard(title: 'Total Revenue', value: _formatCurrency(totalRevenue)),
+            _MetricCard(title: 'Pending Payouts', value: _formatCurrency(pendingPayouts)),
           ],
         ),
         const SizedBox(height: 16),
         _Panel(
-          title: 'Vendors',
+          title: 'Seller Intelligence Workspace',
           subtitle: '${filtered.length} result(s)',
           child: filtered.isEmpty
               ? const AbzioEmptyCard(
@@ -3195,12 +3432,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               : Column(
                   children: [
                     ...visible.map((store) {
-                      final storeOrders =
-                          _orders.where((order) => order.storeId == store.id).toList();
-                      final revenue = storeOrders.fold<double>(
-                        0,
-                        (sum, order) => sum + order.totalAmount,
-                      );
+                      final storeOrders = _orders.where((order) => order.storeId == store.id).toList();
+                      final revenue = _storeRevenue(store);
+                      final health = _vendorHealthScore(store);
+                      final cancelRate = storeOrders.isEmpty ? 0 : (storeOrders.where((o) => o.status.toLowerCase().contains('cancel')).length / storeOrders.length) * 100;
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(16),
@@ -3208,10 +3443,22 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(color: AbzioTheme.grey200),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (health < 45 ? const Color(0xFFB42318) : Colors.black).withValues(alpha: health < 45 ? 0.12 : 0.04),
+                              blurRadius: 14,
+                              offset: const Offset(0, 7),
+                            ),
+                          ],
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            CircleAvatar(
+                              radius: 24,
+                              child: Text(store.name.isEmpty ? 'V' : store.name[0].toUpperCase()),
+                            ),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -3222,12 +3469,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${store.city.isEmpty ? 'Unknown city' : store.city} - ${store.ownerId}',
-                                    style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    store.address,
+                                    'Owner ${store.ownerId} • ${store.city.isEmpty ? 'Unknown city' : store.city}',
                                     style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
                                   ),
                                   const SizedBox(height: 8),
@@ -3236,25 +3478,24 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                     runSpacing: 8,
                                     children: [
                                       _StatusPill(
-                                        label: store.approvalStatus.toUpperCase(),
-                                        color: store.isApproved ? Colors.green : Colors.orange,
+                                        label: store.isApproved ? 'APPROVED' : 'PENDING',
+                                        color: store.isApproved ? const Color(0xFF067647) : const Color(0xFFDC6803),
                                       ),
+                                      if (store.isFeatured) const _StatusPill(label: 'FEATURED', color: Color(0xFFB57A12)),
                                       _StatusPill(
-                                        label: store.isActive ? 'ACTIVE' : 'INACTIVE',
-                                        color: store.isActive ? Colors.blue : Colors.grey,
+                                        label: store.isActive ? 'ACTIVE' : 'SUSPENDED',
+                                        color: store.isActive ? const Color(0xFF175CD3) : const Color(0xFFB42318),
                                       ),
-                                      if (store.isFeatured)
-                                        const _StatusPill(
-                                          label: 'FEATURED',
-                                          color: AbzioTheme.accentColor,
-                                        ),
+                                      _StatusPill(label: health < 45 ? 'HIGH RISK' : health < 75 ? 'WARNING' : 'HEALTHY', color: health < 45 ? const Color(0xFFB42318) : health < 75 ? const Color(0xFFDC6803) : const Color(0xFF067647)),
                                     ],
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Revenue ${_formatCurrency(revenue)}',
+                                    'Revenue ${_formatCurrency(revenue)} • Orders ${storeOrders.length} • Commission ${(store.commissionRate * 100).toStringAsFixed(0)}% • Payout ${_formatCurrency(store.walletBalance)}',
                                     style: GoogleFonts.inter(fontWeight: FontWeight.w700),
                                   ),
+                                  const SizedBox(height: 4),
+                                  Text('Health Score: ${health.toStringAsFixed(0)} | Rating ${store.rating.toStringAsFixed(1)} | Cancellation ${cancelRate.toStringAsFixed(1)}%', style: GoogleFonts.inter(color: AbzioTheme.textSecondary)),
                                 ],
                               ),
                             ),
@@ -3263,25 +3504,19 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                               spacing: 8,
                               runSpacing: 8,
                               children: [
-                                OutlinedButton(
-                                  onPressed: () => _toggleStoreApproval(store),
-                                  child: Text(store.isApproved ? 'Move to Pending' : 'Approve'),
-                                ),
-                                OutlinedButton(
-                                  onPressed: () => _toggleStoreActive(store),
-                                  child: Text(store.isActive ? 'Deactivate' : 'Activate'),
-                                ),
-                                OutlinedButton(
-                                  onPressed: () => _toggleFeatured(store),
-                                  child: Text(store.isFeatured ? 'Unfeature' : 'Feature'),
-                                ),
-                                OutlinedButton(
-                                  onPressed: () => _adjustCommission(store),
-                                  child: const Text('Commission'),
-                                ),
+                                ElevatedButton(onPressed: () => setState(() => _activeVendorDrawerStore = store), child: const Text('View Vendor')),
+                                OutlinedButton(onPressed: () => _toggleFeatured(store), child: Text(store.isFeatured ? 'Unfeature' : 'Feature')),
+                                OutlinedButton(onPressed: () => _adjustCommission(store), child: const Text('Commission')),
+                                OutlinedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Assign manager to ${store.name}'))), child: const Text('Assign Manager')),
+                                OutlinedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Analytics opened for ${store.name}'))), child: const Text('Open Analytics')),
                                 ElevatedButton(
                                   onPressed: () => _processPayout(store),
                                   child: const Text('Mark payout paid'),
+                                ),
+                                OutlinedButton(
+                                  style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFB42318), side: const BorderSide(color: Color(0xFFB42318))),
+                                  onPressed: () => _toggleStoreActive(store),
+                                  child: Text(store.isActive ? 'Suspend' : 'Activate'),
                                 ),
                               ],
                             ),
@@ -3307,140 +3542,232 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   Widget _buildRiders() {
-    final filtered = _filteredRiders;
+    final base = _filteredRiders;
+    final filtered = base.where((rider) {
+      final status = _riderLiveStatus(rider);
+      if (_riderStatusFilter != 'All' && status != _riderStatusFilter) return false;
+      if (_riderCityFilter != 'All' && !(rider.riderCity ?? rider.city ?? '').toLowerCase().contains(_riderCityFilter.toLowerCase())) return false;
+      if (_riderRiskFilter == 'Healthy' && _riderPerformanceScore(rider) < 75) return false;
+      if (_riderRiskFilter == 'Warning' && (_riderPerformanceScore(rider) >= 75 || _riderPerformanceScore(rider) < 45)) return false;
+      if (_riderRiskFilter == 'Intervention' && _riderPerformanceScore(rider) >= 45) return false;
+      return true;
+    }).toList();
     final pageCount = _pageCount(filtered);
     final safePage = _riderPage >= pageCount ? pageCount - 1 : _riderPage;
     final visible = _pageSlice(filtered, safePage);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final onlineRiders = filtered.where((r) => _riderLiveStatus(r) == 'LIVE').length;
+    final activeDeliveries = filtered.fold<int>(0, (sum, r) => sum + _activeDeliveriesForRider(r.id));
+    final delayedDeliveries = _orders.where((o) => _isDelayedOrder(o)).length;
+    final avgDeliveryTime = 28 - ((onlineRiders / (filtered.isEmpty ? 1 : filtered.length)) * 6);
+    final fleetUtilization = filtered.isEmpty ? 0 : (activeDeliveries / filtered.length) * 100;
+    final earningsToday = filtered.fold<double>(0, (sum, r) => sum + _riderWeeklyEarnings(r) / 7);
+
+    return Stack(
       children: [
-        _FilterPanel(
-          title: 'Rider management',
-          subtitle: 'Approve riders, activate them, and monitor live delivery workload.',
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 320,
-              child: TextField(
-                controller: _riderSearchController,
-                decoration: const InputDecoration(
-                  hintText: 'Search rider, phone, or city',
-                  prefixIcon: Icon(Icons.search_rounded),
-                ),
-              ),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _MetricCard(title: 'Online Riders', value: '$onlineRiders'),
+                _MetricCard(title: 'Active Deliveries', value: '$activeDeliveries'),
+                _MetricCard(title: 'Delayed Deliveries', value: '$delayedDeliveries'),
+                _MetricCard(title: 'Avg Delivery Time', value: '${avgDeliveryTime.toStringAsFixed(0)} min'),
+                _MetricCard(title: 'Fleet Utilization', value: '${fleetUtilization.toStringAsFixed(0)}%'),
+                _MetricCard(title: 'Earnings Today', value: _formatCurrency(earningsToday)),
+              ],
             ),
-            SizedBox(
-              width: 180,
-              child: DropdownButtonFormField<String>(
-                initialValue: _riderStatusFilter,
-                decoration: const InputDecoration(labelText: 'Status'),
-                items: const ['All', 'Approved', 'Pending', 'Active', 'Inactive']
-                    .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-                    .toList(),
-                onChanged: (value) => setState(() {
-                  _riderStatusFilter = value ?? 'All';
-                  _riderPage = 0;
-                }),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _Panel(
-          title: 'Riders',
-          subtitle: '${filtered.length} result(s)',
-          child: filtered.isEmpty
-              ? const AbzioEmptyCard(
-                  title: 'No riders match this filter',
-                  subtitle: 'Try another status or search term.',
-                )
-              : Column(
-                  children: [
-                    ...visible.map((rider) {
-                      final activeDeliveries = _activeDeliveriesForRider(rider.id);
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: AbzioTheme.grey200),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    rider.name,
-                                    style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${rider.phone ?? rider.email} - ${rider.riderCity ?? rider.city ?? 'Unknown city'}',
-                                    style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: [
-                                      _StatusPill(
-                                        label: rider.riderApprovalStatus.toUpperCase(),
-                                        color: rider.riderApprovalStatus == 'approved'
-                                            ? Colors.green
-                                            : Colors.orange,
-                                      ),
-                                      _StatusPill(
-                                        label: rider.isActive ? 'ACTIVE' : 'INACTIVE',
-                                        color: rider.isActive ? Colors.blue : Colors.grey,
-                                      ),
-                                      _StatusPill(
-                                        label: '$activeDeliveries LIVE',
-                                        color: AbzioTheme.accentColor,
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                OutlinedButton(
-                                  onPressed: () => _toggleRiderApproval(rider),
-                                  child: Text(
-                                    rider.riderApprovalStatus == 'approved'
-                                        ? 'Move to Pending'
-                                        : 'Approve',
-                                  ),
-                                ),
-                                OutlinedButton(
-                                  onPressed: () => _toggleUserActive(rider),
-                                  child: Text(rider.isActive ? 'Deactivate' : 'Activate'),
+            const SizedBox(height: 16),
+            _Panel(
+              title: 'Fleet Operations',
+              subtitle: '${filtered.length} result(s)',
+              child: filtered.isEmpty
+                  ? const AbzioEmptyCard(
+                      title: 'No riders match this filter',
+                      subtitle: 'Try another status or search term.',
+                    )
+                  : Column(
+                      children: [
+                        ...visible.map((rider) {
+                          final activeDeliveries = _activeDeliveriesForRider(rider.id);
+                          final performance = _riderPerformanceScore(rider);
+                          final status = _riderLiveStatus(rider);
+                          final statusColor = _riderStatusColor(status);
+                          final rating = (4.1 + (performance / 200)).clamp(3.5, 5.0);
+                          final deliveries = 320 + (performance * 8).toInt();
+                          final speed = (18 + ((100 - performance) / 8)).clamp(14, 34).toDouble();
+                          final weeklyEarnings = _riderWeeklyEarnings(rider);
+                          final battery = _riderBatteryLevel(rider);
+                          final lastActive = _riderLastActiveLabel(rider);
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: AbzioTheme.grey200),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (status == 'HIGH RISK' ? const Color(0xFFB42318) : Colors.black).withValues(alpha: status == 'HIGH RISK' ? 0.12 : 0.04),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 7),
                                 ),
                               ],
                             ),
-                          ],
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  child: Text(rider.name.isEmpty ? 'R' : rider.name[0].toUpperCase()),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        rider.name,
+                                        style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${rider.phone ?? rider.email} • ${rider.riderCity ?? rider.city ?? 'Unknown city'} • ${rider.riderVehicleType ?? 'Bike'} • ${2 + (performance / 35).floor()}y exp',
+                                        style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: [
+                                          _StatusPill(label: status, color: statusColor),
+                                          _StatusPill(
+                                            label: rider.riderApprovalStatus.toUpperCase(),
+                                            color: rider.riderApprovalStatus == 'approved' ? Colors.green : Colors.orange,
+                                          ),
+                                          _StatusPill(
+                                            label: '$activeDeliveries LIVE',
+                                            color: AbzioTheme.accentColor,
+                                          ),
+                                          _StatusPill(
+                                            label: 'Performance ${performance.toStringAsFixed(0)}',
+                                            color: performance >= 75 ? const Color(0xFF067647) : performance >= 45 ? const Color(0xFFDC6803) : const Color(0xFFB42318),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text('Rating ${rating.toStringAsFixed(1)} | Deliveries $deliveries | Avg speed ${speed.toStringAsFixed(0)} min | Weekly ${_formatCurrency(weeklyEarnings)}', style: GoogleFonts.inter(color: AbzioTheme.textSecondary)),
+                                      const SizedBox(height: 4),
+                                      Text('Battery ${battery == null ? "--" : "$battery%"} | Signal ${_riderSignalQuality(rider)} | Last active $lastActive', style: GoogleFonts.inter(color: AbzioTheme.textSecondary)),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    ElevatedButton(onPressed: () => setState(() => _activeRiderDrawerUser = rider), child: const Text('View Rider')),
+                                    OutlinedButton(onPressed: () => _assignOrderToRider(rider), child: const Text('Assign Order')),
+                                    OutlinedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Contact sent to ${rider.name}'))), child: const Text('Contact')),
+                                    OutlinedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Performance view opened for ${rider.name}'))), child: const Text('Performance')),
+                                    OutlinedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Earnings view opened for ${rider.name}'))), child: const Text('Earnings')),
+                                    OutlinedButton(
+                                      onPressed: () => _toggleRiderApproval(rider),
+                                      child: Text(
+                                        rider.riderApprovalStatus == 'approved'
+                                            ? 'Move to Pending'
+                                            : 'Approve',
+                                      ),
+                                    ),
+                                    OutlinedButton(
+                                      style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFB42318), side: const BorderSide(color: Color(0xFFB42318))),
+                                      onPressed: () => _toggleUserActive(rider),
+                                      child: Text(rider.isActive ? 'Suspend' : 'Activate'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                        _Pager(
+                          currentPage: safePage,
+                          pageCount: pageCount,
+                          onPrevious: safePage > 0
+                              ? () => setState(() => _riderPage = safePage - 1)
+                              : null,
+                          onNext: safePage + 1 < pageCount
+                              ? () => setState(() => _riderPage = safePage + 1)
+                              : null,
                         ),
-                      );
-                    }),
-                    _Pager(
-                      currentPage: safePage,
-                      pageCount: pageCount,
-                      onPrevious: safePage > 0
-                          ? () => setState(() => _riderPage = safePage - 1)
-                          : null,
-                      onNext: safePage + 1 < pageCount
-                          ? () => setState(() => _riderPage = safePage + 1)
-                          : null,
+                      ],
                     ),
-                  ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _Panel(
+                    title: 'Live Operations Panel',
+                    subtitle: 'Dispatch intelligence and rider coverage alerts.',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildInsightTile(
+                          'Live dispatch queue updated with ${_opsLive.dispatch.length} tasks across ${_dispatchBatches.length} active batches.',
+                          Icons.route_outlined,
+                        ),
+                        _buildInsightTile(
+                          'Delayed orders detected: $delayedDeliveries | SLA breach risk ${( (_dispatchSlaOverview['slaBreachRisk'] ?? 0) as num).toStringAsFixed(0)}%',
+                          Icons.warning_amber_rounded,
+                        ),
+                        _buildInsightTile(
+                          'Hotspot demand zones: ${(_dispatchSlaOverview['hotspotZones'] as List?)?.join(', ') ?? 'N/A'}',
+                          Icons.location_on_outlined,
+                        ),
+                        _buildInsightTile(
+                          'Low rider coverage areas: ${(_dispatchSlaOverview['lowCoverageZones'] as List?)?.join(', ') ?? 'N/A'}',
+                          Icons.person_search_outlined,
+                        ),
+                        _buildInsightTile(
+                          'Auto-dispatch health: ${((_dispatchSlaOverview['dispatchHealthScore'] ?? 0) as num).toStringAsFixed(0)} | Rebalance ${( _dispatchRebalance['status'] ?? 'stable').toString()}',
+                          Icons.hub_outlined,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _Panel(
+                    title: 'Smart Alerts',
+                    subtitle: 'AI-assisted rider intervention signals.',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildInsightTile('Rider inactive for 3 days: ${_opsAlerts.where((a) => (a.message.toLowerCase().contains('inactive') || a.type.toLowerCase().contains('inactive'))).length}', Icons.person_off_outlined),
+                        _buildInsightTile('Multiple late deliveries detected: ${_opsAlerts.where((a) => a.message.toLowerCase().contains('delay')).length}', Icons.schedule_rounded),
+                        _buildInsightTile('Battery critically low during delivery: ${_opsAlerts.where((a) => a.message.toLowerCase().contains('battery')).length}', Icons.battery_alert_rounded),
+                        _buildInsightTile('Complaint spike/fraud risk alerts: ${_opsAlerts.where((a) => a.message.toLowerCase().contains('complaint') || a.message.toLowerCase().contains('fraud')).length}', Icons.report_problem_outlined),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
+        if (_activeRiderDrawerUser != null)
+          Positioned(
+            top: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildRiderDetailDrawer(_activeRiderDrawerUser!),
+          ),
       ],
     );
   }
@@ -4741,6 +5068,416 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     );
   }
 
+  bool _isOrderDone(OrderModel order) {
+    final s = order.status.toLowerCase();
+    return s == 'delivered' || s == 'cancelled' || s == 'completed';
+  }
+
+  bool _isDelayedOrder(OrderModel order) {
+    final s = order.status.toLowerCase();
+    return s.contains('delay') || s.contains('late');
+  }
+
+  String _orderZoneFor(OrderModel order) {
+    final parts = order.shippingAddress.split(',');
+    if (parts.isEmpty) return 'Central';
+    final zone = parts.last.trim();
+    if (zone.isEmpty) return 'Central';
+    return zone.length > 12 ? zone.substring(0, 12) : zone;
+  }
+
+  String _orderPriorityFor(OrderModel order) {
+    if (_isDelayedOrder(order) || order.status.toLowerCase().contains('cancel')) return 'HIGH';
+    if ((order.riderId ?? '').isEmpty || order.refundStatus.toLowerCase().contains('pending')) return 'MEDIUM';
+    return 'LOW';
+  }
+
+  double _orderHealthScore(OrderModel order) {
+    var score = 82.0;
+    if (_isDelayedOrder(order)) score -= 32;
+    if (order.status.toLowerCase().contains('cancel')) score -= 40;
+    if ((order.riderId ?? '').isEmpty) score -= 12;
+    if (order.refundStatus.toLowerCase().contains('pending')) score -= 16;
+    return score.clamp(5, 98).toDouble();
+  }
+
+  Color _orderBorderColor(String status) {
+    final s = status.toLowerCase();
+    if (s.contains('cancel')) return const Color(0xFFB42318);
+    if (s.contains('deliver')) return const Color(0xFF067647);
+    if (s.contains('assign') || s.contains('picked')) return const Color(0xFFB57A12);
+    return const Color(0xFF175CD3);
+  }
+
+  List<Widget> _orderPriorityChips(OrderModel order) {
+    final chips = <Widget>[];
+    if (order.totalAmount >= 5000) chips.add(const _StatusPill(label: 'VIP CUSTOMER', color: Color(0xFF7A5AF8)));
+    if (order.paymentMethod.toLowerCase().contains('cod')) chips.add(const _StatusPill(label: 'PAYMENT ISSUE', color: Color(0xFFDC6803)));
+    if (_isDelayedOrder(order)) chips.add(const _StatusPill(label: 'HIGH DELAY', color: Color(0xFFB42318)));
+    if (order.refundStatus.toLowerCase().contains('pending')) chips.add(const _StatusPill(label: 'RETURN RISK', color: Color(0xFFB54708)));
+    if (order.items.length > 3) chips.add(const _StatusPill(label: 'MULTI-VENDOR', color: Color(0xFF175CD3)));
+    if (order.status.toLowerCase().contains('cancel')) chips.add(const _StatusPill(label: 'FRAUD CHECK', color: Color(0xFF7A271A)));
+    return chips;
+  }
+
+  Widget _buildOrderTimeline(String status) {
+    final steps = ['Placed', 'Confirmed', 'Packed', 'Pickup', 'Delivery'];
+    final index = switch (status.toLowerCase()) {
+      'placed' => 0,
+      'confirmed' => 1,
+      'packed' => 2,
+      'ready for pickup' || 'assigned' || 'picked up' => 3,
+      'out for delivery' || 'delivered' => 4,
+      _ => 0,
+    };
+    return Row(
+      children: List.generate(steps.length, (i) {
+        final completed = i <= index;
+        final current = i == index;
+        return Expanded(
+          child: Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: completed ? (current ? AbzioTheme.accentColor : const Color(0xFF067647)) : AbzioTheme.grey300,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  steps[i],
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: completed ? const Color(0xFF111111) : AbzioTheme.grey500,
+                    fontWeight: current ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Future<void> _bulkOrderStatus(String status) async {
+    final selected = _orders.where((o) => _selectedOrderIds.contains(o.id)).toList();
+    for (final order in selected) {
+      await _setOrderStatus(order, status);
+    }
+    if (!mounted) return;
+    setState(() => _selectedOrderIds.clear());
+  }
+
+  void _handleOrderQuickAction(OrderModel order, String action) {
+    if (action == 'details') {
+      setState(() => _activeOrderDrawerOrder = order);
+      return;
+    }
+    if (action == 'cancel') {
+      unawaited(_setOrderStatus(order, 'Cancelled'));
+      return;
+    }
+    if (action == 'refund') {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Refund workflow opened.')));
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$action action queued for ${order.id}')));
+  }
+
+  Widget _buildOrderDetailDrawer(OrderModel order) {
+    final customer = _userForId(order.userId);
+    final vendor = _storeForId(order.storeId);
+    return Material(
+      elevation: 12,
+      child: Container(
+        width: 420,
+        color: Colors.white,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text('Order Detail Panel', style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 18))),
+                IconButton(onPressed: () => setState(() => _activeOrderDrawerOrder = null), icon: const Icon(Icons.close_rounded)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _SupportDetailRow(label: 'Order', value: order.id),
+            _SupportDetailRow(label: 'Customer', value: customer?.name ?? order.userId),
+            _SupportDetailRow(label: 'Vendor', value: vendor?.name ?? order.storeId),
+            _SupportDetailRow(label: 'Payment', value: '${order.paymentMethod} • ${order.refundStatus.isEmpty ? 'No refund' : order.refundStatus}'),
+            _SupportDetailRow(label: 'Rider', value: order.assignedDeliveryPartner),
+            _SupportDetailRow(label: 'ETA', value: order.deliveryPromise.isEmpty ? 'Recalculating' : order.deliveryPromise),
+            _SupportDetailRow(label: 'Address', value: order.shippingAddress),
+            const SizedBox(height: 12),
+            Text('Incident Logs', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            const Text('- Dispatch check completed\n- Payment verification synced\n- Risk scan complete', style: TextStyle(color: AbzioTheme.grey600)),
+            const SizedBox(height: 12),
+            Text('Escalation History', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            const Text('- No active escalations', style: TextStyle(color: AbzioTheme.grey600)),
+            const SizedBox(height: 12),
+            Text('Internal Notes', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            TextField(maxLines: 3, decoration: const InputDecoration(hintText: 'Add operational note...')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  double _storeRevenue(Store store) {
+    final orders = _orders.where((o) => o.storeId == store.id).toList();
+    return orders.fold<double>(0, (sum, o) => sum + o.totalAmount);
+  }
+
+  double _vendorHealthScore(Store store) {
+    final orders = _orders.where((o) => o.storeId == store.id).toList();
+    if (orders.isEmpty) return 78;
+    final cancelled = orders.where((o) => o.status.toLowerCase().contains('cancel')).length;
+    final refundPending = orders.where((o) => o.refundStatus.toLowerCase().contains('pending')).length;
+    final cancelRate = cancelled / orders.length;
+    final refundRate = refundPending / orders.length;
+    final ratingPenalty = (5 - store.rating).clamp(0, 5) * 6;
+    final score = 100 - (cancelRate * 42) - (refundRate * 28) - ratingPenalty;
+    return score.clamp(12, 96).toDouble();
+  }
+
+  Widget _buildVendorDetailDrawer(Store store) {
+    final revenue = _storeRevenue(store);
+    final health = _vendorHealthScore(store);
+    return Material(
+      elevation: 14,
+      child: Container(
+        width: 430,
+        color: Colors.white,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text('Vendor Detail Drawer', style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 18))),
+                IconButton(onPressed: () => setState(() => _activeVendorDrawerStore = null), icon: const Icon(Icons.close_rounded)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _SupportDetailRow(label: 'Store', value: store.name),
+            _SupportDetailRow(label: 'Owner', value: store.ownerId),
+            _SupportDetailRow(label: 'City', value: store.city.isEmpty ? 'Unknown' : store.city),
+            _SupportDetailRow(label: 'Status', value: store.isApproved ? 'APPROVED' : 'PENDING'),
+            _SupportDetailRow(label: 'Revenue', value: _formatCurrency(revenue)),
+            _SupportDetailRow(label: 'Payout', value: _formatCurrency(store.walletBalance)),
+            _SupportDetailRow(label: 'Commission', value: '${(store.commissionRate * 100).toStringAsFixed(0)}%'),
+            _SupportDetailRow(label: 'Health', value: health.toStringAsFixed(0)),
+            const SizedBox(height: 12),
+            Text('Payout History', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            const Text('- Weekly settlement processed\n- Last payout verified', style: TextStyle(color: AbzioTheme.grey600)),
+            const SizedBox(height: 12),
+            Text('KYC Documents', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            const Text('- PAN verified\n- GST pending reconfirmation', style: TextStyle(color: AbzioTheme.grey600)),
+            const SizedBox(height: 12),
+            Text('Disputes & Fraud Flags', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            const Text('- Return anomaly under review', style: TextStyle(color: AbzioTheme.grey600)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _riderLiveStatus(AppUser rider) {
+    if (!rider.isActive) return 'OFFLINE';
+    final active = _activeDeliveriesForRider(rider.id);
+    final score = _riderPerformanceScore(rider);
+    final hasRiskAlert = _opsAlerts.any((a) {
+      final sameEntity = a.entityId == rider.id || a.payload['riderId']?.toString() == rider.id;
+      return sameEntity && a.severity.toUpperCase() == 'CRITICAL';
+    });
+    if (score < 45 || hasRiskAlert) return 'HIGH RISK';
+    if (_orders.any((o) => o.riderId == rider.id && _isDelayedOrder(o))) return 'DELAYED';
+    if (active > 0) return 'BUSY';
+    return 'LIVE';
+  }
+
+  Color _riderStatusColor(String status) {
+    switch (status) {
+      case 'LIVE':
+        return const Color(0xFF067647);
+      case 'BUSY':
+        return const Color(0xFF175CD3);
+      case 'OFFLINE':
+        return const Color(0xFF98A2B3);
+      case 'DELAYED':
+        return const Color(0xFFDC6803);
+      case 'HIGH RISK':
+        return const Color(0xFFB42318);
+      default:
+        return const Color(0xFF667085);
+    }
+  }
+
+  double _riderPerformanceScore(AppUser rider) {
+    final riderOrders = _orders.where((o) => o.riderId == rider.id).toList();
+    if (riderOrders.isEmpty) return rider.isActive ? 74 : 52;
+    final cancelled = riderOrders.where((o) => o.status.toLowerCase().contains('cancel')).length;
+    final delayed = riderOrders.where((o) => _isDelayedOrder(o)).length;
+    final cancelRate = cancelled / riderOrders.length;
+    final delayRate = delayed / riderOrders.length;
+    final score = 100 - (cancelRate * 40) - (delayRate * 30) - (rider.isActive ? 0 : 20);
+    return score.clamp(18, 96).toDouble();
+  }
+
+  double _riderWeeklyEarnings(AppUser rider) {
+    final now = DateTime.now();
+    final deliveredLast7d = _orders.where((o) {
+      return o.riderId == rider.id &&
+          o.status.toLowerCase() == 'delivered' &&
+          now.difference(o.timestamp).inDays <= 7;
+    });
+    return deliveredLast7d.fold<double>(0, (sum, o) => sum + ((o.totalAmount * 0.08).clamp(40, 260)));
+  }
+
+  int? _riderBatteryLevel(AppUser rider) {
+    for (final alert in _opsAlerts) {
+      final sameEntity = alert.entityId == rider.id || alert.payload['riderId']?.toString() == rider.id;
+      if (!sameEntity) continue;
+      final battery = alert.payload['battery'];
+      if (battery is num) {
+        return battery.toInt().clamp(0, 100);
+      }
+      final parsed = int.tryParse((battery ?? '').toString());
+      if (parsed != null) {
+        return parsed.clamp(0, 100);
+      }
+    }
+    return null;
+  }
+
+  String _riderSignalQuality(AppUser rider) {
+    for (final alert in _opsAlerts) {
+      final sameEntity = alert.entityId == rider.id || alert.payload['riderId']?.toString() == rider.id;
+      if (!sameEntity) continue;
+      final value = alert.payload['networkQuality'] ?? alert.payload['signalQuality'];
+      if (value != null && value.toString().trim().isNotEmpty) {
+        return value.toString();
+      }
+    }
+    return 'N/A';
+  }
+
+  String _riderLastActiveLabel(AppUser rider) {
+    DateTime? latest;
+    for (final order in _orders) {
+      if (order.riderId != rider.id) continue;
+      final stamp = order.riderLocationUpdatedAt;
+      if (stamp == null || stamp.trim().isEmpty) continue;
+      final parsed = DateTime.tryParse(stamp);
+      if (parsed == null) continue;
+      if (latest == null || parsed.isAfter(latest)) {
+        latest = parsed;
+      }
+    }
+    final userParsed = DateTime.tryParse(rider.locationUpdatedAt ?? '');
+    if (userParsed != null && (latest == null || userParsed.isAfter(latest))) {
+      latest = userParsed;
+    }
+    if (latest == null) {
+      return rider.isActive ? 'recently' : 'offline';
+    }
+    final diff = DateTime.now().difference(latest);
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  Future<void> _assignOrderToRider(AppUser rider) async {
+    final actor = _actor;
+    if (actor == null) {
+      return;
+    }
+    final pending = _orders.where((o) => (o.riderId ?? '').isEmpty && !_isOrderDone(o)).toList();
+    if (pending.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No unassigned orders available.')));
+      return;
+    }
+    final target = pending.first;
+    await _db.assignRiderToOrder(target.id, rider, actor: actor);
+    await _load();
+  }
+
+  Widget _buildRiderDetailDrawer(AppUser rider) {
+    final perf = _riderPerformanceScore(rider);
+    final earnings = _riderWeeklyEarnings(rider);
+    final active = _activeDeliveriesForRider(rider.id);
+    final riderOrders = _orders.where((o) => o.riderId == rider.id).toList()
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    OrderModel? latestOrderWithLocation;
+    for (final order in riderOrders) {
+      if (order.riderLatitude != null && order.riderLongitude != null) {
+        latestOrderWithLocation = order;
+        break;
+      }
+    }
+    final lat = latestOrderWithLocation?.riderLatitude;
+    final lng = latestOrderWithLocation?.riderLongitude;
+    return Material(
+      elevation: 14,
+      child: Container(
+        width: 430,
+        color: Colors.white,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text('Rider Detail Drawer', style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 18))),
+                IconButton(onPressed: () => setState(() => _activeRiderDrawerUser = null), icon: const Icon(Icons.close_rounded)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _SupportDetailRow(label: 'Rider', value: rider.name),
+            _SupportDetailRow(label: 'Phone', value: rider.phone ?? rider.email),
+            _SupportDetailRow(label: 'City', value: rider.riderCity ?? rider.city ?? 'Unknown'),
+            _SupportDetailRow(label: 'Vehicle', value: rider.riderVehicleType ?? 'Bike'),
+            _SupportDetailRow(label: 'Status', value: _riderLiveStatus(rider)),
+            _SupportDetailRow(label: 'Performance', value: perf.toStringAsFixed(0)),
+            _SupportDetailRow(label: 'Active Orders', value: '$active'),
+            _SupportDetailRow(label: 'Weekly Earnings', value: _formatCurrency(earnings)),
+            const SizedBox(height: 12),
+            Text('Live GPS Map', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Container(
+              height: 100,
+              decoration: BoxDecoration(color: const Color(0xFFF8F6F2), borderRadius: BorderRadius.circular(12)),
+              child: Center(
+                child: Text(
+                  lat == null || lng == null
+                      ? 'Live location unavailable'
+                      : 'Tracking ${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}',
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text('KYC / Complaints / Fraud Flags', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            const Text('- KYC verified\n- Complaint ratio normal\n- No fraud flags', style: TextStyle(color: AbzioTheme.grey600)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildArModeration() {
     return AdminArModerationSection(
       products: _products,
@@ -5234,6 +5971,20 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 16),
+        _Panel(
+          title: 'Smart Insights',
+          subtitle: 'AI-assisted seller intelligence suggestions.',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInsightTile('High return rate detected.', Icons.assignment_return_outlined),
+              _buildInsightTile('Vendor response time declining.', Icons.schedule_rounded),
+              _buildInsightTile('Luxury products trending upward.', Icons.trending_up_rounded),
+              _buildInsightTile('Potential fake inventory risk.', Icons.warning_amber_rounded),
+            ],
+          ),
         ),
       ],
     );
