@@ -11,8 +11,16 @@ import '../../utils/app_error_text.dart';
 import '../../widgets/payout_account_dialog.dart';
 import '../../widgets/state_views.dart';
 import 'delivery_screen.dart';
+import 'rider_earnings_screen.dart';
 import 'rider_onboarding_screen.dart';
 import 'rider_route_screen.dart';
+import 'rider_tasks_screen.dart';
+
+class _RiderUi {
+  static const Color ivory = Color(0xFFF8F7F4);
+  static const Color matte = Color(0xFF0F0F10);
+  static const Color gold = Color(0xFFD4B06A);
+}
 
 class RiderDashboard extends StatelessWidget {
   const RiderDashboard({
@@ -285,16 +293,135 @@ class RiderDashboard extends StatelessWidget {
 
     if (embedded) {
       return ColoredBox(
-        color: AbzioTheme.grey50,
+        color: _RiderUi.ivory,
         child: content,
       );
     }
 
     return Scaffold(
+      backgroundColor: _RiderUi.ivory,
       appBar: AppBar(
-        title: const Text('Rider Hub'),
+        title: const Text('ABZORA Rider'),
       ),
+      extendBody: true,
       body: content,
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Container(
+          height: 74,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.84),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.65)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _QuickNavItem(
+                icon: Icons.space_dashboard_rounded,
+                label: 'Home',
+                active: true,
+                onTap: () {},
+              ),
+              _QuickNavItem(
+                icon: Icons.inventory_2_rounded,
+                label: 'Tasks',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RiderTasksScreen()),
+                  );
+                },
+              ),
+              _QuickNavItem(
+                icon: Icons.map_rounded,
+                label: 'Map',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RiderRouteScreen()),
+                  );
+                },
+              ),
+              _QuickNavItem(
+                icon: Icons.account_balance_wallet_rounded,
+                label: 'Earnings',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RiderEarningsScreen()),
+                  );
+                },
+              ),
+              _QuickNavItem(
+                icon: Icons.person_rounded,
+                label: 'Profile',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RiderOnboardingScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickNavItem extends StatelessWidget {
+  const _QuickNavItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.active = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? _RiderUi.gold : const Color(0xFF4E4E55);
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(horizontal: active ? 14 : 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? _RiderUi.matte : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -376,8 +503,15 @@ class _PendingApprovalView extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(24),
+            color: _RiderUi.matte,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.14),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,8 +569,15 @@ class _RiderHeroCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(24),
+        color: _RiderUi.matte,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
