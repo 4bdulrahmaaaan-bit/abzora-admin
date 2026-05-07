@@ -648,7 +648,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
             leading: CircleAvatar(
               child: ClipOval(
                 child: AbzioNetworkImage(
-                  imageUrl: product.images.isNotEmpty ? product.images.first : 'https://via.placeholder.com/200',
+                  imageUrl: product.images.isNotEmpty ? product.images.first : '',
                   fallbackLabel: product.name,
                 ),
               ),

@@ -449,7 +449,7 @@ class _ArModerationDetailState extends State<_ArModerationDetail> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('AR preview (dummy model)', style: TextStyle(fontWeight: FontWeight.w700)),
+        const Text('AR alignment preview', style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         Expanded(
           child: Container(

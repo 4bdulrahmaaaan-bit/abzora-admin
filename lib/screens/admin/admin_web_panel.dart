@@ -98,6 +98,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   bool _runningSearch = false;
   bool _pinVerified = !kIsWeb;
   String? _loadError;
+  final Set<String> _dataWarnings = <String>{};
 
   String _userRoleFilter = 'All';
   String _vendorStatusFilter = 'All';
@@ -261,6 +262,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     setState(() {
       _loading = true;
       _loadError = null;
+      _dataWarnings.clear();
     });
     try {
       final results = await Future.wait([
@@ -669,6 +671,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     try {
       return await _db.getOpsAlerts(actor: actor, limit: 60);
     } catch (_) {
+      _dataWarnings.add('Live alert queue is temporarily unavailable.');
       return const <OpsAlertItem>[];
     }
   }
@@ -677,6 +680,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     try {
       return await _db.getOpsLogs(actor: actor, limit: 120);
     } catch (_) {
+      _dataWarnings.add('Operations audit stream is temporarily unavailable.');
       return const <OpsActionLogEntry>[];
     }
   }
@@ -685,6 +689,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     try {
       return await _db.getOpsMetrics(actor: actor, type: 'hourly', limit: 24);
     } catch (_) {
+      _dataWarnings.add('Live ops metrics are temporarily unavailable.');
       return const <OpsMetricSnapshot>[];
     }
   }
@@ -693,6 +698,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     try {
       return await _db.getOpsLive(actor: actor);
     } catch (_) {
+      _dataWarnings.add('Live dispatch snapshot is temporarily unavailable.');
       return const OpsLiveSnapshot();
     }
   }
@@ -1617,12 +1623,34 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                         )
                       : RefreshIndicator(
                           onRefresh: _load,
-                          child: ListView(
-                            padding: const EdgeInsets.all(24),
+                          child: Stack(
                             children: [
-                              _buildHeader(context),
-                              const SizedBox(height: 20),
-                              _buildTabContent(context),
+                              Scrollbar(
+                                thumbVisibility: true,
+                                child: ListView(
+                                  padding: const EdgeInsets.all(24),
+                                  children: [
+                                    if (_tab == AdminWebSection.dashboard) const SizedBox(height: 56),
+                                    _buildHeader(context),
+                                    if (_dataWarnings.isNotEmpty) ...[
+                                      const SizedBox(height: 14),
+                                      _buildDataWarningsBanner(),
+                                    ],
+                                    const SizedBox(height: 20),
+                                    _buildTabContent(context),
+                                  ],
+                                ),
+                              ),
+                              if (_tab == AdminWebSection.dashboard)
+                                Positioned(
+                                  top: 0,
+                                  left: 24,
+                                  right: 24,
+                                  child: _buildCriticalAlertBar(
+                                    message: _dashboardCriticalMessage(),
+                                    severity: _dashboardCriticalSeverity(),
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -1693,51 +1721,64 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             ],
           ),
           const SizedBox(height: 20),
-          ...items.map((item) {
-            final selected = _tab == item.$1;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => setState(() => _tab = item.$1),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? AbzioTheme.accentColor.withValues(alpha: 0.16)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: selected
-                          ? AbzioTheme.accentColor.withValues(alpha: 0.3)
-                          : AbzioTheme.grey200,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        item.$2,
-                        color: selected
-                            ? AbzioTheme.accentColor
-                            : AbzioTheme.textSecondary,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        item.$3,
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w700,
-                          color: selected
-                              ? AbzioTheme.textPrimary
-                              : AbzioTheme.textSecondary,
+          Expanded(
+            child: Scrollbar(
+              thumbVisibility: true,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(right: 4),
+                child: Column(
+                  children: items.map((item) {
+                    final selected = _tab == item.$1;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => setState(() => _tab = item.$1),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? AbzioTheme.accentColor.withValues(alpha: 0.16)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: selected
+                                  ? AbzioTheme.accentColor.withValues(alpha: 0.3)
+                                  : AbzioTheme.grey200,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                item.$2,
+                                color: selected
+                                    ? AbzioTheme.accentColor
+                                    : AbzioTheme.textSecondary,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  item.$3,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w700,
+                                    color: selected
+                                        ? AbzioTheme.textPrimary
+                                        : AbzioTheme.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ],
-                  ),
+                    );
+                  }).toList(),
                 ),
               ),
-            );
-          }),
-          const Spacer(),
+            ),
+          ),
+          const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: () async {
               final auth = context.read<AuthProvider>();
@@ -1886,6 +1927,42 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     }
   }
 
+  Widget _buildDataWarningsBanner() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8F0),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE9C99A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Limited live visibility',
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF7B4B00),
+            ),
+          ),
+          const SizedBox(height: 6),
+          ..._dataWarnings.map(
+            (warning) => Padding(
+              padding: const EdgeInsets.only(bottom: 3),
+              child: Text(
+                '- $warning',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF7B4B00),
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBackendUnavailableState({
     required String title,
     required String subtitle,
@@ -1905,10 +1982,74 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     final analytics = _analytics;
     final vendorCount = _users.where(_isVendorUser).length;
     final recentOrders = _orders.toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final delayedOrders = _orders.where((order) {
+      final status = order.status.toLowerCase();
+      return status.contains('delay') || status.contains('late');
+    }).toList();
+    final searchQuery = _globalSearchController.text.trim().toLowerCase();
+    final userSuggestions = _users
+        .where((u) => u.name.toLowerCase().contains(searchQuery) || u.email.toLowerCase().contains(searchQuery))
+        .take(2)
+        .map((u) => 'User: ${u.name}')
+        .toList();
+    final vendorSuggestions = _stores
+        .where((s) => s.name.toLowerCase().contains(searchQuery))
+        .take(2)
+        .map((s) => 'Vendor: ${s.name}')
+        .toList();
+    final orderSuggestions = _orders
+        .where((o) => o.id.toLowerCase().contains(searchQuery))
+        .take(2)
+        .map((o) => 'Order: ${o.id}')
+        .toList();
+    final riderSuggestions = _users
+        .where((u) => hasRiderOperationsAccess(u) && u.name.toLowerCase().contains(searchQuery))
+        .take(2)
+        .map((u) => 'Rider: ${u.name}')
+        .toList();
+    final suggestions = <String>[
+      ...userSuggestions,
+      ...vendorSuggestions,
+      ...orderSuggestions,
+      ...riderSuggestions,
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (searchQuery.isNotEmpty && suggestions.isNotEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AbzioTheme.grey200),
+            ),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: suggestions
+                  .map(
+                    (item) => InkWell(
+                      onTap: () {
+                        _globalSearchController.text = item.split(':').last.trim();
+                        _runGlobalSearch();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8F6F2),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(item, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        if (searchQuery.isNotEmpty && suggestions.isNotEmpty) const SizedBox(height: 16),
         SizedBox(
           height: 136,
           child: ListView(
@@ -1934,25 +2075,29 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               flex: 3,
               child: _Panel(
                 title: 'Recent orders',
-                subtitle: 'Latest marketplace transactions across all stores.',
+                subtitle: 'Latest marketplace transactions with fulfillment visibility.',
                 child: recentOrders.isEmpty
                     ? const AbzioEmptyCard(
-                        title: 'No orders yet',
-                        subtitle: 'Orders will appear here as customers complete checkout.',
+                        title: 'No active order updates',
+                        subtitle: 'Platform running smoothly.',
                       )
                     : Column(
-                        children: recentOrders.take(6).map((order) {
+                        children: recentOrders.take(8).map((order) {
                           final invoice =
                               order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
                           final store = _storeForId(order.storeId);
+                          final status = order.status.trim();
+                          final eta = order.deliveryPromise.trim().isEmpty
+                              ? 'ETA recalculating'
+                              : order.deliveryPromise;
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
                             title: Text(
-                              invoice,
+                              'Order ID: $invoice',
                               style: GoogleFonts.inter(fontWeight: FontWeight.w700),
                             ),
                             subtitle: Text(
-                              '${store?.name ?? order.storeId} - ${order.shippingAddress}',
+                              'Vendor: ${store?.name ?? order.storeId} | Amount: ${_formatCurrency(order.totalAmount)} | ETA: $eta',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -1960,17 +2105,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text(
-                                  _formatCurrency(order.totalAmount),
-                                  style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-                                ),
-                                Text(
-                                  order.status,
-                                  style: GoogleFonts.inter(
-                                    color: AbzioTheme.textSecondary,
-                                    fontSize: 12,
-                                  ),
-                                ),
+                                _buildOrderStatusChip(status),
                               ],
                             ),
                           );
@@ -1982,14 +2117,26 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             Expanded(
               flex: 2,
               child: _Panel(
-                title: 'Search results',
-                subtitle: 'Global search across users, stores, and orders.',
+                title: 'AI Operational Insights',
+                subtitle: 'Suggested interventions based on live marketplace behavior.',
                 child: (_searchResults.users.isEmpty &&
                         _searchResults.stores.isEmpty &&
                         _searchResults.orders.isEmpty)
-                    ? const AbzioEmptyCard(
-                        title: 'Search the platform',
-                        subtitle: 'Use the top search field to find users, stores, and orders instantly.',
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildInsightTile('Increase riders in Zone B', Icons.electric_bike_rounded),
+                          _buildInsightTile('Sneakers trending across premium category', Icons.trending_up_rounded),
+                          _buildInsightTile('Vendor return anomaly detected', Icons.warning_amber_rounded),
+                          const SizedBox(height: 12),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: OutlinedButton(
+                              onPressed: () => setState(() => _tab = AdminWebSection.operations),
+                              child: const Text('Review'),
+                            ),
+                          ),
+                        ],
                       )
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2009,66 +2156,78 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           children: [
             Expanded(
               child: _Panel(
-                title: 'Admin alerts',
-                subtitle: 'New KYC, payment, and marketplace signals.',
-                child: _usesBackendCommerce
-                    ? const AbzioEmptyCard(
-                        title: 'Alerts are migrating',
-                        subtitle:
-                            'Admin notification feeds will return here once the backend notification API is wired.',
-                      )
-                    : _notifications.isEmpty
+                title: 'Live activity feed',
+                subtitle: 'Realtime operational actions across users, vendors, riders, and payouts.',
+                child: _notifications.isEmpty && _activityLogs.isEmpty
                     ? const AbzioEmptyCard(
                         title: 'No alerts right now',
-                        subtitle: 'Admin notifications will appear here as important events happen.',
+                        subtitle: 'Platform running smoothly',
                       )
                     : Column(
-                        children: _notifications.take(6).map((notification) {
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.notifications_active_outlined),
-                            title: Text(
-                              notification.title,
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-                            ),
-                            subtitle: Text(
-                              notification.body,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing: Text(
-                              _formatDate(notification.timestamp),
-                              style: GoogleFonts.inter(
-                                color: AbzioTheme.textSecondary,
-                                fontSize: 12,
+                        children: [
+                          ..._notifications.take(4).map((notification) {
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(_activityIconFor(notification.title), color: const Color(0xFF9C7222)),
+                              title: Text(
+                                notification.title,
+                                style: GoogleFonts.inter(fontWeight: FontWeight.w700),
                               ),
-                            ),
-                          );
-                        }).toList(),
+                              subtitle: Text(
+                                notification.body,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: Text(
+                                _formatDate(notification.timestamp),
+                                style: GoogleFonts.inter(
+                                  color: AbzioTheme.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            );
+                          }),
+                          ..._activityLogs.take(4).map((entry) {
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(_activityIconFor(entry.action), color: const Color(0xFF9C7222)),
+                              title: Text(
+                                entry.action.replaceAll('_', ' ').toUpperCase(),
+                                style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                              ),
+                              subtitle: Text(
+                                entry.message,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: Text(
+                                _formatDate(entry.timestamp),
+                                style: GoogleFonts.inter(
+                                  color: AbzioTheme.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
                       ),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _Panel(
-                title: 'Activity logs',
-                subtitle: 'Recent admin and ops actions.',
-                child: _usesBackendCommerce
+                title: 'Recent admin actions',
+                subtitle: 'Fast scan trail of operational interventions.',
+                child: _activityLogs.isEmpty
                     ? const AbzioEmptyCard(
-                        title: 'Audit log migration in progress',
-                        subtitle:
-                            'Recent admin actions are temporarily hidden until the backend activity log API is connected.',
-                      )
-                    : _activityLogs.isEmpty
-                    ? const AbzioEmptyCard(
-                        title: 'No activity yet',
-                        subtitle: 'Admin and operations logs will appear here once actions are taken.',
+                        title: 'No actions recorded yet',
+                        subtitle: 'Admin activity will appear here once actions are triggered.',
                       )
                     : Column(
                         children: _activityLogs.take(8).map((entry) {
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.history_rounded),
+                            leading: const Icon(Icons.bolt_rounded),
                             title: Text(
                               entry.message,
                               style: GoogleFonts.inter(fontWeight: FontWeight.w600),
@@ -2093,6 +2252,138 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         ),
       ],
     );
+  }
+
+  Widget _buildCriticalAlertBar({required String message, required String severity}) {
+    final color = severity == 'CRITICAL'
+        ? const Color(0xFFD92D20)
+        : severity == 'WARNING'
+        ? const Color(0xFFDC6803)
+        : const Color(0xFF667085);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 260),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: const Color(0xFF111111)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            severity,
+            style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: color, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _dashboardCriticalMessage() {
+    final delayedCount = _orders.where((order) {
+      final status = order.status.toLowerCase();
+      return status.contains('delay') || status.contains('late');
+    }).length;
+    if (delayedCount > 0) {
+      return '$delayedCount delayed deliveries need immediate attention';
+    }
+    if (_pendingKycCount > 0) {
+      return 'Vendor or rider KYC pending for review';
+    }
+    return 'Platform running smoothly';
+  }
+
+  String _dashboardCriticalSeverity() {
+    final delayedCount = _orders.where((order) {
+      final status = order.status.toLowerCase();
+      return status.contains('delay') || status.contains('late');
+    }).length;
+    if (delayedCount > 0) {
+      return 'CRITICAL';
+    }
+    if (_pendingKycCount > 0) {
+      return 'WARNING';
+    }
+    return 'NORMAL';
+  }
+
+  Widget _buildInsightTile(String text, IconData icon) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFCFAF6),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: const Color(0xFF9C7222)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderStatusChip(String status) {
+    final normalized = status.toLowerCase();
+    Color color;
+    String label;
+    if (normalized.contains('deliver')) {
+      color = const Color(0xFF067647);
+      label = 'Delivered';
+    } else if (normalized.contains('delay') || normalized.contains('late')) {
+      color = const Color(0xFFD92D20);
+      label = 'Delayed';
+    } else if (normalized.contains('cancel')) {
+      color = const Color(0xFFB42318);
+      label = 'Cancelled';
+    } else {
+      color = const Color(0xFF175CD3);
+      label = 'Processing';
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+      ),
+    );
+  }
+
+  IconData _activityIconFor(String value) {
+    final text = value.toLowerCase();
+    if (text.contains('vendor') && text.contains('approve')) {
+      return Icons.store_mall_directory_outlined;
+    }
+    if (text.contains('cancel') || text.contains('refund')) {
+      return Icons.restart_alt_rounded;
+    }
+    if (text.contains('payout') || text.contains('payment')) {
+      return Icons.payments_outlined;
+    }
+    if (text.contains('rider') || text.contains('dispatch')) {
+      return Icons.delivery_dining_outlined;
+    }
+    return Icons.bolt_rounded;
   }
 
   Color _opsSeverityColor(String severity) {

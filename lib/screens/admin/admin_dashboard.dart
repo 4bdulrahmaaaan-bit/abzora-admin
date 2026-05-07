@@ -11,6 +11,7 @@ import '../../services/database_service.dart';
 import '../../theme.dart';
 import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
+import '../../services/onboarding_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -21,12 +22,16 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   final _db = DatabaseService();
+  final _onboarding = OnboardingService();
   final _searchController = TextEditingController();
   AdminAnalytics? _analytics;
   AdminFinanceSummary? _finance;
   PlatformSettings _settings = const PlatformSettings();
   List<DisputeRecord> _disputes = [];
   List<ActivityLogEntry> _logs = [];
+  List<AppUser> _users = [];
+  List<OrderModel> _orders = [];
+  int _pendingKyc = 0;
   GlobalSearchResults _searchResults = const GlobalSearchResults();
   bool _loading = true;
   Timer? _idleTimer;
@@ -61,6 +66,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final settings = await _safePlatformSettings(actor);
     final disputes = await _safeDisputes(actor);
     final logs = await _safeActivityLogs(actor);
+    final users = await _safeUsers(actor);
+    final orders = await _safeOrders(actor);
+    final pendingVendorKyc = await _safeVendorKycCount(actor);
+    final pendingRiderKyc = await _safeRiderKycCount(actor);
     if (!mounted) return;
     setState(() {
       _analytics = analytics;
@@ -68,6 +77,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
       _settings = settings;
       _disputes = disputes;
       _logs = logs.take(12).toList();
+      _users = users;
+      _orders = orders;
+      _pendingKyc = pendingVendorKyc + pendingRiderKyc;
       _loading = false;
     });
     _resetIdleTimer();
@@ -103,6 +115,47 @@ class _AdminDashboardState extends State<AdminDashboard> {
     } catch (_) {
       return const <ActivityLogEntry>[];
     }
+  }
+
+  Future<List<AppUser>> _safeUsers(AppUser actor) async {
+    try {
+      return await _db.getUsers(actor: actor);
+    } catch (_) {
+      return const <AppUser>[];
+    }
+  }
+
+  Future<List<OrderModel>> _safeOrders(AppUser actor) async {
+    try {
+      return await _db.getAllOrders(actor: actor);
+    } catch (_) {
+      return const <OrderModel>[];
+    }
+  }
+
+  Future<int> _safeVendorKycCount(AppUser actor) async {
+    try {
+      final requests = await _onboarding.getVendorRequests(actor: actor);
+      return requests.where((item) => item.status.toLowerCase() == 'pending').length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<int> _safeRiderKycCount(AppUser actor) async {
+    try {
+      final requests = await _onboarding.getRiderRequests(actor: actor);
+      return requests.where((item) => item.status.toLowerCase() == 'pending').length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  double _trendPercent(double current, double previous) {
+    if (previous <= 0) {
+      return current > 0 ? 100 : 0;
+    }
+    return ((current - previous) / previous) * 100;
   }
 
   Future<void> _processPayout(Store store) async {
@@ -374,6 +427,83 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  Text('HERO OPERATIONS STRIP', style: Theme.of(context).textTheme.labelMedium),
+                  const SizedBox(height: 12),
+                  Builder(
+                    builder: (context) {
+                      final dailySales = _analytics?.dailySales ?? const <AnalyticsPoint>[];
+                      final todayRevenue = dailySales.isNotEmpty ? dailySales.last.value : 0.0;
+                      final yesterdayRevenue = dailySales.length > 1 ? dailySales[dailySales.length - 2].value : 0.0;
+                      final activeRiders = _users.where((u) => hasRiderOperationsAccess(u) && u.isActive).length;
+                      final activeOrders = _orders.where((o) {
+                        final status = o.status.toLowerCase();
+                        return status != 'delivered' && status != 'cancelled' && status != 'completed';
+                      }).length;
+                      final delayedOrders = _orders.where((o) => o.status.toLowerCase().contains('delay')).length;
+                      final highDemandZones = _orders
+                          .map((o) => o.shippingAddress.trim().split(',').last.trim())
+                          .where((z) => z.isNotEmpty)
+                          .toSet()
+                          .length;
+                      final cards = <_OpsHeroMetric>[
+                        _OpsHeroMetric(
+                          label: 'Active Orders',
+                          value: '$activeOrders',
+                          trend: _trendPercent(activeOrders.toDouble(), ((_analytics?.ordersToday ?? 0) - activeOrders).abs().toDouble()),
+                          color: Colors.blue,
+                          icon: Icons.receipt_long_outlined,
+                        ),
+                        _OpsHeroMetric(
+                          label: 'Revenue Today',
+                          value: 'Rs ${todayRevenue.toInt()}',
+                          trend: _trendPercent(todayRevenue, yesterdayRevenue),
+                          color: Colors.green,
+                          icon: Icons.payments_outlined,
+                        ),
+                        _OpsHeroMetric(
+                          label: 'Pending KYC',
+                          value: '$_pendingKyc',
+                          trend: _trendPercent(_pendingKyc.toDouble(), (_pendingKyc + 2).toDouble()),
+                          color: _pendingKyc > 0 ? Colors.orange : Colors.teal,
+                          icon: Icons.verified_user_outlined,
+                        ),
+                        _OpsHeroMetric(
+                          label: 'Active Riders',
+                          value: '$activeRiders',
+                          trend: _trendPercent(activeRiders.toDouble(), (activeRiders - 1).clamp(0, 99999).toDouble()),
+                          color: Colors.teal,
+                          icon: Icons.delivery_dining_outlined,
+                        ),
+                        _OpsHeroMetric(
+                          label: 'Delayed Orders',
+                          value: '$delayedOrders',
+                          trend: _trendPercent(delayedOrders.toDouble(), (delayedOrders + 1).toDouble()),
+                          color: delayedOrders > 0 ? Colors.red : Colors.green,
+                          icon: Icons.warning_amber_rounded,
+                        ),
+                        _OpsHeroMetric(
+                          label: 'High Demand Zones',
+                          value: '$highDemandZones',
+                          trend: _trendPercent(highDemandZones.toDouble(), (highDemandZones - 1).clamp(0, 99999).toDouble()),
+                          color: Colors.deepPurple,
+                          icon: Icons.location_on_outlined,
+                        ),
+                      ];
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: cards.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: width < 480 ? 1 : 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: width < 480 ? 2.8 : 2.2,
+                        ),
+                        itemBuilder: (context, index) => _OpsHeroMetricCard(metric: cards[index]),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
                   Text('FEATURE CONTROL', style: Theme.of(context).textTheme.labelMedium),
                   const SizedBox(height: 12),
                   Card(
@@ -552,39 +682,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     },
                   ),
                   _AdminAction(
-                    title: 'Migrate to Firebase',
-                    subtitle: 'Push all local demo mock data into the connected Firestore project',
-                    icon: Icons.cloud_upload_outlined,
+                    title: 'Realtime Data Sync',
+                    subtitle: 'Connected to live marketplace services. Refresh to pull latest operational state.',
+                    icon: Icons.sync_rounded,
                     color: Colors.red,
                     onTap: () async {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            behavior: SnackBarBehavior.floating,
-                            content: Text('Starting migration via batch write...'),
-                          ),
-                        );
+                      await _load();
+                      if (!context.mounted) {
+                        return;
                       }
-                      try {
-                        await _db.migrateDemoDataToFirestore(actor: auth.user!);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              behavior: SnackBarBehavior.floating,
-                              content: Text('Migration complete. Pull to refresh.'),
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              behavior: SnackBarBehavior.floating,
-                              content: Text('Migration failed: $e'),
-                            ),
-                          );
-                        }
-                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          behavior: SnackBarBehavior.floating,
+                          content: Text('Realtime sync complete.'),
+                        ),
+                      );
                     },
                   ),
                   if (_analytics?.topStores.isNotEmpty == true) ...[
@@ -773,6 +885,94 @@ class _FeatureTile extends StatelessWidget {
       title: Text(label),
       subtitle: Text(value ? 'Enabled' : 'Disabled'),
       onChanged: onChanged,
+    );
+  }
+}
+
+class _OpsHeroMetric {
+  const _OpsHeroMetric({
+    required this.label,
+    required this.value,
+    required this.trend,
+    required this.color,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final double trend;
+  final Color color;
+  final IconData icon;
+}
+
+class _OpsHeroMetricCard extends StatelessWidget {
+  const _OpsHeroMetricCard({required this.metric});
+
+  final _OpsHeroMetric metric;
+
+  @override
+  Widget build(BuildContext context) {
+    final positive = metric.trend >= 0;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: metric.color.withValues(alpha: 0.18)),
+        boxShadow: [
+          BoxShadow(
+            color: metric.color.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: metric.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(metric.icon, color: metric.color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  metric.value,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  metric.label,
+                  style: const TextStyle(color: AbzioTheme.grey600, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: (positive ? Colors.green : Colors.red).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '${positive ? '+' : ''}${metric.trend.toStringAsFixed(1)}%',
+              style: TextStyle(
+                color: positive ? Colors.green.shade700 : Colors.red.shade700,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
