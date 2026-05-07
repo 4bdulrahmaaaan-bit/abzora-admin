@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useLiveEvents } from './useLiveEvents';
+import { verifyAdminSession } from '../lib/api';
 
 const navItems = [
   { href: '/', label: 'Operations', icon: '◉' },
@@ -29,12 +30,45 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [healthPulse, setHealthPulse] = useState(94);
   const [q, setQ] = useState('');
   const [token, setToken] = useState('');
+  const [authToken, setAuthToken] = useState('');
+  const [authStatus, setAuthStatus] = useState('Enter admin token to continue.');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
   const { connected, events } = useLiveEvents(token, { zoneId: 'global' });
 
   useEffect(() => {
     const saved = localStorage.getItem('abzoraAdminToken') || '';
-    if (saved) setToken(saved);
+    if (saved) {
+      setAuthToken(saved);
+      setToken(saved);
+      setAuthenticated(true);
+    }
   }, []);
+
+  async function login() {
+    if (!authToken.trim()) return;
+    setAuthLoading(true);
+    try {
+      await verifyAdminSession(authToken.trim());
+      localStorage.setItem('abzoraAdminToken', authToken.trim());
+      setToken(authToken.trim());
+      setAuthenticated(true);
+      setAuthStatus('Admin session active.');
+    } catch (error) {
+      setAuthenticated(false);
+      setAuthStatus((error as Error).message || 'Invalid admin token.');
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('abzoraAdminToken');
+    setToken('');
+    setAuthToken('');
+    setAuthenticated(false);
+    setAuthStatus('Signed out.');
+  }
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -67,6 +101,26 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const paletteItems = navItems.filter((item) => `${item.label} ${item.href}`.toLowerCase().includes(q.toLowerCase()));
   const latestEvent = events[0];
 
+  if (!authenticated) {
+    return (
+      <main className="content">
+        <section className="panel" style={{ maxWidth: 520, margin: '12vh auto' }}>
+          <h2>ABZORA Admin Login</h2>
+          <p>Sign in with your admin JWT to access live customer, vendor, rider, and order operations.</p>
+          <input
+            placeholder="Paste admin JWT token"
+            value={authToken}
+            onChange={(e) => setAuthToken(e.target.value)}
+          />
+          <div className="incident-actions" style={{ marginTop: 10 }}>
+            <button className="primary" onClick={login} disabled={authLoading}>{authLoading ? 'Signing in...' : 'Sign In'}</button>
+          </div>
+          <small>{authStatus}</small>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <div className={`app-shell ${compact ? 'compact' : ''}`}>
       <aside className="sidebar ops-sidebar">
@@ -81,6 +135,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <button>Run Detection</button>
             <button>Dispatch Queue</button>
             <button>AI Assist</button>
+            <button onClick={logout}>Logout</button>
           </div>
           <div className="left-health-grid">
             <span className="live-pill">Health {healthPulse}%</span>
