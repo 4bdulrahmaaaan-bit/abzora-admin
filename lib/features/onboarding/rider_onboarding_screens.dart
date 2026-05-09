@@ -143,7 +143,7 @@ class RiderWelcomeScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _Stat(
-                          title: '?25,000+',
+                          title: 'Rs 25,000+',
                           subtitle: 'Monthly Earnings',
                         ),
                       ),
@@ -446,6 +446,11 @@ class _RiderOnboardingFlowScreenState
               'referral': model.referral.trim(),
               'workType': model.workType.name,
               'shift': model.shift,
+              'zone': {
+                'lat': model.zoneLat,
+                'lng': model.zoneLng,
+                'radiusKm': model.zoneRadiusKm,
+              },
             },
             'terms': {
               'acceptedTerms': model.acceptedTerms,
@@ -854,14 +859,44 @@ class _RiderOnboardingFlowScreenState
             }).toList(),
           ),
           const SizedBox(height: 12),
+          Row(
+            children: [
+              const Text('Zone Radius'),
+              Expanded(
+                child: Slider(
+                  value: model.zoneRadiusKm.clamp(1, 20),
+                  min: 1,
+                  max: 20,
+                  divisions: 19,
+                  label: '${model.zoneRadiusKm.toStringAsFixed(0)} km',
+                  onChanged: (v) => ref
+                      .read(riderSignupProvider.notifier)
+                      .update(model.copyWith(zoneRadiusKm: v)),
+                ),
+              ),
+            ],
+          ),
           SizedBox(
             height: 180,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: FlutterMap(
                 options: MapOptions(
-                  initialCenter: LatLng(12.9716, 77.5946),
+                  initialCenter: LatLng(
+                    model.zoneLat ?? 12.9716,
+                    model.zoneLng ?? 77.5946,
+                  ),
                   initialZoom: 11,
+                  onTap: (tapPosition, point) {
+                    ref
+                        .read(riderSignupProvider.notifier)
+                        .update(
+                          model.copyWith(
+                            zoneLat: point.latitude,
+                            zoneLng: point.longitude,
+                          ),
+                        );
+                  },
                 ),
                 children: [
                   TileLayer(

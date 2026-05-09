@@ -467,6 +467,19 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
     }
 
     final request = (selection as _RiderSelection).request;
+    final meta = request.metadata;
+    final vehicleMeta = Map<String, dynamic>.from(
+      (meta['vehicle'] as Map?) ?? const {},
+    );
+    final bankMeta = Map<String, dynamic>.from(
+      (meta['bank'] as Map?) ?? const {},
+    );
+    final prefMeta = Map<String, dynamic>.from(
+      (meta['preferences'] as Map?) ?? const {},
+    );
+    final zoneMeta = Map<String, dynamic>.from(
+      (prefMeta['zone'] as Map?) ?? const {},
+    );
     return KycDetailData(
       id: request.id,
       name: request.name,
@@ -483,6 +496,35 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
         KycDocumentEntry(label: 'Aadhaar', url: request.kyc.aadhaarUrl),
         KycDocumentEntry(label: 'License', url: request.kyc.licenseUrl),
       ],
+      extraDetails: {
+        if ((meta['email']?.toString().trim().isNotEmpty ?? false))
+          'Email': meta['email'].toString(),
+        if ((meta['dob']?.toString().trim().isNotEmpty ?? false))
+          'DOB': meta['dob'].toString().split('T').first,
+        if ((meta['gender']?.toString().trim().isNotEmpty ?? false))
+          'Gender': meta['gender'].toString(),
+        if ((vehicleMeta['vehicleNumber']?.toString().trim().isNotEmpty ?? false))
+          'Vehicle Number': vehicleMeta['vehicleNumber'].toString(),
+        if ((vehicleMeta['licenseNumber']?.toString().trim().isNotEmpty ?? false))
+          'License Number': vehicleMeta['licenseNumber'].toString(),
+        if ((bankMeta['accountHolder']?.toString().trim().isNotEmpty ?? false))
+          'Account Holder': bankMeta['accountHolder'].toString(),
+        if ((bankMeta['bankName']?.toString().trim().isNotEmpty ?? false))
+          'Bank Name': bankMeta['bankName'].toString(),
+        if ((bankMeta['upi']?.toString().trim().isNotEmpty ?? false))
+          'UPI': bankMeta['upi'].toString(),
+        if ((prefMeta['referral']?.toString().trim().isNotEmpty ?? false))
+          'Referral Code': prefMeta['referral'].toString(),
+        if ((prefMeta['workType']?.toString().trim().isNotEmpty ?? false))
+          'Work Type': prefMeta['workType'].toString(),
+        if ((prefMeta['shift']?.toString().trim().isNotEmpty ?? false))
+          'Shift': prefMeta['shift'].toString(),
+        if ((zoneMeta['lat']?.toString().trim().isNotEmpty ?? false) &&
+            (zoneMeta['lng']?.toString().trim().isNotEmpty ?? false))
+          'Zone Center': '${zoneMeta['lat']}, ${zoneMeta['lng']}',
+        if ((zoneMeta['radiusKm']?.toString().trim().isNotEmpty ?? false))
+          'Zone Radius': '${zoneMeta['radiusKm']} km',
+      },
       riskFlags: riskFlags,
       reviewedByName: request.reviewedByName,
       reviewedAt: request.reviewedAt.replaceFirst('T', ' ').split('.').first,

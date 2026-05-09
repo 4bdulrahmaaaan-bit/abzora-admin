@@ -7,6 +7,8 @@ import '../../core/widgets/rider_glass_card.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
+import 'rider_earnings_screen.dart';
+import 'rider_orders_screen.dart';
 import '../profile/rider_profile_screen.dart';
 import '../settings/rider_settings_screen.dart';
 
@@ -33,8 +35,8 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
 
     final pages = [
       _home(user),
-      const Center(child: Text('Orders')),
-      const Center(child: Text('Earnings')),
+      const RiderOrdersScreen(),
+      const RiderEarningsScreen(),
       const RiderProfileScreen(),
       const RiderSettingsScreen(),
     ];

@@ -24,6 +24,7 @@ class KycDetailData {
     this.reviewedByName = '',
     this.reviewedAt = '',
     this.actionHistory = const [],
+    this.extraDetails = const {},
   });
 
   final String id;
@@ -45,6 +46,7 @@ class KycDetailData {
   final String reviewedByName;
   final String reviewedAt;
   final List<KycActionEntry> actionHistory;
+  final Map<String, String> extraDetails;
 }
 
 class KycDocumentEntry {
@@ -208,6 +210,24 @@ class KycDetailView extends StatelessWidget {
                                   ),
                                 ],
                               ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                ],
+                if (data!.extraDetails.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _SectionCard(
+                    title: 'Additional Rider Details',
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: data!.extraDetails.entries
+                          .map(
+                            (entry) => _DetailTile(
+                              label: entry.key,
+                              value: entry.value,
                             ),
                           )
                           .toList(),

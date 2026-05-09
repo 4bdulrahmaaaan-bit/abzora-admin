@@ -28,6 +28,9 @@ class RiderSignupModel {
     this.referral = '',
     this.workType = WorkType.fullTime,
     this.shift = 'Morning',
+    this.zoneLat,
+    this.zoneLng,
+    this.zoneRadiusKm = 5,
     this.acceptedTerms = false,
     this.signature = '',
   });
@@ -56,6 +59,9 @@ class RiderSignupModel {
   final String referral;
   final WorkType workType;
   final String shift;
+  final double? zoneLat;
+  final double? zoneLng;
+  final double zoneRadiusKm;
   final bool acceptedTerms;
   final String signature;
 
@@ -84,6 +90,9 @@ class RiderSignupModel {
     String? referral,
     WorkType? workType,
     String? shift,
+    double? zoneLat,
+    double? zoneLng,
+    double? zoneRadiusKm,
     bool? acceptedTerms,
     String? signature,
   }) {
@@ -112,6 +121,9 @@ class RiderSignupModel {
       referral: referral ?? this.referral,
       workType: workType ?? this.workType,
       shift: shift ?? this.shift,
+      zoneLat: zoneLat ?? this.zoneLat,
+      zoneLng: zoneLng ?? this.zoneLng,
+      zoneRadiusKm: zoneRadiusKm ?? this.zoneRadiusKm,
       acceptedTerms: acceptedTerms ?? this.acceptedTerms,
       signature: signature ?? this.signature,
     );
@@ -143,6 +155,9 @@ class RiderSignupModel {
       'referral': referral,
       'workType': workType.name,
       'shift': shift,
+      'zoneLat': zoneLat,
+      'zoneLng': zoneLng,
+      'zoneRadiusKm': zoneRadiusKm,
       'acceptedTerms': acceptedTerms,
       'signature': signature,
     };
@@ -188,6 +203,9 @@ class RiderSignupModel {
       referral: (json['referral'] ?? '') as String,
       workType: parseWork(json['workType'] as String?),
       shift: (json['shift'] ?? 'Morning') as String,
+      zoneLat: (json['zoneLat'] as num?)?.toDouble(),
+      zoneLng: (json['zoneLng'] as num?)?.toDouble(),
+      zoneRadiusKm: ((json['zoneRadiusKm'] ?? 5) as num).toDouble(),
       acceptedTerms: (json['acceptedTerms'] ?? false) as bool,
       signature: (json['signature'] ?? '') as String,
     );
