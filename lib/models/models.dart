@@ -3482,6 +3482,7 @@ class RiderKycRequest {
   final String reviewedByName;
   final String reviewedAt;
   final List<KycActionEntry> actionHistory;
+  final Map<String, dynamic> metadata;
 
   const RiderKycRequest({
     required this.id,
@@ -3499,6 +3500,7 @@ class RiderKycRequest {
     this.reviewedByName = '',
     this.reviewedAt = '',
     this.actionHistory = const [],
+    this.metadata = const {},
   });
 
   Map<String, dynamic> toMap() => {
@@ -3517,6 +3519,7 @@ class RiderKycRequest {
     'reviewedByName': reviewedByName,
     'reviewedAt': reviewedAt,
     'actionHistory': actionHistory.map((entry) => entry.toMap()).toList(),
+    'metadata': metadata,
   };
 
   factory RiderKycRequest.fromMap(
@@ -3539,6 +3542,7 @@ class RiderKycRequest {
     reviewedBy: map['reviewedBy'] ?? '',
     reviewedByName: map['reviewedByName'] ?? '',
     reviewedAt: map['reviewedAt'] ?? '',
+    metadata: Map<String, dynamic>.from((map['metadata'] as Map?) ?? const {}),
     actionHistory: ((map['actionHistory'] as List?) ?? const [])
         .map(
           (entry) =>
@@ -3563,6 +3567,7 @@ class RiderKycRequest {
     String? reviewedByName,
     String? reviewedAt,
     List<KycActionEntry>? actionHistory,
+    Map<String, dynamic>? metadata,
   }) {
     return RiderKycRequest(
       id: id ?? this.id,
@@ -3580,6 +3585,7 @@ class RiderKycRequest {
       reviewedByName: reviewedByName ?? this.reviewedByName,
       reviewedAt: reviewedAt ?? this.reviewedAt,
       actionHistory: actionHistory ?? this.actionHistory,
+      metadata: metadata ?? this.metadata,
     );
   }
 }
