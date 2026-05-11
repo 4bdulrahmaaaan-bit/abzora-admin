@@ -301,9 +301,7 @@ class Store {
     customVendorProfile: CustomVendorProfile.fromMap(
       Map<String, dynamic>.from(map['customVendorProfile'] ?? const {}),
     ),
-    atelierConfig: Map<String, dynamic>.from(
-      map['atelierConfig'] ?? const {},
-    ),
+    atelierConfig: Map<String, dynamic>.from(map['atelierConfig'] ?? const {}),
     vendorScore: (map['vendorScore'] ?? 0.0).toDouble(),
     vendorRank: map['vendorRank'] ?? 0,
     vendorVisibility: map['vendorVisibility'] ?? 'normal',
@@ -508,10 +506,13 @@ class CustomVendorQuality {
       CustomVendorQuality(
         qualityScore: ((map['qualityScore'] ?? 0) as num).toDouble(),
         fitSuccessRate: ((map['fitSuccessRate'] ?? 0) as num).toDouble(),
-        onTimeDeliveryRate: ((map['onTimeDeliveryRate'] ?? 0) as num).toDouble(),
-        customerQualityRating: ((map['customerQualityRating'] ?? 0) as num).toDouble(),
+        onTimeDeliveryRate: ((map['onTimeDeliveryRate'] ?? 0) as num)
+            .toDouble(),
+        customerQualityRating: ((map['customerQualityRating'] ?? 0) as num)
+            .toDouble(),
         customerFitRating: ((map['customerFitRating'] ?? 0) as num).toDouble(),
-        customerDeliveryRating: ((map['customerDeliveryRating'] ?? 0) as num).toDouble(),
+        customerDeliveryRating: ((map['customerDeliveryRating'] ?? 0) as num)
+            .toDouble(),
         adminQaPassRate: ((map['adminQaPassRate'] ?? 0) as num).toDouble(),
         visibilityTier: map['visibilityTier']?.toString() ?? 'watchlist',
       );
@@ -573,7 +574,11 @@ class CustomVendorTrainingProgress {
         lastUpdatedAt: map['lastUpdatedAt']?.toString() ?? '',
         modules: ((map['modules'] as List?) ?? const [])
             .whereType<Map>()
-            .map((item) => CustomVendorTrainingModule.fromMap(Map<String, dynamic>.from(item)))
+            .map(
+              (item) => CustomVendorTrainingModule.fromMap(
+                Map<String, dynamic>.from(item),
+              ),
+            )
             .toList(),
       );
 }
@@ -616,7 +621,9 @@ class CustomVendorSampleReview {
   factory CustomVendorSampleReview.fromMap(Map<String, dynamic> map) =>
       CustomVendorSampleReview(
         id: map['id']?.toString() ?? '',
-        sampleImages: List<String>.from((map['sampleImages'] as List?) ?? const []),
+        sampleImages: List<String>.from(
+          (map['sampleImages'] as List?) ?? const [],
+        ),
         notes: map['notes']?.toString() ?? '',
         status: map['status']?.toString() ?? 'pending_review',
         reviewedBy: map['reviewedBy']?.toString() ?? '',
@@ -1059,9 +1066,7 @@ class Product {
     ),
     addons: List<String>.from(map['addons'] ?? const []),
     atelier: Map<String, dynamic>.from(map['atelier'] ?? const {}),
-    garmentConfig: Map<String, dynamic>.from(
-      map['garmentConfig'] ?? const {},
-    ),
+    garmentConfig: Map<String, dynamic>.from(map['garmentConfig'] ?? const {}),
     measurementProfileLabel: map['measurementProfileLabel'],
     neededBy: map['neededBy'] != null
         ? DateTime.tryParse(map['neededBy'])
@@ -1295,104 +1300,103 @@ class OrderModel {
     'customizationSummary': customizationSummary,
   };
 
-  factory OrderModel.fromMap(Map<String, dynamic> map, String docId) =>
-      OrderModel(
-        id: docId,
-        userId: map['userId'] ?? '',
-        storeId: map['storeId'] ?? '',
-        riderId: map['riderId'],
-        totalAmount: (map['totalAmount'] ?? 0.0).toDouble(),
-        status: map['status'] ?? 'Placed',
-        paymentMethod: map['paymentMethod'] ?? 'COD',
-        timestamp: DateTime.parse(
-          map['timestamp'] ?? DateTime.now().toIso8601String(),
-        ),
-        items: (map['items'] as List? ?? const [])
-            .map((item) => OrderItem.fromMap(item))
-            .toList(),
-        shippingLabel: map['shippingLabel'] ?? '',
-        shippingAddress: map['shippingAddress'] ?? '',
-        extraCharges: (map['extraCharges'] ?? 0.0).toDouble(),
-        subtotal: (map['subtotal'] ?? 0.0).toDouble(),
-        taxAmount: (map['taxAmount'] ?? 0.0).toDouble(),
-        platformCommission: (map['platformCommission'] ?? 0.0).toDouble(),
-        vendorEarnings: (map['vendorEarnings'] ?? 0.0).toDouble(),
-        payoutStatus: map['payoutStatus'] ?? 'Pending',
-        payoutId: map['payoutId'],
-        trackingId: map['trackingId'] ?? '',
-        deliveryStatus: map['deliveryStatus'] ?? 'Pending',
-        assignedDeliveryPartner: map['assignedDeliveryPartner'] ?? 'Unassigned',
-        invoiceNumber: map['invoiceNumber'] ?? '',
-        orderType: map['orderType'] ?? 'marketplace',
-        sameDayOrder: map['sameDayOrder'] == true,
-        deliveryPromise: map['deliveryPromise']?.toString() ?? '',
-        trackingTimestamps: Map<String, String>.from(
-          map['trackingTimestamps'] ?? const {},
-        ),
-        riderLatitude: map['riderLatitude'] == null
-            ? null
-            : (map['riderLatitude'] as num).toDouble(),
-        riderLongitude: map['riderLongitude'] == null
-            ? null
-            : (map['riderLongitude'] as num).toDouble(),
-        riderLocationUpdatedAt: map['riderLocationUpdatedAt'],
-        createdAt: map['createdAt'],
-        updatedAt: map['updatedAt'],
-        deliveredAt: map['deliveredAt'],
-        isConfirmed: map['isConfirmed'] ?? false,
-        isDelivered: map['isDelivered'] ?? false,
-        payoutProcessed: map['payoutProcessed'] ?? false,
-        paymentReference: map['paymentReference'],
-        idempotencyKey: map['idempotencyKey'],
-        isPaymentVerified: map['isPaymentVerified'] ?? false,
-        refundStatus: map['refundStatus'] ?? '',
-        returnStatus: map['returnStatus'] ?? '',
-        walletCreditUsed: ((map['walletCreditUsed'] ?? 0) as num).toDouble(),
-        fulfillmentType: map['fulfillmentType'] ?? 'marketplace',
-        customOrderStatus: map['customOrderStatus'] ?? 'none',
-        measurementMethod: map['measurementMethod'] ?? '',
-        atelierStatus: map['atelierStatus'] ?? 'none',
-        customMeasurements: Map<String, dynamic>.from(
-          map['customMeasurements'] ?? const {},
-        ),
-        atelierCustomization: Map<String, dynamic>.from(
-          map['atelierCustomization'] ?? const {},
-        ),
-        atelierTailoringCharge:
-            ((map['atelierTailoringCharge'] ?? 0) as num).toDouble(),
-        atelierCustomizationCharge:
-            ((map['atelierCustomizationCharge'] ?? 0) as num).toDouble(),
-        atelierHomeVisitCharge:
-            ((map['atelierHomeVisitCharge'] ?? 0) as num).toDouble(),
-        customDesignOptions: Map<String, dynamic>.from(
-          map['customDesignOptions'] ?? const {},
-        ),
-        referenceImageUrl: map['referenceImageUrl'] ?? '',
-        previewImageUrl: map['previewImageUrl'] ?? '',
-        vendorFinalImageUrl: map['vendorFinalImageUrl'] ?? '',
-        selectedDesignerName: map['selectedDesignerName'] ?? '',
-        qualityApprovalStatus: map['qualityApprovalStatus'] ?? 'not_required',
-        measurementsConfirmedByVendor:
-            map['measurementsConfirmedByVendor'] == true,
-        preDispatchChecklistCompletedAt:
-            map['preDispatchChecklistCompletedAt'] ?? '',
-        customerFitFeedbackStatus:
-            map['customerFitFeedbackStatus'] ?? 'pending',
-        customerFitRating:
-            ((map['customerFitRating'] ?? 0) as num).toDouble(),
-        customerQualityRating:
-            ((map['customerQualityRating'] ?? 0) as num).toDouble(),
-        customerDeliveryRating:
-            ((map['customerDeliveryRating'] ?? 0) as num).toDouble(),
-        customerFitFeedbackNotes: map['customerFitFeedbackNotes'] ?? '',
-        customerFitRespondedAt: map['customerFitRespondedAt'] ?? '',
-        alterationStatus: map['alterationStatus'] ?? 'none',
-        alterationRequestedAt: map['alterationRequestedAt'] ?? '',
-        alterationResolvedAt: map['alterationResolvedAt'] ?? '',
-        alterationNotes: map['alterationNotes'] ?? '',
-        customProductionTimeDays: (map['customProductionTimeDays'] ?? 0) as int,
-        customizationSummary: map['customizationSummary'] ?? '',
-      );
+  factory OrderModel.fromMap(
+    Map<String, dynamic> map,
+    String docId,
+  ) => OrderModel(
+    id: docId,
+    userId: map['userId'] ?? '',
+    storeId: map['storeId'] ?? '',
+    riderId: map['riderId'],
+    totalAmount: (map['totalAmount'] ?? 0.0).toDouble(),
+    status: map['status'] ?? 'Placed',
+    paymentMethod: map['paymentMethod'] ?? 'COD',
+    timestamp: DateTime.parse(
+      map['timestamp'] ?? DateTime.now().toIso8601String(),
+    ),
+    items: (map['items'] as List? ?? const [])
+        .map((item) => OrderItem.fromMap(item))
+        .toList(),
+    shippingLabel: map['shippingLabel'] ?? '',
+    shippingAddress: map['shippingAddress'] ?? '',
+    extraCharges: (map['extraCharges'] ?? 0.0).toDouble(),
+    subtotal: (map['subtotal'] ?? 0.0).toDouble(),
+    taxAmount: (map['taxAmount'] ?? 0.0).toDouble(),
+    platformCommission: (map['platformCommission'] ?? 0.0).toDouble(),
+    vendorEarnings: (map['vendorEarnings'] ?? 0.0).toDouble(),
+    payoutStatus: map['payoutStatus'] ?? 'Pending',
+    payoutId: map['payoutId'],
+    trackingId: map['trackingId'] ?? '',
+    deliveryStatus: map['deliveryStatus'] ?? 'Pending',
+    assignedDeliveryPartner: map['assignedDeliveryPartner'] ?? 'Unassigned',
+    invoiceNumber: map['invoiceNumber'] ?? '',
+    orderType: map['orderType'] ?? 'marketplace',
+    sameDayOrder: map['sameDayOrder'] == true,
+    deliveryPromise: map['deliveryPromise']?.toString() ?? '',
+    trackingTimestamps: Map<String, String>.from(
+      map['trackingTimestamps'] ?? const {},
+    ),
+    riderLatitude: map['riderLatitude'] == null
+        ? null
+        : (map['riderLatitude'] as num).toDouble(),
+    riderLongitude: map['riderLongitude'] == null
+        ? null
+        : (map['riderLongitude'] as num).toDouble(),
+    riderLocationUpdatedAt: map['riderLocationUpdatedAt'],
+    createdAt: map['createdAt'],
+    updatedAt: map['updatedAt'],
+    deliveredAt: map['deliveredAt'],
+    isConfirmed: map['isConfirmed'] ?? false,
+    isDelivered: map['isDelivered'] ?? false,
+    payoutProcessed: map['payoutProcessed'] ?? false,
+    paymentReference: map['paymentReference'],
+    idempotencyKey: map['idempotencyKey'],
+    isPaymentVerified: map['isPaymentVerified'] ?? false,
+    refundStatus: map['refundStatus'] ?? '',
+    returnStatus: map['returnStatus'] ?? '',
+    walletCreditUsed: ((map['walletCreditUsed'] ?? 0) as num).toDouble(),
+    fulfillmentType: map['fulfillmentType'] ?? 'marketplace',
+    customOrderStatus: map['customOrderStatus'] ?? 'none',
+    measurementMethod: map['measurementMethod'] ?? '',
+    atelierStatus: map['atelierStatus'] ?? 'none',
+    customMeasurements: Map<String, dynamic>.from(
+      map['customMeasurements'] ?? const {},
+    ),
+    atelierCustomization: Map<String, dynamic>.from(
+      map['atelierCustomization'] ?? const {},
+    ),
+    atelierTailoringCharge: ((map['atelierTailoringCharge'] ?? 0) as num)
+        .toDouble(),
+    atelierCustomizationCharge:
+        ((map['atelierCustomizationCharge'] ?? 0) as num).toDouble(),
+    atelierHomeVisitCharge: ((map['atelierHomeVisitCharge'] ?? 0) as num)
+        .toDouble(),
+    customDesignOptions: Map<String, dynamic>.from(
+      map['customDesignOptions'] ?? const {},
+    ),
+    referenceImageUrl: map['referenceImageUrl'] ?? '',
+    previewImageUrl: map['previewImageUrl'] ?? '',
+    vendorFinalImageUrl: map['vendorFinalImageUrl'] ?? '',
+    selectedDesignerName: map['selectedDesignerName'] ?? '',
+    qualityApprovalStatus: map['qualityApprovalStatus'] ?? 'not_required',
+    measurementsConfirmedByVendor: map['measurementsConfirmedByVendor'] == true,
+    preDispatchChecklistCompletedAt:
+        map['preDispatchChecklistCompletedAt'] ?? '',
+    customerFitFeedbackStatus: map['customerFitFeedbackStatus'] ?? 'pending',
+    customerFitRating: ((map['customerFitRating'] ?? 0) as num).toDouble(),
+    customerQualityRating: ((map['customerQualityRating'] ?? 0) as num)
+        .toDouble(),
+    customerDeliveryRating: ((map['customerDeliveryRating'] ?? 0) as num)
+        .toDouble(),
+    customerFitFeedbackNotes: map['customerFitFeedbackNotes'] ?? '',
+    customerFitRespondedAt: map['customerFitRespondedAt'] ?? '',
+    alterationStatus: map['alterationStatus'] ?? 'none',
+    alterationRequestedAt: map['alterationRequestedAt'] ?? '',
+    alterationResolvedAt: map['alterationResolvedAt'] ?? '',
+    alterationNotes: map['alterationNotes'] ?? '',
+    customProductionTimeDays: (map['customProductionTimeDays'] ?? 0) as int,
+    customizationSummary: map['customizationSummary'] ?? '',
+  );
 }
 
 class OrderItem {
@@ -3288,6 +3292,7 @@ class VendorKycRequest {
   final String reviewedAt;
   final List<KycActionEntry> actionHistory;
   final KycVerificationSummary verification;
+  final Map<String, dynamic> metadata;
 
   const VendorKycRequest({
     required this.id,
@@ -3319,6 +3324,7 @@ class VendorKycRequest {
     this.reviewedAt = '',
     this.actionHistory = const [],
     this.verification = const KycVerificationSummary(),
+    this.metadata = const {},
   });
 
   Map<String, dynamic> toMap() => {
@@ -3351,6 +3357,7 @@ class VendorKycRequest {
     'reviewedAt': reviewedAt,
     'actionHistory': actionHistory.map((entry) => entry.toMap()).toList(),
     'verification': verification.toMap(),
+    'metadata': metadata,
   };
 
   factory VendorKycRequest.fromMap(
@@ -3399,6 +3406,7 @@ class VendorKycRequest {
     verification: KycVerificationSummary.fromMap(
       Map<String, dynamic>.from((map['verification'] as Map?) ?? const {}),
     ),
+    metadata: Map<String, dynamic>.from((map['metadata'] as Map?) ?? const {}),
   );
 
   VendorKycRequest copyWith({
@@ -3431,6 +3439,7 @@ class VendorKycRequest {
     String? reviewedAt,
     List<KycActionEntry>? actionHistory,
     KycVerificationSummary? verification,
+    Map<String, dynamic>? metadata,
   }) {
     return VendorKycRequest(
       id: id ?? this.id,
@@ -3462,6 +3471,7 @@ class VendorKycRequest {
       reviewedAt: reviewedAt ?? this.reviewedAt,
       actionHistory: actionHistory ?? this.actionHistory,
       verification: verification ?? this.verification,
+      metadata: metadata ?? this.metadata,
     );
   }
 }
@@ -4308,10 +4318,7 @@ class SearchFilter {
     return count;
   }
 
-  Map<String, String> toBackendQuery({
-    int? page,
-    int? limit,
-  }) {
+  Map<String, String> toBackendQuery({int? page, int? limit}) {
     final query = <String, String>{};
     if (category != 'All') query['category'] = category;
     if (storeId != 'All') query['storeId'] = storeId;
@@ -4623,12 +4630,11 @@ class PricingAuditEntry {
       previousValue: Map<String, dynamic>.from(
         map['previousValue'] as Map? ?? const {},
       ),
-      newValue: Map<String, dynamic>.from(
-        map['newValue'] as Map? ?? const {},
-      ),
+      newValue: Map<String, dynamic>.from(map['newValue'] as Map? ?? const {}),
       changedFields: List<String>.from(map['changedFields'] ?? const []),
       timestamp:
-          DateTime.tryParse(map['timestamp']?.toString() ?? '') ?? DateTime.now(),
+          DateTime.tryParse(map['timestamp']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 }
@@ -4686,7 +4692,9 @@ class PricingConfigModel {
 
   factory PricingConfigModel.fromMap(Map<String, dynamic> map) {
     return PricingConfigModel(
-      commission: Map<String, dynamic>.from(map['commission'] as Map? ?? const {}),
+      commission: Map<String, dynamic>.from(
+        map['commission'] as Map? ?? const {},
+      ),
       deliveryFees: Map<String, dynamic>.from(
         map['deliveryFees'] as Map? ?? const {},
       ),
@@ -4707,7 +4715,10 @@ class PricingConfigModel {
       updateSource: map['updateSource']?.toString() ?? '',
       auditLogs: (map['auditLogs'] as List? ?? const [])
           .whereType<Map>()
-          .map((item) => PricingAuditEntry.fromMap(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                PricingAuditEntry.fromMap(Map<String, dynamic>.from(item)),
+          )
           .toList(),
     );
   }
@@ -4772,8 +4783,12 @@ class OpsAlertItem {
       maxRetries: ((map['maxRetries'] ?? 0) as num).toInt(),
       message: map['message']?.toString() ?? '',
       payload: Map<String, dynamic>.from(map['payload'] as Map? ?? const {}),
-      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
-      updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(map['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+      updatedAt:
+          DateTime.tryParse(map['updatedAt']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 }
@@ -4817,7 +4832,9 @@ class OpsActionLogEntry {
       attempt: ((map['attempt'] ?? 0) as num).toInt(),
       error: map['error']?.toString() ?? '',
       details: Map<String, dynamic>.from(map['details'] as Map? ?? const {}),
-      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(map['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 }
@@ -4836,15 +4853,22 @@ class OpsMetricSnapshot {
   });
 
   double get deliveries => ((totals['deliveries'] ?? 0) as num).toDouble();
-  double get delayedDeliveries => ((totals['delayedDeliveries'] ?? 0) as num).toDouble();
-  double get dispatchSuccess => ((totals['dispatchSuccess'] ?? 0) as num).toDouble();
-  double get dispatchFailures => ((totals['dispatchFailures'] ?? 0) as num).toDouble();
+  double get delayedDeliveries =>
+      ((totals['delayedDeliveries'] ?? 0) as num).toDouble();
+  double get dispatchSuccess =>
+      ((totals['dispatchSuccess'] ?? 0) as num).toDouble();
+  double get dispatchFailures =>
+      ((totals['dispatchFailures'] ?? 0) as num).toDouble();
   double get etaAccuracy => ((totals['etaAccuracy'] ?? 0) as num).toDouble();
-  double get autoResolvedAlerts => ((totals['autoResolvedAlerts'] ?? 0) as num).toDouble();
+  double get autoResolvedAlerts =>
+      ((totals['autoResolvedAlerts'] ?? 0) as num).toDouble();
   double get totalAlerts => ((totals['totalAlerts'] ?? 0) as num).toDouble();
-  double get riderEfficiency => ((totals['riderEfficiency'] ?? 0) as num).toDouble();
-  double get vendorEfficiency => ((totals['vendorEfficiency'] ?? 0) as num).toDouble();
-  double get avgDeliveryMinutes => ((totals['avgDeliveryMinutes'] ?? 0) as num).toDouble();
+  double get riderEfficiency =>
+      ((totals['riderEfficiency'] ?? 0) as num).toDouble();
+  double get vendorEfficiency =>
+      ((totals['vendorEfficiency'] ?? 0) as num).toDouble();
+  double get avgDeliveryMinutes =>
+      ((totals['avgDeliveryMinutes'] ?? 0) as num).toDouble();
   double get delayPercent => ((totals['delayPercent'] ?? 0) as num).toDouble();
 
   factory OpsMetricSnapshot.fromMap(Map<String, dynamic> map, String id) {
@@ -4852,7 +4876,8 @@ class OpsMetricSnapshot {
       id: id,
       bucketType: map['bucketType']?.toString() ?? 'hourly',
       bucketStartAt:
-          DateTime.tryParse(map['bucketStartAt']?.toString() ?? '') ?? DateTime.now(),
+          DateTime.tryParse(map['bucketStartAt']?.toString() ?? '') ??
+          DateTime.now(),
       totals: Map<String, dynamic>.from(map['totals'] as Map? ?? const {}),
     );
   }
@@ -4903,9 +4928,11 @@ class OpsSimulationOutput {
     return OpsSimulationOutput(
       orders: ((input['orders'] ?? 0) as num).toInt(),
       riders: ((input['riders'] ?? 0) as num).toInt(),
-      avgDeliveryMinutes: ((output['avgDeliveryMinutes'] ?? 0) as num).toDouble(),
+      avgDeliveryMinutes: ((output['avgDeliveryMinutes'] ?? 0) as num)
+          .toDouble(),
       delayPercent: ((output['delayPercent'] ?? 0) as num).toDouble(),
-      dispatchSuccessPercent: ((output['dispatchSuccessPercent'] ?? 0) as num).toDouble(),
+      dispatchSuccessPercent: ((output['dispatchSuccessPercent'] ?? 0) as num)
+          .toDouble(),
       efficiencyScore: ((output['efficiencyScore'] ?? 0) as num).toDouble(),
       delivered: ((output['delivered'] ?? 0) as num).toInt(),
       delayed: ((output['delayed'] ?? 0) as num).toInt(),

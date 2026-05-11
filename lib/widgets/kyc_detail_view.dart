@@ -50,10 +50,7 @@ class KycDetailData {
 }
 
 class KycDocumentEntry {
-  const KycDocumentEntry({
-    required this.label,
-    required this.url,
-  });
+  const KycDocumentEntry({required this.label, required this.url});
 
   final String label;
   final String url;
@@ -125,18 +122,27 @@ class KycDetailView extends StatelessWidget {
                     children: [
                       Text(
                         data!.name,
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         data!.subtitle.isEmpty ? data!.role : data!.subtitle,
-                        style: const TextStyle(color: Color(0xFF666666), height: 1.45),
+                        style: const TextStyle(
+                          color: Color(0xFF666666),
+                          height: 1.45,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
@@ -187,7 +193,10 @@ class KycDetailView extends StatelessWidget {
                       children: data!.riskFlags
                           .map(
                             (flag) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFFF3E8),
                                 borderRadius: BorderRadius.circular(999),
@@ -219,7 +228,7 @@ class KycDetailView extends StatelessWidget {
                 if (data!.extraDetails.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _SectionCard(
-                    title: 'Additional Rider Details',
+                    title: 'Additional Details',
                     child: Wrap(
                       spacing: 12,
                       runSpacing: 12,
@@ -275,7 +284,9 @@ class KycDetailView extends StatelessWidget {
                               .map(
                                 (doc) => Expanded(
                                   child: Padding(
-                                    padding: EdgeInsets.only(right: doc == docs.last ? 0 : 12),
+                                    padding: EdgeInsets.only(
+                                      right: doc == docs.last ? 0 : 12,
+                                    ),
                                     child: SizedBox(
                                       height: 220,
                                       child: KycDocumentViewer(
@@ -332,13 +343,17 @@ class KycDetailView extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   'Reviewed by: ${data!.reviewedByName.trim().isEmpty ? 'Awaiting review' : data!.reviewedByName}',
-                                  style: const TextStyle(fontWeight: FontWeight.w700),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                               if (data!.reviewedAt.trim().isNotEmpty)
                                 Text(
                                   data!.reviewedAt,
-                                  style: const TextStyle(color: Color(0xFF6E6E6E)),
+                                  style: const TextStyle(
+                                    color: Color(0xFF6E6E6E),
+                                  ),
                                 ),
                             ],
                           ),
@@ -367,11 +382,14 @@ class KycDetailView extends StatelessWidget {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         '${entry.action.toUpperCase()} - ${entry.actorName}',
-                                        style: const TextStyle(fontWeight: FontWeight.w700),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -428,7 +446,10 @@ class KycDetailView extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: data!.status == 'pending' ? onReject : null,
-                    icon: const Icon(Icons.close_rounded, color: Color(0xFFB42318)),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Color(0xFFB42318),
+                    ),
                     label: const Text(
                       'Reject',
                       style: TextStyle(
@@ -483,21 +504,15 @@ class KycDetailView extends StatelessWidget {
       child: KycDocumentViewer(
         url: url,
         label: label,
-        onTap: () => showKycDocumentViewer(
-          context,
-          imageUrl: url,
-          title: label,
-        ),
+        onTap: () =>
+            showKycDocumentViewer(context, imageUrl: url, title: label),
       ),
     );
   }
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.title,
-    required this.child,
-  });
+  const _SectionCard({required this.title, required this.child});
 
   final String title;
   final Widget child;

@@ -7,13 +7,14 @@ import '../../services/database_service.dart';
 import '../../services/onboarding_service.dart';
 import '../../utils/app_error_text.dart';
 import '../../widgets/state_views.dart';
-import 'vendor_onboarding_screen.dart';
+import '../../features/onboarding/vendor_onboarding_flow_screen.dart';
 
 class VendorRegistrationScreen extends StatefulWidget {
   const VendorRegistrationScreen({super.key});
 
   @override
-  State<VendorRegistrationScreen> createState() => _VendorRegistrationScreenState();
+  State<VendorRegistrationScreen> createState() =>
+      _VendorRegistrationScreenState();
 }
 
 class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
@@ -82,7 +83,9 @@ class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
                 padding: const EdgeInsets.all(24),
                 child: AbzioEmptyCard(
                   title: 'Could not verify account status',
-                  subtitle: AppErrorText.from(snapshot.error ?? 'Could not verify account status'),
+                  subtitle: AppErrorText.from(
+                    snapshot.error ?? 'Could not verify account status',
+                  ),
                   ctaLabel: 'TRY AGAIN',
                   onTap: () {
                     setState(() {
@@ -100,7 +103,9 @@ class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
         final requestStatus = state.request?.status.toLowerCase().trim();
         final hasStore = state.store != null;
         final isApprovedVendor =
-            state.user.role == 'vendor' || requestStatus == 'approved' || hasStore;
+            state.user.role == 'vendor' ||
+            requestStatus == 'approved' ||
+            hasStore;
 
         if (hasStore || isApprovedVendor) {
           return Scaffold(
@@ -138,7 +143,7 @@ class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
           );
         }
 
-        return const VendorOnboardingScreen();
+        return const VendorOnboardingFlowScreen();
       },
     );
   }

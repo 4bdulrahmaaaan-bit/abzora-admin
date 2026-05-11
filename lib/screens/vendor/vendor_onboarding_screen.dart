@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/vendor_telemetry.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/database_service.dart';
 import '../../services/location_service.dart';
 import '../../services/onboarding_service.dart';
 import '../../utils/app_error_text.dart';
@@ -34,6 +36,7 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
   final _picker = ImagePicker();
   final _onboardingService = OnboardingService();
   final _locationService = LocationService();
+  final _db = DatabaseService();
 
   XFile? _ownerPhoto;
   XFile? _storePhoto;
@@ -79,8 +82,15 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage(ImageSource source, void Function(XFile file) onPicked) async {
-    final file = await _picker.pickImage(source: source, imageQuality: 82, maxWidth: 1800);
+  Future<void> _pickImage(
+    ImageSource source,
+    void Function(XFile file) onPicked,
+  ) async {
+    final file = await _picker.pickImage(
+      source: source,
+      imageQuality: 82,
+      maxWidth: 1800,
+    );
     if (file == null || !mounted) {
       return;
     }
@@ -88,7 +98,10 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
   }
 
   Future<void> _addPortfolioImages() async {
-    final files = await _picker.pickMultiImage(imageQuality: 82, maxWidth: 1800);
+    final files = await _picker.pickMultiImage(
+      imageQuality: 82,
+      maxWidth: 1800,
+    );
     if (files.isEmpty || !mounted) {
       return;
     }
@@ -102,12 +115,22 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
     setState(() => _detectingLocation = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final location = await _locationService.getCurrentLocation(forceRefresh: true);
-      if (location.status != LocationStatus.success || location.position == null) {
-        throw StateError('Could not fetch current location. Please enter manually.');
+      final location = await _locationService.getCurrentLocation(
+        forceRefresh: true,
+      );
+      if (location.status != LocationStatus.success ||
+          location.position == null) {
+        throw StateError(
+          'Could not fetch current location. Please enter manually.',
+        );
       }
       final position = location.position!;
-      final address = location.address ?? await _locationService.reverseGeocode(position.latitude, position.longitude);
+      final address =
+          location.address ??
+          await _locationService.reverseGeocode(
+            position.latitude,
+            position.longitude,
+          );
       if (!mounted) {
         return;
       }
@@ -135,11 +158,16 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    if (_ownerPhoto == null || _storePhoto == null || _aadhaarPhoto == null || _panPhoto == null) {
+    if (_ownerPhoto == null ||
+        _storePhoto == null ||
+        _aadhaarPhoto == null ||
+        _panPhoto == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Owner photo, store image, Aadhaar, and PAN are all required.'),
+          content: Text(
+            'Owner photo, store image, Aadhaar, and PAN are all required.',
+          ),
         ),
       );
       return;
@@ -171,10 +199,17 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     try {
+      VendorTelemetry.event('vendor_submit_started', data: {'userId': user.id});
       if (_latitude == null || _longitude == null) {
-        final geo = await _locationService.geocodeAddress(_addressController.text.trim());
-        if (geo.status != AddressLookupStatus.success || geo.latitude == null || geo.longitude == null) {
-          throw StateError('Please use a clearer address or current location to verify store coordinates.');
+        final geo = await _locationService.geocodeAddress(
+          _addressController.text.trim(),
+        );
+        if (geo.status != AddressLookupStatus.success ||
+            geo.latitude == null ||
+            geo.longitude == null) {
+          throw StateError(
+            'Please use a clearer address or current location to verify store coordinates.',
+          );
         }
         _latitude = geo.latitude;
         _longitude = geo.longitude;
@@ -226,28 +261,65 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
           experienceYears: int.tryParse(_experienceController.text.trim()) ?? 0,
           specializations: _specializations.toList(),
           portfolioImageUrls: portfolioUrls,
-          startingPrice: double.tryParse(_startingPriceController.text.trim()) ?? 0,
-          typicalPriceUpper: double.tryParse(_typicalPriceController.text.trim()) ?? 0,
+          startingPrice:
+              double.tryParse(_startingPriceController.text.trim()) ?? 0,
+          typicalPriceUpper:
+              double.tryParse(_typicalPriceController.text.trim()) ?? 0,
           ordersPerDay: int.tryParse(_ordersPerDayController.text.trim()) ?? 0,
-          productionTimeDays: int.tryParse(_productionDaysController.text.trim()) ?? 7,
+          productionTimeDays:
+              int.tryParse(_productionDaysController.text.trim()) ?? 7,
           payoutSetupLabel: _bankSetupController.text.trim(),
           kyc: KycDocuments(
             ownerPhotoUrl: ownerPhotoUrl,
             storeImageUrl: storeImageUrl,
             aadhaarUrl: aadhaarUrl,
             panUrl: panUrl,
-
           ),
+          metadata: {
+            'email': _emailController.text.trim(),
+            'vendorType': 'custom_vendor',
+            'experienceYears':
+                int.tryParse(_experienceController.text.trim()) ?? 0,
+            'specializations': _specializations.toList(),
+            'portfolioImageUrls': portfolioUrls,
+            'startingPrice':
+                double.tryParse(_startingPriceController.text.trim()) ?? 0,
+            'typicalPriceUpper':
+                double.tryParse(_typicalPriceController.text.trim()) ?? 0,
+            'ordersPerDay':
+                int.tryParse(_ordersPerDayController.text.trim()) ?? 0,
+            'productionTimeDays':
+                int.tryParse(_productionDaysController.text.trim()) ?? 7,
+            'payoutSetupLabel': _bankSetupController.text.trim(),
+            'submittedAt': nowIso,
+            'source': 'vendor_onboarding_v2',
+          },
           verification: const KycVerificationSummary(),
           createdAt: nowIso,
           updatedAt: nowIso,
         ),
       );
+      if (_bankSetupController.text.trim().isNotEmpty) {
+        final setup = _bankSetupController.text.trim();
+        final isUpi = setup.contains('@');
+        await _db.saveVendorPayoutProfile(
+          actor: user,
+          methodType: isUpi ? 'upi' : 'bank',
+          accountHolderName: _ownerNameController.text.trim().isEmpty
+              ? user.name
+              : _ownerNameController.text.trim(),
+          upiId: isUpi ? setup : '',
+          bankAccountNumber: isUpi ? '' : setup,
+          bankIfsc: '',
+          bankName: '',
+        );
+      }
       _latestSubmission = submitted;
       await auth.refreshCurrentUser();
       if (!mounted) {
         return;
       }
+      VendorTelemetry.event('vendor_submit_success', data: {'userId': user.id});
       messenger.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -255,13 +327,17 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
             submitted.verification.autoReviewStatus == 'auto_verified'
                 ? 'Documents verified with strong confidence. Your application is queued for fast approval.'
                 : submitted.verification.autoReviewStatus == 'fraud_flagged'
-                    ? 'Documents uploaded, but the system flagged them for manual review.'
-                    : 'Your application is under review. We will notify you after KYC verification.',
+                ? 'Documents uploaded, but the system flagged them for manual review.'
+                : 'Your application is under review. We will notify you after KYC verification.',
           ),
         ),
       );
       navigator.pop();
     } catch (error) {
+      VendorTelemetry.event(
+        'vendor_submit_failed',
+        data: {'error': error.toString()},
+      );
       messenger.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -296,7 +372,11 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
           children: [
             const Text(
               'Join as a Custom Designer',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, height: 1.2),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                height: 1.2,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -349,7 +429,10 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.auto_awesome_rounded, color: Color(0xFFB78610)),
+                  const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Color(0xFFB78610),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -364,7 +447,10 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
                           _latestSubmission == null
                               ? 'After upload, ABZORA extracts your Aadhaar and PAN details, validates formats, and fast-tracks strong submissions automatically.'
                               : _latestSubmission!.verification.reviewSummary,
-                          style: const TextStyle(color: Color(0xFF6F6F6F), height: 1.45),
+                          style: const TextStyle(
+                            color: Color(0xFF6F6F6F),
+                            height: 1.45,
+                          ),
                         ),
                       ],
                     ),
@@ -383,26 +469,37 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.my_location_rounded),
-              label: Text(_detectingLocation ? 'Fetching location...' : 'Use Current Location'),
+              label: Text(
+                _detectingLocation
+                    ? 'Fetching location...'
+                    : 'Use Current Location',
+              ),
             ),
             const SizedBox(height: 20),
             TextFormField(
               controller: _storeNameController,
-              decoration: const InputDecoration(labelText: 'Store / Designer name'),
-              validator: (value) => (value ?? '').trim().isEmpty ? 'Store name is required' : null,
+              decoration: const InputDecoration(
+                labelText: 'Store / Designer name',
+              ),
+              validator: (value) => (value ?? '').trim().isEmpty
+                  ? 'Store name is required'
+                  : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _ownerNameController,
               decoration: const InputDecoration(labelText: 'Owner name'),
-              validator: (value) => (value ?? '').trim().isEmpty ? 'Owner name is required' : null,
+              validator: (value) => (value ?? '').trim().isEmpty
+                  ? 'Owner name is required'
+                  : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(labelText: 'Phone'),
-              validator: (value) => RegExp(r'^\+?\d{10,15}$').hasMatch((value ?? '').trim())
+              validator: (value) =>
+                  RegExp(r'^\+?\d{10,15}$').hasMatch((value ?? '').trim())
                   ? null
                   : 'Enter a valid phone number',
             ),
@@ -417,26 +514,32 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
               controller: _addressController,
               maxLines: 3,
               decoration: const InputDecoration(labelText: 'Address'),
-              validator: (value) => (value ?? '').trim().isEmpty ? 'Address is required' : null,
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? 'Address is required' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _cityController,
               decoration: const InputDecoration(labelText: 'City'),
-              validator: (value) => (value ?? '').trim().isEmpty ? 'City is required' : null,
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? 'City is required' : null,
             ),
             const SizedBox(height: 24),
             _sectionTitle('Experience'),
             TextFormField(
               controller: _experienceController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Years of experience'),
+              decoration: const InputDecoration(
+                labelText: 'Years of experience',
+              ),
             ),
             const SizedBox(height: 14),
             Wrap(
               spacing: 10,
               runSpacing: 10,
-              children: ['Shirts', 'Blazers', 'Dresses', 'Ethnic wear'].map((item) {
+              children: ['Shirts', 'Blazers', 'Dresses', 'Ethnic wear'].map((
+                item,
+              ) {
                 final selected = _specializations.contains(item);
                 return FilterChip(
                   selected: selected,
@@ -461,7 +564,9 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
-              onPressed: _portfolioFiles.length >= 10 ? null : _addPortfolioImages,
+              onPressed: _portfolioFiles.length >= 10
+                  ? null
+                  : _addPortfolioImages,
               icon: const Icon(Icons.collections_rounded),
               label: Text(
                 _portfolioFiles.isEmpty
@@ -474,7 +579,9 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: List<Widget>.generate(_portfolioFiles.length, (index) {
+                children: List<Widget>.generate(_portfolioFiles.length, (
+                  index,
+                ) {
                   return Stack(
                     children: [
                       Container(
@@ -485,17 +592,25 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
                           color: const Color(0xFFF5F0E2),
                           border: Border.all(color: const Color(0xFFE5D7B2)),
                         ),
-                        child: const Icon(Icons.checkroom_rounded, color: Color(0xFF9C7A2C)),
+                        child: const Icon(
+                          Icons.checkroom_rounded,
+                          color: Color(0xFF9C7A2C),
+                        ),
                       ),
                       Positioned(
                         right: 0,
                         top: 0,
                         child: InkWell(
-                          onTap: () => setState(() => _portfolioFiles.removeAt(index)),
+                          onTap: () =>
+                              setState(() => _portfolioFiles.removeAt(index)),
                           child: const CircleAvatar(
                             radius: 10,
                             backgroundColor: Colors.black87,
-                            child: Icon(Icons.close, size: 12, color: Colors.white),
+                            child: Icon(
+                              Icons.close,
+                              size: 12,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -509,13 +624,17 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
             TextFormField(
               controller: _startingPriceController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Starting price (₹)'),
+              decoration: const InputDecoration(
+                labelText: 'Starting price (₹)',
+              ),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _typicalPriceController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Typical upper range (₹)'),
+              decoration: const InputDecoration(
+                labelText: 'Typical upper range (₹)',
+              ),
             ),
             const SizedBox(height: 24),
             _sectionTitle('Production capacity'),
@@ -528,7 +647,9 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
             TextFormField(
               controller: _productionDaysController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Delivery time (days)'),
+              decoration: const InputDecoration(
+                labelText: 'Delivery time (days)',
+              ),
             ),
             const SizedBox(height: 24),
             _sectionTitle('Bank setup'),
@@ -545,32 +666,46 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
               title: 'Owner Photo',
               subtitle: 'Capture a clear portrait of the store owner.',
               file: _ownerPhoto,
-              onPickCamera: () => _pickImage(ImageSource.camera, (file) => _ownerPhoto = file),
-              onPickGallery: () => _pickImage(ImageSource.gallery, (file) => _ownerPhoto = file),
+              onPickCamera: () =>
+                  _pickImage(ImageSource.camera, (file) => _ownerPhoto = file),
+              onPickGallery: () =>
+                  _pickImage(ImageSource.gallery, (file) => _ownerPhoto = file),
             ),
             const SizedBox(height: 16),
             KycUploadWidget(
               title: 'Store Image',
               subtitle: 'Upload a clear storefront or in-store photo.',
               file: _storePhoto,
-              onPickCamera: () => _pickImage(ImageSource.camera, (file) => _storePhoto = file),
-              onPickGallery: () => _pickImage(ImageSource.gallery, (file) => _storePhoto = file),
+              onPickCamera: () =>
+                  _pickImage(ImageSource.camera, (file) => _storePhoto = file),
+              onPickGallery: () =>
+                  _pickImage(ImageSource.gallery, (file) => _storePhoto = file),
             ),
             const SizedBox(height: 16),
             KycUploadWidget(
               title: 'Aadhaar',
-              subtitle: 'Upload the Aadhaar image for AI identity extraction and verification.',
+              subtitle:
+                  'Upload the Aadhaar image for AI identity extraction and verification.',
               file: _aadhaarPhoto,
-              onPickCamera: () => _pickImage(ImageSource.camera, (file) => _aadhaarPhoto = file),
-              onPickGallery: () => _pickImage(ImageSource.gallery, (file) => _aadhaarPhoto = file),
+              onPickCamera: () => _pickImage(
+                ImageSource.camera,
+                (file) => _aadhaarPhoto = file,
+              ),
+              onPickGallery: () => _pickImage(
+                ImageSource.gallery,
+                (file) => _aadhaarPhoto = file,
+              ),
             ),
             const SizedBox(height: 16),
             KycUploadWidget(
               title: 'PAN',
-              subtitle: 'Upload the PAN image for AI business KYC extraction and review.',
+              subtitle:
+                  'Upload the PAN image for AI business KYC extraction and review.',
               file: _panPhoto,
-              onPickCamera: () => _pickImage(ImageSource.camera, (file) => _panPhoto = file),
-              onPickGallery: () => _pickImage(ImageSource.gallery, (file) => _panPhoto = file),
+              onPickCamera: () =>
+                  _pickImage(ImageSource.camera, (file) => _panPhoto = file),
+              onPickGallery: () =>
+                  _pickImage(ImageSource.gallery, (file) => _panPhoto = file),
             ),
             if (_latestSubmission != null) ...[
               const SizedBox(height: 16),
@@ -592,22 +727,36 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
                             style: TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
-                        _ReviewBadge(status: _latestSubmission!.verification.autoReviewStatus),
+                        _ReviewBadge(
+                          status:
+                              _latestSubmission!.verification.autoReviewStatus,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Text('Name: ${_latestSubmission!.verification.extractedName.isEmpty ? 'Not extracted' : _latestSubmission!.verification.extractedName}'),
+                    Text(
+                      'Name: ${_latestSubmission!.verification.extractedName.isEmpty ? 'Not extracted' : _latestSubmission!.verification.extractedName}',
+                    ),
                     const SizedBox(height: 4),
-                    Text('Aadhaar: ${_maskDocument(_latestSubmission!.verification.aadhaarNumber)}'),
+                    Text(
+                      'Aadhaar: ${_maskDocument(_latestSubmission!.verification.aadhaarNumber)}',
+                    ),
                     const SizedBox(height: 4),
-                    Text('PAN: ${_maskDocument(_latestSubmission!.verification.panNumber)}'),
+                    Text(
+                      'PAN: ${_maskDocument(_latestSubmission!.verification.panNumber)}',
+                    ),
                     const SizedBox(height: 4),
-                    Text('Confidence: ${_latestSubmission!.verification.confidenceScore.toStringAsFixed(0)}%'),
+                    Text(
+                      'Confidence: ${_latestSubmission!.verification.confidenceScore.toStringAsFixed(0)}%',
+                    ),
                     if (_latestSubmission!.verification.flags.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Text(
                         _latestSubmission!.verification.flags.join(' | '),
-                        style: const TextStyle(color: Color(0xFF8A5A00), height: 1.45),
+                        style: const TextStyle(
+                          color: Color(0xFF8A5A00),
+                          height: 1.45,
+                        ),
                       ),
                     ],
                   ],
@@ -626,12 +775,21 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Submit for approval', style: TextStyle(fontWeight: FontWeight.w800)),
+                  const Text(
+                    'Submit for approval',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
                   const SizedBox(height: 8),
-                  Text('Specializations: ${_specializations.isEmpty ? 'Not selected' : _specializations.join(', ')}'),
+                  Text(
+                    'Specializations: ${_specializations.isEmpty ? 'Not selected' : _specializations.join(', ')}',
+                  ),
                   Text('Portfolio uploads: ${_portfolioFiles.length}/10'),
-                  Text('Production time: ${_productionDaysController.text.trim().isEmpty ? '-' : _productionDaysController.text.trim()} days'),
-                  Text('Payout setup: ${_bankSetupController.text.trim().isEmpty ? 'Pending' : _bankSetupController.text.trim()}'),
+                  Text(
+                    'Production time: ${_productionDaysController.text.trim().isEmpty ? '-' : _productionDaysController.text.trim()} days',
+                  ),
+                  Text(
+                    'Payout setup: ${_bankSetupController.text.trim().isEmpty ? 'Pending' : _bankSetupController.text.trim()}',
+                  ),
                 ],
               ),
             ),
@@ -644,7 +802,10 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text('Submit for Approval'),
               ),
@@ -706,4 +867,3 @@ class _ReviewBadge extends StatelessWidget {
     );
   }
 }
-

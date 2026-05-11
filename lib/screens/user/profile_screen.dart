@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -26,7 +26,7 @@ import 'notifications_screen.dart';
 import 'order_tracking_screen.dart';
 import 'referral_screen.dart';
 import 'wishlist_screen.dart';
-import '../vendor/vendor_onboarding_screen.dart';
+import '../../features/onboarding/vendor_onboarding_flow_screen.dart';
 import '../vendor/vendor_registration_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -63,10 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       curve: Curves.easeOutCubic,
     );
     _revealOffset = Tween<double>(begin: 18, end: 0).animate(
-      CurvedAnimation(
-        parent: _revealController,
-        curve: Curves.easeOutCubic,
-      ),
+      CurvedAnimation(parent: _revealController, curve: Curves.easeOutCubic),
     );
   }
 
@@ -96,11 +93,20 @@ class _ProfileScreenState extends State<ProfileScreen>
       );
     }
 
-    final name = user.name.trim().isNotEmpty ? user.name.trim() : 'ABZORA Member';
-    final nameParts = name.split(' ').where((part) => part.trim().isNotEmpty).toList();
+    final name = user.name.trim().isNotEmpty
+        ? user.name.trim()
+        : 'ABZORA Member';
+    final nameParts = name
+        .split(' ')
+        .where((part) => part.trim().isNotEmpty)
+        .toList();
     final firstName = nameParts.isEmpty ? 'there' : nameParts.first;
-    final phone = user.phone?.trim().isNotEmpty == true ? user.phone!.trim() : 'No phone linked';
-    final address = user.address?.trim().isNotEmpty == true ? user.address!.trim() : 'Set location';
+    final phone = user.phone?.trim().isNotEmpty == true
+        ? user.phone!.trim()
+        : 'No phone linked';
+    final address = user.address?.trim().isNotEmpty == true
+        ? user.address!.trim()
+        : 'Set location';
     final city = _extractCity(address);
 
     return AbzioThemeScope.dark(
@@ -114,221 +120,242 @@ class _ProfileScreenState extends State<ProfileScreen>
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 sliver: SliverList(
-                  delegate: SliverChildListDelegate(
-                    [
-                      _reveal(
-                        0.00,
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Good evening, $firstName ✨',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                  delegate: SliverChildListDelegate([
+                    _reveal(
+                      0.00,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Good evening, $firstName ✨',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Your next outfit is waiting',
+                            style: TextStyle(
+                              color: context.abzioSecondaryText,
+                              fontWeight: FontWeight.w500,
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Your next outfit is waiting',
-                              style: TextStyle(
-                                color: context.abzioSecondaryText,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 14),
-                      _reveal(
-                        0.02,
-                        StreamBuilder<AppUser?>(
-                                stream: _database.watchUser(user.id),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting &&
-                                      !snapshot.hasData) {
-                                    return _profileHeaderSkeleton();
-                                  }
-                                  if (snapshot.hasError) {
-                                    return _buildEliteCard(
-                                      context,
-                                      auth: auth,
-                                      user: user,
-                                      name: name,
-                                      phone: phone,
-                                      city: city,
-                                      address: address,
-                                    );
-                                  }
-                                  final liveUser = snapshot.data ?? user;
-                                  final liveName = liveUser.name.trim().isNotEmpty
-                                      ? liveUser.name.trim()
-                                      : 'ABZORA Member';
-                                  final livePhone = liveUser.phone?.trim().isNotEmpty == true
-                                      ? liveUser.phone!.trim()
-                                      : 'No phone linked';
-                                  final liveAddress = liveUser.address?.trim().isNotEmpty == true
-                                      ? liveUser.address!.trim()
-                                      : 'Set location';
-                                  return _buildEliteCard(
-                                    context,
-                                    auth: auth,
-                                    user: liveUser,
-                                    name: liveName,
-                                    phone: livePhone,
-                                    city: _extractCity(liveAddress),
-                                    address: liveAddress,
-                                  );
-                                },
-                              ),
+                    ),
+                    const SizedBox(height: 14),
+                    _reveal(
+                      0.02,
+                      StreamBuilder<AppUser?>(
+                        stream: _database.watchUser(user.id),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                                  ConnectionState.waiting &&
+                              !snapshot.hasData) {
+                            return _profileHeaderSkeleton();
+                          }
+                          if (snapshot.hasError) {
+                            return _buildEliteCard(
+                              context,
+                              auth: auth,
+                              user: user,
+                              name: name,
+                              phone: phone,
+                              city: city,
+                              address: address,
+                            );
+                          }
+                          final liveUser = snapshot.data ?? user;
+                          final liveName = liveUser.name.trim().isNotEmpty
+                              ? liveUser.name.trim()
+                              : 'ABZORA Member';
+                          final livePhone =
+                              liveUser.phone?.trim().isNotEmpty == true
+                              ? liveUser.phone!.trim()
+                              : 'No phone linked';
+                          final liveAddress =
+                              liveUser.address?.trim().isNotEmpty == true
+                              ? liveUser.address!.trim()
+                              : 'Set location';
+                          return _buildEliteCard(
+                            context,
+                            auth: auth,
+                            user: liveUser,
+                            name: liveName,
+                            phone: livePhone,
+                            city: _extractCity(liveAddress),
+                            address: liveAddress,
+                          );
+                        },
                       ),
-                      const SizedBox(height: 14),
-                      _reveal(0.04, _buildValueStrip(context, user)),
-                      const SizedBox(height: 18),
-                      _reveal(0.06, _atelierEntryCard(context)),
-                      const SizedBox(height: 26),
-                      _reveal(
-                        0.08,
-                        _sectionTitle(
-                          eyebrow: 'Quick Access',
-                          title: 'Your fashion dashboard',
-                          subtitle: 'Orders, saved edits, offers, and support arranged with clear hierarchy.',
-                        ),
+                    ),
+                    const SizedBox(height: 14),
+                    _reveal(0.04, _buildValueStrip(context, user)),
+                    const SizedBox(height: 18),
+                    _reveal(0.06, _atelierEntryCard(context)),
+                    const SizedBox(height: 26),
+                    _reveal(
+                      0.08,
+                      _sectionTitle(
+                        eyebrow: 'Quick Access',
+                        title: 'Your fashion dashboard',
+                        subtitle:
+                            'Orders, saved edits, offers, and support arranged with clear hierarchy.',
                       ),
-                      const SizedBox(height: 14),
-                      _reveal(0.14, _quickActionGrid(context)),
-                      const SizedBox(height: 24),
-                      _reveal(
-                        0.22,
-                        _sectionTitle(
-                          eyebrow: 'Profile · Fit Profile',
-                          title: 'Your Fit Profile',
-                          subtitle: 'Personalized sizing and tailoring, designed for you',
-                        ),
+                    ),
+                    const SizedBox(height: 14),
+                    _reveal(0.14, _quickActionGrid(context)),
+                    const SizedBox(height: 24),
+                    _reveal(
+                      0.22,
+                      _sectionTitle(
+                        eyebrow: 'Profile · Fit Profile',
+                        title: 'Your Fit Profile',
+                        subtitle:
+                            'Personalized sizing and tailoring, designed for you',
                       ),
-                      const SizedBox(height: 14),
-                      _reveal(0.28, _styleSection(context, user)),
-                      const SizedBox(height: 24),
-                      _reveal(
-                        0.36,
-                        _sectionTitle(
-                          eyebrow: 'Account',
-                          title: 'Manage your preferences',
-                          subtitle: 'Delivery, payments, and notifications tuned for a seamless shopping flow.',
-                        ),
+                    ),
+                    const SizedBox(height: 14),
+                    _reveal(0.28, _styleSection(context, user)),
+                    const SizedBox(height: 24),
+                    _reveal(
+                      0.36,
+                      _sectionTitle(
+                        eyebrow: 'Account',
+                        title: 'Manage your preferences',
+                        subtitle:
+                            'Delivery, payments, and notifications tuned for a seamless shopping flow.',
                       ),
-                      const SizedBox(height: 14),
-                      _reveal(0.42, _buildSettingsList(context, city)),
-                      const SizedBox(height: 24),
-                      _reveal(
-                        0.50,
-                        _sectionTitle(
-                          eyebrow: 'Growth',
-                          title: 'Grow with ABZORA',
-                          subtitle: 'Partner opportunities, referral rewards, and premium member perks.',
-                        ),
+                    ),
+                    const SizedBox(height: 14),
+                    _reveal(0.42, _buildSettingsList(context, city)),
+                    const SizedBox(height: 24),
+                    _reveal(
+                      0.50,
+                      _sectionTitle(
+                        eyebrow: 'Growth',
+                        title: 'Grow with ABZORA',
+                        subtitle:
+                            'Partner opportunities, referral rewards, and premium member perks.',
                       ),
-                      const SizedBox(height: 14),
-                      _reveal(0.56, _buildGrowthSection(context)),
-                      const SizedBox(height: 24),
-                      _reveal(
-                        0.64,
-                        _sectionTitle(
-                          eyebrow: 'AI Support',
-                          title: 'Instant help for styling and orders',
-                          subtitle: 'A premium assistant for fit questions, order support, and next-look guidance.',
-                        ),
+                    ),
+                    const SizedBox(height: 14),
+                    _reveal(0.56, _buildGrowthSection(context)),
+                    const SizedBox(height: 24),
+                    _reveal(
+                      0.64,
+                      _sectionTitle(
+                        eyebrow: 'AI Support',
+                        title: 'Instant help for styling and orders',
+                        subtitle:
+                            'A premium assistant for fit questions, order support, and next-look guidance.',
                       ),
-                      const SizedBox(height: 14),
-                      _reveal(
-                        0.70,
-                        StreamBuilder<List<SupportChat>>(
-                                stream: _database.watchSupportChatsForUser(actor: user),
-                                builder: (context, snapshot) {
-                                  if (snapshot.hasError) {
-                                    return _buildAiSupportState(
-                                      context,
-                                      subtitle: 'Instant help for styling and orders',
-                                      badgeLabel: 'Live',
-                                    );
-                                  }
-                                  final chats = snapshot.data ?? const <SupportChat>[];
-                                  final unreadCount = chats.fold<int>(
-                                    0,
-                                    (sum, chat) => sum + chat.unreadCountUser,
-                                  );
-                                  final openChats = chats.where((chat) => chat.status != 'closed').length;
-                                  return FutureBuilder<UserMemory?>(
-                                    future: _memoryFor(user.id),
-                                    builder: (context, memorySnapshot) {
-                                      if (memorySnapshot.hasError) {
-                                        return _buildAiSupportState(
-                                          context,
-                                          subtitle: unreadCount > 0
-                                              ? '$unreadCount new assistant repl${unreadCount == 1 ? 'y' : 'ies'}'
-                                              : openChats > 0
-                                                  ? '$openChats active assistant conversation${openChats == 1 ? '' : 's'}'
-                                                  : 'Instant help for styling and orders',
-                                          badgeLabel: unreadCount > 0 ? '$unreadCount new' : 'Live',
-                                        );
-                                      }
-                                      final memory = memorySnapshot.data;
-                                      final memorySummary = memory == null
-                                          ? ''
-                                          : [
-                                              if (memory.preferredStyle.trim().isNotEmpty)
-                                                'Style: ${memory.preferredStyle.trim()}',
-                                              if (memory.size.trim().isNotEmpty)
-                                                'Size: ${memory.size.trim()}',
-                                              if (memory.lastConversationSummary.trim().isNotEmpty)
-                                                memory.lastConversationSummary.trim(),
-                                            ].join(' • ');
-                                      final supportSubtitle = unreadCount > 0
-                                          ? '$unreadCount new assistant repl${unreadCount == 1 ? 'y' : 'ies'}'
-                                          : openChats > 0
-                                              ? '$openChats active assistant conversation${openChats == 1 ? '' : 's'}'
-                                              : memorySummary.isNotEmpty
-                                                  ? memorySummary
-                                                  : 'Instant help for orders, payments, and custom styles';
+                    ),
+                    const SizedBox(height: 14),
+                    _reveal(
+                      0.70,
+                      StreamBuilder<List<SupportChat>>(
+                        stream: _database.watchSupportChatsForUser(actor: user),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) {
+                            return _buildAiSupportState(
+                              context,
+                              subtitle: 'Instant help for styling and orders',
+                              badgeLabel: 'Live',
+                            );
+                          }
+                          final chats = snapshot.data ?? const <SupportChat>[];
+                          final unreadCount = chats.fold<int>(
+                            0,
+                            (sum, chat) => sum + chat.unreadCountUser,
+                          );
+                          final openChats = chats
+                              .where((chat) => chat.status != 'closed')
+                              .length;
+                          return FutureBuilder<UserMemory?>(
+                            future: _memoryFor(user.id),
+                            builder: (context, memorySnapshot) {
+                              if (memorySnapshot.hasError) {
+                                return _buildAiSupportState(
+                                  context,
+                                  subtitle: unreadCount > 0
+                                      ? '$unreadCount new assistant repl${unreadCount == 1 ? 'y' : 'ies'}'
+                                      : openChats > 0
+                                      ? '$openChats active assistant conversation${openChats == 1 ? '' : 's'}'
+                                      : 'Instant help for styling and orders',
+                                  badgeLabel: unreadCount > 0
+                                      ? '$unreadCount new'
+                                      : 'Live',
+                                );
+                              }
+                              final memory = memorySnapshot.data;
+                              final memorySummary = memory == null
+                                  ? ''
+                                  : [
+                                      if (memory.preferredStyle
+                                          .trim()
+                                          .isNotEmpty)
+                                        'Style: ${memory.preferredStyle.trim()}',
+                                      if (memory.size.trim().isNotEmpty)
+                                        'Size: ${memory.size.trim()}',
+                                      if (memory.lastConversationSummary
+                                          .trim()
+                                          .isNotEmpty)
+                                        memory.lastConversationSummary.trim(),
+                                    ].join(' • ');
+                              final supportSubtitle = unreadCount > 0
+                                  ? '$unreadCount new assistant repl${unreadCount == 1 ? 'y' : 'ies'}'
+                                  : openChats > 0
+                                  ? '$openChats active assistant conversation${openChats == 1 ? '' : 's'}'
+                                  : memorySummary.isNotEmpty
+                                  ? memorySummary
+                                  : 'Instant help for orders, payments, and custom styles';
 
-                                      return _buildAiSupportState(
-                                        context,
-                                        subtitle: supportSubtitle,
-                                        badgeLabel: unreadCount > 0
-                                            ? '$unreadCount new'
-                                            : memorySummary.isNotEmpty
-                                                ? 'Memory On'
-                                                : 'Live',
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
+                              return _buildAiSupportState(
+                                context,
+                                subtitle: supportSubtitle,
+                                badgeLabel: unreadCount > 0
+                                    ? '$unreadCount new'
+                                    : memorySummary.isNotEmpty
+                                    ? 'Memory On'
+                                    : 'Live',
+                              );
+                            },
+                          );
+                        },
                       ),
-                      const SizedBox(height: 28),
-                      _reveal(
-                        0.78,
-                        OutlinedButton.icon(
-                          onPressed: () => _confirmLogout(context),
-                          icon: Icon(
-                            Icons.logout_rounded,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+                    ),
+                    const SizedBox(height: 28),
+                    _reveal(
+                      0.78,
+                      OutlinedButton.icon(
+                        onPressed: () => _confirmLogout(context),
+                        icon: Icon(
+                          Icons.logout_rounded,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.72),
+                        ),
+                        label: const Text(
+                          'Logout',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.78),
+                          backgroundColor: Colors.white.withValues(alpha: 0.72),
+                          side: BorderSide(
+                            color: context.abzioBorder.withValues(alpha: 0.70),
                           ),
-                          label: const Text(
-                            'Logout',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.78),
-                            backgroundColor: Colors.white.withValues(alpha: 0.72),
-                            side: BorderSide(color: context.abzioBorder.withValues(alpha: 0.70)),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 12),
+                  ]),
                 ),
               ),
             ],
@@ -400,18 +427,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                 Text(
                   'Welcome back to your style \u{1F44B}',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF1C1711),
-                      ),
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1C1711),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Pick up where you left off and keep your perfect fit saved',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF6A5E4E),
-                        height: 1.45,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: const Color(0xFF6A5E4E),
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -449,14 +476,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                         colors: [Color(0xFF2D2A26), Color(0xFF5C5242)],
                       ),
                     ),
-                    child: contextProduct != null && contextProduct.images.isNotEmpty
+                    child:
+                        contextProduct != null &&
+                            contextProduct.images.isNotEmpty
                         ? Image.network(
                             contextProduct.images.first,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
-                              Icons.checkroom_rounded,
-                              color: Color(0xFFF6EAD3),
-                            ),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(
+                                  Icons.checkroom_rounded,
+                                  color: Color(0xFFF6EAD3),
+                                ),
                           )
                         : const Icon(
                             Icons.local_fire_department_rounded,
@@ -472,9 +502,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       Text(
                         hasLastViewedData ? 'Last viewed' : 'Trending now',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF8A7A63),
-                              fontWeight: FontWeight.w700,
-                            ),
+                          color: const Color(0xFF8A7A63),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -482,9 +512,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF20190F),
-                            ),
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF20190F),
+                        ),
                       ),
                       const SizedBox(height: 3),
                       Text(
@@ -492,9 +522,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF5E5344),
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: const Color(0xFF5E5344),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -537,7 +567,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                   gradient: LinearGradient(
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
-                    colors: [Color(0xFFB9924A), Color(0xFFC6A769), Color(0xFFD6BF8B)],
+                    colors: [
+                      Color(0xFFB9924A),
+                      Color(0xFFC6A769),
+                      Color(0xFFD6BF8B),
+                    ],
                   ),
                 ),
                 child: const Center(
@@ -560,9 +594,18 @@ class _ProfileScreenState extends State<ProfileScreen>
             spacing: 10,
             runSpacing: 10,
             children: const [
-              _GuestBenefitChip(icon: Icons.local_shipping_outlined, label: 'Track your orders'),
-              _GuestBenefitChip(icon: Icons.favorite_border_rounded, label: 'Save your wishlist'),
-              _GuestBenefitChip(icon: Icons.straighten_rounded, label: 'Get AI-powered fit'),
+              _GuestBenefitChip(
+                icon: Icons.local_shipping_outlined,
+                label: 'Track your orders',
+              ),
+              _GuestBenefitChip(
+                icon: Icons.favorite_border_rounded,
+                label: 'Save your wishlist',
+              ),
+              _GuestBenefitChip(
+                icon: Icons.straighten_rounded,
+                label: 'Get AI-powered fit',
+              ),
             ],
           ),
         ),
@@ -575,9 +618,9 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: Text(
                 'Skip for now',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF7D7264),
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: const Color(0xFF7D7264),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -591,18 +634,18 @@ class _ProfileScreenState extends State<ProfileScreen>
               Text(
                 'Continue browsing',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF8A7A63),
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
-                    ),
+                  color: const Color(0xFF8A7A63),
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Recently Viewed',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1A1712),
-                    ),
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1A1712),
+                ),
               ),
             ],
           ),
@@ -621,16 +664,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                           subtitle: recentlyViewed[i].brand.trim().isNotEmpty
                               ? recentlyViewed[i].brand.trim()
                               : recentlyViewed[i].category,
-                          price: _formatCurrency(recentlyViewed[i].effectivePrice),
-                          accent: i.isEven ? const Color(0xFFF6EAD3) : const Color(0xFFF4EFE4),
-                          imageUrl: recentlyViewed[i].images.isNotEmpty ? recentlyViewed[i].images.first : null,
+                          price: _formatCurrency(
+                            recentlyViewed[i].effectivePrice,
+                          ),
+                          accent: i.isEven
+                              ? const Color(0xFFF6EAD3)
+                              : const Color(0xFFF4EFE4),
+                          imageUrl: recentlyViewed[i].images.isNotEmpty
+                              ? recentlyViewed[i].images.first
+                              : null,
                           onTap: () => Navigator.pushNamed(
                             context,
                             '/product-detail',
                             arguments: recentlyViewed[i],
                           ),
                         ),
-                        if (i != recentlyViewed.length - 1) const SizedBox(width: 12),
+                        if (i != recentlyViewed.length - 1)
+                          const SizedBox(width: 12),
                       ],
                     ]
                   : const [
@@ -674,9 +724,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   offset: const Offset(0, 8),
                 ),
               ],
-              border: Border.all(
-                color: const Color(0xFFEFE5D3),
-              ),
+              border: Border.all(color: const Color(0xFFEFE5D3)),
             ),
             child: Row(
               children: [
@@ -699,17 +747,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                     children: [
                       Text(
                         'Try at Home',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Try 5 styles at home. Pay only for what you keep',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF6A6156),
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: const Color(0xFF6A6156),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -755,6 +802,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       ],
     );
   }
+
   bool get _showLegacyAtelierTeaser => false;
 
   Widget _buildEliteCard(
@@ -818,10 +866,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) =>
                                       const BrandLogo(
-                                    size: 60,
-                                    radius: 17,
-                                    padding: EdgeInsets.all(1.5),
-                                  ),
+                                        size: 60,
+                                        radius: 17,
+                                        padding: EdgeInsets.all(1.5),
+                                      ),
                                   loadingBuilder: (context, child, progress) {
                                     if (progress == null) {
                                       return child;
@@ -829,7 +877,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     return const ShimmerBox(
                                       width: 60,
                                       height: 60,
-                                      borderRadius: BorderRadius.all(Radius.circular(17)),
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(17),
+                                      ),
                                     );
                                   },
                                 ),
@@ -846,7 +896,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                           color: Colors.white,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: AbzioTheme.accentColor.withValues(alpha: 0.28),
+                            color: AbzioTheme.accentColor.withValues(
+                              alpha: 0.28,
+                            ),
                           ),
                         ),
                         child: Center(
@@ -872,26 +924,36 @@ class _ProfileScreenState extends State<ProfileScreen>
                     Text(
                       name,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontSize: 25,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        fontSize: 25,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       phone,
-                      style: TextStyle(color: context.abzioSecondaryText, fontSize: 13),
+                      style: TextStyle(
+                        color: context.abzioSecondaryText,
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined, size: 16, color: AbzioTheme.accentColor),
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 16,
+                          color: AbzioTheme.accentColor,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             city,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -920,7 +982,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ),
                         ],
                       ),
-                      child: Icon(Icons.edit_outlined, size: 18, color: Theme.of(context).colorScheme.onSurface),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                   ),
                 ),
@@ -932,99 +998,101 @@ class _ProfileScreenState extends State<ProfileScreen>
             onTap: () => _showComingSoon(
               context,
               title: 'ABZORA Elite',
-              message: 'Elite membership perks, concierge support, and private drops will appear here.',
+              message:
+                  'Elite membership perks, concierge support, and private drops will appear here.',
             ),
             child: _eliteBadge(),
           ),
           const SizedBox(height: 14),
-          if (_showLegacyAtelierTeaser) TapScale(
-            onTap: () => _push(context, const AtelierFlowScreen()),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: AbzioTheme.accentColor.withValues(alpha: 0.20),
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    AbzioTheme.accentColor.withValues(alpha: 0.14),
-                    const Color(0xFFFFFCF5),
-                    Colors.white,
+          if (_showLegacyAtelierTeaser)
+            TapScale(
+              onTap: () => _push(context, const AtelierFlowScreen()),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: AbzioTheme.accentColor.withValues(alpha: 0.20),
+                  ),
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      AbzioTheme.accentColor.withValues(alpha: 0.14),
+                      const Color(0xFFFFFCF5),
+                      Colors.white,
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AbzioTheme.accentColor.withValues(alpha: 0.08),
+                      blurRadius: 22,
+                      offset: const Offset(0, 12),
+                    ),
                   ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AbzioTheme.accentColor.withValues(alpha: 0.08),
-                    blurRadius: 22,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.design_services_rounded,
+                        color: AbzioTheme.accentColor,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.design_services_rounded,
-                      color: AbzioTheme.accentColor,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Start your custom fit journey',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            'Design clothes tailored just for you',
+                            style: TextStyle(
+                              color: context.abzioSecondaryText,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: AbzioTheme.accentColor,
+                        ),
+                        const SizedBox(height: 8),
                         Text(
-                          'Start your custom fit journey',
+                          'Create Custom Outfit →',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          'Design clothes tailored just for you',
-                          style: TextStyle(
-                            color: context.abzioSecondaryText,
-                            height: 1.4,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Icon(
-                        Icons.arrow_forward_rounded,
-                        color: AbzioTheme.accentColor,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Create Custom Outfit →',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
           const SizedBox(height: 12),
           TweenAnimationBuilder<double>(
             tween: Tween<double>(begin: 0, end: completionScore / 100),
@@ -1160,7 +1228,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       future: _profileValuesFor(user),
       builder: (context, snapshot) {
         final values = snapshot.data;
-        final rewardPoints = snapshot.hasError ? 0 : (values?.rewardPoints ?? 0);
+        final rewardPoints = snapshot.hasError
+            ? 0
+            : (values?.rewardPoints ?? 0);
         final orderCount = snapshot.hasError ? 0 : (values?.orderCount ?? 0);
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
@@ -1219,11 +1289,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF221A14),
-              Color(0xFF3A2A1C),
-              Color(0xFF15110E),
-            ],
+            colors: [Color(0xFF221A14), Color(0xFF3A2A1C), Color(0xFF15110E)],
           ),
           boxShadow: [
             BoxShadow(
@@ -1261,7 +1327,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                   decoration: BoxDecoration(
                     color: AbzioTheme.accentColor.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.30)),
+                    border: Border.all(
+                      color: AbzioTheme.accentColor.withValues(alpha: 0.30),
+                    ),
                   ),
                   child: const Icon(
                     Icons.auto_awesome_rounded,
@@ -1290,7 +1358,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
                 const SizedBox(height: 24),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF4DEAC),
                     borderRadius: BorderRadius.circular(16),
@@ -1306,7 +1377,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                       ),
                       SizedBox(width: 10),
-                      Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.black),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 18,
+                        color: Colors.black,
+                      ),
                     ],
                   ),
                 ),
@@ -1358,7 +1433,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 onTap: () => _showComingSoon(
                   context,
                   title: 'Coupons',
-                  message: 'Private offers and promo coupons will show up here.',
+                  message:
+                      'Private offers and promo coupons will show up here.',
                 ),
               ),
             ),
@@ -1382,7 +1458,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (user == null) {
       return const AbzioEmptyCard(
         title: 'Sign in to unlock custom clothing',
-        subtitle: 'Your measurements, made-to-order fits, and styling progress will appear here.',
+        subtitle:
+            'Your measurements, made-to-order fits, and styling progress will appear here.',
       );
     }
 
@@ -1390,7 +1467,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (normalizedRole == 'vendor' || normalizedRole == 'rider') {
       return const AbzioEmptyCard(
         title: 'Customer style profile only',
-        subtitle: 'Measurements, body scans, and fit memory are available in the customer shopping experience.',
+        subtitle:
+            'Measurements, body scans, and fit memory are available in the customer shopping experience.',
       );
     }
 
@@ -1400,7 +1478,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         if (snapshot.hasError) {
           return const AbzioEmptyCard(
             title: 'Style profile unavailable right now',
-            subtitle: 'Measurements and smart-fit details could not be loaded, but the rest of your profile is still available.',
+            subtitle:
+                'Measurements and smart-fit details could not be loaded, but the rest of your profile is still available.',
           );
         }
 
@@ -1408,16 +1487,17 @@ class _ProfileScreenState extends State<ProfileScreen>
         final measurementProfiles =
             styleSnapshot?.measurementProfiles ?? const <MeasurementProfile>[];
         final bodyProfile = styleSnapshot?.bodyProfile;
-        final measurementsSubtitle = snapshot.connectionState == ConnectionState.waiting
+        final measurementsSubtitle =
+            snapshot.connectionState == ConnectionState.waiting
             ? 'Checking your saved fit details'
             : measurementProfiles.isEmpty
-                ? 'View and edit your fit details'
-                : '${measurementProfiles.length} saved profile${measurementProfiles.length == 1 ? '' : 's'}';
+            ? 'View and edit your fit details'
+            : '${measurementProfiles.length} saved profile${measurementProfiles.length == 1 ? '' : 's'}';
         final scanSubtitle = snapshot.connectionState == ConnectionState.waiting
             ? 'Improve accuracy with AI-assisted scanning'
             : bodyProfile == null
-                ? 'Improve accuracy with AI-assisted scanning'
-                : 'Last scanned ${_relativeScanTime(bodyProfile.updatedAt)}';
+            ? 'Improve accuracy with AI-assisted scanning'
+            : 'Last scanned ${_relativeScanTime(bodyProfile.updatedAt)}';
 
         return Column(
           children: [
@@ -1506,14 +1586,22 @@ class _ProfileScreenState extends State<ProfileScreen>
               color: cardGradient == null ? cardColor : null,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: highlighted ? 0.07 : 0.045),
+                  color: Colors.black.withValues(
+                    alpha: highlighted ? 0.07 : 0.045,
+                  ),
                   blurRadius: highlighted ? 22 : 16,
                   offset: const Offset(0, 10),
                 ),
               ],
             ),
             child: Padding(
-              padding: EdgeInsets.all(compact ? 16 : highlighted ? 20 : 18),
+              padding: EdgeInsets.all(
+                compact
+                    ? 16
+                    : highlighted
+                    ? 20
+                    : 18,
+              ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1562,7 +1650,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                           title,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: compact ? 15 : highlighted ? 18 : 16,
+                            fontSize: compact
+                                ? 15
+                                : highlighted
+                                ? 18
+                                : 16,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -1581,7 +1673,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: highlighted ? 16 : 14,
-                    color: const Color(0xFF8E7446).withValues(alpha: highlighted ? 0.9 : 0.65),
+                    color: const Color(
+                      0xFF8E7446,
+                    ).withValues(alpha: highlighted ? 0.9 : 0.65),
                   ),
                 ],
               ),
@@ -1593,9 +1687,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _openQuickFitFlow(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const FindMyFitFlowScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const FindMyFitFlowScreen()));
   }
 
   Widget _quickActionCard(
@@ -1654,7 +1748,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(color: context.abzioSecondaryText, height: 1.35),
+                    style: TextStyle(
+                      color: context.abzioSecondaryText,
+                      height: 1.35,
+                    ),
                   ),
                 ],
               ),
@@ -1674,11 +1771,15 @@ class _ProfileScreenState extends State<ProfileScreen>
         color: const Color(0xFFFFFDF8),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: AbzioTheme.accentColor.withValues(alpha: lightweight ? 0.16 : 0.22),
+          color: AbzioTheme.accentColor.withValues(
+            alpha: lightweight ? 0.16 : 0.22,
+          ),
         ),
         boxShadow: [
           BoxShadow(
-            color: AbzioTheme.accentColor.withValues(alpha: lightweight ? 0.04 : 0.06),
+            color: AbzioTheme.accentColor.withValues(
+              alpha: lightweight ? 0.04 : 0.06,
+            ),
             blurRadius: lightweight ? 12 : 16,
             offset: const Offset(0, 8),
           ),
@@ -1726,13 +1827,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: minimal ? const Color(0xFFF6F3EC) : const Color(0xFFFFF4D8),
+                    color: minimal
+                        ? const Color(0xFFF6F3EC)
+                        : const Color(0xFFFFF4D8),
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: minimal
                         ? null
                         : [
                             BoxShadow(
-                              color: AbzioTheme.accentColor.withValues(alpha: 0.08),
+                              color: AbzioTheme.accentColor.withValues(
+                                alpha: 0.08,
+                              ),
                               blurRadius: 10,
                               offset: const Offset(0, 6),
                             ),
@@ -1740,7 +1845,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   child: Icon(
                     icon,
-                    color: minimal ? const Color(0xFF8E7A58) : Theme.of(context).colorScheme.onSurface,
+                    color: minimal
+                        ? const Color(0xFF8E7A58)
+                        : Theme.of(context).colorScheme.onSurface,
                     size: 20,
                   ),
                 ),
@@ -1760,7 +1867,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                             ),
                           ),
-                          if (badgeLabel != null && badgeLabel.trim().isNotEmpty) ...[
+                          if (badgeLabel != null &&
+                              badgeLabel.trim().isNotEmpty) ...[
                             const SizedBox(width: 10),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -1771,7 +1879,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 color: const Color(0xFFFFF3CB),
                                 borderRadius: BorderRadius.circular(999),
                                 border: Border.all(
-                                  color: AbzioTheme.accentColor.withValues(alpha: 0.22),
+                                  color: AbzioTheme.accentColor.withValues(
+                                    alpha: 0.22,
+                                  ),
                                 ),
                               ),
                               child: Text(
@@ -1798,7 +1908,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                 ),
                 const SizedBox(width: 12),
-                Icon(Icons.arrow_forward_ios_rounded, size: 15, color: context.abzioSecondaryText),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 15,
+                  color: context.abzioSecondaryText,
+                ),
               ],
             ),
           ),
@@ -1827,7 +1941,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               color: Colors.white.withValues(alpha: 0.90),
-              border: Border.all(color: context.abzioBorder.withValues(alpha: 0.75)),
+              border: Border.all(
+                color: context.abzioBorder.withValues(alpha: 0.75),
+              ),
             ),
             child: Padding(
               padding: const EdgeInsets.all(18),
@@ -1877,7 +1993,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                               color: const Color(0xFFFFF3CB),
                               borderRadius: BorderRadius.circular(999),
                               border: Border.all(
-                                color: AbzioTheme.accentColor.withValues(alpha: 0.20),
+                                color: AbzioTheme.accentColor.withValues(
+                                  alpha: 0.20,
+                                ),
                               ),
                             ),
                             child: Text(
@@ -1919,7 +2037,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           _buildListItem(
             icon: Icons.location_on_outlined,
             title: 'Addresses',
-            subtitle: city == 'Location pending' ? 'Add your preferred delivery spot' : 'Deliver to $city',
+            subtitle: city == 'Location pending'
+                ? 'Add your preferred delivery spot'
+                : 'Deliver to $city',
             onTap: () => _editAddress(context),
             minimal: true,
           ),
@@ -1950,7 +2070,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         _vendorOnboardingCard(
           context,
           title: 'Join as Ready-Made Vendor',
-          subtitle: 'Sell in-stock fashion products and grow with marketplace demand.',
+          subtitle:
+              'Sell in-stock fashion products and grow with marketplace demand.',
           icon: Icons.storefront_outlined,
           badge: 'Ready-Made',
           onTap: () => _push(context, const VendorRegistrationScreen()),
@@ -1959,10 +2080,11 @@ class _ProfileScreenState extends State<ProfileScreen>
         _vendorOnboardingCard(
           context,
           title: 'Join as Custom Atelier Vendor',
-          subtitle: 'Offer made-to-measure tailoring with premium client workflows.',
+          subtitle:
+              'Offer made-to-measure tailoring with premium client workflows.',
           icon: Icons.design_services_outlined,
           badge: 'Atelier',
-          onTap: () => _push(context, const VendorOnboardingScreen()),
+          onTap: () => _push(context, const VendorOnboardingFlowScreen()),
         ),
         const SizedBox(height: 12),
         Container(
@@ -1987,7 +2109,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 onTap: () => _showComingSoon(
                   context,
                   title: 'Offers & rewards',
-                  message: 'Curated rewards and luxury member offers will be available here.',
+                  message:
+                      'Curated rewards and luxury member offers will be available here.',
                 ),
                 minimal: true,
               ),
@@ -2039,10 +2162,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           const SizedBox(height: 6),
           Text(
             subtitle,
-            style: TextStyle(
-              color: context.abzioSecondaryText,
-              height: 1.45,
-            ),
+            style: TextStyle(color: context.abzioSecondaryText, height: 1.45),
           ),
         ],
       ],
@@ -2117,14 +2237,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                           Expanded(
                             child: Text(
                               'AI Assistant',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w800,
                                   ),
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFEBD7A2),
                               borderRadius: BorderRadius.circular(999),
@@ -2194,10 +2318,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           );
         } catch (error) {
           debugPrint('Profile value strip fallback for ${user.id}: $error');
-          return const _ProfileValueSnapshot(
-            orderCount: 0,
-            rewardPoints: 0,
-          );
+          return const _ProfileValueSnapshot(orderCount: 0, rewardPoints: 0);
         }
       }();
     }
@@ -2256,7 +2377,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (parts.length == 1) {
       return parts.first.substring(0, 1).toUpperCase();
     }
-    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'.toUpperCase();
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+        .toUpperCase();
   }
 
   String _relativeScanTime(String updatedAt) {
@@ -2330,11 +2452,14 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _confirmLogout(BuildContext context) async {
     final authProvider = context.read<AuthProvider>();
-    final shouldLogout = await showDialog<bool>(
+    final shouldLogout =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             backgroundColor: AbzioTheme.cardColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             title: const Text('Logout'),
             content: const Text(
               'Are you sure you want to log out from ABZORA?',
@@ -2364,10 +2489,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (!mounted) {
       return;
     }
-    await authProvider.logout(
-      resetNavigation: true,
-      showSuccessMessage: true,
-    );
+    await authProvider.logout(resetNavigation: true, showSuccessMessage: true);
   }
 
   void _push(BuildContext context, Widget screen) {
@@ -2409,7 +2531,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.96),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.10),
@@ -2438,28 +2562,28 @@ class _ProfileScreenState extends State<ProfileScreen>
                     Text(
                       'Add Payment Method',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Choose how you want to pay',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: context.abzioSecondaryText,
-                            height: 1.45,
-                          ),
+                        color: context.abzioSecondaryText,
+                        height: 1.45,
+                      ),
                     ),
                     const SizedBox(height: 18),
                     _paymentActionTile(
                       context,
                       icon: Icons.credit_card_rounded,
-                        title: 'Credit / Debit Card',
-                        subtitle: 'Visa, Mastercard, RuPay',
-                        onTap: () {
-                          Navigator.pop(sheetContext);
-                          Navigator.pushNamed(context, '/add-card');
-                        },
-                      ),
+                      title: 'Credit / Debit Card',
+                      subtitle: 'Visa, Mastercard, RuPay',
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        Navigator.pushNamed(context, '/add-card');
+                      },
+                    ),
                     const SizedBox(height: 14),
                     _paymentActionTile(
                       context,
@@ -2468,9 +2592,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       subtitle: 'Google Pay, PhonePe, Paytm',
                       badge: 'Fastest',
                       recommended: true,
-                        onTap: () {
-                          Navigator.pop(sheetContext);
-                          Navigator.pushNamed(context, '/payments');
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        Navigator.pushNamed(context, '/payments');
                       },
                     ),
                     const SizedBox(height: 14),
@@ -2484,7 +2608,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             behavior: SnackBarBehavior.floating,
-                            content: Text('Cash on Delivery is available on eligible orders.'),
+                            content: Text(
+                              'Cash on Delivery is available on eligible orders.',
+                            ),
                           ),
                         );
                       },
@@ -2492,7 +2618,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                     const SizedBox(height: 18),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFFCF4),
                         borderRadius: BorderRadius.circular(18),
@@ -2510,9 +2639,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                           const SizedBox(width: 10),
                           Text(
                             '100% secure payments',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
@@ -2521,9 +2649,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(sheetContext);
-                            Navigator.pushNamed(context, '/payments');
+                        onPressed: () {
+                          Navigator.pop(sheetContext);
+                          Navigator.pushNamed(context, '/payments');
                         },
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -2588,10 +2716,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     color: AbzioTheme.accentColor.withValues(alpha: 0.14),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    icon,
-                    color: AbzioTheme.accentColor,
-                  ),
+                  child: Icon(icon, color: AbzioTheme.accentColor),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -2603,21 +2728,26 @@ class _ProfileScreenState extends State<ProfileScreen>
                           Expanded(
                             child: Text(
                               title,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w800),
                             ),
                           ),
                           if (badge != null)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
-                                color: AbzioTheme.accentColor.withValues(alpha: 0.14),
+                                color: AbzioTheme.accentColor.withValues(
+                                  alpha: 0.14,
+                                ),
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: Text(
                                 badge,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
                                       fontWeight: FontWeight.w800,
                                       color: AbzioTheme.textPrimary,
                                     ),
@@ -2629,9 +2759,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       Text(
                         subtitle,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: context.abzioSecondaryText,
-                              height: 1.35,
-                            ),
+                          color: context.abzioSecondaryText,
+                          height: 1.35,
+                        ),
                       ),
                     ],
                   ),
@@ -2687,10 +2817,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             const SizedBox(height: 8),
             Text(
               message,
-              style: const TextStyle(
-                color: AbzioTheme.grey600,
-                height: 1.45,
-              ),
+              style: const TextStyle(color: AbzioTheme.grey600, height: 1.45),
             ),
             const SizedBox(height: 18),
             SizedBox(
@@ -2752,10 +2879,7 @@ class _StyleProfileSnapshot {
 }
 
 class _GuestBenefitChip extends StatelessWidget {
-  const _GuestBenefitChip({
-    required this.icon,
-    required this.label,
-  });
+  const _GuestBenefitChip({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -2774,18 +2898,14 @@ class _GuestBenefitChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 15,
-            color: const Color(0xFF7C5E23),
-          ),
+          Icon(icon, size: 15, color: const Color(0xFF7C5E23)),
           const SizedBox(width: 6),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF3B3022),
-                  fontWeight: FontWeight.w700,
-                ),
+              color: const Color(0xFF3B3022),
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -2847,20 +2967,18 @@ class _GuestJourneyCard extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          accent,
-                          const Color(0xFFF9F4EA),
-                        ],
+                        colors: [accent, const Color(0xFFF9F4EA)],
                       ),
                     ),
                     child: imageUrl?.trim().isNotEmpty == true
                         ? Image.network(
                             imageUrl!,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
-                              Icons.checkroom_rounded,
-                              color: Color(0xFF8D6A28),
-                            ),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(
+                                  Icons.checkroom_rounded,
+                                  color: Color(0xFF8D6A28),
+                                ),
                           )
                         : const Icon(
                             Icons.checkroom_rounded,
@@ -2874,9 +2992,9 @@ class _GuestJourneyCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: const Color(0xFF20190F),
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: const Color(0xFF20190F),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -2884,18 +3002,18 @@ class _GuestJourneyCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF6F614D),
-                        height: 1.35,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: const Color(0xFF6F614D),
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   price,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF8D6A28),
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: const Color(0xFF8D6A28),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
@@ -2907,10 +3025,7 @@ class _GuestJourneyCard extends StatelessWidget {
 }
 
 class _GuestTrustBadge extends StatelessWidget {
-  const _GuestTrustBadge({
-    required this.icon,
-    required this.label,
-  });
+  const _GuestTrustBadge({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -2939,9 +3054,9 @@ class _GuestTrustBadge extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF342A1D),
-                  fontWeight: FontWeight.w700,
-                ),
+              color: const Color(0xFF342A1D),
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -2975,24 +3090,22 @@ class _ProfileValueCell extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: const Color(0xFF9A8258),
-        ),
+        Icon(icon, size: 16, color: const Color(0xFF9A8258)),
         const SizedBox(height: 8),
         Text(
           value,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-              ),
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.60),
             fontSize: 12,
             fontWeight: FontWeight.w700,
           ),
@@ -3015,5 +3128,3 @@ class _ProfileValueDivider extends StatelessWidget {
     );
   }
 }
-
-

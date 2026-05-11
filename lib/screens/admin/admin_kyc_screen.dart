@@ -147,7 +147,8 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
           controller: controller,
           maxLines: 4,
           decoration: const InputDecoration(
-            hintText: 'Tell the applicant what to correct before re-submitting.',
+            hintText:
+                'Tell the applicant what to correct before re-submitting.',
           ),
         ),
         actions: [
@@ -156,7 +157,8 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text.trim()),
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
             child: const Text('Save reason'),
           ),
         ],
@@ -256,7 +258,8 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
           controller: controller,
           maxLines: 4,
           decoration: const InputDecoration(
-            hintText: 'Tell the applicants what to correct before re-submitting.',
+            hintText:
+                'Tell the applicants what to correct before re-submitting.',
           ),
         ),
         actions: [
@@ -265,7 +268,8 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text.trim()),
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
             child: const Text('Reject selected'),
           ),
         ],
@@ -358,11 +362,16 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
   }) {
     final normalizedPhone = selection.phone.trim();
     final phones = <String>[
-      ...vendors.map((item) => item.phone.trim()).where((value) => value.isNotEmpty),
-      ...riders.map((item) => item.phone.trim()).where((value) => value.isNotEmpty),
+      ...vendors
+          .map((item) => item.phone.trim())
+          .where((value) => value.isNotEmpty),
+      ...riders
+          .map((item) => item.phone.trim())
+          .where((value) => value.isNotEmpty),
     ];
     final duplicatePhone =
-        normalizedPhone.isNotEmpty && phones.where((value) => value == normalizedPhone).length > 1;
+        normalizedPhone.isNotEmpty &&
+        phones.where((value) => value == normalizedPhone).length > 1;
 
     return [
       ..._missingDocumentFlags(selection),
@@ -411,7 +420,10 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
       role: 'Rider',
       city: rider.request.city,
       status: rider.request.status,
-      submittedTime: rider.request.createdAt.replaceFirst('T', ' ').split('.').first,
+      submittedTime: rider.request.createdAt
+          .replaceFirst('T', ' ')
+          .split('.')
+          .first,
       phone: rider.request.phone,
       thumbnailUrl: rider.request.kyc.profilePhotoUrl,
       documentLabels: [
@@ -440,6 +452,7 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
 
     if (selection is _VendorSelection) {
       final request = selection.request;
+      final meta = request.metadata;
       return KycDetailData(
         id: request.id,
         name: request.ownerName,
@@ -459,6 +472,27 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
           KycDocumentEntry(label: 'Aadhaar', url: request.kyc.aadhaarUrl),
           KycDocumentEntry(label: 'PAN', url: request.kyc.panUrl),
         ],
+        extraDetails: {
+          if ((meta['email']?.toString().trim().isNotEmpty ?? false))
+            'Email': meta['email'].toString(),
+          if ((meta['vendorType']?.toString().trim().isNotEmpty ?? false))
+            'Vendor Type': meta['vendorType'].toString(),
+          if ((meta['experienceYears']?.toString().trim().isNotEmpty ?? false))
+            'Experience Years': meta['experienceYears'].toString(),
+          if ((meta['startingPrice']?.toString().trim().isNotEmpty ?? false))
+            'Starting Price': 'Rs ${meta['startingPrice']}',
+          if ((meta['typicalPriceUpper']?.toString().trim().isNotEmpty ??
+              false))
+            'Upper Price Range': 'Rs ${meta['typicalPriceUpper']}',
+          if ((meta['productionTimeDays']?.toString().trim().isNotEmpty ??
+              false))
+            'Production Days': meta['productionTimeDays'].toString(),
+          if ((meta['specializations'] is List) &&
+              (meta['specializations'] as List).isNotEmpty)
+            'Specializations': (meta['specializations'] as List).join(', '),
+          if ((meta['payoutSetupLabel']?.toString().trim().isNotEmpty ?? false))
+            'Payout Setup': meta['payoutSetupLabel'].toString(),
+        },
         riskFlags: riskFlags,
         reviewedByName: request.reviewedByName,
         reviewedAt: request.reviewedAt.replaceFirst('T', ' ').split('.').first,
@@ -503,9 +537,11 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
           'DOB': meta['dob'].toString().split('T').first,
         if ((meta['gender']?.toString().trim().isNotEmpty ?? false))
           'Gender': meta['gender'].toString(),
-        if ((vehicleMeta['vehicleNumber']?.toString().trim().isNotEmpty ?? false))
+        if ((vehicleMeta['vehicleNumber']?.toString().trim().isNotEmpty ??
+            false))
           'Vehicle Number': vehicleMeta['vehicleNumber'].toString(),
-        if ((vehicleMeta['licenseNumber']?.toString().trim().isNotEmpty ?? false))
+        if ((vehicleMeta['licenseNumber']?.toString().trim().isNotEmpty ??
+            false))
           'License Number': vehicleMeta['licenseNumber'].toString(),
         if ((bankMeta['accountHolder']?.toString().trim().isNotEmpty ?? false))
           'Account Holder': bankMeta['accountHolder'].toString(),
@@ -542,7 +578,8 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
             padding: EdgeInsets.all(24),
             child: AbzioEmptyCard(
               title: 'Admin access only',
-              subtitle: 'KYC review is available only to platform administrators.',
+              subtitle:
+                  'KYC review is available only to platform administrators.',
             ),
           ),
         ),
@@ -571,25 +608,22 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
           final visibleItems = items.take(_maxVisibleItems).toList();
           _selectedIds.removeWhere((id) => !items.any((item) => item.id == id));
 
-          if (_selected != null && !items.any((item) => item.id == _selected!.id)) {
+          if (_selected != null &&
+              !items.any((item) => item.id == _selected!.id)) {
             _selected = items.isEmpty ? null : items.first;
           } else if (_selected == null && items.isNotEmpty) {
             _selected = items.first;
           }
 
-          final selectedItems =
-              items.where((item) => _selectedIds.contains(item.id)).toList();
+          final selectedItems = items
+              .where((item) => _selectedIds.contains(item.id))
+              .toList();
 
           return Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                _topBar(
-                  context,
-                  items.length,
-                  selectedItems,
-                  actor,
-                ),
+                _topBar(context, items.length, selectedItems, actor),
                 const SizedBox(height: 16),
                 Expanded(
                   child: LayoutBuilder(
@@ -623,10 +657,12 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                                 vendors: vendors,
                                 riders: riders,
                               ),
-                              onApprove:
-                                  _selected == null ? null : () => _approve(_selected!, actor),
-                              onReject:
-                                  _selected == null ? null : () => _reject(_selected!, actor),
+                              onApprove: _selected == null
+                                  ? null
+                                  : () => _approve(_selected!, actor),
+                              onReject: _selected == null
+                                  ? null
+                                  : () => _reject(_selected!, actor),
                             ),
                           ),
                         ],
@@ -672,7 +708,10 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                   children: [
                     Text(
                       'KYC Requests',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     SizedBox(height: 6),
                     Text(
@@ -683,7 +722,10 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFD4AF37).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(16),
@@ -740,16 +782,24 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
               FilterChip(
                 label: const Text('Missing documents'),
                 selected: _missingDocumentsOnly,
-                onSelected: (value) => setState(() => _missingDocumentsOnly = value),
+                onSelected: (value) =>
+                    setState(() => _missingDocumentsOnly = value),
               ),
               if (selectedItems.isNotEmpty) ...[
                 OutlinedButton.icon(
-                  onPressed: _busy ? null : () => _rejectSelected(selectedItems, actor),
-                  icon: const Icon(Icons.close_rounded, color: Color(0xFFB42318)),
+                  onPressed: _busy
+                      ? null
+                      : () => _rejectSelected(selectedItems, actor),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: Color(0xFFB42318),
+                  ),
                   label: Text('Reject ${selectedItems.length}'),
                 ),
                 ElevatedButton.icon(
-                  onPressed: _busy ? null : () => _approveSelected(selectedItems, actor),
+                  onPressed: _busy
+                      ? null
+                      : () => _approveSelected(selectedItems, actor),
                   icon: const Icon(Icons.check_circle_outline_rounded),
                   label: Text('Approve ${selectedItems.length}'),
                   style: ElevatedButton.styleFrom(
@@ -800,7 +850,8 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
     if (items.isEmpty) {
       return const AbzioEmptyCard(
         title: 'No pending requests',
-        subtitle: 'New verification requests will appear here when partners apply.',
+        subtitle:
+            'New verification requests will appear here when partners apply.',
       );
     }
     return ListView.builder(
@@ -840,7 +891,8 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
           padding: EdgeInsets.all(24),
           child: AbzioEmptyCard(
             title: 'No pending requests',
-            subtitle: 'Try another tab or search term. New verification requests will show up here.',
+            subtitle:
+                'Try another tab or search term. New verification requests will show up here.',
           ),
         ),
       );
