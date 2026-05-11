@@ -123,11 +123,15 @@ class _VendorOnboardingFlowScreenState
       final start = double.tryParse(_startingPrice.text.trim()) ?? 0;
       final upper = double.tryParse(_upperPrice.text.trim()) ?? 0;
       final days = int.tryParse(_productionDays.text.trim()) ?? 0;
-      if (start <= 0) return 'Starting price must be greater than zero';
-      if (upper < start)
+      if (start <= 0) {
+        return 'Starting price must be greater than zero';
+      }
+      if (upper < start) {
         return 'Upper range must be greater than starting price';
-      if (days <= 0 || days > 60)
+      }
+      if (days <= 0 || days > 60) {
         return 'Production days must be between 1 and 60';
+      }
     }
     if (_step == 4 &&
         (_ownerPhoto == null ||
