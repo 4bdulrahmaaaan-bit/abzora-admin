@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/widgets/rider_glass_card.dart';
@@ -16,6 +16,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
   final _db = DatabaseService();
   final _name = TextEditingController();
   final _city = TextEditingController();
+  final _vehicle = TextEditingController();
   bool _saving = false;
 
   @override
@@ -25,6 +26,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
     if (user != null && _name.text.isEmpty) {
       _name.text = user.name;
       _city.text = user.riderCity ?? user.city ?? '';
+      _vehicle.text = user.riderVehicleType ?? '';
     }
   }
 
@@ -32,6 +34,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
   void dispose() {
     _name.dispose();
     _city.dispose();
+    _vehicle.dispose();
     super.dispose();
   }
 
@@ -51,12 +54,11 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
           name: _name.text.trim(),
           city: _city.text.trim(),
           riderCity: _city.text.trim(),
+          riderVehicleType: _vehicle.text.trim(),
         ),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Profile updated')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -64,11 +66,13 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().user;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         RiderGlassCard(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
                 controller: _name,
@@ -79,6 +83,11 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
                 controller: _city,
                 decoration: const InputDecoration(labelText: 'City'),
               ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _vehicle,
+                decoration: const InputDecoration(labelText: 'Vehicle Type'),
+              ),
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: _saving ? null : _save,
@@ -87,7 +96,15 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        RiderGlassCard(
+          child: ListTile(
+            title: const Text('KYC Status'),
+            subtitle: Text((user?.riderApprovalStatus ?? 'pending').toUpperCase()),
+          ),
+        ),
       ],
     );
   }
 }
+

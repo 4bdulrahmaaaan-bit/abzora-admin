@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:abzio/features/dashboard/rider_earnings_screen.dart';
+import 'package:abzio/features/dashboard/rider_orders_screen.dart';
+import 'package:abzio/features/profile/rider_profile_screen.dart';
+import 'package:abzio/features/settings/rider_settings_screen.dart';
 
 import '../../core/widgets/rider_glass_card.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
-import 'rider_earnings_screen.dart';
-import 'rider_orders_screen.dart';
-import '../profile/rider_profile_screen.dart';
-import '../settings/rider_settings_screen.dart';
 
 class RiderDashboardScreen extends StatefulWidget {
   const RiderDashboardScreen({super.key});
@@ -198,11 +198,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                               .map(
                                 (t) => ListTile(
                                   contentPadding: EdgeInsets.zero,
-                                  title: Text(
-                                    t.note.isEmpty
-                                        ? t.type
-                                        : t.note,
-                                  ),
+                                  title: Text(t.note.isEmpty ? t.type : t.note),
                                   subtitle: Text(t.createdAt),
                                   trailing: Text(
                                     'Rs ${t.amount.toStringAsFixed(0)}',
