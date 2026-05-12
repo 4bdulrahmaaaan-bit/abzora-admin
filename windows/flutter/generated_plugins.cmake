@@ -9,9 +9,11 @@ list(APPEND FLUTTER_PLUGIN_LIST
   file_selector_windows
   firebase_auth
   firebase_core
+  firebase_storage
   flutter_tts
   flutter_unity_widget
   geolocator_windows
+  maps_launcher
   permission_handler_windows
   share_plus
   speech_to_text_windows
@@ -19,6 +21,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
+  jni
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

@@ -114,7 +114,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                       ),
                       Switch(
                         value: _online,
-                        activeThumbColor: const Color(0xFFFF6B00),
+                        activeThumbColor: const Color(0xFFD4AF37),
                         onChanged: (v) => setState(() => _online = v),
                       ),
                     ],
@@ -122,7 +122,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                 ),
                 const SizedBox(height: 12),
                 if (loading)
-                  const LinearProgressIndicator(color: Color(0xFFFF6B00)),
+                  const LinearProgressIndicator(color: Color(0xFFD4AF37)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -234,7 +234,10 @@ class _MetricCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Color(0xFFB0B0B0))),
+          Text(
+            title,
+            style: const TextStyle(color: Color.fromRGBO(255, 255, 255, 0.72)),
+          ),
           const SizedBox(height: 8),
           Text(
             value,

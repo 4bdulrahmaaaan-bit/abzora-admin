@@ -1223,11 +1223,11 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                         ),
                         const SizedBox(height: 10),
                         _SuggestionTile(
-                          text: 'Running Sneakers -> Reduce price by Rs200 to increase conversion',
+                          text: 'Running Sneakers -> Reduce price by ?200 to increase conversion',
                           impact: 'HIGH IMPACT',
                         ),
                         _SuggestionTile(
-                          text: 'Denim Jacket -> High demand, increase price by Rs150',
+                          text: 'Denim Jacket -> High demand, increase price by ?150',
                           impact: 'MEDIUM',
                         ),
                         _SuggestionTile(

@@ -53,6 +53,7 @@ class _VendorTrialHomeDashboardScreenState
   Map<String, dynamic> _dashboard = const <String, dynamic>{};
   List<TrialSession> _sessions = const <TrialSession>[];
   List<Map<String, dynamic>> _productSettings = const <Map<String, dynamic>>[];
+  Map<String, _RiskScore> _riskOverrides = const <String, _RiskScore>{};
 
   @override
   void initState() {
@@ -90,6 +91,7 @@ class _VendorTrialHomeDashboardScreenState
         _sessions = data[1] as List<TrialSession>;
         _productSettings = (data[2] as List).cast<Map<String, dynamic>>();
       });
+      await _loadRiskScores();
     } catch (error) {
       if (!mounted) {
         return;
@@ -257,6 +259,64 @@ class _VendorTrialHomeDashboardScreenState
       recommendation: 'Reject / Restrict',
       reasons: reasons,
     );
+  }
+
+  Future<void> _loadRiskScores() async {
+    final actor = _actor;
+    if (actor == null) return;
+    final pending = _sessions.where((s) => s.approvalStatus == 'pending').toList();
+    if (pending.isEmpty) {
+      if (mounted) {
+        setState(() => _riskOverrides = const <String, _RiskScore>{});
+      }
+      return;
+    }
+    final mapped = <String, _RiskScore>{};
+    for (final session in pending) {
+      try {
+        final item = session.items.isNotEmpty ? session.items.first : null;
+        final payload = {
+          'user': {
+            'return_rate': session.items.isEmpty
+                ? 0
+                : (session.returnedItems.length / session.items.length) * 100,
+            'cancellations': session.approvalStatus == 'rejected' ? 2 : 0,
+          },
+          'session': {
+            'product_views': session.items.length * 3,
+            'repeated_try_requests': session.userFlagged ? 3 : 1,
+          },
+          'product': {
+            'price': item?.price ?? session.subtotal,
+            'category': item?.source ?? 'fashion',
+          },
+          'location': {
+            'zone_risk': session.userCity.trim().isEmpty ? 60 : 20,
+          },
+          'device': {
+            'multiple_accounts': session.userFlagged,
+            'suspicious_activity': session.userFlagged,
+          },
+        };
+        final result = await _db.getAiTrialRiskScore(actor: actor, payload: payload);
+        final score = ((result['risk_score'] ?? 0) as num).toInt();
+        final level = result['risk_level']?.toString() ?? 'Low';
+        final recommendation = result['recommendation']?.toString() ?? 'Approve';
+        final reasons = (result['reasons'] as List? ?? const [])
+            .map((e) => e.toString())
+            .toList();
+        mapped[session.id] = _RiskScore(
+          score: score,
+          level: level,
+          recommendation: recommendation,
+          reasons: reasons.isEmpty ? const ['Stable profile'] : reasons,
+        );
+      } catch (_) {
+        mapped[session.id] = _computeRisk(session);
+      }
+    }
+    if (!mounted) return;
+    setState(() => _riskOverrides = mapped);
   }
 
   @override
@@ -490,7 +550,7 @@ class _VendorTrialHomeDashboardScreenState
     }
     return Column(
       children: queue.map((session) {
-        final score = _computeRisk(session);
+        final score = _riskOverrides[session.id] ?? _computeRisk(session);
         final productName = session.items.isNotEmpty ? session.items.first.name : 'ABZORA Item';
         final size = session.recommendedSize.trim().isNotEmpty
             ? session.recommendedSize

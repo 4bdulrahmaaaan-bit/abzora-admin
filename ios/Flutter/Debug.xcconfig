@@ -1,1 +1,5 @@
 #include "Generated.xcconfig"
+APP_DISPLAY_NAME=Abzora Rider
+LAUNCH_SCREEN_STORYBOARD=LaunchScreenRider
+APP_ICON_NAME=AppIconRider
+APP_BUNDLE_IDENTIFIER=com.abdz.fashion.abzio.rider

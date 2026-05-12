@@ -116,7 +116,9 @@ class PaymentService {
       return _verifyPaymentIfNeeded(result, backendOrderId: backendOrderId);
     } catch (error) {
       debugPrint('Razorpay error: $error');
-      _paymentCompleter?.complete(const PaymentCheckoutResult(success: false));
+      if (!(_paymentCompleter?.isCompleted ?? true)) {
+        _paymentCompleter?.complete(const PaymentCheckoutResult(success: false));
+      }
       return const PaymentCheckoutResult(success: false);
     } finally {
       dispose();
@@ -162,6 +164,17 @@ class PaymentService {
     if (!result.success) {
       return result;
     }
+    final hasBackendOrderId = backendOrderId != null && backendOrderId.isNotEmpty;
+    if (!hasBackendOrderId) {
+      return PaymentCheckoutResult(
+        success: true,
+        paymentId: result.paymentId,
+        orderId: result.orderId,
+        signature: result.signature,
+        externalWallet: result.externalWallet,
+        isVerified: false,
+      );
+    }
     if (result.externalWallet != null && result.externalWallet!.isNotEmpty) {
       return PaymentCheckoutResult(
         success: true,
@@ -174,9 +187,6 @@ class PaymentService {
     }
     if (!AppConfig.hasRazorpayVerificationEndpoint) {
       throw StateError('Online payment verification is not configured right now.');
-    }
-    if (backendOrderId == null || backendOrderId.isEmpty) {
-      throw StateError('Secure payment verification requires a valid backend order.');
     }
     final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
     if (idToken == null || idToken.isEmpty) {
@@ -269,7 +279,8 @@ class PaymentService {
     required String description,
   }) async {
     final amountInPaise = (amount * 100).round();
-    if (!AppConfig.hasRazorpayOrderEndpoint) {
+    final hasBackendOrderId = backendOrderId != null && backendOrderId.isNotEmpty;
+    if (!AppConfig.hasRazorpayOrderEndpoint || !hasBackendOrderId) {
       return _RazorpayOrderPayload(
         orderId: '',
         currency: 'INR',
@@ -280,10 +291,6 @@ class PaymentService {
     final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
     if (idToken == null || idToken.isEmpty) {
       throw StateError('Please sign in again before continuing to payment.');
-    }
-
-    if (backendOrderId == null || backendOrderId.isEmpty) {
-      throw StateError('Secure payment setup requires a valid backend order.');
     }
 
     final response = await http

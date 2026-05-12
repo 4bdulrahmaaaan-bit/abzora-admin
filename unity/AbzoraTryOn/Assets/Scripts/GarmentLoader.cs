@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using GLTFast;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -52,6 +54,7 @@ namespace Abzora.TryOn
             }
 
             var loadedAny = false;
+            var hadAnySourceUrl = false;
             Debug.Log(
                 $"[ABZORA AR] Garment load start. product={payload.ProductId}, template={payload.TemplateId}, " +
                 $"lod0={payload.GarmentConfig.LodModels.Lod0}, bundle={payload.UnityAssetBundleUrl}, model={payload.Model3dUrl}");
@@ -61,6 +64,7 @@ namespace Abzora.TryOn
                 {
                     continue;
                 }
+                hadAnySourceUrl = true;
 
                 GameObject instance = null;
                 yield return StartCoroutine(LoadLodModel(source.Level, source.Url, loaded => instance = loaded));
@@ -75,6 +79,7 @@ namespace Abzora.TryOn
             {
                 if (!string.IsNullOrWhiteSpace(payload.UnityAssetBundleUrl))
                 {
+                    hadAnySourceUrl = true;
                     GameObject fromBundle = null;
                     yield return StartCoroutine(
                         LoadLodModel(0, payload.UnityAssetBundleUrl, loaded => fromBundle = loaded));
@@ -86,6 +91,7 @@ namespace Abzora.TryOn
                 }
                 else if (!string.IsNullOrWhiteSpace(payload.Model3dUrl))
                 {
+                    hadAnySourceUrl = true;
                     GameObject fromModel = null;
                     yield return StartCoroutine(
                         LoadLodModel(0, payload.Model3dUrl, loaded => fromModel = loaded));
@@ -99,7 +105,11 @@ namespace Abzora.TryOn
 
             if (!loadedAny)
             {
-                Debug.LogWarning("[ABZORA AR] No garment URL loaded. Falling back to placeholder mesh.");
+                Debug.LogWarning(
+                    hadAnySourceUrl
+                        ? "[ABZORA AR] Garment sources were provided but none could be loaded as AssetBundle. " +
+                          "Current runtime loader supports Unity AssetBundles only."
+                        : "[ABZORA AR] No garment URL loaded. Falling back to placeholder mesh.");
                 LoadPlaceholderMesh(payload);
             }
             else
@@ -164,6 +174,13 @@ namespace Abzora.TryOn
                 yield break;
             }
 
+            var lowerSource = sourceUrl.Trim().ToLowerInvariant();
+            if (lowerSource.EndsWith(".glb") || lowerSource.EndsWith(".gltf"))
+            {
+                yield return StartCoroutine(LoadGlbModel(lodLevel, sourceUrl, onLoaded));
+                yield break;
+            }
+
             var bundle = default(AssetBundle);
             if (_bundleCache.TryGetValue(sourceUrl, out var cached))
             {
@@ -211,6 +228,54 @@ namespace Abzora.TryOn
             EnsureSupportedRuntimeMaterials(instance);
             DisableHeavyRendererFlags(instance);
             onLoaded?.Invoke(instance);
+        }
+
+        private IEnumerator LoadGlbModel(int lodLevel, string sourceUrl, Action<GameObject> onLoaded)
+        {
+            var task = LoadGlbModelAsync(lodLevel, sourceUrl);
+            yield return new WaitUntil(() => task.IsCompleted);
+
+            if (task.IsFaulted)
+            {
+                Debug.LogWarning($"[ABZORA AR] GLB load failed for {sourceUrl}: {task.Exception?.GetBaseException().Message}");
+                onLoaded?.Invoke(null);
+                yield break;
+            }
+
+            onLoaded?.Invoke(task.Result);
+        }
+
+        private async Task<GameObject> LoadGlbModelAsync(int lodLevel, string sourceUrl)
+        {
+            if (string.IsNullOrWhiteSpace(sourceUrl))
+            {
+                return null;
+            }
+
+            var importer = new GltfImport();
+            var loaded = await importer.Load(sourceUrl);
+            if (!loaded)
+            {
+                Debug.LogWarning($"[ABZORA AR] GLB import failed for url: {sourceUrl}");
+                return null;
+            }
+
+            var root = new GameObject($"garment_lod_{lodLevel}");
+            root.transform.SetParent(garmentRoot, false);
+            root.SetActive(false);
+
+            var instantiated = await importer.InstantiateMainSceneAsync(root.transform);
+            if (!instantiated)
+            {
+                Destroy(root);
+                Debug.LogWarning($"[ABZORA AR] GLB scene instantiate failed for url: {sourceUrl}");
+                return null;
+            }
+
+            DisableBlockingBundleSurfaces(root);
+            EnsureSupportedRuntimeMaterials(root);
+            DisableHeavyRendererFlags(root);
+            return root;
         }
 
         private void LoadPlaceholderMesh(TryOnPayload payload)
@@ -552,6 +617,8 @@ namespace Abzora.TryOn
                 return;
             }
 
+            DisableNonSkinnedMeshesWhenGarmentRigExists(root);
+
             var renderers = root.GetComponentsInChildren<Renderer>(true);
             if (renderers == null || renderers.Length == 0)
             {
@@ -615,6 +682,34 @@ namespace Abzora.TryOn
                     renderer.enabled = false;
                     Debug.LogWarning($"[ABZORA AR] Disabled blocking renderer: {renderer.gameObject.name}");
                 }
+            }
+        }
+
+        private void DisableNonSkinnedMeshesWhenGarmentRigExists(GameObject root)
+        {
+            if (root == null)
+            {
+                return;
+            }
+
+            var skinned = root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            if (skinned == null || skinned.Length == 0)
+            {
+                return;
+            }
+
+            var meshRenderers = root.GetComponentsInChildren<MeshRenderer>(true);
+            foreach (var renderer in meshRenderers)
+            {
+                if (renderer == null || !renderer.enabled)
+                {
+                    continue;
+                }
+
+                // GLB scene kits often include static blockers/floor/cards as MeshRenderer.
+                // If a skinned garment rig exists, keep the skinned content and disable static meshes.
+                renderer.enabled = false;
+                Debug.LogWarning($"[ABZORA AR] Disabled non-skinned mesh: {renderer.gameObject.name}");
             }
         }
 

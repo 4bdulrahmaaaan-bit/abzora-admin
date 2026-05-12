@@ -1548,9 +1548,7 @@ class DatabaseService {
         recentOrders = await getUserOrdersOnce(user.id);
       } catch (error) {
         if (_isTransientBackendIssue(error)) {
-          debugPrint(
-            'Personalization fallback active for ${user.id}: $error',
-          );
+          debugPrint('Personalization fallback active for ${user.id}: $error');
           return products;
         }
         rethrow;
@@ -2925,9 +2923,9 @@ class DatabaseService {
           );
         }
 
-        final products = (await _backendCommerce.getProducts()).map(
-          _decorateProduct,
-        ).toList();
+        final products = (await _backendCommerce.getProducts())
+            .map(_decorateProduct)
+            .toList();
         if (products.isEmpty) {
           debugPrint(
             'Backend products page returned empty list, using local fallback.',
@@ -3669,9 +3667,7 @@ class DatabaseService {
   CustomBrand _customBrandFromStore(Store store) {
     final profile = store.customVendorProfile;
     final categories = profile.specializations.isEmpty
-        ? <String>[
-            if (store.category.trim().isNotEmpty) store.category.trim(),
-          ]
+        ? <String>[if (store.category.trim().isNotEmpty) store.category.trim()]
         : profile.specializations;
     final effectiveMinPrice = profile.priceRangeMin <= 0
         ? 2499
@@ -3682,8 +3678,8 @@ class DatabaseService {
     final priceBand = effectiveMaxPrice >= 12000
         ? 'RsRsRsRs'
         : effectiveMaxPrice >= 7000
-            ? 'RsRsRs'
-            : 'RsRs';
+        ? 'RsRsRs'
+        : 'RsRs';
 
     return CustomBrand(
       id: store.id,
@@ -6928,7 +6924,9 @@ class DatabaseService {
 
   Future<void> acceptDeliveryRequest(String orderId, AppUser actor) async {
     if (_backendCommerce.isConfigured) {
-      final tasks = await _backendCommerce.getRiderLogisticsTasks(status: 'assigned');
+      final tasks = await _backendCommerce.getRiderLogisticsTasks(
+        status: 'assigned',
+      );
       final matched = tasks.where((task) => task.orderId == orderId).toList()
         ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       if (matched.isEmpty) {
@@ -7034,7 +7032,9 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
-      final taskStatus = switch (_normalizeRiderDeliveryStatus(deliveryStatus)) {
+      final taskStatus = switch (_normalizeRiderDeliveryStatus(
+        deliveryStatus,
+      )) {
         'Assigned' => 'accepted',
         'Picked up' => 'picked_up',
         'Out for delivery' => 'out_for_delivery',
@@ -7916,10 +7916,7 @@ class DatabaseService {
   }) async {
     _requireSuperAdmin(actor);
     if (_backendCommerce.isConfigured) {
-      return _backendCommerce.getOpsAlerts(
-        limit: limit,
-        severity: severity,
-      );
+      return _backendCommerce.getOpsAlerts(limit: limit, severity: severity);
     }
     return const <OpsAlertItem>[];
   }
@@ -8033,7 +8030,9 @@ class DatabaseService {
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.runOpsSimulation(orders: orders, riders: riders);
     }
-    throw StateError('Operations simulation is only supported in backend mode.');
+    throw StateError(
+      'Operations simulation is only supported in backend mode.',
+    );
   }
 
   Future<Map<String, dynamic>> dispatchAssignOrder({
@@ -8065,7 +8064,10 @@ class DatabaseService {
   }) async {
     _requireSuperAdmin(actor);
     if (_backendCommerce.isConfigured) {
-      return _backendCommerce.getDispatchBatches(riderId: riderId, status: status);
+      return _backendCommerce.getDispatchBatches(
+        riderId: riderId,
+        status: status,
+      );
     }
     return const <Map<String, dynamic>>[];
   }
@@ -8145,7 +8147,9 @@ class DatabaseService {
       );
       return;
     }
-    throw StateError('Tracking status updates are only supported in backend mode.');
+    throw StateError(
+      'Tracking status updates are only supported in backend mode.',
+    );
   }
 
   Future<Map<String, dynamic>> getTrackingEta({
@@ -8249,7 +8253,9 @@ class DatabaseService {
         status: status,
       );
     }
-    throw StateError('Vendor order updates are only supported in backend mode.');
+    throw StateError(
+      'Vendor order updates are only supported in backend mode.',
+    );
   }
 
   Future<List<TrialSession>> getVendorOperationsTrialRequests({
@@ -8285,7 +8291,9 @@ class DatabaseService {
         returnedItems: returnedItems,
       );
     }
-    throw StateError('Vendor trial updates are only supported in backend mode.');
+    throw StateError(
+      'Vendor trial updates are only supported in backend mode.',
+    );
   }
 
   Future<Map<String, dynamic>> getLogisticsOperationsAnalytics({
@@ -8677,7 +8685,8 @@ class DatabaseService {
         logoUrl: existingStore?.logoUrl ?? request.kyc.ownerPhotoUrl,
         bannerImageUrl:
             existingStore?.bannerImageUrl ?? request.kyc.storeImageUrl,
-        tagline: existingStore?.tagline ??
+        tagline:
+            existingStore?.tagline ??
             (request.vendorType == 'custom_vendor'
                 ? 'Made-to-measure designer studio on ABZORA.'
                 : ''),
@@ -8699,11 +8708,12 @@ class DatabaseService {
                 qualityApprovalRequired: true,
                 supportsAlterations: true,
                 alterationPolicy: 'Easy alteration policy',
-                metrics: existingStore?.customVendorProfile.metrics ??
+                metrics:
+                    existingStore?.customVendorProfile.metrics ??
                     const CustomVendorMetrics(),
               )
             : (existingStore?.customVendorProfile ??
-                const CustomVendorProfile()),
+                  const CustomVendorProfile()),
         vendorScore: existingStore?.vendorScore ?? 0,
         vendorRank: existingStore?.vendorRank ?? 0,
         vendorVisibility: existingStore?.vendorVisibility ?? 'normal',
@@ -8834,12 +8844,14 @@ class DatabaseService {
   Future<void> approveRiderKycRequest({
     required String requestId,
     required AppUser actor,
+    Map<String, dynamic> overrideMetadata = const {},
   }) async {
     if (_backendCommerce.isConfigured) {
       _requireSuperAdmin(actor);
       await _backendCommerce.reviewRiderKycRequest(
         requestId: requestId,
         status: 'approved',
+        override: overrideMetadata,
       );
       return;
     }
@@ -8879,6 +8891,15 @@ class DatabaseService {
       'reviewedBy': actor.id,
       'reviewedByName': actor.name,
       'reviewedAt': DateTime.now().toIso8601String(),
+      if (overrideMetadata.isNotEmpty)
+        'metadata': {
+          ...request.metadata,
+          'overrideApproved': true,
+          'overrideReason': (overrideMetadata['reason'] ?? '').toString(),
+          'overrideBy': actor.id,
+          'overrideByName': actor.name,
+          'overrideAt': DateTime.now().toIso8601String(),
+        },
       'actionHistory': [
         ...request.actionHistory.map((entry) => entry.toMap()),
         KycActionEntry(
@@ -10866,7 +10887,9 @@ class DatabaseService {
     return settings ?? const PlatformSettings();
   }
 
-  Future<PricingConfigModel> getAdminPricingConfig({required AppUser actor}) async {
+  Future<PricingConfigModel> getAdminPricingConfig({
+    required AppUser actor,
+  }) async {
     _requireSuperAdmin(actor);
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.getAdminPricingConfig();
@@ -11107,9 +11130,13 @@ class DatabaseService {
       );
       sessions.sort((a, b) {
         final left =
-            a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            a.updatedAt ??
+            a.createdAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
         final right =
-            b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            b.updatedAt ??
+            b.createdAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
         return right.compareTo(left);
       });
       return sessions;
@@ -11185,9 +11212,13 @@ class DatabaseService {
       );
       sessions.sort((a, b) {
         final left =
-            a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            a.updatedAt ??
+            a.createdAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
         final right =
-            b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            b.updatedAt ??
+            b.createdAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
         return right.compareTo(left);
       });
       return sessions;
@@ -11263,6 +11294,83 @@ class DatabaseService {
       );
     }
     throw StateError('Vendor trial dashboard requires backend mode.');
+  }
+
+  Future<Map<String, dynamic>> getVendorGrowthSummary({
+    required AppUser actor,
+    String range = '7d',
+  }) async {
+    _requireVendorActor(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getVendorGrowthSummary(range: range);
+    }
+    return const <String, dynamic>{};
+  }
+
+  Future<List<Map<String, dynamic>>> getVendorGrowthRecommendations({
+    required AppUser actor,
+  }) async {
+    _requireVendorActor(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getVendorGrowthRecommendations();
+    }
+    return const <Map<String, dynamic>>[];
+  }
+
+  Future<List<Map<String, dynamic>>> getVendorGrowthProductPerformance({
+    required AppUser actor,
+  }) async {
+    _requireVendorActor(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getVendorGrowthProductPerformance();
+    }
+    return const <Map<String, dynamic>>[];
+  }
+
+  Future<Map<String, dynamic>> getVendorGrowthCharts({
+    required AppUser actor,
+  }) async {
+    _requireVendorActor(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getVendorGrowthCharts();
+    }
+    return const <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> getAiTrialRiskScore({
+    required AppUser actor,
+    required Map<String, dynamic> payload,
+  }) async {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.scoreTrialRisk(payload: payload);
+    }
+    return const <String, dynamic>{
+      'risk_score': 0,
+      'risk_level': 'Low',
+      'reasons': <String>[],
+      'recommendation': 'Approve',
+    };
+  }
+
+  Future<Map<String, dynamic>> updateVendorProductPrice({
+    required AppUser actor,
+    required String productId,
+    required double price,
+    double? originalPrice,
+    DateTime? discountStartDate,
+    DateTime? discountEndDate,
+  }) async {
+    _requireVendorActor(actor);
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.updateVendorProductPriceRaw(
+        productId: productId,
+        price: price,
+        originalPrice: originalPrice,
+        discountStartDate: discountStartDate,
+        discountEndDate: discountEndDate,
+      );
+    }
+    throw StateError('Vendor pricing update requires backend mode.');
   }
 
   Future<void> updateDispute(

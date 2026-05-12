@@ -73,3 +73,6 @@ android/app/release
 
 .vercel
 .env*.local
+
+.gradle_user_home/
+.npm-cache/

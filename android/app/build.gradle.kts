@@ -45,10 +45,15 @@ android {
             applicationId = "com.abdz.fashion.abzio"
             resValue("string", "app_name", "Abzora")
         }
-        create("partner") {
+        create("vendor") {
             dimension = "app"
-            applicationId = "com.abdz.fashion.abzio.partner"
-            resValue("string", "app_name", "Abzora Partner")
+            applicationId = "com.abdz.fashion.abzio.vendor"
+            resValue("string", "app_name", "Abzora Vendor")
+        }
+        create("rider") {
+            dimension = "app"
+            applicationId = "com.abdz.fashion.abzio.rider"
+            resValue("string", "app_name", "Abzora Delivery")
         }
     }
 
@@ -60,7 +65,8 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt")
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
             )
         }
     }

@@ -318,8 +318,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         _analytics = results[0] as AdminAnalytics;
         _settings = results[1] as PlatformSettings;
         _pricingConfig = results[2] as PricingConfigModel;
-        _aiCostThresholdController.text =
-            _settings.aiDailyCostLimit.toStringAsFixed(2);
+        _aiCostThresholdController.text = _settings.aiDailyCostLimit
+            .toStringAsFixed(2);
         _users = results[3] as List<AppUser>;
         _stores = results[4] as List<Store>;
         _products = results[5] as List<Product>;
@@ -341,7 +341,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         _dispatchSlaOverview = results[21] as Map<String, dynamic>;
         _dispatchBatches = results[22] as List<Map<String, dynamic>>;
         _dispatchRebalance = results[23] as Map<String, dynamic>;
-        _selectedSupportChatId ??= _supportChats.isEmpty ? null : _supportChats.first.id;
+        _selectedSupportChatId ??= _supportChats.isEmpty
+            ? null
+            : _supportChats.first.id;
         _loading = false;
       });
     } catch (error) {
@@ -378,7 +380,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   Future<void> _toggleUserActive(AppUser user) async {
-    await _db.updateUser(user.copyWith(isActive: !user.isActive), actor: _actor);
+    await _db.updateUser(
+      user.copyWith(isActive: !user.isActive),
+      actor: _actor,
+    );
     await _load();
   }
 
@@ -400,12 +405,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   Future<void> _toggleStoreActive(Store store) async {
-    await _db.saveStore(store.copyWith(isActive: !store.isActive), actor: _actor);
+    await _db.saveStore(
+      store.copyWith(isActive: !store.isActive),
+      actor: _actor,
+    );
     await _load();
   }
 
   Future<void> _toggleFeatured(Store store) async {
-    await _db.saveStore(store.copyWith(isFeatured: !store.isFeatured), actor: _actor);
+    await _db.saveStore(
+      store.copyWith(isFeatured: !store.isFeatured),
+      actor: _actor,
+    );
     await _load();
   }
 
@@ -441,8 +452,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       return;
     }
     final rate =
-        (double.tryParse(controller.text.trim()) ?? (store.commissionRate * 100)) /
-            100;
+        (double.tryParse(controller.text.trim()) ??
+            (store.commissionRate * 100)) /
+        100;
     await _db.adjustStoreCommission(
       storeId: store.id,
       commissionRate: rate,
@@ -486,7 +498,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     if (actor == null) {
       return;
     }
-    final settled = await _db.settleRiderPayouts(actor: actor, periodLabel: 'Admin rider settlement');
+    final settled = await _db.settleRiderPayouts(
+      actor: actor,
+      periodLabel: 'Admin rider settlement',
+    );
     if (!mounted) {
       return;
     }
@@ -507,7 +522,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     if (actor == null) {
       return;
     }
-    final result = await _db.runScheduledSettlements(walletType: walletType, actor: actor);
+    final result = await _db.runScheduledSettlements(
+      walletType: walletType,
+      actor: actor,
+    );
     if (!mounted) {
       return;
     }
@@ -532,9 +550,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Withdrawal approved.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Withdrawal approved.')));
     await _load();
   }
 
@@ -552,9 +570,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           content: TextField(
             controller: controller,
             maxLines: 3,
-            decoration: const InputDecoration(
-              hintText: 'Add a short reason',
-            ),
+            decoration: const InputDecoration(hintText: 'Add a short reason'),
           ),
           actions: [
             TextButton(
@@ -562,7 +578,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()),
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(controller.text.trim()),
               child: const Text('Reject'),
             ),
           ],
@@ -579,9 +596,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Withdrawal rejected.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Withdrawal rejected.')));
       await _load();
     } finally {
       controller.dispose();
@@ -625,9 +642,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
       await _load();
     }
   }
@@ -760,9 +777,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       return;
     }
     setState(() => _pricingConfig = updated);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(successMessage)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(successMessage)));
     await _load();
   }
 
@@ -808,9 +825,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Action failed: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Action failed: $error')));
     }
   }
 
@@ -855,9 +872,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Refund request rejected.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Refund request rejected.')));
       await _load();
     } finally {
       controller.dispose();
@@ -865,15 +882,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   Future<void> _assignRider(OrderModel order) async {
-    final riders = _users
-        .where(
-          (user) =>
-              _isRiderUser(user) &&
-              user.riderApprovalStatus == 'approved' &&
-              user.isActive,
-        )
-        .toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final riders =
+        _users
+            .where(
+              (user) =>
+                  _isRiderUser(user) &&
+                  user.riderApprovalStatus == 'approved' &&
+                  user.isActive,
+            )
+            .toList()
+          ..sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          );
     if (riders.isEmpty) {
       if (!mounted) {
         return;
@@ -922,7 +942,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         ),
       ),
     );
-    if (shouldAssign != true || selectedId == null || selectedId == order.riderId) {
+    if (shouldAssign != true ||
+        selectedId == null ||
+        selectedId == order.riderId) {
       return;
     }
     final rider = riders.firstWhere((user) => user.id == selectedId);
@@ -982,11 +1004,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     if (actor == null || chat == null || text.isEmpty) {
       return;
     }
-    await _db.sendSupportMessage(
-      chatId: chat.id,
-      text: text,
-      actor: actor,
-    );
+    await _db.sendSupportMessage(chatId: chat.id, text: text, actor: actor);
     _supportReplyController.clear();
     await _load();
   }
@@ -1061,9 +1079,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     if (actor == null) {
       return;
     }
-    final nextCities = Map<String, bool>.from(_settings.cities)..[city] = enabled;
-    final nextRegions =
-        Map<String, bool>.from(_settings.regionVendorAvailability)..[city] = enabled;
+    final nextCities = Map<String, bool>.from(_settings.cities)
+      ..[city] = enabled;
+    final nextRegions = Map<String, bool>.from(
+      _settings.regionVendorAvailability,
+    )..[city] = enabled;
     await _db.savePlatformSettings(
       _settings.copyWith(
         cities: nextCities,
@@ -1102,7 +1122,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     await _load();
   }
 
-  Product _cloneProductWithArAsset(Product product, Map<String, dynamic> arAsset) {
+  Product _cloneProductWithArAsset(
+    Product product,
+    Map<String, dynamic> arAsset,
+  ) {
     return Product(
       id: product.id,
       storeId: product.storeId,
@@ -1148,7 +1171,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       ..['status'] = 'approved'
       ..['failureReason'] = ''
       ..['generatedAt'] = DateTime.now().toIso8601String();
-    await _db.updateProduct(_cloneProductWithArAsset(product, merged), actor: _actor);
+    await _db.updateProduct(
+      _cloneProductWithArAsset(product, merged),
+      actor: _actor,
+    );
     await _load();
   }
 
@@ -1157,7 +1183,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       ..['status'] = 'rejected'
       ..['failureReason'] = 'manual_rejection'
       ..['generatedAt'] = DateTime.now().toIso8601String();
-    await _db.updateProduct(_cloneProductWithArAsset(product, merged), actor: _actor);
+    await _db.updateProduct(
+      _cloneProductWithArAsset(product, merged),
+      actor: _actor,
+    );
     await _load();
   }
 
@@ -1180,7 +1209,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       anchors['right_shoulder'] as Map? ?? const {'x': 0.67, 'y': 0.2},
     );
     left['x'] = (editorPatch['leftShoulderX'] as num?)?.toDouble() ?? left['x'];
-    right['x'] = (editorPatch['rightShoulderX'] as num?)?.toDouble() ?? right['x'];
+    right['x'] =
+        (editorPatch['rightShoulderX'] as num?)?.toDouble() ?? right['x'];
     anchors['left_shoulder'] = left;
     anchors['right_shoulder'] = right;
 
@@ -1194,7 +1224,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         'rotation': (editorPatch['rotation'] as num?)?.toDouble() ?? 0,
       };
 
-    await _db.updateProduct(_cloneProductWithArAsset(product, merged), actor: _actor);
+    await _db.updateProduct(
+      _cloneProductWithArAsset(product, merged),
+      actor: _actor,
+    );
     await _load();
   }
 
@@ -1204,7 +1237,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         ..['status'] = 'approved'
         ..['failureReason'] = ''
         ..['generatedAt'] = DateTime.now().toIso8601String();
-      await _db.updateProduct(_cloneProductWithArAsset(product, merged), actor: _actor);
+      await _db.updateProduct(
+        _cloneProductWithArAsset(product, merged),
+        actor: _actor,
+      );
     }
     await _load();
   }
@@ -1218,61 +1254,76 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
 
   List<AppUser> get _filteredUsers {
     final query = _userSearchController.text.trim().toLowerCase();
-    final filtered = _users.where((user) {
-      final matchesRole = _userRoleFilter == 'All' || user.role == _userRoleFilter;
-      final haystack =
-          '${user.name} ${user.email} ${user.phone ?? ''} ${user.city ?? ''}'
-              .toLowerCase();
-      final matchesQuery = query.isEmpty || haystack.contains(query);
-      return matchesRole && matchesQuery;
-    }).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final filtered =
+        _users.where((user) {
+          final matchesRole =
+              _userRoleFilter == 'All' || user.role == _userRoleFilter;
+          final haystack =
+              '${user.name} ${user.email} ${user.phone ?? ''} ${user.city ?? ''}'
+                  .toLowerCase();
+          final matchesQuery = query.isEmpty || haystack.contains(query);
+          return matchesRole && matchesQuery;
+        }).toList()..sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
     return filtered;
   }
 
   List<Store> get _filteredStores {
     final query = _vendorSearchController.text.trim().toLowerCase();
-    final filtered = _stores.where((store) {
-      final matchesStatus = _vendorStatusFilter == 'All' ||
-          (_vendorStatusFilter == 'Approved' && store.isApproved) ||
-          (_vendorStatusFilter == 'Pending' && store.approvalStatus == 'pending') ||
-          (_vendorStatusFilter == 'Rejected' && store.approvalStatus == 'rejected');
-      final haystack =
-          '${store.name} ${store.address} ${store.city} ${store.ownerId}'.toLowerCase();
-      final matchesQuery = query.isEmpty || haystack.contains(query);
-      return matchesStatus && matchesQuery;
-    }).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final filtered =
+        _stores.where((store) {
+          final matchesStatus =
+              _vendorStatusFilter == 'All' ||
+              (_vendorStatusFilter == 'Approved' && store.isApproved) ||
+              (_vendorStatusFilter == 'Pending' &&
+                  store.approvalStatus == 'pending') ||
+              (_vendorStatusFilter == 'Rejected' &&
+                  store.approvalStatus == 'rejected');
+          final haystack =
+              '${store.name} ${store.address} ${store.city} ${store.ownerId}'
+                  .toLowerCase();
+          final matchesQuery = query.isEmpty || haystack.contains(query);
+          return matchesStatus && matchesQuery;
+        }).toList()..sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
     return filtered;
   }
 
   List<AppUser> get _filteredRiders {
     final query = _riderSearchController.text.trim().toLowerCase();
-    final filtered = _users.where((user) {
-      final isRider = _isRiderUser(user);
-      if (!isRider) {
-        return false;
-      }
-      final matchesStatus = _riderStatusFilter == 'All' ||
-          (_riderStatusFilter == 'Approved' &&
-              user.riderApprovalStatus == 'approved') ||
-          (_riderStatusFilter == 'Pending' && user.riderApprovalStatus == 'pending') ||
-          (_riderStatusFilter == 'Active' && user.isActive) ||
-          (_riderStatusFilter == 'Inactive' && !user.isActive);
-      final haystack =
-          '${user.name} ${user.phone ?? ''} ${user.city ?? ''} ${user.riderCity ?? ''}'
-              .toLowerCase();
-      final matchesQuery = query.isEmpty || haystack.contains(query);
-      return matchesStatus && matchesQuery;
-    }).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final filtered =
+        _users.where((user) {
+          final isRider = _isRiderUser(user);
+          if (!isRider) {
+            return false;
+          }
+          final matchesStatus =
+              _riderStatusFilter == 'All' ||
+              (_riderStatusFilter == 'Approved' &&
+                  user.riderApprovalStatus == 'approved') ||
+              (_riderStatusFilter == 'Pending' &&
+                  user.riderApprovalStatus == 'pending') ||
+              (_riderStatusFilter == 'Active' && user.isActive) ||
+              (_riderStatusFilter == 'Inactive' && !user.isActive);
+          final haystack =
+              '${user.name} ${user.phone ?? ''} ${user.city ?? ''} ${user.riderCity ?? ''}'
+                  .toLowerCase();
+          final matchesQuery = query.isEmpty || haystack.contains(query);
+          return matchesStatus && matchesQuery;
+        }).toList()..sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
     return filtered;
   }
 
   List<OrderModel> get _filteredOrders {
     final query = _orderSearchController.text.trim().toLowerCase();
     final filtered = _orders.where((order) {
-      final invoice = order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
+      final invoice = order.invoiceNumber.isEmpty
+          ? order.id
+          : order.invoiceNumber;
       final matchesStatus =
           _orderStatusFilter == 'All' || order.status == _orderStatusFilter;
       final haystack =
@@ -1280,15 +1331,15 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               .toLowerCase();
       final matchesQuery = query.isEmpty || haystack.contains(query);
       return matchesStatus && matchesQuery;
-    }).toList()
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    }).toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return filtered;
   }
 
   List<Product> get _filteredProducts {
     final query = _productSearchController.text.trim().toLowerCase();
     final filtered = _products.where((product) {
-      final matchesStatus = _productStatusFilter == 'All' ||
+      final matchesStatus =
+          _productStatusFilter == 'All' ||
           (_productStatusFilter == 'Active' && product.isActive) ||
           (_productStatusFilter == 'Hidden' && !product.isActive);
       final haystack =
@@ -1296,8 +1347,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               .toLowerCase();
       final matchesQuery = query.isEmpty || haystack.contains(query);
       return matchesStatus && matchesQuery;
-    }).toList()
-      ..sort((a, b) => (b.createdAt ?? '').compareTo(a.createdAt ?? ''));
+    }).toList()..sort((a, b) => (b.createdAt ?? '').compareTo(a.createdAt ?? ''));
     return filtered;
   }
 
@@ -1309,22 +1359,27 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
 
   List<SupportChat> get _filteredSupportChats {
     final query = _supportSearchController.text.trim().toLowerCase();
-    final filtered = _supportChats.where((chat) {
-      final matchesStatus = _supportStatusFilter == 'all' || chat.status == _supportStatusFilter;
-      final matchesType = _supportTypeFilter == 'all' || chat.type == _supportTypeFilter;
-      final haystack =
-          '${chat.userName} ${chat.userPhone} ${chat.type} ${chat.lastMessage} ${chat.id} ${chat.orderId ?? ''}'
-              .toLowerCase();
-      final matchesQuery = query.isEmpty || haystack.contains(query);
-      return matchesStatus && matchesType && matchesQuery;
-    }).toList()
-      ..sort((a, b) {
-        final statusWeight = _supportWeight(a.status).compareTo(_supportWeight(b.status));
-        if (statusWeight != 0) {
-          return statusWeight;
-        }
-        return b.updatedAt.compareTo(a.updatedAt);
-      });
+    final filtered =
+        _supportChats.where((chat) {
+          final matchesStatus =
+              _supportStatusFilter == 'all' ||
+              chat.status == _supportStatusFilter;
+          final matchesType =
+              _supportTypeFilter == 'all' || chat.type == _supportTypeFilter;
+          final haystack =
+              '${chat.userName} ${chat.userPhone} ${chat.type} ${chat.lastMessage} ${chat.id} ${chat.orderId ?? ''}'
+                  .toLowerCase();
+          final matchesQuery = query.isEmpty || haystack.contains(query);
+          return matchesStatus && matchesType && matchesQuery;
+        }).toList()..sort((a, b) {
+          final statusWeight = _supportWeight(
+            a.status,
+          ).compareTo(_supportWeight(b.status));
+          if (statusWeight != 0) {
+            return statusWeight;
+          }
+          return b.updatedAt.compareTo(a.updatedAt);
+        });
     return filtered;
   }
 
@@ -1398,21 +1453,17 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     }
   }
 
-  int _supportUnreadCount({
-    String? status,
-    String? type,
-  }) {
-    return _supportChats.where((chat) {
-      final matchesStatus = status == null || chat.status == status;
-      final matchesType = type == null || chat.type == type;
-      return matchesStatus && matchesType;
-    }).fold<int>(0, (sum, chat) => sum + chat.unreadCountAdmin);
+  int _supportUnreadCount({String? status, String? type}) {
+    return _supportChats
+        .where((chat) {
+          final matchesStatus = status == null || chat.status == status;
+          final matchesType = type == null || chat.type == type;
+          return matchesStatus && matchesType;
+        })
+        .fold<int>(0, (sum, chat) => sum + chat.unreadCountAdmin);
   }
 
-  int _supportChatCount({
-    String? status,
-    String? type,
-  }) {
+  int _supportChatCount({String? status, String? type}) {
     return _supportChats.where((chat) {
       final matchesStatus = status == null || chat.status == status;
       final matchesType = type == null || chat.type == type;
@@ -1421,10 +1472,15 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   List<ActivityLogEntry> _supportTimelineFor(String chatId) {
-    final entries = _activityLogs
-        .where((entry) => entry.targetType == 'support_chat' && entry.targetId == chatId)
-        .toList()
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final entries =
+        _activityLogs
+            .where(
+              (entry) =>
+                  entry.targetType == 'support_chat' &&
+                  entry.targetId == chatId,
+            )
+            .toList()
+          ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return entries;
   }
 
@@ -1492,7 +1548,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
 
   String _escapeCsv(String value) {
     final escaped = value.replaceAll('"', '""');
-    if (escaped.contains(',') || escaped.contains('"') || escaped.contains('\n')) {
+    if (escaped.contains(',') ||
+        escaped.contains('"') ||
+        escaped.contains('\n')) {
       return '"$escaped"';
     }
     return escaped;
@@ -1550,7 +1608,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       if (parsed == null) {
         return false;
       }
-      return DateFormat('yyyy-MM-dd').format(parsed) == _todayKey && usage.dailyUsage > 0;
+      return DateFormat('yyyy-MM-dd').format(parsed) == _todayKey &&
+          usage.dailyUsage > 0;
     }).length;
   }
 
@@ -1581,10 +1640,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   List<MapEntry<UserAiUsageStat, AppUser?>> get _topAiUsers {
-    final items = _userAiUsageStats
-        .map((usage) => MapEntry(usage, _userForId(usage.userId)))
-        .toList()
-      ..sort((a, b) => b.key.aiMessages.compareTo(a.key.aiMessages));
+    final items =
+        _userAiUsageStats
+            .map((usage) => MapEntry(usage, _userForId(usage.userId)))
+            .toList()
+          ..sort((a, b) => b.key.aiMessages.compareTo(a.key.aiMessages));
     return items.take(6).toList();
   }
 
@@ -1629,7 +1689,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             padding: EdgeInsets.all(24),
             child: AbzioEmptyCard(
               title: 'Admin access only',
-              subtitle: 'This workspace is restricted to ABZORA platform administrators.',
+              subtitle:
+                  'This workspace is restricted to ABZORA platform administrators.',
             ),
           ),
         ),
@@ -1646,82 +1707,87 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               child: _loading
                   ? const AbzioLoadingView(
                       title: 'Loading admin control center',
-                      subtitle: 'Preparing platform analytics, vendor approvals, and operational controls.',
+                      subtitle:
+                          'Preparing platform analytics, vendor approvals, and operational controls.',
                     )
                   : _loadError != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: AbzioEmptyCard(
-                              title: 'Could not load admin data',
-                              subtitle: _loadError!,
-                              ctaLabel: 'Try again',
-                              onTap: _load,
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: AbzioEmptyCard(
+                          title: 'Could not load admin data',
+                          subtitle: _loadError!,
+                          ctaLabel: 'Try again',
+                          onTap: _load,
+                        ),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: Stack(
+                        children: [
+                          Scrollbar(
+                            thumbVisibility: true,
+                            child: ListView(
+                              padding: const EdgeInsets.all(24),
+                              children: [
+                                if (_tab == AdminWebSection.dashboard ||
+                                    _tab == AdminWebSection.operations ||
+                                    _tab == AdminWebSection.orders ||
+                                    _tab == AdminWebSection.vendors ||
+                                    _tab == AdminWebSection.riders)
+                                  const SizedBox(height: 64),
+                                _buildHeader(context),
+                                if (_dataWarnings.isNotEmpty) ...[
+                                  const SizedBox(height: 14),
+                                  _buildDataWarningsBanner(),
+                                ],
+                                const SizedBox(height: 20),
+                                _buildTabContent(context),
+                              ],
                             ),
                           ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _load,
-                          child: Stack(
-                            children: [
-                              Scrollbar(
-                                thumbVisibility: true,
-                                child: ListView(
-                                  padding: const EdgeInsets.all(24),
-                                  children: [
-                                    if (_tab == AdminWebSection.dashboard || _tab == AdminWebSection.operations || _tab == AdminWebSection.orders || _tab == AdminWebSection.vendors || _tab == AdminWebSection.riders)
-                                      const SizedBox(height: 64),
-                                    _buildHeader(context),
-                                    if (_dataWarnings.isNotEmpty) ...[
-                                      const SizedBox(height: 14),
-                                      _buildDataWarningsBanner(),
-                                    ],
-                                    const SizedBox(height: 20),
-                                    _buildTabContent(context),
-                                  ],
-                                ),
+                          if (_tab == AdminWebSection.dashboard)
+                            Positioned(
+                              top: 0,
+                              left: 24,
+                              right: 24,
+                              child: _buildCriticalAlertBar(
+                                message: _dashboardCriticalMessage(),
+                                severity: _dashboardCriticalSeverity(),
                               ),
-                              if (_tab == AdminWebSection.dashboard)
-                                Positioned(
-                                  top: 0,
-                                  left: 24,
-                                  right: 24,
-                                  child: _buildCriticalAlertBar(
-                                    message: _dashboardCriticalMessage(),
-                                    severity: _dashboardCriticalSeverity(),
-                                  ),
-                                ),
-                              if (_tab == AdminWebSection.operations)
-                                Positioned(
-                                  top: 0,
-                                  left: 24,
-                                  right: 24,
-                                  child: _buildOperationsStickyToolbar(),
-                                ),
-                              if (_tab == AdminWebSection.orders)
-                                Positioned(
-                                  top: 0,
-                                  left: 24,
-                                  right: 24,
-                                  child: _buildOrdersStickyToolbar(),
-                                ),
-                              if (_tab == AdminWebSection.vendors)
-                                Positioned(
-                                  top: 0,
-                                  left: 24,
-                                  right: 24,
-                                  child: _buildVendorsStickyToolbar(),
-                                ),
-                              if (_tab == AdminWebSection.riders)
-                                Positioned(
-                                  top: 0,
-                                  left: 24,
-                                  right: 24,
-                                  child: _buildRidersStickyToolbar(),
-                                ),
-                            ],
-                          ),
-                        ),
+                            ),
+                          if (_tab == AdminWebSection.operations)
+                            Positioned(
+                              top: 0,
+                              left: 24,
+                              right: 24,
+                              child: _buildOperationsStickyToolbar(),
+                            ),
+                          if (_tab == AdminWebSection.orders)
+                            Positioned(
+                              top: 0,
+                              left: 24,
+                              right: 24,
+                              child: _buildOrdersStickyToolbar(),
+                            ),
+                          if (_tab == AdminWebSection.vendors)
+                            Positioned(
+                              top: 0,
+                              left: 24,
+                              right: 24,
+                              child: _buildVendorsStickyToolbar(),
+                            ),
+                          if (_tab == AdminWebSection.riders)
+                            Positioned(
+                              top: 0,
+                              left: 24,
+                              right: 24,
+                              child: _buildRidersStickyToolbar(),
+                            ),
+                        ],
+                      ),
+                    ),
             ),
           ],
         ),
@@ -1803,7 +1869,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                         borderRadius: BorderRadius.circular(16),
                         onTap: () => setState(() => _tab = item.$1),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
                           decoration: BoxDecoration(
                             color: selected
                                 ? AbzioTheme.accentColor.withValues(alpha: 0.16)
@@ -1811,7 +1880,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: selected
-                                  ? AbzioTheme.accentColor.withValues(alpha: 0.3)
+                                  ? AbzioTheme.accentColor.withValues(
+                                      alpha: 0.3,
+                                    )
                                   : AbzioTheme.grey200,
                             ),
                           ),
@@ -1935,28 +2006,28 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   Widget _buildTabContent(BuildContext context) {
-      switch (_tab) {
-        case AdminWebSection.dashboard:
-          return _buildDashboard();
-        case AdminWebSection.operations:
-          return _buildOperations();
-        case AdminWebSection.banners:
-          return _usesBackendCommerce
+    switch (_tab) {
+      case AdminWebSection.dashboard:
+        return _buildDashboard();
+      case AdminWebSection.operations:
+        return _buildOperations();
+      case AdminWebSection.banners:
+        return _usesBackendCommerce
             ? const AdminBannersSection()
             : _buildBackendUnavailableState(
                 title: 'Banner tools need backend mode',
                 subtitle:
-                  'Homepage banner management is available only when the admin panel is connected to the backend API.',
-                );
-        case AdminWebSection.categories:
-          return _usesBackendCommerce
-              ? const AdminCategoriesSection()
-              : _buildBackendUnavailableState(
-                  title: 'Category tools need backend mode',
-                  subtitle:
-                      'Category and subcategory management is available only when the admin panel is connected to the backend API.',
-                );
-        case AdminWebSection.kyc:
+                    'Homepage banner management is available only when the admin panel is connected to the backend API.',
+              );
+      case AdminWebSection.categories:
+        return _usesBackendCommerce
+            ? const AdminCategoriesSection()
+            : _buildBackendUnavailableState(
+                title: 'Category tools need backend mode',
+                subtitle:
+                    'Category and subcategory management is available only when the admin panel is connected to the backend API.',
+              );
+      case AdminWebSection.kyc:
         return _buildKycHub(context);
       case AdminWebSection.support:
         return _buildSupport();
@@ -1973,25 +2044,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       case AdminWebSection.arModeration:
         return _buildArModeration();
       case AdminWebSection.payouts:
-        return _usesBackendCommerce
-            ? _buildBackendUnavailableState(
-                title: 'Payout tools are still migrating',
-                subtitle:
-                    'Vendor settlement controls still depend on legacy Firebase admin data and are hidden in production backend mode.',
-              )
-            : _buildPayouts();
+        return _buildPayouts();
       case AdminWebSection.analytics:
         return _buildAnalytics();
       case AdminWebSection.pricing:
         return _buildPricingControlPanel();
       case AdminWebSection.settings:
-        return _usesBackendCommerce
-            ? _buildBackendUnavailableState(
-                title: 'Settings are temporarily hidden',
-                subtitle:
-                    'Platform toggles, disputes, notifications, and audit controls are still using legacy admin storage and will return after the backend migration.',
-              )
-            : _buildSettings();
+        return _buildSettings();
     }
   }
 
@@ -2014,7 +2073,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         children: [
           const Icon(Icons.circle, color: Color(0xFF12B76A), size: 10),
           const SizedBox(width: 8),
-          Text('LIVE', style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 12)),
+          Text(
+            'LIVE',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 12),
+          ),
           const Spacer(),
           FilledButton.icon(
             onPressed: () => _runOpsAction(
@@ -2117,7 +2179,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AbzioTheme.grey200),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 14, offset: const Offset(0, 6)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
         ],
       ),
       child: Row(
@@ -2134,29 +2200,68 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             ),
           ),
           const SizedBox(width: 8),
-          _ordersFilterMenu('Status', _orderStatusFilter, const ['All', 'Placed', 'Assigned', 'Processing', 'Delivered', 'Cancelled'], (v) => setState(() => _orderStatusFilter = v)),
+          _ordersFilterMenu('Status', _orderStatusFilter, const [
+            'All',
+            'Placed',
+            'Assigned',
+            'Processing',
+            'Delivered',
+            'Cancelled',
+          ], (v) => setState(() => _orderStatusFilter = v)),
           const SizedBox(width: 8),
-          _ordersFilterMenu('Zone', _orderZoneFilter, const ['All', 'Central', 'North', 'South', 'East', 'West'], (v) => setState(() => _orderZoneFilter = v)),
+          _ordersFilterMenu('Zone', _orderZoneFilter, const [
+            'All',
+            'Central',
+            'North',
+            'South',
+            'East',
+            'West',
+          ], (v) => setState(() => _orderZoneFilter = v)),
           const SizedBox(width: 8),
-          _ordersFilterMenu('Priority', _orderPriorityFilter, const ['All', 'High', 'Medium', 'Low'], (v) => setState(() => _orderPriorityFilter = v)),
+          _ordersFilterMenu('Priority', _orderPriorityFilter, const [
+            'All',
+            'High',
+            'Medium',
+            'Low',
+          ], (v) => setState(() => _orderPriorityFilter = v)),
           const SizedBox(width: 8),
-          _ordersFilterMenu('Rider', _orderRiderFilter, const ['All', 'Assigned', 'Unassigned'], (v) => setState(() => _orderRiderFilter = v)),
+          _ordersFilterMenu('Rider', _orderRiderFilter, const [
+            'All',
+            'Assigned',
+            'Unassigned',
+          ], (v) => setState(() => _orderRiderFilter = v)),
           const SizedBox(width: 8),
-          _ordersFilterMenu('Date', _orderDateRangeFilter, const ['All', 'Today', 'Last 7 days', 'Last 30 days'], (v) => setState(() => _orderDateRangeFilter = v)),
+          _ordersFilterMenu('Date', _orderDateRangeFilter, const [
+            'All',
+            'Today',
+            'Last 7 days',
+            'Last 30 days',
+          ], (v) => setState(() => _orderDateRangeFilter = v)),
           const Spacer(),
-          OutlinedButton.icon(onPressed: _load, icon: const Icon(Icons.refresh_rounded, size: 16), label: const Text('Refresh')),
+          OutlinedButton.icon(
+            onPressed: _load,
+            icon: const Icon(Icons.refresh_rounded, size: 16),
+            label: const Text('Refresh'),
+          ),
         ],
       ),
     );
   }
 
-  Widget _ordersFilterMenu(String label, String value, List<String> items, ValueChanged<String> onChanged) {
+  Widget _ordersFilterMenu(
+    String label,
+    String value,
+    List<String> items,
+    ValueChanged<String> onChanged,
+  ) {
     return SizedBox(
       width: 128,
       child: DropdownButtonFormField<String>(
         initialValue: value,
         decoration: InputDecoration(labelText: label, isDense: true),
-        items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+        items: items
+            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+            .toList(),
         onChanged: (v) {
           if (v != null) onChanged(v);
         },
@@ -2171,7 +2276,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         color: Colors.white.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AbzioTheme.grey200),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 14, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -2187,13 +2298,35 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             ),
           ),
           const SizedBox(width: 8),
-          _ordersFilterMenu('Status', _vendorStatusFilter, const ['All', 'Approved', 'Pending', 'Suspended', 'High Risk'], (v) => setState(() => _vendorStatusFilter = v)),
+          _ordersFilterMenu('Status', _vendorStatusFilter, const [
+            'All',
+            'Approved',
+            'Pending',
+            'Suspended',
+            'High Risk',
+          ], (v) => setState(() => _vendorStatusFilter = v)),
           const SizedBox(width: 8),
-          _ordersFilterMenu('City', _vendorCityFilter, const ['All', 'Chennai', 'Bengaluru', 'Hyderabad', 'Mumbai'], (v) => setState(() => _vendorCityFilter = v)),
+          _ordersFilterMenu('City', _vendorCityFilter, const [
+            'All',
+            'Chennai',
+            'Bengaluru',
+            'Hyderabad',
+            'Mumbai',
+          ], (v) => setState(() => _vendorCityFilter = v)),
           const SizedBox(width: 8),
-          _ordersFilterMenu('Revenue', _vendorRevenueFilter, const ['All', 'High', 'Mid', 'Low'], (v) => setState(() => _vendorRevenueFilter = v)),
+          _ordersFilterMenu('Revenue', _vendorRevenueFilter, const [
+            'All',
+            'High',
+            'Mid',
+            'Low',
+          ], (v) => setState(() => _vendorRevenueFilter = v)),
           const SizedBox(width: 8),
-          _ordersFilterMenu('Risk', _vendorRiskFilter, const ['All', 'Healthy', 'Warning', 'Intervention'], (v) => setState(() => _vendorRiskFilter = v)),
+          _ordersFilterMenu('Risk', _vendorRiskFilter, const [
+            'All',
+            'Healthy',
+            'Warning',
+            'Intervention',
+          ], (v) => setState(() => _vendorRiskFilter = v)),
           const Spacer(),
           OutlinedButton.icon(
             onPressed: () => setState(() => _tab = AdminWebSection.kyc),
@@ -2212,7 +2345,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         color: Colors.white.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AbzioTheme.grey200),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 14, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -2228,15 +2367,42 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             ),
           ),
           const SizedBox(width: 8),
-          _ordersFilterMenu('Status', _riderStatusFilter, const ['All', 'LIVE', 'BUSY', 'OFFLINE', 'DELAYED', 'HIGH RISK'], (v) => setState(() => _riderStatusFilter = v)),
+          _ordersFilterMenu('Status', _riderStatusFilter, const [
+            'All',
+            'LIVE',
+            'BUSY',
+            'OFFLINE',
+            'DELAYED',
+            'HIGH RISK',
+          ], (v) => setState(() => _riderStatusFilter = v)),
           const SizedBox(width: 8),
-          _ordersFilterMenu('City', _riderCityFilter, const ['All', 'Chennai', 'Bengaluru', 'Hyderabad', 'Mumbai'], (v) => setState(() => _riderCityFilter = v)),
+          _ordersFilterMenu('City', _riderCityFilter, const [
+            'All',
+            'Chennai',
+            'Bengaluru',
+            'Hyderabad',
+            'Mumbai',
+          ], (v) => setState(() => _riderCityFilter = v)),
           const SizedBox(width: 8),
-          _ordersFilterMenu('Vehicle', _riderVehicleFilter, const ['All', 'Bike', 'Scooter', 'EV'], (v) => setState(() => _riderVehicleFilter = v)),
+          _ordersFilterMenu('Vehicle', _riderVehicleFilter, const [
+            'All',
+            'Bike',
+            'Scooter',
+            'EV',
+          ], (v) => setState(() => _riderVehicleFilter = v)),
           const SizedBox(width: 8),
-          _ordersFilterMenu('Risk', _riderRiskFilter, const ['All', 'Healthy', 'Warning', 'Intervention'], (v) => setState(() => _riderRiskFilter = v)),
+          _ordersFilterMenu('Risk', _riderRiskFilter, const [
+            'All',
+            'Healthy',
+            'Warning',
+            'Intervention',
+          ], (v) => setState(() => _riderRiskFilter = v)),
           const Spacer(),
-          OutlinedButton.icon(onPressed: _load, icon: const Icon(Icons.refresh_rounded, size: 16), label: const Text('Refresh')),
+          OutlinedButton.icon(
+            onPressed: _load,
+            icon: const Icon(Icons.refresh_rounded, size: 16),
+            label: const Text('Refresh'),
+          ),
         ],
       ),
     );
@@ -2285,10 +2451,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
-        child: AbzioEmptyCard(
-          title: title,
-          subtitle: subtitle,
-        ),
+        child: AbzioEmptyCard(title: title, subtitle: subtitle),
       ),
     );
   }
@@ -2296,10 +2459,15 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   Widget _buildDashboard() {
     final analytics = _analytics;
     final vendorCount = _users.where(_isVendorUser).length;
-    final recentOrders = _orders.toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final recentOrders = _orders.toList()
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
     final searchQuery = _globalSearchController.text.trim().toLowerCase();
     final userSuggestions = _users
-        .where((u) => u.name.toLowerCase().contains(searchQuery) || u.email.toLowerCase().contains(searchQuery))
+        .where(
+          (u) =>
+              u.name.toLowerCase().contains(searchQuery) ||
+              u.email.toLowerCase().contains(searchQuery),
+        )
         .take(2)
         .map((u) => 'User: ${u.name}')
         .toList();
@@ -2314,7 +2482,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         .map((o) => 'Order: ${o.id}')
         .toList();
     final riderSuggestions = _users
-        .where((u) => hasRiderOperationsAccess(u) && u.name.toLowerCase().contains(searchQuery))
+        .where(
+          (u) =>
+              hasRiderOperationsAccess(u) &&
+              u.name.toLowerCase().contains(searchQuery),
+        )
         .take(2)
         .map((u) => 'Rider: ${u.name}')
         .toList();
@@ -2328,243 +2500,309 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     return Stack(
       children: [
         Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (searchQuery.isNotEmpty && suggestions.isNotEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AbzioTheme.grey200),
-            ),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: suggestions
-                  .map(
-                    (item) => InkWell(
-                      onTap: () {
-                        _globalSearchController.text = item.split(':').last.trim();
-                        _runGlobalSearch();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8F6F2),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(item, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        if (searchQuery.isNotEmpty && suggestions.isNotEmpty) const SizedBox(height: 16),
-        SizedBox(
-          height: 136,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _MetricCard(title: 'Total Orders', value: analytics?.totalOrders.toString() ?? '0'),
-              _MetricCard(title: 'Revenue Today', value: _formatCurrency(_revenueToday)),
-              _MetricCard(title: 'Total Vendors', value: '$vendorCount'),
-              _MetricCard(title: 'Active Riders', value: '$_activeRiderCount'),
-              _MetricCard(title: 'Pending KYC', value: '$_pendingKycCount'),
-              _MetricCard(
-                title: 'Total Revenue',
-                value: analytics == null ? 'Rs 0' : _formatCurrency(analytics.totalRevenue),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              flex: 3,
-              child: _Panel(
-                title: 'Recent orders',
-                subtitle: 'Latest marketplace transactions with fulfillment visibility.',
-                child: recentOrders.isEmpty
-                    ? const AbzioEmptyCard(
-                        title: 'No active order updates',
-                        subtitle: 'Platform running smoothly.',
-                      )
-                    : Column(
-                        children: recentOrders.take(8).map((order) {
-                          final invoice =
-                              order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
-                          final store = _storeForId(order.storeId);
-                          final status = order.status.trim();
-                          final eta = order.deliveryPromise.trim().isEmpty
-                              ? 'ETA recalculating'
-                              : order.deliveryPromise;
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(
-                              'Order ID: $invoice',
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            if (searchQuery.isNotEmpty && suggestions.isNotEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AbzioTheme.grey200),
+                ),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: suggestions
+                      .map(
+                        (item) => InkWell(
+                          onTap: () {
+                            _globalSearchController.text = item
+                                .split(':')
+                                .last
+                                .trim();
+                            _runGlobalSearch();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 7,
                             ),
-                            subtitle: Text(
-                              'Vendor: ${store?.name ?? order.storeId} | Amount: ${_formatCurrency(order.totalAmount)} | ETA: $eta',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8F6F2),
+                              borderRadius: BorderRadius.circular(999),
                             ),
-                            trailing: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                _buildOrderStatusChip(status),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: _Panel(
-                title: 'AI Operational Insights',
-                subtitle: 'Suggested interventions based on live marketplace behavior.',
-                child: (_searchResults.users.isEmpty &&
-                        _searchResults.stores.isEmpty &&
-                        _searchResults.orders.isEmpty)
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildInsightTile('Increase riders in Zone B', Icons.electric_bike_rounded),
-                          _buildInsightTile('Sneakers trending across premium category', Icons.trending_up_rounded),
-                          _buildInsightTile('Vendor return anomaly detected', Icons.warning_amber_rounded),
-                          const SizedBox(height: 12),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: OutlinedButton(
-                              onPressed: () => setState(() => _tab = AdminWebSection.operations),
-                              child: const Text('Review'),
+                            child: Text(
+                              item,
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        ],
+                        ),
                       )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _SearchMetric(label: 'Users', value: _searchResults.users.length),
-                          _SearchMetric(label: 'Stores', value: _searchResults.stores.length),
-                          _SearchMetric(label: 'Orders', value: _searchResults.orders.length),
-                        ],
-                      ),
+                      .toList(),
+                ),
               ),
+            if (searchQuery.isNotEmpty && suggestions.isNotEmpty)
+              const SizedBox(height: 16),
+            SizedBox(
+              height: 136,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _MetricCard(
+                    title: 'Total Orders',
+                    value: analytics?.totalOrders.toString() ?? '0',
+                  ),
+                  _MetricCard(
+                    title: 'Revenue Today',
+                    value: _formatCurrency(_revenueToday),
+                  ),
+                  _MetricCard(title: 'Total Vendors', value: '$vendorCount'),
+                  _MetricCard(
+                    title: 'Active Riders',
+                    value: '$_activeRiderCount',
+                  ),
+                  _MetricCard(title: 'Pending KYC', value: '$_pendingKycCount'),
+                  _MetricCard(
+                    title: 'Total Revenue',
+                    value: analytics == null
+                        ? 'Rs 0'
+                        : _formatCurrency(analytics.totalRevenue),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _Panel(
+                    title: 'Recent orders',
+                    subtitle:
+                        'Latest marketplace transactions with fulfillment visibility.',
+                    child: recentOrders.isEmpty
+                        ? const AbzioEmptyCard(
+                            title: 'No active order updates',
+                            subtitle: 'Platform running smoothly.',
+                          )
+                        : Column(
+                            children: recentOrders.take(8).map((order) {
+                              final invoice = order.invoiceNumber.isEmpty
+                                  ? order.id
+                                  : order.invoiceNumber;
+                              final store = _storeForId(order.storeId);
+                              final status = order.status.trim();
+                              final eta = order.deliveryPromise.trim().isEmpty
+                                  ? 'ETA recalculating'
+                                  : order.deliveryPromise;
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(
+                                  'Order ID: $invoice',
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  'Vendor: ${store?.name ?? order.storeId} | Amount: ${_formatCurrency(order.totalAmount)} | ETA: $eta',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                trailing: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [_buildOrderStatusChip(status)],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: _Panel(
+                    title: 'AI Operational Insights',
+                    subtitle:
+                        'Suggested interventions based on live marketplace behavior.',
+                    child:
+                        (_searchResults.users.isEmpty &&
+                            _searchResults.stores.isEmpty &&
+                            _searchResults.orders.isEmpty)
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildInsightTile(
+                                'Increase riders in Zone B',
+                                Icons.electric_bike_rounded,
+                              ),
+                              _buildInsightTile(
+                                'Sneakers trending across premium category',
+                                Icons.trending_up_rounded,
+                              ),
+                              _buildInsightTile(
+                                'Vendor return anomaly detected',
+                                Icons.warning_amber_rounded,
+                              ),
+                              const SizedBox(height: 12),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: OutlinedButton(
+                                  onPressed: () => setState(
+                                    () => _tab = AdminWebSection.operations,
+                                  ),
+                                  child: const Text('Review'),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _SearchMetric(
+                                label: 'Users',
+                                value: _searchResults.users.length,
+                              ),
+                              _SearchMetric(
+                                label: 'Stores',
+                                value: _searchResults.stores.length,
+                              ),
+                              _SearchMetric(
+                                label: 'Orders',
+                                value: _searchResults.orders.length,
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _Panel(
+                    title: 'Live activity feed',
+                    subtitle:
+                        'Realtime operational actions across users, vendors, riders, and payouts.',
+                    child: _notifications.isEmpty && _activityLogs.isEmpty
+                        ? const AbzioEmptyCard(
+                            title: 'No alerts right now',
+                            subtitle: 'Platform running smoothly',
+                          )
+                        : Column(
+                            children: [
+                              ..._notifications.take(4).map((notification) {
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Icon(
+                                    _activityIconFor(notification.title),
+                                    color: const Color(0xFF9C7222),
+                                  ),
+                                  title: Text(
+                                    notification.title,
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    notification.body,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  trailing: Text(
+                                    _formatDate(notification.timestamp),
+                                    style: GoogleFonts.inter(
+                                      color: AbzioTheme.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                );
+                              }),
+                              ..._activityLogs.take(4).map((entry) {
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Icon(
+                                    _activityIconFor(entry.action),
+                                    color: const Color(0xFF9C7222),
+                                  ),
+                                  title: Text(
+                                    entry.action
+                                        .replaceAll('_', ' ')
+                                        .toUpperCase(),
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    entry.message,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  trailing: Text(
+                                    _formatDate(entry.timestamp),
+                                    style: GoogleFonts.inter(
+                                      color: AbzioTheme.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _Panel(
+                    title: 'Recent admin actions',
+                    subtitle: 'Fast scan trail of operational interventions.',
+                    child: _activityLogs.isEmpty
+                        ? const AbzioEmptyCard(
+                            title: 'No actions recorded yet',
+                            subtitle:
+                                'Admin activity will appear here once actions are triggered.',
+                          )
+                        : Column(
+                            children: _activityLogs.take(8).map((entry) {
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.bolt_rounded),
+                                title: Text(
+                                  entry.message,
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${entry.actorRole} - ${entry.targetType}',
+                                  style: GoogleFonts.inter(
+                                    color: AbzioTheme.textSecondary,
+                                  ),
+                                ),
+                                trailing: Text(
+                                  _formatDate(entry.timestamp),
+                                  style: GoogleFonts.inter(
+                                    color: AbzioTheme.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        const SizedBox(height: 20),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _Panel(
-                title: 'Live activity feed',
-                subtitle: 'Realtime operational actions across users, vendors, riders, and payouts.',
-                child: _notifications.isEmpty && _activityLogs.isEmpty
-                    ? const AbzioEmptyCard(
-                        title: 'No alerts right now',
-                        subtitle: 'Platform running smoothly',
-                      )
-                    : Column(
-                        children: [
-                          ..._notifications.take(4).map((notification) {
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: Icon(_activityIconFor(notification.title), color: const Color(0xFF9C7222)),
-                              title: Text(
-                                notification.title,
-                                style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-                              ),
-                              subtitle: Text(
-                                notification.body,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              trailing: Text(
-                                _formatDate(notification.timestamp),
-                                style: GoogleFonts.inter(
-                                  color: AbzioTheme.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            );
-                          }),
-                          ..._activityLogs.take(4).map((entry) {
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: Icon(_activityIconFor(entry.action), color: const Color(0xFF9C7222)),
-                              title: Text(
-                                entry.action.replaceAll('_', ' ').toUpperCase(),
-                                style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-                              ),
-                              subtitle: Text(
-                                entry.message,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              trailing: Text(
-                                _formatDate(entry.timestamp),
-                                style: GoogleFonts.inter(
-                                  color: AbzioTheme.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _Panel(
-                title: 'Recent admin actions',
-                subtitle: 'Fast scan trail of operational interventions.',
-                child: _activityLogs.isEmpty
-                    ? const AbzioEmptyCard(
-                        title: 'No actions recorded yet',
-                        subtitle: 'Admin activity will appear here once actions are triggered.',
-                      )
-                    : Column(
-                        children: _activityLogs.take(8).map((entry) {
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.bolt_rounded),
-                            title: Text(
-                              entry.message,
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: Text(
-                              '${entry.actorRole} - ${entry.targetType}',
-                              style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
-                            ),
-                            trailing: Text(
-                              _formatDate(entry.timestamp),
-                              style: GoogleFonts.inter(
-                                color: AbzioTheme.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
         if (_activeVendorDrawerStore != null)
           Positioned(
             top: 0,
@@ -2576,7 +2814,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     );
   }
 
-  Widget _buildCriticalAlertBar({required String message, required String severity}) {
+  Widget _buildCriticalAlertBar({
+    required String message,
+    required String severity,
+  }) {
     final color = severity == 'CRITICAL'
         ? const Color(0xFFD92D20)
         : severity == 'WARNING'
@@ -2602,13 +2843,20 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           Expanded(
             child: Text(
               message,
-              style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: const Color(0xFF111111)),
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF111111),
+              ),
             ),
           ),
           const SizedBox(width: 10),
           Text(
             severity,
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: color, fontSize: 12),
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w700,
+              color: color,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
@@ -2655,7 +2903,15 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         children: [
           Icon(icon, size: 16, color: const Color(0xFF9C7222)),
           const SizedBox(width: 8),
-          Expanded(child: Text(text, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13))),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -2686,7 +2942,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       ),
       child: Text(
         label,
-        style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+        style: GoogleFonts.inter(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
       ),
     );
   }
@@ -2724,17 +2984,38 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   Widget _buildOperations() {
     final alerts = _opsAlerts;
     final logs = _opsLogs;
-    final metrics = _opsMetrics.toList()..sort((a, b) => a.bucketStartAt.compareTo(b.bucketStartAt));
+    final metrics = _opsMetrics.toList()
+      ..sort((a, b) => a.bucketStartAt.compareTo(b.bucketStartAt));
     final live = _opsLive;
     final criticalCount = live.alertCounts['CRITICAL'] ?? 0;
     final highCount = live.alertCounts['HIGH'] ?? 0;
     final mediumCount = live.alertCounts['MEDIUM'] ?? 0;
     final lowCount = live.alertCounts['LOW'] ?? 0;
-    final delayedDispatches = live.dispatch.where((task) => (task['status']?.toString().toLowerCase() ?? '').contains('delay')).length;
-    final failedPayments = alerts.where((a) => a.type.toLowerCase().contains('payment')).length;
-    final metricPoints = metrics.take(12).map((entry) => AnalyticsPoint(label: DateFormat('HH:mm').format(entry.bucketStartAt), value: entry.delayPercent)).toList();
-    final retrySpikes = logs.where((entry) => entry.status.toLowerCase().contains('retry')).length;
-    final vendorFailures = alerts.where((entry) => entry.entityType.toLowerCase().contains('vendor')).length;
+    final delayedDispatches = live.dispatch
+        .where(
+          (task) => (task['status']?.toString().toLowerCase() ?? '').contains(
+            'delay',
+          ),
+        )
+        .length;
+    final failedPayments = alerts
+        .where((a) => a.type.toLowerCase().contains('payment'))
+        .length;
+    final metricPoints = metrics
+        .take(12)
+        .map(
+          (entry) => AnalyticsPoint(
+            label: DateFormat('HH:mm').format(entry.bucketStartAt),
+            value: entry.delayPercent,
+          ),
+        )
+        .toList();
+    final retrySpikes = logs
+        .where((entry) => entry.status.toLowerCase().contains('retry'))
+        .length;
+    final vendorFailures = alerts
+        .where((entry) => entry.entityType.toLowerCase().contains('vendor'))
+        .length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2745,8 +3026,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           children: [
             _MetricCard(title: 'Critical Alerts', value: '$criticalCount'),
             _MetricCard(title: 'High Alerts', value: '$highCount'),
-            _MetricCard(title: 'Live Orders', value: '${live.liveOrders.length}'),
-            _MetricCard(title: 'Delayed Dispatches', value: '$delayedDispatches'),
+            _MetricCard(
+              title: 'Live Orders',
+              value: '${live.liveOrders.length}',
+            ),
+            _MetricCard(
+              title: 'Delayed Dispatches',
+              value: '$delayedDispatches',
+            ),
             _MetricCard(title: 'Failed Payments', value: '$failedPayments'),
             _MetricCard(title: 'Active Riders', value: '${live.riders.length}'),
           ],
@@ -2759,9 +3046,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               flex: 3,
               child: _Panel(
                 title: 'Priority Alert Queue',
-                subtitle: 'Critical incidents with run actions, reassignment, and payment recovery.',
+                subtitle:
+                    'Critical incidents with run actions, reassignment, and payment recovery.',
                 child: alerts.isEmpty
-                    ? const AbzioEmptyCard(title: 'No alerts right now', subtitle: 'Dispatch queue operating normally.')
+                    ? const AbzioEmptyCard(
+                        title: 'No alerts right now',
+                        subtitle: 'Dispatch queue operating normally.',
+                      )
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -2773,103 +3064,227 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                 onPressed: _selectedOpsAlertIds.isEmpty
                                     ? null
                                     : () async {
-                                        for (final alertId in _selectedOpsAlertIds) {
+                                        for (final alertId
+                                            in _selectedOpsAlertIds) {
                                           await _runOpsAction(
-                                            action: () => _db.runOpsAlertAction(actor: _actor!, alertId: alertId),
-                                            successMessage: 'Bulk action executed.',
+                                            action: () => _db.runOpsAlertAction(
+                                              actor: _actor!,
+                                              alertId: alertId,
+                                            ),
+                                            successMessage:
+                                                'Bulk action executed.',
                                           );
                                         }
                                       },
                                 child: const Text('Bulk Run Action'),
                               ),
                               OutlinedButton(
-                                onPressed: _selectedOpsAlertIds.isEmpty ? null : () => setState(() => _selectedOpsAlertIds.clear()),
+                                onPressed: _selectedOpsAlertIds.isEmpty
+                                    ? null
+                                    : () => setState(
+                                        () => _selectedOpsAlertIds.clear(),
+                                      ),
                                 child: const Text('Clear Selection'),
                               ),
                             ],
                           ),
                           const SizedBox(height: 10),
                           ...alerts.take(12).map((alert) {
-                          final isCritical = alert.severity.toUpperCase() == 'CRITICAL';
-                          final color = _opsSeverityColor(alert.severity);
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border(
-                                left: BorderSide(color: isCritical ? const Color(0xFFD92D20) : AbzioTheme.grey200, width: isCritical ? 4 : 1),
-                                top: BorderSide(color: AbzioTheme.grey200),
-                                right: BorderSide(color: AbzioTheme.grey200),
-                                bottom: BorderSide(color: AbzioTheme.grey200),
-                              ),
-                              boxShadow: isCritical ? [BoxShadow(color: const Color(0xFFD92D20).withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 6))] : null,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Checkbox(
-                                      value: _selectedOpsAlertIds.contains(alert.alertId),
-                                      onChanged: (value) => setState(() {
-                                        if (value == true) {
-                                          _selectedOpsAlertIds.add(alert.alertId);
-                                        } else {
-                                          _selectedOpsAlertIds.remove(alert.alertId);
-                                        }
-                                      }),
-                                    ),
-                                    Expanded(child: Text('${alert.type} | Order ${alert.orderId.isEmpty ? '-' : alert.orderId}', style: GoogleFonts.inter(fontWeight: FontWeight.w800))),
-                                    _StatusPill(label: '${alert.severity} ${alert.score.toStringAsFixed(0)}', color: color),
-                                    IconButton(
-                                      onPressed: () => setState(() {
-                                        if (_expandedOpsAlertIds.contains(alert.alertId)) {
-                                          _expandedOpsAlertIds.remove(alert.alertId);
-                                        } else {
-                                          _expandedOpsAlertIds.add(alert.alertId);
-                                        }
-                                      }),
-                                      icon: Icon(_expandedOpsAlertIds.contains(alert.alertId) ? Icons.expand_less : Icons.expand_more),
-                                    ),
-                                  ],
+                            final isCritical =
+                                alert.severity.toUpperCase() == 'CRITICAL';
+                            final color = _opsSeverityColor(alert.severity);
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border(
+                                  left: BorderSide(
+                                    color: isCritical
+                                        ? const Color(0xFFD92D20)
+                                        : AbzioTheme.grey200,
+                                    width: isCritical ? 4 : 1,
+                                  ),
+                                  top: BorderSide(color: AbzioTheme.grey200),
+                                  right: BorderSide(color: AbzioTheme.grey200),
+                                  bottom: BorderSide(color: AbzioTheme.grey200),
                                 ),
-                                const SizedBox(height: 6),
-                                Text(alert.message, style: GoogleFonts.inter(color: AbzioTheme.textSecondary)),
-                                const SizedBox(height: 6),
-                                Text('Time ${DateFormat('dd MMM HH:mm').format(alert.createdAt)} | Assigned ${alert.payload['assignedOperator'] ?? 'Ops Desk'} | Retry ${alert.retryCount}/${alert.maxRetries}', style: GoogleFonts.inter(color: AbzioTheme.textSecondary, fontSize: 12)),
-                                if (_expandedOpsAlertIds.contains(alert.alertId)) ...[
-                                  const SizedBox(height: 6),
-                                  Text('Entity ${alert.entityType}:${alert.entityId} | Action ${alert.action} | Status ${alert.actionStatus}', style: GoogleFonts.inter(color: AbzioTheme.textSecondary, fontSize: 12)),
-                                ],
-                                const SizedBox(height: 10),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    FilledButton.icon(
-                                      onPressed: () => _runOpsAction(action: () => _db.runOpsAlertAction(actor: _actor!, alertId: alert.alertId), successMessage: 'Run action triggered.'),
-                                      icon: const Icon(Icons.play_arrow_rounded),
-                                      label: const Text('Run Action'),
-                                    ),
-                                    if (alert.orderId.trim().isNotEmpty) ...[
-                                      OutlinedButton(onPressed: () => _runOpsAction(action: () => _db.opsReassignOrder(actor: _actor!, orderId: alert.orderId), successMessage: 'Order reassigned.'), child: const Text('Reassign')),
-                                      OutlinedButton(onPressed: () => _runOpsAction(action: () => _db.opsRetryPayment(actor: _actor!, orderId: alert.orderId), successMessage: 'Retry payment queued.'), child: const Text('Retry Payment')),
-                                      OutlinedButton(onPressed: () => _runOpsAction(action: () => _db.opsForceDispatch(actor: _actor!, orderId: alert.orderId), successMessage: 'Force dispatch triggered.'), child: const Text('Force Dispatch')),
-                                      OutlinedButton(
-                                        style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFB42318), side: const BorderSide(color: Color(0xFFB42318))),
-                                        onPressed: () => _runOpsAction(action: () => _db.opsCancelOrder(actor: _actor!, orderId: alert.orderId), successMessage: 'Order cancelled.'),
-                                        child: const Text('Cancel Order'),
+                                boxShadow: isCritical
+                                    ? [
+                                        BoxShadow(
+                                          color: const Color(
+                                            0xFFD92D20,
+                                          ).withValues(alpha: 0.12),
+                                          blurRadius: 14,
+                                          offset: const Offset(0, 6),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Checkbox(
+                                        value: _selectedOpsAlertIds.contains(
+                                          alert.alertId,
+                                        ),
+                                        onChanged: (value) => setState(() {
+                                          if (value == true) {
+                                            _selectedOpsAlertIds.add(
+                                              alert.alertId,
+                                            );
+                                          } else {
+                                            _selectedOpsAlertIds.remove(
+                                              alert.alertId,
+                                            );
+                                          }
+                                        }),
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          '${alert.type} | Order ${alert.orderId.isEmpty ? '-' : alert.orderId}',
+                                          style: GoogleFonts.inter(
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ),
+                                      _StatusPill(
+                                        label:
+                                            '${alert.severity} ${alert.score.toStringAsFixed(0)}',
+                                        color: color,
+                                      ),
+                                      IconButton(
+                                        onPressed: () => setState(() {
+                                          if (_expandedOpsAlertIds.contains(
+                                            alert.alertId,
+                                          )) {
+                                            _expandedOpsAlertIds.remove(
+                                              alert.alertId,
+                                            );
+                                          } else {
+                                            _expandedOpsAlertIds.add(
+                                              alert.alertId,
+                                            );
+                                          }
+                                        }),
+                                        icon: Icon(
+                                          _expandedOpsAlertIds.contains(
+                                                alert.alertId,
+                                              )
+                                              ? Icons.expand_less
+                                              : Icons.expand_more,
+                                        ),
                                       ),
                                     ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    alert.message,
+                                    style: GoogleFonts.inter(
+                                      color: AbzioTheme.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Time ${DateFormat('dd MMM HH:mm').format(alert.createdAt)} | Assigned ${alert.payload['assignedOperator'] ?? 'Ops Desk'} | Retry ${alert.retryCount}/${alert.maxRetries}',
+                                    style: GoogleFonts.inter(
+                                      color: AbzioTheme.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  if (_expandedOpsAlertIds.contains(
+                                    alert.alertId,
+                                  )) ...[
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Entity ${alert.entityType}:${alert.entityId} | Action ${alert.action} | Status ${alert.actionStatus}',
+                                      style: GoogleFonts.inter(
+                                        color: AbzioTheme.textSecondary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   ],
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      FilledButton.icon(
+                                        onPressed: () => _runOpsAction(
+                                          action: () => _db.runOpsAlertAction(
+                                            actor: _actor!,
+                                            alertId: alert.alertId,
+                                          ),
+                                          successMessage:
+                                              'Run action triggered.',
+                                        ),
+                                        icon: const Icon(
+                                          Icons.play_arrow_rounded,
+                                        ),
+                                        label: const Text('Run Action'),
+                                      ),
+                                      if (alert.orderId.trim().isNotEmpty) ...[
+                                        OutlinedButton(
+                                          onPressed: () => _runOpsAction(
+                                            action: () => _db.opsReassignOrder(
+                                              actor: _actor!,
+                                              orderId: alert.orderId,
+                                            ),
+                                            successMessage: 'Order reassigned.',
+                                          ),
+                                          child: const Text('Reassign'),
+                                        ),
+                                        OutlinedButton(
+                                          onPressed: () => _runOpsAction(
+                                            action: () => _db.opsRetryPayment(
+                                              actor: _actor!,
+                                              orderId: alert.orderId,
+                                            ),
+                                            successMessage:
+                                                'Retry payment queued.',
+                                          ),
+                                          child: const Text('Retry Payment'),
+                                        ),
+                                        OutlinedButton(
+                                          onPressed: () => _runOpsAction(
+                                            action: () => _db.opsForceDispatch(
+                                              actor: _actor!,
+                                              orderId: alert.orderId,
+                                            ),
+                                            successMessage:
+                                                'Force dispatch triggered.',
+                                          ),
+                                          child: const Text('Force Dispatch'),
+                                        ),
+                                        OutlinedButton(
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: const Color(
+                                              0xFFB42318,
+                                            ),
+                                            side: const BorderSide(
+                                              color: Color(0xFFB42318),
+                                            ),
+                                          ),
+                                          onPressed: () => _runOpsAction(
+                                            action: () => _db.opsCancelOrder(
+                                              actor: _actor!,
+                                              orderId: alert.orderId,
+                                            ),
+                                            successMessage: 'Order cancelled.',
+                                          ),
+                                          child: const Text('Cancel Order'),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
                         ],
                       ),
               ),
@@ -2889,34 +3304,64 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            _StatusPill(label: 'Critical $criticalCount', color: _opsSeverityColor('CRITICAL')),
-                            _StatusPill(label: 'High $highCount', color: _opsSeverityColor('HIGH')),
-                            _StatusPill(label: 'Medium $mediumCount', color: _opsSeverityColor('MEDIUM')),
-                            _StatusPill(label: 'Low $lowCount', color: _opsSeverityColor('LOW')),
+                            _StatusPill(
+                              label: 'Critical $criticalCount',
+                              color: _opsSeverityColor('CRITICAL'),
+                            ),
+                            _StatusPill(
+                              label: 'High $highCount',
+                              color: _opsSeverityColor('HIGH'),
+                            ),
+                            _StatusPill(
+                              label: 'Medium $mediumCount',
+                              color: _opsSeverityColor('MEDIUM'),
+                            ),
+                            _StatusPill(
+                              label: 'Low $lowCount',
+                              color: _opsSeverityColor('LOW'),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 10),
                         if (live.dispatch.isEmpty)
-                          const Text('Dispatch queue operating normally.', style: TextStyle(color: AbzioTheme.grey600)),
+                          const Text(
+                            'Dispatch queue operating normally.',
+                            style: TextStyle(color: AbzioTheme.grey600),
+                          ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
                   _Panel(
                     title: 'Delay Trend Analytics',
-                    subtitle: 'Hourly delay percent, retry spikes, and vendor response failures.',
+                    subtitle:
+                        'Hourly delay percent, retry spikes, and vendor response failures.',
                     child: metricPoints.isEmpty
-                        ? const AbzioEmptyCard(title: 'No delay trend yet', subtitle: 'Platform running smoothly')
+                        ? const AbzioEmptyCard(
+                            title: 'No delay trend yet',
+                            subtitle: 'Platform running smoothly',
+                          )
                         : Column(
                             children: [
-                              _MiniBarChart(points: metricPoints, barColor: const Color(0xFFDC6803), valueFormatter: (v) => '${v.toStringAsFixed(0)}%'),
+                              _MiniBarChart(
+                                points: metricPoints,
+                                barColor: const Color(0xFFDC6803),
+                                valueFormatter: (v) =>
+                                    '${v.toStringAsFixed(0)}%',
+                              ),
                               const SizedBox(height: 10),
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: [
-                                  _StatusPill(label: 'Retry spikes $retrySpikes', color: const Color(0xFFB42318)),
-                                  _StatusPill(label: 'Vendor failures $vendorFailures', color: const Color(0xFFDC6803)),
+                                  _StatusPill(
+                                    label: 'Retry spikes $retrySpikes',
+                                    color: const Color(0xFFB42318),
+                                  ),
+                                  _StatusPill(
+                                    label: 'Vendor failures $vendorFailures',
+                                    color: const Color(0xFFDC6803),
+                                  ),
                                 ],
                               ),
                             ],
@@ -2925,22 +3370,49 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   const SizedBox(height: 16),
                   _Panel(
                     title: 'Ops Audit Log',
-                    subtitle: 'Started, retried, failed, resolved, and escalated actions.',
+                    subtitle:
+                        'Started, retried, failed, resolved, and escalated actions.',
                     child: logs.isEmpty
-                        ? const AbzioEmptyCard(title: 'No operation logs', subtitle: 'Platform running smoothly')
+                        ? const AbzioEmptyCard(
+                            title: 'No operation logs',
+                            subtitle: 'Platform running smoothly',
+                          )
                         : SizedBox(
                             height: 280,
                             child: ListView(
                               controller: _opsAuditScrollController,
                               children: logs.take(18).map((entry) {
                                 final s = entry.status.toLowerCase();
-                                final icon = s.contains('fail') ? Icons.error_outline : s.contains('retry') ? Icons.refresh_rounded : s.contains('resolve') ? Icons.check_circle_outline : s.contains('escalat') ? Icons.priority_high_rounded : Icons.play_arrow_rounded;
+                                final icon = s.contains('fail')
+                                    ? Icons.error_outline
+                                    : s.contains('retry')
+                                    ? Icons.refresh_rounded
+                                    : s.contains('resolve')
+                                    ? Icons.check_circle_outline
+                                    : s.contains('escalat')
+                                    ? Icons.priority_high_rounded
+                                    : Icons.play_arrow_rounded;
                                 return ListTile(
                                   contentPadding: EdgeInsets.zero,
                                   leading: Icon(icon),
-                                  title: Text('${entry.action} | ${entry.status}', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-                                  subtitle: Text('${entry.entityType}:${entry.entityId} | attempt ${entry.attempt}'),
-                                  trailing: Text(DateFormat('dd MMM HH:mm').format(entry.createdAt), style: GoogleFonts.inter(color: AbzioTheme.textSecondary, fontSize: 12)),
+                                  title: Text(
+                                    '${entry.action} | ${entry.status}',
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    '${entry.entityType}:${entry.entityId} | attempt ${entry.attempt}',
+                                  ),
+                                  trailing: Text(
+                                    DateFormat(
+                                      'dd MMM HH:mm',
+                                    ).format(entry.createdAt),
+                                    style: GoogleFonts.inter(
+                                      color: AbzioTheme.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                 );
                               }).toList(),
                             ),
@@ -2949,21 +3421,48 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   const SizedBox(height: 16),
                   _Panel(
                     title: 'AI Operational Insights',
-                    subtitle: 'Intelligence recommendations for live operations.',
+                    subtitle:
+                        'Intelligence recommendations for live operations.',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildInsightTile('Vendor response latency spike detected in Chennai.', Icons.store_mall_directory_outlined),
-                        _buildInsightTile('Retry success probability low for payment queue.', Icons.payments_outlined),
-                        _buildInsightTile('Rider shortage predicted in Zone B.', Icons.delivery_dining_outlined),
+                        _buildInsightTile(
+                          'Vendor response latency spike detected in Chennai.',
+                          Icons.store_mall_directory_outlined,
+                        ),
+                        _buildInsightTile(
+                          'Retry success probability low for payment queue.',
+                          Icons.payments_outlined,
+                        ),
+                        _buildInsightTile(
+                          'Rider shortage predicted in Zone B.',
+                          Icons.delivery_dining_outlined,
+                        ),
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            FilledButton(onPressed: () => _runOpsAction(action: () => _db.triggerOpsDetection(actor: _actor!), successMessage: 'Auto resolve initiated.'), child: const Text('Auto Resolve')),
-                            OutlinedButton(onPressed: () => setState(() => _tab = AdminWebSection.support), child: const Text('Escalate')),
-                            OutlinedButton(onPressed: () => setState(() => _tab = AdminWebSection.operations), child: const Text('Open Incident')),
+                            FilledButton(
+                              onPressed: () => _runOpsAction(
+                                action: () =>
+                                    _db.triggerOpsDetection(actor: _actor!),
+                                successMessage: 'Auto resolve initiated.',
+                              ),
+                              child: const Text('Auto Resolve'),
+                            ),
+                            OutlinedButton(
+                              onPressed: () => setState(
+                                () => _tab = AdminWebSection.support,
+                              ),
+                              child: const Text('Escalate'),
+                            ),
+                            OutlinedButton(
+                              onPressed: () => setState(
+                                () => _tab = AdminWebSection.operations,
+                              ),
+                              child: const Text('Open Incident'),
+                            ),
                           ],
                         ),
                       ],
@@ -2997,8 +3496,19 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           riskReasons: request.verification.riskReasons,
         ),
       ),
-      ..._riderRequests.map(
-        (request) => _KycQueueItem(
+      ..._riderRequests.map((request) {
+        final verification = Map<String, dynamic>.from(
+          (request.metadata['verification'] as Map?) ??
+              const <String, dynamic>{},
+        );
+        final status = (verification['status'] ?? '').toString();
+        final confidence =
+            (verification['confidenceScore'] as num?)?.toDouble() ?? 0;
+        final matchScore = (verification['matchScore'] as num?)?.toInt() ?? 0;
+        final flags = List<String>.from(
+          (verification['flags'] as List?) ?? const [],
+        );
+        return _KycQueueItem(
           id: request.id,
           name: request.name,
           role: 'Rider',
@@ -3006,14 +3516,30 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           status: request.status,
           submittedAt: request.createdAt,
           phone: request.phone,
-        ),
-      ),
+          autoReviewStatus: status == 'auto_verified'
+              ? 'auto_verified'
+              : 'pending_review',
+          confidenceScore: confidence,
+          flags: flags,
+          riskScore: matchScore,
+          riskDecision: status == 'auto_verified' ? 'approve' : 'review',
+          riskReasons: flags,
+        );
+      }),
     ]..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
 
-    final pending = allRequests.where((item) => item.status == 'pending').toList();
-    final approved = allRequests.where((item) => item.status == 'approved').length;
-    final rejected = allRequests.where((item) => item.status == 'rejected').length;
-    final flagged = allRequests.where((item) => item.autoReviewStatus == 'fraud_flagged').length;
+    final pending = allRequests
+        .where((item) => item.status == 'pending')
+        .toList();
+    final approved = allRequests
+        .where((item) => item.status == 'approved')
+        .length;
+    final rejected = allRequests
+        .where((item) => item.status == 'rejected')
+        .length;
+    final flagged = allRequests
+        .where((item) => item.autoReviewStatus == 'fraud_flagged')
+        .length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3040,12 +3566,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 runSpacing: 12,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () => Navigator.of(context).pushNamed('/admin-kyc'),
+                    onPressed: () =>
+                        Navigator.of(context).pushNamed('/admin-kyc'),
                     icon: const Icon(Icons.open_in_new_rounded),
                     label: const Text('Open full KYC review'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => setState(() => _tab = AdminWebSection.dashboard),
+                    onPressed: () =>
+                        setState(() => _tab = AdminWebSection.dashboard),
                     icon: const Icon(Icons.dashboard_outlined),
                     label: const Text('Back to dashboard'),
                   ),
@@ -3055,7 +3583,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               pending.isEmpty
                   ? const AbzioEmptyCard(
                       title: 'No pending requests',
-                      subtitle: 'New partner applications will appear here automatically.',
+                      subtitle:
+                          'New partner applications will appear here automatically.',
                     )
                   : Column(
                       children: pending.take(8).map((item) {
@@ -3067,8 +3596,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                         final riskColor = item.riskScore >= 85
                             ? Colors.green
                             : item.riskScore >= 60
-                                ? Colors.orange
-                                : Colors.red;
+                            ? Colors.orange
+                            : Colors.red;
                         final reviewLabel = switch (item.autoReviewStatus) {
                           'auto_verified' => 'AI VERIFIED',
                           'fraud_flagged' => 'FLAGGED',
@@ -3079,13 +3608,19 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           leading: const Icon(Icons.verified_user_outlined),
                           title: Text(
                             item.name,
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           subtitle: Text(
                             '${item.role} - ${item.city.isEmpty ? 'Unknown city' : item.city} - ${item.phone}'
                             '${item.confidenceScore > 0 ? ' - ${item.confidenceScore.toStringAsFixed(0)}% OCR confidence' : ''}'
                             '${item.riskScore > 0 ? '\nRisk ${item.riskScore} (${item.riskDecision.toUpperCase()})' : ''}'
-                            '${item.flags.isNotEmpty ? '\n${item.flags.take(2).join(' • ')}' : item.riskReasons.isNotEmpty ? '\n${item.riskReasons.take(2).join(' • ')}' : ''}',
+                            '${item.flags.isNotEmpty
+                                ? '\n${item.flags.take(2).join(' • ')}'
+                                : item.riskReasons.isNotEmpty
+                                ? '\n${item.riskReasons.take(2).join(' • ')}'
+                                : ''}',
                           ),
                           trailing: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -3122,15 +3657,34 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   Widget _buildOrders() {
     final base = _filteredOrders;
     final filtered = base.where((order) {
-      if (_orderStatusFilter != 'All' && order.status.toLowerCase() != _orderStatusFilter.toLowerCase()) return false;
-      if (_orderRiderFilter == 'Assigned' && (order.riderId == null || order.riderId!.isEmpty)) return false;
-      if (_orderRiderFilter == 'Unassigned' && (order.riderId != null && order.riderId!.isNotEmpty)) return false;
+      if (_orderStatusFilter != 'All' &&
+          order.status.toLowerCase() != _orderStatusFilter.toLowerCase()) {
+        return false;
+      }
+      if (_orderRiderFilter == 'Assigned' &&
+          (order.riderId == null || order.riderId!.isEmpty)) {
+        return false;
+      }
+      if (_orderRiderFilter == 'Unassigned' &&
+          (order.riderId != null && order.riderId!.isNotEmpty)) {
+        return false;
+      }
       if (_orderDateRangeFilter == 'Today') {
         final now = DateTime.now();
-        if (order.timestamp.year != now.year || order.timestamp.month != now.month || order.timestamp.day != now.day) return false;
+        if (order.timestamp.year != now.year ||
+            order.timestamp.month != now.month ||
+            order.timestamp.day != now.day) {
+          return false;
+        }
       }
-      if (_orderDateRangeFilter == 'Last 7 days' && DateTime.now().difference(order.timestamp).inDays > 7) return false;
-      if (_orderDateRangeFilter == 'Last 30 days' && DateTime.now().difference(order.timestamp).inDays > 30) return false;
+      if (_orderDateRangeFilter == 'Last 7 days' &&
+          DateTime.now().difference(order.timestamp).inDays > 7) {
+        return false;
+      }
+      if (_orderDateRangeFilter == 'Last 30 days' &&
+          DateTime.now().difference(order.timestamp).inDays > 30) {
+        return false;
+      }
       if (_orderPriorityFilter != 'All') {
         final p = _orderPriorityFor(order);
         if (p != _orderPriorityFilter.toUpperCase()) return false;
@@ -3146,239 +3700,372 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     final visible = _pageSlice(filtered, safePage);
     final liveOrders = filtered.where((o) => !_isOrderDone(o)).length;
     final delayed = filtered.where((o) => _isDelayedOrder(o)).length;
-    final awaitingRider = filtered.where((o) => (o.riderId ?? '').trim().isEmpty).length;
-    final refundPending = filtered.where((o) => o.refundStatus.toLowerCase().contains('pending')).length;
-    final deliveredToday = filtered.where((o) => o.status.toLowerCase() == 'delivered' && DateTime.now().difference(o.timestamp).inDays == 0).length;
-    final failedDeliveries = filtered.where((o) => o.status.toLowerCase().contains('cancel')).length;
+    final awaitingRider = filtered
+        .where((o) => (o.riderId ?? '').trim().isEmpty)
+        .length;
+    final refundPending = filtered
+        .where((o) => o.refundStatus.toLowerCase().contains('pending'))
+        .length;
+    final deliveredToday = filtered
+        .where(
+          (o) =>
+              o.status.toLowerCase() == 'delivered' &&
+              DateTime.now().difference(o.timestamp).inDays == 0,
+        )
+        .length;
+    final failedDeliveries = filtered
+        .where((o) => o.status.toLowerCase().contains('cancel'))
+        .length;
 
     return Stack(
       children: [
         Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _MetricCard(title: 'Live Orders', value: '$liveOrders'),
-            _MetricCard(title: 'Delayed Orders', value: '$delayed'),
-            _MetricCard(title: 'Awaiting Rider', value: '$awaitingRider'),
-            _MetricCard(title: 'Refund Pending', value: '$refundPending'),
-            _MetricCard(title: 'Delivered Today', value: '$deliveredToday'),
-            _MetricCard(title: 'Failed Deliveries', value: '$failedDeliveries'),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _Panel(
-          title: 'Fulfillment Queue',
-          subtitle: '${filtered.length} operational order(s)',
-          child: filtered.isEmpty
-              ? const AbzioEmptyCard(
-                  title: 'No order incidents right now',
-                  subtitle: 'Platform running smoothly',
-                )
-              : Column(
-                  children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _MetricCard(title: 'Live Orders', value: '$liveOrders'),
+                _MetricCard(title: 'Delayed Orders', value: '$delayed'),
+                _MetricCard(title: 'Awaiting Rider', value: '$awaitingRider'),
+                _MetricCard(title: 'Refund Pending', value: '$refundPending'),
+                _MetricCard(title: 'Delivered Today', value: '$deliveredToday'),
+                _MetricCard(
+                  title: 'Failed Deliveries',
+                  value: '$failedDeliveries',
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _Panel(
+              title: 'Fulfillment Queue',
+              subtitle: '${filtered.length} operational order(s)',
+              child: filtered.isEmpty
+                  ? const AbzioEmptyCard(
+                      title: 'No order incidents right now',
+                      subtitle: 'Platform running smoothly',
+                    )
+                  : Column(
                       children: [
-                        OutlinedButton(onPressed: _selectedOrderIds.isEmpty ? null : () => _bulkOrderStatus('Assigned'), child: const Text('assign riders')),
-                        OutlinedButton(onPressed: _selectedOrderIds.isEmpty ? null : () => _bulkOrderStatus('Out for delivery'), child: const Text('dispatch')),
-                        OutlinedButton(onPressed: _selectedOrderIds.isEmpty ? null : () => _bulkOrderStatus('Cancelled'), child: const Text('cancel')),
-                        OutlinedButton(onPressed: _selectedOrderIds.isEmpty ? null : () => _bulkOrderStatus('Delivered'), child: const Text('mark delivered')),
-                        OutlinedButton(onPressed: () => setState(() => _selectedOrderIds.clear()), child: const Text('clear selection')),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    ...visible.map((order) {
-                      final invoice =
-                          order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
-                      final store = _storeForId(order.storeId);
-                      final customer = _userForId(order.userId);
-                      final riderName = order.assignedDeliveryPartner == 'Unassigned'
-                          ? 'Unassigned'
-                          : order.assignedDeliveryPartner;
-                      final priority = _orderPriorityFor(order);
-                      final healthScore = _orderHealthScore(order);
-                      final borderColor = _orderBorderColor(order.status);
-                      final isCritical = priority == 'HIGH' || healthScore < 45;
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: borderColor.withValues(alpha: 0.52), width: isCritical ? 1.8 : 1),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (isCritical ? const Color(0xFFD92D20) : Colors.black).withValues(alpha: isCritical ? 0.12 : 0.04),
-                              blurRadius: isCritical ? 18 : 12,
-                              offset: const Offset(0, 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton(
+                              onPressed: _selectedOrderIds.isEmpty
+                                  ? null
+                                  : () => _bulkOrderStatus('Assigned'),
+                              child: const Text('assign riders'),
+                            ),
+                            OutlinedButton(
+                              onPressed: _selectedOrderIds.isEmpty
+                                  ? null
+                                  : () => _bulkOrderStatus('Out for delivery'),
+                              child: const Text('dispatch'),
+                            ),
+                            OutlinedButton(
+                              onPressed: _selectedOrderIds.isEmpty
+                                  ? null
+                                  : () => _bulkOrderStatus('Cancelled'),
+                              child: const Text('cancel'),
+                            ),
+                            OutlinedButton(
+                              onPressed: _selectedOrderIds.isEmpty
+                                  ? null
+                                  : () => _bulkOrderStatus('Delivered'),
+                              child: const Text('mark delivered'),
+                            ),
+                            OutlinedButton(
+                              onPressed: () =>
+                                  setState(() => _selectedOrderIds.clear()),
+                              child: const Text('clear selection'),
                             ),
                           ],
                         ),
-                        child: Column(
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Checkbox(
-                                  value: _selectedOrderIds.contains(order.id),
-                                  onChanged: (value) => setState(() {
-                                    if (value == true) {
-                                      _selectedOrderIds.add(order.id);
-                                    } else {
-                                      _selectedOrderIds.remove(order.id);
-                                    }
-                                  }),
-                                ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Order $invoice',
-                                        style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Customer: ${customer?.name ?? order.userId} | Vendor: ${store?.name ?? order.storeId}',
-                                        style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Address: ${order.shippingAddress}',
-                                        style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Items: ${order.items.length} | Value: ${_formatCurrency(order.totalAmount)} | ETA: ${order.deliveryPromise.isEmpty ? 'Recalculating' : order.deliveryPromise}',
-                                        style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: [
-                                          _StatusPill(
-                                            label: order.status.toUpperCase(),
-                                            color: Colors.blue,
+                        const SizedBox(height: 12),
+                        ...visible.map((order) {
+                          final invoice = order.invoiceNumber.isEmpty
+                              ? order.id
+                              : order.invoiceNumber;
+                          final store = _storeForId(order.storeId);
+                          final customer = _userForId(order.userId);
+                          final riderName =
+                              order.assignedDeliveryPartner == 'Unassigned'
+                              ? 'Unassigned'
+                              : order.assignedDeliveryPartner;
+                          final priority = _orderPriorityFor(order);
+                          final healthScore = _orderHealthScore(order);
+                          final borderColor = _orderBorderColor(order.status);
+                          final isCritical =
+                              priority == 'HIGH' || healthScore < 45;
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: borderColor.withValues(alpha: 0.52),
+                                width: isCritical ? 1.8 : 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      (isCritical
+                                              ? const Color(0xFFD92D20)
+                                              : Colors.black)
+                                          .withValues(
+                                            alpha: isCritical ? 0.12 : 0.04,
                                           ),
-                                          if (order.refundStatus.trim().isNotEmpty)
-                                            _StatusPill(
-                                              label: 'REFUND ${order.refundStatus.toUpperCase()}',
-                                              color: order.refundStatus.toLowerCase() == 'refunded'
-                                                  ? Colors.green
-                                                  : order.refundStatus.toLowerCase() == 'rejected'
-                                                      ? Colors.red
-                                                      : Colors.orange,
-                                            ),
-                                          _StatusPill(
-                                            label: riderName.toUpperCase(),
-                                            color: riderName == 'Unassigned'
-                                                ? Colors.grey
-                                                : Colors.green,
-                                          ),
-                                          _StatusPill(
-                                            label: 'PRIORITY $priority',
-                                            color: priority == 'HIGH' ? const Color(0xFFB42318) : priority == 'MEDIUM' ? const Color(0xFFDC6803) : const Color(0xFF175CD3),
-                                          ),
-                                          _StatusPill(
-                                            label: 'HEALTH ${healthScore.toStringAsFixed(0)}',
-                                            color: healthScore >= 75 ? const Color(0xFF067647) : healthScore >= 45 ? const Color(0xFFDC6803) : const Color(0xFFB42318),
-                                          ),
-                                          ..._orderPriorityChips(order),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      _buildOrderTimeline(order.status),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                SizedBox(
-                                  width: 220,
-                                  child: Column(
-                                    children: [
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: ElevatedButton.icon(
-                                          onPressed: () => _assignRider(order),
-                                          icon: const Icon(Icons.person_add_alt_1_outlined),
-                                          label: Text(order.riderId == null ? 'Assign Rider' : 'Reassign Rider'),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      PopupMenuButton<String>(
-                                        onSelected: (value) => _handleOrderQuickAction(order, value),
-                                        itemBuilder: (_) => const [
-                                          PopupMenuItem(value: 'details', child: Text('Open Details')),
-                                          PopupMenuItem(value: 'refund', child: Text('Refund')),
-                                          PopupMenuItem(value: 'escalate', child: Text('Escalate')),
-                                          PopupMenuItem(value: 'vendor', child: Text('Contact Vendor')),
-                                          PopupMenuItem(value: 'rider', child: Text('Contact Rider')),
-                                          PopupMenuItem(value: 'timeline', child: Text('View Timeline')),
-                                          PopupMenuItem(value: 'retry', child: Text('Retry Payment')),
-                                          PopupMenuItem(value: 'zone', child: Text('Reassign Zone')),
-                                          PopupMenuItem(value: 'cancel', child: Text('Cancel Order')),
-                                        ],
-                                        child: const Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(Icons.more_horiz_rounded),
-                                              SizedBox(width: 4),
-                                              Text('Quick Actions'),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                  blurRadius: isCritical ? 18 : 12,
+                                  offset: const Offset(0, 8),
                                 ),
                               ],
                             ),
-                          ],
+                            child: Column(
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Checkbox(
+                                      value: _selectedOrderIds.contains(
+                                        order.id,
+                                      ),
+                                      onChanged: (value) => setState(() {
+                                        if (value == true) {
+                                          _selectedOrderIds.add(order.id);
+                                        } else {
+                                          _selectedOrderIds.remove(order.id);
+                                        }
+                                      }),
+                                    ),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Order $invoice',
+                                            style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Customer: ${customer?.name ?? order.userId} | Vendor: ${store?.name ?? order.storeId}',
+                                            style: GoogleFonts.inter(
+                                              color: AbzioTheme.textSecondary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Address: ${order.shippingAddress}',
+                                            style: GoogleFonts.inter(
+                                              color: AbzioTheme.textSecondary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Items: ${order.items.length} | Value: ${_formatCurrency(order.totalAmount)} | ETA: ${order.deliveryPromise.isEmpty ? 'Recalculating' : order.deliveryPromise}',
+                                            style: GoogleFonts.inter(
+                                              color: AbzioTheme.textSecondary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: [
+                                              _StatusPill(
+                                                label: order.status
+                                                    .toUpperCase(),
+                                                color: Colors.blue,
+                                              ),
+                                              if (order.refundStatus
+                                                  .trim()
+                                                  .isNotEmpty)
+                                                _StatusPill(
+                                                  label:
+                                                      'REFUND ${order.refundStatus.toUpperCase()}',
+                                                  color:
+                                                      order.refundStatus
+                                                              .toLowerCase() ==
+                                                          'refunded'
+                                                      ? Colors.green
+                                                      : order.refundStatus
+                                                                .toLowerCase() ==
+                                                            'rejected'
+                                                      ? Colors.red
+                                                      : Colors.orange,
+                                                ),
+                                              _StatusPill(
+                                                label: riderName.toUpperCase(),
+                                                color: riderName == 'Unassigned'
+                                                    ? Colors.grey
+                                                    : Colors.green,
+                                              ),
+                                              _StatusPill(
+                                                label: 'PRIORITY $priority',
+                                                color: priority == 'HIGH'
+                                                    ? const Color(0xFFB42318)
+                                                    : priority == 'MEDIUM'
+                                                    ? const Color(0xFFDC6803)
+                                                    : const Color(0xFF175CD3),
+                                              ),
+                                              _StatusPill(
+                                                label:
+                                                    'HEALTH ${healthScore.toStringAsFixed(0)}',
+                                                color: healthScore >= 75
+                                                    ? const Color(0xFF067647)
+                                                    : healthScore >= 45
+                                                    ? const Color(0xFFDC6803)
+                                                    : const Color(0xFFB42318),
+                                              ),
+                                              ..._orderPriorityChips(order),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 10),
+                                          _buildOrderTimeline(order.status),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    SizedBox(
+                                      width: 220,
+                                      child: Column(
+                                        children: [
+                                          SizedBox(
+                                            width: double.infinity,
+                                            child: ElevatedButton.icon(
+                                              onPressed: () =>
+                                                  _assignRider(order),
+                                              icon: const Icon(
+                                                Icons.person_add_alt_1_outlined,
+                                              ),
+                                              label: Text(
+                                                order.riderId == null
+                                                    ? 'Assign Rider'
+                                                    : 'Reassign Rider',
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          PopupMenuButton<String>(
+                                            onSelected: (value) =>
+                                                _handleOrderQuickAction(
+                                                  order,
+                                                  value,
+                                                ),
+                                            itemBuilder: (_) => const [
+                                              PopupMenuItem(
+                                                value: 'details',
+                                                child: Text('Open Details'),
+                                              ),
+                                              PopupMenuItem(
+                                                value: 'refund',
+                                                child: Text('Refund'),
+                                              ),
+                                              PopupMenuItem(
+                                                value: 'escalate',
+                                                child: Text('Escalate'),
+                                              ),
+                                              PopupMenuItem(
+                                                value: 'vendor',
+                                                child: Text('Contact Vendor'),
+                                              ),
+                                              PopupMenuItem(
+                                                value: 'rider',
+                                                child: Text('Contact Rider'),
+                                              ),
+                                              PopupMenuItem(
+                                                value: 'timeline',
+                                                child: Text('View Timeline'),
+                                              ),
+                                              PopupMenuItem(
+                                                value: 'retry',
+                                                child: Text('Retry Payment'),
+                                              ),
+                                              PopupMenuItem(
+                                                value: 'zone',
+                                                child: Text('Reassign Zone'),
+                                              ),
+                                              PopupMenuItem(
+                                                value: 'cancel',
+                                                child: Text('Cancel Order'),
+                                              ),
+                                            ],
+                                            child: const Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 10,
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.more_horiz_rounded,
+                                                  ),
+                                                  SizedBox(width: 4),
+                                                  Text('Quick Actions'),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                        _Pager(
+                          currentPage: safePage,
+                          pageCount: pageCount,
+                          onPrevious: safePage > 0
+                              ? () => setState(() => _orderPage = safePage - 1)
+                              : null,
+                          onNext: safePage + 1 < pageCount
+                              ? () => setState(() => _orderPage = safePage + 1)
+                              : null,
                         ),
-                      );
-                    }),
-                    _Pager(
-                      currentPage: safePage,
-                      pageCount: pageCount,
-                      onPrevious: safePage > 0
-                          ? () => setState(() => _orderPage = safePage - 1)
-                          : null,
-                      onNext: safePage + 1 < pageCount
-                          ? () => setState(() => _orderPage = safePage + 1)
-                          : null,
+                      ],
                     ),
-                  ],
-                ),
+            ),
+            const SizedBox(height: 16),
+            _Panel(
+              title: 'AI Order Insights',
+              subtitle:
+                  'Risk intelligence for proactive fulfillment intervention.',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildInsightTile(
+                    'High cancellation probability on zone-heavy evening orders.',
+                    Icons.warning_amber_rounded,
+                  ),
+                  _buildInsightTile(
+                    'Vendor delay risk detected in custom-stitch segment.',
+                    Icons.store_mall_directory_outlined,
+                  ),
+                  _buildInsightTile(
+                    'Traffic may impact ETA for west corridor routes.',
+                    Icons.traffic_outlined,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
-        _Panel(
-          title: 'AI Order Insights',
-          subtitle: 'Risk intelligence for proactive fulfillment intervention.',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildInsightTile('High cancellation probability on zone-heavy evening orders.', Icons.warning_amber_rounded),
-              _buildInsightTile('Vendor delay risk detected in custom-stitch segment.', Icons.store_mall_directory_outlined),
-              _buildInsightTile('Traffic may impact ETA for west corridor routes.', Icons.traffic_outlined),
-            ],
+        if (_activeOrderDrawerOrder != null)
+          Positioned(
+            top: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildOrderDetailDrawer(_activeOrderDrawerOrder!),
           ),
-        ),
-      ],
-    ),
-      if (_activeOrderDrawerOrder != null)
-        Positioned(
-          top: 0,
-          right: 0,
-          bottom: 0,
-          child: _buildOrderDetailDrawer(_activeOrderDrawerOrder!),
-        ),
       ],
     );
   }
@@ -3387,13 +4074,29 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     final base = _filteredStores;
     final filtered = base.where((store) {
       if (_vendorStatusFilter == 'Approved' && !store.isApproved) return false;
-      if (_vendorStatusFilter == 'Pending' && store.approvalStatus.toLowerCase() != 'pending') return false;
+      if (_vendorStatusFilter == 'Pending' &&
+          store.approvalStatus.toLowerCase() != 'pending') {
+        return false;
+      }
       if (_vendorStatusFilter == 'Suspended' && store.isActive) return false;
-      if (_vendorStatusFilter == 'High Risk' && _vendorHealthScore(store) >= 45) return false;
-      if (_vendorCityFilter != 'All' && !store.city.toLowerCase().contains(_vendorCityFilter.toLowerCase())) return false;
-      if (_vendorRiskFilter == 'Healthy' && _vendorHealthScore(store) < 75) return false;
-      if (_vendorRiskFilter == 'Warning' && (_vendorHealthScore(store) >= 75 || _vendorHealthScore(store) < 45)) return false;
-      if (_vendorRiskFilter == 'Intervention' && _vendorHealthScore(store) >= 45) return false;
+      if (_vendorStatusFilter == 'High Risk' && _vendorHealthScore(store) >= 45) {
+        return false;
+      }
+      if (_vendorCityFilter != 'All' &&
+          !store.city.toLowerCase().contains(_vendorCityFilter.toLowerCase())) {
+        return false;
+      }
+      if (_vendorRiskFilter == 'Healthy' && _vendorHealthScore(store) < 75) {
+        return false;
+      }
+      if (_vendorRiskFilter == 'Warning' &&
+          (_vendorHealthScore(store) >= 75 || _vendorHealthScore(store) < 45)) {
+        return false;
+      }
+      if (_vendorRiskFilter == 'Intervention' &&
+          _vendorHealthScore(store) >= 45) {
+        return false;
+      }
       return true;
     }).toList();
     final pageCount = _pageCount(filtered);
@@ -3401,10 +4104,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     final visible = _pageSlice(filtered, safePage);
     final totalVendors = filtered.length;
     final activeVendors = filtered.where((s) => s.isActive).length;
-    final pendingKyc = filtered.where((s) => s.approvalStatus.toLowerCase() == 'pending').length;
+    final pendingKyc = filtered
+        .where((s) => s.approvalStatus.toLowerCase() == 'pending')
+        .length;
     final suspended = filtered.where((s) => !s.isActive).length;
-    final totalRevenue = filtered.fold<double>(0, (sum, s) => sum + _storeRevenue(s));
-    final pendingPayouts = filtered.fold<double>(0, (sum, s) => sum + (s.walletBalance > 0 ? s.walletBalance : 0));
+    final totalRevenue = filtered.fold<double>(
+      0,
+      (sum, s) => sum + _storeRevenue(s),
+    );
+    final pendingPayouts = filtered.fold<double>(
+      0,
+      (sum, s) => sum + (s.walletBalance > 0 ? s.walletBalance : 0),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3416,8 +4127,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             _MetricCard(title: 'Active Vendors', value: '$activeVendors'),
             _MetricCard(title: 'Pending KYC', value: '$pendingKyc'),
             _MetricCard(title: 'Suspended Vendors', value: '$suspended'),
-            _MetricCard(title: 'Total Revenue', value: _formatCurrency(totalRevenue)),
-            _MetricCard(title: 'Pending Payouts', value: _formatCurrency(pendingPayouts)),
+            _MetricCard(
+              title: 'Total Revenue',
+              value: _formatCurrency(totalRevenue),
+            ),
+            _MetricCard(
+              title: 'Pending Payouts',
+              value: _formatCurrency(pendingPayouts),
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -3432,10 +4149,22 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               : Column(
                   children: [
                     ...visible.map((store) {
-                      final storeOrders = _orders.where((order) => order.storeId == store.id).toList();
+                      final storeOrders = _orders
+                          .where((order) => order.storeId == store.id)
+                          .toList();
                       final revenue = _storeRevenue(store);
                       final health = _vendorHealthScore(store);
-                      final cancelRate = storeOrders.isEmpty ? 0 : (storeOrders.where((o) => o.status.toLowerCase().contains('cancel')).length / storeOrders.length) * 100;
+                      final cancelRate = storeOrders.isEmpty
+                          ? 0
+                          : (storeOrders
+                                        .where(
+                                          (o) => o.status
+                                              .toLowerCase()
+                                              .contains('cancel'),
+                                        )
+                                        .length /
+                                    storeOrders.length) *
+                                100;
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(16),
@@ -3445,7 +4174,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           border: Border.all(color: AbzioTheme.grey200),
                           boxShadow: [
                             BoxShadow(
-                              color: (health < 45 ? const Color(0xFFB42318) : Colors.black).withValues(alpha: health < 45 ? 0.12 : 0.04),
+                              color:
+                                  (health < 45
+                                          ? const Color(0xFFB42318)
+                                          : Colors.black)
+                                      .withValues(
+                                        alpha: health < 45 ? 0.12 : 0.04,
+                                      ),
                               blurRadius: 14,
                               offset: const Offset(0, 7),
                             ),
@@ -3456,7 +4191,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           children: [
                             CircleAvatar(
                               radius: 24,
-                              child: Text(store.name.isEmpty ? 'V' : store.name[0].toUpperCase()),
+                              child: Text(
+                                store.name.isEmpty
+                                    ? 'V'
+                                    : store.name[0].toUpperCase(),
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -3465,12 +4204,16 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                 children: [
                                   Text(
                                     store.name,
-                                    style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     'Owner ${store.ownerId} • ${store.city.isEmpty ? 'Unknown city' : store.city}',
-                                    style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                                    style: GoogleFonts.inter(
+                                      color: AbzioTheme.textSecondary,
+                                    ),
                                   ),
                                   const SizedBox(height: 8),
                                   Wrap(
@@ -3478,24 +4221,54 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                     runSpacing: 8,
                                     children: [
                                       _StatusPill(
-                                        label: store.isApproved ? 'APPROVED' : 'PENDING',
-                                        color: store.isApproved ? const Color(0xFF067647) : const Color(0xFFDC6803),
+                                        label: store.isApproved
+                                            ? 'APPROVED'
+                                            : 'PENDING',
+                                        color: store.isApproved
+                                            ? const Color(0xFF067647)
+                                            : const Color(0xFFDC6803),
                                       ),
-                                      if (store.isFeatured) const _StatusPill(label: 'FEATURED', color: Color(0xFFB57A12)),
+                                      if (store.isFeatured)
+                                        const _StatusPill(
+                                          label: 'FEATURED',
+                                          color: Color(0xFFB57A12),
+                                        ),
                                       _StatusPill(
-                                        label: store.isActive ? 'ACTIVE' : 'SUSPENDED',
-                                        color: store.isActive ? const Color(0xFF175CD3) : const Color(0xFFB42318),
+                                        label: store.isActive
+                                            ? 'ACTIVE'
+                                            : 'SUSPENDED',
+                                        color: store.isActive
+                                            ? const Color(0xFF175CD3)
+                                            : const Color(0xFFB42318),
                                       ),
-                                      _StatusPill(label: health < 45 ? 'HIGH RISK' : health < 75 ? 'WARNING' : 'HEALTHY', color: health < 45 ? const Color(0xFFB42318) : health < 75 ? const Color(0xFFDC6803) : const Color(0xFF067647)),
+                                      _StatusPill(
+                                        label: health < 45
+                                            ? 'HIGH RISK'
+                                            : health < 75
+                                            ? 'WARNING'
+                                            : 'HEALTHY',
+                                        color: health < 45
+                                            ? const Color(0xFFB42318)
+                                            : health < 75
+                                            ? const Color(0xFFDC6803)
+                                            : const Color(0xFF067647),
+                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Revenue ${_formatCurrency(revenue)} • Orders ${storeOrders.length} • Commission ${(store.commissionRate * 100).toStringAsFixed(0)}% • Payout ${_formatCurrency(store.walletBalance)}',
-                                    style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Text('Health Score: ${health.toStringAsFixed(0)} | Rating ${store.rating.toStringAsFixed(1)} | Cancellation ${cancelRate.toStringAsFixed(1)}%', style: GoogleFonts.inter(color: AbzioTheme.textSecondary)),
+                                  Text(
+                                    'Health Score: ${health.toStringAsFixed(0)} | Rating ${store.rating.toStringAsFixed(1)} | Cancellation ${cancelRate.toStringAsFixed(1)}%',
+                                    style: GoogleFonts.inter(
+                                      color: AbzioTheme.textSecondary,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -3504,19 +4277,59 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                               spacing: 8,
                               runSpacing: 8,
                               children: [
-                                ElevatedButton(onPressed: () => setState(() => _activeVendorDrawerStore = store), child: const Text('View Vendor')),
-                                OutlinedButton(onPressed: () => _toggleFeatured(store), child: Text(store.isFeatured ? 'Unfeature' : 'Feature')),
-                                OutlinedButton(onPressed: () => _adjustCommission(store), child: const Text('Commission')),
-                                OutlinedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Assign manager to ${store.name}'))), child: const Text('Assign Manager')),
-                                OutlinedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Analytics opened for ${store.name}'))), child: const Text('Open Analytics')),
+                                ElevatedButton(
+                                  onPressed: () => setState(
+                                    () => _activeVendorDrawerStore = store,
+                                  ),
+                                  child: const Text('View Vendor'),
+                                ),
+                                OutlinedButton(
+                                  onPressed: () => _toggleFeatured(store),
+                                  child: Text(
+                                    store.isFeatured ? 'Unfeature' : 'Feature',
+                                  ),
+                                ),
+                                OutlinedButton(
+                                  onPressed: () => _adjustCommission(store),
+                                  child: const Text('Commission'),
+                                ),
+                                OutlinedButton(
+                                  onPressed: () => ScaffoldMessenger.of(context)
+                                      .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Assign manager to ${store.name}',
+                                          ),
+                                        ),
+                                      ),
+                                  child: const Text('Assign Manager'),
+                                ),
+                                OutlinedButton(
+                                  onPressed: () => ScaffoldMessenger.of(context)
+                                      .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Analytics opened for ${store.name}',
+                                          ),
+                                        ),
+                                      ),
+                                  child: const Text('Open Analytics'),
+                                ),
                                 ElevatedButton(
                                   onPressed: () => _processPayout(store),
                                   child: const Text('Mark payout paid'),
                                 ),
                                 OutlinedButton(
-                                  style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFB42318), side: const BorderSide(color: Color(0xFFB42318))),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFFB42318),
+                                    side: const BorderSide(
+                                      color: Color(0xFFB42318),
+                                    ),
+                                  ),
                                   onPressed: () => _toggleStoreActive(store),
-                                  child: Text(store.isActive ? 'Suspend' : 'Activate'),
+                                  child: Text(
+                                    store.isActive ? 'Suspend' : 'Activate',
+                                  ),
                                 ),
                               ],
                             ),
@@ -3545,22 +4358,49 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     final base = _filteredRiders;
     final filtered = base.where((rider) {
       final status = _riderLiveStatus(rider);
-      if (_riderStatusFilter != 'All' && status != _riderStatusFilter) return false;
-      if (_riderCityFilter != 'All' && !(rider.riderCity ?? rider.city ?? '').toLowerCase().contains(_riderCityFilter.toLowerCase())) return false;
-      if (_riderRiskFilter == 'Healthy' && _riderPerformanceScore(rider) < 75) return false;
-      if (_riderRiskFilter == 'Warning' && (_riderPerformanceScore(rider) >= 75 || _riderPerformanceScore(rider) < 45)) return false;
-      if (_riderRiskFilter == 'Intervention' && _riderPerformanceScore(rider) >= 45) return false;
+      if (_riderStatusFilter != 'All' && status != _riderStatusFilter) {
+        return false;
+      }
+      if (_riderCityFilter != 'All' &&
+          !(rider.riderCity ?? rider.city ?? '').toLowerCase().contains(
+            _riderCityFilter.toLowerCase(),
+          )) {
+        return false;
+      }
+      if (_riderRiskFilter == 'Healthy' && _riderPerformanceScore(rider) < 75) {
+        return false;
+      }
+      if (_riderRiskFilter == 'Warning' &&
+          (_riderPerformanceScore(rider) >= 75 ||
+              _riderPerformanceScore(rider) < 45)) {
+        return false;
+      }
+      if (_riderRiskFilter == 'Intervention' &&
+          _riderPerformanceScore(rider) >= 45) {
+        return false;
+      }
       return true;
     }).toList();
     final pageCount = _pageCount(filtered);
     final safePage = _riderPage >= pageCount ? pageCount - 1 : _riderPage;
     final visible = _pageSlice(filtered, safePage);
-    final onlineRiders = filtered.where((r) => _riderLiveStatus(r) == 'LIVE').length;
-    final activeDeliveries = filtered.fold<int>(0, (sum, r) => sum + _activeDeliveriesForRider(r.id));
+    final onlineRiders = filtered
+        .where((r) => _riderLiveStatus(r) == 'LIVE')
+        .length;
+    final activeDeliveries = filtered.fold<int>(
+      0,
+      (sum, r) => sum + _activeDeliveriesForRider(r.id),
+    );
     final delayedDeliveries = _orders.where((o) => _isDelayedOrder(o)).length;
-    final avgDeliveryTime = 28 - ((onlineRiders / (filtered.isEmpty ? 1 : filtered.length)) * 6);
-    final fleetUtilization = filtered.isEmpty ? 0 : (activeDeliveries / filtered.length) * 100;
-    final earningsToday = filtered.fold<double>(0, (sum, r) => sum + _riderWeeklyEarnings(r) / 7);
+    final avgDeliveryTime =
+        28 - ((onlineRiders / (filtered.isEmpty ? 1 : filtered.length)) * 6);
+    final fleetUtilization = filtered.isEmpty
+        ? 0
+        : (activeDeliveries / filtered.length) * 100;
+    final earningsToday = filtered.fold<double>(
+      0,
+      (sum, r) => sum + _riderWeeklyEarnings(r) / 7,
+    );
 
     return Stack(
       children: [
@@ -3572,11 +4412,26 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               runSpacing: 12,
               children: [
                 _MetricCard(title: 'Online Riders', value: '$onlineRiders'),
-                _MetricCard(title: 'Active Deliveries', value: '$activeDeliveries'),
-                _MetricCard(title: 'Delayed Deliveries', value: '$delayedDeliveries'),
-                _MetricCard(title: 'Avg Delivery Time', value: '${avgDeliveryTime.toStringAsFixed(0)} min'),
-                _MetricCard(title: 'Fleet Utilization', value: '${fleetUtilization.toStringAsFixed(0)}%'),
-                _MetricCard(title: 'Earnings Today', value: _formatCurrency(earningsToday)),
+                _MetricCard(
+                  title: 'Active Deliveries',
+                  value: '$activeDeliveries',
+                ),
+                _MetricCard(
+                  title: 'Delayed Deliveries',
+                  value: '$delayedDeliveries',
+                ),
+                _MetricCard(
+                  title: 'Avg Delivery Time',
+                  value: '${avgDeliveryTime.toStringAsFixed(0)} min',
+                ),
+                _MetricCard(
+                  title: 'Fleet Utilization',
+                  value: '${fleetUtilization.toStringAsFixed(0)}%',
+                ),
+                _MetricCard(
+                  title: 'Earnings Today',
+                  value: _formatCurrency(earningsToday),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -3591,13 +4446,20 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   : Column(
                       children: [
                         ...visible.map((rider) {
-                          final activeDeliveries = _activeDeliveriesForRider(rider.id);
+                          final activeDeliveries = _activeDeliveriesForRider(
+                            rider.id,
+                          );
                           final performance = _riderPerformanceScore(rider);
                           final status = _riderLiveStatus(rider);
                           final statusColor = _riderStatusColor(status);
-                          final rating = (4.1 + (performance / 200)).clamp(3.5, 5.0);
+                          final rating = (4.1 + (performance / 200)).clamp(
+                            3.5,
+                            5.0,
+                          );
                           final deliveries = 320 + (performance * 8).toInt();
-                          final speed = (18 + ((100 - performance) / 8)).clamp(14, 34).toDouble();
+                          final speed = (18 + ((100 - performance) / 8))
+                              .clamp(14, 34)
+                              .toDouble();
                           final weeklyEarnings = _riderWeeklyEarnings(rider);
                           final battery = _riderBatteryLevel(rider);
                           final lastActive = _riderLastActiveLabel(rider);
@@ -3610,7 +4472,15 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                               border: Border.all(color: AbzioTheme.grey200),
                               boxShadow: [
                                 BoxShadow(
-                                  color: (status == 'HIGH RISK' ? const Color(0xFFB42318) : Colors.black).withValues(alpha: status == 'HIGH RISK' ? 0.12 : 0.04),
+                                  color:
+                                      (status == 'HIGH RISK'
+                                              ? const Color(0xFFB42318)
+                                              : Colors.black)
+                                          .withValues(
+                                            alpha: status == 'HIGH RISK'
+                                                ? 0.12
+                                                : 0.04,
+                                          ),
                                   blurRadius: 14,
                                   offset: const Offset(0, 7),
                                 ),
@@ -3621,46 +4491,78 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                               children: [
                                 CircleAvatar(
                                   radius: 24,
-                                  child: Text(rider.name.isEmpty ? 'R' : rider.name[0].toUpperCase()),
+                                  child: Text(
+                                    rider.name.isEmpty
+                                        ? 'R'
+                                        : rider.name[0].toUpperCase(),
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         rider.name,
-                                        style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         '${rider.phone ?? rider.email} • ${rider.riderCity ?? rider.city ?? 'Unknown city'} • ${rider.riderVehicleType ?? 'Bike'} • ${2 + (performance / 35).floor()}y exp',
-                                        style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                                        style: GoogleFonts.inter(
+                                          color: AbzioTheme.textSecondary,
+                                        ),
                                       ),
                                       const SizedBox(height: 8),
                                       Wrap(
                                         spacing: 8,
                                         runSpacing: 8,
                                         children: [
-                                          _StatusPill(label: status, color: statusColor),
                                           _StatusPill(
-                                            label: rider.riderApprovalStatus.toUpperCase(),
-                                            color: rider.riderApprovalStatus == 'approved' ? Colors.green : Colors.orange,
+                                            label: status,
+                                            color: statusColor,
+                                          ),
+                                          _StatusPill(
+                                            label: rider.riderApprovalStatus
+                                                .toUpperCase(),
+                                            color:
+                                                rider.riderApprovalStatus ==
+                                                    'approved'
+                                                ? Colors.green
+                                                : Colors.orange,
                                           ),
                                           _StatusPill(
                                             label: '$activeDeliveries LIVE',
                                             color: AbzioTheme.accentColor,
                                           ),
                                           _StatusPill(
-                                            label: 'Performance ${performance.toStringAsFixed(0)}',
-                                            color: performance >= 75 ? const Color(0xFF067647) : performance >= 45 ? const Color(0xFFDC6803) : const Color(0xFFB42318),
+                                            label:
+                                                'Performance ${performance.toStringAsFixed(0)}',
+                                            color: performance >= 75
+                                                ? const Color(0xFF067647)
+                                                : performance >= 45
+                                                ? const Color(0xFFDC6803)
+                                                : const Color(0xFFB42318),
                                           ),
                                         ],
                                       ),
                                       const SizedBox(height: 8),
-                                      Text('Rating ${rating.toStringAsFixed(1)} | Deliveries $deliveries | Avg speed ${speed.toStringAsFixed(0)} min | Weekly ${_formatCurrency(weeklyEarnings)}', style: GoogleFonts.inter(color: AbzioTheme.textSecondary)),
+                                      Text(
+                                        'Rating ${rating.toStringAsFixed(1)} | Deliveries $deliveries | Avg speed ${speed.toStringAsFixed(0)} min | Weekly ${_formatCurrency(weeklyEarnings)}',
+                                        style: GoogleFonts.inter(
+                                          color: AbzioTheme.textSecondary,
+                                        ),
+                                      ),
                                       const SizedBox(height: 4),
-                                      Text('Battery ${battery == null ? "--" : "$battery%"} | Signal ${_riderSignalQuality(rider)} | Last active $lastActive', style: GoogleFonts.inter(color: AbzioTheme.textSecondary)),
+                                      Text(
+                                        'Battery ${battery == null ? "--" : "$battery%"} | Signal ${_riderSignalQuality(rider)} | Last active $lastActive',
+                                        style: GoogleFonts.inter(
+                                          color: AbzioTheme.textSecondary,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -3669,13 +4571,59 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                   spacing: 8,
                                   runSpacing: 8,
                                   children: [
-                                    ElevatedButton(onPressed: () => setState(() => _activeRiderDrawerUser = rider), child: const Text('View Rider')),
-                                    OutlinedButton(onPressed: () => _assignOrderToRider(rider), child: const Text('Assign Order')),
-                                    OutlinedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Contact sent to ${rider.name}'))), child: const Text('Contact')),
-                                    OutlinedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Performance view opened for ${rider.name}'))), child: const Text('Performance')),
-                                    OutlinedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Earnings view opened for ${rider.name}'))), child: const Text('Earnings')),
+                                    ElevatedButton(
+                                      onPressed: () => setState(
+                                        () => _activeRiderDrawerUser = rider,
+                                      ),
+                                      child: const Text('View Rider'),
+                                    ),
                                     OutlinedButton(
-                                      onPressed: () => _toggleRiderApproval(rider),
+                                      onPressed: () =>
+                                          _assignOrderToRider(rider),
+                                      child: const Text('Assign Order'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () =>
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Contact sent to ${rider.name}',
+                                              ),
+                                            ),
+                                          ),
+                                      child: const Text('Contact'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () =>
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Performance view opened for ${rider.name}',
+                                              ),
+                                            ),
+                                          ),
+                                      child: const Text('Performance'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () =>
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Earnings view opened for ${rider.name}',
+                                              ),
+                                            ),
+                                          ),
+                                      child: const Text('Earnings'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () =>
+                                          _toggleRiderApproval(rider),
                                       child: Text(
                                         rider.riderApprovalStatus == 'approved'
                                             ? 'Move to Pending'
@@ -3683,9 +4631,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                       ),
                                     ),
                                     OutlinedButton(
-                                      style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFB42318), side: const BorderSide(color: Color(0xFFB42318))),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(
+                                          0xFFB42318,
+                                        ),
+                                        side: const BorderSide(
+                                          color: Color(0xFFB42318),
+                                        ),
+                                      ),
                                       onPressed: () => _toggleUserActive(rider),
-                                      child: Text(rider.isActive ? 'Suspend' : 'Activate'),
+                                      child: Text(
+                                        rider.isActive ? 'Suspend' : 'Activate',
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -3713,7 +4670,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 Expanded(
                   child: _Panel(
                     title: 'Live Operations Panel',
-                    subtitle: 'Dispatch intelligence and rider coverage alerts.',
+                    subtitle:
+                        'Dispatch intelligence and rider coverage alerts.',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -3722,7 +4680,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           Icons.route_outlined,
                         ),
                         _buildInsightTile(
-                          'Delayed orders detected: $delayedDeliveries | SLA breach risk ${( (_dispatchSlaOverview['slaBreachRisk'] ?? 0) as num).toStringAsFixed(0)}%',
+                          'Delayed orders detected: $delayedDeliveries | SLA breach risk ${((_dispatchSlaOverview['slaBreachRisk'] ?? 0) as num).toStringAsFixed(0)}%',
                           Icons.warning_amber_rounded,
                         ),
                         _buildInsightTile(
@@ -3734,7 +4692,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           Icons.person_search_outlined,
                         ),
                         _buildInsightTile(
-                          'Auto-dispatch health: ${((_dispatchSlaOverview['dispatchHealthScore'] ?? 0) as num).toStringAsFixed(0)} | Rebalance ${( _dispatchRebalance['status'] ?? 'stable').toString()}',
+                          'Auto-dispatch health: ${((_dispatchSlaOverview['dispatchHealthScore'] ?? 0) as num).toStringAsFixed(0)} | Rebalance ${(_dispatchRebalance['status'] ?? 'stable').toString()}',
                           Icons.hub_outlined,
                         ),
                       ],
@@ -3749,10 +4707,22 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildInsightTile('Rider inactive for 3 days: ${_opsAlerts.where((a) => (a.message.toLowerCase().contains('inactive') || a.type.toLowerCase().contains('inactive'))).length}', Icons.person_off_outlined),
-                        _buildInsightTile('Multiple late deliveries detected: ${_opsAlerts.where((a) => a.message.toLowerCase().contains('delay')).length}', Icons.schedule_rounded),
-                        _buildInsightTile('Battery critically low during delivery: ${_opsAlerts.where((a) => a.message.toLowerCase().contains('battery')).length}', Icons.battery_alert_rounded),
-                        _buildInsightTile('Complaint spike/fraud risk alerts: ${_opsAlerts.where((a) => a.message.toLowerCase().contains('complaint') || a.message.toLowerCase().contains('fraud')).length}', Icons.report_problem_outlined),
+                        _buildInsightTile(
+                          'Rider inactive for 3 days: ${_opsAlerts.where((a) => (a.message.toLowerCase().contains('inactive') || a.type.toLowerCase().contains('inactive'))).length}',
+                          Icons.person_off_outlined,
+                        ),
+                        _buildInsightTile(
+                          'Multiple late deliveries detected: ${_opsAlerts.where((a) => a.message.toLowerCase().contains('delay')).length}',
+                          Icons.schedule_rounded,
+                        ),
+                        _buildInsightTile(
+                          'Battery critically low during delivery: ${_opsAlerts.where((a) => a.message.toLowerCase().contains('battery')).length}',
+                          Icons.battery_alert_rounded,
+                        ),
+                        _buildInsightTile(
+                          'Complaint spike/fraud risk alerts: ${_opsAlerts.where((a) => a.message.toLowerCase().contains('complaint') || a.message.toLowerCase().contains('fraud')).length}',
+                          Icons.report_problem_outlined,
+                        ),
                       ],
                     ),
                   ),
@@ -3782,7 +4752,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       children: [
         _FilterPanel(
           title: 'User management',
-          subtitle: 'Manage activation and role assignments across the marketplace.',
+          subtitle:
+              'Manage activation and role assignments across the marketplace.',
           children: [
             SizedBox(
               width: 320,
@@ -3799,9 +4770,22 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               child: DropdownButtonFormField<String>(
                 initialValue: _userRoleFilter,
                 decoration: const InputDecoration(labelText: 'Role'),
-                items: const ['All', 'customer', 'user', 'vendor', 'rider', 'admin']
-                    .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-                    .toList(),
+                items:
+                    const [
+                          'All',
+                          'customer',
+                          'user',
+                          'vendor',
+                          'rider',
+                          'admin',
+                        ]
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(value),
+                          ),
+                        )
+                        .toList(),
                 onChanged: (value) => setState(() {
                   _userRoleFilter = value ?? 'All';
                   _userPage = 0;
@@ -3840,7 +4824,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(user.name.isEmpty ? 'Unnamed user' : user.name),
+                                    Text(
+                                      user.name.isEmpty
+                                          ? 'Unnamed user'
+                                          : user.name,
+                                    ),
                                     Text(
                                       user.city ?? '-',
                                       style: GoogleFonts.inter(
@@ -3855,20 +4843,21 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                 DropdownButton<String>(
                                   value: user.role,
                                   underline: const SizedBox.shrink(),
-                                  items: const [
-                                    'customer',
-                                    'user',
-                                    'vendor',
-                                    'rider',
-                                    'admin',
-                                  ]
-                                      .map(
-                                        (role) => DropdownMenuItem(
-                                          value: role,
-                                          child: Text(role),
-                                        ),
-                                      )
-                                      .toList(),
+                                  items:
+                                      const [
+                                            'customer',
+                                            'user',
+                                            'vendor',
+                                            'rider',
+                                            'admin',
+                                          ]
+                                          .map(
+                                            (role) => DropdownMenuItem(
+                                              value: role,
+                                              child: Text(role),
+                                            ),
+                                          )
+                                          .toList(),
                                   onChanged: (role) {
                                     if (role != null && role != user.role) {
                                       unawaited(_changeUserRole(user, role));
@@ -3883,14 +4872,21 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     _StatusPill(
-                                      label: user.isActive ? 'ACTIVE' : 'BLOCKED',
-                                      color: user.isActive ? Colors.green : Colors.red,
+                                      label: user.isActive
+                                          ? 'ACTIVE'
+                                          : 'BLOCKED',
+                                      color: user.isActive
+                                          ? Colors.green
+                                          : Colors.red,
                                     ),
                                     if (_isRiderUser(user)) ...[
                                       const SizedBox(height: 6),
                                       _StatusPill(
-                                        label: user.riderApprovalStatus.toUpperCase(),
-                                        color: user.riderApprovalStatus == 'approved'
+                                        label: user.riderApprovalStatus
+                                            .toUpperCase(),
+                                        color:
+                                            user.riderApprovalStatus ==
+                                                'approved'
                                             ? Colors.blue
                                             : Colors.orange,
                                       ),
@@ -3905,11 +4901,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                   children: [
                                     TextButton(
                                       onPressed: () => _toggleUserActive(user),
-                                      child: Text(user.isActive ? 'Disable' : 'Enable'),
+                                      child: Text(
+                                        user.isActive ? 'Disable' : 'Enable',
+                                      ),
                                     ),
                                     if (_isRiderUser(user))
                                       TextButton(
-                                        onPressed: () => _toggleRiderApproval(user),
+                                        onPressed: () =>
+                                            _toggleRiderApproval(user),
                                         child: Text(
                                           user.riderApprovalStatus == 'approved'
                                               ? 'Move to pending'
@@ -3952,7 +4951,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       children: [
         _FilterPanel(
           title: 'Product management',
-          subtitle: 'Search, filter, and control catalog visibility across stores.',
+          subtitle:
+              'Search, filter, and control catalog visibility across stores.',
           children: [
             SizedBox(
               width: 320,
@@ -3970,7 +4970,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 initialValue: _productStatusFilter,
                 decoration: const InputDecoration(labelText: 'Status'),
                 items: const ['All', 'Active', 'Hidden']
-                    .map((value) => DropdownMenuItem(value: value, child: Text(value)))
+                    .map(
+                      (value) =>
+                          DropdownMenuItem(value: value, child: Text(value)),
+                    )
                     .toList(),
                 onChanged: (value) => setState(() {
                   _productStatusFilter = value ?? 'All';
@@ -4002,10 +5005,15 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                             height: 56,
                             child: product.images.isEmpty
                                 ? const DecoratedBox(
-                                    decoration: BoxDecoration(color: Color(0xFFF3F3F3)),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFFF3F3F3),
+                                    ),
                                     child: Icon(Icons.image_outlined),
                                   )
-                                : Image.network(product.images.first, fit: BoxFit.cover),
+                                : Image.network(
+                                    product.images.first,
+                                    fit: BoxFit.cover,
+                                  ),
                           ),
                         ),
                         title: Text(
@@ -4023,11 +5031,16 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           children: [
                             Text(
                               _formatCurrency(product.price),
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             OutlinedButton(
-                              onPressed: () => _toggleProductVisibility(product),
-                              child: Text(product.isActive ? 'Hide' : 'Activate'),
+                              onPressed: () =>
+                                  _toggleProductVisibility(product),
+                              child: Text(
+                                product.isActive ? 'Hide' : 'Activate',
+                              ),
                             ),
                           ],
                         ),
@@ -4065,29 +5078,40 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         FutureBuilder<AdminFinanceSummary>(
-          future: _actor == null ? Future.value(const AdminFinanceSummary(
-            totalCommission: 0,
-            totalRevenue: 0,
-            payoutsDone: 0,
-            vendorSettlementsDone: 0,
-            riderSettlementsDone: 0,
-            failedSettlements: 0,
-            vendorPending: 0,
-            riderPending: 0,
-            pendingWithdrawalAmount: 0,
-          )) : _db.getAdminFinance(actor: _actor!),
+          future: _actor == null
+              ? Future.value(
+                  const AdminFinanceSummary(
+                    totalCommission: 0,
+                    totalRevenue: 0,
+                    payoutsDone: 0,
+                    vendorSettlementsDone: 0,
+                    riderSettlementsDone: 0,
+                    failedSettlements: 0,
+                    vendorPending: 0,
+                    riderPending: 0,
+                    pendingWithdrawalAmount: 0,
+                  ),
+                )
+              : _db.getAdminFinance(actor: _actor!),
           builder: (context, financeSnapshot) {
             final finance = financeSnapshot.data;
             final vendorPending = finance?.vendorPending ?? totalPending;
             final riderPending = finance?.riderPending ?? 0;
             final totalCommission = finance?.totalCommission ?? 0;
-            final payoutsDone = finance?.payoutsDone ?? _payouts.fold<double>(0, (sum, payout) => sum + payout.amount);
-            final transactions = finance?.transactions ?? const <WalletTransaction>[];
-            final withdrawalRequests = finance?.withdrawalRequests ?? const <WithdrawalRequestSummary>[];
-            final fraudAlerts = finance?.fraudAlerts ?? const <FraudAlertSummary>[];
+            final payoutsDone =
+                finance?.payoutsDone ??
+                _payouts.fold<double>(0, (sum, payout) => sum + payout.amount);
+            final transactions =
+                finance?.transactions ?? const <WalletTransaction>[];
+            final withdrawalRequests =
+                finance?.withdrawalRequests ??
+                const <WithdrawalRequestSummary>[];
+            final fraudAlerts =
+                finance?.fraudAlerts ?? const <FraudAlertSummary>[];
             final flaggedUsers = finance?.flaggedUsers ?? 0;
             final failedSettlements = finance?.failedSettlements ?? 0;
-            final pendingWithdrawalAmount = finance?.pendingWithdrawalAmount ?? 0;
+            final pendingWithdrawalAmount =
+                finance?.pendingWithdrawalAmount ?? 0;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -4095,21 +5119,46 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   spacing: 16,
                   runSpacing: 16,
                   children: [
-                    _MetricCard(title: 'Processed Payouts', value: '${_payouts.length}'),
-                    _MetricCard(title: 'Vendor Pending', value: _formatCurrency(vendorPending)),
-                    _MetricCard(title: 'Rider Pending', value: _formatCurrency(riderPending)),
-                    _MetricCard(title: 'Pending Withdrawals', value: _formatCurrency(pendingWithdrawalAmount)),
-                    _MetricCard(title: 'Commission Earned', value: _formatCurrency(totalCommission)),
-                    _MetricCard(title: 'Settlements Done', value: _formatCurrency(payoutsDone)),
-                    _MetricCard(title: 'Failed Settlements', value: failedSettlements.toStringAsFixed(0)),
-                    _MetricCard(title: 'Open Fraud Alerts', value: '${fraudAlerts.length}'),
+                    _MetricCard(
+                      title: 'Processed Payouts',
+                      value: '${_payouts.length}',
+                    ),
+                    _MetricCard(
+                      title: 'Vendor Pending',
+                      value: _formatCurrency(vendorPending),
+                    ),
+                    _MetricCard(
+                      title: 'Rider Pending',
+                      value: _formatCurrency(riderPending),
+                    ),
+                    _MetricCard(
+                      title: 'Pending Withdrawals',
+                      value: _formatCurrency(pendingWithdrawalAmount),
+                    ),
+                    _MetricCard(
+                      title: 'Commission Earned',
+                      value: _formatCurrency(totalCommission),
+                    ),
+                    _MetricCard(
+                      title: 'Settlements Done',
+                      value: _formatCurrency(payoutsDone),
+                    ),
+                    _MetricCard(
+                      title: 'Failed Settlements',
+                      value: failedSettlements.toStringAsFixed(0),
+                    ),
+                    _MetricCard(
+                      title: 'Open Fraud Alerts',
+                      value: '${fraudAlerts.length}',
+                    ),
                     _MetricCard(title: 'Flagged Users', value: '$flaggedUsers'),
                   ],
                 ),
                 const SizedBox(height: 16),
                 _Panel(
                   title: 'Finance actions',
-                  subtitle: 'Run automated settlements and review withdrawal approvals.',
+                  subtitle:
+                      'Run automated settlements and review withdrawal approvals.',
                   child: Wrap(
                     spacing: 12,
                     runSpacing: 12,
@@ -4131,8 +5180,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                       ),
                       if (transactions.isNotEmpty)
                         Chip(
-                          avatar: const Icon(Icons.receipt_long_outlined, size: 18),
-                          label: Text('${transactions.length} recent transactions'),
+                          avatar: const Icon(
+                            Icons.receipt_long_outlined,
+                            size: 18,
+                          ),
+                          label: Text(
+                            '${transactions.length} recent transactions',
+                          ),
                         ),
                     ],
                   ),
@@ -4141,11 +5195,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 if (withdrawalRequests.isNotEmpty)
                   _Panel(
                     title: 'Pending withdrawal approvals',
-                    subtitle: 'Approve or reject vendor and rider cash-out requests.',
+                    subtitle:
+                        'Approve or reject vendor and rider cash-out requests.',
                     child: Column(
                       children: withdrawalRequests.map((request) {
                         final subject = request.walletType == 'vendor'
-                            ? (request.storeId.isEmpty ? request.userId : request.storeId)
+                            ? (request.storeId.isEmpty
+                                  ? request.userId
+                                  : request.storeId)
                             : request.riderId;
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
@@ -4156,11 +5213,15 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           ),
                           title: Text(
                             '${request.walletType.toUpperCase()} • ${_formatCurrency(request.amount)}',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           subtitle: Text(
                             '${request.note.isEmpty ? 'Awaiting approval' : request.note}\n$subject',
-                            style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                            style: GoogleFonts.inter(
+                              color: AbzioTheme.textSecondary,
+                            ),
                           ),
                           isThreeLine: true,
                           trailing: Wrap(
@@ -4184,14 +5245,16 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 if (fraudAlerts.isNotEmpty)
                   _Panel(
                     title: 'Fraud alerts',
-                    subtitle: 'Review suspicious payout, order, and account activity.',
+                    subtitle:
+                        'Review suspicious payout, order, and account activity.',
                     child: Column(
                       children: fraudAlerts.take(12).map((alert) {
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: Icon(
                             switch (alert.type) {
-                              'withdrawal' => Icons.account_balance_wallet_outlined,
+                              'withdrawal' =>
+                                Icons.account_balance_wallet_outlined,
                               'refund' => Icons.undo_rounded,
                               'account' => Icons.security_outlined,
                               _ => Icons.shopping_bag_outlined,
@@ -4205,23 +5268,31 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           ),
                           title: Text(
                             '${alert.type.toUpperCase()} • RISK ${alert.riskScore}',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           subtitle: Text(
                             alert.message.isEmpty
-                                ? (alert.reasons.isEmpty ? 'Risk rule matched.' : alert.reasons.join(' '))
+                                ? (alert.reasons.isEmpty
+                                      ? 'Risk rule matched.'
+                                      : alert.reasons.join(' '))
                                 : alert.message,
-                            style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                            style: GoogleFonts.inter(
+                              color: AbzioTheme.textSecondary,
+                            ),
                           ),
                           trailing: Wrap(
                             spacing: 8,
                             children: [
                               TextButton(
-                                onPressed: () => _updateFraudAlert(alert, 'reviewing'),
+                                onPressed: () =>
+                                    _updateFraudAlert(alert, 'reviewing'),
                                 child: const Text('Review'),
                               ),
                               FilledButton(
-                                onPressed: () => _updateFraudAlert(alert, 'resolved'),
+                                onPressed: () =>
+                                    _updateFraudAlert(alert, 'resolved'),
                                 child: const Text('Resolve'),
                               ),
                             ],
@@ -4234,7 +5305,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 if (transactions.isNotEmpty)
                   _Panel(
                     title: 'Recent finance activity',
-                    subtitle: 'Latest commission, order credit, and payout records.',
+                    subtitle:
+                        'Latest commission, order credit, and payout records.',
                     child: Column(
                       children: transactions.take(8).map((transaction) {
                         return ListTile(
@@ -4242,11 +5314,17 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           leading: const Icon(Icons.payments_outlined),
                           title: Text(
                             '${transaction.userType.toUpperCase()} • ${transaction.type}',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           subtitle: Text(
-                            transaction.note.isEmpty ? transaction.status : transaction.note,
-                            style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                            transaction.note.isEmpty
+                                ? transaction.status
+                                : transaction.note,
+                            style: GoogleFonts.inter(
+                              color: AbzioTheme.textSecondary,
+                            ),
                           ),
                           trailing: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -4254,7 +5332,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                             children: [
                               Text(
                                 _formatCurrency(transaction.amount.abs()),
-                                style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                               Text(
                                 transaction.createdAt.isEmpty
@@ -4277,28 +5357,35 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         ),
         const SizedBox(height: 16),
         FutureBuilder<List<RefundRequest>>(
-          future: _actor == null ? Future.value(const <RefundRequest>[]) : _db.getRefundRequests(actor: _actor!),
+          future: _actor == null
+              ? Future.value(const <RefundRequest>[])
+              : _db.getRefundRequests(actor: _actor!),
           builder: (context, snapshot) {
             final refunds = snapshot.data ?? const <RefundRequest>[];
-            final pendingRefunds = refunds.where((request) => request.status.toLowerCase() == 'pending').toList();
+            final pendingRefunds = refunds
+                .where((request) => request.status.toLowerCase() == 'pending')
+                .toList();
             return _Panel(
               title: 'Refund requests',
               subtitle: '${pendingRefunds.length} pending request(s)',
               child: pendingRefunds.isEmpty
                   ? const AbzioEmptyCard(
                       title: 'No pending refunds',
-                      subtitle: 'Refund approvals will appear here when customers submit requests.',
+                      subtitle:
+                          'Refund approvals will appear here when customers submit requests.',
                     )
                   : Column(
                       children: pendingRefunds.map((request) {
                         final order = _orders.cast<OrderModel?>().firstWhere(
-                              (item) => item?.id == request.orderId,
-                              orElse: () => null,
-                            );
+                          (item) => item?.id == request.orderId,
+                          orElse: () => null,
+                        );
                         final customer = _userForId(request.userId);
                         final orderLabel = order == null
                             ? request.orderId
-                            : (order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber);
+                            : (order.invoiceNumber.isEmpty
+                                  ? order.id
+                                  : order.invoiceNumber);
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
@@ -4315,27 +5402,37 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           orderLabel,
-                                          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           '${customer?.name ?? request.userId} • ${_formatDate(DateTime.tryParse(request.createdAt) ?? DateTime.now())}',
-                                          style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                                          style: GoogleFonts.inter(
+                                            color: AbzioTheme.textSecondary,
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const _StatusPill(label: 'PENDING', color: Colors.orange),
+                                  const _StatusPill(
+                                    label: 'PENDING',
+                                    color: Colors.orange,
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 12),
                               Text(
                                 request.reason,
-                                style: GoogleFonts.inter(color: AbzioTheme.textPrimary),
+                                style: GoogleFonts.inter(
+                                  color: AbzioTheme.textPrimary,
+                                ),
                               ),
                               const SizedBox(height: 10),
                               Wrap(
@@ -4347,16 +5444,19 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                     color: request.fraudScore > 60
                                         ? Colors.red
                                         : request.fraudScore >= 30
-                                            ? Colors.orange
-                                            : Colors.green,
+                                        ? Colors.orange
+                                        : Colors.green,
                                   ),
                                   _StatusPill(
                                     label: request.fraudDecision.toUpperCase(),
-                                    color: request.fraudDecision.toLowerCase() == 'reject'
+                                    color:
+                                        request.fraudDecision.toLowerCase() ==
+                                            'reject'
                                         ? Colors.red
-                                        : request.fraudDecision.toLowerCase() == 'review'
-                                            ? Colors.orange
-                                            : Colors.green,
+                                        : request.fraudDecision.toLowerCase() ==
+                                              'review'
+                                        ? Colors.orange
+                                        : Colors.green,
                                   ),
                                 ],
                               ),
@@ -4377,7 +5477,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                 children: [
                                   FilledButton.icon(
                                     onPressed: () => _approveRefund(request),
-                                    icon: const Icon(Icons.check_circle_outline),
+                                    icon: const Icon(
+                                      Icons.check_circle_outline,
+                                    ),
                                     label: const Text('Approve refund'),
                                   ),
                                   OutlinedButton.icon(
@@ -4398,7 +5500,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         const SizedBox(height: 16),
         _Panel(
           title: 'Vendor payouts',
-          subtitle: 'Track vendor earnings, commissions, and payout processing.',
+          subtitle:
+              'Track vendor earnings, commissions, and payout processing.',
           child: Column(
             children: [
               ..._stores.map((store) {
@@ -4419,12 +5522,16 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           children: [
                             Text(
                               store.name,
-                              style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Commission ${(store.commissionRate * 100).toStringAsFixed(0)}% - Pending ${_formatCurrency(pending)}',
-                              style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                              style: GoogleFonts.inter(
+                                color: AbzioTheme.textSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -4435,7 +5542,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                       ),
                       const SizedBox(width: 8),
                       ElevatedButton(
-                        onPressed: pending <= 0 ? null : () => _processPayout(store),
+                        onPressed: pending <= 0
+                            ? null
+                            : () => _processPayout(store),
                         child: const Text('Mark payout paid'),
                       ),
                     ],
@@ -4474,7 +5583,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           children: [
                             Text(
                               _formatCurrency(payout.amount),
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             Text(
                               _formatDate(payout.createdAt),
@@ -4523,8 +5634,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 controller: _supportSearchController,
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
-                  hintText:
-                      'Search by name, phone, issue, order, or message',
+                  hintText: 'Search by name, phone, issue, order, or message',
                   prefixIcon: Icon(Icons.search_rounded),
                 ),
               ),
@@ -4538,7 +5648,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             _SupportSegmentChip(
               label: 'Active',
               selected: false,
-              count: _supportChatCount(status: 'open') +
+              count:
+                  _supportChatCount(status: 'open') +
                   _supportChatCount(status: 'waiting'),
               onTap: () {},
             ),
@@ -4557,19 +5668,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    width: 300,
-                    child: _buildSupportSidebar(),
-                  ),
+                  SizedBox(width: 300, child: _buildSupportSidebar()),
                   const SizedBox(width: 16),
                   SizedBox(
                     width: 360,
                     child: _buildSupportQueue(chats, selected),
                   ),
                   const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSupportConversationWorkspace(selected),
-                  ),
+                  Expanded(child: _buildSupportConversationWorkspace(selected)),
                 ],
               );
             }
@@ -4586,9 +5692,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSupportConversationWorkspace(selected),
-                  ),
+                  Expanded(child: _buildSupportConversationWorkspace(selected)),
                 ],
               );
             }
@@ -4819,15 +5923,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              flex: 7,
-              child: _buildSupportMessagesPanel(selected),
-            ),
+            Expanded(flex: 7, child: _buildSupportMessagesPanel(selected)),
             const SizedBox(width: 16),
-            Expanded(
-              flex: 4,
-              child: _buildSupportTicketDetailsPanel(selected),
-            ),
+            Expanded(flex: 4, child: _buildSupportTicketDetailsPanel(selected)),
           ],
         ),
         const SizedBox(height: 16),
@@ -4840,8 +5938,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     final statusColor = chat.status == 'waiting'
         ? const Color(0xFFD97706)
         : chat.status == 'closed'
-            ? const Color(0xFF8A8A8A)
-            : const Color(0xFF1F9D55);
+        ? const Color(0xFF8A8A8A)
+        : const Color(0xFF1F9D55);
 
     return _Panel(
       title: chat.userName.isEmpty ? chat.userId : chat.userName,
@@ -4912,9 +6010,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               return const Center(child: CircularProgressIndicator());
             }
             if (messages.isEmpty) {
-              return const Center(
-                child: Text('No messages yet.'),
-              );
+              return const Center(child: Text('No messages yet.'));
             }
             return ListView.separated(
               itemCount: messages.length,
@@ -4983,10 +6079,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             label: 'Issue',
             value: _supportTypeLabel(chat.type),
           ),
-          _SupportDetailRow(
-            label: 'Status',
-            value: chat.status.toUpperCase(),
-          ),
+          _SupportDetailRow(label: 'Status', value: chat.status.toUpperCase()),
           _SupportDetailRow(
             label: 'Order',
             value: (chat.orderId ?? '').isEmpty ? 'Not linked' : chat.orderId!,
@@ -5087,8 +6180,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   String _orderPriorityFor(OrderModel order) {
-    if (_isDelayedOrder(order) || order.status.toLowerCase().contains('cancel')) return 'HIGH';
-    if ((order.riderId ?? '').isEmpty || order.refundStatus.toLowerCase().contains('pending')) return 'MEDIUM';
+    if (_isDelayedOrder(order) || order.status.toLowerCase().contains('cancel')) {
+      return 'HIGH';
+    }
+    if ((order.riderId ?? '').isEmpty ||
+        order.refundStatus.toLowerCase().contains('pending')) {
+      return 'MEDIUM';
+    }
     return 'LOW';
   }
 
@@ -5105,18 +6203,44 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     final s = status.toLowerCase();
     if (s.contains('cancel')) return const Color(0xFFB42318);
     if (s.contains('deliver')) return const Color(0xFF067647);
-    if (s.contains('assign') || s.contains('picked')) return const Color(0xFFB57A12);
+    if (s.contains('assign') || s.contains('picked')) {
+      return const Color(0xFFB57A12);
+    }
     return const Color(0xFF175CD3);
   }
 
   List<Widget> _orderPriorityChips(OrderModel order) {
     final chips = <Widget>[];
-    if (order.totalAmount >= 5000) chips.add(const _StatusPill(label: 'VIP CUSTOMER', color: Color(0xFF7A5AF8)));
-    if (order.paymentMethod.toLowerCase().contains('cod')) chips.add(const _StatusPill(label: 'PAYMENT ISSUE', color: Color(0xFFDC6803)));
-    if (_isDelayedOrder(order)) chips.add(const _StatusPill(label: 'HIGH DELAY', color: Color(0xFFB42318)));
-    if (order.refundStatus.toLowerCase().contains('pending')) chips.add(const _StatusPill(label: 'RETURN RISK', color: Color(0xFFB54708)));
-    if (order.items.length > 3) chips.add(const _StatusPill(label: 'MULTI-VENDOR', color: Color(0xFF175CD3)));
-    if (order.status.toLowerCase().contains('cancel')) chips.add(const _StatusPill(label: 'FRAUD CHECK', color: Color(0xFF7A271A)));
+    if (order.totalAmount >= 5000) {
+      chips.add(
+        const _StatusPill(label: 'VIP CUSTOMER', color: Color(0xFF7A5AF8)),
+      );
+    }
+    if (order.paymentMethod.toLowerCase().contains('cod')) {
+      chips.add(
+        const _StatusPill(label: 'PAYMENT ISSUE', color: Color(0xFFDC6803)),
+      );
+    }
+    if (_isDelayedOrder(order)) {
+      chips.add(
+        const _StatusPill(label: 'HIGH DELAY', color: Color(0xFFB42318)),
+      );
+    }
+    if (order.refundStatus.toLowerCase().contains('pending')) {
+      chips.add(
+        const _StatusPill(label: 'RETURN RISK', color: Color(0xFFB54708)),
+      );
+    }
+    if (order.items.length > 3) {
+      chips.add(
+        const _StatusPill(label: 'MULTI-VENDOR', color: Color(0xFF175CD3)),
+      );
+    }
+    if (order.status.toLowerCase().contains('cancel')) {
+      chips.add(
+        const _StatusPill(label: 'FRAUD CHECK', color: Color(0xFF7A271A)),
+      );
+    }
     return chips;
   }
 
@@ -5141,7 +6265,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 width: 12,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: completed ? (current ? AbzioTheme.accentColor : const Color(0xFF067647)) : AbzioTheme.grey300,
+                  color: completed
+                      ? (current
+                            ? AbzioTheme.accentColor
+                            : const Color(0xFF067647))
+                      : AbzioTheme.grey300,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -5151,7 +6279,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   steps[i],
                   style: GoogleFonts.inter(
                     fontSize: 11,
-                    color: completed ? const Color(0xFF111111) : AbzioTheme.grey500,
+                    color: completed
+                        ? const Color(0xFF111111)
+                        : AbzioTheme.grey500,
                     fontWeight: current ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
@@ -5164,7 +6294,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   Future<void> _bulkOrderStatus(String status) async {
-    final selected = _orders.where((o) => _selectedOrderIds.contains(o.id)).toList();
+    final selected = _orders
+        .where((o) => _selectedOrderIds.contains(o.id))
+        .toList();
     for (final order in selected) {
       await _setOrderStatus(order, status);
     }
@@ -5182,10 +6314,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       return;
     }
     if (action == 'refund') {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Refund workflow opened.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Refund workflow opened.')));
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$action action queued for ${order.id}')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$action action queued for ${order.id}')),
+    );
   }
 
   Widget _buildOrderDetailDrawer(OrderModel order) {
@@ -5202,30 +6338,80 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           children: [
             Row(
               children: [
-                Expanded(child: Text('Order Detail Panel', style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 18))),
-                IconButton(onPressed: () => setState(() => _activeOrderDrawerOrder = null), icon: const Icon(Icons.close_rounded)),
+                Expanded(
+                  child: Text(
+                    'Order Detail Panel',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () =>
+                      setState(() => _activeOrderDrawerOrder = null),
+                  icon: const Icon(Icons.close_rounded),
+                ),
               ],
             ),
             const SizedBox(height: 10),
             _SupportDetailRow(label: 'Order', value: order.id),
-            _SupportDetailRow(label: 'Customer', value: customer?.name ?? order.userId),
-            _SupportDetailRow(label: 'Vendor', value: vendor?.name ?? order.storeId),
-            _SupportDetailRow(label: 'Payment', value: '${order.paymentMethod} • ${order.refundStatus.isEmpty ? 'No refund' : order.refundStatus}'),
-            _SupportDetailRow(label: 'Rider', value: order.assignedDeliveryPartner),
-            _SupportDetailRow(label: 'ETA', value: order.deliveryPromise.isEmpty ? 'Recalculating' : order.deliveryPromise),
+            _SupportDetailRow(
+              label: 'Customer',
+              value: customer?.name ?? order.userId,
+            ),
+            _SupportDetailRow(
+              label: 'Vendor',
+              value: vendor?.name ?? order.storeId,
+            ),
+            _SupportDetailRow(
+              label: 'Payment',
+              value:
+                  '${order.paymentMethod} • ${order.refundStatus.isEmpty ? 'No refund' : order.refundStatus}',
+            ),
+            _SupportDetailRow(
+              label: 'Rider',
+              value: order.assignedDeliveryPartner,
+            ),
+            _SupportDetailRow(
+              label: 'ETA',
+              value: order.deliveryPromise.isEmpty
+                  ? 'Recalculating'
+                  : order.deliveryPromise,
+            ),
             _SupportDetailRow(label: 'Address', value: order.shippingAddress),
             const SizedBox(height: 12),
-            Text('Incident Logs', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            Text(
+              'Incident Logs',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 8),
-            const Text('- Dispatch check completed\n- Payment verification synced\n- Risk scan complete', style: TextStyle(color: AbzioTheme.grey600)),
+            const Text(
+              '- Dispatch check completed\n- Payment verification synced\n- Risk scan complete',
+              style: TextStyle(color: AbzioTheme.grey600),
+            ),
             const SizedBox(height: 12),
-            Text('Escalation History', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            Text(
+              'Escalation History',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 8),
-            const Text('- No active escalations', style: TextStyle(color: AbzioTheme.grey600)),
+            const Text(
+              '- No active escalations',
+              style: TextStyle(color: AbzioTheme.grey600),
+            ),
             const SizedBox(height: 12),
-            Text('Internal Notes', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            Text(
+              'Internal Notes',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 8),
-            TextField(maxLines: 3, decoration: const InputDecoration(hintText: 'Add operational note...')),
+            TextField(
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'Add operational note...',
+              ),
+            ),
           ],
         ),
       ),
@@ -5240,8 +6426,12 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   double _vendorHealthScore(Store store) {
     final orders = _orders.where((o) => o.storeId == store.id).toList();
     if (orders.isEmpty) return 78;
-    final cancelled = orders.where((o) => o.status.toLowerCase().contains('cancel')).length;
-    final refundPending = orders.where((o) => o.refundStatus.toLowerCase().contains('pending')).length;
+    final cancelled = orders
+        .where((o) => o.status.toLowerCase().contains('cancel'))
+        .length;
+    final refundPending = orders
+        .where((o) => o.refundStatus.toLowerCase().contains('pending'))
+        .length;
     final cancelRate = cancelled / orders.length;
     final refundRate = refundPending / orders.length;
     final ratingPenalty = (5 - store.rating).clamp(0, 5) * 6;
@@ -5263,31 +6453,79 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           children: [
             Row(
               children: [
-                Expanded(child: Text('Vendor Detail Drawer', style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 18))),
-                IconButton(onPressed: () => setState(() => _activeVendorDrawerStore = null), icon: const Icon(Icons.close_rounded)),
+                Expanded(
+                  child: Text(
+                    'Vendor Detail Drawer',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () =>
+                      setState(() => _activeVendorDrawerStore = null),
+                  icon: const Icon(Icons.close_rounded),
+                ),
               ],
             ),
             const SizedBox(height: 10),
             _SupportDetailRow(label: 'Store', value: store.name),
             _SupportDetailRow(label: 'Owner', value: store.ownerId),
-            _SupportDetailRow(label: 'City', value: store.city.isEmpty ? 'Unknown' : store.city),
-            _SupportDetailRow(label: 'Status', value: store.isApproved ? 'APPROVED' : 'PENDING'),
-            _SupportDetailRow(label: 'Revenue', value: _formatCurrency(revenue)),
-            _SupportDetailRow(label: 'Payout', value: _formatCurrency(store.walletBalance)),
-            _SupportDetailRow(label: 'Commission', value: '${(store.commissionRate * 100).toStringAsFixed(0)}%'),
-            _SupportDetailRow(label: 'Health', value: health.toStringAsFixed(0)),
+            _SupportDetailRow(
+              label: 'City',
+              value: store.city.isEmpty ? 'Unknown' : store.city,
+            ),
+            _SupportDetailRow(
+              label: 'Status',
+              value: store.isApproved ? 'APPROVED' : 'PENDING',
+            ),
+            _SupportDetailRow(
+              label: 'Revenue',
+              value: _formatCurrency(revenue),
+            ),
+            _SupportDetailRow(
+              label: 'Payout',
+              value: _formatCurrency(store.walletBalance),
+            ),
+            _SupportDetailRow(
+              label: 'Commission',
+              value: '${(store.commissionRate * 100).toStringAsFixed(0)}%',
+            ),
+            _SupportDetailRow(
+              label: 'Health',
+              value: health.toStringAsFixed(0),
+            ),
             const SizedBox(height: 12),
-            Text('Payout History', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            Text(
+              'Payout History',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 6),
-            const Text('- Weekly settlement processed\n- Last payout verified', style: TextStyle(color: AbzioTheme.grey600)),
+            const Text(
+              '- Weekly settlement processed\n- Last payout verified',
+              style: TextStyle(color: AbzioTheme.grey600),
+            ),
             const SizedBox(height: 12),
-            Text('KYC Documents', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            Text(
+              'KYC Documents',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 6),
-            const Text('- PAN verified\n- GST pending reconfirmation', style: TextStyle(color: AbzioTheme.grey600)),
+            const Text(
+              '- PAN verified\n- GST pending reconfirmation',
+              style: TextStyle(color: AbzioTheme.grey600),
+            ),
             const SizedBox(height: 12),
-            Text('Disputes & Fraud Flags', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            Text(
+              'Disputes & Fraud Flags',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 6),
-            const Text('- Return anomaly under review', style: TextStyle(color: AbzioTheme.grey600)),
+            const Text(
+              '- Return anomaly under review',
+              style: TextStyle(color: AbzioTheme.grey600),
+            ),
           ],
         ),
       ),
@@ -5299,11 +6537,15 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     final active = _activeDeliveriesForRider(rider.id);
     final score = _riderPerformanceScore(rider);
     final hasRiskAlert = _opsAlerts.any((a) {
-      final sameEntity = a.entityId == rider.id || a.payload['riderId']?.toString() == rider.id;
+      final sameEntity =
+          a.entityId == rider.id ||
+          a.payload['riderId']?.toString() == rider.id;
       return sameEntity && a.severity.toUpperCase() == 'CRITICAL';
     });
     if (score < 45 || hasRiskAlert) return 'HIGH RISK';
-    if (_orders.any((o) => o.riderId == rider.id && _isDelayedOrder(o))) return 'DELAYED';
+    if (_orders.any((o) => o.riderId == rider.id && _isDelayedOrder(o))) {
+      return 'DELAYED';
+    }
     if (active > 0) return 'BUSY';
     return 'LIVE';
   }
@@ -5328,11 +6570,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   double _riderPerformanceScore(AppUser rider) {
     final riderOrders = _orders.where((o) => o.riderId == rider.id).toList();
     if (riderOrders.isEmpty) return rider.isActive ? 74 : 52;
-    final cancelled = riderOrders.where((o) => o.status.toLowerCase().contains('cancel')).length;
+    final cancelled = riderOrders
+        .where((o) => o.status.toLowerCase().contains('cancel'))
+        .length;
     final delayed = riderOrders.where((o) => _isDelayedOrder(o)).length;
     final cancelRate = cancelled / riderOrders.length;
     final delayRate = delayed / riderOrders.length;
-    final score = 100 - (cancelRate * 40) - (delayRate * 30) - (rider.isActive ? 0 : 20);
+    final score =
+        100 - (cancelRate * 40) - (delayRate * 30) - (rider.isActive ? 0 : 20);
     return score.clamp(18, 96).toDouble();
   }
 
@@ -5343,12 +6588,17 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           o.status.toLowerCase() == 'delivered' &&
           now.difference(o.timestamp).inDays <= 7;
     });
-    return deliveredLast7d.fold<double>(0, (sum, o) => sum + ((o.totalAmount * 0.08).clamp(40, 260)));
+    return deliveredLast7d.fold<double>(
+      0,
+      (sum, o) => sum + ((o.totalAmount * 0.08).clamp(40, 260)),
+    );
   }
 
   int? _riderBatteryLevel(AppUser rider) {
     for (final alert in _opsAlerts) {
-      final sameEntity = alert.entityId == rider.id || alert.payload['riderId']?.toString() == rider.id;
+      final sameEntity =
+          alert.entityId == rider.id ||
+          alert.payload['riderId']?.toString() == rider.id;
       if (!sameEntity) continue;
       final battery = alert.payload['battery'];
       if (battery is num) {
@@ -5364,9 +6614,12 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
 
   String _riderSignalQuality(AppUser rider) {
     for (final alert in _opsAlerts) {
-      final sameEntity = alert.entityId == rider.id || alert.payload['riderId']?.toString() == rider.id;
+      final sameEntity =
+          alert.entityId == rider.id ||
+          alert.payload['riderId']?.toString() == rider.id;
       if (!sameEntity) continue;
-      final value = alert.payload['networkQuality'] ?? alert.payload['signalQuality'];
+      final value =
+          alert.payload['networkQuality'] ?? alert.payload['signalQuality'];
       if (value != null && value.toString().trim().isNotEmpty) {
         return value.toString();
       }
@@ -5405,9 +6658,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     if (actor == null) {
       return;
     }
-    final pending = _orders.where((o) => (o.riderId ?? '').isEmpty && !_isOrderDone(o)).toList();
+    final pending = _orders
+        .where((o) => (o.riderId ?? '').isEmpty && !_isOrderDone(o))
+        .toList();
     if (pending.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No unassigned orders available.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No unassigned orders available.')),
+      );
       return;
     }
     final target = pending.first;
@@ -5441,25 +6698,58 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           children: [
             Row(
               children: [
-                Expanded(child: Text('Rider Detail Drawer', style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 18))),
-                IconButton(onPressed: () => setState(() => _activeRiderDrawerUser = null), icon: const Icon(Icons.close_rounded)),
+                Expanded(
+                  child: Text(
+                    'Rider Detail Drawer',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () =>
+                      setState(() => _activeRiderDrawerUser = null),
+                  icon: const Icon(Icons.close_rounded),
+                ),
               ],
             ),
             const SizedBox(height: 10),
             _SupportDetailRow(label: 'Rider', value: rider.name),
-            _SupportDetailRow(label: 'Phone', value: rider.phone ?? rider.email),
-            _SupportDetailRow(label: 'City', value: rider.riderCity ?? rider.city ?? 'Unknown'),
-            _SupportDetailRow(label: 'Vehicle', value: rider.riderVehicleType ?? 'Bike'),
+            _SupportDetailRow(
+              label: 'Phone',
+              value: rider.phone ?? rider.email,
+            ),
+            _SupportDetailRow(
+              label: 'City',
+              value: rider.riderCity ?? rider.city ?? 'Unknown',
+            ),
+            _SupportDetailRow(
+              label: 'Vehicle',
+              value: rider.riderVehicleType ?? 'Bike',
+            ),
             _SupportDetailRow(label: 'Status', value: _riderLiveStatus(rider)),
-            _SupportDetailRow(label: 'Performance', value: perf.toStringAsFixed(0)),
+            _SupportDetailRow(
+              label: 'Performance',
+              value: perf.toStringAsFixed(0),
+            ),
             _SupportDetailRow(label: 'Active Orders', value: '$active'),
-            _SupportDetailRow(label: 'Weekly Earnings', value: _formatCurrency(earnings)),
+            _SupportDetailRow(
+              label: 'Weekly Earnings',
+              value: _formatCurrency(earnings),
+            ),
             const SizedBox(height: 12),
-            Text('Live GPS Map', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            Text(
+              'Live GPS Map',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 6),
             Container(
               height: 100,
-              decoration: BoxDecoration(color: const Color(0xFFF8F6F2), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F6F2),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Center(
                 child: Text(
                   lat == null || lng == null
@@ -5469,9 +6759,15 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               ),
             ),
             const SizedBox(height: 12),
-            Text('KYC / Complaints / Fraud Flags', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            Text(
+              'KYC / Complaints / Fraud Flags',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 6),
-            const Text('- KYC verified\n- Complaint ratio normal\n- No fraud flags', style: TextStyle(color: AbzioTheme.grey600)),
+            const Text(
+              '- KYC verified\n- Complaint ratio normal\n- No fraud flags',
+              style: TextStyle(color: AbzioTheme.grey600),
+            ),
           ],
         ),
       ),
@@ -5504,9 +6800,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
               enabled: chat.status != 'closed',
               minLines: 1,
               maxLines: 4,
-              decoration: const InputDecoration(
-                hintText: 'Reply to customer',
-              ),
+              decoration: const InputDecoration(hintText: 'Reply to customer'),
             ),
           ),
           const SizedBox(width: 12),
@@ -5532,15 +6826,21 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         return 'General support';
     }
   }
+
   Widget _buildAnalytics() {
     final analytics = _analytics;
     final topProducts = <String, int>{};
     for (final order in _orders) {
       for (final item in order.items) {
-        final matches =
-            _products.where((candidate) => candidate.id == item.productId).toList();
+        final matches = _products
+            .where((candidate) => candidate.id == item.productId)
+            .toList();
         final label = matches.isEmpty ? item.productName : matches.first.name;
-        topProducts.update(label, (value) => value + item.quantity, ifAbsent: () => item.quantity);
+        topProducts.update(
+          label,
+          (value) => value + item.quantity,
+          ifAbsent: () => item.quantity,
+        );
       }
     }
     final sortedTopProducts = topProducts.entries.toList()
@@ -5558,10 +6858,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           spacing: 16,
           runSpacing: 16,
           children: [
-            _MetricCard(
-              title: 'AI Requests Today',
-              value: '$todayRequests',
-            ),
+            _MetricCard(title: 'AI Requests Today', value: '$todayRequests'),
             _MetricCard(
               title: 'AI Cost Today',
               value: _formatAiCost(_todayAiCost),
@@ -5579,7 +6876,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         const SizedBox(height: 16),
         _Panel(
           title: 'AI operations snapshot',
-          subtitle: 'Monitor blended support routing, export usage data, and watch cost health in real time.',
+          subtitle:
+              'Monitor blended support routing, export usage data, and watch cost health in real time.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -5588,11 +6886,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 runSpacing: 12,
                 children: [
                   _StatusPill(
-                    label: '${_logicHandledRate.toStringAsFixed(0)}% handled without AI',
+                    label:
+                        '${_logicHandledRate.toStringAsFixed(0)}% handled without AI',
                     color: const Color(0xFF1F9D55),
                   ),
                   _StatusPill(
-                    label: '${(100 - _logicHandledRate).toStringAsFixed(0)}% advanced AI usage',
+                    label:
+                        '${(100 - _logicHandledRate).toStringAsFixed(0)}% advanced AI usage',
                     color: const Color(0xFFD4AF37),
                   ),
                   _StatusPill(
@@ -5677,11 +6977,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             Expanded(
               child: _Panel(
                 title: 'AI Requests per Day',
-                subtitle: 'Total support requests routed through the hybrid engine.',
+                subtitle:
+                    'Total support requests routed through the hybrid engine.',
                 child: recentStats.isEmpty
                     ? const AbzioEmptyCard(
                         title: 'No AI activity yet',
-                        subtitle: 'Request and routing trends will appear here once support traffic starts.',
+                        subtitle:
+                            'Request and routing trends will appear here once support traffic starts.',
                       )
                     : _MiniBarChart(
                         points: recentStats
@@ -5699,11 +7001,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             Expanded(
               child: _Panel(
                 title: 'Cost per Day',
-                subtitle: 'Estimated advanced-model spend from AI-routed support.',
+                subtitle:
+                    'Estimated advanced-model spend from AI-routed support.',
                 child: recentStats.isEmpty
                     ? const AbzioEmptyCard(
                         title: 'No cost data yet',
-                        subtitle: 'Estimated AI cost will appear here when advanced AI requests run.',
+                        subtitle:
+                            'Estimated AI cost will appear here when advanced AI requests run.',
                       )
                     : _MiniBarChart(
                         points: recentStats
@@ -5728,11 +7032,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             Expanded(
               child: _Panel(
                 title: 'Top AI Users',
-                subtitle: 'Users generating the highest volume of advanced AI requests.',
+                subtitle:
+                    'Users generating the highest volume of advanced AI requests.',
                 child: _topAiUsers.isEmpty
                     ? const AbzioEmptyCard(
                         title: 'No AI users yet',
-                        subtitle: 'Heavy-user monitoring will appear here once the assistant is active.',
+                        subtitle:
+                            'Heavy-user monitoring will appear here once the assistant is active.',
                       )
                     : Column(
                         children: _topAiUsers.map((entry) {
@@ -5741,14 +7047,23 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           final avgCost = usage.aiMessages == 0
                               ? 0.0
                               : _aiUsageLogs
-                                      .where((log) => log.userId == usage.userId)
-                                      .fold<double>(0, (sum, log) => sum + log.cost) /
-                                  usage.aiMessages;
+                                        .where(
+                                          (log) => log.userId == usage.userId,
+                                        )
+                                        .fold<double>(
+                                          0,
+                                          (sum, log) => sum + log.cost,
+                                        ) /
+                                    usage.aiMessages;
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
                             title: Text(
-                              user?.name.isNotEmpty == true ? user!.name : usage.userId,
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                              user?.name.isNotEmpty == true
+                                  ? user!.name
+                                  : usage.userId,
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             subtitle: Text(
                               '${usage.aiMessages} AI messages · ${usage.totalMessages} total support messages',
@@ -5759,10 +7074,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                               children: [
                                 Text(
                                   _formatAiCost(avgCost),
-                                  style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                                 Text(
-                                  usage.dailyUsage > 12 ? 'Heavy user' : 'Normal load',
+                                  usage.dailyUsage > 12
+                                      ? 'Heavy user'
+                                      : 'Normal load',
                                   style: GoogleFonts.inter(
                                     color: usage.dailyUsage > 12
                                         ? const Color(0xFFD97706)
@@ -5781,22 +7100,27 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             Expanded(
               child: _Panel(
                 title: 'Intent Breakdown',
-                subtitle: 'Which support intents are hitting the system most often.',
+                subtitle:
+                    'Which support intents are hitting the system most often.',
                 child: _intentBreakdown.isEmpty
                     ? const AbzioEmptyCard(
                         title: 'No intent data yet',
-                        subtitle: 'Intent distribution will appear here once support logs accumulate.',
+                        subtitle:
+                            'Intent distribution will appear here once support logs accumulate.',
                       )
                     : Column(
                         children: _intentBreakdown.take(6).map((entry) {
                           final percent = _aiUsageLogs.isEmpty
                               ? 0
-                              : ((entry.value / _aiUsageLogs.length) * 100).round();
+                              : ((entry.value / _aiUsageLogs.length) * 100)
+                                    .round();
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
                             title: Text(
                               entry.key,
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             trailing: Text(
                               '$percent% · ${entry.value} requests',
@@ -5819,11 +7143,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             Expanded(
               child: _Panel(
                 title: 'Top Expensive Queries',
-                subtitle: 'Most costly advanced AI prompts so ops can tighten routing and prompts.',
+                subtitle:
+                    'Most costly advanced AI prompts so ops can tighten routing and prompts.',
                 child: _topExpensiveQueries.isEmpty
                     ? const AbzioEmptyCard(
                         title: 'No AI-heavy queries yet',
-                        subtitle: 'The costliest prompts will appear here once advanced AI requests run.',
+                        subtitle:
+                            'The costliest prompts will appear here once advanced AI requests run.',
                       )
                     : Column(
                         children: _topExpensiveQueries.map((log) {
@@ -5834,14 +7160,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                               log.message,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             subtitle: Text(
                               '${user?.name ?? log.userId} · ${log.intentType} · ${log.tokensUsed} tokens',
                             ),
                             trailing: Text(
                               _formatAiCost(log.cost),
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           );
                         }).toList(),
@@ -5852,7 +7182,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             Expanded(
               child: _Panel(
                 title: 'Optimization Insights',
-                subtitle: 'Quick opportunities to reduce spend while keeping responses fast.',
+                subtitle:
+                    'Quick opportunities to reduce spend while keeping responses fast.',
                 child: Column(
                   children: [
                     ListTile(
@@ -5907,7 +7238,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 child: analytics == null
                     ? const AbzioEmptyCard(
                         title: 'No revenue data yet',
-                        subtitle: 'Marketplace revenue analytics will appear here once orders start moving.',
+                        subtitle:
+                            'Marketplace revenue analytics will appear here once orders start moving.',
                       )
                     : _MiniBarChart(
                         points: analytics.weeklySales,
@@ -5932,17 +7264,26 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                       ...analytics.topStores.take(3).map((store) {
                         final revenue = _orders
                             .where((order) => order.storeId == store.id)
-                            .fold<double>(0, (sum, order) => sum + order.totalAmount);
+                            .fold<double>(
+                              0,
+                              (sum, order) => sum + order.totalAmount,
+                            );
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(
                             store.name,
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                          subtitle: Text(store.city.isEmpty ? 'Unknown city' : store.city),
+                          subtitle: Text(
+                            store.city.isEmpty ? 'Unknown city' : store.city,
+                          ),
                           trailing: Text(
                             _formatCurrency(revenue),
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         );
                       }),
@@ -5955,7 +7296,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           contentPadding: EdgeInsets.zero,
                           title: Text(
                             entry.key,
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           trailing: Text(
                             '${entry.value} sold',
@@ -5979,10 +7322,22 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildInsightTile('High return rate detected.', Icons.assignment_return_outlined),
-              _buildInsightTile('Vendor response time declining.', Icons.schedule_rounded),
-              _buildInsightTile('Luxury products trending upward.', Icons.trending_up_rounded),
-              _buildInsightTile('Potential fake inventory risk.', Icons.warning_amber_rounded),
+              _buildInsightTile(
+                'High return rate detected.',
+                Icons.assignment_return_outlined,
+              ),
+              _buildInsightTile(
+                'Vendor response time declining.',
+                Icons.schedule_rounded,
+              ),
+              _buildInsightTile(
+                'Luxury products trending upward.',
+                Icons.trending_up_rounded,
+              ),
+              _buildInsightTile(
+                'Potential fake inventory risk.',
+                Icons.warning_amber_rounded,
+              ),
             ],
           ),
         ),
@@ -6058,7 +7413,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         const SizedBox(height: 16),
         _Panel(
           title: 'AI cost controls',
-          subtitle: 'Control the hard daily AI budget and automatic 80% warning threshold.',
+          subtitle:
+              'Control the hard daily AI budget and automatic 80% warning threshold.',
           child: Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -6068,7 +7424,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 width: 220,
                 child: TextField(
                   controller: _aiCostThresholdController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Daily AI budget limit',
                     prefixText: '\$',
@@ -6097,7 +7455,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           child: _disputes.isEmpty
               ? const AbzioEmptyCard(
                   title: 'No disputes',
-                  subtitle: 'Escalations will appear here when they are raised.',
+                  subtitle:
+                      'Escalations will appear here when they are raised.',
                 )
               : Column(
                   children: _disputes.take(8).map((dispute) {
@@ -6127,7 +7486,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     );
   }
 
-  double _pricingValue(Map<String, dynamic> section, String key, double fallback) {
+  double _pricingValue(
+    Map<String, dynamic> section,
+    String key,
+    double fallback,
+  ) {
     final value = section[key];
     if (value is num) {
       return value.toDouble();
@@ -6155,7 +7518,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     final controller = TextEditingController(
       text: percent
           ? (currentValue * 100).toStringAsFixed(0)
-          : currentValue.toStringAsFixed(currentValue.truncateToDouble() == currentValue ? 0 : 2),
+          : currentValue.toStringAsFixed(
+              currentValue.truncateToDouble() == currentValue ? 0 : 2,
+            ),
     );
     try {
       final confirmed = await showDialog<bool>(
@@ -6214,15 +7579,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            value,
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-          ),
+          Text(value, style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
           const SizedBox(width: 8),
-          IconButton(
-            onPressed: onEdit,
-            icon: const Icon(Icons.edit_outlined),
-          ),
+          IconButton(onPressed: onEdit, icon: const Icon(Icons.edit_outlined)),
         ],
       ),
     );
@@ -6244,7 +7603,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       children: [
         _Panel(
           title: 'Pricing control center',
-          subtitle: 'Live controls for revenue, fees, commissions, and rider payouts.',
+          subtitle:
+              'Live controls for revenue, fees, commissions, and rider payouts.',
           child: Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -6278,13 +7638,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   children: [
                     _pricingMetricTile(
                       title: 'Ready-made default',
-                      value: '${(_pricingValue(commission, 'defaultCommissionReadyMade', 0.18) * 100).toStringAsFixed(0)}%',
+                      value:
+                          '${(_pricingValue(commission, 'defaultCommissionReadyMade', 0.18) * 100).toStringAsFixed(0)}%',
                       subtitle: 'Applied to standard marketplace orders.',
                       onEdit: () => _editPricingNumber(
                         title: 'Ready-made commission',
                         endpoint: '/admin/pricing/commission',
                         fieldKey: 'defaultCommissionReadyMade',
-                        currentValue: _pricingValue(commission, 'defaultCommissionReadyMade', 0.18),
+                        currentValue: _pricingValue(
+                          commission,
+                          'defaultCommissionReadyMade',
+                          0.18,
+                        ),
                         min: 0.15,
                         max: 0.20,
                         percent: true,
@@ -6292,13 +7657,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     ),
                     _pricingMetricTile(
                       title: 'Custom default',
-                      value: '${(_pricingValue(commission, 'defaultCommissionCustom', 0.24) * 100).toStringAsFixed(0)}%',
+                      value:
+                          '${(_pricingValue(commission, 'defaultCommissionCustom', 0.24) * 100).toStringAsFixed(0)}%',
                       subtitle: 'Applied to tailoring and custom orders.',
                       onEdit: () => _editPricingNumber(
                         title: 'Custom commission',
                         endpoint: '/admin/pricing/commission',
                         fieldKey: 'defaultCommissionCustom',
-                        currentValue: _pricingValue(commission, 'defaultCommissionCustom', 0.24),
+                        currentValue: _pricingValue(
+                          commission,
+                          'defaultCommissionCustom',
+                          0.24,
+                        ),
                         min: 0.20,
                         max: 0.30,
                         percent: true,
@@ -6306,13 +7676,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     ),
                     _pricingMetricTile(
                       title: 'High-performer adjustment',
-                      value: '${(_pricingValue(commission, 'highPerformerAdjustment', -0.03) * 100).toStringAsFixed(0)}%',
+                      value:
+                          '${(_pricingValue(commission, 'highPerformerAdjustment', -0.03) * 100).toStringAsFixed(0)}%',
                       subtitle: 'Reward strong vendors with a lower take rate.',
                       onEdit: () => _editPricingNumber(
                         title: 'High performer adjustment',
                         endpoint: '/admin/pricing/commission',
                         fieldKey: 'highPerformerAdjustment',
-                        currentValue: _pricingValue(commission, 'highPerformerAdjustment', -0.03),
+                        currentValue: _pricingValue(
+                          commission,
+                          'highPerformerAdjustment',
+                          -0.03,
+                        ),
                         min: -0.05,
                         max: 0,
                         percent: true,
@@ -6320,13 +7695,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     ),
                     _pricingMetricTile(
                       title: 'Low SLA adjustment',
-                      value: '${(_pricingValue(commission, 'lowSlaAdjustment', 0.05) * 100).toStringAsFixed(0)}%',
+                      value:
+                          '${(_pricingValue(commission, 'lowSlaAdjustment', 0.05) * 100).toStringAsFixed(0)}%',
                       subtitle: 'Penalty uplift for weak on-time performance.',
                       onEdit: () => _editPricingNumber(
                         title: 'Low SLA adjustment',
                         endpoint: '/admin/pricing/commission',
                         fieldKey: 'lowSlaAdjustment',
-                        currentValue: _pricingValue(commission, 'lowSlaAdjustment', 0.05),
+                        currentValue: _pricingValue(
+                          commission,
+                          'lowSlaAdjustment',
+                          0.05,
+                        ),
                         min: 0,
                         max: 0.05,
                         percent: true,
@@ -6345,20 +7725,26 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   children: [
                     _pricingMetricTile(
                       title: '0-2 km fee',
-                      value: 'Rs ${_pricingValue(delivery, 'slabUpTo2Km', 49).toStringAsFixed(0)}',
+                      value:
+                          'Rs ${_pricingValue(delivery, 'slabUpTo2Km', 49).toStringAsFixed(0)}',
                       subtitle: 'Short radius same-day delivery.',
                       onEdit: () => _editPricingNumber(
                         title: '0-2 km delivery fee',
                         endpoint: '/admin/pricing/delivery',
                         fieldKey: 'slabUpTo2Km',
-                        currentValue: _pricingValue(delivery, 'slabUpTo2Km', 49),
+                        currentValue: _pricingValue(
+                          delivery,
+                          'slabUpTo2Km',
+                          49,
+                        ),
                         min: 39,
                         max: 500,
                       ),
                     ),
                     _pricingMetricTile(
                       title: '2-5 km fee',
-                      value: 'Rs ${_pricingValue(delivery, 'slab2To5Km', 69).toStringAsFixed(0)}',
+                      value:
+                          'Rs ${_pricingValue(delivery, 'slab2To5Km', 69).toStringAsFixed(0)}',
                       subtitle: 'Mid-range same-day delivery.',
                       onEdit: () => _editPricingNumber(
                         title: '2-5 km delivery fee',
@@ -6371,13 +7757,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     ),
                     _pricingMetricTile(
                       title: '5+ km fee',
-                      value: 'Rs ${_pricingValue(delivery, 'slabAbove5Km', 79).toStringAsFixed(0)}',
+                      value:
+                          'Rs ${_pricingValue(delivery, 'slabAbove5Km', 79).toStringAsFixed(0)}',
                       subtitle: 'Long-radius same-day delivery.',
                       onEdit: () => _editPricingNumber(
                         title: '5+ km delivery fee',
                         endpoint: '/admin/pricing/delivery',
                         fieldKey: 'slabAbove5Km',
-                        currentValue: _pricingValue(delivery, 'slabAbove5Km', 79),
+                        currentValue: _pricingValue(
+                          delivery,
+                          'slabAbove5Km',
+                          79,
+                        ),
                         min: 39,
                         max: 500,
                       ),
@@ -6390,7 +7781,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                         successMessage: 'Surge pricing updated.',
                       ),
                       title: const Text('Enable surge pricing'),
-                      subtitle: const Text('Apply demand-based fee surcharges live.'),
+                      subtitle: const Text(
+                        'Apply demand-based fee surcharges live.',
+                      ),
                     ),
                   ],
                 ),
@@ -6410,7 +7803,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   children: [
                     _pricingMetricTile(
                       title: 'Trial fee',
-                      value: 'Rs ${_pricingValue(trial, 'trialFee', 99).toStringAsFixed(0)}',
+                      value:
+                          'Rs ${_pricingValue(trial, 'trialFee', 99).toStringAsFixed(0)}',
                       subtitle: 'Applied to try-at-home experiences.',
                       onEdit: () => _editPricingNumber(
                         title: 'Trial fee',
@@ -6441,7 +7835,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     ),
                     const Divider(),
                     SwitchListTile.adaptive(
-                      value: _pricingToggle(discounts, 'discountsEnabled', true),
+                      value: _pricingToggle(
+                        discounts,
+                        'discountsEnabled',
+                        true,
+                      ),
                       onChanged: (value) => _updatePricingScope(
                         endpoint: '/admin/pricing/discount',
                         body: {'discountsEnabled': value},
@@ -6451,26 +7849,36 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     ),
                     _pricingMetricTile(
                       title: 'First-order discount',
-                      value: 'Rs ${_pricingValue(discounts, 'firstOrderDiscount', 100).toStringAsFixed(0)}',
+                      value:
+                          'Rs ${_pricingValue(discounts, 'firstOrderDiscount', 100).toStringAsFixed(0)}',
                       subtitle: 'Applied to first-time eligible customers.',
                       onEdit: () => _editPricingNumber(
                         title: 'First-order discount',
                         endpoint: '/admin/pricing/discount',
                         fieldKey: 'firstOrderDiscount',
-                        currentValue: _pricingValue(discounts, 'firstOrderDiscount', 100),
+                        currentValue: _pricingValue(
+                          discounts,
+                          'firstOrderDiscount',
+                          100,
+                        ),
                         min: 0,
                         max: 10000,
                       ),
                     ),
                     _pricingMetricTile(
                       title: 'Max discount percent',
-                      value: '${(_pricingValue(discounts, 'maxDiscountPercent', 0.10) * 100).toStringAsFixed(0)}%',
+                      value:
+                          '${(_pricingValue(discounts, 'maxDiscountPercent', 0.10) * 100).toStringAsFixed(0)}%',
                       subtitle: 'System-wide cap for discounting.',
                       onEdit: () => _editPricingNumber(
                         title: 'Max discount percent',
                         endpoint: '/admin/pricing/discount',
                         fieldKey: 'maxDiscountPercent',
-                        currentValue: _pricingValue(discounts, 'maxDiscountPercent', 0.10),
+                        currentValue: _pricingValue(
+                          discounts,
+                          'maxDiscountPercent',
+                          0.10,
+                        ),
                         min: 0.10,
                         max: 0.15,
                         percent: true,
@@ -6484,12 +7892,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             Expanded(
               child: _Panel(
                 title: 'Rider payout and dynamic rules',
-                subtitle: 'Protect supply while keeping unit economics healthy.',
+                subtitle:
+                    'Protect supply while keeping unit economics healthy.',
                 child: Column(
                   children: [
                     _pricingMetricTile(
                       title: 'Base rider payout',
-                      value: 'Rs ${_pricingValue(rider, 'basePayout', 30).toStringAsFixed(0)}',
+                      value:
+                          'Rs ${_pricingValue(rider, 'basePayout', 30).toStringAsFixed(0)}',
                       subtitle: 'Minimum same-day payout per order.',
                       onEdit: () => _editPricingNumber(
                         title: 'Base rider payout',
@@ -6502,7 +7912,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     ),
                     _pricingMetricTile(
                       title: 'Peak bonus',
-                      value: 'Rs ${_pricingValue(rider, 'peakBonus', 10).toStringAsFixed(0)}',
+                      value:
+                          'Rs ${_pricingValue(rider, 'peakBonus', 10).toStringAsFixed(0)}',
                       subtitle: 'Applied during busy windows.',
                       onEdit: () => _editPricingNumber(
                         title: 'Peak bonus',
@@ -6515,19 +7926,28 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     ),
                     _pricingMetricTile(
                       title: 'Trial payout base',
-                      value: 'Rs ${_pricingValue(rider, 'trialPayoutBase', 60).toStringAsFixed(0)}',
+                      value:
+                          'Rs ${_pricingValue(rider, 'trialPayoutBase', 60).toStringAsFixed(0)}',
                       subtitle: 'Two-trip try-at-home payout floor.',
                       onEdit: () => _editPricingNumber(
                         title: 'Trial payout base',
                         endpoint: '/admin/pricing/rider',
                         fieldKey: 'trialPayoutBase',
-                        currentValue: _pricingValue(rider, 'trialPayoutBase', 60),
+                        currentValue: _pricingValue(
+                          rider,
+                          'trialPayoutBase',
+                          60,
+                        ),
                         min: 60,
                         max: 500,
                       ),
                     ),
                     SwitchListTile.adaptive(
-                      value: _pricingToggle(rules, 'highDemandLowRidersEnabled', true),
+                      value: _pricingToggle(
+                        rules,
+                        'highDemandLowRidersEnabled',
+                        true,
+                      ),
                       onChanged: (value) => _updatePricingScope(
                         endpoint: '/admin/pricing',
                         body: {
@@ -6539,7 +7959,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                       title: const Text('High demand + low riders surge'),
                     ),
                     SwitchListTile.adaptive(
-                      value: _pricingToggle(rules, 'lowConversionBoostEnabled', true),
+                      value: _pricingToggle(
+                        rules,
+                        'lowConversionBoostEnabled',
+                        true,
+                      ),
                       onChanged: (value) => _updatePricingScope(
                         endpoint: '/admin/pricing',
                         body: {
@@ -6551,7 +7975,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                       title: const Text('Low conversion fee relief'),
                     ),
                     SwitchListTile.adaptive(
-                      value: _pricingToggle(rules, 'highReturnPromoteTrialEnabled', true),
+                      value: _pricingToggle(
+                        rules,
+                        'highReturnPromoteTrialEnabled',
+                        true,
+                      ),
                       onChanged: (value) => _updatePricingScope(
                         endpoint: '/admin/pricing',
                         body: {
@@ -6571,7 +7999,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         const SizedBox(height: 16),
         _Panel(
           title: 'Pricing simulation',
-          subtitle: 'Preview commission, fees, payout, and profit before shipping changes.',
+          subtitle:
+              'Preview commission, fees, payout, and profit before shipping changes.',
           child: Column(
             children: [
               Wrap(
@@ -6582,7 +8011,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     width: 180,
                     child: TextField(
                       controller: _pricingOrderValueController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: 'Order value',
                         prefixText: 'Rs ',
@@ -6593,7 +8024,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     width: 180,
                     child: TextField(
                       controller: _pricingDistanceController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: 'Distance',
                         suffixText: 'km',
@@ -6606,9 +8039,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                       initialValue: _pricingUserType,
                       items: const [
                         DropdownMenuItem(value: 'new', child: Text('New user')),
-                        DropdownMenuItem(value: 'repeat', child: Text('Repeat user')),
-                        DropdownMenuItem(value: 'low_conversion', child: Text('Low conversion')),
-                        DropdownMenuItem(value: 'high_return', child: Text('High return')),
+                        DropdownMenuItem(
+                          value: 'repeat',
+                          child: Text('Repeat user'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'low_conversion',
+                          child: Text('Low conversion'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'high_return',
+                          child: Text('High return'),
+                        ),
                       ],
                       onChanged: (value) {
                         if (value == null) return;
@@ -6622,21 +8064,40 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     child: DropdownButtonFormField<String>(
                       initialValue: _pricingDemandLevel,
                       items: const [
-                        DropdownMenuItem(value: 'normal', child: Text('Normal demand')),
-                        DropdownMenuItem(value: 'elevated', child: Text('Elevated demand')),
-                        DropdownMenuItem(value: 'high', child: Text('High demand')),
+                        DropdownMenuItem(
+                          value: 'normal',
+                          child: Text('Normal demand'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'elevated',
+                          child: Text('Elevated demand'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'high',
+                          child: Text('High demand'),
+                        ),
                       ],
                       onChanged: (value) {
                         if (value == null) return;
                         setState(() => _pricingDemandLevel = value);
                       },
-                      decoration: const InputDecoration(labelText: 'Demand level'),
+                      decoration: const InputDecoration(
+                        labelText: 'Demand level',
+                      ),
                     ),
                   ),
                   FilledButton.icon(
                     onPressed: () => _runPricingSimulation(
-                      orderValue: double.tryParse(_pricingOrderValueController.text.trim()) ?? 1200,
-                      distanceKm: double.tryParse(_pricingDistanceController.text.trim()) ?? 4,
+                      orderValue:
+                          double.tryParse(
+                            _pricingOrderValueController.text.trim(),
+                          ) ??
+                          1200,
+                      distanceKm:
+                          double.tryParse(
+                            _pricingDistanceController.text.trim(),
+                          ) ??
+                          4,
                       userType: _pricingUserType,
                       demandLevel: _pricingDemandLevel,
                     ),
@@ -6653,24 +8114,28 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   children: [
                     _MetricCard(
                       title: 'Commission',
-                      value: '${(((simulationOutputs['commissionPercent'] ?? 0) as num).toDouble() * 100).toStringAsFixed(1)}%',
+                      value:
+                          '${(((simulationOutputs['commissionPercent'] ?? 0) as num).toDouble() * 100).toStringAsFixed(1)}%',
                     ),
                     _MetricCard(
                       title: 'Delivery fee',
                       value: _formatCurrency(
-                        ((simulationOutputs['deliveryFee'] ?? 0) as num).toDouble(),
+                        ((simulationOutputs['deliveryFee'] ?? 0) as num)
+                            .toDouble(),
                       ),
                     ),
                     _MetricCard(
                       title: 'Rider payout',
                       value: _formatCurrency(
-                        ((simulationOutputs['riderEarnings'] ?? 0) as num).toDouble(),
+                        ((simulationOutputs['riderEarnings'] ?? 0) as num)
+                            .toDouble(),
                       ),
                     ),
                     _MetricCard(
                       title: 'Profit',
                       value: _formatCurrency(
-                        ((simulationOutputs['platformProfit'] ?? 0) as num).toDouble(),
+                        ((simulationOutputs['platformProfit'] ?? 0) as num)
+                            .toDouble(),
                       ),
                     ),
                   ],
@@ -6700,7 +8165,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       trailing: Text(
-                        DateFormat('dd MMM, hh:mm a').format(entry.timestamp.toLocal()),
+                        DateFormat(
+                          'dd MMM, hh:mm a',
+                        ).format(entry.timestamp.toLocal()),
                         style: GoogleFonts.inter(
                           color: AbzioTheme.textSecondary,
                           fontSize: 12,
@@ -6766,9 +8233,18 @@ class _Panel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18)),
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(subtitle, style: GoogleFonts.inter(color: AbzioTheme.textSecondary)),
+            Text(
+              subtitle,
+              style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+            ),
             const SizedBox(height: 16),
             child,
           ],
@@ -6779,10 +8255,7 @@ class _Panel extends StatelessWidget {
 }
 
 class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.title,
-    required this.value,
-  });
+  const _MetricCard({required this.title, required this.value});
 
   final String title;
   final String value;
@@ -6799,12 +8272,18 @@ class _MetricCard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: GoogleFonts.inter(color: AbzioTheme.textSecondary, fontSize: 13),
+                style: GoogleFonts.inter(
+                  color: AbzioTheme.textSecondary,
+                  fontSize: 13,
+                ),
               ),
               const SizedBox(height: 10),
               Text(
                 value,
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 24),
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 24,
+                ),
               ),
             ],
           ),
@@ -6867,9 +8346,15 @@ class _FilterPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+            Text(
+              title,
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 4),
-            Text(subtitle, style: GoogleFonts.inter(color: AbzioTheme.textSecondary)),
+            Text(
+              subtitle,
+              style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+            ),
             const SizedBox(height: 16),
             Wrap(spacing: 12, runSpacing: 12, children: children),
           ],
@@ -7087,7 +8572,10 @@ class _FeatureSwitchCard extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+              child: Text(
+                label,
+                style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+              ),
             ),
             Switch(
               value: value,
@@ -7124,18 +8612,21 @@ class _Pager extends StatelessWidget {
           style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
         ),
         const SizedBox(width: 12),
-        IconButton(onPressed: onPrevious, icon: const Icon(Icons.chevron_left_rounded)),
-        IconButton(onPressed: onNext, icon: const Icon(Icons.chevron_right_rounded)),
+        IconButton(
+          onPressed: onPrevious,
+          icon: const Icon(Icons.chevron_left_rounded),
+        ),
+        IconButton(
+          onPressed: onNext,
+          icon: const Icon(Icons.chevron_right_rounded),
+        ),
       ],
     );
   }
 }
 
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({
-    required this.label,
-    required this.color,
-  });
+  const _StatusPill({required this.label, required this.color});
 
   final String label;
   final Color color;
@@ -7178,8 +8669,8 @@ class _SupportChatCard extends StatelessWidget {
     final statusColor = chat.status == 'waiting'
         ? const Color(0xFFD97706)
         : chat.status == 'closed'
-            ? const Color(0xFF8A8A8A)
-            : const Color(0xFF1F9D55);
+        ? const Color(0xFF8A8A8A)
+        : const Color(0xFF1F9D55);
     final icon = switch (chat.type) {
       'order' => Icons.receipt_long_rounded,
       'payment' => Icons.payments_outlined,
@@ -7195,7 +8686,9 @@ class _SupportChatCard extends StatelessWidget {
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected ? AbzioTheme.accentColor.withValues(alpha: 0.08) : Colors.white,
+          color: isSelected
+              ? AbzioTheme.accentColor.withValues(alpha: 0.08)
+              : Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isSelected
@@ -7237,7 +8730,10 @@ class _SupportChatCard extends StatelessWidget {
                       ),
                       if (chat.unreadCountAdmin > 0)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
                             color: AbzioTheme.accentColor,
                             borderRadius: BorderRadius.circular(999),
@@ -7267,7 +8763,10 @@ class _SupportChatCard extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _StatusPill(label: chat.status.toUpperCase(), color: statusColor),
+                      _StatusPill(
+                        label: chat.status.toUpperCase(),
+                        color: statusColor,
+                      ),
                       _StatusPill(
                         label: chat.type.toUpperCase(),
                         color: AbzioTheme.accentColor,
@@ -7281,12 +8780,16 @@ class _SupportChatCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    chat.lastMessage.isEmpty ? 'Support ticket created' : chat.lastMessage,
+                    chat.lastMessage.isEmpty
+                        ? 'Support ticket created'
+                        : chat.lastMessage,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.inter(
                       color: AbzioTheme.textSecondary,
-                      fontWeight: chat.unreadCountAdmin > 0 ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: chat.unreadCountAdmin > 0
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -7308,10 +8811,7 @@ class _SupportChatCard extends StatelessWidget {
 }
 
 class _SupportDetailRow extends StatelessWidget {
-  const _SupportDetailRow({
-    required this.label,
-    required this.value,
-  });
+  const _SupportDetailRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -7346,10 +8846,7 @@ class _SupportDetailRow extends StatelessWidget {
 }
 
 class _SearchMetric extends StatelessWidget {
-  const _SearchMetric({
-    required this.label,
-    required this.value,
-  });
+  const _SearchMetric({required this.label, required this.value});
 
   final String label;
   final int value;
@@ -7361,9 +8858,15 @@ class _SearchMetric extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            child: Text(
+              label,
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
           ),
-          Text('$value', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+          Text(
+            '$value',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+          ),
         ],
       ),
     );
@@ -7386,7 +8889,8 @@ class _MiniBarChart extends StatelessWidget {
     if (points.isEmpty) {
       return const AbzioEmptyCard(
         title: 'No chart data',
-        subtitle: 'Sales analytics will appear here when transactions are available.',
+        subtitle:
+            'Sales analytics will appear here when transactions are available.',
       );
     }
     final maxValue = points.fold<double>(
@@ -7398,7 +8902,9 @@ class _MiniBarChart extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: points.map((point) {
-          final ratio = maxValue == 0 ? 0.1 : (point.value / maxValue).clamp(0.1, 1.0);
+          final ratio = maxValue == 0
+              ? 0.1
+              : (point.value / maxValue).clamp(0.1, 1.0);
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -7406,7 +8912,8 @@ class _MiniBarChart extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    valueFormatter?.call(point.value) ?? point.value.toStringAsFixed(0),
+                    valueFormatter?.call(point.value) ??
+                        point.value.toStringAsFixed(0),
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       color: AbzioTheme.textSecondary,
@@ -7438,5 +8945,3 @@ class _MiniBarChart extends StatelessWidget {
     );
   }
 }
-
-

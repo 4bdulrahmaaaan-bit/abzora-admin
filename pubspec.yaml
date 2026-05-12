@@ -119,6 +119,7 @@ flutter:
     - assets/branding/abzora_customer_icon.png
     - assets/branding/abzora_partner_icon.png
     - assets/branding/abzora_rider_icon.png
+    - assets/legal/
     - assets/3d/
     - assets/ml/
 

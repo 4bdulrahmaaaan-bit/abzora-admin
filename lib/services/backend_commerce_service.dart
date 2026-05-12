@@ -695,7 +695,8 @@ class BackendCommerceService {
       '/vendor/products',
       authenticated: true,
       queryParameters: {
-        if (storeId != null && storeId.trim().isNotEmpty) 'storeId': storeId.trim(),
+        if (storeId != null && storeId.trim().isNotEmpty)
+          'storeId': storeId.trim(),
       },
     );
     final items = payload is List ? payload : const [];
@@ -716,8 +717,11 @@ class BackendCommerceService {
       '/vendor/products',
       authenticated: true,
       queryParameters: {
-        if (storeId != null && storeId.trim().isNotEmpty) 'storeId': storeId.trim(),
-        if (category != null && category.trim().isNotEmpty && category.trim().toLowerCase() != 'all')
+        if (storeId != null && storeId.trim().isNotEmpty)
+          'storeId': storeId.trim(),
+        if (category != null &&
+            category.trim().isNotEmpty &&
+            category.trim().toLowerCase() != 'all')
           'category': category.trim(),
         if (sortBy != null && sortBy.trim().isNotEmpty) 'sortBy': sortBy.trim(),
         if (minPrice != null) 'minPrice': minPrice.toStringAsFixed(0),
@@ -1160,7 +1164,9 @@ class BackendCommerceService {
         'thumbnailUrl': thumbnailUrl.trim(),
         'title': title.trim(),
         'fitConfidence': fitConfidence,
-        'fitWarnings': fitWarnings.where((item) => item.trim().isNotEmpty).toList(),
+        'fitWarnings': fitWarnings
+            .where((item) => item.trim().isNotEmpty)
+            .toList(),
         'tags': tags.where((item) => item.trim().isNotEmpty).toList(),
       },
     );
@@ -1196,7 +1202,9 @@ class BackendCommerceService {
         if (title != null) 'title': title.trim(),
         if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl.trim(),
         if (productIds != null)
-          'productIds': productIds.where((item) => item.trim().isNotEmpty).toList(),
+          'productIds': productIds
+              .where((item) => item.trim().isNotEmpty)
+              .toList(),
         if (markRetried) 'markRetried': true,
       },
     );
@@ -1703,6 +1711,16 @@ class BackendCommerceService {
   Future<PlatformSettings> getPlatformSettings() async {
     final payload = await _client.get('/admin/settings', authenticated: true);
     return PlatformSettings.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<Map<String, String>> getLegalPolicyVersions() async {
+    final payload = await _client.get('/legal/versions');
+    final map = Map<String, dynamic>.from(payload as Map);
+    return <String, String>{
+      'customer': map['customer']?.toString().trim() ?? '',
+      'vendor': map['vendor']?.toString().trim() ?? '',
+      'rider': map['rider']?.toString().trim() ?? '',
+    };
   }
 
   Future<PlatformSettings> savePlatformSettings(
@@ -2585,6 +2603,60 @@ class BackendCommerceService {
     return Map<String, dynamic>.from(payload as Map);
   }
 
+  Future<Map<String, dynamic>> getVendorGrowthSummary({
+    String range = '7d',
+  }) async {
+    final payload = await _client.get(
+      '/vendor/growth/summary',
+      authenticated: true,
+      queryParameters: {'range': range},
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<List<Map<String, dynamic>>> getVendorGrowthRecommendations() async {
+    final payload = await _client.get(
+      '/vendor/growth/recommendations',
+      authenticated: true,
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getVendorGrowthProductPerformance() async {
+    final payload = await _client.get(
+      '/vendor/growth/product-performance',
+      authenticated: true,
+    );
+    final items = payload is List ? payload : const [];
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> getVendorGrowthCharts() async {
+    final payload = await _client.get(
+      '/vendor/growth/charts',
+      authenticated: true,
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> scoreTrialRisk({
+    required Map<String, dynamic> payload,
+  }) async {
+    final res = await _client.post(
+      '/ai/risk-score',
+      authenticated: true,
+      body: payload,
+    );
+    return Map<String, dynamic>.from(res as Map);
+  }
+
   Future<List<VendorKycRequest>> getVendorKycRequests({String? status}) async {
     final payload = await _client.get(
       '/admin/kyc/vendors',
@@ -2687,11 +2759,16 @@ class BackendCommerceService {
     required String requestId,
     required String status,
     String reason = '',
+    Map<String, dynamic> override = const {},
   }) async {
     await _client.patch(
       '/admin/kyc/riders/$requestId/review',
       authenticated: true,
-      body: {'status': status, 'reason': reason},
+      body: {
+        'status': status,
+        'reason': reason,
+        if (override.isNotEmpty) 'override': override,
+      },
     );
   }
 
@@ -2934,9 +3011,8 @@ class BackendCommerceService {
     return items
         .whereType<Map>()
         .map(
-          (item) => GarmentTemplateModel.fromMap(
-            Map<String, dynamic>.from(item),
-          ),
+          (item) =>
+              GarmentTemplateModel.fromMap(Map<String, dynamic>.from(item)),
         )
         .toList();
   }
@@ -2973,7 +3049,9 @@ class BackendCommerceService {
       body: {
         ..._optionalEntry(
           'id',
-          (normalizedId != null && normalizedId.isNotEmpty) ? normalizedId : null,
+          (normalizedId != null && normalizedId.isNotEmpty)
+              ? normalizedId
+              : null,
         ),
         'slug': slug.trim(),
         'name': name.trim(),

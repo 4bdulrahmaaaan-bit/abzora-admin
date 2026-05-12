@@ -2,22 +2,22 @@ import 'package:confetti/confetti.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:lottie/lottie.dart';
+import 'package:lottie/lottie.dart' as lottie;
 import 'package:go_router/go_router.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-import 'package:latlong2/latlong.dart';
 
 import '../../../core/utils/rider_validators.dart';
 import '../../../core/widgets/rider_glass_card.dart';
 import '../../../core/widgets/rider_glow_button.dart';
 import '../../../core/widgets/rider_particle_background.dart';
+import '../../../core/widgets/rider_validated_text_field.dart';
 import '../../../models/rider_signup_model.dart';
 import '../../../providers/rider_signup_provider.dart';
 import '../../../providers/auth_provider.dart';
@@ -46,7 +46,7 @@ class _RiderSplashScreenState extends State<RiderSplashScreen>
       duration: const Duration(milliseconds: 2200),
     )..forward();
     Future<void>.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) context.go(RiderRoutes.welcome);
+      if (mounted) context.replace(RiderRoutes.welcome);
     });
   }
 
@@ -62,7 +62,7 @@ class _RiderSplashScreenState extends State<RiderSplashScreen>
               Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF000000), Color(0xFF151515)],
+                    colors: [Color(0xFF000000), Color(0xFF101010)],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -90,7 +90,7 @@ class _RiderSplashScreenState extends State<RiderSplashScreen>
                             const SizedBox(height: 20),
                             SizedBox(
                               height: 120,
-                              child: Lottie.asset(
+                              child: lottie.Lottie.asset(
                                 'assets/lottie/rider_intro.json',
                                 repeat: true,
                                 errorBuilder: (_, error, stackTrace) =>
@@ -120,7 +120,7 @@ class RiderWelcomeScreen extends StatelessWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Container(color: const Color(0xFF0A0A0A)),
+          Container(color: const Color(0xFF050505)),
           const _AnimatedBackdrop(),
           SafeArea(
             child: Padding(
@@ -131,19 +131,26 @@ class RiderWelcomeScreen extends StatelessWidget {
                   const Spacer(),
                   const Text(
                     'Become an Abzora Rider',
-                    style: TextStyle(fontSize: 36, fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      fontSize: 38,
+                      height: 1.05,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.8,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   const Text(
                     'Earn money with flexible delivery opportunities',
-                    style: TextStyle(color: Color(0xFFB0B0B0)),
+                    style: TextStyle(
+                      color: Color.fromRGBO(255, 255, 255, 0.72),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   const Row(
                     children: [
                       Expanded(
                         child: _Stat(
-                          title: 'Rs 25,000+',
+                          title: 'INR 25,000+',
                           subtitle: 'Monthly Earnings',
                         ),
                       ),
@@ -164,7 +171,7 @@ class RiderWelcomeScreen extends StatelessWidget {
                   RiderGlowButton(
                     label: 'Start Earning',
                     icon: Icons.arrow_forward,
-                    onPressed: () => context.go(RiderRoutes.auth),
+                    onPressed: () => context.push(RiderRoutes.auth),
                   ),
                 ],
               ),
@@ -186,6 +193,7 @@ class RiderOnboardingFlowScreen extends ConsumerStatefulWidget {
 
 class _RiderOnboardingFlowScreenState
     extends ConsumerState<RiderOnboardingFlowScreen> {
+  static const double _kycMinimumConfidence = 75;
   final _pageController = PageController();
   final _otpController = TextEditingController();
   final _onboardingService = OnboardingService();
@@ -193,6 +201,10 @@ class _RiderOnboardingFlowScreenState
   int _step = 0;
   bool _verifying = false;
   bool _submitting = false;
+  int _invalidSubmitTick = 0;
+  bool _ifscLookupLoading = false;
+  String _ifscLookupMessage = '';
+  String _detectedBankName = '';
   static const _draftKey = 'rider_onboarding_draft_v1';
 
   @override
@@ -233,6 +245,8 @@ class _RiderOnboardingFlowScreenState
     final model = ref.read(riderSignupProvider);
     final error = _validateStep(model, _step);
     if (error != null) {
+      HapticFeedback.mediumImpact();
+      setState(() => _invalidSubmitTick++);
       context.showRiderSnack(error);
       return;
     }
@@ -244,7 +258,23 @@ class _RiderOnboardingFlowScreenState
       );
       return;
     }
-    context.go(RiderRoutes.success);
+    context.replace(RiderRoutes.success);
+  }
+
+  void _back() {
+    if (_step == 0) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        context.go(RiderRoutes.welcome);
+      }
+      return;
+    }
+    setState(() => _step--);
+    _pageController.previousPage(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   String? _validateStep(RiderSignupModel model, int step) {
@@ -260,25 +290,20 @@ class _RiderOnboardingFlowScreenState
             AppValidators.email(model.email) ??
             AppValidators.requiredField(model.city, 'City');
       case 3:
-        return AppValidators.requiredField(
-              model.vehicleNumber,
-              'Vehicle number',
-            ) ??
+        return AppValidators.vehicleNumber(model.vehicleNumber) ??
             AppValidators.requiredField(model.licenseNumber, 'License number');
       case 4:
-        return AppValidators.minLength(model.aadhaar, 'Aadhaar number', 12) ??
-            AppValidators.minLength(model.pan, 'PAN number', 10);
+        return AppValidators.aadhaar(model.aadhaar) ??
+            AppValidators.pan(model.pan);
       case 5:
         return AppValidators.requiredField(
               model.accountHolder,
               'Account holder',
             ) ??
             AppValidators.requiredField(model.bankName, 'Bank name') ??
-            AppValidators.requiredField(
-              model.accountNumber,
-              'Account number',
-            ) ??
-            AppValidators.requiredField(model.ifsc, 'IFSC code');
+            AppValidators.bankAccount(model.accountNumber) ??
+            AppValidators.ifsc(model.ifsc) ??
+            AppValidators.upi(model.upi);
       case 7:
         return model.acceptedTerms
             ? null
@@ -408,6 +433,39 @@ class _RiderOnboardingFlowScreenState
         ),
       );
 
+      final ocrExtraction = await _withRetry(
+        () => _onboardingService.extractKycFields(
+          documentType: 'aadhaar_pan',
+          text: '${model.aadhaar} ${model.pan} ${model.fullName}',
+          documentUrl: aadhaarUrl,
+        ),
+      );
+
+      final verificationSummary = await _withRetry(
+        () => _onboardingService.verifyRiderKyc(
+          aadhaarNumber: model.aadhaar,
+          panNumber: model.pan,
+          profilePhotoUrl: profileUrl,
+          selfieUrl: aadhaarUrl,
+          licenseUrl: licenseUrl,
+        ),
+      );
+      final confidence =
+          (verificationSummary['confidenceScore'] as num?)?.toDouble() ?? 0;
+      final verificationStatus = (verificationSummary['status'] ?? '')
+          .toString()
+          .trim();
+      if (confidence < _kycMinimumConfidence ||
+          verificationStatus == 'manual_review') {
+        if (mounted) {
+          HapticFeedback.heavyImpact();
+          context.showRiderSnack(
+            'KYC confidence is low (${confidence.toStringAsFixed(0)}%). Please re-upload clearer documents before submission.',
+          );
+        }
+        return;
+      }
+
       final nowIso = DateTime.now().toIso8601String();
       await _onboardingService.submitRiderRequest(
         actor: user,
@@ -456,6 +514,8 @@ class _RiderOnboardingFlowScreenState
               'acceptedTerms': model.acceptedTerms,
               'signature': model.signature.trim(),
             },
+            'ocrExtraction': ocrExtraction,
+            'verification': verificationSummary,
             'submittedAt': nowIso,
             'source': 'rider_app_v2',
           },
@@ -481,24 +541,79 @@ class _RiderOnboardingFlowScreenState
       }
       if (!mounted) return;
       RiderTelemetry.event('rider_submit_success', data: {'userId': user.id});
-      context.go(RiderRoutes.success);
+      context.replace(RiderRoutes.success);
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_draftKey);
     } catch (e) {
       if (!mounted) return;
-      RiderTelemetry.event('rider_submit_failed', data: {'error': e.toString()});
+      RiderTelemetry.event(
+        'rider_submit_failed',
+        data: {'error': e.toString()},
+      );
       context.showRiderSnack(e.toString());
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
   }
 
+  Future<void> _lookupIfscIfReady(RiderSignupModel model, String value) async {
+    final code = value.trim().toUpperCase();
+    if (code.length != 11) {
+      if (!mounted) return;
+      setState(() {
+        _ifscLookupLoading = false;
+        _ifscLookupMessage = '';
+        _detectedBankName = '';
+      });
+      return;
+    }
+    setState(() {
+      _ifscLookupLoading = true;
+      _ifscLookupMessage = '';
+    });
+    try {
+      final result = await _onboardingService.lookupIfsc(code);
+      if (!mounted) return;
+      setState(() {
+        _detectedBankName = (result['bankName'] ?? '').toString();
+        _ifscLookupMessage = _detectedBankName.isEmpty
+            ? 'IFSC verified'
+            : 'Bank detected: $_detectedBankName';
+      });
+      if (_detectedBankName.isNotEmpty &&
+          model.bankName.trim().isEmpty &&
+          mounted) {
+        ref
+            .read(riderSignupProvider.notifier)
+            .update(model.copyWith(bankName: _detectedBankName));
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _ifscLookupMessage = 'Unable to auto-detect bank right now';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _ifscLookupLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final model = ref.watch(riderSignupProvider);
+    final stepError = _validateStep(model, _step);
+    final canContinue = stepError == null;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Onboarding Step ${_step + 1}/9')),
+      appBar: AppBar(
+        leading: IconButton(
+          onPressed: _back,
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          tooltip: 'Back',
+        ),
+        title: Text('Onboarding Step ${_step + 1}/9'),
+      ),
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -506,15 +621,45 @@ class _RiderOnboardingFlowScreenState
           Column(
             children: [
               const SizedBox(height: 8),
-              SmoothPageIndicator(
-                controller: _pageController,
-                count: 9,
-                effect: WormEffect(
-                  activeDotColor: const Color(0xFFFF6B00),
-                  dotColor: Colors.white.withValues(alpha: 0.2),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Step ${_step + 1} of 9',
+                          style: const TextStyle(
+                            color: Color(0xFFBDBDBD),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${(((_step + 1) / 9) * 100).round()}%',
+                          style: const TextStyle(
+                            color: Color(0xFFFFB300),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(99),
+                      child: LinearProgressIndicator(
+                        minHeight: 8,
+                        value: (_step + 1) / 9,
+                        backgroundColor: Colors.white12,
+                        valueColor: const AlwaysStoppedAnimation(
+                          Color(0xFFF5D76E),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Expanded(
                 child: PageView(
                   controller: _pageController,
@@ -534,13 +679,21 @@ class _RiderOnboardingFlowScreenState
               ),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: RiderGlowButton(
-                  label: _step == 8
-                      ? (_submitting ? 'Submitting...' : 'Submit Application')
-                      : 'Continue',
-                  onPressed: _step == 8
-                      ? (_submitting ? null : () => _submitApplication(model))
-                      : _next,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  transform: Matrix4.translationValues(
+                    _invalidSubmitTick.isOdd ? 6 : 0,
+                    0,
+                    0,
+                  ),
+                  child: RiderGlowButton(
+                    label: _step == 8
+                        ? (_submitting ? 'Submitting...' : 'Submit Application')
+                        : 'Continue',
+                    onPressed: _step == 8
+                        ? (_submitting ? null : () => _submitApplication(model))
+                        : (canContinue ? _next : null),
+                  ),
                 ),
               ),
             ],
@@ -555,14 +708,18 @@ class _RiderOnboardingFlowScreenState
       title: 'Phone Authentication',
       child: Column(
         children: [
-          TextFormField(
+          RiderValidatedTextField(
             initialValue: model.phone,
+            label: 'Phone Number (+91)',
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Phone Number (+91)'),
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            maxLength: 10,
+            helperText: '10 digits starting with 6, 7, 8, or 9',
+            exampleText: 'Example: 9876543210',
+            validator: AppValidators.phone,
             onChanged: (v) => ref
                 .read(riderSignupProvider.notifier)
                 .update(model.copyWith(phone: v)),
-            onTapOutside: (_) => _saveDraft(ref.read(riderSignupProvider)),
           ),
           const SizedBox(height: 8),
           Align(
@@ -573,7 +730,7 @@ class _RiderOnboardingFlowScreenState
             ),
           ),
           const SizedBox(height: 12),
-          const LinearProgressIndicator(value: 0.4, color: Color(0xFFFF6B00)),
+          const LinearProgressIndicator(value: 0.4, color: Color(0xFFD4AF37)),
         ],
       ),
     );
@@ -593,15 +750,15 @@ class _RiderOnboardingFlowScreenState
               shape: PinCodeFieldShape.box,
               borderRadius: BorderRadius.circular(14),
               fieldWidth: 44,
-              activeColor: const Color(0xFFFF6B00),
+              activeColor: const Color(0xFFD4AF37),
               inactiveColor: Colors.white24,
-              selectedColor: const Color(0xFFFF6B00),
+              selectedColor: const Color(0xFFD4AF37),
             ),
             onChanged: (_) {},
           ),
           const SizedBox(height: 8),
           if (_verifying)
-            const CircularProgressIndicator(color: Color(0xFFFF6B00)),
+            const CircularProgressIndicator(color: Color(0xFFD4AF37)),
           if (!_verifying)
             TextButton(onPressed: _verifyOtp, child: const Text('Verify OTP')),
         ],
@@ -610,57 +767,53 @@ class _RiderOnboardingFlowScreenState
   }
 
   Widget _personalStep(RiderSignupModel model) {
-    return _formCard(
-      title: 'Personal Details',
-      child: Column(
+    final content = <Widget>[
+      TextFormField(
+        initialValue: model.fullName,
+        decoration: const InputDecoration(labelText: 'Full Name'),
+        onChanged: (v) => ref
+            .read(riderSignupProvider.notifier)
+            .update(model.copyWith(fullName: v)),
+        onTapOutside: (_) => _saveDraft(ref.read(riderSignupProvider)),
+      ),
+      const SizedBox(height: 10),
+      TextFormField(
+        initialValue: model.email,
+        decoration: const InputDecoration(labelText: 'Email Address'),
+        onChanged: (v) => ref
+            .read(riderSignupProvider.notifier)
+            .update(model.copyWith(email: v)),
+        onTapOutside: (_) => _saveDraft(ref.read(riderSignupProvider)),
+      ),
+      const SizedBox(height: 10),
+      DropdownButtonFormField<String>(
+        initialValue: model.city.isEmpty ? null : model.city,
+        hint: const Text('Select City'),
+        items: const [
+          'Bengaluru',
+          'Mumbai',
+          'Delhi',
+          'Hyderabad',
+        ].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+        onChanged: (v) => ref
+            .read(riderSignupProvider.notifier)
+            .update(model.copyWith(city: v ?? '')),
+      ),
+      const SizedBox(height: 10),
+      Row(
         children: [
-          TextFormField(
-            initialValue: model.fullName,
-            decoration: const InputDecoration(labelText: 'Full Name'),
-            onChanged: (v) => ref
-                .read(riderSignupProvider.notifier)
-                .update(model.copyWith(fullName: v)),
-            onTapOutside: (_) => _saveDraft(ref.read(riderSignupProvider)),
+          Expanded(
+            child: Text(
+              model.profilePhotoPath == null
+                  ? 'No profile photo selected'
+                  : 'Photo selected',
+            ),
           ),
-          const SizedBox(height: 10),
-          TextFormField(
-            initialValue: model.email,
-            decoration: const InputDecoration(labelText: 'Email Address'),
-            onChanged: (v) => ref
-                .read(riderSignupProvider.notifier)
-                .update(model.copyWith(email: v)),
-            onTapOutside: (_) => _saveDraft(ref.read(riderSignupProvider)),
-          ),
-          const SizedBox(height: 10),
-          DropdownButtonFormField<String>(
-            initialValue: model.city.isEmpty ? null : model.city,
-            hint: const Text('Select City'),
-            items: const [
-              'Bengaluru',
-              'Mumbai',
-              'Delhi',
-              'Hyderabad',
-            ].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-            onChanged: (v) => ref
-                .read(riderSignupProvider.notifier)
-                .update(model.copyWith(city: v ?? '')),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  model.profilePhotoPath == null
-                      ? 'No profile photo selected'
-                      : 'Photo selected',
-                ),
-              ),
-              TextButton(onPressed: _pickImage, child: const Text('Upload')),
-            ],
-          ),
+          TextButton(onPressed: _pickImage, child: const Text('Upload')),
         ],
       ),
-    );
+    ];
+    return _formCard(title: 'Personal Details', child: _staggerColumn(content));
   }
 
   Widget _vehicleStep(RiderSignupModel model) {
@@ -675,7 +828,7 @@ class _RiderOnboardingFlowScreenState
               return ChoiceChip(
                 label: Text(v.name),
                 selected: selected,
-                selectedColor: const Color(0xFFFF6B00),
+                selectedColor: const Color(0xFFD4AF37),
                 onSelected: (selected) => ref
                     .read(riderSignupProvider.notifier)
                     .update(model.copyWith(vehicleType: v)),
@@ -683,9 +836,24 @@ class _RiderOnboardingFlowScreenState
             }).toList(),
           ),
           const SizedBox(height: 10),
-          TextFormField(
+          RiderValidatedTextField(
             initialValue: model.vehicleNumber,
-            decoration: const InputDecoration(labelText: 'Vehicle Number'),
+            label: 'Vehicle Number',
+            textCapitalization: TextCapitalization.characters,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')),
+              TextInputFormatter.withFunction((oldValue, newValue) {
+                final normalized = newValue.text
+                    .replaceAll(RegExp(r'\s+'), '')
+                    .toUpperCase();
+                return TextEditingValue(
+                  text: normalized,
+                  selection: TextSelection.collapsed(offset: normalized.length),
+                );
+              }),
+            ],
+            helperText: 'Format: TN01AB1234 or KA05MK9090',
+            validator: AppValidators.vehicleNumber,
             onChanged: (v) => ref
                 .read(riderSignupProvider.notifier)
                 .update(model.copyWith(vehicleNumber: v)),
@@ -725,17 +893,35 @@ class _RiderOnboardingFlowScreenState
       title: 'KYC Verification',
       child: Column(
         children: [
-          TextFormField(
+          RiderValidatedTextField(
             initialValue: model.aadhaar,
-            decoration: const InputDecoration(labelText: 'Aadhaar Number'),
+            label: 'Aadhaar Number',
+            keyboardType: TextInputType.number,
+            inputFormatters: [AadhaarInputFormatter()],
+            helperText: '12 digits in XXXX XXXX XXXX format',
+            validator: AppValidators.aadhaar,
             onChanged: (v) => ref
                 .read(riderSignupProvider.notifier)
                 .update(model.copyWith(aadhaar: v)),
           ),
           const SizedBox(height: 10),
-          TextFormField(
+          RiderValidatedTextField(
             initialValue: model.pan,
-            decoration: const InputDecoration(labelText: 'PAN Number'),
+            label: 'PAN Number',
+            textCapitalization: TextCapitalization.characters,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+              LengthLimitingTextInputFormatter(10),
+              TextInputFormatter.withFunction((oldValue, newValue) {
+                final upper = newValue.text.toUpperCase();
+                return TextEditingValue(
+                  text: upper,
+                  selection: TextSelection.collapsed(offset: upper.length),
+                );
+              }),
+            ],
+            helperText: 'Format: AAAAA9999A',
+            validator: AppValidators.pan,
             onChanged: (v) => ref
                 .read(riderSignupProvider.notifier)
                 .update(model.copyWith(pan: v)),
@@ -756,11 +942,11 @@ class _RiderOnboardingFlowScreenState
                 .update(model.copyWith(selfiePath: p)),
           ),
           const SizedBox(height: 10),
-          const LinearProgressIndicator(value: 0.75, color: Color(0xFFFF6B00)),
+          const LinearProgressIndicator(value: 0.75, color: Color(0xFFD4AF37)),
           const SizedBox(height: 8),
           const Text(
             'Secure encrypted verification in progress',
-            style: TextStyle(color: Color(0xFFB0B0B0)),
+            style: TextStyle(color: Color.fromRGBO(255, 255, 255, 0.72)),
           ),
         ],
       ),
@@ -788,28 +974,91 @@ class _RiderOnboardingFlowScreenState
                 .update(model.copyWith(bankName: v)),
           ),
           const SizedBox(height: 10),
-          TextFormField(
+          RiderValidatedTextField(
             initialValue: model.accountNumber,
-            decoration: const InputDecoration(labelText: 'Account Number'),
+            label: 'Account Number',
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            maxLength: 18,
+            helperText: '9 to 18 digits',
+            validator: AppValidators.bankAccount,
             onChanged: (v) => ref
                 .read(riderSignupProvider.notifier)
                 .update(model.copyWith(accountNumber: v)),
           ),
           const SizedBox(height: 10),
-          TextFormField(
+          RiderValidatedTextField(
             initialValue: model.ifsc,
-            decoration: const InputDecoration(labelText: 'IFSC Code'),
-            onChanged: (v) => ref
-                .read(riderSignupProvider.notifier)
-                .update(model.copyWith(ifsc: v)),
+            label: 'IFSC Code',
+            textCapitalization: TextCapitalization.characters,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(11),
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+              TextInputFormatter.withFunction((oldValue, newValue) {
+                final upper = newValue.text.toUpperCase();
+                return TextEditingValue(
+                  text: upper,
+                  selection: TextSelection.collapsed(offset: upper.length),
+                );
+              }),
+            ],
+            helperText: 'Format: HDFC0001234',
+            validator: AppValidators.ifsc,
+            onChanged: (v) {
+              ref
+                  .read(riderSignupProvider.notifier)
+                  .update(model.copyWith(ifsc: v));
+              _lookupIfscIfReady(model, v);
+            },
           ),
+          const SizedBox(height: 6),
+          if (_ifscLookupLoading)
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          if (_ifscLookupMessage.isNotEmpty)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _ifscLookupMessage,
+                style: const TextStyle(
+                  color: Color.fromRGBO(255, 255, 255, 0.72),
+                  fontSize: 12,
+                ),
+              ),
+            ),
           const SizedBox(height: 10),
-          TextFormField(
+          RiderValidatedTextField(
             initialValue: model.upi,
-            decoration: const InputDecoration(labelText: 'UPI ID'),
+            label: 'UPI ID (optional)',
+            keyboardType: TextInputType.emailAddress,
+            inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
+            helperText: 'Format: username@bank',
+            validator: AppValidators.upi,
             onChanged: (v) => ref
                 .read(riderSignupProvider.notifier)
                 .update(model.copyWith(upi: v)),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: const [
+              Icon(Icons.lock_rounded, color: Colors.greenAccent, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Encrypted payout details. Stored securely for settlement only.',
+                  style: TextStyle(
+                    color: Color.fromRGBO(255, 255, 255, 0.72),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -837,7 +1086,7 @@ class _RiderOnboardingFlowScreenState
               return ChoiceChip(
                 label: Text(w == WorkType.fullTime ? 'Full-time' : 'Part-time'),
                 selected: model.workType == w,
-                selectedColor: const Color(0xFFFF6B00),
+                selectedColor: const Color(0xFFD4AF37),
                 onSelected: (selected) => ref
                     .read(riderSignupProvider.notifier)
                     .update(model.copyWith(workType: w)),
@@ -851,7 +1100,7 @@ class _RiderOnboardingFlowScreenState
               return ChoiceChip(
                 label: Text(shift),
                 selected: model.shift == shift,
-                selectedColor: const Color(0xFFFF6B00),
+                selectedColor: const Color(0xFFD4AF37),
                 onSelected: (selected) => ref
                     .read(riderSignupProvider.notifier)
                     .update(model.copyWith(shift: shift)),
@@ -877,17 +1126,25 @@ class _RiderOnboardingFlowScreenState
             ],
           ),
           SizedBox(
-            height: 180,
+            height: 200,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: FlutterMap(
-                options: MapOptions(
-                  initialCenter: LatLng(
-                    model.zoneLat ?? 12.9716,
-                    model.zoneLng ?? 77.5946,
+              borderRadius: BorderRadius.circular(24),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white24),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: LatLng(
+                      model.zoneLat ?? 12.9716,
+                      model.zoneLng ?? 77.5946,
+                    ),
+                    zoom: 11,
                   ),
-                  initialZoom: 11,
-                  onTap: (tapPosition, point) {
+                  zoomControlsEnabled: false,
+                  myLocationButtonEnabled: false,
+                  onTap: (point) {
                     ref
                         .read(riderSignupProvider.notifier)
                         .update(
@@ -897,13 +1154,14 @@ class _RiderOnboardingFlowScreenState
                           ),
                         );
                   },
+                  markers: {
+                    if (model.zoneLat != null && model.zoneLng != null)
+                      Marker(
+                        markerId: const MarkerId('zone'),
+                        position: LatLng(model.zoneLat!, model.zoneLng!),
+                      ),
+                  },
                 ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  ),
-                ],
               ),
             ),
           ),
@@ -956,27 +1214,72 @@ class _RiderOnboardingFlowScreenState
     ];
     return _formCard(
       title: 'Application Review',
-      child: Column(
-        children: [
-          ...progress.map(
-            (e) => ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                e.$2 ? Icons.check_circle : Icons.pending,
-                color: e.$2 ? Colors.green : Colors.orange,
-              ),
-              title: Text(e.$1),
-              trailing: Text(e.$2 ? 'Completed' : 'Pending'),
+      child: _staggerColumn([
+        ...progress.map((e) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white12),
             ),
-          ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: progress.where((p) => p.$2).length / progress.length,
-            color: const Color(0xFFFF6B00),
-          ),
-        ],
-      ),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 260),
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: e.$2
+                        ? Colors.green.withValues(alpha: 0.18)
+                        : const Color(0xFFD4AF37).withValues(alpha: 0.16),
+                  ),
+                  child: Icon(
+                    e.$2 ? Icons.check_rounded : Icons.pending_outlined,
+                    color: e.$2
+                        ? const Color(0xFF30D158)
+                        : const Color(0xFFF5D76E),
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Text(e.$1)),
+                Text(
+                  e.$2 ? 'Completed' : 'Pending',
+                  style: TextStyle(
+                    color: e.$2
+                        ? const Color(0xFF30D158)
+                        : const Color(0xFFF5D76E),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 12),
+        LinearProgressIndicator(
+          value: progress.where((p) => p.$2).length / progress.length,
+          color: const Color(0xFFD4AF37),
+        ),
+      ]),
+    );
+  }
+
+  Widget _staggerColumn(List<Widget> children) {
+    return Column(
+      children: List<Widget>.generate(children.length, (index) {
+        return children[index]
+            .animate()
+            .fadeIn(
+              delay: Duration(milliseconds: 40 * index),
+              duration: 260.ms,
+              curve: Curves.easeOutCubic,
+            )
+            .slideY(begin: 0.04, end: 0, duration: 300.ms);
+      }),
     );
   }
 
@@ -1052,70 +1355,80 @@ class _RiderSuccessScreenState extends State<RiderSuccessScreen> {
   Widget build(BuildContext context) {
     final riderId =
         'RDR-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(color: const Color(0xFF0A0A0A)),
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _controller,
-              blastDirectionality: BlastDirectionality.explosive,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go(RiderRoutes.dashboard);
+        }
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            Container(color: const Color(0xFF050505)),
+            Align(
+              alignment: Alignment.topCenter,
+              child: ConfettiWidget(
+                confettiController: _controller,
+                blastDirectionality: BlastDirectionality.explosive,
+              ),
             ),
-          ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: RiderGlassCard(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.verified_rounded,
-                      color: Colors.greenAccent,
-                      size: 66,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Application Submitted',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 24,
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: RiderGlassCard(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.verified_rounded,
+                        color: Colors.greenAccent,
+                        size: 66,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('Rider ID: $riderId'),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Estimated approval: within 24-48 hours',
-                      style: TextStyle(color: Color(0xFFB0B0B0)),
-                    ),
-                    const SizedBox(height: 16),
-                    const ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.tips_and_updates_outlined),
-                      title: Text(
-                        'Accept high-demand time slots for higher earnings',
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Application Submitted',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 24,
+                        ),
                       ),
-                    ),
-                    const ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.tips_and_updates_outlined),
-                      title: Text(
-                        'Keep documents updated for faster activation',
+                      const SizedBox(height: 8),
+                      Text('Rider ID: $riderId'),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Estimated approval: within 24-48 hours',
+                        style: TextStyle(
+                          color: Color.fromRGBO(255, 255, 255, 0.72),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    RiderGlowButton(
-                      label: 'Go To Dashboard',
-                      onPressed: () => context.go(RiderRoutes.dashboard),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      const ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(Icons.tips_and_updates_outlined),
+                        title: Text(
+                          'Accept high-demand time slots for higher earnings',
+                        ),
+                      ),
+                      const ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(Icons.tips_and_updates_outlined),
+                        title: Text(
+                          'Keep documents updated for faster activation',
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      RiderGlowButton(
+                        label: 'Go To Dashboard',
+                        onPressed: () => context.go(RiderRoutes.dashboard),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1176,7 +1489,10 @@ class _Stat extends StatelessWidget {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: Color(0xFFB0B0B0)),
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color.fromRGBO(255, 255, 255, 0.72),
+            ),
           ),
         ],
       ),

@@ -27,7 +27,17 @@ plugins {
 }
 
 include(":app")
-include(":unityLibrary")
-project(":unityLibrary").projectDir = file("../unityLibrary/unityLibrary")
-include(":unityLibrary:xrmanifest.androidlib")
-project(":unityLibrary:xrmanifest.androidlib").projectDir = file("../unityLibrary/unityLibrary/xrmanifest.androidlib")
+
+val requestedTasks = gradle.startParameter.taskNames.map { it.lowercase() }
+val hasExplicitTasks = requestedTasks.isNotEmpty()
+val isCustomerTask = requestedTasks.any { task ->
+    task.contains("customer") || task.contains("unity")
+}
+val includeUnityModules = !hasExplicitTasks || isCustomerTask
+
+if (includeUnityModules) {
+    include(":unityLibrary")
+    project(":unityLibrary").projectDir = file("../unityLibrary/unityLibrary")
+    include(":unityLibrary:xrmanifest.androidlib")
+    project(":unityLibrary:xrmanifest.androidlib").projectDir = file("../unityLibrary/unityLibrary/xrmanifest.androidlib")
+}

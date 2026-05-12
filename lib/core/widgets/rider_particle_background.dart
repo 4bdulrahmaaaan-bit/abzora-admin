@@ -8,9 +8,19 @@ class RiderParticleBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _ParticlePainter(progress),
-      size: Size.infinite,
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.topRight,
+          radius: 1.4,
+          colors: [Color(0x332B1300), Color(0xFF050505)],
+          stops: [0.0, 0.75],
+        ),
+      ),
+      child: CustomPaint(
+        painter: _ParticlePainter(progress),
+        size: Size.infinite,
+      ),
     );
   }
 }
@@ -27,8 +37,8 @@ class _ParticlePainter extends CustomPainter {
       final x = (t * size.width + math.sin(progress * 5 + i) * 16) % size.width;
       final y = ((1 - t) * size.height + progress * (20 + i % 8)) % size.height;
       p.color = const Color(
-        0xFFFF6B00,
-      ).withValues(alpha: 0.05 + (i % 5) * 0.015);
+        0xFFD4AF37,
+      ).withValues(alpha: 0.04 + (i % 5) * 0.012);
       canvas.drawCircle(Offset(x, y), 1.2 + (i % 3), p);
     }
   }

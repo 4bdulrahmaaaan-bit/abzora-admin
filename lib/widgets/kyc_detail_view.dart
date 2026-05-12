@@ -62,11 +62,13 @@ class KycDetailView extends StatelessWidget {
     required this.data,
     this.onApprove,
     this.onReject,
+    this.onOverrideApprove,
   });
 
   final KycDetailData? data;
   final VoidCallback? onApprove;
   final VoidCallback? onReject;
+  final VoidCallback? onOverrideApprove;
 
   @override
   Widget build(BuildContext context) {
@@ -441,35 +443,50 @@ class KycDetailView extends StatelessWidget {
             decoration: const BoxDecoration(
               border: Border(top: BorderSide(color: Color(0xFFEAEAEA))),
             ),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: data!.status == 'pending' ? onReject : null,
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      color: Color(0xFFB42318),
+                if (data!.status == 'pending' && onOverrideApprove != null) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: onOverrideApprove,
+                      icon: const Icon(Icons.shield_rounded),
+                      label: const Text('Override & Approve (Supervisor PIN)'),
                     ),
-                    label: const Text(
-                      'Reject',
-                      style: TextStyle(
-                        color: Color(0xFFB42318),
-                        fontWeight: FontWeight.w700,
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: data!.status == 'pending' ? onReject : null,
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Color(0xFFB42318),
+                        ),
+                        label: const Text(
+                          'Reject',
+                          style: TextStyle(
+                            color: Color(0xFFB42318),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: data!.status == 'pending' ? onApprove : null,
-                    icon: const Icon(Icons.check_circle_outline_rounded),
-                    label: const Text('Approve'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF067647),
-                      foregroundColor: Colors.white,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: data!.status == 'pending' ? onApprove : null,
+                        icon: const Icon(Icons.check_circle_outline_rounded),
+                        label: const Text('Approve'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF067647),
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),

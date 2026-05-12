@@ -22,7 +22,6 @@ import 'screens/ops/ops_shell_screen.dart';
 import 'screens/otp_verification_screen.dart';
 import 'screens/rider/rider_dashboard.dart';
 import 'screens/splash_screen.dart';
-import 'screens/admin/admin_dashboard.dart';
 import 'screens/admin/admin_analytics_screen.dart';
 import 'screens/admin/admin_web_panel.dart';
 import 'screens/user/cart_screen.dart';
@@ -48,6 +47,9 @@ import 'screens/admin/admin_payouts_screen.dart';
 import 'screens/admin/admin_riders_screen.dart';
 import 'screens/admin/admin_vendors_screen.dart';
 import 'screens/vendor/vendor_dashboard.dart';
+import 'features/legal/legal_consent_screen.dart';
+import 'features/legal/legal_consent_service.dart';
+import 'features/legal/legal_versioning.dart';
 import 'services/app_navigation_service.dart';
 import 'services/app_bootstrap_service.dart';
 import 'services/notification_service.dart';
@@ -288,7 +290,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
         path.startsWith('/admin/');
   }
 
-  void _navigateToResolvedRoute(AuthProvider auth) {
+  Future<void> _navigateToResolvedRoute(AuthProvider auth) async {
     if (!mounted || _didRoute) {
       return;
     }
@@ -297,9 +299,31 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     _didRoute = true;
 
     if (user != null) {
-      Navigator.of(
-        context,
-      ).pushReplacementNamed(routeForUserInMode(user, widget.mode));
+      final consentService = LegalConsentService();
+      final needsConsent = await consentService.requiresConsent(
+        user: user,
+        mode: widget.mode,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (needsConsent) {
+        final audience = LegalVersioning.audienceFor(
+          user: user,
+          mode: widget.mode,
+        );
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => LegalConsentScreen(audience: audience),
+          ),
+          (route) => false,
+        );
+        return;
+      }
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        routeForUserInMode(user, widget.mode),
+        (route) => false,
+      );
       unawaited(
         Future<void>.delayed(const Duration(milliseconds: 900), () async {
           if (!mounted) {
@@ -312,7 +336,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     }
 
     if (isPartnerMode(widget.mode)) {
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => LoginScreen(
             mode: widget.mode,
@@ -336,18 +360,16 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
           },
           transitionDuration: const Duration(milliseconds: 280),
         ),
+        (route) => false,
       );
       return;
     }
 
     if (widget.mode == AbzioAppMode.unified && _wantsAdminEntryFromUrl) {
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
-              const LoginScreen(
-                mode: AbzioAppMode.unified,
-                adminEntry: true,
-              ),
+              const LoginScreen(mode: AbzioAppMode.unified, adminEntry: true),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             final slideAnimation =
                 Tween<Offset>(
@@ -366,11 +388,12 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
           },
           transitionDuration: const Duration(milliseconds: 280),
         ),
+        (route) => false,
       );
       return;
     }
 
-    Navigator.of(context).pushReplacementNamed('/home');
+    Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
   }
 
   @override
@@ -378,7 +401,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     final auth = context.watch<AuthProvider>();
 
     if (!auth.isInitialized) {
-      return SplashScreen(mode: widget.mode);
+      return SplashScreen(mode: widget.mode, autoNavigate: false);
     }
 
     if (auth.user == null) {
@@ -393,11 +416,11 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
 
     if (!_didRoute) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _navigateToResolvedRoute(auth);
+        unawaited(_navigateToResolvedRoute(auth));
       });
     }
 
-    return SplashScreen(mode: widget.mode);
+    return SplashScreen(mode: widget.mode, autoNavigate: false);
   }
 }
 
@@ -428,7 +451,11 @@ class _AdminRoute extends StatelessWidget {
     if (user == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
-          Navigator.pushReplacementNamed(context, '/admin-login');
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/admin-login',
+            (route) => false,
+          );
         }
       });
       return const SizedBox.shrink();

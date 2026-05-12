@@ -42,6 +42,10 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
   VendorAnalytics? _analytics;
   WalletSummary? _wallet;
   CustomVendorQualityState? _qualityState;
+  Map<String, dynamic> _growthSummary = const {};
+  List<Map<String, dynamic>> _growthRecommendations = const [];
+  List<Map<String, dynamic>> _growthPerformance = const [];
+  Map<String, dynamic> _growthCharts = const {};
 
   AppUser? get _actor => context.read<AuthProvider>().user;
   bool get _isCustomVendor => _store?.vendorType == 'custom_vendor';
@@ -73,6 +77,10 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
         _db.getVendorOrders(store.id, actor: safeActor).first,
         _db.getVendorAnalytics(store.id, actor: safeActor),
         _db.getVendorWallet(actor: safeActor),
+        _db.getVendorGrowthSummary(actor: safeActor, range: _growthRange),
+        _db.getVendorGrowthRecommendations(actor: safeActor),
+        _db.getVendorGrowthProductPerformance(actor: safeActor),
+        _db.getVendorGrowthCharts(actor: safeActor),
       ];
       if (store.vendorType == 'custom_vendor') {
         futures.add(_db.getCustomVendorQuality(actor: safeActor));
@@ -84,8 +92,12 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
         _orders = data[0] as List<OrderModel>;
         _analytics = data[1] as VendorAnalytics;
         _wallet = data[2] as WalletSummary;
+        _growthSummary = Map<String, dynamic>.from(data[3] as Map? ?? const {});
+        _growthRecommendations = (data[4] as List).cast<Map<String, dynamic>>();
+        _growthPerformance = (data[5] as List).cast<Map<String, dynamic>>();
+        _growthCharts = Map<String, dynamic>.from(data[6] as Map? ?? const {});
         _qualityState = store.vendorType == 'custom_vendor'
-            ? data[3] as CustomVendorQualityState
+            ? data.last as CustomVendorQualityState
             : null;
         _acceptingOrders = store.isActive;
         _loading = false;
@@ -146,6 +158,53 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
     await _db.requestVendorWithdraw(amount: amount, actor: actor);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Withdrawal requested')));
+    await _load();
+  }
+
+  Future<void> _applyGrowthSuggestion(Map<String, dynamic> rec) async {
+    final actor = _actor;
+    if (actor == null) return;
+    final productId = rec['productId']?.toString().trim() ?? '';
+    if (productId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No product linked to this suggestion.')),
+      );
+      return;
+    }
+    final perf = _growthPerformance.firstWhere(
+      (item) => (item['productId']?.toString() ?? '') == productId,
+      orElse: () => const <String, dynamic>{},
+    );
+    if (perf.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product data unavailable for this suggestion.')),
+      );
+      return;
+    }
+    final productName = perf['productName']?.toString() ?? 'Product';
+    final currentPrice = ((perf['currentPrice'] ?? 0) as num).toDouble();
+    final msg = rec['message']?.toString().toLowerCase() ?? '';
+    double targetPrice = currentPrice > 0 ? currentPrice : 1;
+    final rupeeReg = RegExp(r'₹\s?(\d+)');
+    final match = rupeeReg.firstMatch(rec['message']?.toString() ?? '');
+    final parsed = match == null ? null : double.tryParse(match.group(1) ?? '');
+    if (msg.contains('lower price') && parsed != null) {
+      targetPrice = (targetPrice - parsed).clamp(1, 1000000);
+    } else if (msg.contains('increase price') && parsed != null) {
+      targetPrice = (targetPrice + parsed).clamp(1, 1000000);
+    } else if (msg.contains('discount')) {
+      targetPrice = (targetPrice * 0.8).clamp(1, 1000000);
+    }
+    await _db.updateVendorProductPrice(
+      actor: actor,
+      productId: productId,
+      price: targetPrice,
+      originalPrice: currentPrice,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Applied suggestion to $productName at ${m(targetPrice)}.')),
+    );
     await _load();
   }
 
@@ -478,38 +537,44 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
 
   Widget _growthDashboard() {
     final a = _analytics!;
-    final products = a.bestSellingProducts.take(5).toList();
-    final conversionRate = a.orders == 0 ? 0.0 : (a.ordersCompleted / a.orders) * 100;
-    final avgOrderValue = a.ordersCompleted == 0 ? 0.0 : a.totalSales / a.ordersCompleted;
+    final localProducts = const <Product>[];
+    final conversionRate = ((_growthSummary['conversionRate'] ?? (a.orders == 0 ? 0.0 : (a.ordersCompleted / a.orders) * 100)) as num).toDouble();
+    final avgOrderValue = ((_growthSummary['avgOrderValue'] ?? (a.ordersCompleted == 0 ? 0.0 : a.totalSales / a.ordersCompleted)) as num).toDouble();
+    final revenue = ((_growthSummary['revenue'] ?? a.totalSales) as num).toDouble();
+    final completedOrders = ((_growthSummary['orders'] ?? a.ordersCompleted) as num).toInt();
     final demandHigh = a.ordersToday >= 5;
-    final recommendations = <(String, String, String, String)>[
-      (
-        'Pricing Optimization',
-        'Lower price by \u20B9300 to increase conversion by 18%',
-        'High',
-        'Apply Price Suggestion',
-      ),
-      (
-        'Discount Opportunity',
-        'Apply 20% discount to clear slow-moving stock',
-        'Medium',
-        'Apply Discount',
-      ),
-      (
-        'High Demand Alert',
-        demandHigh
-            ? 'Increase price by \u20B9200 to maximize profit'
-            : 'Demand stable. Keep current pricing strategy',
-        demandHigh ? 'High' : 'Low',
-        'View Pricing',
-      ),
-      (
-        'Stock Alert',
-        products.length < 3 ? 'Low stock remaining. Restock soon.' : 'Stock healthy across top products',
-        products.length < 3 ? 'High' : 'Low',
-        'Manage Stock',
-      ),
-    ];
+
+    final recommendations = _growthRecommendations.isNotEmpty
+        ? _growthRecommendations
+            .map((item) => (
+                  item['title']?.toString() ?? 'AI Recommendation',
+                  item['message']?.toString() ?? '',
+                  item['priority']?.toString() ?? 'Low',
+                  item['recommendation']?.toString() ?? 'Review',
+                ))
+            .toList()
+        : <(String, String, String, String)>[
+            (
+              'Pricing Optimization',
+              'Lower price by ₹300 to increase conversion by 18%',
+              'High',
+              'Apply Price Suggestion',
+            ),
+            (
+              'Discount Opportunity',
+              'Apply 20% discount to clear slow-moving stock',
+              'Medium',
+              'Apply Discount',
+            ),
+            (
+              'High Demand Alert',
+              demandHigh
+                  ? 'Increase price by ₹200 to maximize profit'
+                  : 'Demand stable. Keep current pricing strategy',
+              demandHigh ? 'High' : 'Low',
+              'View Pricing',
+            ),
+          ];
 
     return _Card(
       child: Column(
@@ -530,7 +595,10 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
               DropdownButton<String>(
                 value: _growthRange,
                 underline: const SizedBox.shrink(),
-                onChanged: (v) => setState(() => _growthRange = v ?? '7d'),
+                onChanged: (v) async {
+                  setState(() => _growthRange = v ?? '7d');
+                  await _load();
+                },
                 items: const [
                   DropdownMenuItem(value: 'today', child: Text('Today')),
                   DropdownMenuItem(value: '7d', child: Text('7d')),
@@ -556,31 +624,52 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
             mainAxisSpacing: 10,
             childAspectRatio: 1.45,
             children: [
-              _MoneyKpi(title: 'Revenue', value: m(a.totalSales), trend: '+12%'),
+              _MoneyKpi(title: 'Revenue', value: m(revenue), trend: '+12%'),
               _MoneyKpi(title: 'Conversion Rate', value: '${conversionRate.toStringAsFixed(1)}%', trend: '+2.3%'),
-              _MoneyKpi(title: 'Orders', value: '${a.ordersCompleted}', trend: '+8%'),
+              _MoneyKpi(title: 'Orders', value: '$completedOrders', trend: '+8%'),
               _MoneyKpi(title: 'Avg Order Value', value: m(avgOrderValue), trend: '+5%'),
             ],
           ),
           const SizedBox(height: 10),
-          ...recommendations.map(
+          ...recommendations.take(4).map(
             (r) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: _GrowthActionCard(
+                recommendationMap: _growthRecommendations.isNotEmpty
+                    ? _growthRecommendations.firstWhere(
+                        (item) => (item['title']?.toString() ?? '') == r.$1,
+                        orElse: () => const <String, dynamic>{},
+                      )
+                    : const <String, dynamic>{},
                 title: r.$1,
                 description: r.$2,
                 priority: r.$3,
                 cta: r.$4,
+                onApply: _applyGrowthSuggestion,
               ),
             ),
           ),
           const SizedBox(height: 6),
           const Text('Product Performance', style: TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
-          if (products.isEmpty)
+          if (_growthPerformance.isEmpty && localProducts.isEmpty)
             const Text('No products yet', style: TextStyle(color: Colors.black54))
+          else if (_growthPerformance.isNotEmpty)
+            ..._growthPerformance.take(6).map(
+              (item) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(item['productName']?.toString() ?? 'Item', maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    Text(m(((item['currentPrice'] ?? 0) as num).toDouble()), style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 8),
+                    Text(item['suggestedAction']?.toString() ?? 'Review', style: const TextStyle(fontSize: 12, color: Color(0xFF15803D))),
+                  ],
+                ),
+              ),
+            )
           else
-            ...products.map(
+            ...localProducts.map(
               (p) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
@@ -601,14 +690,27 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFECE4D2)),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Price vs Conversion', style: TextStyle(fontWeight: FontWeight.w700)),
-                SizedBox(height: 8),
-                Text('Best performing price: \u20B92,999', style: TextStyle(color: Colors.black54)),
-                SizedBox(height: 4),
-                Text('Demand insights: Sneakers trending \u2191 • Peak sales: 7-10 PM', style: TextStyle(color: Colors.black54)),
+                const Text('Price vs Conversion', style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 72,
+                  child: _PriceConversionMiniChart(
+                    points: (_growthCharts['points'] as List? ?? const [])
+                        .whereType<Map>()
+                        .map((e) => Map<String, dynamic>.from(e))
+                        .toList(),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Best performing price: ${_growthCharts['bestPricePoint'] is Map ? m((((_growthCharts['bestPricePoint'] as Map)['price'] ?? 2999) as num).toDouble()) : '₹2,999'}',
+                  style: const TextStyle(color: Colors.black54),
+                ),
+                const SizedBox(height: 4),
+                const Text('Demand insights: Sneakers trending up | Peak sales: 7-10 PM', style: TextStyle(color: Colors.black54)),
               ],
             ),
           ),
@@ -616,7 +718,6 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
       ),
     );
   }
-
   Widget _earnings() {
     final a = _analytics!;
     final w = _wallet!;
@@ -929,16 +1030,20 @@ class _MoneyKpi extends StatelessWidget {
 
 class _GrowthActionCard extends StatelessWidget {
   const _GrowthActionCard({
+    required this.recommendationMap,
     required this.title,
     required this.description,
     required this.priority,
     required this.cta,
+    required this.onApply,
   });
 
+  final Map<String, dynamic> recommendationMap;
   final String title;
   final String description;
   final String priority;
   final String cta;
+  final Future<void> Function(Map<String, dynamic>) onApply;
 
   @override
   Widget build(BuildContext context) {
@@ -979,12 +1084,74 @@ class _GrowthActionCard extends StatelessWidget {
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
-            child: FilledButton.tonal(onPressed: () {}, child: Text(cta)),
+            child: FilledButton.tonal(
+              onPressed: recommendationMap.isEmpty ? null : () => onApply(recommendationMap),
+              child: Text(cta),
+            ),
           ),
         ],
       ),
     );
   }
+}
+
+class _PriceConversionMiniChart extends StatelessWidget {
+  const _PriceConversionMiniChart({required this.points});
+
+  final List<Map<String, dynamic>> points;
+
+  @override
+  Widget build(BuildContext context) {
+    if (points.length < 2) {
+      return const Center(
+        child: Text('Not enough chart data', style: TextStyle(fontSize: 12, color: Colors.black54)),
+      );
+    }
+    return CustomPaint(
+      painter: _PriceConversionPainter(points),
+      size: const Size(double.infinity, 72),
+    );
+  }
+}
+
+class _PriceConversionPainter extends CustomPainter {
+  _PriceConversionPainter(this.points);
+
+  final List<Map<String, dynamic>> points;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final sorted = [...points]
+      ..sort((a, b) => ((a['price'] ?? 0) as num).compareTo((b['price'] ?? 0) as num));
+    final prices = sorted.map((e) => ((e['price'] ?? 0) as num).toDouble()).toList();
+    final conv = sorted.map((e) => ((e['conversionRate'] ?? 0) as num).toDouble()).toList();
+    final minP = prices.reduce((a, b) => a < b ? a : b);
+    final maxP = prices.reduce((a, b) => a > b ? a : b);
+    final minC = conv.reduce((a, b) => a < b ? a : b);
+    final maxC = conv.reduce((a, b) => a > b ? a : b);
+    final dx = (maxP - minP).abs() < 0.001 ? 1.0 : (maxP - minP);
+    final dy = (maxC - minC).abs() < 0.001 ? 1.0 : (maxC - minC);
+
+    final path = Path();
+    for (var i = 0; i < sorted.length; i++) {
+      final x = ((prices[i] - minP) / dx) * (size.width - 8) + 4;
+      final y = size.height - ((((conv[i] - minC) / dy) * (size.height - 12)) + 6);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    final line = Paint()
+      ..color = const Color(0xFFC8A96A)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    canvas.drawPath(path, line);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PriceConversionPainter oldDelegate) =>
+      oldDelegate.points != points;
 }
 
 class _Action extends StatelessWidget {

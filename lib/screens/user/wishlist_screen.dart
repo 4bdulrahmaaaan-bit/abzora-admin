@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 import '../../constants/text_constants.dart';
@@ -67,7 +66,6 @@ class WishlistScreen extends StatelessWidget {
               mainAxisSpacing: 16,
               childAspectRatio: 0.7,
             ),
-            cacheExtent: 800.0,
             addAutomaticKeepAlives: false,
             addRepaintBoundaries: true,
             itemBuilder: (context, index) {

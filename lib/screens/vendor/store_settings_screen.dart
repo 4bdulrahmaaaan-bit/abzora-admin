@@ -10,14 +10,15 @@ import '../../services/image_url_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme.dart';
 import '../../utils/app_error_text.dart';
+import '../../features/legal/account_deletion_request_screen.dart';
+import '../../features/legal/legal_consent_screen.dart';
+import '../../features/legal/legal_document_registry.dart';
+import '../../features/legal/legal_policy_hub_screen.dart';
 
 class StoreSettingsScreen extends StatefulWidget {
   final Store store;
 
-  const StoreSettingsScreen({
-    super.key,
-    required this.store,
-  });
+  const StoreSettingsScreen({super.key, required this.store});
 
   @override
   State<StoreSettingsScreen> createState() => _StoreSettingsScreenState();
@@ -39,9 +40,13 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
     _nameController = TextEditingController(text: widget.store.name);
     _taglineController = TextEditingController(text: widget.store.tagline);
     _addressController = TextEditingController(text: widget.store.address);
-    _descriptionController = TextEditingController(text: widget.store.description);
+    _descriptionController = TextEditingController(
+      text: widget.store.description,
+    );
     _logoController = TextEditingController(text: widget.store.logoUrl);
-    _bannerController = TextEditingController(text: widget.store.bannerImageUrl);
+    _bannerController = TextEditingController(
+      text: widget.store.bannerImageUrl,
+    );
   }
 
   @override
@@ -60,7 +65,8 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
     if (actor == null) {
       return;
     }
-    if (_nameController.text.trim().isEmpty || _addressController.text.trim().isEmpty) {
+    if (_nameController.text.trim().isEmpty ||
+        _addressController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Store name and address are required.')),
       );
@@ -83,8 +89,12 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
         isApproved: widget.store.isApproved,
         isActive: widget.store.isActive,
         isFeatured: widget.store.isFeatured,
-        logoUrl: ImageUrlService.optimizeForDelivery(_logoController.text.trim()),
-        bannerImageUrl: ImageUrlService.optimizeForDelivery(_bannerController.text.trim()),
+        logoUrl: ImageUrlService.optimizeForDelivery(
+          _logoController.text.trim(),
+        ),
+        bannerImageUrl: ImageUrlService.optimizeForDelivery(
+          _bannerController.text.trim(),
+        ),
         tagline: _taglineController.text.trim(),
         commissionRate: widget.store.commissionRate,
         walletBalance: widget.store.walletBalance,
@@ -96,9 +106,9 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
       return;
     }
     setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Store branding updated.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Store branding updated.')));
     Navigator.pop(context, true);
   }
 
@@ -108,7 +118,10 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
       if (actor == null) {
         return;
       }
-      final file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 82);
+      final file = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 82,
+      );
       if (file == null) {
         return;
       }
@@ -129,15 +142,21 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isLogo ? 'Logo uploaded from Cloudinary.' : 'Banner uploaded from Cloudinary.')),
+        SnackBar(
+          content: Text(
+            isLogo
+                ? 'Logo uploaded from Cloudinary.'
+                : 'Banner uploaded from Cloudinary.',
+          ),
+        ),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -195,7 +214,12 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
             TextField(controller: _nameController),
             const SizedBox(height: 18),
             _label('Tagline'),
-            TextField(controller: _taglineController, decoration: const InputDecoration(hintText: 'Wedding edits and elevated essentials')),
+            TextField(
+              controller: _taglineController,
+              decoration: const InputDecoration(
+                hintText: 'Wedding edits and elevated essentials',
+              ),
+            ),
             const SizedBox(height: 18),
             _label('Address'),
             TextField(controller: _addressController),
@@ -204,26 +228,106 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
             TextField(controller: _descriptionController, maxLines: 4),
             const SizedBox(height: 18),
             _label('Logo URL'),
-            TextField(controller: _logoController, decoration: const InputDecoration(hintText: 'https://...logo.jpg')),
+            TextField(
+              controller: _logoController,
+              decoration: const InputDecoration(
+                hintText: 'https://...logo.jpg',
+              ),
+            ),
             const SizedBox(height: 10),
             OutlinedButton.icon(
-              onPressed: _saving ? null : () => _pickAndUploadImage(isLogo: true),
+              onPressed: _saving
+                  ? null
+                  : () => _pickAndUploadImage(isLogo: true),
               icon: const Icon(Icons.upload_rounded),
               label: const Text('UPLOAD LOGO'),
             ),
             const SizedBox(height: 18),
             _label('Banner URL'),
-            TextField(controller: _bannerController, decoration: const InputDecoration(hintText: 'https://...banner.jpg')),
+            TextField(
+              controller: _bannerController,
+              decoration: const InputDecoration(
+                hintText: 'https://...banner.jpg',
+              ),
+            ),
             const SizedBox(height: 10),
             OutlinedButton.icon(
-              onPressed: _saving ? null : () => _pickAndUploadImage(isLogo: false),
+              onPressed: _saving
+                  ? null
+                  : () => _pickAndUploadImage(isLogo: false),
               icon: const Icon(Icons.upload_rounded),
               label: const Text('UPLOAD BANNER'),
             ),
             const SizedBox(height: 18),
             Text(
               'Cloudinary uploads save hosted image URLs automatically. You can also keep using direct public image URLs for branding.',
-              style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500, height: 1.4),
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AbzioTheme.grey500,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 18),
+            ListTile(
+              tileColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: AbzioTheme.grey100),
+              ),
+              title: const Text('Legal & Policies'),
+              subtitle: const Text(
+                'Vendor terms, privacy, agreements, refund and delivery policies',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const LegalPolicyHubScreen(
+                    audience: LegalAudience.vendor,
+                    title: 'Vendor Legal Center',
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            ListTile(
+              tileColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: AbzioTheme.grey100),
+              ),
+              title: const Text('Legal Consent'),
+              subtitle: const Text(
+                'Review and accept vendor terms and privacy',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      const LegalConsentScreen(audience: LegalAudience.vendor),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            ListTile(
+              tileColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: AbzioTheme.grey100),
+              ),
+              title: const Text('Request Account Deletion'),
+              subtitle: const Text(
+                'Email support for account deletion request',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      const AccountDeletionRequestScreen(roleLabel: 'Vendor'),
+                ),
+              ),
             ),
             const SizedBox(height: 18),
             Container(
@@ -247,7 +351,10 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
                     : const Text('SAVE STORE SETTINGS'),
               ),

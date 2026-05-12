@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/database_service.dart';
 import '../../services/onboarding_service.dart';
 import '../../widgets/kyc_detail_view.dart';
 import '../../widgets/kyc_request_card.dart';
@@ -56,11 +57,20 @@ class AdminKycScreen extends StatefulWidget {
 
 class _AdminKycScreenState extends State<AdminKycScreen> {
   static const int _maxVisibleItems = 50;
+  static const List<String> _defaultRejectionTemplates = <String>[
+    'Aadhaar number could not be verified. Please upload a clearer Aadhaar document.',
+    'PAN details are invalid or unreadable. Please upload a valid PAN copy.',
+    'Selfie verification did not pass quality checks. Please retake selfie in good lighting.',
+    'Driving license image is unclear. Please re-upload a readable license image.',
+    'Bank details mismatch. Please verify account holder name, account number, and IFSC.',
+  ];
 
   final OnboardingService _service = OnboardingService();
+  final DatabaseService _db = DatabaseService();
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
   final Set<String> _selectedIds = <String>{};
+  final Set<String> _overrideApprovedIds = <String>{};
 
   KycRequestFilterTab _tab = KycRequestFilterTab.all;
   _KycSelection? _selected;
@@ -137,19 +147,152 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
     }
   }
 
+  bool _requiresOverride(_KycSelection selection) {
+    if (selection is! _RiderSelection) {
+      return false;
+    }
+    final verification = _riderVerificationFromMetadata(selection.request);
+    final status = (verification['status'] ?? '').toString();
+    final confidence =
+        (verification['confidenceScore'] as num?)?.toDouble() ?? 0;
+    return status == 'manual_review' || confidence < 75;
+  }
+
+  Future<void> _overrideApprove(_KycSelection selection, AppUser actor) async {
+    if (_busy) {
+      return;
+    }
+    if (!_requiresOverride(selection)) {
+      await _approve(selection, actor);
+      return;
+    }
+
+    final settings = await _db.getPlatformSettings(actor: actor);
+    if (!mounted) {
+      return;
+    }
+    final pinController = TextEditingController();
+    final reasonController = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Supervisor Override'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: pinController,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Supervisor PIN'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: reasonController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Override reason',
+                hintText: 'Why are you approving despite low confidence?',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final pinOk = pinController.text.trim() == settings.adminPin;
+              final hasReason = reasonController.text.trim().isNotEmpty;
+              Navigator.pop(dialogContext, pinOk && hasReason);
+            },
+            child: const Text('Override Approve'),
+          ),
+        ],
+      ),
+    );
+    if (result != true) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Override failed. Invalid PIN or reason.'),
+        ),
+      );
+      return;
+    }
+
+    if (selection is _RiderSelection) {
+      await _service.approveRiderRequest(
+        requestId: selection.request.id,
+        actor: actor,
+        overrideMetadata: {
+          'reason': reasonController.text.trim(),
+          'approvedBy': actor.id,
+          'approvedByName': actor.name,
+          'approvedAt': DateTime.now().toIso8601String(),
+        },
+      );
+      _selectedIds.remove(selection.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Rider approved via supervisor override.'),
+        ),
+      );
+      await _refresh();
+    } else {
+      await _approve(selection, actor);
+    }
+    _overrideApprovedIds.add(selection.id);
+    await _db.logActivity(
+      action: 'override_approve_kyc',
+      targetType: 'rider_request',
+      targetId: selection.id,
+      message: 'Supervisor override used to approve low-confidence rider KYC.',
+      actor: actor,
+    );
+  }
+
   Future<void> _reject(_KycSelection selection, AppUser actor) async {
     final controller = TextEditingController();
+    final templates = _rejectionTemplatesForSelection(selection);
+    if (templates.isNotEmpty) {
+      controller.text = templates.first;
+    }
     final reason = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Enter rejection reason'),
-        content: TextField(
-          controller: controller,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            hintText:
-                'Tell the applicant what to correct before re-submitting.',
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: templates.isNotEmpty ? templates.first : null,
+              decoration: const InputDecoration(labelText: 'Suggested reason'),
+              items: templates
+                  .map(
+                    (item) => DropdownMenuItem(value: item, child: Text(item)),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if ((value ?? '').trim().isNotEmpty) {
+                  controller.text = value!;
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                hintText:
+                    'Tell the applicant what to correct before re-submitting.',
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -375,9 +518,45 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
 
     return [
       ..._missingDocumentFlags(selection),
+      ..._verificationFlagsForSelection(selection),
       if (duplicatePhone) 'Duplicate phone',
       if (selection.status == 'rejected') 'Needs resubmission',
     ];
+  }
+
+  List<String> _verificationFlagsForSelection(_KycSelection selection) {
+    if (selection is _VendorSelection) {
+      return selection.request.verification.flags;
+    }
+    final verification = _riderVerificationFromMetadata(
+      (selection as _RiderSelection).request,
+    );
+    return List<String>.from((verification['flags'] as List?) ?? const []);
+  }
+
+  List<String> _rejectionTemplatesForSelection(_KycSelection selection) {
+    final templates = List<String>.from(_defaultRejectionTemplates);
+    final flags = _verificationFlagsForSelection(selection);
+    if (flags.any((f) => f.toLowerCase().contains('duplicate'))) {
+      templates.insert(
+        0,
+        'This account appears linked to duplicate KYC records. Please contact support with original documents.',
+      );
+    }
+    if (flags.any((f) => f.toLowerCase().contains('missing_documents'))) {
+      templates.insert(
+        0,
+        'Required KYC documents are missing. Please upload all mandatory files.',
+      );
+    }
+    return templates;
+  }
+
+  Map<String, dynamic> _riderVerificationFromMetadata(RiderKycRequest request) {
+    final meta = request.metadata;
+    return Map<String, dynamic>.from(
+      (meta['verification'] as Map?) ?? const <String, dynamic>{},
+    );
   }
 
   KycRequestListItem _toListItem(
@@ -407,6 +586,13 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
         documentLabels: [
           if (selection.request.kyc.aadhaarUrl.trim().isNotEmpty) 'Aadhaar',
           if (selection.request.kyc.panUrl.trim().isNotEmpty) 'PAN',
+          switch (selection.request.verification.autoReviewStatus) {
+            'auto_verified' => 'AI Verified',
+            'fraud_flagged' => 'AI Flagged',
+            _ => 'Manual Review',
+          },
+          if (selection.request.verification.confidenceScore > 0)
+            'Conf ${selection.request.verification.confidenceScore.toStringAsFixed(0)}%',
         ],
         riskFlags: riskFlags,
         selected: _selectedIds.contains(selection.request.id),
@@ -414,6 +600,11 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
     }
 
     final rider = selection as _RiderSelection;
+    final riderVerification = _riderVerificationFromMetadata(rider.request);
+    final riderStatus = (riderVerification['status'] ?? '').toString();
+    final riderConfidence = (riderVerification['confidenceScore'] is num)
+        ? (riderVerification['confidenceScore'] as num).toDouble()
+        : 0.0;
     return KycRequestListItem(
       id: rider.request.id,
       name: rider.request.name,
@@ -429,6 +620,9 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
       documentLabels: [
         if (rider.request.kyc.aadhaarUrl.trim().isNotEmpty) 'Aadhaar',
         if (rider.request.kyc.licenseUrl.trim().isNotEmpty) 'License',
+        if (riderStatus == 'auto_verified') 'AI Verified',
+        if (riderStatus == 'manual_review') 'Manual Review',
+        if (riderConfidence > 0) 'Conf ${riderConfidence.toStringAsFixed(0)}%',
       ],
       riskFlags: riskFlags,
       selected: _selectedIds.contains(rider.request.id),
@@ -449,6 +643,13 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
       vendors: vendors,
       riders: riders,
     );
+    final withOverrideFlag = <String>[
+      ...riskFlags,
+      if (_overrideApprovedIds.contains(selection.id) ||
+          (selection is _RiderSelection &&
+              selection.request.metadata['overrideApproved'] == true))
+        'Override Used',
+    ];
 
     if (selection is _VendorSelection) {
       final request = selection.request;
@@ -493,7 +694,7 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
           if ((meta['payoutSetupLabel']?.toString().trim().isNotEmpty ?? false))
             'Payout Setup': meta['payoutSetupLabel'].toString(),
         },
-        riskFlags: riskFlags,
+        riskFlags: withOverrideFlag,
         reviewedByName: request.reviewedByName,
         reviewedAt: request.reviewedAt.replaceFirst('T', ' ').split('.').first,
         actionHistory: request.actionHistory,
@@ -561,7 +762,7 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
         if ((zoneMeta['radiusKm']?.toString().trim().isNotEmpty ?? false))
           'Zone Radius': '${zoneMeta['radiusKm']} km',
       },
-      riskFlags: riskFlags,
+      riskFlags: withOverrideFlag,
       reviewedByName: request.reviewedByName,
       reviewedAt: request.reviewedAt.replaceFirst('T', ' ').split('.').first,
       actionHistory: request.actionHistory,
@@ -660,6 +861,9 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                               onApprove: _selected == null
                                   ? null
                                   : () => _approve(_selected!, actor),
+                              onOverrideApprove: _selected == null
+                                  ? null
+                                  : () => _overrideApprove(_selected!, actor),
                               onReject: _selected == null
                                   ? null
                                   : () => _reject(_selected!, actor),
@@ -931,6 +1135,7 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                           riders: riders,
                         ),
                         onApprove: () => _approve(item, actor),
+                        onOverrideApprove: () => _overrideApprove(item, actor),
                         onReject: () => _reject(item, actor),
                       ),
                     ),

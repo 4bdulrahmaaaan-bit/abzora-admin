@@ -27,6 +27,10 @@ import 'order_tracking_screen.dart';
 import 'referral_screen.dart';
 import 'wishlist_screen.dart';
 import '../../features/onboarding/vendor_onboarding_flow_screen.dart';
+import '../../features/legal/account_deletion_request_screen.dart';
+import '../../features/legal/legal_consent_screen.dart';
+import '../../features/legal/legal_document_registry.dart';
+import '../../features/legal/legal_policy_hub_screen.dart';
 import '../vendor/vendor_registration_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -228,6 +232,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     const SizedBox(height: 14),
                     _reveal(0.42, _buildSettingsList(context, city)),
+                    const SizedBox(height: 24),
+                    _reveal(0.46, _buildLegalPolicyEntry(context)),
                     const SizedBox(height: 24),
                     _reveal(
                       0.50,
@@ -2865,6 +2871,69 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Widget _profileHeaderSkeleton() {
     return const ShimmerProfileHeader();
+  }
+
+  Widget _buildLegalPolicyEntry(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle(
+          eyebrow: 'Legal',
+          title: 'Policies and Compliance',
+          subtitle:
+              'View terms, privacy, refunds, delivery policy, and request account deletion.',
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                title: const Text('Legal & Policy Center'),
+                subtitle: const Text('All customer legal documents'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LegalPolicyHubScreen(
+                      audience: LegalAudience.customer,
+                      title: 'Customer Legal Center',
+                    ),
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                title: const Text('Terms & Privacy Consent'),
+                subtitle: const Text('Review and accept legal consent'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LegalConsentScreen(
+                      audience: LegalAudience.customer,
+                    ),
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                title: const Text('Request Account Deletion'),
+                subtitle: const Text('Submit deletion request via support'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AccountDeletionRequestScreen(
+                      roleLabel: 'Customer',
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 

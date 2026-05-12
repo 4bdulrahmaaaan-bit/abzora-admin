@@ -1,8 +1,12 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/widgets/rider_glass_card.dart';
+import '../legal/account_deletion_request_screen.dart';
+import '../legal/legal_consent_screen.dart';
+import '../legal/legal_document_registry.dart';
+import '../legal/legal_policy_hub_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../widgets/payout_account_dialog.dart';
@@ -64,12 +68,14 @@ class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
         bankName: formValue.bankName,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Payout account updated')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Payout account updated')));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -82,14 +88,17 @@ class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
       builder: (context) => Container(
         padding: const EdgeInsets.all(20),
         decoration: const BoxDecoration(
-          color: Color(0xFF151515),
+          color: Color(0xFF101010),
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Help & Support', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            Text(
+              'Help & Support',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
             SizedBox(height: 8),
             Text('Email: rider-support@abzora.com'),
             SizedBox(height: 4),
@@ -106,7 +115,7 @@ class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        if (_loading) const LinearProgressIndicator(color: Color(0xFFFF6B00)),
+        if (_loading) const LinearProgressIndicator(color: Color(0xFFD4AF37)),
         RiderGlassCard(
           child: SwitchListTile(
             contentPadding: EdgeInsets.zero,
@@ -138,7 +147,58 @@ class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
         RiderGlassCard(
           child: ListTile(
             title: const Text('Referral Program'),
-            subtitle: Text('Your code: RIDER-${(user?.id ?? '0000').substring(0, (user?.id.length ?? 4) >= 4 ? 4 : (user?.id.length ?? 0))}'),
+            subtitle: Text(
+              'Your code: RIDER-${(user?.id ?? '0000').substring(0, (user?.id.length ?? 4) >= 4 ? 4 : (user?.id.length ?? 0))}',
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        RiderGlassCard(
+          child: ListTile(
+            title: const Text('Legal & Policies'),
+            subtitle: const Text(
+              'Terms, privacy, agreements, delivery and refund policies',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const LegalPolicyHubScreen(
+                  audience: LegalAudience.rider,
+                  title: 'Rider Legal Center',
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        RiderGlassCard(
+          child: ListTile(
+            title: const Text('Legal Consent'),
+            subtitle: const Text('Review and accept Terms and Privacy'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    const LegalConsentScreen(audience: LegalAudience.rider),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        RiderGlassCard(
+          child: ListTile(
+            title: const Text('Request Account Deletion'),
+            subtitle: const Text('Send deletion request to support'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    const AccountDeletionRequestScreen(roleLabel: 'Rider'),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -155,4 +215,3 @@ class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
     );
   }
 }
-

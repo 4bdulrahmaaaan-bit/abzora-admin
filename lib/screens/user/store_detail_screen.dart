@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -292,7 +291,6 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             padding: EdgeInsets.zero,
-                            cacheExtent: 800.0,
                             addAutomaticKeepAlives: false,
                             addRepaintBoundaries: true,
                             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

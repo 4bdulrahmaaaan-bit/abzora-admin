@@ -1,14 +1,12 @@
 import 'package:image_picker/image_picker.dart';
 
 import '../models/models.dart';
+import 'backend_api_client.dart';
 import 'database_service.dart';
 import 'storage_service.dart';
 
 class PartnerApplicationSnapshot {
-  const PartnerApplicationSnapshot({
-    this.vendorRequest,
-    this.riderRequest,
-  });
+  const PartnerApplicationSnapshot({this.vendorRequest, this.riderRequest});
 
   final VendorKycRequest? vendorRequest;
   final RiderKycRequest? riderRequest;
@@ -21,11 +19,12 @@ class OnboardingService {
   OnboardingService({
     DatabaseService? databaseService,
     StorageService? storageService,
-  })  : _db = databaseService ?? DatabaseService(),
-        _storage = storageService ?? StorageService();
+  }) : _db = databaseService ?? DatabaseService(),
+       _storage = storageService ?? StorageService();
 
   final DatabaseService _db;
   final StorageService _storage;
+  final BackendApiClient _backend = const BackendApiClient();
 
   Future<String> uploadVendorOwnerPhoto({
     required XFile file,
@@ -162,8 +161,13 @@ class OnboardingService {
   Future<void> approveRiderRequest({
     required String requestId,
     required AppUser actor,
+    Map<String, dynamic> overrideMetadata = const {},
   }) {
-    return _db.approveRiderKycRequest(requestId: requestId, actor: actor);
+    return _db.approveRiderKycRequest(
+      requestId: requestId,
+      actor: actor,
+      overrideMetadata: overrideMetadata,
+    );
   }
 
   Future<void> rejectRiderRequest({
@@ -176,5 +180,51 @@ class OnboardingService {
       reason: reason,
       actor: actor,
     );
+  }
+
+  Future<Map<String, dynamic>> lookupIfsc(String ifscCode) async {
+    final payload = await _backend.get(
+      '/kyc/ifsc/${ifscCode.trim().toUpperCase()}',
+      authenticated: true,
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> extractKycFields({
+    required String documentType,
+    String text = '',
+    String documentUrl = '',
+  }) async {
+    final payload = await _backend.post(
+      '/kyc/ocr/extract',
+      authenticated: true,
+      body: {
+        'documentType': documentType,
+        'text': text,
+        'documentUrl': documentUrl,
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> verifyRiderKyc({
+    required String aadhaarNumber,
+    required String panNumber,
+    required String profilePhotoUrl,
+    required String selfieUrl,
+    required String licenseUrl,
+  }) async {
+    final payload = await _backend.post(
+      '/kyc/rider/verify',
+      authenticated: true,
+      body: {
+        'aadhaarNumber': aadhaarNumber,
+        'panNumber': panNumber,
+        'profilePhotoUrl': profilePhotoUrl,
+        'selfieUrl': selfieUrl,
+        'licenseUrl': licenseUrl,
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
   }
 }

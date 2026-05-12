@@ -180,7 +180,7 @@ String? accessRestrictionMessage(AppUser? user, AbzioAppMode mode) {
   }
   final role = normalizedUserRole(user);
   if (mode == AbzioAppMode.customer && role != 'user' && role != 'customer') {
-    return null;
+    return 'This build is for customer shopping only. Please use the partner or rider app for operations accounts.';
   }
   if (mode == AbzioAppMode.vendor && !hasVendorOperationsAccess(user)) {
     return 'This build is for vendor operations only. Please use the rider or customer app for other accounts.';

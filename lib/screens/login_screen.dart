@@ -37,6 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _phoneError;
   Timer? _adminCooldownTimer;
   int _adminCooldownSeconds = 0;
+  bool _acceptedLoginLegal = false;
 
   bool get _useGoogleAdminLogin => kIsWeb && widget.adminEntry;
   bool get _isPrimaryFashionLogin =>
@@ -111,6 +112,9 @@ class _LoginScreenState extends State<LoginScreen> {
       _phoneController.text.replaceAll(RegExp(r'\s+'), '').trim();
 
   bool get _isPhoneValid => _normalizedPhone().length == 10;
+  bool get _canContinueWithOtp => _isPhoneValid && _acceptedLoginLegal;
+  bool get _canContinueWithAdminGoogle =>
+      _acceptedLoginLegal && _adminCooldownSeconds <= 0;
 
   String? _phoneErrorFor(String phone, {required bool showEmpty}) {
     if (phone.isEmpty) {
@@ -133,6 +137,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _requestOtp() async {
+    if (!_acceptedLoginLegal) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Please accept Terms & Privacy to continue.'),
+        ),
+      );
+      return;
+    }
     final phone = _normalizedPhone();
     final validationError = _phoneErrorFor(phone, showEmpty: true);
     if (validationError != null) {
@@ -193,6 +206,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInWithGoogleAdmin() async {
+    if (!_acceptedLoginLegal) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Please accept Terms & Privacy to continue.'),
+        ),
+      );
+      return;
+    }
     if (_adminCooldownSeconds > 0) {
       return;
     }
@@ -323,13 +345,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
                     if (_useGoogleAdminLogin) ...[
                       TapScale(
-                        onTap: (auth.isLoading || _adminCooldownSeconds > 0)
+                        onTap: (auth.isLoading || !_canContinueWithAdminGoogle)
                             ? null
                             : _signInWithGoogleAdmin,
                         child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: auth.isLoading || _adminCooldownSeconds > 0
+                            onPressed:
+                                auth.isLoading || !_canContinueWithAdminGoogle
                                 ? null
                                 : _signInWithGoogleAdmin,
                             style: ElevatedButton.styleFrom(
@@ -501,7 +524,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   contentPadding: EdgeInsets.zero,
                                 ),
                                 onSubmitted: (_) {
-                                  if (!auth.isLoading && _isPhoneValid) {
+                                  if (!auth.isLoading && _canContinueWithOtp) {
                                     _requestOtp();
                                   }
                                 },
@@ -514,13 +537,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 28),
                       TapScale(
                         scale: 0.97,
-                        onTap: (auth.isLoading || !_isPhoneValid)
+                        onTap: (auth.isLoading || !_canContinueWithOtp)
                             ? null
                             : _requestOtp,
                         child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: (auth.isLoading || !_isPhoneValid)
+                            onPressed: (auth.isLoading || !_canContinueWithOtp)
                                 ? null
                                 : _requestOtp,
                             style: ElevatedButton.styleFrom(
@@ -560,8 +583,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
                     ],
+                    CheckboxListTile(
+                      value: _acceptedLoginLegal,
+                      onChanged: (value) {
+                        setState(() => _acceptedLoginLegal = value ?? false);
+                      },
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(
+                        'I agree to Terms & Privacy',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: const Color(0xFF3C3C3C),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                     Text(
-                      'By continuing, you agree to Terms & Privacy',
+                      'You can review full legal policies in Profile/Settings after sign in.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
                         fontSize: 12,

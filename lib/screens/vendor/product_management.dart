@@ -470,7 +470,7 @@ class _InsightsCard extends StatelessWidget {
             Text('Product Insights', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
             Text('Running Sneakers -> High demand', style: GoogleFonts.inter()),
-            Text('Denim Jacket -> Reduce price by Rs200', style: GoogleFonts.inter()),
+            Text('Denim Jacket -> Reduce price by ?200', style: GoogleFonts.inter()),
             Text('Out-of-stock products: $outOfStock | Low-stock products: $lowStock', style: GoogleFonts.inter()),
             const SizedBox(height: 10),
             Align(
