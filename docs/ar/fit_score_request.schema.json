@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abzora.app/schemas/ar/fit_score_request.schema.json",
+  "title": "ABZORA AR Fit Score Request",
+  "type": "object",
+  "additionalProperties": false,
+  "anyOf": [
+    { "required": ["productId"] },
+    { "required": ["templateId"] },
+    { "required": ["category"] }
+  ],
+  "properties": {
+    "productId": { "type": "string" },
+    "templateId": { "type": "string" },
+    "category": {
+      "type": "string",
+      "enum": ["shirt", "t-shirt", "kurta", "jacket", "pants"]
+    },
+    "fitPreset": {
+      "type": "string",
+      "enum": ["slim", "regular", "relaxed", "oversized", "athletic"]
+    },
+    "userMeasurements": {
+      "type": "object",
+      "additionalProperties": { "type": "number" },
+      "properties": {
+        "chestCm": { "type": "number", "minimum": 40, "maximum": 180 },
+        "waistCm": { "type": "number", "minimum": 40, "maximum": 180 },
+        "hipCm": { "type": "number", "minimum": 40, "maximum": 200 },
+        "shoulderCm": { "type": "number", "minimum": 20, "maximum": 80 },
+        "inseamCm": { "type": "number", "minimum": 40, "maximum": 130 }
+      }
+    },
+    "sizeChart": {
+      "type": "object",
+      "description": "Optional override chart by size key (XS/S/M/L/XL/XXL).",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": "number" }
+      }
+    }
+  }
+}

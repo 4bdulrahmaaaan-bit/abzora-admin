@@ -1,0 +1,26 @@
+{
+  "productId": "662f2d52a6f9fda1e16b1201",
+  "templateId": "662f2555a6f9fda1e16b1107",
+  "category": "kurta",
+  "fitPreset": "regular",
+  "recommendedSize": "M",
+  "fitScore": 88,
+  "fitLabel": "Great fit",
+  "confidence": 0.91,
+  "usedMeasurements": ["chestCm", "waistCm", "hipCm", "shoulderCm"],
+  "sizeChart": {
+    "XS": { "chestCm": 92, "waistCm": 86, "shoulderCm": 40, "hipCm": 96 },
+    "S": { "chestCm": 96, "waistCm": 90, "shoulderCm": 42, "hipCm": 100 },
+    "M": { "chestCm": 100, "waistCm": 94, "shoulderCm": 44, "hipCm": 104 },
+    "L": { "chestCm": 104, "waistCm": 98, "shoulderCm": 46, "hipCm": 108 },
+    "XL": { "chestCm": 108, "waistCm": 102, "shoulderCm": 48, "hipCm": 112 },
+    "XXL": { "chestCm": 112, "waistCm": 106, "shoulderCm": 50, "hipCm": 116 }
+  },
+  "template": {
+    "id": "662f2555a6f9fda1e16b1107",
+    "slug": "kurta-base-v3",
+    "name": "Kurta Base V3",
+    "category": "kurta",
+    "supportedFits": ["slim", "regular", "relaxed"]
+  }
+}

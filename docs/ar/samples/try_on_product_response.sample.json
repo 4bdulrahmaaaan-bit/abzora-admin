@@ -1,0 +1,76 @@
+{
+  "id": "662f2d52a6f9fda1e16b1201",
+  "name": "Regal Linen Kurta",
+  "category": "kurta",
+  "subcategory": "festive",
+  "images": [
+    "https://cdn.abzora.app/products/kurta/regal-linen/front.jpg",
+    "https://cdn.abzora.app/products/kurta/regal-linen/back.jpg"
+  ],
+  "model3d": "https://cdn.abzora.app/ar/templates/kurta-base/v3/lod0.glb",
+  "unityAssetBundleUrl": "https://cdn.abzora.app/ar/unity/kurta-base/v3/assetbundle",
+  "rigProfile": "unisex_torso_v1",
+  "materialProfile": "linen_soft",
+  "overlayAssetUrl": "https://cdn.abzora.app/ar/overlays/kurta/regal-linen.png",
+  "transparentAssetUrl": "https://cdn.abzora.app/ar/overlays/kurta/regal-linen-transparent.png",
+  "templateId": "662f2555a6f9fda1e16b1107",
+  "template": {
+    "id": "662f2555a6f9fda1e16b1107",
+    "slug": "kurta-base-v3",
+    "name": "Kurta Base V3",
+    "category": "kurta",
+    "customizableParts": {
+      "collar": ["band", "mandarin", "classic"],
+      "sleeve": ["half", "full", "rollup"],
+      "placket": ["hidden", "buttoned"]
+    },
+    "blendShapes": {
+      "chest_expand": 0,
+      "waist_expand": 0,
+      "hip_expand": 0,
+      "sleeve_length": 0
+    },
+    "supportedFits": ["slim", "regular", "relaxed"]
+  },
+  "garmentConfig": {
+    "templateId": "662f2555a6f9fda1e16b1107",
+    "fabricTextureUrl": "https://cdn.abzora.app/ar/textures/linen/linen_cream_01.webp",
+    "fit": "regular",
+    "color": "#C6A769",
+    "designOptions": {
+      "collar": "mandarin",
+      "sleeve": "full",
+      "placket": "buttoned"
+    },
+    "blendShapeOverrides": {
+      "sleeve_length": 0.12
+    },
+    "lodPreference": "auto",
+    "lodModels": {
+      "lod0": "https://cdn.abzora.app/ar/templates/kurta-base/v3/lod0.glb",
+      "lod1": "https://cdn.abzora.app/ar/templates/kurta-base/v3/lod1.glb",
+      "lod2": "https://cdn.abzora.app/ar/templates/kurta-base/v3/lod2.glb"
+    }
+  },
+  "alignmentConfig": {
+    "anchorTemplate": "torso_template",
+    "scaleFactor": 1.03,
+    "widthFactor": 1,
+    "heightFactor": 1,
+    "fallbackMode": "static_preview",
+    "processedImage": "https://cdn.abzora.app/ar/overlays/kurta/regal-linen.png",
+    "transparentImage": "https://cdn.abzora.app/ar/overlays/kurta/regal-linen-transparent.png",
+    "anchors": {
+      "leftShoulder": { "x": 0.32, "y": 0.18 },
+      "rightShoulder": { "x": 0.68, "y": 0.18 },
+      "center": { "x": 0.5, "y": 0.44 }
+    }
+  },
+  "store": {
+    "id": "6611ab8d3dca2f4f1d112381",
+    "name": "Atelier House Mumbai",
+    "rating": 4.8,
+    "logoUrl": "https://cdn.abzora.app/stores/atelier-house/logo.png"
+  },
+  "updatedAt": "2026-04-21T16:05:10.421Z"
+}

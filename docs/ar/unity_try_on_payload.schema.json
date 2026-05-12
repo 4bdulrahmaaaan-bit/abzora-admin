@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abzora.app/schemas/ar/unity_try_on_payload.schema.json",
+  "title": "ABZORA Unity Try-On Payload",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "id",
+    "name",
+    "category",
+    "model3d",
+    "unityAssetBundleUrl",
+    "rigProfile",
+    "materialProfile",
+    "templateId",
+    "template",
+    "garmentConfig",
+    "alignmentConfig"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "category": {
+      "type": "string",
+      "enum": ["shirt", "t-shirt", "kurta", "jacket", "pants"]
+    },
+    "model3d": { "type": "string" },
+    "unityAssetBundleUrl": { "type": "string" },
+    "rigProfile": { "type": "string" },
+    "materialProfile": { "type": "string" },
+    "overlayAssetUrl": { "type": "string" },
+    "transparentAssetUrl": { "type": "string" },
+    "images": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "templateId": { "type": "string" },
+    "template": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "slug": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "customizableParts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "blendShapes": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "supportedFits": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "garmentConfig": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "templateId",
+        "fabricTextureUrl",
+        "fit",
+        "color",
+        "designOptions",
+        "blendShapeOverrides",
+        "lodPreference",
+        "lodModels"
+      ],
+      "properties": {
+        "templateId": { "type": "string" },
+        "fabricTextureUrl": { "type": "string" },
+        "fit": {
+          "type": "string",
+          "enum": ["slim", "regular", "relaxed", "oversized", "athletic"]
+        },
+        "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "designOptions": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "blendShapeOverrides": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "lodPreference": {
+          "type": "string",
+          "enum": ["auto", "low", "medium", "high"]
+        },
+        "lodModels": {
+          "type": "object",
+          "required": ["lod0", "lod1", "lod2"],
+          "properties": {
+            "lod0": { "type": "string" },
+            "lod1": { "type": "string" },
+            "lod2": { "type": "string" }
+          }
+        }
+      }
+    },
+    "alignmentConfig": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["anchorTemplate", "scaleFactor", "anchors"],
+      "properties": {
+        "anchorTemplate": { "type": "string" },
+        "scaleFactor": { "type": "number" },
+        "widthFactor": { "type": "number" },
+        "heightFactor": { "type": "number" },
+        "fallbackMode": { "type": "string" },
+        "processedImage": { "type": "string" },
+        "transparentImage": { "type": "string" },
+        "anchors": {
+          "type": "object",
+          "required": ["leftShoulder", "rightShoulder", "center"],
+          "properties": {
+            "leftShoulder": {
+              "type": "object",
+              "required": ["x", "y"],
+              "properties": {
+                "x": { "type": "number" },
+                "y": { "type": "number" }
+              }
+            },
+            "rightShoulder": {
+              "type": "object",
+              "required": ["x", "y"],
+              "properties": {
+                "x": { "type": "number" },
+                "y": { "type": "number" }
+              }
+            },
+            "center": {
+              "type": "object",
+              "required": ["x", "y"],
+              "properties": {
+                "x": { "type": "number" },
+                "y": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "store": {
+      "type": ["object", "null"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "rating": { "type": "number" },
+        "logoUrl": { "type": "string" }
+      }
+    }
+  }
+}
