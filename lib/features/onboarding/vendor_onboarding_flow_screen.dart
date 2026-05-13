@@ -1,8 +1,13 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/widgets/rider_glass_card.dart';
+import '../../core/widgets/rider_glow_button.dart';
+import '../../core/widgets/rider_particle_background.dart';
+import '../../core/utils/vendor_kyc_policy.dart';
 import '../../core/services/vendor_telemetry.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
@@ -28,6 +33,8 @@ class _VendorOnboardingFlowScreenState
   final _picker = ImagePicker();
   int _step = 0;
   bool _submitting = false;
+  bool _autoValidate = false;
+  int _invalidSubmitTick = 0;
 
   final _storeName = TextEditingController();
   final _ownerName = TextEditingController();
@@ -47,6 +54,9 @@ class _VendorOnboardingFlowScreenState
   XFile? _aadhaarPhoto;
   XFile? _panPhoto;
   final List<String> _portfolioPaths = <String>[];
+
+  static const _goldPrimary = Color(0xFFD4AF37);
+  static const _goldAccent = Color(0xFFF5D76E);
 
   @override
   void initState() {
@@ -146,6 +156,11 @@ class _VendorOnboardingFlowScreenState
   void _next() {
     final error = _validateStep();
     if (error != null) {
+      HapticFeedback.heavyImpact();
+      setState(() {
+        _autoValidate = true;
+        _invalidSubmitTick++;
+      });
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error)));
@@ -160,6 +175,22 @@ class _VendorOnboardingFlowScreenState
     } else {
       _submit();
     }
+  }
+
+  void _back() {
+    if (_step == 0) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        Navigator.of(context).pushReplacementNamed('/ops');
+      }
+      return;
+    }
+    setState(() => _step--);
+    _pageController.previousPage(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   Future<void> _submit() async {
@@ -188,6 +219,53 @@ class _VendorOnboardingFlowScreenState
         ownerId: user.id,
         label: 'pan',
       );
+
+      Map<String, dynamic> aadhaarOcr = const <String, dynamic>{};
+      Map<String, dynamic> panOcr = const <String, dynamic>{};
+      Map<String, dynamic> vendorVerification = const <String, dynamic>{};
+      try {
+        aadhaarOcr = await _onboarding.extractKycFields(
+          documentType: 'aadhaar',
+          text:
+              '${_ownerName.text.trim()} ${_phone.text.trim()} ${_address.text.trim()}',
+          documentUrl: aadhaarUrl,
+        );
+        panOcr = await _onboarding.extractKycFields(
+          documentType: 'pan',
+          text: '${_ownerName.text.trim()} ${_email.text.trim()}',
+          documentUrl: panUrl,
+        );
+        vendorVerification = await _onboarding.verifyVendorKyc(
+          ownerName: _ownerName.text.trim(),
+          aadhaarNumber: (aadhaarOcr['aadhaarNumber'] ?? '').toString(),
+          panNumber: (panOcr['panNumber'] ?? '').toString(),
+          ownerPhotoUrl: ownerPhotoUrl,
+          storePhotoUrl: storePhotoUrl,
+        );
+      } catch (error) {
+        VendorTelemetry.event(
+          'vendor_ocr_extract_failed',
+          data: {'error': error.toString()},
+        );
+      }
+
+      if (VendorKycPolicy.requiresManualReview(vendorVerification)) {
+        final confidence = VendorKycPolicy.confidenceFromVerification(
+          vendorVerification,
+        );
+        if (mounted) {
+          HapticFeedback.heavyImpact();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'KYC confidence is low (${confidence.toStringAsFixed(0)}%). Please re-upload clearer Aadhaar and PAN documents.',
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
       final portfolioUrls = <String>[];
       for (var i = 0; i < _portfolioPaths.length; i++) {
         final url = await _onboarding.uploadVendorDocument(
@@ -247,6 +325,10 @@ class _VendorOnboardingFlowScreenState
             'typicalPriceUpper': double.tryParse(_upperPrice.text.trim()) ?? 0,
             'productionTimeDays':
                 int.tryParse(_productionDays.text.trim()) ?? 7,
+            'ocrAadhaar': aadhaarOcr,
+            'ocrPan': panOcr,
+            'verification': vendorVerification,
+            'ocrCapturedAt': nowIso,
           },
           createdAt: nowIso,
           updatedAt: nowIso,
@@ -305,112 +387,249 @@ class _VendorOnboardingFlowScreenState
         ),
       );
     }
+    final canContinue = _validateStep() == null;
     return Scaffold(
-      appBar: AppBar(title: Text('Vendor Onboarding ${_step + 1}/6')),
-      body: Column(
+      backgroundColor: const Color(0xFF050505),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        leading: IconButton(
+          onPressed: _back,
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          tooltip: 'Back',
+        ),
+        title: Text('Vendor Onboarding ${_step + 1}/6'),
+      ),
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: LinearProgressIndicator(value: (_step + 1) / 6),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 2400),
+            builder: (context, value, _) =>
+                RiderParticleBackground(progress: value),
           ),
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _card('Business Basics', [
-                  _field(_storeName, 'Store Name'),
-                  _field(_ownerName, 'Owner Name'),
-                  _field(_phone, 'Phone'),
-                  _field(_email, 'Email'),
-                  _field(_address, 'Address', maxLines: 2),
-                  _field(_city, 'City'),
-                ]),
-                _card('Craft & Expertise', [
-                  _field(_experienceYears, 'Experience (years)'),
-                  Wrap(
-                    spacing: 8,
-                    children: ['Shirts', 'Blazers', 'Dresses', 'Ethnic']
-                        .map(
-                          (item) => FilterChip(
-                            label: Text(item),
-                            selected: _specializations.contains(item),
-                            onSelected: (selected) {
-                              setState(() {
-                                if (selected) {
-                                  _specializations.add(item);
-                                } else {
-                                  _specializations.remove(item);
-                                }
-                              });
-                            },
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+                child: RiderGlassCard(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Step ${_step + 1} of 6',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        )
-                        .toList(),
+                          const Spacer(),
+                          Text(
+                            '${(((_step + 1) / 6) * 100).round()}%',
+                            style: const TextStyle(
+                              color: _goldAccent,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(99),
+                        child: LinearProgressIndicator(
+                          minHeight: 8,
+                          value: (_step + 1) / 6,
+                          backgroundColor: Colors.white10,
+                          valueColor: const AlwaysStoppedAnimation(
+                            _goldPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ]),
-                _card('Portfolio Uploads', [
-                  Text('Uploaded: ${_portfolioPaths.length}/10'),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: _pickPortfolio,
-                    child: const Text('Add Portfolio Files'),
-                  ),
-                ]),
-                _card('Pricing & Capacity', [
-                  _field(_startingPrice, 'Starting Price (Rs)'),
-                  _field(_upperPrice, 'Typical Upper Range (Rs)'),
-                  _field(_productionDays, 'Production Days'),
-                  _field(_payout, 'UPI or Bank Account Number'),
-                ]),
-                _card('KYC Documents', [
-                  _uploadTile(
-                    'Owner Photo',
-                    _ownerPhoto != null,
-                    () => _pickImage((x) => _ownerPhoto = x),
-                  ),
-                  _uploadTile(
-                    'Store Photo',
-                    _storePhoto != null,
-                    () => _pickImage((x) => _storePhoto = x),
-                  ),
-                  _uploadTile(
-                    'Aadhaar',
-                    _aadhaarPhoto != null,
-                    () => _pickImage((x) => _aadhaarPhoto = x),
-                  ),
-                  _uploadTile(
-                    'PAN',
-                    _panPhoto != null,
-                    () => _pickImage((x) => _panPhoto = x),
-                  ),
-                ]),
-                _card('Review & Submit', [
-                  Text('Store: ${_storeName.text.trim()}'),
-                  Text('City: ${_city.text.trim()}'),
-                  Text('Specializations: ${_specializations.join(', ')}'),
-                  Text('Portfolio: ${_portfolioPaths.length} files'),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Your application will be reviewed after document checks.',
-                  ),
-                ]),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _submitting ? null : _next,
-                child: Text(
-                  _step == 5
-                      ? (_submitting ? 'Submitting...' : 'Submit Application')
-                      : 'Continue',
                 ),
               ),
-            ),
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    _card('Business Basics', [
+                      _field(_storeName, 'Store Name', hint: 'Abzora Tailors'),
+                      _field(_ownerName, 'Owner Name', hint: 'A. Rahman'),
+                      _field(
+                        _phone,
+                        'Phone',
+                        hint: '9876543210',
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
+                      ),
+                      _field(
+                        _email,
+                        'Email',
+                        hint: 'owner@store.com',
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      _field(
+                        _address,
+                        'Address',
+                        hint: 'Street, area, landmark',
+                        maxLines: 2,
+                      ),
+                      _field(_city, 'City', hint: 'Bengaluru'),
+                    ]),
+                    _card('Craft & Expertise', [
+                      _field(
+                        _experienceYears,
+                        'Experience (years)',
+                        hint: '5',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: ['Shirts', 'Blazers', 'Dresses', 'Ethnic']
+                            .map(
+                              (item) => FilterChip(
+                                label: Text(item),
+                                selected: _specializations.contains(item),
+                                selectedColor: _goldPrimary.withValues(
+                                  alpha: 0.24,
+                                ),
+                                checkmarkColor: _goldAccent,
+                                onSelected: (selected) {
+                                  setState(() {
+                                    if (selected) {
+                                      _specializations.add(item);
+                                    } else {
+                                      _specializations.remove(item);
+                                    }
+                                  });
+                                },
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ]),
+                    _card('Portfolio Uploads', [
+                      Text(
+                        'Uploaded: ${_portfolioPaths.length}/10',
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                      const SizedBox(height: 10),
+                      OutlinedButton(
+                        onPressed: _pickPortfolio,
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: _goldPrimary.withValues(alpha: 0.45),
+                          ),
+                        ),
+                        child: const Text('Add Portfolio Files'),
+                      ),
+                    ]),
+                    _card('Pricing & Capacity', [
+                      _field(
+                        _startingPrice,
+                        'Starting Price (Rs)',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                      ),
+                      _field(
+                        _upperPrice,
+                        'Typical Upper Range (Rs)',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                      ),
+                      _field(
+                        _productionDays,
+                        'Production Days',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                      ),
+                      _field(
+                        _payout,
+                        'UPI or Bank Account Number',
+                        hint: 'rahman@upi',
+                      ),
+                    ]),
+                    _card('KYC Documents', [
+                      _uploadTile(
+                        'Owner Photo',
+                        _ownerPhoto != null,
+                        () => _pickImage((x) => _ownerPhoto = x),
+                      ),
+                      _uploadTile(
+                        'Store Photo',
+                        _storePhoto != null,
+                        () => _pickImage((x) => _storePhoto = x),
+                      ),
+                      _uploadTile(
+                        'Aadhaar',
+                        _aadhaarPhoto != null,
+                        () => _pickImage((x) => _aadhaarPhoto = x),
+                      ),
+                      _uploadTile(
+                        'PAN',
+                        _panPhoto != null,
+                        () => _pickImage((x) => _panPhoto = x),
+                      ),
+                    ]),
+                    _card('Review & Submit', [
+                      Text('Store: ${_storeName.text.trim()}'),
+                      Text('City: ${_city.text.trim()}'),
+                      Text('Specializations: ${_specializations.join(', ')}'),
+                      Text('Portfolio: ${_portfolioPaths.length} files'),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Your application will be reviewed after document checks.',
+                      ),
+                    ]),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  transform: Matrix4.translationValues(
+                    _invalidSubmitTick.isOdd ? 6 : 0,
+                    0,
+                    0,
+                  ),
+                  child: AnimatedOpacity(
+                    opacity: (_submitting || canContinue) ? 1 : 0.7,
+                    duration: const Duration(milliseconds: 180),
+                    child: RiderGlowButton(
+                      label: _step == 5
+                          ? (_submitting
+                                ? 'Submitting...'
+                                : 'Submit Application')
+                          : 'Continue',
+                      onPressed: _submitting
+                          ? null
+                          : (canContinue ? _next : null),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -421,12 +640,24 @@ class _VendorOnboardingFlowScreenState
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+        RiderGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 23,
+                  height: 1.1,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 14),
+              ...children,
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
-        ...children,
       ],
     );
   }
@@ -435,13 +666,41 @@ class _VendorOnboardingFlowScreenState
     TextEditingController controller,
     String label, {
     int maxLines = 1,
+    String hint = '',
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: TextField(
         controller: controller,
         maxLines: maxLines,
-        decoration: InputDecoration(labelText: label),
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint.isEmpty ? null : hint,
+          filled: true,
+          fillColor: const Color(0xFF101010),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: _goldPrimary, width: 1.4),
+          ),
+        ),
+        onChanged: (_) {
+          if (_autoValidate) {
+            setState(() {});
+          }
+        },
       ),
     );
   }
@@ -449,6 +708,10 @@ class _VendorOnboardingFlowScreenState
   Widget _uploadTile(String label, bool done, VoidCallback onTap) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        done ? Icons.check_circle_rounded : Icons.upload_file_rounded,
+        color: done ? const Color(0xFF30D158) : _goldAccent,
+      ),
       title: Text(label),
       subtitle: Text(done ? 'Uploaded' : 'Not uploaded'),
       trailing: TextButton(onPressed: onTap, child: const Text('Upload')),

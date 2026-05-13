@@ -82,6 +82,7 @@ dependencies:
   webview_flutter: ^4.10.0
   flutter_unity_widget:
     path: packages/flutter_unity_widget
+  sentry_flutter: ^8.14.2
 
 dev_dependencies:
   flutter_test:

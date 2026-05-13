@@ -227,4 +227,25 @@ class OnboardingService {
     );
     return Map<String, dynamic>.from(payload as Map);
   }
+
+  Future<Map<String, dynamic>> verifyVendorKyc({
+    required String ownerName,
+    required String aadhaarNumber,
+    required String panNumber,
+    required String ownerPhotoUrl,
+    required String storePhotoUrl,
+  }) async {
+    final payload = await _backend.post(
+      '/kyc/vendor/verify',
+      authenticated: true,
+      body: {
+        'ownerName': ownerName,
+        'aadhaarNumber': aadhaarNumber,
+        'panNumber': panNumber,
+        'ownerPhotoUrl': ownerPhotoUrl,
+        'storePhotoUrl': storePhotoUrl,
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
 }

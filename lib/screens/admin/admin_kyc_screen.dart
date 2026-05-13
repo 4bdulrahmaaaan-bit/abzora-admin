@@ -5,6 +5,7 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/onboarding_service.dart';
+import '../../core/utils/vendor_kyc_policy.dart';
 import '../../widgets/kyc_detail_view.dart';
 import '../../widgets/kyc_request_card.dart';
 import '../../widgets/state_views.dart';
@@ -526,7 +527,15 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
 
   List<String> _verificationFlagsForSelection(_KycSelection selection) {
     if (selection is _VendorSelection) {
-      return selection.request.verification.flags;
+      final flags = <String>[...selection.request.verification.flags];
+      final verificationMeta = Map<String, dynamic>.from(
+        (selection.request.metadata['verification'] as Map?) ??
+            const <String, dynamic>{},
+      );
+      if (VendorKycPolicy.requiresManualReview(verificationMeta)) {
+        flags.add('manual_review_required');
+      }
+      return flags.toSet().toList();
     }
     final verification = _riderVerificationFromMetadata(
       (selection as _RiderSelection).request,
@@ -654,6 +663,15 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
     if (selection is _VendorSelection) {
       final request = selection.request;
       final meta = request.metadata;
+      final ocrAadhaar = Map<String, dynamic>.from(
+        (meta['ocrAadhaar'] as Map?) ?? const <String, dynamic>{},
+      );
+      final ocrPan = Map<String, dynamic>.from(
+        (meta['ocrPan'] as Map?) ?? const <String, dynamic>{},
+      );
+      final verificationMeta = Map<String, dynamic>.from(
+        (meta['verification'] as Map?) ?? const <String, dynamic>{},
+      );
       return KycDetailData(
         id: request.id,
         name: request.ownerName,
@@ -693,6 +711,19 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
             'Specializations': (meta['specializations'] as List).join(', '),
           if ((meta['payoutSetupLabel']?.toString().trim().isNotEmpty ?? false))
             'Payout Setup': meta['payoutSetupLabel'].toString(),
+          if ((ocrAadhaar['aadhaarNumber']?.toString().trim().isNotEmpty ??
+              false))
+            'OCR Aadhaar': ocrAadhaar['aadhaarNumber'].toString(),
+          if ((ocrPan['panNumber']?.toString().trim().isNotEmpty ?? false))
+            'OCR PAN': ocrPan['panNumber'].toString(),
+          if ((verificationMeta['status']?.toString().trim().isNotEmpty ??
+              false))
+            'AI Status': verificationMeta['status'].toString(),
+          if (verificationMeta['confidenceScore'] is num)
+            'AI Confidence':
+                '${(verificationMeta['confidenceScore'] as num).toStringAsFixed(0)}%',
+          if ((meta['ocrCapturedAt']?.toString().trim().isNotEmpty ?? false))
+            'OCR Captured': meta['ocrCapturedAt'].toString(),
         },
         riskFlags: withOverrideFlag,
         reviewedByName: request.reviewedByName,
