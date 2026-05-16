@@ -27,9 +27,12 @@ jobs:
         working-directory: backend
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+        uses: actions/checkout@v5
+
+      - name: Prepare backend workspace
+        run: |
+          rm -rf backend
+          git clone --depth 1 https://github.com/4bdulrahmaaaan-bit/abzora-backend.git backend
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -66,9 +69,12 @@ jobs:
         working-directory: backend
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+        uses: actions/checkout@v5
+
+      - name: Prepare backend workspace
+        run: |
+          rm -rf backend
+          git clone --depth 1 https://github.com/4bdulrahmaaaan-bit/abzora-backend.git backend
 
       - name: Setup Node
         uses: actions/setup-node@v4
