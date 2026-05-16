@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: abzora-worker
+  namespace: abzora
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: abzora-worker
+  template:
+    metadata:
+      labels:
+        app: abzora-worker
+        tier: worker
+    spec:
+      terminationGracePeriodSeconds: 60
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: abzora-worker
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: worker
+          image: ghcr.io/abzora/backend:latest
+          imagePullPolicy: IfNotPresent
+          command: ["node", "server.js"]
+          envFrom:
+            - configMapRef:
+                name: abzora-app-config
+            - secretRef:
+                name: abzora-app-secrets
+          env:
+            - name: PAYMENT_OUTBOX_WORKER_ENABLED
+              value: "true"
+            - name: PAYMENT_WEBHOOK_INGEST_WORKER_ENABLED
+              value: "true"
+            - name: DISPATCH_SCHEDULER_ENABLED
+              value: "false"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "768Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 15"]
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 5000
+            initialDelaySeconds: 20
+            timeoutSeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 5000
+            initialDelaySeconds: 25
+            timeoutSeconds: 3
+            periodSeconds: 15

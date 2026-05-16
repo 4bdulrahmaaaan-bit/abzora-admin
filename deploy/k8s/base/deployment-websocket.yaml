@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: abzora-websocket
+  namespace: abzora
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: abzora-websocket
+  template:
+    metadata:
+      labels:
+        app: abzora-websocket
+        tier: websocket
+    spec:
+      terminationGracePeriodSeconds: 45
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: abzora-websocket
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: websocket
+          image: ghcr.io/abzora/backend:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: abzora-app-config
+            - secretRef:
+                name: abzora-app-secrets
+          env:
+            - name: PAYMENT_OUTBOX_WORKER_ENABLED
+              value: "false"
+            - name: PAYMENT_WEBHOOK_INGEST_WORKER_ENABLED
+              value: "false"
+          ports:
+            - containerPort: 5000
+          resources:
+            requests:
+              cpu: "300m"
+              memory: "512Mi"
+            limits:
+              cpu: "1200m"
+              memory: "1536Mi"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 5000
+            initialDelaySeconds: 15
+            timeoutSeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 5000
+            initialDelaySeconds: 20
+            timeoutSeconds: 3
+            periodSeconds: 15

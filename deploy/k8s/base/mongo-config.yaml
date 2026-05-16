@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: abzora-mongo-config
+  namespace: abzora
+data:
+  # External managed MongoDB endpoint; real URI should be provided through Secret.
+  MONGO_CLUSTER_MODE: "replicaSet"
+  MONGO_RETRY_WRITES: "true"
+  MONGO_RETRY_READS: "true"
+  MONGO_HEARTBEAT_FREQUENCY_MS: "10000"

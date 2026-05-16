@@ -1,0 +1,92 @@
+name: Backend Release Guard
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-release-guard.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-release-guard.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: backend-release-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run delivery test suite
+        run: npm test
+
+      - name: Run payment race hardening tests
+        run: npm run test:security-races
+
+      - name: Run outbox worker tests
+        run: npm run test:outbox-worker
+
+      - name: Run outbox metrics security tests
+        run: npm run test:outbox-metrics
+
+      - name: Run dead-letter replay tests
+        run: npm run test:outbox-replay
+
+  release-candidate:
+    name: Release Candidate Artifact
+    runs-on: ubuntu-latest
+    needs:
+      - quality-gates
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Build release manifest
+        run: |
+          echo "commit=${GITHUB_SHA}" > release-manifest.txt
+          echo "built_at=$(date -u +%FT%TZ)" >> release-manifest.txt
+          echo "node_version=$(node -v)" >> release-manifest.txt
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-release-candidate
+          path: |
+            backend/release-manifest.txt
+            backend/package.json
+            backend/package-lock.json

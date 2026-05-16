@@ -1,0 +1,37 @@
+name: DR Readiness Check
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  dr-safety:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate DR runbooks and required artifacts
+        run: npm run test:dr-safety
+
+      - name: Verify backup readiness evidence (if available)
+        run: |
+          if [ -f "ops/backup/backup-status.json" ] && [ -f "ops/backup/restore-drill-report.json" ]; then
+            npm run ops:verify-backup-readiness
+          else
+            echo "Skipping live backup-readiness verification: missing ops evidence files."
+          fi

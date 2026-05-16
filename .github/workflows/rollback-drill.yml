@@ -1,0 +1,32 @@
+name: Rollback Drill Checklist
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_commit:
+        description: "Commit SHA to roll back to"
+        required: true
+      incident_id:
+        description: "Incident reference (e.g. INC-1234)"
+        required: true
+
+jobs:
+  rollback-drill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate target commit exists
+        run: git cat-file -e "${{ github.event.inputs.target_commit }}^{commit}"
+
+      - name: Emit rollback plan
+        run: |
+          echo "Rollback drill initiated"
+          echo "Incident: ${{ github.event.inputs.incident_id }}"
+          echo "Target commit: ${{ github.event.inputs.target_commit }}"
+          echo "1) Pause production traffic shifting"
+          echo "2) Deploy prior known-good revision"
+          echo "3) Verify /health/ready and /metrics/outbox"
+          echo "4) Validate payment and order critical paths"
+          echo "5) Resume traffic and monitor burn-rate alerts"

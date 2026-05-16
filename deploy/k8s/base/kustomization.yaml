@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: abzora
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - mongo-config.yaml
+  - secret-template.yaml
+  - deployment-api.yaml
+  - deployment-worker.yaml
+  - deployment-websocket.yaml
+  - services.yaml
+  - redis-statefulset.yaml
+  - ingress.yaml
+  - pdb.yaml
+  - hpa.yaml
