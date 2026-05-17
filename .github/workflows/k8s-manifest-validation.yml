@@ -1,0 +1,89 @@
+name: K8s Manifest Validation
+
+on:
+  push:
+    branches:
+      - main
+      - "release/**"
+    paths:
+      - "deploy/k8s/**"
+      - "backend/tests/k8s-manifests-safety.test.js"
+      - ".github/workflows/k8s-manifest-validation.yml"
+  pull_request:
+    paths:
+      - "deploy/k8s/**"
+      - "backend/tests/k8s-manifests-safety.test.js"
+      - ".github/workflows/k8s-manifest-validation.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: k8s-manifest-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Setup kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Build base manifests
+        run: kustomize build deploy/k8s/base > /tmp/k8s-base.yaml
+
+      - name: Build staging manifests
+        run: kustomize build deploy/k8s/overlays/staging > /tmp/k8s-staging.yaml
+
+      - name: Build prod manifests
+        run: kustomize build deploy/k8s/overlays/prod > /tmp/k8s-prod.yaml
+
+      - name: Validate rendered manifests with kubectl dry-run
+        run: |
+          kubectl apply --dry-run=client -f /tmp/k8s-base.yaml
+          kubectl apply --dry-run=client -f /tmp/k8s-staging.yaml
+          kubectl apply --dry-run=client -f /tmp/k8s-prod.yaml
+
+      - name: Run manifest safety tests
+        working-directory: backend
+        run: node tests/k8s-manifests-safety.test.js
+
+  kubeconform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Install kubeconform
+        run: |
+          curl -sSL -o /tmp/kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kubeconform.tar.gz -C /tmp
+          sudo mv /tmp/kubeconform /usr/local/bin/kubeconform
+          kubeconform -v
+
+      - name: Render manifests
+        run: |
+          kustomize build deploy/k8s/base > /tmp/k8s-base.yaml
+          kustomize build deploy/k8s/overlays/staging > /tmp/k8s-staging.yaml
+          kustomize build deploy/k8s/overlays/prod > /tmp/k8s-prod.yaml
+
+      - name: Validate base schemas
+        run: kubeconform -strict -summary -ignore-missing-schemas /tmp/k8s-base.yaml
+
+      - name: Validate staging schemas
+        run: kubeconform -strict -summary -ignore-missing-schemas /tmp/k8s-staging.yaml
+
+      - name: Validate prod schemas
+        run: kubeconform -strict -summary -ignore-missing-schemas /tmp/k8s-prod.yaml
