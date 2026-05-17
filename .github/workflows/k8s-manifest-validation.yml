@@ -49,9 +49,10 @@ jobs:
 
       - name: Validate rendered manifests with kubectl dry-run
         run: |
-          kubectl apply --dry-run=client -f /tmp/k8s-base.yaml
-          kubectl apply --dry-run=client -f /tmp/k8s-staging.yaml
-          kubectl apply --dry-run=client -f /tmp/k8s-prod.yaml
+          # CI has no live API server; disable OpenAPI server-side schema fetch.
+          kubectl apply --dry-run=client --validate=false -f /tmp/k8s-base.yaml
+          kubectl apply --dry-run=client --validate=false -f /tmp/k8s-staging.yaml
+          kubectl apply --dry-run=client --validate=false -f /tmp/k8s-prod.yaml
 
       - name: Run manifest safety tests
         working-directory: backend
