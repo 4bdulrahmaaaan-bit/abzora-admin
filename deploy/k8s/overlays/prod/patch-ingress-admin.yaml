@@ -1,0 +1,11 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: abzora-admin-ingress
+spec:
+  tls:
+    - hosts:
+        - admin.abzora.com
+      secretName: prod-abzora-admin-tls
+  rules:
+    - host: admin.abzora.com

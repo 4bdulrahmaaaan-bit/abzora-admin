@@ -5,4 +5,27 @@ resources:
 patches:
   - path: patch-replicas.yaml
   - path: patch-resources.yaml
-  - path: patch-ingress.yaml
+  - path: patch-ingress-api.yaml
+    target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: abzora-api-ingress
+  - path: patch-ingress-websocket.yaml
+    target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: abzora-websocket-ingress
+  - path: patch-ingress-admin.yaml
+    target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: abzora-admin-ingress
+  - path: patch-ingress-webhook.yaml
+    target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: abzora-webhook-ingress

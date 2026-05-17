@@ -1,0 +1,14 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: abzora-webhook-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/limit-rps: "180"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
+spec:
+  tls:
+    - hosts:
+        - hooks.abzora.com
+      secretName: prod-abzora-hooks-tls
+  rules:
+    - host: hooks.abzora.com
