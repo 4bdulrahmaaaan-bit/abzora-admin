@@ -22,9 +22,6 @@ jobs:
   quality-gates:
     name: Quality Gates
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -33,6 +30,8 @@ jobs:
         run: |
           rm -rf backend
           git clone --depth 1 https://github.com/4bdulrahmaaaan-bit/abzora-backend.git backend
+          ls -la backend
+          cat backend/package.json
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -40,21 +39,31 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
+        working-directory: backend
         run: npm ci
 
+      - name: Verify backend scripts
+        working-directory: backend
+        run: npm run
+
       - name: Run delivery test suite
+        working-directory: backend
         run: npm test
 
       - name: Run payment race hardening tests
+        working-directory: backend
         run: npm run test:security-races
 
       - name: Run outbox worker tests
+        working-directory: backend
         run: npm run test:outbox-worker
 
       - name: Run outbox metrics security tests
+        working-directory: backend
         run: npm run test:outbox-metrics
 
       - name: Run dead-letter replay tests
+        working-directory: backend
         run: npm run test:outbox-replay
 
   release-candidate:
@@ -62,9 +71,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - quality-gates
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -80,9 +86,11 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
+        working-directory: backend
         run: npm ci --omit=dev
 
       - name: Build release manifest
+        working-directory: backend
         run: |
           echo "commit=${GITHUB_SHA}" > release-manifest.txt
           echo "built_at=$(date -u +%FT%TZ)" >> release-manifest.txt
