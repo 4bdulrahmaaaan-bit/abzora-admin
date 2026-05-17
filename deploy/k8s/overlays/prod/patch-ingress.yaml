@@ -1,0 +1,55 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: abzora-api-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "4"
+spec:
+  tls:
+    - hosts:
+        - api.abzora.com
+      secretName: prod-abzora-api-tls
+  rules:
+    - host: api.abzora.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: abzora-websocket-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/limit-connections: "500"
+spec:
+  tls:
+    - hosts:
+        - ws.abzora.com
+      secretName: prod-abzora-ws-tls
+  rules:
+    - host: ws.abzora.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: abzora-admin-ingress
+spec:
+  tls:
+    - hosts:
+        - admin.abzora.com
+      secretName: prod-abzora-admin-tls
+  rules:
+    - host: admin.abzora.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: abzora-webhook-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/limit-rps: "180"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
+spec:
+  tls:
+    - hosts:
+        - hooks.abzora.com
+      secretName: prod-abzora-hooks-tls
+  rules:
+    - host: hooks.abzora.com
