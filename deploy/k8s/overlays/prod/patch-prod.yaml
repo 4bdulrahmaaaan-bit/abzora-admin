@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: abzora-api
+  namespace: abzora
 spec:
   replicas: 4
   strategy:
@@ -13,6 +14,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: abzora-worker
+  namespace: abzora
 spec:
   replicas: 3
 ---
@@ -20,6 +22,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: abzora-websocket
+  namespace: abzora
 spec:
   replicas: 3
 ---
@@ -27,6 +30,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: abzora-api-hpa
+  namespace: abzora
 spec:
   minReplicas: 4
   maxReplicas: 30
@@ -35,6 +39,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: abzora-worker-hpa
+  namespace: abzora
 spec:
   minReplicas: 3
   maxReplicas: 40
@@ -43,6 +48,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: abzora-websocket-hpa
+  namespace: abzora
 spec:
   minReplicas: 3
   maxReplicas: 20

@@ -2,6 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: abzora-api-ingress
+  namespace: abzora
 spec:
   tls:
     - hosts:
@@ -14,6 +15,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: abzora-websocket-ingress
+  namespace: abzora
 spec:
   tls:
     - hosts:
@@ -26,6 +28,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: abzora-admin-ingress
+  namespace: abzora
 spec:
   tls:
     - hosts:
@@ -38,6 +41,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: abzora-webhook-ingress
+  namespace: abzora
 spec:
   tls:
     - hosts:
