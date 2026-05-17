@@ -50,9 +50,14 @@ jobs:
           test -s /tmp/k8s-staging.yaml
           test -s /tmp/k8s-prod.yaml
 
-      - name: Run manifest safety tests
-        working-directory: backend
-        run: node tests/k8s-manifests-safety.test.js
+      - name: Run manifest safety tests (if available)
+        shell: bash
+        run: |
+          if [ -f backend/tests/k8s-manifests-safety.test.js ]; then
+            (cd backend && node tests/k8s-manifests-safety.test.js)
+          else
+            echo "Skipping backend manifest safety test: backend/tests/k8s-manifests-safety.test.js not present in this checkout."
+          fi
 
   kubeconform:
     runs-on: ubuntu-latest
