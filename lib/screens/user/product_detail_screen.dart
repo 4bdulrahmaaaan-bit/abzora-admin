@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:ui';
 import 'dart:math' as math;
 
@@ -21,6 +20,7 @@ import '../../services/backend_commerce_service.dart';
 import '../../services/database_service.dart';
 import '../../theme.dart';
 import '../../utils/app_error_text.dart';
+import '../../utils/local_file_image.dart';
 import '../../utils/soft_auth_gate.dart';
 import '../../widgets/animated_wishlist_button.dart';
 import '../../widgets/product_card.dart';
@@ -388,7 +388,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   if (imagePath != null)
                     Expanded(
                       child: Text(
-                        File(imagePath!).uri.pathSegments.last,
+                        localFileName(imagePath!),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -498,7 +498,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
   String _resolveDeliveryEtaLabel(int urgencyHoursLeft) {
     final cutoffLabel = urgencyHoursLeft > 0 ? urgencyHoursLeft : 1;
-    return 'Arrives today � Order within $cutoffLabel hrs';
+    return 'Arrives today • Order within $cutoffLabel hrs';
   }
 
   Future<void> _openDeliveryAddressSheet() async {
@@ -1308,8 +1308,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             children: [
               Text(
                 showBuyPriorityMessage
-                    ? '⚡ Delivered today in $sameDayCity'
-                    : '✨ Try 5 styles, pay for what you keep',
+                    ? 'âš¡ Delivered today in $sameDayCity'
+                    : 'âœ¨ Try 5 styles, pay for what you keep',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: const Color(0xFFF2D9A0),
                   fontWeight: FontWeight.w800,
@@ -1927,8 +1927,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                 fallbackLabel: 'REVIEW',
                               ),
                             )
-                          : Image.file(
-                              File(review.imagePath!),
+                          : localFileImage(
+                              review.imagePath!,
                               height: 140,
                               width: double.infinity,
                               fit: BoxFit.cover,
@@ -2958,7 +2958,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           child: Row(
                             children: [
                               const Text(
-                                '✨',
+                                'âœ¨',
                                 style: TextStyle(fontSize: 18),
                               ),
                               const SizedBox(width: 10),
@@ -3199,7 +3199,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                                 fallbackLabel: 'REVIEW',
                                               ),
                                             )
-                                          : Image.file(File(review.imagePath!), height: 140, width: double.infinity, fit: BoxFit.cover),
+                                          : localFileImage(review.imagePath!, height: 140, width: double.infinity, fit: BoxFit.cover),
                                     ),
                                   ],
                                   if (auth.user != null && review.userId == auth.user!.id)
@@ -3582,7 +3582,7 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
     final imageUrl = widget.images[_currentIndex];
     final price = widget.product.price <= 0
         ? ''
-        : ' for ${NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(widget.product.price)}';
+        : ' for ${NumberFormat.currency(locale: 'en_IN', symbol: 'â‚¹', decimalDigits: 0).format(widget.product.price)}';
     final message =
         'Check out ${widget.product.name}$price on ABZORA.\n$imageUrl';
     await Share.share(message, subject: widget.product.name);
@@ -4577,7 +4577,7 @@ class _TrialFitFeedbackSheetState extends State<_TrialFitFeedbackSheet> {
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Text(
-                        'Perfect. We’ll use this fit outcome to sharpen your future recommendations.',
+                        'Perfect. Weâ€™ll use this fit outcome to sharpen your future recommendations.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFF7B5B27),
                           fontWeight: FontWeight.w700,
@@ -5013,7 +5013,7 @@ class _MiniSelectionCard extends StatelessWidget {
           Text(
             NumberFormat.currency(
               locale: 'en_IN',
-              symbol: '₹',
+              symbol: 'â‚¹',
       decimalDigits: 0,
             ).format(product.effectivePrice),
             style: Theme.of(
@@ -5091,7 +5091,7 @@ class _DetailPricing {
   static _DetailPricing fromProduct(Product product) {
     final formatter = NumberFormat.currency(
       locale: 'en_IN',
-      symbol: '₹',
+      symbol: 'â‚¹',
       decimalDigits: 0,
     );
     final currentPrice = product.effectivePrice;
