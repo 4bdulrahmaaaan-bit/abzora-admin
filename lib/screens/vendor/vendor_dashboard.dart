@@ -772,6 +772,13 @@ class _VendorDashboardState extends State<VendorDashboard>
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Invoices',
+            onPressed: () => Navigator.pushNamed(context, '/invoice/hub'),
+            icon: const Icon(Icons.receipt_long_outlined),
+          ),
+        ],
       ),
       body: child,
     );

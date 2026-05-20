@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart';
 
 import 'utils/app_mode_routes.dart';
@@ -40,6 +41,12 @@ import 'screens/user/referral_screen.dart';
 import 'screens/user/role_selection_screen.dart';
 import 'screens/user/signup_screen.dart';
 import 'screens/user/video_feed_screen.dart';
+import 'features/invoices/presentation/screens/invoice_hub_screen.dart';
+import 'features/invoices/presentation/screens/invoice_history_screen.dart';
+import 'features/invoices/presentation/screens/invoice_details_screen.dart';
+import 'features/invoices/presentation/screens/invoice_pdf_viewer_screen.dart';
+import 'features/invoices/presentation/screens/refund_timeline_screen.dart';
+import 'features/invoices/presentation/screens/credit_note_screen.dart';
 import 'screens/atelier/atelier_flow_screen.dart';
 import 'screens/admin/admin_kyc_screen.dart';
 import 'screens/admin/admin_orders_screen.dart';
@@ -77,42 +84,44 @@ Future<void> bootstrapAndRunWithInitialRoute(
       imageCache.maximumSize = 1000;
 
       runApp(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => AuthProvider()),
-            ChangeNotifierProvider(create: (_) => BannerProvider()),
-            ChangeNotifierProxyProvider<AuthProvider, CartProvider>(
-              create: (_) => CartProvider(),
-              update: (_, authProvider, cartProvider) {
-                final provider = cartProvider ?? CartProvider();
-                unawaited(provider.syncUser(authProvider.user));
-                return provider;
-              },
-            ),
-            ChangeNotifierProvider(create: (_) => LocationProvider()),
-            ChangeNotifierProvider(
-              create: (_) => NetworkProvider()..initialize(),
-            ),
-            ChangeNotifierProxyProvider<LocationProvider, ProductProvider>(
-              create: (_) => ProductProvider(),
-              update: (_, locationProvider, productProvider) {
-                final provider = productProvider ?? ProductProvider();
-                provider.attachLocationProvider(locationProvider);
-                return provider;
-              },
-            ),
-            ChangeNotifierProxyProvider<AuthProvider, WishlistProvider>(
-              create: (_) => WishlistProvider(),
-              update: (_, authProvider, wishlistProvider) {
-                final provider = wishlistProvider ?? WishlistProvider();
-                provider.syncUser(authProvider.user);
-                return provider;
-              },
-            ),
-            ChangeNotifierProvider(create: (_) => TrialHomeProvider()),
-            ChangeNotifierProvider(create: (_) => ThemeProvider()),
-          ],
-          child: AbzioApp(mode: mode, initialRoute: initialRoute),
+        ProviderScope(
+          child: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => AuthProvider()),
+              ChangeNotifierProvider(create: (_) => BannerProvider()),
+              ChangeNotifierProxyProvider<AuthProvider, CartProvider>(
+                create: (_) => CartProvider(),
+                update: (_, authProvider, cartProvider) {
+                  final provider = cartProvider ?? CartProvider();
+                  unawaited(provider.syncUser(authProvider.user));
+                  return provider;
+                },
+              ),
+              ChangeNotifierProvider(create: (_) => LocationProvider()),
+              ChangeNotifierProvider(
+                create: (_) => NetworkProvider()..initialize(),
+              ),
+              ChangeNotifierProxyProvider<LocationProvider, ProductProvider>(
+                create: (_) => ProductProvider(),
+                update: (_, locationProvider, productProvider) {
+                  final provider = productProvider ?? ProductProvider();
+                  provider.attachLocationProvider(locationProvider);
+                  return provider;
+                },
+              ),
+              ChangeNotifierProxyProvider<AuthProvider, WishlistProvider>(
+                create: (_) => WishlistProvider(),
+                update: (_, authProvider, wishlistProvider) {
+                  final provider = wishlistProvider ?? WishlistProvider();
+                  provider.syncUser(authProvider.user);
+                  return provider;
+                },
+              ),
+              ChangeNotifierProvider(create: (_) => TrialHomeProvider()),
+              ChangeNotifierProvider(create: (_) => ThemeProvider()),
+            ],
+            child: AbzioApp(mode: mode, initialRoute: initialRoute),
+          ),
         ),
       );
     },
@@ -243,6 +252,8 @@ class AbzioApp extends StatelessWidget {
         '/video-feed': (context) => const VideoFeedScreen(),
         '/vendor-dashboard': (context) => const VendorDashboard(),
         '/rider-dashboard': (context) => const RiderDashboard(),
+        '/invoice/hub': (context) => const InvoiceHubScreen(),
+        '/invoice/history': (context) => const InvoiceHistoryScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/fast-tracking' &&
@@ -259,6 +270,41 @@ class AbzioApp extends StatelessWidget {
           return MaterialPageRoute(
             builder: (_) =>
                 ProductDetailScreen(product: settings.arguments as Product),
+            settings: settings,
+          );
+        }
+        if (settings.name == '/invoice/details' && settings.arguments is String) {
+          return MaterialPageRoute(
+            builder: (_) => InvoiceDetailsScreen(invoiceId: settings.arguments as String),
+            settings: settings,
+          );
+        }
+        if (settings.name == '/invoice/pdf' && settings.arguments is String) {
+          return MaterialPageRoute(
+            builder: (_) => InvoicePdfViewerScreen(invoiceId: settings.arguments as String),
+            settings: settings,
+          );
+        }
+        if (settings.name == '/invoice/refund-timeline') {
+          final args = settings.arguments is Map<String, dynamic>
+              ? settings.arguments as Map<String, dynamic>
+              : const <String, dynamic>{};
+          return MaterialPageRoute(
+            builder: (_) => RefundTimelineScreen(
+              steps: (args['steps'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[],
+            ),
+            settings: settings,
+          );
+        }
+        if (settings.name == '/invoice/credit-note') {
+          final args = settings.arguments is Map<String, dynamic>
+              ? settings.arguments as Map<String, dynamic>
+              : const <String, dynamic>{};
+          return MaterialPageRoute(
+            builder: (_) => CreditNoteScreen(
+              creditNoteNumber: (args['creditNoteNumber'] ?? '').toString(),
+              amount: (args['amount'] as num?)?.toDouble() ?? 0,
+            ),
             settings: settings,
           );
         }
@@ -279,6 +325,28 @@ class _AppLaunchGate extends StatefulWidget {
 
 class _AppLaunchGateState extends State<_AppLaunchGate> {
   bool _didRoute = false;
+  static const Duration _minimumSplashDuration = Duration(milliseconds: 1200);
+  Timer? _splashTimer;
+  bool _hasShownMinimumSplash = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _splashTimer = Timer(_minimumSplashDuration, () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _hasShownMinimumSplash = true;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _splashTimer?.cancel();
+    super.dispose();
+  }
 
   bool get _wantsAdminEntryFromUrl {
     if (!kIsWeb) {
@@ -399,6 +467,10 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+
+    if (!_hasShownMinimumSplash) {
+      return SplashScreen(mode: widget.mode, autoNavigate: false);
+    }
 
     if (!auth.isInitialized) {
       return SplashScreen(mode: widget.mode, autoNavigate: false);

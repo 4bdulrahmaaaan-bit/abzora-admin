@@ -87,11 +87,22 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
               children: [
-                Text(
-                  'Your Orders',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Your Orders',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
                       ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.pushNamed(context, '/invoice/history'),
+                      icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                      label: const Text('Invoices'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(

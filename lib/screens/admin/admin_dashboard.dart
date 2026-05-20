@@ -37,20 +37,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
   bool _loading = true;
   Timer? _idleTimer;
   Timer? _refreshTimer;
+  bool _refreshInFlight = false;
+  bool _foregroundActive = true;
+  int _refreshFailureStreak = 0;
+  bool _disposed = false;
 
   @override
   void initState() {
     super.initState();
-    _load();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 12), (_) {
-      if (mounted) {
-        _load();
-      }
-    });
+    WidgetsBinding.instance.addObserver(_lifecycleObserver);
+    unawaited(_load());
+    _scheduleRefresh();
   }
 
   @override
   void dispose() {
+    _disposed = true;
+    WidgetsBinding.instance.removeObserver(_lifecycleObserver);
     _idleTimer?.cancel();
     _refreshTimer?.cancel();
     _searchController.dispose();
@@ -58,6 +61,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Future<void> _load() async {
+    if (_refreshInFlight) {
+      return;
+    }
+    _refreshInFlight = true;
+    try {
     final actor = context.read<AuthProvider>().user;
     if (actor == null) {
       return;
@@ -84,7 +92,60 @@ class _AdminDashboardState extends State<AdminDashboard> {
       _loading = false;
     });
     _resetIdleTimer();
+      _refreshFailureStreak = 0;
+    } catch (_) {
+      _refreshFailureStreak += 1;
+    } finally {
+      _refreshInFlight = false;
+    }
   }
+
+  void _scheduleRefresh() {
+    _refreshTimer?.cancel();
+    if (_disposed || !_foregroundActive) {
+      return;
+    }
+    final seconds = _intervalWithBackoff(
+      baseSeconds: 12,
+      failureStreak: _refreshFailureStreak,
+      maxSeconds: 90,
+    );
+    _refreshTimer = Timer(Duration(seconds: seconds), () async {
+      if (!_disposed && _foregroundActive) {
+        try {
+          await _load();
+        } catch (_) {}
+        _scheduleRefresh();
+      }
+    });
+  }
+
+  int _intervalWithBackoff({
+    required int baseSeconds,
+    required int failureStreak,
+    required int maxSeconds,
+  }) {
+    final multiplier = 1 << failureStreak.clamp(0, 3);
+    final computed = baseSeconds * multiplier;
+    return computed > maxSeconds ? maxSeconds : computed;
+  }
+
+  void _handleLifecycleChange(AppLifecycleState state) {
+    final active = state == AppLifecycleState.resumed;
+    if (active == _foregroundActive) {
+      return;
+    }
+    _foregroundActive = active;
+    if (_foregroundActive) {
+      unawaited(_load());
+      _scheduleRefresh();
+      return;
+    }
+    _refreshTimer?.cancel();
+  }
+
+  late final _AdminLifecycleObserver _lifecycleObserver =
+      _AdminLifecycleObserver(onStateChanged: _handleLifecycleChange);
 
   Future<AdminFinanceSummary?> _safeFinance(AppUser actor) async {
     try {
@@ -700,6 +761,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       );
                     },
                   ),
+                  _AdminAction(
+                    title: 'Invoice Operations',
+                    subtitle: 'Monitor invoice queues, replay DLQ, and inspect delivery logs',
+                    icon: Icons.receipt_long_outlined,
+                    color: const Color(0xFF5B53E6),
+                    onTap: () => Navigator.pushNamed(context, '/invoice/hub'),
+                  ),
                   if (_analytics?.topStores.isNotEmpty == true) ...[
                     const SizedBox(height: 16),
                     Text('PAYOUT CENTER', style: Theme.of(context).textTheme.labelMedium),
@@ -745,6 +813,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
       context,
       MaterialPageRoute(builder: (_) => AdminManagementScreen(initialTab: tabIndex)),
     );
+  }
+}
+
+class _AdminLifecycleObserver with WidgetsBindingObserver {
+  _AdminLifecycleObserver({required this.onStateChanged});
+
+  final void Function(AppLifecycleState state) onStateChanged;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    onStateChanged(state);
   }
 }
 
