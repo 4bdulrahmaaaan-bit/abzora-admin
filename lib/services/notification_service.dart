@@ -36,7 +36,8 @@ class NotificationService {
       }
 
       final token = await _fcm.getToken();
-      debugPrint('FCM Token: $token');
+      // Security hardening: never print raw push tokens in logs.
+      // Tokens are bearer-like identifiers and should be treated as sensitive.
       await _persistTokenForCurrentUser(token);
 
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

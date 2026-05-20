@@ -1,14 +1,36 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: abzora-ingress
+  name: abzora-api-ingress
   namespace: abzora
   annotations:
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/limit-rps: "60"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "3"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    nginx.ingress.kubernetes.io/limit-whitelist: ""
     nginx.ingress.kubernetes.io/proxy-body-size: "2m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "75"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "75"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "5"
+    nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502 http_503 http_504"
+    nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "3"
+    nginx.ingress.kubernetes.io/load-balance: least_conn
+    nginx.ingress.kubernetes.io/server-snippet: |
+      keepalive_timeout 15s;
+      client_header_timeout 15s;
+      client_body_timeout 15s;
+      send_timeout 15s;
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.abzora.example.com
+      secretName: abzora-api-tls
   rules:
     - host: api.abzora.example.com
       http:
@@ -20,13 +42,117 @@ spec:
                 name: abzora-api
                 port:
                   number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: abzora-websocket-ingress
+  namespace: abzora
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/load-balance: least_conn
+    nginx.ingress.kubernetes.io/affinity: "none"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - ws.abzora.example.com
+      secretName: abzora-ws-tls
+  rules:
     - host: ws.abzora.example.com
+      http:
+        paths:
+          - path: /tracking/ws
+            pathType: Prefix
+            backend:
+              service:
+                name: abzora-websocket
+                port:
+                  number: 80
+          - path: /ws/pricing
+            pathType: Prefix
+            backend:
+              service:
+                name: abzora-websocket
+                port:
+                  number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: abzora-admin-ingress
+  namespace: abzora
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/limit-rps: "25"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "2"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - admin.abzora.example.com
+      secretName: abzora-admin-tls
+  rules:
+    - host: admin.abzora.example.com
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: abzora-websocket
+                name: abzora-admin
+                port:
+                  number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: abzora-webhook-ingress
+  namespace: abzora
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/limit-rps: "120"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "4"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "on"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - hooks.abzora.example.com
+      secretName: abzora-hooks-tls
+  rules:
+    - host: hooks.abzora.example.com
+      http:
+        paths:
+          - path: /webhooks/razorpay
+            pathType: Prefix
+            backend:
+              service:
+                name: abzora-api
+                port:
+                  number: 80
+          - path: /webhooks/razorpayx
+            pathType: Prefix
+            backend:
+              service:
+                name: abzora-api
                 port:
                   number: 80

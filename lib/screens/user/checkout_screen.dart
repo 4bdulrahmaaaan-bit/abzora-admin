@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -70,6 +71,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final millis = DateTime.now().millisecondsSinceEpoch;
     final random = Random().nextInt(1 << 32).toRadixString(16).padLeft(8, '0');
     return 'ck-$millis-$random';
+  }
+
+  void _logCheckout(String message) {
+    if (kDebugMode) {
+      debugPrint(message);
+    }
   }
 
   Future<void> _loadAddresses() async {
@@ -481,9 +488,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _placeOrder(CartProvider cart) async {
-    debugPrint('ABZORA checkout: place order tapped');
+    _logCheckout('ABZORA checkout: place order tapped');
     if (_processing) {
-      debugPrint('ABZORA checkout: ignored because processing is true');
+      _logCheckout('ABZORA checkout: ignored because processing is true');
       return;
     }
 
@@ -545,12 +552,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     setState(() => _processing = true);
-    debugPrint('ABZORA checkout: processing started with method=$selectedPaymentMethod');
+    _logCheckout('ABZORA checkout: processing started with method=$selectedPaymentMethod');
     unawaited(_rememberPaymentMethod(selectedPaymentMethod));
 
     try {
       final payableAmount = _totalAmount(cart);
-      debugPrint('ABZORA checkout: payable amount=$payableAmount items=${cart.items.length}');
+      _logCheckout('ABZORA checkout: payable amount=$payableAmount items=${cart.items.length}');
       final orderItems = cart.items
           .map(
             (item) => OrderItem(
@@ -574,7 +581,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       late final OrderModel placedOrder;
 
       if (_database.usesBackendCommerce && _usesOnlinePayment(selectedPaymentMethod)) {
-        debugPrint('ABZORA checkout: backend commerce online payment branch');
+        _logCheckout('ABZORA checkout: backend commerce online payment branch');
         final pendingOrder = await _database.placeOrdersForCart(
           actor: currentUser,
           items: orderItems,
@@ -589,10 +596,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           isPaymentVerified: false,
         );
         if (!mounted) {
-          debugPrint('ABZORA checkout: unmounted after pending order creation');
+          _logCheckout('ABZORA checkout: unmounted after pending order creation');
           return;
         }
-        debugPrint('ABZORA checkout: pending order created id=${pendingOrder.id}');
+        _logCheckout('ABZORA checkout: pending order created');
         final paymentResult = await PaymentService().processCheckout(
           context: context,
           userId: currentUser.id,
@@ -604,7 +611,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           description: cart.hasCustomTailoring ? 'Custom clothing checkout' : 'Marketplace checkout',
         );
         if (!paymentResult.success) {
-          debugPrint('ABZORA checkout: payment failed or cancelled');
+          _logCheckout('ABZORA checkout: payment failed or cancelled');
           if (mounted) {
             messenger.showSnackBar(
               const SnackBar(content: Text('Payment was not completed.')),
@@ -614,14 +621,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
         paymentReference = paymentResult.paymentId ?? paymentResult.externalWallet ?? paymentResult.orderId;
         paymentVerified = paymentResult.isVerified;
-        debugPrint('ABZORA checkout: payment success verified=$paymentVerified ref=$paymentReference');
+        _logCheckout('ABZORA checkout: payment success verified=$paymentVerified');
         final refreshedOrders = await _database.getUserOrdersOnce(currentUser.id);
         placedOrder = refreshedOrders.cast<OrderModel?>().firstWhere(
               (item) => item?.id == pendingOrder.id,
               orElse: () => pendingOrder,
             )!;
       } else {
-        debugPrint('ABZORA checkout: direct order branch online=${_usesOnlinePayment(selectedPaymentMethod)}');
+        _logCheckout('ABZORA checkout: direct order branch online=${_usesOnlinePayment(selectedPaymentMethod)}');
         if (_usesOnlinePayment(selectedPaymentMethod)) {
           final paymentResult = await PaymentService().processCheckout(
             context: context,
@@ -633,7 +640,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             description: cart.hasCustomTailoring ? 'Custom clothing checkout' : 'Marketplace checkout',
           );
           if (!paymentResult.success) {
-            debugPrint('ABZORA checkout: direct payment failed or cancelled');
+            _logCheckout('ABZORA checkout: direct payment failed or cancelled');
             if (mounted) {
               messenger.showSnackBar(
                 const SnackBar(content: Text('Payment was not completed.')),
@@ -643,7 +650,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           }
           paymentReference = paymentResult.paymentId ?? paymentResult.externalWallet ?? paymentResult.orderId;
           paymentVerified = paymentResult.isVerified;
-          debugPrint('ABZORA checkout: direct payment success verified=$paymentVerified ref=$paymentReference');
+          _logCheckout('ABZORA checkout: direct payment success verified=$paymentVerified');
         }
 
         placedOrder = await _database.placeOrdersForCart(
@@ -661,14 +668,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       }
 
-      debugPrint('ABZORA checkout: placed order id=${placedOrder.id}');
+      _logCheckout('ABZORA checkout: placed order');
 
       if (!mounted) {
-        debugPrint('ABZORA checkout: unmounted before success navigation');
+        _logCheckout('ABZORA checkout: unmounted before success navigation');
         return;
       }
 
-      debugPrint('ABZORA checkout: navigating to success screen');
+      _logCheckout('ABZORA checkout: navigating to success screen');
       navigator.pushReplacement(
         MaterialPageRoute(
           builder: (_) => OrderSuccessScreen(
@@ -679,7 +686,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       );
     } catch (error) {
-      debugPrint('ABZORA checkout: exception=$error');
+      _logCheckout('ABZORA checkout: exception=$error');
       if (!mounted) {
         return;
       }
@@ -692,7 +699,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
     } finally {
       if (mounted) {
-        debugPrint('ABZORA checkout: processing finished');
+        _logCheckout('ABZORA checkout: processing finished');
         setState(() => _processing = false);
       }
     }

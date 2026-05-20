@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class RiderSocketService {
@@ -25,16 +27,19 @@ class RiderSocketService {
   }) {
     disconnect();
 
-    final wsBase = _baseUrl.replaceFirst(RegExp(r'^http'), 'ws');
-    final uri = Uri.parse('$wsBase/tracking/ws').replace(
-      queryParameters: <String, String>{
-        'token': authToken,
-        'riderId': riderId,
-        if (orderId != null && orderId.trim().isNotEmpty) 'orderId': orderId,
-      },
+    final uri = _buildSocketUri(
+      riderId: riderId,
+      authToken: authToken,
+      orderId: orderId,
     );
-
-    _channel = WebSocketChannel.connect(uri);
+    if (kIsWeb) {
+      _channel = WebSocketChannel.connect(uri);
+    } else {
+      _channel = IOWebSocketChannel.connect(
+        uri,
+        headers: <String, dynamic>{'Authorization': 'Bearer $authToken'},
+      );
+    }
     _connected = true;
     _onConnect?.call();
 
@@ -61,6 +66,25 @@ class RiderSocketService {
         _connected = false;
         _onDisconnect?.call();
       },
+    );
+  }
+
+  Uri _buildSocketUri({
+    required String riderId,
+    required String authToken,
+    String? orderId,
+  }) {
+    final base = Uri.parse(_baseUrl);
+    final secureScheme = base.scheme == 'https' ? 'wss' : 'ws';
+    final query = <String, String>{
+      'riderId': riderId,
+      if (orderId != null && orderId.trim().isNotEmpty) 'orderId': orderId,
+      if (kIsWeb) 'token': authToken,
+    };
+    return base.replace(
+      scheme: secureScheme,
+      path: '/tracking/ws',
+      queryParameters: query,
     );
   }
 

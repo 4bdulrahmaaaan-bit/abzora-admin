@@ -1965,30 +1965,35 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           ),
         ),
         SizedBox(
-          width: 580,
+          width: MediaQuery.sizeOf(context).width < 900 ? double.infinity : 580,
           child: Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: _globalSearchController,
-                  textInputAction: TextInputAction.search,
-                  onSubmitted: (_) => _runGlobalSearch(),
-                  decoration: InputDecoration(
-                    hintText: 'Search users, stores, vendors, or orders',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: _runningSearch
-                        ? const Padding(
-                            padding: EdgeInsets.all(14),
-                            child: SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                child: Semantics(
+                  label: 'Global admin search',
+                  textField: true,
+                  child: TextField(
+                    controller: _globalSearchController,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (_) => _runGlobalSearch(),
+                    decoration: InputDecoration(
+                      hintText: 'Search users, stores, vendors, or orders',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _runningSearch
+                          ? const Padding(
+                              padding: EdgeInsets.all(14),
+                              child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          : IconButton(
+                              tooltip: 'Run search',
+                              onPressed: _runGlobalSearch,
+                              icon: const Icon(Icons.arrow_forward_rounded),
                             ),
-                          )
-                        : IconButton(
-                            onPressed: _runGlobalSearch,
-                            icon: const Icon(Icons.arrow_forward_rounded),
-                          ),
+                    ),
                   ),
                 ),
               ),

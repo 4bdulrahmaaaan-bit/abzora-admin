@@ -26,6 +26,7 @@ import '../../widgets/animated_wishlist_button.dart';
 import '../../widgets/product_card.dart';
 import '../../widgets/tap_scale.dart';
 import '../../widgets/state_views.dart';
+import 'address_screen.dart';
 import 'ai_stylist_screen.dart';
 import 'abzora_ar_screen.dart';
 import 'live_ar_try_on_screen.dart';
@@ -69,6 +70,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   String _experienceDecisionId = '';
   late final String _experienceSessionId;
   bool _ctaShownTracked = false;
+  bool _deliveryAddressPressed = false;
+  bool _deliveryAddressHovered = false;
 
   @override
   void initState() {
@@ -467,14 +470,144 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   String _resolveDeliverySummary(AuthProvider auth) {
-    if (auth.user == null) {
-      return 'Add your address for delivery updates';
+    final city = (auth.user?.city ?? '').trim();
+    final state = (auth.user?.area ?? '').trim();
+    if (city.isNotEmpty && state.isNotEmpty) {
+      return 'Deliver to $city, $state';
     }
-    final address = [
-      (auth.user!.address ?? '').trim(),
-      (auth.user!.city ?? '').trim(),
-    ].where((part) => part.isNotEmpty).join(', ').trim();
-    return address.isEmpty ? 'Add your address for delivery updates' : address;
+    if (city.isNotEmpty) {
+      return 'Deliver to $city';
+    }
+    final address = (auth.user?.address ?? '').trim();
+    if (address.isNotEmpty) {
+      final condensed = address.split(',').map((part) => part.trim()).where((part) => part.isNotEmpty).take(2).join(', ');
+      return condensed.length > 46 ? '${condensed.substring(0, 46)}...' : condensed;
+    }
+    return 'Add delivery address';
+  }
+
+  String _resolveDeliverySubtext(AuthProvider auth) {
+    final hasAddress =
+        (auth.user?.address ?? '').trim().isNotEmpty ||
+        (auth.user?.city ?? '').trim().isNotEmpty;
+    if (!hasAddress) {
+      return 'Add an address to get exact delivery updates and ETA.';
+    }
+    return 'Tap to change address or delivery location.';
+  }
+
+  String _resolveDeliveryEtaLabel(int urgencyHoursLeft) {
+    final cutoffLabel = urgencyHoursLeft > 0 ? urgencyHoursLeft : 1;
+    return 'Arrives today • Order within $cutoffLabel hrs';
+  }
+
+  Future<void> _openDeliveryAddressSheet() async {
+    final auth = context.read<AuthProvider>();
+    final hasAddress = (auth.user?.address ?? '').trim().isNotEmpty;
+
+    final changed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFFFDFBF7),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(sheetContext).viewInsets.bottom + 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD9D0C2),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Delivery address',
+                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF111111),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  hasAddress
+                      ? _resolveDeliverySummary(auth)
+                      : 'No delivery address added yet.',
+                  style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF6B655C),
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () async {
+                      Navigator.of(sheetContext).pop();
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const AddressScreen()),
+                      );
+                      if (!mounted) {
+                        return;
+                      }
+                      setState(() {});
+                    },
+                    icon: Icon(
+                      hasAddress ? Icons.edit_location_alt_outlined : Icons.add_location_alt_outlined,
+                    ),
+                    label: Text(hasAddress ? 'Change address' : 'Add address'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFC8A96A),
+                      foregroundColor: Colors.black,
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50),
+                      side: const BorderSide(color: Color(0xFFE4DACA)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (changed == true && mounted) {
+      setState(() {});
+    }
   }
 
   String _recommendedSizeFor(Product product) {
@@ -1400,15 +1533,134 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           ),
         ),
         const SizedBox(height: 10),
-        _buildSimpleBullet(
-          icon: Icons.location_on_outlined,
-          label: deliverySummary,
+        Semantics(
+          button: true,
+          label: 'Delivery address selector',
+          hint: 'Double tap to add or change delivery address',
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: _openDeliveryAddressSheet,
+              onHover: (value) => setState(() => _deliveryAddressHovered = value),
+              onHighlightChanged: (value) =>
+                  setState(() => _deliveryAddressPressed = value),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: _deliveryAddressPressed
+                      ? const Color(0xFFF3EEE5)
+                      : _deliveryAddressHovered
+                      ? const Color(0xFFF8F4EC)
+                      : const Color(0xFFFCFAF6),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _deliveryAddressPressed
+                        ? const Color(0xFFD8C5A1)
+                        : const Color(0xFFE8E1D6),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 1),
+                      child: Icon(
+                        Icons.location_on_outlined,
+                        size: 18,
+                        color: Color(0xFF7C6740),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        switchInCurve: Curves.easeOut,
+                        switchOutCurve: Curves.easeIn,
+                        child: Column(
+                          key: ValueKey(deliverySummary),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              deliverySummary,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    color: const Color(0xFF151515),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _resolveDeliverySubtext(
+                                context.read<AuthProvider>(),
+                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: const Color(0xFF8B8479),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 22,
+                      color: Color(0xFF8B8479),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 8),
-        _buildSimpleBullet(
-          icon: Icons.local_shipping_outlined,
-          label:
-              'Arrives today \u2022 Order within ${urgencyHoursLeft > 0 ? urgencyHoursLeft : 1} hrs',
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F3EA),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE6DDCE)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.local_shipping_outlined,
+                size: 18,
+                color: Color(0xFF7C6740),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  child: Text(
+                    _resolveDeliveryEtaLabel(urgencyHoursLeft),
+                    key: ValueKey<int>(urgencyHoursLeft),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF3E3933),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 20),
         Row(
@@ -1515,27 +1767,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       ),
     );
   }
-
-  Widget _buildSimpleBullet({required IconData icon, required String label}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: const Color(0xFF111111)),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF666666)),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildCompleteTheLookSection(
     BuildContext context,
     double lookCardWidth,
@@ -4902,5 +5133,8 @@ class _CtaDecisionSnapshot {
   final String productType;
   final String locationSpeed;
 }
+
+
+
 
 

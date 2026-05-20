@@ -77,6 +77,11 @@ class StorageService {
     if (!AppConfig.hasCloudinaryConfig) {
       throw StateError('Cloudinary is not configured yet.');
     }
+    if (!AppConfig.allowInsecureUnsignedUploads) {
+      throw StateError(
+        'Secure upload configuration is required. Configure backend or signed upload endpoint.',
+      );
+    }
 
     return _uploadUnsigned(
       file: file,

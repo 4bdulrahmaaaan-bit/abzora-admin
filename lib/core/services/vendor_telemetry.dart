@@ -8,7 +8,9 @@ class VendorTelemetry {
   const VendorTelemetry._();
 
   static void event(String name, {Map<String, dynamic> data = const {}}) {
-    debugPrint('[VENDOR_TELEMETRY] $name :: $data');
+    if (kDebugMode) {
+      debugPrint('[VENDOR_TELEMETRY] $name :: $data');
+    }
     final db = DatabaseService();
     unawaited(
       db.trackExperienceEvent(eventType: 'vendor_$name', metadata: data),

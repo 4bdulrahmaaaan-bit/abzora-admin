@@ -49,9 +49,16 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
 
   Timer? _locationTimer;
   Timer? _etaTimer;
+  Timer? _socketReconnectTimer;
   int _statusIndex = 0;
   bool _connected = false;
   bool _completing = false;
+  bool _foregroundActive = true;
+  bool _disposed = false;
+  int _locationFailureStreak = 0;
+  int _etaFailureStreak = 0;
+  bool _locationInFlight = false;
+  bool _etaInFlight = false;
 
   LatLng? _riderPosition;
   LatLng? _pickupPosition;
@@ -63,6 +70,7 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(_lifecycleObserver);
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 2),
     );
@@ -71,16 +79,13 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
 
   Future<void> _initialize() async {
     _connectSocket();
-    await _resolveAnchors();
-    await _tickLocationUpdate();
-    _locationTimer = Timer.periodic(
-      const Duration(seconds: 3),
-      (_) => _tickLocationUpdate(),
-    );
-    _etaTimer = Timer.periodic(
-      const Duration(seconds: 6),
-      (_) => _refreshEta(),
-    );
+    try {
+      await _resolveAnchors();
+      await _tickLocationUpdate();
+    } finally {
+      _scheduleLocationTick();
+      _scheduleEtaRefresh();
+    }
   }
 
   void _connectSocket() {
@@ -110,6 +115,19 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
     _socketService.onDisconnect(() {
       if (mounted) {
         setState(() => _connected = false);
+      }
+      _scheduleSocketReconnect();
+    });
+  }
+
+  void _scheduleSocketReconnect() {
+    _socketReconnectTimer?.cancel();
+    if (!_foregroundActive || _disposed || _connected) {
+      return;
+    }
+    _socketReconnectTimer = Timer(const Duration(seconds: 4), () {
+      if (!_disposed && _foregroundActive && !_connected) {
+        _connectSocket();
       }
     });
   }
@@ -142,6 +160,11 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
   }
 
   Future<void> _tickLocationUpdate() async {
+    if (_locationInFlight || !_foregroundActive) {
+      return;
+    }
+    _locationInFlight = true;
+    try {
     final result = await _locationService.getCurrentLocation();
     final position = result.position;
     if (position == null) {
@@ -168,9 +191,20 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
     );
     await _refreshEta();
     _autoProgressStatus(position);
+      _locationFailureStreak = 0;
+    } catch (_) {
+      _locationFailureStreak += 1;
+    } finally {
+      _locationInFlight = false;
+    }
   }
 
   Future<void> _refreshEta() async {
+    if (_etaInFlight || !_foregroundActive) {
+      return;
+    }
+    _etaInFlight = true;
+    try {
     if (_riderPosition == null || _activeTarget == null) {
       return;
     }
@@ -197,7 +231,76 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
       _remainingKm = km;
       _etaMinutes = backendEta ?? fallbackEta;
     });
+      _etaFailureStreak = 0;
+    } catch (_) {
+      _etaFailureStreak += 1;
+    } finally {
+      _etaInFlight = false;
+    }
   }
+
+  void _scheduleLocationTick() {
+    _locationTimer?.cancel();
+    if (_disposed || !_foregroundActive) {
+      return;
+    }
+    final seconds = _intervalWithBackoff(
+      baseSeconds: 3,
+      failureStreak: _locationFailureStreak,
+      maxSeconds: 30,
+    );
+    _locationTimer = Timer(Duration(seconds: seconds), () async {
+      await _tickLocationUpdate();
+      _scheduleLocationTick();
+    });
+  }
+
+  void _scheduleEtaRefresh() {
+    _etaTimer?.cancel();
+    if (_disposed || !_foregroundActive) {
+      return;
+    }
+    final seconds = _intervalWithBackoff(
+      baseSeconds: 6,
+      failureStreak: _etaFailureStreak,
+      maxSeconds: 45,
+    );
+    _etaTimer = Timer(Duration(seconds: seconds), () async {
+      await _refreshEta();
+      _scheduleEtaRefresh();
+    });
+  }
+
+  int _intervalWithBackoff({
+    required int baseSeconds,
+    required int failureStreak,
+    required int maxSeconds,
+  }) {
+    final multiplier = 1 << failureStreak.clamp(0, 4);
+    final computed = baseSeconds * multiplier;
+    return computed > maxSeconds ? maxSeconds : computed;
+  }
+
+  void _handleLifecycleChange(AppLifecycleState state) {
+    final active = state == AppLifecycleState.resumed;
+    if (active == _foregroundActive) {
+      return;
+    }
+    _foregroundActive = active;
+    if (_foregroundActive) {
+      _connectSocket();
+      _scheduleLocationTick();
+      _scheduleEtaRefresh();
+      return;
+    }
+    _locationTimer?.cancel();
+    _etaTimer?.cancel();
+    _socketReconnectTimer?.cancel();
+    _socketService.disconnect();
+  }
+
+  late final _ScreenLifecycleObserver _lifecycleObserver =
+      _ScreenLifecycleObserver(onStateChanged: _handleLifecycleChange);
 
   void _autoProgressStatus(Position position) {
     if (_statusIndex >= _statuses.length - 1) {
@@ -299,8 +402,11 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
 
   @override
   void dispose() {
+    _disposed = true;
+    WidgetsBinding.instance.removeObserver(_lifecycleObserver);
     _locationTimer?.cancel();
     _etaTimer?.cancel();
+    _socketReconnectTimer?.cancel();
     _socketService.disconnect();
     _confettiController.dispose();
     super.dispose();
@@ -554,5 +660,16 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
         style: const TextStyle(color: Colors.white70, fontSize: 12),
       ),
     );
+  }
+}
+
+class _ScreenLifecycleObserver with WidgetsBindingObserver {
+  _ScreenLifecycleObserver({required this.onStateChanged});
+
+  final void Function(AppLifecycleState state) onStateChanged;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    onStateChanged(state);
   }
 }

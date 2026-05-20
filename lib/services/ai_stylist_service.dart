@@ -1,10 +1,8 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import '../models/models.dart';
-import 'app_config.dart';
 import 'backend_commerce_service.dart';
 
 enum StylistIntent {
@@ -47,8 +45,6 @@ class StylistReply {
 class AiStylistService {
   const AiStylistService();
 
-  static const String _systemPrompt = 'Fashion assistant. Short answers. Helpful.';
-  static const int _maxReplyTokens = 140;
   static const int _historyMessageLimit = 4;
   static final BackendCommerceService _backendCommerce = BackendCommerceService();
 
@@ -78,8 +74,6 @@ class AiStylistService {
     }
     return messages.sublist(messages.length - limit);
   }
-
-  int estimateTokens(String text) => (text.length / 4).ceil();
 
   StylistIntent detectIntent(String prompt, {Product? focusedProduct}) {
     final cleaned = _cleanPrompt(prompt);
@@ -287,30 +281,6 @@ class AiStylistService {
       }
     }
 
-    if (AppConfig.hasOpenAiConfig) {
-      try {
-        final openAiReply = await _respondWithOpenAi(
-          userName: userName,
-          prompt: prompt,
-          orders: orders,
-          measurements: measurements,
-          catalogProducts: catalogProducts,
-          bodyProfile: bodyProfile,
-          memory: memory,
-          recentHistory: recentHistory,
-          location: location,
-          focusedProduct: focusedProduct,
-          intent: intent,
-          recommendations: recommendations,
-        );
-        if (openAiReply != null) {
-          return openAiReply;
-        }
-      } catch (_) {
-        // Fall through to the heuristic response so the stylist stays usable.
-      }
-    }
-
     return _fallbackReply(
       userName: userName,
       prompt: prompt,
@@ -407,176 +377,6 @@ class AiStylistService {
     }
   }
 
-  Future<StylistReply?> _respondWithOpenAi({
-    required String userName,
-    required String prompt,
-    required List<OrderModel> orders,
-    required List<MeasurementProfile> measurements,
-    List<Product> catalogProducts = const [],
-    BodyProfile? bodyProfile,
-    UserMemory? memory,
-    List<ConversationMemoryMessage> recentHistory = const [],
-    String? location,
-    Product? focusedProduct,
-    required StylistIntent intent,
-    required List<StylistProductCard> recommendations,
-  }) async {
-    final response = await http
-        .post(
-          Uri.parse(AppConfig.openAiResponsesEndpoint),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${AppConfig.openAiApiKey}',
-          },
-          body: jsonEncode({
-            'model': AppConfig.openAiModel,
-            'max_output_tokens': _maxReplyTokens,
-            'input': [
-              {
-                'role': 'system',
-                'content': [
-                  {
-                    'type': 'input_text',
-                    'text': _systemPrompt,
-                  },
-                ],
-              },
-              {
-                'role': 'user',
-                'content': [
-                  {
-                    'type': 'input_text',
-                    'text': _buildOpenAiPrompt(
-                      userName: userName,
-                      prompt: prompt,
-                      orders: orders,
-                      measurements: measurements,
-                      catalogProducts: catalogProducts,
-                      bodyProfile: bodyProfile,
-                      memory: memory,
-                      recentHistory: recentHistory,
-                      location: location,
-                      focusedProduct: focusedProduct,
-                      intent: intent,
-                      recommendations: recommendations,
-                    ),
-                  },
-                ],
-              },
-            ],
-          }),
-        )
-        .timeout(const Duration(seconds: 2));
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      return null;
-    }
-
-    final decoded = jsonDecode(response.body);
-    String text = '';
-    if (decoded is Map<String, dynamic>) {
-      text = (decoded['output_text'] ?? '').toString().trim();
-      if (text.isEmpty) {
-        final output = decoded['output'];
-        if (output is List) {
-          for (final item in output) {
-            if (item is Map<String, dynamic>) {
-              final content = item['content'];
-              if (content is List) {
-                for (final block in content) {
-                  if (block is Map<String, dynamic>) {
-                    final candidate = (block['text'] ?? block['output_text'] ?? '')
-                        .toString()
-                        .trim();
-                    if (candidate.isNotEmpty) {
-                      text = candidate;
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-            if (text.isNotEmpty) {
-              break;
-            }
-          }
-        }
-      }
-    }
-    if (text.isEmpty) {
-      return null;
-    }
-
-    final size = bodyProfile?.recommendedSize ??
-        (measurements.isEmpty ? null : measurements.first.recommendedSize);
-    return StylistReply(
-      text: text,
-      quickReplies: _quickRepliesForPrompt(prompt),
-      highlightedSize: size,
-      intent: intent,
-      products: recommendations,
-    );
-  }
-
-  String _buildOpenAiPrompt({
-    required String userName,
-    required String prompt,
-    required List<OrderModel> orders,
-    required List<MeasurementProfile> measurements,
-    List<Product> catalogProducts = const [],
-    BodyProfile? bodyProfile,
-    UserMemory? memory,
-    List<ConversationMemoryMessage> recentHistory = const [],
-    String? location,
-    Product? focusedProduct,
-    required StylistIntent intent,
-    required List<StylistProductCard> recommendations,
-  }) {
-    final latestOrder = orders.isEmpty ? null : orders.first;
-    final primaryMeasurement = measurements.isEmpty ? null : measurements.first;
-    final cleanedPrompt = _cleanPrompt(prompt);
-    final history = _recentMessages(recentHistory)
-        .map((entry) => '${entry.role}: ${_truncate(entry.text, maxChars: 80)}')
-        .join('\n');
-    final parts = [
-      'user: ${userName.trim().isEmpty ? 'ABZORA Member' : _truncate(userName.trim(), maxChars: 24)}',
-      if ((location ?? '').trim().isNotEmpty) 'loc: ${_truncate(location!.trim(), maxChars: 32)}',
-      if (memory != null && memory.preferredStyle.trim().isNotEmpty)
-        'style: ${_truncate(memory.preferredStyle, maxChars: 40)}',
-      if (memory != null && memory.size.trim().isNotEmpty) 'size: ${memory.size.trim()}',
-      if (memory != null && memory.lastConversationSummary.trim().isNotEmpty)
-        'summary: ${_truncate(memory.lastConversationSummary, maxChars: 90)}',
-      if (bodyProfile != null)
-        'body: ${bodyProfile.bodyType}, top ${bodyProfile.recommendedSize}, pant ${bodyProfile.pantSize}, ${bodyProfile.heightCm.toStringAsFixed(0)}cm',
-      if (primaryMeasurement != null)
-        'measure: chest ${primaryMeasurement.chest.toStringAsFixed(0)}, waist ${primaryMeasurement.waist.toStringAsFixed(0)}, shoulder ${primaryMeasurement.shoulder.toStringAsFixed(0)}',
-      if (latestOrder != null)
-        'order: #${latestOrder.id} ${latestOrder.status} INR ${latestOrder.totalAmount.toStringAsFixed(0)}',
-      if (focusedProduct != null)
-        'product: ${_truncate(focusedProduct.name, maxChars: 40)}, ${focusedProduct.category}, sizes ${focusedProduct.sizes.take(5).join('/')}',
-      'intent: ${intent.name}',
-      if (recommendations.isNotEmpty)
-        'reco: ${recommendations.take(3).map((item) => '${_truncate(item.product.name, maxChars: 24)} (${item.recommendedSize ?? '-'})').join(', ')}',
-      if (history.isNotEmpty) 'recent:\n$history',
-      'ask: ${_truncate(cleanedPrompt, maxChars: 160)}',
-      'reply in max 2 sentences and mention the best matching pieces briefly.',
-    ];
-    final promptText = parts.join('\n');
-    if (estimateTokens(promptText) <= 220) {
-      return promptText;
-    }
-    return [
-      'user: ${userName.trim().isEmpty ? 'ABZORA Member' : _truncate(userName.trim(), maxChars: 24)}',
-      if (memory != null && memory.size.trim().isNotEmpty) 'size: ${memory.size.trim()}',
-      if (bodyProfile != null) 'body: ${bodyProfile.bodyType}, top ${bodyProfile.recommendedSize}',
-      if (focusedProduct != null)
-        'product: ${_truncate(focusedProduct.name, maxChars: 36)}, sizes ${focusedProduct.sizes.take(4).join('/')}',
-      if (recommendations.isNotEmpty)
-        'reco: ${_truncate(recommendations.first.product.name, maxChars: 24)} ${recommendations.first.recommendedSize ?? ''}',
-      'ask: ${_truncate(cleanedPrompt, maxChars: 120)}',
-      'reply in max 2 sentences.',
-    ].join('\n');
-  }
 
   StylistReply _fallbackReply({
     required String userName,

@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+data:
+  use-forwarded-headers: "true"
+  enable-real-ip: "true"
+  compute-full-forwarded-for: "true"
+  use-gzip: "true"
+  enable-brotli: "true"
+  brotli-level: "4"
+  gzip-level: "5"
+  gzip-types: "application/json application/javascript application/xml text/css text/plain text/xml"
+  keep-alive-requests: "1000"
+  keep-alive: "32"
+  worker-shutdown-timeout: "25s"
+  upstream-keepalive-connections: "320"
+  upstream-keepalive-timeout: "75"
+  proxy-request-buffering: "on"
+  client-header-timeout: "15"
+  client-body-timeout: "15"
+  send-timeout: "15"
+  server-tokens: "false"
+  allow-snippet-annotations: "true"

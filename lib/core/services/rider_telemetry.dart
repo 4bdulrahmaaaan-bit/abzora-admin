@@ -8,7 +8,9 @@ class RiderTelemetry {
   const RiderTelemetry._();
 
   static void event(String name, {Map<String, dynamic> data = const {}}) {
-    debugPrint('[RIDER_TELEMETRY] $name :: $data');
+    if (kDebugMode) {
+      debugPrint('[RIDER_TELEMETRY] $name :: $data');
+    }
     final db = DatabaseService();
     unawaited(
       db.trackExperienceEvent(

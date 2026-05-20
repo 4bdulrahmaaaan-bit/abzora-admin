@@ -8,6 +8,37 @@ admin.initializeApp();
 
 const db = admin.firestore();
 
+function buildAllowedCorsOrigins() {
+  // Security hardening: explicit origin allowlist for browser calls.
+  const configured = String(process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (configured.length > 0) {
+    return configured;
+  }
+  return [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+  ];
+}
+
+const REQUEST_OPTIONS = {
+  cors: buildAllowedCorsOrigins(),
+};
+
+function safeSignatureEquals(expectedHex, providedHex) {
+  // Security hardening: constant-time signature comparison to reduce timing leaks.
+  const expectedBuffer = Buffer.from(String(expectedHex || '').trim(), 'utf8');
+  const providedBuffer = Buffer.from(String(providedHex || '').trim(), 'utf8');
+  if (!expectedBuffer.length || expectedBuffer.length !== providedBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(expectedBuffer, providedBuffer);
+}
+
 function getRazorpayClient() {
   const keyId = process.env.RAZORPAY_KEY_ID || '';
   const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
@@ -28,7 +59,8 @@ async function authenticate(request, response) {
   }
   const idToken = authHeader.replace('Bearer ', '').trim();
   try {
-    return await admin.auth().verifyIdToken(idToken);
+    // Security hardening: enforce revocation checks for Firebase ID tokens.
+    return await admin.auth().verifyIdToken(idToken, true);
   } catch (error) {
     logger.error('Auth verification failed', error);
     response.status(401).json({ message: 'Invalid auth token.' });
@@ -36,7 +68,7 @@ async function authenticate(request, response) {
   }
 }
 
-exports.createCardSetupOrder = onRequest({ cors: true }, async (request, response) => {
+exports.createCardSetupOrder = onRequest(REQUEST_OPTIONS, async (request, response) => {
   if (request.method !== 'POST') {
     response.status(405).json({ message: 'Method not allowed.' });
     return;
@@ -77,7 +109,7 @@ exports.createCardSetupOrder = onRequest({ cors: true }, async (request, respons
   }
 });
 
-exports.createCheckoutOrder = onRequest({ cors: true }, async (request, response) => {
+exports.createCheckoutOrder = onRequest(REQUEST_OPTIONS, async (request, response) => {
   if (request.method !== 'POST') {
     response.status(405).json({ message: 'Method not allowed.' });
     return;
@@ -126,7 +158,7 @@ exports.createCheckoutOrder = onRequest({ cors: true }, async (request, response
   }
 });
 
-exports.verifyPayment = onRequest({ cors: true }, async (request, response) => {
+exports.verifyPayment = onRequest(REQUEST_OPTIONS, async (request, response) => {
   if (request.method !== 'POST') {
     response.status(405).json({ message: 'Method not allowed.' });
     return;
@@ -157,7 +189,7 @@ exports.verifyPayment = onRequest({ cors: true }, async (request, response) => {
       .update(`${orderId}|${paymentId}`)
       .digest('hex');
 
-    if (expected !== signature) {
+    if (!safeSignatureEquals(expected, signature)) {
       response.status(400).json({
         verified: false,
         message: 'Payment signature verification failed.',
@@ -188,7 +220,7 @@ exports.verifyPayment = onRequest({ cors: true }, async (request, response) => {
   }
 });
 
-exports.finalizeCardSetup = onRequest({ cors: true }, async (request, response) => {
+exports.finalizeCardSetup = onRequest(REQUEST_OPTIONS, async (request, response) => {
   if (request.method !== 'POST') {
     response.status(405).json({ message: 'Method not allowed.' });
     return;
@@ -218,7 +250,7 @@ exports.finalizeCardSetup = onRequest({ cors: true }, async (request, response) 
       .createHmac('sha256', keySecret)
       .update(`${orderId}|${paymentId}`)
       .digest('hex');
-    if (expected !== signature) {
+    if (!safeSignatureEquals(expected, signature)) {
       response.status(400).json({ message: 'Payment signature verification failed.' });
       return;
     }

@@ -45,6 +45,10 @@ class AppConfig {
     'CLOUDINARY_SIGNED_UPLOAD_ENDPOINT',
     defaultValue: '',
   );
+  static const bool allowInsecureUnsignedUploads = bool.fromEnvironment(
+    'ALLOW_INSECURE_UNSIGNED_UPLOADS',
+    defaultValue: false,
+  );
   static const String kycFaceMatchEndpoint = String.fromEnvironment(
     'KYC_FACE_MATCH_ENDPOINT',
     defaultValue: '',
