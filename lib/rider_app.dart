@@ -13,7 +13,7 @@ class AbzoraRiderApp extends StatelessWidget {
     return provider.ChangeNotifierProvider(
       create: (_) => AuthProvider(),
       child: MaterialApp.router(
-        title: 'Abzora Rider',
+        title: 'Abianzo Rider',
         debugShowCheckedModeBanner: false,
         theme: RiderTheme.dark(),
         routerConfig: riderRouter,

@@ -1123,7 +1123,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
       HapticFeedback.mediumImpact();
       setState(() => _lastCapturePath = watermarkedPath);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Try-on capture saved with ABZORA mark.')),
+        const SnackBar(content: Text('Try-on capture saved with Abianzo mark.')),
       );
     } catch (error) {
       if (!mounted) {
@@ -1353,7 +1353,7 @@ class _LiveArTryOnScreenState extends State<LiveArTryOnScreen> {
     }
     await Share.shareXFiles([
       XFile(path),
-    ], text: 'Trying on ${widget.product.name} with ABZORA AR.');
+    ], text: 'Trying on ${widget.product.name} with Abianzo AR.');
   }
 
   bool get _shouldUseNativeRenderer {

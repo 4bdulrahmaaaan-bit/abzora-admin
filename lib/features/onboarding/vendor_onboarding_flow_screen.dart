@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/widgets/rider_glass_card.dart';
 import '../../core/widgets/rider_glow_button.dart';
-import '../../core/widgets/rider_particle_background.dart';
 import '../../core/utils/vendor_kyc_policy.dart';
 import '../../core/services/vendor_telemetry.dart';
 import '../../models/models.dart';
@@ -401,11 +400,8 @@ class _VendorOnboardingFlowScreenState
       ),
       body: Stack(
         children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 2400),
-            builder: (context, value, _) =>
-                RiderParticleBackground(progress: value),
+          const DecoratedBox(
+            decoration: BoxDecoration(color: Color(0xFF050505)),
           ),
           Column(
             children: [
@@ -459,7 +455,7 @@ class _VendorOnboardingFlowScreenState
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
                     _card('Business Basics', [
-                      _field(_storeName, 'Store Name', hint: 'Abzora Tailors'),
+                      _field(_storeName, 'Store Name', hint: 'Abianzo Tailors'),
                       _field(_ownerName, 'Owner Name', hint: 'A. Rahman'),
                       _field(
                         _phone,

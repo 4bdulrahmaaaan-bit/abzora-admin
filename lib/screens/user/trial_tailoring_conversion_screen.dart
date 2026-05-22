@@ -102,7 +102,7 @@ class _TrialTailoringConversionScreenState
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'ABZORA will convert your trial into a custom tailoring request.',
+                  'Abianzo will convert your trial into a custom tailoring request.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.white.withValues(alpha: 0.78),
                       ),

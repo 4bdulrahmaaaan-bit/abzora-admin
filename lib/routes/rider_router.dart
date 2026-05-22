@@ -12,11 +12,11 @@ final riderRouter = GoRouter(
       builder: (context, state) => const RiderSplashScreen(),
     ),
     GoRoute(
-      path: RiderRoutes.welcome,
-      builder: (context, state) => const RiderWelcomeScreen(),
+      path: RiderRoutes.auth,
+      builder: (context, state) => const RiderAuthBannerScreen(),
     ),
     GoRoute(
-      path: RiderRoutes.auth,
+      path: RiderRoutes.profileSetup,
       builder: (context, state) => const RiderOnboardingFlowScreen(),
     ),
     GoRoute(

@@ -147,7 +147,7 @@ class RiderDashboard extends StatelessWidget {
           padding: EdgeInsets.all(24),
           child: AbzioEmptyCard(
             title: 'Rider access only',
-            subtitle: 'This workspace is reserved for ABZORA delivery partners.',
+            subtitle: 'This workspace is reserved for Abianzo delivery partners.',
           ),
         ),
       );
@@ -301,7 +301,7 @@ class RiderDashboard extends StatelessWidget {
     return Scaffold(
       backgroundColor: _RiderUi.ivory,
       appBar: AppBar(
-        title: const Text('ABZORA Rider'),
+        title: const Text('Abianzo Rider'),
       ),
       extendBody: true,
       body: content,
@@ -534,7 +534,7 @@ class _PendingApprovalView extends StatelessWidget {
               Text(
                 submitted
                     ? 'Your delivery partner profile is pending admin approval. Deliveries will appear here once approved.'
-                    : 'Add your vehicle and city details so ABZORA can review your rider application.',
+                    : 'Add your vehicle and city details so Abianzo can review your rider application.',
                 style: GoogleFonts.inter(color: Colors.white70, height: 1.5),
               ),
             ],
@@ -588,7 +588,7 @@ class _RiderHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            rider.name.isEmpty ? 'ABZORA Rider' : rider.name,
+            rider.name.isEmpty ? 'Abianzo Rider' : rider.name,
             style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 6),

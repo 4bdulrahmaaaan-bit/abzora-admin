@@ -9,7 +9,7 @@ import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
 import 'ops_account_screen.dart';
 import '../rider/rider_dashboard.dart';
-import '../vendor/vendor_workspace_screen.dart';
+import '../vendor/vendor_dashboard.dart';
 
 class OpsShellScreen extends StatefulWidget {
   const OpsShellScreen({super.key});
@@ -49,7 +49,7 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
     if (isVendor) {
       return Scaffold(
         backgroundColor: AbzioTheme.grey50,
-        body: const VendorWorkspaceScreen(),
+        body: const VendorDashboard(),
       );
     }
 
@@ -83,7 +83,7 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'ABZORA PARTNER',
+                  'Abianzo PARTNER',
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,

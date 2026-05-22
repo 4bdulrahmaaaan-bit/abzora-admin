@@ -2887,7 +2887,7 @@ class BackendCommerceService {
   AppUser _appUserFromBackend(Map<String, dynamic> map) {
     return AppUser.fromMap({
       'id': map['firebaseUid'] ?? map['uid'] ?? map['id'],
-      'name': map['name'] ?? 'ABZORA Member',
+      'name': map['name'] ?? 'Abianzo Member',
       'email': map['email'] ?? '',
       'profileImageUrl': map['profileImageUrl'],
       'phone': map['phone'] ?? '',

@@ -186,22 +186,32 @@ class _VendorDashboardState extends State<VendorDashboard>
     required int pendingOrders,
   }) {
     final insights = <String>[];
-    final lowStockCount = products.where((p) => p.stock > 0 && p.stock <= 5).length;
+    final lowStockCount = products
+        .where((p) => p.stock > 0 && p.stock <= 5)
+        .length;
     if (lowStockCount > 0) {
-      insights.add('Low stock alert: $lowStockCount styles are moving quickly today.');
+      insights.add(
+        'Low stock alert: $lowStockCount styles are moving quickly today.',
+      );
     }
     final discountedProducts = products.where((p) {
       final original = p.originalPrice ?? p.basePrice;
       return original != null && original > p.effectivePrice;
     }).length;
     if (discountedProducts > 0) {
-      insights.add('Products with discounts are converting faster in your catalog.');
+      insights.add(
+        'Products with discounts are converting faster in your catalog.',
+      );
     }
     if (pendingOrders >= 6) {
-      insights.add('High pending queue: process top orders now to protect delivery speed.');
+      insights.add(
+        'High pending queue: process top orders now to protect delivery speed.',
+      );
     }
     if (_todayOrderCount(orders) >= 8) {
-      insights.add('Strong demand today. Prioritize best sellers and low-stock SKUs.');
+      insights.add(
+        'Strong demand today. Prioritize best sellers and low-stock SKUs.',
+      );
     }
     if (insights.isEmpty) {
       insights.add('Reduce price by ₹200 on slow movers to lift conversion.');
@@ -545,8 +555,7 @@ class _VendorDashboardState extends State<VendorDashboard>
                         .length;
                     final refundsCount = orders
                         .where(
-                          (order) =>
-                              order.refundStatus.toLowerCase() != 'none',
+                          (order) => order.refundStatus.toLowerCase() != 'none',
                         )
                         .length;
                     final averageOrderValue = orders.isEmpty
@@ -569,7 +578,7 @@ class _VendorDashboardState extends State<VendorDashboard>
                           ),
                           child: _LuxuryHeaderCard(
                             storeName: store.name.trim().isEmpty
-                                ? 'ABZORA Partner'
+                                ? 'Abianzo Partner'
                                 : store.name,
                             acceptingOrders: store.isActive,
                             onToggle: (value) =>
@@ -603,9 +612,8 @@ class _VendorDashboardState extends State<VendorDashboard>
                           onViewPricing: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => PricingManagementScreen(
-                                  storeId: store.id,
-                                ),
+                                builder: (_) =>
+                                    PricingManagementScreen(storeId: store.id),
                               ),
                             );
                           },
@@ -626,16 +634,16 @@ class _VendorDashboardState extends State<VendorDashboard>
                           onPricing: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => PricingManagementScreen(
-                                  storeId: store.id,
-                                ),
+                                builder: (_) =>
+                                    PricingManagementScreen(storeId: store.id),
                               ),
                             );
                           },
                           onManageStore: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => StoreSettingsScreen(store: store),
+                                builder: (_) =>
+                                    StoreSettingsScreen(store: store),
                               ),
                             );
                           },
@@ -690,19 +698,20 @@ class _VendorDashboardState extends State<VendorDashboard>
                           _AlertsSection(alerts: alerts),
                         if (orders.isNotEmpty || products.isNotEmpty) ...[
                           const SizedBox(height: 16),
-                        _ProductPreviewSection(
-                          products: products,
-                          formatCurrency: _money,
-                          onAddProduct: () => _openAddProduct(actor),
-                          onManageProducts: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    ProductManagementScreen(storeId: store.id),
-                              ),
-                            );
-                          },
-                        ),
+                          _ProductPreviewSection(
+                            products: products,
+                            formatCurrency: _money,
+                            onAddProduct: () => _openAddProduct(actor),
+                            onManageProducts: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ProductManagementScreen(
+                                    storeId: store.id,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ],
                     );
@@ -734,17 +743,17 @@ class _VendorDashboardState extends State<VendorDashboard>
               height: 38,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFF0D98A), Color(0xFFD4AF37)],
-                ),
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFEAEAEA)),
               ),
               alignment: Alignment.center,
-              child: Text(
-                'A',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 20,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  'assets/branding/abzora_partner_icon.png',
+                  fit: BoxFit.cover,
+                  width: 30,
+                  height: 30,
                 ),
               ),
             ),
@@ -753,7 +762,7 @@ class _VendorDashboardState extends State<VendorDashboard>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ABZORA Vendor',
+                  'Abianzo Vendor',
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -773,6 +782,11 @@ class _VendorDashboardState extends State<VendorDashboard>
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Profile',
+            onPressed: () => Navigator.pushNamed(context, '/vendor-profile'),
+            icon: const Icon(Icons.person_outline_rounded),
+          ),
           IconButton(
             tooltip: 'Invoices',
             onPressed: () => Navigator.pushNamed(context, '/invoice/hub'),
@@ -898,11 +912,15 @@ class _PriorityOrdersCard extends StatelessWidget {
       curve: Curves.easeOutCubic,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: pendingOrders > 0 ? const Color(0xFFFFF0EA) : const Color(0xFFF8F6F2),
+        color: pendingOrders > 0
+            ? const Color(0xFFFFF0EA)
+            : const Color(0xFFF8F6F2),
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFD27F58).withValues(alpha: pendingOrders > 0 ? 0.16 : 0.06),
+            color: const Color(
+              0xFFD27F58,
+            ).withValues(alpha: pendingOrders > 0 ? 0.16 : 0.06),
             blurRadius: 22,
             offset: const Offset(0, 8),
           ),
@@ -1089,7 +1107,11 @@ class _AiInsightsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome, color: Color(0xFFC8A96A), size: 18),
+              const Icon(
+                Icons.auto_awesome,
+                color: Color(0xFFC8A96A),
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Text(
                 'AI Insights',
@@ -1253,7 +1275,10 @@ class _MergedEarningsCard extends StatelessWidget {
         children: [
           Text(
             'Earnings Overview',
-            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700),
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -1346,7 +1371,10 @@ class _MoreInsightsCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 12),
               child: Column(
                 children: [
-                  _InsightLine(label: 'Commission Today', value: commissionToday),
+                  _InsightLine(
+                    label: 'Commission Today',
+                    value: commissionToday,
+                  ),
                   _InsightLine(label: 'Avg Order Value', value: avgOrderValue),
                   _InsightLine(label: 'Refunds', value: '$refundsCount'),
                 ],
@@ -1376,7 +1404,10 @@ class _InsightLine extends StatelessWidget {
         children: [
           Text(
             label,
-            style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF67635E)),
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: const Color(0xFF67635E),
+            ),
           ),
           const Spacer(),
           Text(
@@ -1414,8 +1445,11 @@ class _VendorEmptyState extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Start selling on Abzora',
-            style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700),
+            'Start selling on Abianzo',
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -1618,7 +1652,7 @@ class _ProductPreviewCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  product.brand.trim().isEmpty ? 'ABZORA' : product.brand,
+                  product.brand.trim().isEmpty ? 'Abianzo' : product.brand,
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -1730,5 +1764,3 @@ class _AddProductCard extends StatelessWidget {
     );
   }
 }
-
-

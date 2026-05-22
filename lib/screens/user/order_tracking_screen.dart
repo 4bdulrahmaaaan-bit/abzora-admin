@@ -2263,7 +2263,7 @@ class _DeliveryDetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final recipient = order.shippingLabel.trim().isEmpty ? 'ABZORA Member' : order.shippingLabel.trim();
+    final recipient = order.shippingLabel.trim().isEmpty ? 'Abianzo Member' : order.shippingLabel.trim();
     final address = order.shippingAddress.trim().isEmpty
         ? 'Delivery address will appear here once available.'
         : order.shippingAddress.trim();

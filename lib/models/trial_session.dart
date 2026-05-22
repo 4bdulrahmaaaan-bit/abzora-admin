@@ -24,7 +24,7 @@ class TrialSessionItem {
   factory TrialSessionItem.fromMap(Map<String, dynamic> map) {
     return TrialSessionItem(
       productId: map['productId']?.toString() ?? map['id']?.toString() ?? '',
-      name: map['name']?.toString() ?? 'ABZORA Item',
+      name: map['name']?.toString() ?? 'Abianzo Item',
       imageUrl: map['imageUrl']?.toString() ?? map['image']?.toString() ?? '',
       price: ((map['price'] ?? 0) as num).toDouble(),
       recommendedSize:

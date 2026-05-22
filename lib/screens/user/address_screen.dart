@@ -266,7 +266,7 @@ class _AddressScreenState extends State<AddressScreen> {
     if (user.name.trim().isNotEmpty) {
       return _cleanName(user.name);
     }
-    return 'ABZORA Member';
+    return 'Abianzo Member';
   }
 
   String _cleanName(String raw) {

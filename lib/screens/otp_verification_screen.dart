@@ -23,12 +23,14 @@ class OtpVerificationScreen extends StatefulWidget {
     this.mode = AbzioAppMode.unified,
     this.adminEntry = false,
     this.deferredAction = false,
+    this.allowPartnerOnboarding = false,
   });
 
   final String? phoneNumber;
   final AbzioAppMode mode;
   final bool adminEntry;
   final bool deferredAction;
+  final bool allowPartnerOnboarding;
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -315,6 +317,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         }
       }
       if (combinedRestriction != null) {
+        if (!mounted) {
+          return;
+        }
+        if (widget.allowPartnerOnboarding && isPartnerMode(widget.mode)) {
+          Navigator.of(context).pop(true);
+          return;
+        }
         if (_needsPartnerProfileResolution &&
             canAccessMode(resolvedUser, widget.mode)) {
           if (!mounted) {
@@ -339,12 +348,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            content: Text(combinedRestriction),
-          ),
-        );
+        if (!isBuildScopeRestrictionMessage(combinedRestriction)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text(combinedRestriction),
+            ),
+          );
+        }
         Navigator.pushNamedAndRemoveUntil(
           context,
           widget.adminEntry ? '/admin-login' : '/login',

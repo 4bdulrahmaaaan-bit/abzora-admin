@@ -275,7 +275,7 @@ class BackendApiClient {
       return message;
     }
     final endpoint = '$method $path';
-    debugPrint('ABZORA serviceability failure at $endpoint: $message');
+    debugPrint('Abianzo serviceability failure at $endpoint: $message');
     return '$message (endpoint: $endpoint)';
   }
 

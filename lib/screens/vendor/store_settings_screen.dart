@@ -11,7 +11,6 @@ import '../../services/storage_service.dart';
 import '../../theme.dart';
 import '../../utils/app_error_text.dart';
 import '../../features/legal/account_deletion_request_screen.dart';
-import '../../features/legal/legal_consent_screen.dart';
 import '../../features/legal/legal_document_registry.dart';
 import '../../features/legal/legal_policy_hub_screen.dart';
 
@@ -296,16 +295,18 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
                 borderRadius: BorderRadius.circular(14),
                 side: BorderSide(color: AbzioTheme.grey100),
               ),
-              title: const Text('Legal Consent'),
-              subtitle: const Text(
-                'Review and accept vendor terms and privacy',
+              title: const Text(
+                "By logging in, I agree to Abianzo's terms and condition",
               ),
+              subtitle: const Text('Tap to review vendor terms and privacy'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const LegalConsentScreen(audience: LegalAudience.vendor),
+                  builder: (_) => const LegalPolicyHubScreen(
+                    audience: LegalAudience.vendor,
+                    title: 'Vendor Legal Center',
+                  ),
                 ),
               ),
             ),

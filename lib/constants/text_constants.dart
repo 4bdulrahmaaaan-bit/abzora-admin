@@ -1,5 +1,5 @@
 class AbzoraText {
-  static const brandName = 'ABZORA';
+  static const brandName = 'Abianzo';
   static const brandTagline = 'Style Near You';
   static const premiumMarketplaceBadge = 'Premium Fashion Marketplace';
   static const customNavLabel = 'Atelier';

@@ -1198,7 +1198,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              'Search in ABZORA',
+              'Search in Abianzo',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -1308,8 +1308,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             children: [
               Text(
                 showBuyPriorityMessage
-                    ? 'âš¡ Delivered today in $sameDayCity'
-                    : 'âœ¨ Try 5 styles, pay for what you keep',
+                    ? '\u26A1 Delivered today in $sameDayCity'
+                    : '\u2728 Try 5 styles, pay for what you keep',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: const Color(0xFFF2D9A0),
                   fontWeight: FontWeight.w800,
@@ -2958,7 +2958,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           child: Row(
                             children: [
                               const Text(
-                                'âœ¨',
+                                '\u2728',
                                 style: TextStyle(fontSize: 18),
                               ),
                               const SizedBox(width: 10),
@@ -3582,9 +3582,9 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
     final imageUrl = widget.images[_currentIndex];
     final price = widget.product.price <= 0
         ? ''
-        : ' for ${NumberFormat.currency(locale: 'en_IN', symbol: 'â‚¹', decimalDigits: 0).format(widget.product.price)}';
+        : ' for ${NumberFormat.currency(locale: 'en_IN', symbol: '\u20B9', decimalDigits: 0).format(widget.product.price)}';
     final message =
-        'Check out ${widget.product.name}$price on ABZORA.\n$imageUrl';
+        'Check out ${widget.product.name}$price on Abianzo.\n$imageUrl';
     await Share.share(message, subject: widget.product.name);
   }
 
@@ -4577,7 +4577,7 @@ class _TrialFitFeedbackSheetState extends State<_TrialFitFeedbackSheet> {
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Text(
-                        'Perfect. Weâ€™ll use this fit outcome to sharpen your future recommendations.',
+                        'Perfect. We\'ll use this fit outcome to sharpen your future recommendations.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFF7B5B27),
                           fontWeight: FontWeight.w700,
@@ -5013,7 +5013,7 @@ class _MiniSelectionCard extends StatelessWidget {
           Text(
             NumberFormat.currency(
               locale: 'en_IN',
-              symbol: 'â‚¹',
+              symbol: '\u20B9',
       decimalDigits: 0,
             ).format(product.effectivePrice),
             style: Theme.of(
@@ -5091,7 +5091,7 @@ class _DetailPricing {
   static _DetailPricing fromProduct(Product product) {
     final formatter = NumberFormat.currency(
       locale: 'en_IN',
-      symbol: 'â‚¹',
+      symbol: '\u20B9',
       decimalDigits: 0,
     );
     final currentPrice = product.effectivePrice;

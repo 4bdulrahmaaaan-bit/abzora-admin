@@ -22,28 +22,29 @@ bool isRiderMode(AbzioAppMode mode) {
 String appTitleForMode(AbzioAppMode mode) {
   switch (mode) {
     case AbzioAppMode.vendor:
-      return 'Abzora Vendor';
+      return 'Abianzo Vendor';
     case AbzioAppMode.rider:
-      return 'Abzora Rider';
+      return 'Abianzo Rider';
     case AbzioAppMode.operations:
-      return 'Abzora Partner';
+      return 'Abianzo Partner';
     case AbzioAppMode.customer:
+      return 'Abianzo';
     case AbzioAppMode.unified:
-      return 'Abzora';
+      return 'ABIANZO ADMIN';
   }
 }
 
 String splashTitleForMode(AbzioAppMode mode) {
   switch (mode) {
     case AbzioAppMode.vendor:
-      return 'ABZORA VENDOR';
+      return 'ABIANZO VENDOR';
     case AbzioAppMode.rider:
-      return 'ABZORA RIDER';
+      return 'ABIANZO RIDER';
     case AbzioAppMode.operations:
-      return 'ABZORA PARTNER';
+      return 'ABIANZO PARTNER';
     case AbzioAppMode.customer:
     case AbzioAppMode.unified:
-      return 'ABZORA';
+      return 'ABIANZO';
   }
 }
 
@@ -148,7 +149,7 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
       if (hasVendorOperationsAccess(user)) {
         return '/vendor-dashboard';
       }
-      return '/login';
+      return '/vendor-profile';
     case AbzioAppMode.rider:
       if (hasRiderOperationsAccess(user)) {
         return '/rider-dashboard';
@@ -183,12 +184,16 @@ String? accessRestrictionMessage(AppUser? user, AbzioAppMode mode) {
     return 'This build is for customer shopping only. Please use the partner or rider app for operations accounts.';
   }
   if (mode == AbzioAppMode.vendor && !hasVendorOperationsAccess(user)) {
-    return 'This build is for vendor operations only. Please use the rider or customer app for other accounts.';
+    // Vendor app should allow authenticated users to proceed to vendor setup
+    // flows (for example /vendor-profile) instead of forcing logout loops.
+    return null;
   }
   if (mode == AbzioAppMode.rider && !hasRiderOperationsAccess(user)) {
     final riderStatus = user.riderApprovalStatus.trim().toLowerCase();
     if (normalizedUserRole(user) == 'rider' && riderStatus != 'approved') {
-      return 'Your rider profile is not approved yet. Please complete onboarding or wait for approval.';
+      // Allow rider-authenticated users to continue into rider setup/onboarding
+      // flows instead of forcing a logout loop.
+      return null;
     }
     return 'This build is for rider operations only. Please use the vendor or customer app for other accounts.';
   }
@@ -201,7 +206,7 @@ String? accessRestrictionMessage(AppUser? user, AbzioAppMode mode) {
       return 'This account cannot access partner operations in this build.';
     }
     if (normalizedUserRole(user) == 'vendor') {
-      return 'Your vendor profile does not currently have operations access.';
+      return null;
     }
     return 'This build is for vendor and rider operations only. Please use the customer app for shopping accounts.';
   }
@@ -215,4 +220,8 @@ String? accessRestrictionMessage(AppUser? user, AbzioAppMode mode) {
     return 'Admin access is available only in the dedicated web panel.';
   }
   return null;
+}
+
+bool isBuildScopeRestrictionMessage(String message) {
+  return message.startsWith('This build is for ');
 }

@@ -12,7 +12,9 @@ import '../../services/database_service.dart';
 import '../../widgets/payout_account_dialog.dart';
 
 class RiderSettingsScreen extends StatefulWidget {
-  const RiderSettingsScreen({super.key});
+  const RiderSettingsScreen({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   State<RiderSettingsScreen> createState() => _RiderSettingsScreenState();
@@ -112,9 +114,7 @@ class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
+    final content = <Widget>[
         if (_loading) const LinearProgressIndicator(color: Color(0xFFD4AF37)),
         RiderGlassCard(
           child: SwitchListTile(
@@ -211,7 +211,18 @@ class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
             },
           ),
         ),
-      ],
+      ];
+
+    if (widget.embedded) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Column(children: content),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: content,
     );
   }
 }

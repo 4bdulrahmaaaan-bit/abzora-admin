@@ -36,7 +36,7 @@ class _OrderItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final imageUrl = item.product.images.isNotEmpty ? item.product.images.first : '';
-    final metaLabel = item.product.category.trim().isNotEmpty ? item.product.category : 'ABZORA Edit';
+    final metaLabel = item.product.category.trim().isNotEmpty ? item.product.category : 'Abianzo Edit';
 
     return Container(
       padding: const EdgeInsets.all(14),

@@ -937,7 +937,7 @@ class DatabaseService {
     if (isNewUser) {
       type = 'new_user';
       title = 'Special offer for you';
-      subtitle = 'Your first ABZORA order unlocks a premium welcome coupon.';
+      subtitle = 'Your first Abianzo order unlocks a premium welcome coupon.';
       discountAmount = 100;
       autoApply = cartValue >= 499;
     } else if (summary.cartAbandoned) {
@@ -1266,7 +1266,7 @@ class DatabaseService {
         id: 'offer-welcome-${now.millisecondsSinceEpoch}',
         userId: user.id,
         type: 'welcome',
-        title: 'Welcome to ABZORA',
+        title: 'Welcome to Abianzo',
         subtitle:
             'Start with a premium first-order saving curated for your style.',
         code: _generatePersonalizedCouponCode('new_user'),
@@ -1405,7 +1405,7 @@ class DatabaseService {
           id: 'growth-winback-${now.millisecondsSinceEpoch}',
           title: 'New looks are waiting',
           body:
-              'Come back to ABZORA, explore $leadingProductName, and use ${offer.code} for Rs 50 off.',
+              'Come back to Abianzo, explore $leadingProductName, and use ${offer.code} for Rs 50 off.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -4668,7 +4668,7 @@ class DatabaseService {
         riderId: null,
         trackingId: _buildTrackingId(entry.key),
         deliveryStatus: 'Placed',
-        assignedDeliveryPartner: 'Abzora Dispatch',
+        assignedDeliveryPartner: 'Abianzo Dispatch',
         invoiceNumber: _buildInvoiceNumber(entry.key),
         orderType: hasCustom ? 'custom_tailoring' : 'marketplace',
         trackingTimestamps: {'Order Placed': createdAt.toIso8601String()},
@@ -5889,7 +5889,7 @@ class DatabaseService {
       await _backendCommerce.syncUserProfile(
         current.copyWith(
           name: name != null
-              ? (name.trim().isEmpty ? 'ABZORA Member' : name.trim())
+              ? (name.trim().isEmpty ? 'Abianzo Member' : name.trim())
               : current.name,
           phone: phone != null ? phone.trim() : current.phone,
           profileImageUrl: profileImageUrl != null
@@ -5915,7 +5915,7 @@ class DatabaseService {
     final nowIso = _nowIso();
     final updates = <String, dynamic>{'updatedAt': nowIso};
     if (name != null) {
-      updates['name'] = name.trim().isEmpty ? 'ABZORA Member' : name.trim();
+      updates['name'] = name.trim().isEmpty ? 'Abianzo Member' : name.trim();
     }
     if (phone != null) {
       updates['phone'] = phone.trim();
@@ -8666,7 +8666,7 @@ class DatabaseService {
         name: request.storeName,
         description:
             existingStore?.description ??
-            'Approved vendor storefront on ABZORA.',
+            'Approved vendor storefront on Abianzo.',
         imageUrl: request.kyc.storeImageUrl.isNotEmpty
             ? request.kyc.storeImageUrl
             : (existingStore?.imageUrl ??
@@ -8688,7 +8688,7 @@ class DatabaseService {
         tagline:
             existingStore?.tagline ??
             (request.vendorType == 'custom_vendor'
-                ? 'Made-to-measure designer studio on ABZORA.'
+                ? 'Made-to-measure designer studio on Abianzo.'
                 : ''),
         commissionRate: existingStore?.commissionRate ?? 0.12,
         walletBalance: existingStore?.walletBalance ?? 0,
@@ -10328,7 +10328,7 @@ class DatabaseService {
       );
       final response =
           aiReply ??
-          'Hi $firstName, I am your ABZORA Assistant. I can help with orders, payments, returns, address guidance, and custom clothing questions. Try asking "Where is my order?" or "Help with custom fitting".';
+          'Hi $firstName, I am your Abianzo Assistant. I can help with orders, payments, returns, address guidance, and custom clothing questions. Try asking "Where is my order?" or "Help with custom fitting".';
       await _incrementTodayAiUsage(actor.id);
       return finalizeResponse(response, usedAi: true);
     }
@@ -10433,7 +10433,7 @@ class DatabaseService {
       case 'custom':
         return 'Hi $firstName, I can guide you with measurements, fit questions, and custom clothing decisions based on your saved profile.';
       default:
-        return 'Hi $firstName, I am ABZORA Assistant. Ask me about orders, payments, delivery updates, or custom clothing and I will help instantly.';
+        return 'Hi $firstName, I am Abianzo Assistant. Ask me about orders, payments, delivery updates, or custom clothing and I will help instantly.';
     }
   }
 

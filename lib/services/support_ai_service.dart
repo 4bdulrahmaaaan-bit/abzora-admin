@@ -34,7 +34,7 @@ class SupportAiService {
   const SupportAiService();
 
   static const String _supportSystemPrompt =
-      'ABZORA support assistant. Short answers. Helpful. Max 2 sentences.';
+      'Abianzo support assistant. Short answers. Helpful. Max 2 sentences.';
   static const int _maxReplyTokens = 110;
   static const int _maxDetailedReplyTokens = 150;
   static const int _maxPlanningTokens = 70;
@@ -276,7 +276,7 @@ class SupportAiService {
                   {
                     'type': 'input_text',
                     'text':
-                        'ABZORA support router. Use a function for actions. Keep reasoning minimal. Prefer no free-text when a tool fits.',
+                        'Abianzo support router. Use a function for actions. Keep reasoning minimal. Prefer no free-text when a tool fits.',
                   },
                 ],
               },
@@ -291,7 +291,7 @@ class SupportAiService {
                       memory: memory,
                       recentHistory: recentHistory,
                       extra:
-                          'user: ${actor.name.isEmpty ? 'ABZORA Member' : _truncate(actor.name, maxChars: 24)}\nchat: ${chat.type}',
+                          'user: ${actor.name.isEmpty ? 'Abianzo Member' : _truncate(actor.name, maxChars: 24)}\nchat: ${chat.type}',
                     ),
                   },
                 ],
@@ -482,7 +482,7 @@ class SupportAiService {
                       memory: memory,
                       recentHistory: recentHistory,
                       extra: [
-                        'user: ${actor.name.isEmpty ? 'ABZORA Member' : _truncate(actor.name, maxChars: 24)}',
+                        'user: ${actor.name.isEmpty ? 'Abianzo Member' : _truncate(actor.name, maxChars: 24)}',
                         'chat: ${chat.type}',
                         if (measurement != null)
                           'fit: ${measurement.label}, chest ${measurement.chest.toStringAsFixed(0)}, waist ${measurement.waist.toStringAsFixed(0)}',

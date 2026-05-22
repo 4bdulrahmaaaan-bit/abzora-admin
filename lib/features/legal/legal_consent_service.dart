@@ -14,6 +14,9 @@ class LegalConsentService {
     required AbzioAppMode mode,
   }) async {
     final audience = LegalVersioning.audienceFor(user: user, mode: mode);
+    if (audience == LegalAudience.vendor) {
+      return false;
+    }
     final expectedVersion = await _activeVersionFor(audience);
     final prefs = await SharedPreferences.getInstance();
     final acceptedVersion = prefs.getString(_versionKey(audience));

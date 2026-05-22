@@ -107,8 +107,8 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
 
     final firstName = _firstName(user?.name);
     final opener = widget.product != null
-        ? 'Hi $firstName, I am ABZORA Stylist ✨. I can help you style ${widget.product!.name}, suggest colors, and guide the best fit for this piece.'
-        : 'Hi $firstName, I am ABZORA Stylist ✨. Ask me what to wear, which colors fit the season, or what size should feel best for you.';
+        ? 'Hi $firstName, I am Abianzo Stylist ✨. I can help you style ${widget.product!.name}, suggest colors, and guide the best fit for this piece.'
+        : 'Hi $firstName, I am Abianzo Stylist ✨. Ask me what to wear, which colors fit the season, or what size should feel best for you.';
 
     if (!mounted) {
       return;
@@ -183,7 +183,7 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
 
     try {
       final reply = await _stylist.respond(
-        userName: user?.name ?? 'ABZORA Member',
+        userName: user?.name ?? 'Abianzo Member',
         prompt: prompt,
         orders: _orders,
         measurements: _measurements,
@@ -266,7 +266,7 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFDFC),
         appBar: AppBar(
-          title: const Text('ABZORA Stylist ✨'),
+          title: const Text('Abianzo Stylist ✨'),
         ),
         body: SafeArea(
           child: Column(
@@ -385,7 +385,7 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(
-                      'ABZORA Stylist ✨',
+                      'Abianzo Stylist ✨',
                       style: TextStyle(
                         color: AbzioTheme.accentColor,
                         fontSize: 12,

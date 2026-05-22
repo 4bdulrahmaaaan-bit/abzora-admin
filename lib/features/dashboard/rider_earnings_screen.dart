@@ -1,8 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/services/rider_telemetry.dart';
-import '../../core/widgets/rider_glass_card.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
@@ -31,7 +30,10 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
           decoration: const InputDecoration(hintText: 'Enter amount in Rs'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               final value = double.tryParse(controller.text.trim());
@@ -54,9 +56,14 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
       );
       setState(() {});
     } catch (error) {
-      RiderTelemetry.event('withdrawal_failed', data: {'error': error.toString()});
+      RiderTelemetry.event(
+        'withdrawal_failed',
+        data: {'error': error.toString()},
+      );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -83,13 +90,15 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
       );
       RiderTelemetry.event('payout_profile_saved');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Payout account saved')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Payout account saved')));
       setState(() {});
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -109,65 +118,109 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         final wallet = snap.data!;
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (_loading) const LinearProgressIndicator(color: Color(0xFFFF6B00)),
-            RiderGlassCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Available Balance'),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Rs ${wallet.balance.toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      FilledButton(
-                        onPressed: _loading ? null : () => _withdraw(user),
-                        child: const Text('Request Withdrawal'),
+        return Container(
+          color: const Color(0xFFFAFAFA),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (_loading)
+                const LinearProgressIndicator(color: Color(0xFFD4AF37)),
+              _LuxCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Available Balance',
+                      style: TextStyle(
+                        color: Color(0xFF7B756E),
+                        fontWeight: FontWeight.w600,
                       ),
-                      OutlinedButton(
-                        onPressed: _loading
-                            ? null
-                            : () => _managePayout(user, wallet.payoutProfile),
-                        child: Text(wallet.payoutProfile.isConfigured ? 'Edit Payout Account' : 'Setup Payout Account'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            RiderGlassCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Recent Payout Transactions',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 8),
-                  ...wallet.transactions.take(5).map(
-                    (t) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(t.note.isEmpty ? t.type : t.note),
-                      subtitle: Text(t.createdAt),
-                      trailing: Text('Rs ${t.amount.toStringAsFixed(0)}'),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    Text(
+                      '? ${wallet.balance.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF171717),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        FilledButton(
+                          onPressed: _loading ? null : () => _withdraw(user),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFFD4AF37),
+                            foregroundColor: const Color(0xFF111111),
+                          ),
+                          child: const Text('Request Withdrawal'),
+                        ),
+                        OutlinedButton(
+                          onPressed: _loading
+                              ? null
+                              : () =>
+                                    _managePayout(user, wallet.payoutProfile),
+                          child: Text(
+                            wallet.payoutProfile.isConfigured
+                                ? 'Edit Payout Account'
+                                : 'Setup Payout Account',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              _LuxCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Recent Payout Transactions',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF171717),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...wallet.transactions.take(5).map(
+                      (t) => ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(t.note.isEmpty ? t.type : t.note),
+                        subtitle: Text(t.createdAt),
+                        trailing: Text('? ${t.amount.toStringAsFixed(0)}'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 }
 
+class _LuxCard extends StatelessWidget {
+  const _LuxCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF7),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFECE4D2)),
+      ),
+      child: child,
+    );
+  }
+}

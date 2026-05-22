@@ -298,7 +298,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                         const SizedBox(height: 18),
                         Text(
-                          'Your ABZORA profile',
+                          'Your Abianzo profile',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
@@ -361,7 +361,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             },
                             decoration: InputDecoration(
                               labelText: 'Name',
-                              hintText: 'ABZORA Member',
+                              hintText: 'Abianzo Member',
                               errorText: _nameError,
                               border: InputBorder.none,
                             ),
@@ -464,7 +464,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               : () async {
                                   await auth.fillAddressFromGps(
                                     fallbackName: _nameController.text.trim().isEmpty
-                                        ? 'ABZORA Member'
+                                        ? 'Abianzo Member'
                                         : _nameController.text.trim(),
                                   );
                                   if (!mounted) {

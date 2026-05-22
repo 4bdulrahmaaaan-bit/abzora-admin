@@ -96,7 +96,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         'general',
         Icons.auto_awesome_rounded,
         'General Help',
-        'Instant answers from ABZORA Assistant',
+        'Instant answers from Abianzo Assistant',
       ),
     ];
 
@@ -125,14 +125,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  'Talk to ABZORA AI',
+                  'Talk to Abianzo AI',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Choose what you need help with and ABZORA Assistant will open the right conversation instantly.',
+                  'Choose what you need help with and Abianzo Assistant will open the right conversation instantly.',
                   style: TextStyle(
                     color: context.abzioSecondaryText,
                     height: 1.45,
@@ -331,7 +331,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'ABZORA Assistant is still available',
+                      'Abianzo Assistant is still available',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
@@ -403,7 +403,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'Need help? ABZORA Assistant is ready',
+                      'Need help? Abianzo Assistant is ready',
                       style:
                           Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w800,
@@ -447,7 +447,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           onPressed:
                               _creatingChat ? null : () => _openVoiceAssistant(actor),
                           icon: const Icon(Icons.mic_none_rounded),
-                          label: const Text('Talk to ABZORA AI'),
+                          label: const Text('Talk to Abianzo AI'),
                         ),
                       ),
                     ),
@@ -517,7 +517,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     ),
                     const SizedBox(width: 6),
                     IconButton(
-                      tooltip: 'Talk to ABZORA AI',
+                      tooltip: 'Talk to Abianzo AI',
                       onPressed: _creatingChat ? null : () => _openVoiceAssistant(actor),
                       icon: const Icon(Icons.mic_none_rounded),
                     ),
@@ -602,7 +602,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              'ABZORA Assistant ✨',
+                                              'Abianzo Assistant ✨',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w800,
                                               ),

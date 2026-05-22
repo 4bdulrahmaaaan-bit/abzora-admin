@@ -1,4 +1,4 @@
-﻿
+
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -336,7 +336,7 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'ABZORA Atelier',
+                      'Abianzo Atelier',
                       style: GoogleFonts.cormorantGaramond(
                         color: _ink,
                         fontWeight: FontWeight.w700,
@@ -796,7 +796,7 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('Order #ATL-ABZORA-2401', style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w800)),
+              Text('Order #ATL-Abianzo-2401', style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
               for (int i = 0; i < milestones.length; i++) ...<Widget>[
                 Row(

@@ -42,7 +42,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   bool _activeMode = true;
   bool _sending = false;
   String _heardText = '';
-  String _assistantText = 'Hey, I am your ABZORA stylist and assistant. Ask me about orders, fits, or what to wear next.';
+  String _assistantText = 'Hey, I am your Abianzo stylist and assistant. Ask me about orders, fits, or what to wear next.';
   String _statusText = 'Starting voice assistant...';
   String? _lastSpokenAssistantMessageId;
   _VoiceAssistantState _state = _VoiceAssistantState.idle;
@@ -418,7 +418,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                       ),
                       const Spacer(),
                       Text(
-                        'Talk to ABZORA AI',
+                        'Talk to Abianzo AI',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               color: Colors.white,
@@ -469,7 +469,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                       ),
                       const SizedBox(height: 12),
                       _SubtitleCard(
-                        label: 'ABZORA AI',
+                        label: 'Abianzo AI',
                         text: _assistantText,
                         accent: Colors.white,
                       ),

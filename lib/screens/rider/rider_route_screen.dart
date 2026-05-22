@@ -83,7 +83,7 @@ class _RiderRouteScreenState extends State<RiderRouteScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
                 _RouteHeroCard(
-                  riderName: rider.name.trim().isEmpty ? 'ABZORA Rider' : rider.name.trim(),
+                  riderName: rider.name.trim().isEmpty ? 'Abianzo Rider' : rider.name.trim(),
                   totalStops: stops.length,
                   deliveryCount: deliveries.length,
                   returnCount: returns.length,

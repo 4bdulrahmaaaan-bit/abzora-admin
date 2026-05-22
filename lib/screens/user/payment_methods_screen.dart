@@ -171,7 +171,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'ABZORA will preselect this at checkout for a faster, smoother payment flow.',
+                              'Abianzo will preselect this at checkout for a faster, smoother payment flow.',
                               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     color: context.abzioSecondaryText,
                                     height: 1.45,
@@ -283,7 +283,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                       index: 5,
                       child: _PaymentOptionTile(
                         icon: Icons.account_balance_wallet_outlined,
-                        title: 'ABZORA Credit',
+                        title: 'Abianzo Credit',
                         subtitle: 'Wallet checkout will be available soon',
                         selected: _selectedMethod == 'WALLET',
                         enabled: false,

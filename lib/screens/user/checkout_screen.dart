@@ -314,7 +314,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return UserAddress(
       id: 'profile-address',
       userId: user.id,
-      name: user.name.trim().isEmpty ? 'ABZORA Member' : user.name.trim(),
+      name: user.name.trim().isEmpty ? 'Abianzo Member' : user.name.trim(),
       phone: user.phone ?? '',
       addressLine: user.address!.trim(),
       city: user.city ?? '',
@@ -488,9 +488,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _placeOrder(CartProvider cart) async {
-    _logCheckout('ABZORA checkout: place order tapped');
+    _logCheckout('Abianzo checkout: place order tapped');
     if (_processing) {
-      _logCheckout('ABZORA checkout: ignored because processing is true');
+      _logCheckout('Abianzo checkout: ignored because processing is true');
       return;
     }
 
@@ -517,7 +517,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
     if (selectedPaymentMethod == 'WALLET') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ABZORA Credit will be available soon. Please choose another method.')),
+        const SnackBar(content: Text('Abianzo Credit will be available soon. Please choose another method.')),
       );
       return;
     }
@@ -552,12 +552,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     setState(() => _processing = true);
-    _logCheckout('ABZORA checkout: processing started with method=$selectedPaymentMethod');
+    _logCheckout('Abianzo checkout: processing started with method=$selectedPaymentMethod');
     unawaited(_rememberPaymentMethod(selectedPaymentMethod));
 
     try {
       final payableAmount = _totalAmount(cart);
-      _logCheckout('ABZORA checkout: payable amount=$payableAmount items=${cart.items.length}');
+      _logCheckout('Abianzo checkout: payable amount=$payableAmount items=${cart.items.length}');
       final orderItems = cart.items
           .map(
             (item) => OrderItem(
@@ -581,7 +581,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       late final OrderModel placedOrder;
 
       if (_database.usesBackendCommerce && _usesOnlinePayment(selectedPaymentMethod)) {
-        _logCheckout('ABZORA checkout: backend commerce online payment branch');
+        _logCheckout('Abianzo checkout: backend commerce online payment branch');
         final pendingOrder = await _database.placeOrdersForCart(
           actor: currentUser,
           items: orderItems,
@@ -596,22 +596,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           isPaymentVerified: false,
         );
         if (!mounted) {
-          _logCheckout('ABZORA checkout: unmounted after pending order creation');
+          _logCheckout('Abianzo checkout: unmounted after pending order creation');
           return;
         }
-        _logCheckout('ABZORA checkout: pending order created');
+        _logCheckout('Abianzo checkout: pending order created');
         final paymentResult = await PaymentService().processCheckout(
           context: context,
           userId: currentUser.id,
           backendOrderId: pendingOrder.id,
-          name: currentUser.name.trim().isEmpty ? 'ABZORA Member' : currentUser.name.trim(),
+          name: currentUser.name.trim().isEmpty ? 'Abianzo Member' : currentUser.name.trim(),
           amount: payableAmount,
           email: currentUser.email.isEmpty ? 'guest@abzora.app' : currentUser.email,
           contact: currentUser.phone ?? _selectedAddress!.phone,
           description: cart.hasCustomTailoring ? 'Custom clothing checkout' : 'Marketplace checkout',
         );
         if (!paymentResult.success) {
-          _logCheckout('ABZORA checkout: payment failed or cancelled');
+          _logCheckout('Abianzo checkout: payment failed or cancelled');
           if (mounted) {
             messenger.showSnackBar(
               const SnackBar(content: Text('Payment was not completed.')),
@@ -621,26 +621,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
         paymentReference = paymentResult.paymentId ?? paymentResult.externalWallet ?? paymentResult.orderId;
         paymentVerified = paymentResult.isVerified;
-        _logCheckout('ABZORA checkout: payment success verified=$paymentVerified');
+        _logCheckout('Abianzo checkout: payment success verified=$paymentVerified');
         final refreshedOrders = await _database.getUserOrdersOnce(currentUser.id);
         placedOrder = refreshedOrders.cast<OrderModel?>().firstWhere(
               (item) => item?.id == pendingOrder.id,
               orElse: () => pendingOrder,
             )!;
       } else {
-        _logCheckout('ABZORA checkout: direct order branch online=${_usesOnlinePayment(selectedPaymentMethod)}');
+        _logCheckout('Abianzo checkout: direct order branch online=${_usesOnlinePayment(selectedPaymentMethod)}');
         if (_usesOnlinePayment(selectedPaymentMethod)) {
           final paymentResult = await PaymentService().processCheckout(
             context: context,
             userId: currentUser.id,
-            name: currentUser.name.trim().isEmpty ? 'ABZORA Member' : currentUser.name.trim(),
+            name: currentUser.name.trim().isEmpty ? 'Abianzo Member' : currentUser.name.trim(),
             amount: payableAmount,
             email: currentUser.email.isEmpty ? 'guest@abzora.app' : currentUser.email,
             contact: currentUser.phone ?? _selectedAddress!.phone,
             description: cart.hasCustomTailoring ? 'Custom clothing checkout' : 'Marketplace checkout',
           );
           if (!paymentResult.success) {
-            _logCheckout('ABZORA checkout: direct payment failed or cancelled');
+            _logCheckout('Abianzo checkout: direct payment failed or cancelled');
             if (mounted) {
               messenger.showSnackBar(
                 const SnackBar(content: Text('Payment was not completed.')),
@@ -650,7 +650,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           }
           paymentReference = paymentResult.paymentId ?? paymentResult.externalWallet ?? paymentResult.orderId;
           paymentVerified = paymentResult.isVerified;
-          _logCheckout('ABZORA checkout: direct payment success verified=$paymentVerified');
+          _logCheckout('Abianzo checkout: direct payment success verified=$paymentVerified');
         }
 
         placedOrder = await _database.placeOrdersForCart(
@@ -668,14 +668,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       }
 
-      _logCheckout('ABZORA checkout: placed order');
+      _logCheckout('Abianzo checkout: placed order');
 
       if (!mounted) {
-        _logCheckout('ABZORA checkout: unmounted before success navigation');
+        _logCheckout('Abianzo checkout: unmounted before success navigation');
         return;
       }
 
-      _logCheckout('ABZORA checkout: navigating to success screen');
+      _logCheckout('Abianzo checkout: navigating to success screen');
       navigator.pushReplacement(
         MaterialPageRoute(
           builder: (_) => OrderSuccessScreen(
@@ -686,7 +686,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       );
     } catch (error) {
-      _logCheckout('ABZORA checkout: exception=$error');
+      _logCheckout('Abianzo checkout: exception=$error');
       if (!mounted) {
         return;
       }
@@ -699,7 +699,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
     } finally {
       if (mounted) {
-        _logCheckout('ABZORA checkout: processing finished');
+        _logCheckout('Abianzo checkout: processing finished');
         setState(() => _processing = false);
       }
     }
@@ -817,7 +817,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
               ),
               Text(
-                'Secure ABZORA finish',
+                'Secure Abianzo finish',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: context.abzioSecondaryText,
                       fontWeight: FontWeight.w600,
@@ -2303,7 +2303,7 @@ class _ReferralCreditCard extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
             SizedBox(width: 12),
-            Expanded(child: Text('Checking your ABZORA Credits...')),
+            Expanded(child: Text('Checking your Abianzo Credits...')),
           ],
         ),
       );
@@ -2436,7 +2436,7 @@ class _PriceBreakdownCard extends StatelessWidget {
           if (walletCredit > 0) ...[
             const SizedBox(height: 6),
             _PriceLine(
-              label: 'ABZORA Credits',
+              label: 'Abianzo Credits',
               value: '- ${formatter.format(walletCredit)}',
               valueColor: const Color(0xFF218B5B),
             ),

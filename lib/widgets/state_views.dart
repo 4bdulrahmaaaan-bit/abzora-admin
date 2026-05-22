@@ -203,7 +203,7 @@ class AbzioNetworkImage extends StatefulWidget {
     this.fit = BoxFit.cover,
     this.borderRadius,
     this.overlay,
-    this.fallbackLabel = 'ABZORA',
+    this.fallbackLabel = 'Abianzo',
     this.priority = false,
     this.maxWidth,
     this.maxHeight,
@@ -331,7 +331,7 @@ class _AbzioImageFallback extends StatelessWidget {
         final compact = shortestSide < 64;
         final ultraCompact = shortestSide < 40;
         final iconSize = ultraCompact ? 14.0 : (compact ? 18.0 : 28.0);
-        final labelText = label.trim().isEmpty ? 'ABZORA' : label.trim();
+        final labelText = label.trim().isEmpty ? 'Abianzo' : label.trim();
 
         return DecoratedBox(
           decoration: BoxDecoration(

@@ -379,7 +379,7 @@ class _AddCardScreenState extends State<AddCardScreen> with TickerProviderStateM
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Enter your card once for a faster checkout preference. ABZORA never stores raw card details.',
+                    'Enter your card once for a faster checkout preference. Abianzo never stores raw card details.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: context.abzioSecondaryText,
                           height: 1.45,
@@ -495,7 +495,7 @@ class _AddCardScreenState extends State<AddCardScreen> with TickerProviderStateM
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Your card details are passed only to Razorpay for secure verification. ABZORA stores only a card reference, card type, and the last four digits.',
+                            'Your card details are passed only to Razorpay for secure verification. Abianzo stores only a card reference, card type, and the last four digits.',
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: context.abzioSecondaryText,
                                   height: 1.4,

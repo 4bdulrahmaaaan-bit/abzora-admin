@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/gestures.dart';
 import 'package:confetti/confetti.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +8,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:lottie/lottie.dart' as lottie;
 import 'package:go_router/go_router.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:provider/provider.dart';
@@ -16,16 +17,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/utils/rider_validators.dart';
 import '../../../core/widgets/rider_glass_card.dart';
 import '../../../core/widgets/rider_glow_button.dart';
-import '../../../core/widgets/rider_particle_background.dart';
 import '../../../core/widgets/rider_validated_text_field.dart';
 import '../../../models/rider_signup_model.dart';
 import '../../../providers/rider_signup_provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../app_shell.dart';
 import '../../../services/database_service.dart';
 import '../../../services/onboarding_service.dart';
 import '../../../core/services/rider_telemetry.dart';
 import '../../../models/models.dart';
 import '../../../routes/rider_routes.dart';
+import '../../../screens/otp_verification_screen.dart';
+import '../../../utils/app_mode_routes.dart';
+import '../../../utils/app_error_text.dart';
+import '../legal/legal_consent_screen.dart';
+import '../legal/legal_document_registry.dart';
 
 class RiderSplashScreen extends StatefulWidget {
   const RiderSplashScreen({super.key});
@@ -34,146 +40,461 @@ class RiderSplashScreen extends StatefulWidget {
   State<RiderSplashScreen> createState() => _RiderSplashScreenState();
 }
 
-class _RiderSplashScreenState extends State<RiderSplashScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
+class _RiderSplashScreenState extends State<RiderSplashScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2200),
-    )..forward();
-    Future<void>.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) context.replace(RiderRoutes.welcome);
-    });
+    Future<void>.delayed(const Duration(milliseconds: 2500), _routeFromSplash);
+  }
+
+  Future<void> _routeFromSplash() async {
+    if (!mounted) {
+      return;
+    }
+
+    final auth = context.read<AuthProvider>();
+    if (!auth.isInitialized) {
+      for (var i = 0; i < 20; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+        if (!mounted) {
+          return;
+        }
+        if (auth.isInitialized) {
+          break;
+        }
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    final isAuthenticated = auth.isAuthenticated && auth.user != null;
+    context.replace(isAuthenticated ? RiderRoutes.dashboard : RiderRoutes.auth);
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Scaffold(
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF000000), Color(0xFF101010)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-              ),
-              RiderParticleBackground(progress: _controller.value),
-              Center(
-                child:
-                    Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Image.asset(
-                              'assets/branding/abzora_rider_icon.png',
-                              width: 110,
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'ABZORA RIDER',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            SizedBox(
-                              height: 120,
-                              child: lottie.Lottie.asset(
-                                'assets/lottie/rider_intro.json',
-                                repeat: true,
-                                errorBuilder: (_, error, stackTrace) =>
-                                    const Icon(Icons.local_shipping, size: 62),
-                              ),
-                            ),
-                          ],
-                        )
-                        .animate()
-                        .fadeIn(duration: 700.ms)
-                        .scale(begin: const Offset(0.94, 0.94)),
-              ),
-            ],
+    return const Scaffold(
+      backgroundColor: Color(0xFF080808),
+      body: Center(
+        child: SizedBox.expand(
+          child: Image(
+            image: AssetImage(
+              'assets/branding/abianzo_rider_splash_1080x1920.png',
+            ),
+            fit: BoxFit.contain,
+            alignment: Alignment.center,
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
 
-class RiderWelcomeScreen extends StatelessWidget {
-  const RiderWelcomeScreen({super.key});
+class RiderAuthBannerScreen extends StatefulWidget {
+  const RiderAuthBannerScreen({super.key});
+
+  @override
+  State<RiderAuthBannerScreen> createState() => _RiderAuthBannerScreenState();
+}
+
+class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
+  final PageController _bannerController = PageController();
+  final TextEditingController _phoneController = TextEditingController();
+  Timer? _bannerTimer;
+  int _bannerIndex = 0;
+
+  static const List<
+    ({
+      String title,
+      String subtitle,
+      IconData icon,
+      String imagePath,
+      double textTopOffset,
+    })
+  >
+  _banners = [
+    (
+      title: 'REAL-TIME ORDERS',
+      subtitle: 'Smart navigation and instant delivery updates',
+      icon: Icons.route_rounded,
+      imagePath: 'assets/onboarding/rider_visual_0.jpg',
+      textTopOffset: 2,
+    ),
+    (
+      title: 'DELIVER WITH CONFIDENCE',
+      subtitle: 'Safe rides with smart support',
+      icon: Icons.verified_user_rounded,
+      imagePath: 'assets/onboarding/rider_visual_1.jpg',
+      textTopOffset: 6,
+    ),
+    (
+      title: 'START YOUR DAY STRONG',
+      subtitle: 'Deliver smarter across Chennai',
+      icon: Icons.schedule_rounded,
+      imagePath: 'assets/onboarding/rider_visual_2.jpg',
+      textTopOffset: -2,
+    ),
+    (
+      title: 'EARN MORE',
+      subtitle: 'Weekly payouts and incentives',
+      icon: Icons.currency_rupee_rounded,
+      imagePath: 'assets/onboarding/rider_visual_3.jpg',
+      textTopOffset: 8,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoSlide();
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    _bannerController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoSlide() {
+    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_bannerController.hasClients) {
+        return;
+      }
+      final next = (_bannerIndex + 1) % _banners.length;
+      _bannerController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+      setState(() => _bannerIndex = next);
+    });
+  }
+
+  String _normalizedPhone() {
+    return _phoneController.text.replaceAll(RegExp(r'[^0-9]'), '');
+  }
+
+  Future<void> _startOtp() async {
+    final phone = _normalizedPhone();
+    if (phone.length != 10) {
+      context.showRiderSnack('Enter a valid 10-digit mobile number.');
+      return;
+    }
+    final auth = context.read<AuthProvider>();
+    try {
+      await auth.requestOtp(phone);
+      if (!mounted) {
+        return;
+      }
+      final verified = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => OtpVerificationScreen(
+            phoneNumber: phone,
+            mode: AbzioAppMode.rider,
+            deferredAction: true,
+            allowPartnerOnboarding: true,
+          ),
+        ),
+      );
+      if (!mounted || verified != true) {
+        return;
+      }
+      final user =
+          await auth.refreshProfileFromBackendIfPossible() ?? auth.user;
+      if (!mounted) {
+        return;
+      }
+      context.go(
+        hasRiderOperationsAccess(user)
+            ? RiderRoutes.dashboard
+            : RiderRoutes.profileSetup,
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      context.showRiderSnack(AppErrorText.from(error));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final loginCardHeight = screenHeight < 720 ? 356.0 : 390.0;
     return Scaffold(
+      backgroundColor: const Color(0xFF0F0F0F),
       body: Stack(
-        fit: StackFit.expand,
         children: [
-          Container(color: const Color(0xFF050505)),
-          const _AnimatedBackdrop(),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Spacer(),
-                  const Text(
-                    'Become an Abzora Rider',
-                    style: TextStyle(
-                      fontSize: 38,
-                      height: 1.05,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.8,
+          Positioned.fill(
+            child: PageView.builder(
+              controller: _bannerController,
+              onPageChanged: (index) => setState(() => _bannerIndex = index),
+              itemCount: _banners.length,
+              itemBuilder: (context, index) {
+                final banner = _banners[index];
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    TweenAnimationBuilder<double>(
+                      key: ValueKey(banner.imagePath),
+                      tween: Tween(begin: 1.0, end: 1.035),
+                      duration: const Duration(seconds: 7),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, scale, child) =>
+                          Transform.scale(scale: scale, child: child),
+                      child: Image.asset(banner.imagePath, fit: BoxFit.cover),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Earn money with flexible delivery opportunities',
-                    style: TextStyle(
-                      color: Color.fromRGBO(255, 255, 255, 0.72),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Row(
-                    children: [
-                      Expanded(
-                        child: _Stat(
-                          title: 'INR 25,000+',
-                          subtitle: 'Monthly Earnings',
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 360),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        child: Column(
+                          key: ValueKey(banner.title),
+                          children: [
+                            SafeArea(
+                              bottom: false,
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  top: 80 + banner.textTopOffset,
+                                ),
+                                child: SizedBox(
+                                  width: MediaQuery.sizeOf(context).width * 0.8,
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        banner.title,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontSize: 36,
+                                          fontFamily: 'Cormorant Garamond',
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFFD4AF37),
+                                          letterSpacing: 0.5,
+                                          height: 1.05,
+                                          shadows: [
+                                            Shadow(
+                                              color: Color(0x40000000),
+                                              blurRadius: 8,
+                                              offset: Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        banner.subtitle,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          color: Color(0xFFF5E7C1),
+                                          fontFamily: 'Poppins',
+                                          fontWeight: FontWeight.w500,
+                                          height: 1.4,
+                                          shadows: [
+                                            Shadow(
+                                              color: Color(0x33000000),
+                                              blurRadius: 6,
+                                              offset: Offset(0, 1),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: _Stat(
-                          title: 'Weekly',
-                          subtitle: 'Instant Payouts',
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          Positioned(
+            left: 24,
+            right: 24,
+            bottom: loginCardHeight + 20,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List<Widget>.generate(_banners.length, (index) {
+                final active = index == _bannerIndex;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: active ? 20 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: active
+                        ? const Color(0xFFD4AF37)
+                        : const Color(0xFF555555),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                );
+              }),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(22, 20, 22, 24),
+              decoration: const BoxDecoration(
+                color: Color(0xEB111111),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Enter rider workspace',
+                      style: TextStyle(
+                        fontSize: 27,
+                        fontFamily: 'Cormorant Garamond',
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFFF5E7C1),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Use your registered mobile number to continue',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFFC8A96B),
+                        fontSize: 14.5,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    TextField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      maxLength: 10,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      style: const TextStyle(
+                        color: Color(0xFF111111),
+                        fontWeight: FontWeight.w700,
+                      ),
+                      cursorColor: Color(0xFFD4AF37),
+                      decoration: InputDecoration(
+                        prefixText: '+91  ',
+                        prefixStyle: const TextStyle(
+                          color: Color(0xFF111111),
+                          fontWeight: FontWeight.w800,
+                        ),
+                        counterText: '',
+                        hintText: 'Enter 10 digit mobile number',
+                        hintStyle: const TextStyle(color: Color(0xFF9A958B)),
+                        filled: true,
+                        fillColor: const Color(0xFFFAF8F2),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE5D7B3),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFD4AF37),
+                            width: 1.4,
+                          ),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: _Stat(title: 'Flexible', subtitle: 'Timings'),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: auth.isLoading ? null : _startOtp,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          disabledBackgroundColor: const Color(0xFFE0D8C9),
+                          foregroundColor: const Color(0xFF111111),
+                          elevation: 0,
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFD4AF37), Color(0xFFF5E7C1)],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Center(
+                            child: auth.isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF111111),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Get Started',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-                  RiderGlowButton(
-                    label: 'Start Earning',
-                    icon: Icons.arrow_forward,
-                    onPressed: () => context.push(RiderRoutes.auth),
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text.rich(
+                      TextSpan(
+                        text: "By logging in, I agree to Abianzo's ",
+                        children: [
+                          TextSpan(
+                            text: 'terms and condition',
+                            style: const TextStyle(
+                              color: Color(0xFF8A6A16),
+                              fontWeight: FontWeight.w800,
+                              decoration: TextDecoration.underline,
+                            ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const LegalConsentScreen(
+                                      audience: LegalAudience.rider,
+                                    ),
+                                  ),
+                                );
+                              },
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFFC8A96B),
+                        fontSize: 12.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -206,11 +527,56 @@ class _RiderOnboardingFlowScreenState
   String _ifscLookupMessage = '';
   String _detectedBankName = '';
   static const _draftKey = 'rider_onboarding_draft_v1';
+  static const List<String> _stepTitles = <String>[
+    'Phone Authentication',
+    'OTP Verification',
+    'Personal Details',
+    'Vehicle Details',
+    'KYC Verification',
+    'Bank Details',
+    'Delivery Preferences',
+    'Terms & Agreement',
+    'Application Review',
+  ];
+  static const List<String> _stepSubtitles = <String>[
+    'Verify your phone to start secure onboarding.',
+    'Enter the 6-digit code to continue.',
+    'Share your basic identity and profile photo.',
+    'Add your vehicle and mandatory transport docs.',
+    'Complete rider identity checks with confidence.',
+    'Set payout details for weekly settlements.',
+    'Choose shifts, work mode, and service zone.',
+    'Accept policies and add your digital signature.',
+    'Review progress before final submission.',
+  ];
 
   @override
   void initState() {
     super.initState();
     _restoreDraft();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final auth = context.read<AuthProvider>();
+      final pendingPhone = (auth.pendingPhoneNumber ?? '').replaceAll(
+        RegExp(r'[^0-9]'),
+        '',
+      );
+      if (pendingPhone.length == 10 || pendingPhone.length == 12) {
+        final normalized = pendingPhone.length == 12
+            ? pendingPhone.substring(2)
+            : pendingPhone;
+        final model = ref.read(riderSignupProvider);
+        ref
+            .read(riderSignupProvider.notifier)
+            .update(model.copyWith(phone: normalized));
+        if (_step == 0) {
+          setState(() => _step = 1);
+          _pageController.jumpToPage(1);
+        }
+      }
+    });
   }
 
   @override
@@ -266,7 +632,7 @@ class _RiderOnboardingFlowScreenState
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
       } else {
-        context.go(RiderRoutes.welcome);
+        context.go(RiderRoutes.auth);
       }
       return;
     }
@@ -543,6 +909,7 @@ class _RiderOnboardingFlowScreenState
       RiderTelemetry.event('rider_submit_success', data: {'userId': user.id});
       context.replace(RiderRoutes.success);
       final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('onboarding_completed', true);
       await prefs.remove(_draftKey);
     } catch (e) {
       if (!mounted) return;
@@ -605,6 +972,7 @@ class _RiderOnboardingFlowScreenState
     final stepError = _validateStep(model, _step);
     final canContinue = stepError == null;
 
+    final progress = (_step + 1) / 9;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -612,12 +980,14 @@ class _RiderOnboardingFlowScreenState
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           tooltip: 'Back',
         ),
-        title: Text('Onboarding Step ${_step + 1}/9'),
+        title: Text(_stepTitles[_step]),
       ),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const _AnimatedBackdrop(),
+          const DecoratedBox(
+            decoration: BoxDecoration(color: Color(0xFF080808)),
+          ),
           Column(
             children: [
               const SizedBox(height: 8),
@@ -627,16 +997,23 @@ class _RiderOnboardingFlowScreenState
                   children: [
                     Row(
                       children: [
-                        Text(
-                          'Step ${_step + 1} of 9',
-                          style: const TextStyle(
-                            color: Color(0xFFBDBDBD),
-                            fontWeight: FontWeight.w600,
+                        _stepIndicatorChip(),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _stepSubtitles[_step],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFD0D0D0),
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                         const Spacer(),
                         Text(
-                          '${(((_step + 1) / 9) * 100).round()}%',
+                          '${(progress * 100).round()}%',
                           style: const TextStyle(
                             color: Color(0xFFFFB300),
                             fontWeight: FontWeight.w700,
@@ -649,12 +1026,34 @@ class _RiderOnboardingFlowScreenState
                       borderRadius: BorderRadius.circular(99),
                       child: LinearProgressIndicator(
                         minHeight: 8,
-                        value: (_step + 1) / 9,
-                        backgroundColor: Colors.white12,
+                        value: progress,
+                        backgroundColor: Color(0x33FFFFFF),
                         valueColor: const AlwaysStoppedAnimation(
                           Color(0xFFF5D76E),
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: List<Widget>.generate(9, (index) {
+                        final active = index == _step;
+                        final complete = index < _step;
+                        return Expanded(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            margin: EdgeInsets.only(right: index == 8 ? 0 : 4),
+                            height: 4,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(99),
+                              color: complete
+                                  ? const Color(0xFFD4AF37)
+                                  : active
+                                  ? const Color(0xFFF5D76E)
+                                  : Color(0x33FFFFFF),
+                            ),
+                          ),
+                        );
+                      }),
                     ),
                   ],
                 ),
@@ -689,7 +1088,7 @@ class _RiderOnboardingFlowScreenState
                   child: RiderGlowButton(
                     label: _step == 8
                         ? (_submitting ? 'Submitting...' : 'Submit Application')
-                        : 'Continue',
+                        : 'Save & Continue',
                     onPressed: _step == 8
                         ? (_submitting ? null : () => _submitApplication(model))
                         : (canContinue ? _next : null),
@@ -751,7 +1150,7 @@ class _RiderOnboardingFlowScreenState
               borderRadius: BorderRadius.circular(14),
               fieldWidth: 44,
               activeColor: const Color(0xFFD4AF37),
-              inactiveColor: Colors.white24,
+              inactiveColor: Color(0x55FFFFFF),
               selectedColor: const Color(0xFFD4AF37),
             ),
             onChanged: (_) {},
@@ -770,7 +1169,7 @@ class _RiderOnboardingFlowScreenState
     final content = <Widget>[
       TextFormField(
         initialValue: model.fullName,
-        decoration: const InputDecoration(labelText: 'Full Name'),
+        decoration: _onboardingInputDecoration('Full Name'),
         onChanged: (v) => ref
             .read(riderSignupProvider.notifier)
             .update(model.copyWith(fullName: v)),
@@ -779,7 +1178,7 @@ class _RiderOnboardingFlowScreenState
       const SizedBox(height: 10),
       TextFormField(
         initialValue: model.email,
-        decoration: const InputDecoration(labelText: 'Email Address'),
+        decoration: _onboardingInputDecoration('Email Address'),
         onChanged: (v) => ref
             .read(riderSignupProvider.notifier)
             .update(model.copyWith(email: v)),
@@ -802,13 +1201,7 @@ class _RiderOnboardingFlowScreenState
       const SizedBox(height: 10),
       Row(
         children: [
-          Expanded(
-            child: Text(
-              model.profilePhotoPath == null
-                  ? 'No profile photo selected'
-                  : 'Photo selected',
-            ),
-          ),
+          Expanded(child: _statusPill(model.profilePhotoPath != null)),
           TextButton(onPressed: _pickImage, child: const Text('Upload')),
         ],
       ),
@@ -861,9 +1254,7 @@ class _RiderOnboardingFlowScreenState
           const SizedBox(height: 10),
           TextFormField(
             initialValue: model.licenseNumber,
-            decoration: const InputDecoration(
-              labelText: 'Driving License Number',
-            ),
+            decoration: _onboardingInputDecoration('Driving License Number'),
             onChanged: (v) => ref
                 .read(riderSignupProvider.notifier)
                 .update(model.copyWith(licenseNumber: v)),
@@ -946,7 +1337,7 @@ class _RiderOnboardingFlowScreenState
           const SizedBox(height: 8),
           const Text(
             'Secure encrypted verification in progress',
-            style: TextStyle(color: Color.fromRGBO(255, 255, 255, 0.72)),
+            style: TextStyle(color: Color.fromRGBO(255, 255, 255, 0.78)),
           ),
         ],
       ),
@@ -960,7 +1351,7 @@ class _RiderOnboardingFlowScreenState
         children: [
           TextFormField(
             initialValue: model.accountHolder,
-            decoration: const InputDecoration(labelText: 'Account Holder Name'),
+            decoration: _onboardingInputDecoration('Account Holder Name'),
             onChanged: (v) => ref
                 .read(riderSignupProvider.notifier)
                 .update(model.copyWith(accountHolder: v)),
@@ -968,7 +1359,7 @@ class _RiderOnboardingFlowScreenState
           const SizedBox(height: 10),
           TextFormField(
             initialValue: model.bankName,
-            decoration: const InputDecoration(labelText: 'Bank Name'),
+            decoration: _onboardingInputDecoration('Bank Name'),
             onChanged: (v) => ref
                 .read(riderSignupProvider.notifier)
                 .update(model.copyWith(bankName: v)),
@@ -1027,7 +1418,7 @@ class _RiderOnboardingFlowScreenState
               child: Text(
                 _ifscLookupMessage,
                 style: const TextStyle(
-                  color: Color.fromRGBO(255, 255, 255, 0.72),
+                  color: Color.fromRGBO(255, 255, 255, 0.78),
                   fontSize: 12,
                 ),
               ),
@@ -1053,7 +1444,7 @@ class _RiderOnboardingFlowScreenState
                 child: Text(
                   'Encrypted payout details. Stored securely for settlement only.',
                   style: TextStyle(
-                    color: Color.fromRGBO(255, 255, 255, 0.72),
+                    color: Color.fromRGBO(255, 255, 255, 0.78),
                     fontSize: 12,
                   ),
                 ),
@@ -1072,9 +1463,7 @@ class _RiderOnboardingFlowScreenState
         children: [
           TextFormField(
             initialValue: model.referral,
-            decoration: const InputDecoration(
-              labelText: 'Referral Code (optional)',
-            ),
+            decoration: _onboardingInputDecoration('Referral Code (optional)'),
             onChanged: (v) => ref
                 .read(riderSignupProvider.notifier)
                 .update(model.copyWith(referral: v)),
@@ -1179,7 +1568,7 @@ class _RiderOnboardingFlowScreenState
             height: 150,
             child: SingleChildScrollView(
               child: Text(
-                'By joining Abzora Rider, you agree to service standards, customer safety policies, payout terms, and data processing clauses for verification and operations.',
+                'By joining Abianzo Rider, you agree to service standards, customer safety policies, payout terms, and data processing clauses for verification and operations.',
               ),
             ),
           ),
@@ -1193,8 +1582,8 @@ class _RiderOnboardingFlowScreenState
           ),
           TextFormField(
             initialValue: model.signature,
-            decoration: const InputDecoration(
-              labelText: 'Digital Signature (type full name)',
+            decoration: _onboardingInputDecoration(
+              'Digital Signature (type full name)',
             ),
             onChanged: (v) => ref
                 .read(riderSignupProvider.notifier)
@@ -1222,7 +1611,7 @@ class _RiderOnboardingFlowScreenState
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white12),
+              border: Border.all(color: Color(0x33FFFFFF)),
             ),
             child: Row(
               children: [
@@ -1295,9 +1684,22 @@ class _RiderOnboardingFlowScreenState
                 title,
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
-                  fontSize: 20,
+                  fontSize: 21,
+                  letterSpacing: 0.2,
                 ),
               ),
+              const SizedBox(height: 6),
+              const Text(
+                'All details are encrypted and reviewed for rider safety and payout accuracy.',
+                style: TextStyle(
+                  color: Color.fromRGBO(255, 255, 255, 0.76),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _stepVisualBanner(),
               const SizedBox(height: 14),
               child,
             ],
@@ -1307,23 +1709,221 @@ class _RiderOnboardingFlowScreenState
     ).animate().fadeIn(duration: 250.ms).slideY(begin: 0.08, end: 0);
   }
 
+  Widget _stepVisualBanner() {
+    final accent = _stepAccentColor();
+    final icon = _stepIllustrationIcon();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [accent.withValues(alpha: 0.22), const Color(0xFF0D0D0D)],
+        ),
+        border: Border.all(color: accent.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 48,
+              height: 48,
+              color: Colors.white.withValues(alpha: 0.92),
+              padding: const EdgeInsets.all(4),
+              child: Image.asset(
+                'assets/branding/abzora_rider_icon.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _stepVisualLine(),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFFE5E5E5),
+                height: 1.3,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: accent.withValues(alpha: 0.26),
+            ),
+            child: Icon(icon, color: accent, size: 20),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _stepIllustrationIcon() {
+    switch (_step) {
+      case 0:
+        return Icons.sms_outlined;
+      case 1:
+        return Icons.verified_user_outlined;
+      case 2:
+        return Icons.badge_outlined;
+      case 3:
+        return Icons.two_wheeler_outlined;
+      case 4:
+        return Icons.fact_check_outlined;
+      case 5:
+        return Icons.account_balance_outlined;
+      case 6:
+        return Icons.route_outlined;
+      case 7:
+        return Icons.gavel_outlined;
+      case 8:
+        return Icons.task_alt_outlined;
+      default:
+        return Icons.local_shipping_outlined;
+    }
+  }
+
+  Color _stepAccentColor() {
+    switch (_step) {
+      case 0:
+        return const Color(0xFFF5D76E);
+      case 1:
+        return const Color(0xFF7EDB8F);
+      case 2:
+        return const Color(0xFF69D7FF);
+      case 3:
+        return const Color(0xFFFFB36A);
+      case 4:
+        return const Color(0xFF9CD37E);
+      case 5:
+        return const Color(0xFF8CB7FF);
+      case 6:
+        return const Color(0xFFFFD26A);
+      case 7:
+        return const Color(0xFFCDA8FF);
+      case 8:
+        return const Color(0xFF7EE3BA);
+      default:
+        return const Color(0xFFF5D76E);
+    }
+  }
+
+  String _stepVisualLine() {
+    switch (_step) {
+      case 0:
+        return 'Secure OTP verification protects your rider account from day one.';
+      case 1:
+        return 'Instant code confirmation unlocks the next onboarding stage.';
+      case 2:
+        return 'A complete profile improves trust and approval turnaround.';
+      case 3:
+        return 'Vehicle details help route matching and delivery assignment quality.';
+      case 4:
+        return 'KYC checks run through encrypted verification workflows.';
+      case 5:
+        return 'Payout setup ensures smooth weekly settlement transfers.';
+      case 6:
+        return 'Delivery preferences tune jobs to your shift and service radius.';
+      case 7:
+        return 'Policy acceptance keeps rider, customer, and platform standards aligned.';
+      case 8:
+        return 'Final review confirms every critical step before submission.';
+      default:
+        return 'Complete your onboarding to start earning as an Abianzo rider.';
+    }
+  }
+
+  Widget _stepIndicatorChip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: const Color(0xFFD4AF37).withValues(alpha: 0.45),
+        ),
+      ),
+      child: Text(
+        'Step ${_step + 1}/9',
+        style: const TextStyle(
+          color: Color(0xFFF5D76E),
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+
   Widget _uploadRow(
     String label,
     String? path,
     void Function(String) onPicked,
   ) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            path == null ? '$label: not uploaded' : '$label: uploaded',
+    final uploaded = path != null && path.isNotEmpty;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Color(0x33FFFFFF)),
+        color: Colors.white.withValues(alpha: 0.03),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
-        ),
-        TextButton(
-          onPressed: () => _pickFile(onPicked),
-          child: const Text('Upload'),
-        ),
-      ],
+          _statusPill(uploaded),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: () => _pickFile(onPicked),
+            child: Text(uploaded ? 'Replace' : 'Upload'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusPill(bool complete) {
+    final bg = complete
+        ? const Color(0xFF30D158).withValues(alpha: 0.15)
+        : const Color(0xFFF5D76E).withValues(alpha: 0.15);
+    final fg = complete ? const Color(0xFF30D158) : const Color(0xFFF5D76E);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        complete ? 'Uploaded' : 'Pending',
+        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+
+  InputDecoration _onboardingInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.white24),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 1.3),
+      ),
     );
   }
 }
@@ -1399,7 +1999,7 @@ class _RiderSuccessScreenState extends State<RiderSuccessScreen> {
                       const Text(
                         'Estimated approval: within 24-48 hours',
                         style: TextStyle(
-                          color: Color.fromRGBO(255, 255, 255, 0.72),
+                          color: Color.fromRGBO(255, 255, 255, 0.78),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -1431,71 +2031,5 @@ class _RiderSuccessScreenState extends State<RiderSuccessScreen> {
         ),
       ),
     );
-  }
-}
-
-class _AnimatedBackdrop extends StatefulWidget {
-  const _AnimatedBackdrop();
-
-  @override
-  State<_AnimatedBackdrop> createState() => _AnimatedBackdropState();
-}
-
-class _AnimatedBackdropState extends State<_AnimatedBackdrop>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) =>
-          RiderParticleBackground(progress: _controller.value),
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.title, required this.subtitle});
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return RiderGlassCard(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color.fromRGBO(255, 255, 255, 0.72),
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.08, end: 0);
   }
 }

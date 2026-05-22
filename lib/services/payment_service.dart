@@ -76,7 +76,7 @@ class PaymentService {
       'amount': orderPayload.amountInPaise,
       if (orderPayload.orderId.isNotEmpty) 'order_id': orderPayload.orderId,
       'currency': orderPayload.currency,
-      'name': 'ABZORA',
+      'name': 'Abianzo',
       'description': description,
       'prefill': {
         'contact': contact,
@@ -387,7 +387,7 @@ class PaymentService {
       'order_id': orderId,
       'amount': (amount * 100).toInt(),
       'currency': currency,
-      'name': 'ABZORA',
+      'name': 'Abianzo',
       'description': 'Secure card verification',
       'prefill': {
         'contact': contact,

@@ -36,7 +36,7 @@ class AppBootstrapService {
     }
 
     if (firebaseReady) {
-      debugPrint('ABZORA Firebase project: ${Firebase.app().options.projectId}');
+      debugPrint('Abianzo Firebase project: ${Firebase.app().options.projectId}');
       if (AppConfig.hasBackendBaseUrl) {
         try {
           FirebaseDatabase.instance.goOffline();

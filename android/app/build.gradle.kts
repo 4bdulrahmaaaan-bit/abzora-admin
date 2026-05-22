@@ -43,17 +43,17 @@ android {
         create("customer") {
             dimension = "app"
             applicationId = "com.abdz.fashion.abzio"
-            resValue("string", "app_name", "Abzora")
+            resValue("string", "app_name", "Abianzo")
         }
         create("vendor") {
             dimension = "app"
             applicationId = "com.abdz.fashion.abzio.vendor"
-            resValue("string", "app_name", "Abzora Vendor")
+            resValue("string", "app_name", "Abianzo Vendor")
         }
         create("rider") {
             dimension = "app"
             applicationId = "com.abdz.fashion.abzio.rider"
-            resValue("string", "app_name", "Abzora Delivery")
+            resValue("string", "app_name", "Abianzo Delivery")
         }
     }
 

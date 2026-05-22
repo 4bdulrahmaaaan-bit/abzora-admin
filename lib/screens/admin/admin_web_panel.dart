@@ -1690,7 +1690,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             child: AbzioEmptyCard(
               title: 'Admin access only',
               subtitle:
-                  'This workspace is restricted to ABZORA platform administrators.',
+                  'This workspace is restricted to Abianzo platform administrators.',
             ),
           ),
         ),
@@ -1836,7 +1836,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ABZORA ADMIN',
+                      'ABIANZO ADMIN',
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
@@ -5026,7 +5026,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                           style: GoogleFonts.inter(fontWeight: FontWeight.w700),
                         ),
                         subtitle: Text(
-                          '${product.brand.isEmpty ? 'ABZORA' : product.brand} - ${product.category} - ${store?.name ?? product.storeId}',
+                          '${product.brand.isEmpty ? 'Abianzo' : product.brand} - ${product.category} - ${store?.name ?? product.storeId}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

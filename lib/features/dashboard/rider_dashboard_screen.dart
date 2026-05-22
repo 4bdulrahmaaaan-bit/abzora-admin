@@ -5,9 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:abzio/features/dashboard/rider_earnings_screen.dart';
 import 'package:abzio/features/dashboard/rider_orders_screen.dart';
 import 'package:abzio/features/profile/rider_profile_screen.dart';
-import 'package:abzio/features/settings/rider_settings_screen.dart';
 
-import '../../core/widgets/rider_glass_card.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
@@ -38,13 +36,19 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
       const RiderOrdersScreen(),
       const RiderEarningsScreen(),
       const RiderProfileScreen(),
-      const RiderSettingsScreen(),
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Abzora Rider')),
+      backgroundColor: const Color(0xFFFAFAFA),
+      appBar: AppBar(
+        title: const Text('Abianzo Rider'),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF111111),
+        elevation: 0,
+      ),
       body: SafeArea(child: pages[_index]),
       bottomNavigationBar: NavigationBar(
+        backgroundColor: Colors.white,
         selectedIndex: _index,
         onDestinationSelected: (v) => setState(() => _index = v),
         destinations: const [
@@ -60,10 +64,6 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             label: 'Profile',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            label: 'Settings',
           ),
         ],
       ),
@@ -87,7 +87,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: RiderGlassCard(
+                  child: _LuxCard(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -104,7 +104,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                RiderGlassCard(
+                _LuxCard(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -130,7 +130,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                       child: _MetricCard(
                         title: 'Wallet',
                         value:
-                            'Rs ${((wallet?.balance ?? 0)).toStringAsFixed(0)}',
+                            '? ${((wallet?.balance ?? 0)).toStringAsFixed(0)}',
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -149,7 +149,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                       child: _MetricCard(
                         title: 'Earnings Today',
                         value:
-                            'Rs ${((analytics?.earningsToday ?? 0)).toStringAsFixed(0)}',
+                            '? ${((analytics?.earningsToday ?? 0)).toStringAsFixed(0)}',
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -157,13 +157,13 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                       child: _MetricCard(
                         title: 'Pending Payout',
                         value:
-                            'Rs ${((analytics?.pendingPayout ?? 0)).toStringAsFixed(0)}',
+                            '? ${((analytics?.pendingPayout ?? 0)).toStringAsFixed(0)}',
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                RiderGlassCard(
+                _LuxCard(
                   child: SizedBox(
                     height: 200,
                     child: FlutterMap(
@@ -184,7 +184,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                RiderGlassCard(
+                _LuxCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -201,7 +201,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                                   title: Text(t.note.isEmpty ? t.type : t.note),
                                   subtitle: Text(t.createdAt),
                                   trailing: Text(
-                                    'Rs ${t.amount.toStringAsFixed(0)}',
+                                    '? ${t.amount.toStringAsFixed(0)}',
                                   ),
                                 ),
                               ) ??
@@ -230,21 +230,47 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RiderGlassCard(
+    return _LuxCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(color: Color.fromRGBO(255, 255, 255, 0.72)),
+            style: const TextStyle(
+              color: Color(0xFF7B756E),
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 20,
+              color: Color(0xFF171717),
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LuxCard extends StatelessWidget {
+  const _LuxCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF7),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFECE4D2)),
+      ),
+      child: child,
     );
   }
 }

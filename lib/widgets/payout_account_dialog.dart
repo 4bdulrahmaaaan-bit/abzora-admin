@@ -246,7 +246,7 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
                     ],
                   ),
                   Text(
-                    'Choose where ABZORA should send your approved withdrawals through RazorpayX.',
+                    'Choose where Abianzo should send your approved withdrawals through RazorpayX.',
                     style: GoogleFonts.inter(fontSize: 13, color: AbzioTheme.grey500, height: 1.45),
                   ),
                   const SizedBox(height: 16),

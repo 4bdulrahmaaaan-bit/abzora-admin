@@ -41,7 +41,6 @@ class RiderValidatedTextField extends StatelessWidget {
         : helperText;
 
     return TextFormField(
-      key: ValueKey('$label-$initialValue'),
       initialValue: initialValue,
       keyboardType: keyboardType,
       textInputAction: textInputAction,

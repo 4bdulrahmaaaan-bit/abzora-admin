@@ -445,7 +445,7 @@ class _VendorOnboardingScreenState extends State<VendorOnboardingScreen> {
                         const SizedBox(height: 4),
                         Text(
                           _latestSubmission == null
-                              ? 'After upload, ABZORA extracts your Aadhaar and PAN details, validates formats, and fast-tracks strong submissions automatically.'
+                              ? 'After upload, Abianzo extracts your Aadhaar and PAN details, validates formats, and fast-tracks strong submissions automatically.'
                               : _latestSubmission!.verification.reviewSummary,
                           style: const TextStyle(
                             color: Color(0xFF6F6F6F),

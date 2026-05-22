@@ -39,7 +39,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
   }
 
   String _shareMessage(String code) {
-    return 'Get Rs 75 on ABZORA\nUse my code: $code\nDownload now: ${AppConfig.appDownloadLink}';
+    return 'Get Rs 75 on Abianzo\nUse my code: $code\nDownload now: ${AppConfig.appDownloadLink}';
   }
 
   Future<void> _shareWhatsApp(String code) async {
@@ -274,7 +274,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  code.isEmpty ? 'Generating your invite code...' : 'Share your premium invite and grow ABZORA smarter.',
+                  code.isEmpty ? 'Generating your invite code...' : 'Share your premium invite and grow Abianzo smarter.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
@@ -456,9 +456,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
   Widget _howItWorks(BuildContext context) {
     final steps = [
       ('1', 'Share your code', 'Send your premium invite code to friends.'),
-      ('2', 'They sign up', 'Your friend joins ABZORA using your code.'),
+      ('2', 'They sign up', 'Your friend joins Abianzo using your code.'),
       ('3', 'They place an order', 'Their first order must be Rs 499 or more.'),
-      ('4', 'Both earn credits', 'You both receive ABZORA Credits automatically.'),
+      ('4', 'Both earn credits', 'You both receive Abianzo Credits automatically.'),
     ];
     return _shell(
       context,

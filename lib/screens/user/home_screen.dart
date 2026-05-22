@@ -620,7 +620,7 @@ class _HomeContentState extends State<HomeContent> {
             final productProvider = context.read<ProductProvider>();
             await auth.saveProfile(
               name: nameController.text.trim().isEmpty
-                  ? 'ABZORA Member'
+                  ? 'Abianzo Member'
                   : nameController.text.trim(),
               address: addressController.text.trim(),
             );
@@ -3130,7 +3130,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
                                               borderRadius: BorderRadius.circular(16),
                                               child: AbzioNetworkImage(
                                                 imageUrl: items.length > 1 && items[1].images.isNotEmpty ? items[1].images.first : '',
-                                                fallbackLabel: items.length > 1 ? items[1].name : 'ABZORA',
+                                                fallbackLabel: items.length > 1 ? items[1].name : 'Abianzo',
                                                 fit: BoxFit.cover,
                                               ),
                                             ),
@@ -3141,7 +3141,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
                                               borderRadius: BorderRadius.circular(16),
                                               child: AbzioNetworkImage(
                                                 imageUrl: items.length > 2 && items[2].images.isNotEmpty ? items[2].images.first : '',
-                                                fallbackLabel: items.length > 2 ? items[2].name : 'ABZORA',
+                                                fallbackLabel: items.length > 2 ? items[2].name : 'Abianzo',
                                                 fit: BoxFit.cover,
                                               ),
                                             ),

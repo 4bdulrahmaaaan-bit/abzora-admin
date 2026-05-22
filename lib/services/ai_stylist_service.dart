@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:intl/intl.dart';
 
 import '../models/models.dart';
@@ -45,7 +43,6 @@ class StylistReply {
 class AiStylistService {
   const AiStylistService();
 
-  static const int _historyMessageLimit = 4;
   static final BackendCommerceService _backendCommerce = BackendCommerceService();
 
   String _cleanPrompt(String value) {
@@ -63,16 +60,6 @@ class AiStylistService {
       return cleaned;
     }
     return '${cleaned.substring(0, maxChars - 3)}...';
-  }
-
-  List<ConversationMemoryMessage> _recentMessages(
-    List<ConversationMemoryMessage> messages, {
-    int limit = _historyMessageLimit,
-  }) {
-    if (messages.length <= limit) {
-      return messages;
-    }
-    return messages.sublist(messages.length - limit);
   }
 
   StylistIntent detectIntent(String prompt, {Product? focusedProduct}) {
@@ -527,7 +514,7 @@ class AiStylistService {
         recommendations.isNotEmpty ? ' I also pulled a few matching pieces you can browse right away.' : '';
     return StylistReply(
       text:
-          'Hi $firstName, I am ABZORA Stylist. I can suggest outfits for occasions, help you choose colors, and guide your size or custom-fit decisions with your saved profile.$locationLine$productLine',
+          'Hi $firstName, I am Abianzo Stylist. I can suggest outfits for occasions, help you choose colors, and guide your size or custom-fit decisions with your saved profile.$locationLine$productLine',
       quickReplies: const [
         'What should I wear for a wedding?',
         'Suggest casual outfits',
@@ -563,29 +550,6 @@ class AiStylistService {
       return 'Great value right now';
     }
     return 'Popular match for your request';
-  }
-
-  List<String> _quickRepliesForPrompt(String prompt) {
-    final lowered = prompt.toLowerCase();
-    if (lowered.contains('size') || lowered.contains('fit')) {
-      return const [
-        'Scan your body',
-        'Find my perfect size',
-        'Custom clothing help',
-      ];
-    }
-    if (lowered.contains('wedding')) {
-      return const [
-        'Show festive colors',
-        'Suggest custom outfit',
-        'Find my size',
-      ];
-    }
-    return const [
-      'Suggest casual outfits',
-      'Best colors for summer',
-      'Find my size',
-    ];
   }
 
   String styleSummaryForProduct(Product product, MeasurementProfile? measurement) {

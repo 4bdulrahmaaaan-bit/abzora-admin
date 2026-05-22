@@ -404,7 +404,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
               borderRadius: BorderRadius.circular(999),
             ),
             child: const Text(
-              'ABZORA FIT AI',
+              'Abianzo FIT AI',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,

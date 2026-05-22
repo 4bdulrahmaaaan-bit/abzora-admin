@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/services/rider_telemetry.dart';
-import '../../core/widgets/rider_glass_card.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/rider_service.dart';
@@ -114,34 +113,54 @@ class _RiderOrdersScreenState extends State<RiderOrdersScreen> {
         }
         final orders = snap.data!;
         if (orders.isEmpty) {
-          return const Center(child: Text('No assigned deliveries yet'));
+          return const Center(
+            child: Text(
+              'No assigned deliveries yet',
+              style: TextStyle(color: Color(0xFF6F6A63)),
+            ),
+          );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: orders.length,
-          itemBuilder: (context, i) {
-            final order = orders[i];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: RiderGlassCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Order ${order.id}',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 6),
-                    Text('${order.deliveryStatus} | ${order.shippingAddress}'),
-                    const SizedBox(height: 6),
-                    Text('Rs ${order.totalAmount.toStringAsFixed(0)}'),
-                    const SizedBox(height: 10),
-                    _actionRow(order, user),
-                  ],
+        return Container(
+          color: const Color(0xFFFAFAFA),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: orders.length,
+            itemBuilder: (context, i) {
+              final order = orders[i];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _LuxCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Order ${order.id}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF171717),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${order.deliveryStatus} | ${order.shippingAddress}',
+                        style: const TextStyle(color: Color(0xFF6F6A63)),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '? ${order.totalAmount.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF171717),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _actionRow(order, user),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         );
       },
     );
@@ -242,7 +261,7 @@ class _IncomingOrderDialogState extends State<_IncomingOrderDialog> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Earnings: Rs ${(widget.order.totalAmount * 0.1).toStringAsFixed(0)}',
+            'Earnings: ? ${(widget.order.totalAmount * 0.1).toStringAsFixed(0)}',
             style: const TextStyle(color: Colors.white70),
           ),
           const SizedBox(height: 12),
@@ -264,6 +283,25 @@ class _IncomingOrderDialogState extends State<_IncomingOrderDialog> {
           child: const Text('Accept'),
         ),
       ],
+    );
+  }
+}
+
+class _LuxCard extends StatelessWidget {
+  const _LuxCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF7),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFECE4D2)),
+      ),
+      child: child,
     );
   }
 }

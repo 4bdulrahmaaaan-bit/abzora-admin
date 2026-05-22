@@ -194,7 +194,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
     if (type == 'onError' || type == 'unity_error') {
       final code = event['code']?.toString() ?? 'unity_error';
       final message = event['message']?.toString() ?? 'Unexpected AR error.';
-      debugPrint('[ABZORA AR] $code: $message');
+      debugPrint('[Abianzo AR] $code: $message');
       if (code == 'ar_tracking_timeout') {
         // Tracking can stay in limited state on some devices even with a valid
         // camera feed/body signal. Avoid forcing visual fallback (yellow screen).
@@ -228,7 +228,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
   void _activateSmartPreviewFallback() {
     // Temporarily disabled to isolate yellow-screen source.
     // If yellow remains, it is coming from Unity render path, not Flutter UI.
-    debugPrint('[ABZORA AR] Smart preview fallback suppressed (diagnostic mode).');
+    debugPrint('[Abianzo AR] Smart preview fallback suppressed (diagnostic mode).');
     if (!mounted) return;
     _initTimeoutTimer?.cancel();
     setState(() {
@@ -274,7 +274,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
       if (!status.isGranted) {
         final requested = await Permission.camera.request();
         if (!requested.isGranted) {
-          debugPrint('[ABZORA AR] Camera permission denied: $requested');
+          debugPrint('[Abianzo AR] Camera permission denied: $requested');
           if (mounted) {
             setState(() => _cameraPermissionDenied = true);
             widget.onError?.call('Camera access is needed to start Try Live.');
@@ -289,14 +289,14 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
       _availableCameras = await availableCameras();
       return true;
     } on CameraException catch (error) {
-      debugPrint('[ABZORA AR] Camera permission check failed: ${error.code} ${error.description}');
+      debugPrint('[Abianzo AR] Camera permission check failed: ${error.code} ${error.description}');
       if (mounted) {
         setState(() => _cameraPermissionDenied = true);
         widget.onError?.call('Camera access is needed to start Try Live.');
       }
       return false;
     } catch (error) {
-      debugPrint('[ABZORA AR] Camera access failed: $error');
+      debugPrint('[Abianzo AR] Camera access failed: $error');
       if (mounted) {
         setState(() => _cameraPermissionDenied = true);
         widget.onError?.call('Camera access is needed to start Try Live.');
@@ -363,7 +363,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
     }
     final description = _selectPoseCamera(_availableCameras);
     if (description == null) {
-      debugPrint('[ABZORA AR] No camera available for pose pipeline.');
+      debugPrint('[Abianzo AR] No camera available for pose pipeline.');
       return;
     }
 
@@ -376,7 +376,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
     await controller.initialize();
     _poseCameraController = controller;
     _posePipelineReady = true;
-    debugPrint('[ABZORA AR] Pose camera initialized: ${description.name}');
+    debugPrint('[Abianzo AR] Pose camera initialized: ${description.name}');
   }
 
   CameraDescription? _selectPoseCamera(List<CameraDescription> cameras) {
@@ -406,9 +406,9 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
       }
       await controller.startImageStream(_processPoseFrame);
       _poseStreamActive = true;
-      debugPrint('[ABZORA AR] Pose stream started.');
+      debugPrint('[Abianzo AR] Pose stream started.');
     } catch (error) {
-      debugPrint('[ABZORA AR] Failed to start pose stream: $error');
+      debugPrint('[Abianzo AR] Failed to start pose stream: $error');
       await _sendFallbackPoseFrameOnce();
     }
   }
@@ -470,7 +470,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
       _lastPoseSentAt = now;
       await _bridge.updatePose(_buildUnityPoseFrameMap(poseFrame));
     } catch (error) {
-      debugPrint('[ABZORA AR] Pose frame processing failed: $error');
+      debugPrint('[Abianzo AR] Pose frame processing failed: $error');
     } finally {
       _isProcessingPoseFrame = false;
     }
@@ -527,9 +527,9 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
           _bodyConfidence = 0.5;
         });
       }
-      debugPrint('[ABZORA AR] Sent fallback pose frame.');
+      debugPrint('[Abianzo AR] Sent fallback pose frame.');
     } catch (error) {
-      debugPrint('[ABZORA AR] Failed to send fallback pose frame: $error');
+      debugPrint('[Abianzo AR] Failed to send fallback pose frame: $error');
     }
   }
 
@@ -686,8 +686,8 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
     final file = await _createWatermarkedShareFile(path);
     await Share.shareXFiles(
       <XFile>[XFile(file.path)],
-      text: 'Trying this on ABZORA',
-      subject: 'ABZORA Try Live',
+      text: 'Trying this on Abianzo',
+      subject: 'Abianzo Try Live',
     );
     if (!mounted) return;
     await _showPostShareNudge();
@@ -726,7 +726,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
                 FilledButton(
                   onPressed: () async {
                     Navigator.of(context).pop();
-                    await Share.share('Trying this on ABZORA. Send to 3 friends.');
+                    await Share.share('Trying this on Abianzo. Send to 3 friends.');
                   },
                   child: const Text('Send to 3 friends'),
                 ),
@@ -788,7 +788,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
     );
     img.drawString(
       frame,
-      'Trying this on ABZORA',
+      'Trying this on Abianzo',
       font: img.arial24,
       x: 12,
       y: frame.height - bannerHeight + 8,
@@ -796,7 +796,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
     );
     img.drawString(
       frame,
-      'ABZORA',
+      'Abianzo',
       font: img.arial24,
       x: frame.width - 120,
       y: 10,

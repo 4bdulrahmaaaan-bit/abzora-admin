@@ -1,5 +1,5 @@
 #include "Release.xcconfig"
-APP_DISPLAY_NAME=Abzora
+APP_DISPLAY_NAME=Abianzo
 LAUNCH_SCREEN_STORYBOARD=LaunchScreenCustomer
 APP_ICON_NAME=AppIconCustomer
 APP_BUNDLE_IDENTIFIER=com.abdz.fashion.abzio

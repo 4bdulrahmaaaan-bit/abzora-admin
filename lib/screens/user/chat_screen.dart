@@ -328,7 +328,7 @@ class _ChatScreenState extends State<ChatScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('ABZORA Assistant ✨'),
+            const Text('Abianzo Assistant ✨'),
             Text(
               _subtitleForChat(widget.chat),
               style: TextStyle(
@@ -487,8 +487,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final text = switch (widget.chat.status) {
       'closed' => 'This ticket has been marked as resolved.',
-      'waiting' => 'ABZORA Assistant is preparing the next best answer for you.',
-      _ => 'ABZORA Assistant is active on this thread.',
+      'waiting' => 'Abianzo Assistant is preparing the next best answer for you.',
+      _ => 'Abianzo Assistant is active on this thread.',
     };
 
     return Container(
@@ -588,7 +588,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'ABZORA Assistant can track orders, explain payments, and guide your custom clothing journey in real time.',
+              'Abianzo Assistant can track orders, explain payments, and guide your custom clothing journey in real time.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: context.abzioSecondaryText,
@@ -720,7 +720,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 maxLines: 4,
                 onSubmitted: (_) => _sendMessage(),
                 decoration: InputDecoration(
-                  hintText: isClosed ? 'This assistant thread is closed' : 'Ask ABZORA Assistant anything',
+                  hintText: isClosed ? 'This assistant thread is closed' : 'Ask Abianzo Assistant anything',
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,

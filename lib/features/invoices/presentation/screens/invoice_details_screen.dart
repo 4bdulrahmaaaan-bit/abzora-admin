@@ -13,7 +13,7 @@ class InvoiceDetailsScreen extends ConsumerWidget {
   Future<void> _shareInvoice(WidgetRef ref) async {
     final repo = ref.read(invoiceRepositoryProvider);
     final url = await repo.getDownloadUrl(invoiceId);
-    await Share.share('ABZORA Invoice: $url');
+    await Share.share('Abianzo Invoice: $url');
   }
 
   @override

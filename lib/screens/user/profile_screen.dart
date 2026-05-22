@@ -99,7 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     final name = user.name.trim().isNotEmpty
         ? user.name.trim()
-        : 'ABZORA Member';
+        : 'Abianzo Member';
     final nameParts = name
         .split(' ')
         .where((part) => part.trim().isNotEmpty)
@@ -171,7 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           final liveUser = snapshot.data ?? user;
                           final liveName = liveUser.name.trim().isNotEmpty
                               ? liveUser.name.trim()
-                              : 'ABZORA Member';
+                              : 'Abianzo Member';
                           final livePhone =
                               liveUser.phone?.trim().isNotEmpty == true
                               ? liveUser.phone!.trim()
@@ -239,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       0.50,
                       _sectionTitle(
                         eyebrow: 'Growth',
-                        title: 'Grow with ABZORA',
+                        title: 'Grow with Abianzo',
                         subtitle:
                             'Partner opportunities, referral rewards, and premium member perks.',
                       ),
@@ -1003,7 +1003,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           TapScale(
             onTap: () => _showComingSoon(
               context,
-              title: 'ABZORA Elite',
+              title: 'Abianzo Elite',
               message:
                   'Elite membership perks, concierge support, and private drops will appear here.',
             ),
@@ -1173,7 +1173,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           Icon(Icons.workspace_premium_outlined, size: 16, color: Colors.black),
           SizedBox(width: 8),
           Text(
-            'Unlock ABZORA Elite',
+            'Unlock Abianzo Elite',
             style: TextStyle(
               color: Colors.black,
               fontWeight: FontWeight.w800,
@@ -2468,7 +2468,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             title: const Text('Logout'),
             content: const Text(
-              'Are you sure you want to log out from ABZORA?',
+              'Are you sure you want to log out from Abianzo?',
               style: TextStyle(color: AbzioTheme.grey600),
             ),
             actions: [

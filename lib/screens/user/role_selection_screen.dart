@@ -15,7 +15,7 @@ class RoleSelectionScreen extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         children: [
           const Text(
-            'Choose how you want to grow with ABZORA.',
+            'Choose how you want to grow with Abianzo.',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,

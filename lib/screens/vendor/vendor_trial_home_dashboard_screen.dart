@@ -356,7 +356,7 @@ class _VendorTrialHomeDashboardScreenState
             Row(
               children: [
                 const Text(
-                  'ABZORA PARTNER',
+                  'Abianzo PARTNER',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -551,7 +551,7 @@ class _VendorTrialHomeDashboardScreenState
     return Column(
       children: queue.map((session) {
         final score = _riskOverrides[session.id] ?? _computeRisk(session);
-        final productName = session.items.isNotEmpty ? session.items.first.name : 'ABZORA Item';
+        final productName = session.items.isNotEmpty ? session.items.first.name : 'Abianzo Item';
         final size = session.recommendedSize.trim().isNotEmpty
             ? session.recommendedSize
             : (session.items.isNotEmpty ? session.items.first.recommendedSize : 'N/A');
@@ -660,7 +660,7 @@ class _VendorTrialHomeDashboardScreenState
                 children: [
                   Expanded(
                     child: Text(
-                      product['name']?.toString() ?? 'ABZORA Item',
+                      product['name']?.toString() ?? 'Abianzo Item',
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: _titleSize,
@@ -823,7 +823,7 @@ class _VendorTrialHomeDashboardScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    session.items.isNotEmpty ? session.items.first.name : 'ABZORA Item',
+                    session.items.isNotEmpty ? session.items.first.name : 'Abianzo Item',
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: _titleSize,

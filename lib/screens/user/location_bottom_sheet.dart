@@ -45,7 +45,7 @@ class _LocationBottomSheetState extends State<_LocationBottomSheet> {
     final filteredCities = location.manualCities
         .where((city) => city.toLowerCase().contains(_cityController.text.trim().toLowerCase()))
         .toList();
-    final displayName = user?.name.trim().isNotEmpty == true ? user!.name.trim() : 'ABZORA Member';
+    final displayName = user?.name.trim().isNotEmpty == true ? user!.name.trim() : 'Abianzo Member';
 
     return AnimatedPadding(
       duration: const Duration(milliseconds: 220),

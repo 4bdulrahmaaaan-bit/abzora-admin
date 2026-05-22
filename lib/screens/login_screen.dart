@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,6 +12,8 @@ import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../utils/app_error_text.dart';
 import '../utils/app_mode_routes.dart';
+import '../features/legal/legal_consent_screen.dart';
+import '../features/legal/legal_document_registry.dart';
 import '../widgets/brand_logo.dart';
 import '../widgets/tap_scale.dart';
 import 'otp_verification_screen.dart';
@@ -37,7 +40,6 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _phoneError;
   Timer? _adminCooldownTimer;
   int _adminCooldownSeconds = 0;
-  bool _acceptedLoginLegal = false;
 
   bool get _useGoogleAdminLogin => kIsWeb && widget.adminEntry;
   bool get _isPrimaryFashionLogin =>
@@ -112,9 +114,8 @@ class _LoginScreenState extends State<LoginScreen> {
       _phoneController.text.replaceAll(RegExp(r'\s+'), '').trim();
 
   bool get _isPhoneValid => _normalizedPhone().length == 10;
-  bool get _canContinueWithOtp => _isPhoneValid && _acceptedLoginLegal;
-  bool get _canContinueWithAdminGoogle =>
-      _acceptedLoginLegal && _adminCooldownSeconds <= 0;
+  bool get _canContinueWithOtp => _isPhoneValid;
+  bool get _canContinueWithAdminGoogle => _adminCooldownSeconds <= 0;
 
   String? _phoneErrorFor(String phone, {required bool showEmpty}) {
     if (phone.isEmpty) {
@@ -137,15 +138,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _requestOtp() async {
-    if (!_acceptedLoginLegal) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('Please accept Terms & Privacy to continue.'),
-        ),
-      );
-      return;
-    }
     final phone = _normalizedPhone();
     final validationError = _phoneErrorFor(phone, showEmpty: true);
     if (validationError != null) {
@@ -206,15 +198,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInWithGoogleAdmin() async {
-    if (!_acceptedLoginLegal) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('Please accept Terms & Privacy to continue.'),
-        ),
-      );
-      return;
-    }
     if (_adminCooldownSeconds > 0) {
       return;
     }
@@ -583,32 +566,37 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    CheckboxListTile(
-                      value: _acceptedLoginLegal,
-                      onChanged: (value) {
-                        setState(() => _acceptedLoginLegal = value ?? false);
-                      },
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      title: Text(
-                        'I agree to Terms & Privacy',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: const Color(0xFF3C3C3C),
-                          fontWeight: FontWeight.w600,
-                        ),
+                    Text.rich(
+                      TextSpan(
+                        text: "By logging in, I agree to Abianzo's ",
+                        children: [
+                          TextSpan(
+                            text: 'terms and condition',
+                            style: const TextStyle(
+                              color: Color(0xFF8A6A16),
+                              fontWeight: FontWeight.w800,
+                              decoration: TextDecoration.underline,
+                            ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const LegalConsentScreen(
+                                      audience: LegalAudience.customer,
+                                    ),
+                                  ),
+                                );
+                              },
+                          ),
+                        ],
                       ),
-                    ),
-                    Text(
-                      'You can review full legal policies in Profile/Settings after sign in.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: const Color(0xFF8A8A8A),
+                        fontSize: 12.5,
+                        color: const Color(0xFF716B5E),
                         fontWeight: FontWeight.w500,
+                        height: 1.35,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

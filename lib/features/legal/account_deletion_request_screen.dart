@@ -28,7 +28,7 @@ class _AccountDeletionRequestScreenState
       'Account deletion request\nRole: ${widget.roleLabel}\nReason: ${_reasonController.text.trim()}\nRequested At: ${DateTime.now().toIso8601String()}',
     );
     final uri = Uri.parse(
-      'mailto:support@abzora.in?subject=Abzora Account Deletion Request&body=$body',
+      'mailto:support@abzora.in?subject=Abianzo Account Deletion Request&body=$body',
     );
     await launchUrl(uri);
     if (!mounted) {

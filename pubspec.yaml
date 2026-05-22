@@ -123,6 +123,10 @@ flutter:
     - assets/branding/abzora_customer_icon.png
     - assets/branding/abzora_partner_icon.png
     - assets/branding/abzora_rider_icon.png
+    - assets/branding/abianzo_vendor_splash_1080x1920.png
+    - assets/branding/abianzo_rider_splash_1080x1920.png
+    - assets/branding/abianzo_customer_splash_1080x1920.png
+    - assets/onboarding/
     - assets/legal/
     - assets/3d/
     - assets/ml/

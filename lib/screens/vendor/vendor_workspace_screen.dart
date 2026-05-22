@@ -317,8 +317,15 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F7F2),
       appBar: AppBar(
-        title: Text('ABZORA PARTNER', style: GoogleFonts.outfit(fontWeight: FontWeight.w800, letterSpacing: 1.1)),
-        actions: [IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded))],
+        title: Text('Abianzo PARTNER', style: GoogleFonts.outfit(fontWeight: FontWeight.w800, letterSpacing: 1.1)),
+        actions: [
+          IconButton(
+            tooltip: 'Profile',
+            onPressed: () => Navigator.pushNamed(context, '/vendor-profile'),
+            icon: const Icon(Icons.person_outline_rounded),
+          ),
+          IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
+        ],
       ),
       body: _loading
           ? const _Skeleton()
