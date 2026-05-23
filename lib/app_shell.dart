@@ -339,7 +339,7 @@ class _AppLaunchGate extends StatefulWidget {
 
 class _AppLaunchGateState extends State<_AppLaunchGate> {
   bool _didRoute = false;
-  static const Duration _minimumSplashDuration = Duration(milliseconds: 1200);
+  static const Duration _minimumSplashDuration = Duration(milliseconds: 1500);
   Timer? _splashTimer;
   bool _hasShownMinimumSplash = false;
 
@@ -620,12 +620,15 @@ class _VendorAuthBannerScreenState extends State<_VendorAuthBannerScreen> {
       if (!mounted || verified != true) {
         return;
       }
-      final user = await auth.refreshProfileFromBackendIfPossible() ?? auth.user;
+      final user =
+          await auth.refreshProfileFromBackendIfPossible() ?? auth.user;
       if (!mounted) {
         return;
       }
       Navigator.of(context).pushNamedAndRemoveUntil(
-        hasVendorOperationsAccess(user) ? '/vendor-dashboard' : '/vendor-profile',
+        hasVendorOperationsAccess(user)
+            ? '/vendor-dashboard'
+            : '/vendor-profile',
         (route) => false,
       );
     } catch (_) {

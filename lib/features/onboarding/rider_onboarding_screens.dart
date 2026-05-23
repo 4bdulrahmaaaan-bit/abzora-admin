@@ -41,10 +41,13 @@ class RiderSplashScreen extends StatefulWidget {
 }
 
 class _RiderSplashScreenState extends State<RiderSplashScreen> {
+  static const _splashDuration = Duration(milliseconds: 1500);
+  static const _logoAsset = 'assets/branding/abzora_partner_icon.png';
+
   @override
   void initState() {
     super.initState();
-    Future<void>.delayed(const Duration(milliseconds: 2500), _routeFromSplash);
+    Future<void>.delayed(_splashDuration, _routeFromSplash);
   }
 
   Future<void> _routeFromSplash() async {
@@ -75,18 +78,25 @@ class _RiderSplashScreenState extends State<RiderSplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF080808),
+    return Scaffold(
+      backgroundColor: Colors.black,
       body: Center(
-        child: SizedBox.expand(
-          child: Image(
-            image: AssetImage(
-              'assets/branding/abianzo_rider_splash_1080x1920.png',
-            ),
-            fit: BoxFit.contain,
-            alignment: Alignment.center,
-          ),
-        ),
+        child:
+            const Image(
+                  image: AssetImage(_logoAsset),
+                  width: 168,
+                  height: 168,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.center,
+                )
+                .animate()
+                .fadeIn(duration: _splashDuration, curve: Curves.easeOut)
+                .scale(
+                  begin: const Offset(0.95, 0.95),
+                  end: const Offset(1, 1),
+                  duration: _splashDuration,
+                  curve: Curves.easeOut,
+                ),
       ),
     );
   }

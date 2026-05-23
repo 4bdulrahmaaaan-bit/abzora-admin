@@ -29,13 +29,23 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
-  static const _totalDuration = Duration(milliseconds: 2500);
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  static const _totalDuration = Duration(milliseconds: 1500);
+  static const _logoAsset = 'assets/branding/abzora_partner_icon.png';
   Timer? _timer;
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(vsync: this, duration: _totalDuration);
+    final curve = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(curve);
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1).animate(curve);
+    _controller.forward();
     if (widget.autoNavigate) {
       _timer = Timer(_totalDuration, _navigateToHome);
     }
@@ -44,20 +54,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _controller.dispose();
     super.dispose();
-  }
-
-  String get _splashAsset {
-    switch (widget.mode) {
-      case AbzioAppMode.vendor:
-      case AbzioAppMode.operations:
-        return 'assets/branding/abianzo_vendor_splash_1080x1920.png';
-      case AbzioAppMode.rider:
-        return 'assets/branding/abianzo_rider_splash_1080x1920.png';
-      case AbzioAppMode.customer:
-      case AbzioAppMode.unified:
-        return 'assets/branding/abianzo_customer_splash_1080x1920.png';
-    }
   }
 
   void _navigateToHome() {
@@ -79,13 +77,19 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF080808),
+      backgroundColor: Colors.black,
       body: Center(
-        child: SizedBox.expand(
-          child: Image(
-            image: AssetImage(_splashAsset),
-            fit: BoxFit.contain,
-            alignment: Alignment.center,
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: const Image(
+              image: AssetImage(_logoAsset),
+              width: 168,
+              height: 168,
+              fit: BoxFit.contain,
+              alignment: Alignment.center,
+            ),
           ),
         ),
       ),
