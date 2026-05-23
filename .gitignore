@@ -25,6 +25,14 @@ build/
 # Android
 android/.gradle/
 android/local.properties
+
+# Unity generated/cache artifacts
+unity-android-export/
+unity/AbzoraTryOn/Library/
+unity/AbzoraTryOn/UserSettings/
+unityLibrary/**/.cxx/
+unityLibrary/**/tempburstlibs/
+unityLibrary/local.properties
 **/key.properties
 **/*.jks
 **/*.keystore

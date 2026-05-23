@@ -130,7 +130,7 @@ class AbzoraUnityBridgeService {
       }
     } catch (_) {
       if (kDebugMode) {
-        debugPrint('[ABZORA Unity] non-json message: $raw');
+        debugPrint('[Abianzo Unity] non-json message: $raw');
       }
     }
   }
