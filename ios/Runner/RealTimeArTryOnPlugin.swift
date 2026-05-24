@@ -2,6 +2,7 @@ import Flutter
 import ARKit
 import SceneKit
 import UIKit
+import WebKit
 
 final class RealTimeArTryOnPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   private let channel: FlutterMethodChannel
@@ -31,6 +32,7 @@ final class RealTimeArTryOnPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
     case "initialize", "updateGarment":
       lastConfig = call.arguments as? [String: Any] ?? [:]
       activeViews.forEach { $0.applyConfig(lastConfig) }
+      evaluateGlbReadiness(lastConfig)
       emit(state: "configured")
       result(nil)
     case "updatePoseFrame":
@@ -107,6 +109,41 @@ final class RealTimeArTryOnPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
     ])
   }
 
+  private func emitRenderWarning(code: String, message: String) {
+    eventSink?([
+      "type": "renderer_warning",
+      "code": code,
+      "message": message,
+      "timestampMs": Int(Date().timeIntervalSince1970 * 1000)
+    ])
+  }
+
+  private func evaluateGlbReadiness(_ config: [String: Any]) {
+    let model3d = (config["model3dUrl"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    let transparent = (config["transparentAssetUrl"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    let overlay = (config["overlayAssetUrl"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    let isGlb = model3d.lowercased().hasSuffix(".glb") || model3d.lowercased().hasSuffix(".gltf")
+    guard isGlb else { return }
+
+    let hasOverlayFallback =
+      transparent.lowercased().contains(".png") ||
+      transparent.lowercased().contains(".webp") ||
+      overlay.lowercased().contains(".png") ||
+      overlay.lowercased().contains(".webp")
+
+    if !hasOverlayFallback {
+      emitRenderWarning(
+        code: "glb_overlay_fallback_missing",
+        message: "GLB detected but image overlay fallback is missing. Current runtime uses overlay rendering."
+      )
+      return
+    }
+    emitRenderWarning(
+      code: "glb_overlay_fallback_active",
+      message: "GLB detected. Overlay fallback is active while native GLB runtime loader is being rolled out."
+    )
+  }
+
   func attach(view: RealTimeArTryOnView) {
     activeViews.append(view)
     if !lastConfig.isEmpty {
@@ -145,13 +182,23 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
   private let garmentNode = SCNNode()
   private let placeholderNode = SCNNode()
   private let contactShadowNode = SCNNode()
+  private let glbWebView: WKWebView
+  private var glbMode = false
 
   init(frame: CGRect, viewId: Int64, args: [String: Any]) {
     rootView = ARSCNView(frame: frame)
     rootView.backgroundColor = UIColor.clear
     rootView.automaticallyUpdatesLighting = true
+    let config = WKWebViewConfiguration()
+    config.preferences.javaScriptEnabled = true
+    glbWebView = WKWebView(frame: .zero, configuration: config)
+    glbWebView.backgroundColor = .clear
+    glbWebView.isOpaque = false
+    glbWebView.scrollView.isScrollEnabled = false
+    glbWebView.alpha = 0
     super.init()
     configureScene()
+    rootView.addSubview(glbWebView)
     applyConfig(args)
     startSessionIfSupported()
   }
@@ -165,8 +212,26 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
       (config["transparentAssetUrl"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
       ? (config["transparentAssetUrl"] as? String ?? "")
       : (config["overlayAssetUrl"] as? String ?? "")
+    let model3dUrl = (config["model3dUrl"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    let isGlb = model3dUrl.lowercased().hasSuffix(".glb") || model3dUrl.lowercased().hasSuffix(".gltf")
 
-    guard !overlayAssetUrl.isEmpty else { return }
+    if isGlb {
+      glbMode = true
+      loadGlbModel(model3dUrl)
+      return
+    }
+    glbMode = false
+    glbWebView.alpha = 0
+
+    if overlayAssetUrl.isEmpty {
+      if model3dUrl.lowercased().hasSuffix(".glb") || model3dUrl.lowercased().hasSuffix(".gltf") {
+        DispatchQueue.main.async {
+          self.garmentNode.geometry?.firstMaterial?.diffuse.contents = UIColor(red: 0.81, green: 0.69, blue: 0.41, alpha: 0.22)
+          self.garmentNode.opacity = 0.5
+        }
+      }
+      return
+    }
 
     guard let url = URL(string: overlayAssetUrl) else { return }
     URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
@@ -178,6 +243,7 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
       DispatchQueue.main.async {
         self.garmentNode.geometry?.firstMaterial?.diffuse.contents = image
         self.garmentNode.opacity = 0.96
+        self.glbWebView.alpha = 0
       }
     }.resume()
   }
@@ -194,7 +260,11 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
     let bodyDetected = args["bodyDetected"] as? Bool ?? true
     guard bodyDetected else {
       DispatchQueue.main.async {
-        self.garmentNode.opacity = 0.24
+        if self.glbMode {
+          self.glbWebView.alpha = 0.24
+        } else {
+          self.garmentNode.opacity = 0.24
+        }
       }
       return
     }
@@ -254,42 +324,62 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
     let layeringConfidence = number(from: arCompositing?["layeringConfidence"], fallback: 0.5, min: 0, max: 1)
 
     DispatchQueue.main.async {
-      self.garmentNode.scale = SCNVector3(
-        Float(max(0.18, min(1.4, shoulderDistance * 2.1 * widthScale))),
-        Float(max(0.22, min(1.8, torsoDistance * 3.1 * heightScale))),
-        1
-      )
-      self.garmentNode.eulerAngles.z = -Float(rotation)
-      self.garmentNode.position = SCNVector3(
-        Float((alignmentCenter.x - 0.5) * 1.2),
-        Float((0.5 - alignmentCenter.y) * 1.6 - 0.08),
-        -1.2 + Float(depthSeparation * 0.05)
-      )
       let alpha = (0.56 + (segmentationConfidence * 0.2) + (layeringConfidence * 0.2)) * renderQuality
-      self.garmentNode.opacity = CGFloat(max(0.15, min(1.0, alpha)))
-      self.garmentNode.renderingOrder = occlusionEnabled ? 4 : 1
-      self.placeholderNode.opacity = occlusionEnabled ? 0.02 : 0.08
-      self.garmentNode.geometry?.firstMaterial?.shininess = CGFloat(0.12 + (layeringConfidence * 0.22))
-      self.garmentNode.geometry?.firstMaterial?.lightingModel = .physicallyBased
-      self.contactShadowNode.opacity = CGFloat((shadowOpacity * 0.7) + (contactShadowOpacity * 0.3))
-      self.contactShadowNode.scale = SCNVector3(
-        Float(0.96 + (widthScale * 0.08)),
-        Float(0.9 + (heightScale * 0.06)),
-        1
-      )
-      self.contactShadowNode.position = SCNVector3(
-        self.garmentNode.position.x,
-        self.garmentNode.position.y - 0.05,
-        self.garmentNode.position.z - 0.04
-      )
-      self.contactShadowNode.geometry?.firstMaterial?.transparency =
-        CGFloat(max(0.08, min(0.38, shadowOpacity + (shadowSoftness * 0.08))))
+      if self.glbMode {
+        let vw = self.rootView.bounds.width
+        let vh = self.rootView.bounds.height
+        let widthPx = CGFloat(max(80.0, min(Double(vw) * 0.92, Double(shoulderDistance) * 1.25 * widthScale * Double(vw))))
+        let heightPx = CGFloat(max(100.0, min(Double(vh) * 0.9, Double(torsoDistance) * 1.58 * heightScale * Double(vh))))
+        let centerXPx = CGFloat(alignmentCenter.x) * vw
+        let centerYPx = CGFloat(alignmentCenter.y) * vh + (heightPx * 0.12)
+        self.glbWebView.frame = CGRect(
+          x: centerXPx - (widthPx / 2),
+          y: centerYPx - (heightPx / 2),
+          width: widthPx,
+          height: heightPx
+        )
+        self.glbWebView.transform = CGAffineTransform(rotationAngle: CGFloat(rotation))
+        self.glbWebView.alpha = CGFloat(max(0.18, min(1.0, alpha)))
+        self.garmentNode.opacity = 0
+        self.contactShadowNode.opacity = 0
+      } else {
+        self.garmentNode.scale = SCNVector3(
+          Float(max(0.18, min(1.4, shoulderDistance * 2.1 * widthScale))),
+          Float(max(0.22, min(1.8, torsoDistance * 3.1 * heightScale))),
+          1
+        )
+        self.garmentNode.eulerAngles.z = -Float(rotation)
+        self.garmentNode.position = SCNVector3(
+          Float((alignmentCenter.x - 0.5) * 1.2),
+          Float((0.5 - alignmentCenter.y) * 1.6 - 0.08),
+          -1.2 + Float(depthSeparation * 0.05)
+        )
+        self.garmentNode.opacity = CGFloat(max(0.15, min(1.0, alpha)))
+        self.garmentNode.renderingOrder = occlusionEnabled ? 4 : 1
+        self.placeholderNode.opacity = occlusionEnabled ? 0.02 : 0.08
+        self.garmentNode.geometry?.firstMaterial?.shininess = CGFloat(0.12 + (layeringConfidence * 0.22))
+        self.garmentNode.geometry?.firstMaterial?.lightingModel = .physicallyBased
+        self.contactShadowNode.opacity = CGFloat((shadowOpacity * 0.7) + (contactShadowOpacity * 0.3))
+        self.contactShadowNode.scale = SCNVector3(
+          Float(0.96 + (widthScale * 0.08)),
+          Float(0.9 + (heightScale * 0.06)),
+          1
+        )
+        self.contactShadowNode.position = SCNVector3(
+          self.garmentNode.position.x,
+          self.garmentNode.position.y - 0.05,
+          self.garmentNode.position.z - 0.04
+        )
+        self.contactShadowNode.geometry?.firstMaterial?.transparency =
+          CGFloat(max(0.08, min(0.38, shadowOpacity + (shadowSoftness * 0.08))))
+      }
     }
   }
 
   func reset() {
     DispatchQueue.main.async {
       self.garmentNode.opacity = 0
+      self.glbWebView.alpha = 0
     }
   }
 
@@ -381,5 +471,28 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
     } catch {
       return false
     }
+  }
+
+  private func loadGlbModel(_ modelUrl: String) {
+    let escapedUrl = modelUrl.replacingOccurrences(of: "\"", with: "\\\"")
+    let html = """
+      <!doctype html>
+      <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+          <style>
+            html, body { margin:0; padding:0; background:transparent; overflow:hidden; }
+            model-viewer { width:100vw; height:100vh; background:transparent; }
+          </style>
+        </head>
+        <body>
+          <model-viewer src="\(escapedUrl)" camera-controls auto-rotate shadow-intensity="0.6" exposure="1"></model-viewer>
+        </body>
+      </html>
+    """
+    glbWebView.loadHTMLString(html, baseURL: URL(string: "https://abzora.app/"))
+    glbWebView.alpha = 0.58
+    garmentNode.opacity = 0
   }
 }
