@@ -118,6 +118,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
   Timer? _lifecycleResumeDebounce;
   bool _stylistShown = false;
   bool _captureInProgress = false;
+  bool _useFrontCamera = true;
   String _trackingState = 'initializing';
   TrackingConfidenceState _trackingConfidenceState =
       TrackingConfidenceState.recovering;
@@ -552,6 +553,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
                 'overlayAssetUrl': _runtimePayload.overlayAssetUrl,
                 'transparentAssetUrl': _runtimePayload.overlayAssetUrl,
                 'model3dUrl': _runtimePayload.model3dUrl,
+                'preferBackCamera': !_useFrontCamera,
                 'enableOcclusion': _occlusionEnabled,
                 'renderQuality': _qualityProfile.renderQuality,
                 'segmentationQuality': _qualityProfile.segmentationQuality,
@@ -570,6 +572,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
                 'overlayAssetUrl': _runtimePayload.overlayAssetUrl,
                 'transparentAssetUrl': _runtimePayload.overlayAssetUrl,
                 'model3dUrl': _runtimePayload.model3dUrl,
+                'preferBackCamera': !_useFrontCamera,
                 'enableOcclusion': _occlusionEnabled,
                 'renderQuality': _qualityProfile.renderQuality,
                 'segmentationQuality': _qualityProfile.segmentationQuality,
@@ -608,6 +611,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
       await _bridge.initializeTryOn(_runtimePayload);
       await _nativeRenderer.initializePayload(
         payload: _runtimePayload,
+        preferBackCamera: !_useFrontCamera,
         enableOcclusion: _qualityProfile.occlusionEnabled,
         segmentationQuality: _qualityProfile.segmentationQuality,
         segmentationEdgeSmoothing: _qualityProfile.segmentationEdgeSmoothing,
@@ -744,6 +748,13 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
   }
 
   CameraDescription? _selectPoseCamera(List<CameraDescription> cameras) {
+    final preferred =
+        _useFrontCamera ? CameraLensDirection.front : CameraLensDirection.back;
+    for (final camera in cameras) {
+      if (camera.lensDirection == preferred) {
+        return camera;
+      }
+    }
     for (final camera in cameras) {
       if (camera.lensDirection == CameraLensDirection.front) {
         return camera;
@@ -2248,6 +2259,28 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
                   ),
                   tileColor: const Color(0xFF1A1C21),
                   leading: const Icon(
+                    Icons.cameraswitch_rounded,
+                    color: Colors.white70,
+                  ),
+                  title: Text(
+                    _useFrontCamera
+                        ? 'Switch To Back Camera'
+                        : 'Switch To Front Camera',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await _switchCameraFacing();
+                  },
+                ),
+                const SizedBox(height: 10),
+                ListTile(
+                  dense: true,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  tileColor: const Color(0xFF1A1C21),
+                  leading: const Icon(
                     Icons.refresh_rounded,
                     color: Colors.white70,
                   ),
@@ -2530,6 +2563,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
       await _bridge.initializeTryOn(nextPayload);
       await _nativeRenderer.initializePayload(
         payload: nextPayload,
+        preferBackCamera: !_useFrontCamera,
         enableOcclusion: _qualityProfile.occlusionEnabled,
         segmentationQuality: _qualityProfile.segmentationQuality,
         segmentationEdgeSmoothing: _qualityProfile.segmentationEdgeSmoothing,
@@ -2546,6 +2580,27 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
         setState(() => _isLoading = false);
       }
       // Keep current garment if switch fails.
+    }
+  }
+
+  Future<void> _switchCameraFacing() async {
+    final nextFront = !_useFrontCamera;
+    _useFrontCamera = nextFront;
+    try {
+      if (_poseStreamActive) {
+        await _stopPoseStream();
+      }
+      await _disposePoseCamera();
+      await _initializePoseCamera();
+      await _startPosePipeline();
+      await _nativeRenderer.setCameraFacing(front: nextFront);
+      if (mounted) {
+        setState(() {});
+      }
+      HapticFeedback.selectionClick();
+    } catch (error) {
+      debugPrint('[Abianzo AR] Camera switch failed: $error');
+      widget.onError?.call('Unable to switch camera right now.');
     }
   }
 
