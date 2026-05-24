@@ -8,7 +8,7 @@
     "https://cdn.abzora.app/products/kurta/regal-linen/back.jpg"
   ],
   "model3d": "https://cdn.abzora.app/ar/templates/kurta-base/v3/lod0.glb",
-  "unityAssetBundleUrl": "https://cdn.abzora.app/ar/unity/kurta-base/v3/assetbundle",
+  "assetBundleUrl": "https://cdn.abzora.app/ar/unity/kurta-base/v3/assetbundle",
   "rigProfile": "unisex_torso_v1",
   "materialProfile": "linen_soft",
   "overlayAssetUrl": "https://cdn.abzora.app/ar/overlays/kurta/regal-linen.png",
@@ -74,3 +74,4 @@
   },
   "updatedAt": "2026-04-21T16:05:10.421Z"
 }
+

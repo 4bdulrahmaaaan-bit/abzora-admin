@@ -7,7 +7,7 @@ class ArTryOnProductMetadata {
     required this.overlayAssetUrl,
     required this.transparentAssetUrl,
     required this.model3dUrl,
-    required this.unityAssetBundleUrl,
+    required this.assetBundleUrl,
     required this.rigProfile,
     required this.materialProfile,
     required this.alignmentConfig,
@@ -27,7 +27,7 @@ class ArTryOnProductMetadata {
   final String overlayAssetUrl;
   final String transparentAssetUrl;
   final String model3dUrl;
-  final String unityAssetBundleUrl;
+  final String assetBundleUrl;
   final String rigProfile;
   final String materialProfile;
   final Map<String, dynamic> alignmentConfig;
@@ -49,7 +49,9 @@ class ArTryOnProductMetadata {
       overlayAssetUrl: map['overlayAssetUrl']?.toString() ?? '',
       transparentAssetUrl: map['transparentAssetUrl']?.toString() ?? '',
       model3dUrl: map['model3d']?.toString() ?? '',
-      unityAssetBundleUrl: map['unityAssetBundleUrl']?.toString() ?? '',
+      assetBundleUrl:
+          map['assetBundleUrl']?.toString() ??
+          '',
       rigProfile: map['rigProfile']?.toString() ?? '',
       materialProfile: map['materialProfile']?.toString() ?? '',
       alignmentConfig: Map<String, dynamic>.from(
@@ -165,7 +167,7 @@ class GarmentTemplateModel {
     required this.name,
     required this.category,
     this.modelUrls = const <String, dynamic>{},
-    this.unity = const <String, dynamic>{},
+    this.runtimeProfile = const <String, dynamic>{},
     this.rigProfile = '',
     this.blendShapes = const <String, dynamic>{},
     this.customizableParts = const <String, dynamic>{},
@@ -183,7 +185,7 @@ class GarmentTemplateModel {
   final String name;
   final String category;
   final Map<String, dynamic> modelUrls;
-  final Map<String, dynamic> unity;
+  final Map<String, dynamic> runtimeProfile;
   final String rigProfile;
   final Map<String, dynamic> blendShapes;
   final Map<String, dynamic> customizableParts;
@@ -202,7 +204,9 @@ class GarmentTemplateModel {
       name: map['name']?.toString() ?? '',
       category: map['category']?.toString() ?? '',
       modelUrls: Map<String, dynamic>.from(map['modelUrls'] as Map? ?? const {}),
-      unity: Map<String, dynamic>.from(map['unity'] as Map? ?? const {}),
+      runtimeProfile: Map<String, dynamic>.from(
+        map['runtimeProfile'] as Map? ?? const {},
+      ),
       rigProfile: map['rigProfile']?.toString() ?? '',
       blendShapes: Map<String, dynamic>.from(
         map['blendShapes'] as Map? ?? const {},
@@ -230,7 +234,7 @@ class GarmentTemplateModel {
     'name': name,
     'category': category,
     'modelUrls': modelUrls,
-    'unity': unity,
+    'runtimeProfile': runtimeProfile,
     'rigProfile': rigProfile,
     'blendShapes': blendShapes,
     'customizableParts': customizableParts,
@@ -289,3 +293,4 @@ class ArFitAssessment {
     );
   }
 }
+

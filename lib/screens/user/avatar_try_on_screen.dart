@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../models/models.dart';
+import '../../models/mediapipe_try_on_payload.dart';
 import '../../services/avatar_try_on_service.dart';
 import '../../services/backend_commerce_service.dart';
 import '../../services/three_d_asset_pipeline_service.dart';
 import '../../theme.dart';
-import 'live_ar_try_on_screen.dart';
+import 'abzora_ar_screen.dart';
 
 class AvatarTryOnScreen extends StatefulWidget {
   const AvatarTryOnScreen({
@@ -223,11 +224,32 @@ class _AvatarTryOnScreenState extends State<AvatarTryOnScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => LiveArTryOnScreen(
-          product: widget.product,
-          accentColor: widget.accentColor,
-        ),
+        builder: (_) => AbzoraArScreen(payload: _buildArFallbackPayload()),
       ),
+    );
+  }
+
+  MediaPipeTryOnPayload _buildArFallbackPayload() {
+    return MediaPipeTryOnPayload(
+      productId: widget.product.id,
+      name: widget.product.name,
+      category: widget.product.category.isEmpty
+          ? 'shirt'
+          : widget.product.category,
+      templateId: 'avatar_fallback_template',
+      template: const <String, dynamic>{},
+      garmentConfig: <String, dynamic>{
+        'colorHex':
+            '#${widget.accentColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
+      },
+      alignmentConfig: const <String, dynamic>{},
+      model3dUrl: _garmentModelUrl,
+      assetBundleUrl: '',
+      rigProfile: '',
+      materialProfile: '',
+      overlayAssetUrl: _fallbackImageUrl,
+      measurements: const <String, double>{},
+      enableStaticPreviewFallback: true,
     );
   }
 
@@ -367,3 +389,6 @@ class _AvatarTryOnScreenState extends State<AvatarTryOnScreen> {
     );
   }
 }
+
+
+

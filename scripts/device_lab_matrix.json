@@ -1,0 +1,9 @@
+{
+  "scenario": "soak_45m",
+  "devices": [
+    { "model": "Redmi Note 12", "tier": "LOW", "targetFps": 30, "thermalLoad": 0.74, "sessionMinutes": 30 },
+    { "model": "Galaxy A34", "tier": "MID", "targetFps": 36, "thermalLoad": 0.68, "sessionMinutes": 45 },
+    { "model": "Pixel 7", "tier": "FLAGSHIP", "targetFps": 55, "thermalLoad": 0.52, "sessionMinutes": 45 },
+    { "model": "iPhone 15 Pro", "tier": "PREMIUM_LIDAR", "targetFps": 60, "thermalLoad": 0.47, "sessionMinutes": 45 }
+  ]
+}

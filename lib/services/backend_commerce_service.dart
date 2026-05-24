@@ -3031,7 +3031,7 @@ class BackendCommerceService {
     required String name,
     required String category,
     Map<String, dynamic> modelUrls = const {},
-    Map<String, dynamic> unity = const {},
+    Map<String, dynamic> runtimeProfile = const {},
     String rigProfile = '',
     Map<String, dynamic> blendShapes = const {},
     Map<String, dynamic> customizableParts = const {},
@@ -3057,7 +3057,7 @@ class BackendCommerceService {
         'name': name.trim(),
         'category': category.trim().toLowerCase(),
         'modelUrls': modelUrls,
-        'unity': unity,
+        'runtimeProfile': runtimeProfile,
         'rigProfile': rigProfile.trim(),
         'blendShapes': blendShapes,
         'customizableParts': customizableParts,
@@ -3085,6 +3085,160 @@ class BackendCommerceService {
         ? payload
         : Map<String, dynamic>.from(payload as Map);
     return map['sessionId']?.toString() ?? session.sessionId;
+  }
+
+  Future<void> saveTryOnTelemetry({
+    required String sessionId,
+    required String productId,
+    required Map<String, dynamic> telemetry,
+  }) async {
+    await _client.post(
+      '/ar/tryon/telemetry',
+      authenticated: true,
+      body: {
+        'sessionId': sessionId.trim(),
+        'productId': productId.trim(),
+        'telemetry': telemetry,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> getTryOnTelemetrySummary({
+    int days = 7,
+  }) async {
+    final normalizedDays = days.clamp(1, 30);
+    final payload = await _client.get(
+      '/ar/tryon/telemetry/summary?days=$normalizedDays',
+      authenticated: true,
+    );
+    if (payload is Map<String, dynamic>) {
+      return payload;
+    }
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> getArEnterpriseSummary({
+    int days = 14,
+  }) async {
+    final normalizedDays = days.clamp(1, 60);
+    final payload = await _client.get(
+      '/ar/ops/enterprise/summary?days=$normalizedDays',
+      authenticated: true,
+    );
+    if (payload is Map<String, dynamic>) {
+      return payload;
+    }
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<List<Map<String, dynamic>>> getArFitRuns({
+    int limit = 20,
+  }) async {
+    final safeLimit = limit.clamp(1, 100);
+    final payload = await _client.get(
+      '/ar/ops/fit/runs?limit=$safeLimit',
+      authenticated: true,
+    );
+    final list = payload is List ? payload : const [];
+    return list
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getArFitRegistry() async {
+    final payload = await _client.get(
+      '/ar/ops/fit/registry',
+      authenticated: true,
+    );
+    final list = payload is List ? payload : const [];
+    return list
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getArFitArtifacts({
+    String modelVersion = '',
+  }) async {
+    final query = modelVersion.trim().isEmpty
+        ? ''
+        : '?modelVersion=${Uri.encodeQueryComponent(modelVersion.trim())}';
+    final payload = await _client.get(
+      '/ar/ops/fit/artifacts$query',
+      authenticated: true,
+    );
+    final list = payload is List ? payload : const [];
+    return list
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> getArOpsWorkersHealth() async {
+    final payload = await _client.get(
+      '/ar/ops/workers/health',
+      authenticated: true,
+    );
+    if (payload is Map<String, dynamic>) {
+      return payload;
+    }
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> createArFitRun({
+    required String name,
+    required String datasetVersion,
+    Map<String, dynamic> trainingConfig = const {},
+  }) async {
+    final payload = await _client.post(
+      '/ar/ops/fit/runs',
+      authenticated: true,
+      body: {
+        'name': name,
+        'datasetVersion': datasetVersion,
+        if (trainingConfig.isNotEmpty) 'trainingConfig': trainingConfig,
+      },
+    );
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> createArGarmentCertificationJob({
+    String mode = 'incremental',
+    List<String> productIds = const [],
+  }) async {
+    final payload = await _client.post(
+      '/ar/ops/garment/jobs',
+      authenticated: true,
+      body: {
+        'mode': mode,
+        if (productIds.isNotEmpty) 'productIds': productIds,
+      },
+    );
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Map<String, dynamic>> createArDeviceLabRun({
+    required String name,
+    String scenario = 'soak_30m',
+    List<Map<String, dynamic>> deviceMatrix = const [],
+  }) async {
+    final payload = await _client.post(
+      '/ar/ops/device-lab/runs',
+      authenticated: true,
+      body: {
+        'name': name,
+        'scenario': scenario,
+        if (deviceMatrix.isNotEmpty) 'deviceMatrix': deviceMatrix,
+      },
+    );
+    return payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
   }
 
   Future<ArFitAssessment> getArFitAssessment({
@@ -3943,7 +4097,7 @@ class BackendCommerceService {
       'subcategory': product.subcategory,
       'images': product.images,
       'model3d': product.model3d,
-      'unityAssetBundleUrl': product.unityAssetBundleUrl,
+      'assetBundleUrl': product.assetBundleUrl,
       'rigProfile': product.rigProfile,
       'materialProfile': product.materialProfile,
       'attributes': product.attributes,
@@ -4032,7 +4186,7 @@ class BackendCommerceService {
       'purchaseCount': map['purchaseCount'] ?? 0,
       'images': map['images'] ?? const [],
       'model3d': map['model3d'],
-      'unityAssetBundleUrl': map['unityAssetBundleUrl'],
+      'assetBundleUrl': map['assetBundleUrl'],
       'rigProfile': map['rigProfile'],
       'materialProfile': map['materialProfile'],
       'sizes': map['sizes'] ?? const ['S', 'M', 'L'],
@@ -4337,3 +4491,4 @@ class BackendCommerceService {
     }, map['id']?.toString() ?? '');
   }
 }
+

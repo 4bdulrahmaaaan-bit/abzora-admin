@@ -45,7 +45,21 @@ final class RealTimeArTryOnPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
       let filename = "ar_preview_\(UUID().uuidString).jpg"
       let previewPath = (NSTemporaryDirectory() as NSString).appendingPathComponent(filename)
       emit(state: "capture_requested")
-      result(previewPath)
+      if let view = activeViews.first, view.capturePreview(to: previewPath) {
+        emitCaptureComplete(path: previewPath)
+        result(previewPath)
+      } else {
+        emitRenderError(code: "capture_failed", message: "Unable to capture AR preview frame.")
+        result(nil)
+      }
+    case "pause":
+      activeViews.forEach { $0.pause() }
+      emit(state: "paused")
+      result(nil)
+    case "resume":
+      activeViews.forEach { $0.resume() }
+      emit(state: "resumed")
+      result(nil)
     case "dispose":
       lastConfig = [:]
       activeViews.forEach { $0.reset() }
@@ -72,6 +86,23 @@ final class RealTimeArTryOnPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
       "renderer": "ios_native_hybrid",
       "arkitSupported": ARConfiguration.isSupported,
       "occlusionEnabled": (lastConfig["enableOcclusion"] as? Bool) ?? false,
+      "timestampMs": Int(Date().timeIntervalSince1970 * 1000)
+    ])
+  }
+
+  private func emitCaptureComplete(path: String) {
+    eventSink?([
+      "type": "capture_complete",
+      "path": path,
+      "timestampMs": Int(Date().timeIntervalSince1970 * 1000)
+    ])
+  }
+
+  private func emitRenderError(code: String, message: String) {
+    eventSink?([
+      "type": "renderer_error",
+      "code": code,
+      "message": message,
       "timestampMs": Int(Date().timeIntervalSince1970 * 1000)
     ])
   }
@@ -113,6 +144,7 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
   private let rootView: ARSCNView
   private let garmentNode = SCNNode()
   private let placeholderNode = SCNNode()
+  private let contactShadowNode = SCNNode()
 
   init(frame: CGRect, viewId: Int64, args: [String: Any]) {
     rootView = ARSCNView(frame: frame)
@@ -166,6 +198,29 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
       }
       return
     }
+    let segmentationConfidence =
+      max(
+        0.0,
+        min(
+          1.0,
+          (poseFrame["segmentationConfidence"] as? Double) ??
+            ((args["segmentationConfidence"] as? Double) ?? 0.5)
+        )
+      )
+    let renderQuality =
+      max(
+        0.35,
+        min(
+          1.0,
+          (poseFrame["renderQuality"] as? Double) ??
+            ((args["renderQuality"] as? Double) ?? 0.8)
+        )
+      )
+    let occlusionEnabled =
+      (poseFrame["occlusionEnabled"] as? Bool) ?? ((args["occlusionEnabled"] as? Bool) ?? false)
+    let garmentAlignment = poseFrame["garmentAlignment"] as? [String: Any]
+    let garmentDeformation = poseFrame["garmentDeformation"] as? [String: Any]
+    let arCompositing = poseFrame["arCompositing"] as? [String: Any]
 
     let shoulderMid = CGPoint(
       x: (leftShoulder.x + rightShoulder.x) / 2.0,
@@ -178,20 +233,57 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
     let shoulderDistance = hypot(rightShoulder.x - leftShoulder.x, rightShoulder.y - leftShoulder.y)
     let torsoDistance = hypot(hipMid.x - shoulderMid.x, hipMid.y - shoulderMid.y)
     let rotation = atan2(rightShoulder.y - leftShoulder.y, rightShoulder.x - leftShoulder.x)
+    let scales = garmentAlignment?["scales"] as? [String: Any]
+    let shoulderScale = number(from: scales?["shoulder"], fallback: 1.0, min: 0.78, max: 1.28)
+    let chestScale = number(from: scales?["chest"], fallback: 1.0, min: 0.8, max: 1.26)
+    let torsoScale = number(from: scales?["torso"], fallback: 1.0, min: 0.78, max: 1.3)
+    let waistScale = number(from: scales?["waist"], fallback: 1.0, min: 0.76, max: 1.26)
+    let hipScale = number(from: scales?["hip"], fallback: 1.0, min: 0.78, max: 1.28)
+    let torsoMap = garmentDeformation?["torso"] as? [String: Any]
+    let torsoScaleX = number(from: torsoMap?["scaleX"], fallback: 1.0, min: 0.82, max: 1.2)
+    let torsoScaleY = number(from: torsoMap?["scaleY"], fallback: 1.0, min: 0.82, max: 1.2)
+    let widthScale = (shoulderScale * 0.45) + (chestScale * 0.35) + (torsoScaleX * 0.2)
+    let heightScale = (torsoScale * 0.35) + (waistScale * 0.25) + (hipScale * 0.2) + (torsoScaleY * 0.2)
+    let anchors = garmentAlignment?["anchors"] as? [String: Any]
+    let centerAnchor = point(from: anchors?["center"])
+    let alignmentCenter = CGPoint(x: centerAnchor?.x ?? shoulderMid.x, y: centerAnchor?.y ?? shoulderMid.y)
+    let shadowOpacity = number(from: arCompositing?["shadowOpacity"], fallback: 0.14, min: 0.08, max: 0.3)
+    let contactShadowOpacity = number(from: arCompositing?["contactShadowOpacity"], fallback: 0.18, min: 0.1, max: 0.36)
+    let shadowSoftness = number(from: arCompositing?["shadowSoftness"], fallback: 0.5, min: 0.36, max: 0.86)
+    let depthSeparation = number(from: arCompositing?["depthSeparation"], fallback: 0.3, min: 0.18, max: 0.62)
+    let layeringConfidence = number(from: arCompositing?["layeringConfidence"], fallback: 0.5, min: 0, max: 1)
 
     DispatchQueue.main.async {
       self.garmentNode.scale = SCNVector3(
-        Float(max(0.18, min(1.4, shoulderDistance * 2.1))),
-        Float(max(0.22, min(1.8, torsoDistance * 3.1))),
+        Float(max(0.18, min(1.4, shoulderDistance * 2.1 * widthScale))),
+        Float(max(0.22, min(1.8, torsoDistance * 3.1 * heightScale))),
         1
       )
       self.garmentNode.eulerAngles.z = -Float(rotation)
       self.garmentNode.position = SCNVector3(
-        Float((shoulderMid.x - 0.5) * 1.2),
-        Float((0.5 - shoulderMid.y) * 1.6 - 0.08),
-        -1.2
+        Float((alignmentCenter.x - 0.5) * 1.2),
+        Float((0.5 - alignmentCenter.y) * 1.6 - 0.08),
+        -1.2 + Float(depthSeparation * 0.05)
       )
-      self.garmentNode.opacity = 0.96
+      let alpha = (0.56 + (segmentationConfidence * 0.2) + (layeringConfidence * 0.2)) * renderQuality
+      self.garmentNode.opacity = CGFloat(max(0.15, min(1.0, alpha)))
+      self.garmentNode.renderingOrder = occlusionEnabled ? 4 : 1
+      self.placeholderNode.opacity = occlusionEnabled ? 0.02 : 0.08
+      self.garmentNode.geometry?.firstMaterial?.shininess = CGFloat(0.12 + (layeringConfidence * 0.22))
+      self.garmentNode.geometry?.firstMaterial?.lightingModel = .physicallyBased
+      self.contactShadowNode.opacity = CGFloat((shadowOpacity * 0.7) + (contactShadowOpacity * 0.3))
+      self.contactShadowNode.scale = SCNVector3(
+        Float(0.96 + (widthScale * 0.08)),
+        Float(0.9 + (heightScale * 0.06)),
+        1
+      )
+      self.contactShadowNode.position = SCNVector3(
+        self.garmentNode.position.x,
+        self.garmentNode.position.y - 0.05,
+        self.garmentNode.position.z - 0.04
+      )
+      self.contactShadowNode.geometry?.firstMaterial?.transparency =
+        CGFloat(max(0.08, min(0.38, shadowOpacity + (shadowSoftness * 0.08))))
     }
   }
 
@@ -199,6 +291,14 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
     DispatchQueue.main.async {
       self.garmentNode.opacity = 0
     }
+  }
+
+  func pause() {
+    rootView.session.pause()
+  }
+
+  func resume() {
+    startSessionIfSupported()
   }
 
   private func configureScene() {
@@ -221,6 +321,17 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
     placeholderNode.geometry = placeholder
     placeholderNode.position = SCNVector3(0, -0.04, -1.25)
     rootView.scene?.rootNode.addChildNode(placeholderNode)
+
+    let contactShadow = SCNPlane(width: 0.58, height: 0.78)
+    contactShadow.cornerRadius = 0.03
+    contactShadow.firstMaterial?.diffuse.contents = UIColor.black.withAlphaComponent(0.2)
+    contactShadow.firstMaterial?.isDoubleSided = true
+    contactShadow.firstMaterial?.lightingModel = .constant
+    contactShadow.firstMaterial?.transparency = 0.18
+    contactShadowNode.geometry = contactShadow
+    contactShadowNode.position = SCNVector3(0, -0.08, -1.24)
+    contactShadowNode.opacity = 0.16
+    rootView.scene?.rootNode.addChildNode(contactShadowNode)
   }
 
   private func startSessionIfSupported() {
@@ -247,5 +358,28 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
       let y = dict["y"] as? Double
     else { return nil }
     return CGPoint(x: x, y: y)
+  }
+
+  private func number(from raw: Any?, fallback: Double, min: Double, max: Double) -> Double {
+    let value = (raw as? NSNumber)?.doubleValue ?? fallback
+    return Swift.max(min, Swift.min(max, value))
+  }
+
+  func capturePreview(to path: String) -> Bool {
+    let format = UIGraphicsImageRendererFormat.default()
+    format.opaque = true
+    let renderer = UIGraphicsImageRenderer(size: rootView.bounds.size, format: format)
+    let image = renderer.image { _ in
+      rootView.drawHierarchy(in: rootView.bounds, afterScreenUpdates: true)
+    }
+    guard let data = image.jpegData(compressionQuality: 0.92) else {
+      return false
+    }
+    do {
+      try data.write(to: URL(fileURLWithPath: path), options: .atomic)
+      return true
+    } catch {
+      return false
+    }
   }
 }

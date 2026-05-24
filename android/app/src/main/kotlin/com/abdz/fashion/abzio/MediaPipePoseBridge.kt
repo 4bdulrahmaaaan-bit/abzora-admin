@@ -23,6 +23,10 @@ class MediaPipePoseBridge(
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private var poseLandmarker: PoseLandmarker? = null
     private var poseCallbackEnabled: Boolean = true
+    private var processedFrames: Long = 0
+    private var failedFrames: Long = 0
+    private var lastLatencyMs: Long = 0
+    private var avgLatencyMs: Double = 0.0
 
     init {
         channel.setMethodCallHandler(this)
@@ -49,6 +53,7 @@ class MediaPipePoseBridge(
                     return
                 }
                 executor.execute {
+                    val started = SystemClock.elapsedRealtime()
                     try {
                         val detector = ensureDetector()
                         val bytes = args["jpegBytes"] as? ByteArray
@@ -62,11 +67,18 @@ class MediaPipePoseBridge(
                             ?: SystemClock.uptimeMillis()
                         val output = detector.detectForVideo(mpImage, timestampMs)
                         val payload = serializeLandmarks(output, width, height)
+                        val latency = SystemClock.elapsedRealtime() - started
+                        processedFrames += 1
+                        lastLatencyMs = latency
+                        avgLatencyMs =
+                            if (processedFrames <= 1) latency.toDouble()
+                            else (avgLatencyMs * 0.85) + (latency * 0.15)
                         if (poseCallbackEnabled) {
                             emitPoseToFlutter(payload)
                         }
                         postSuccess(result, payload)
                     } catch (error: Throwable) {
+                        failedFrames += 1
                         postError(result, "mediapipe_process_failed", error.message ?: "Pose processing failed")
                     }
                 }
@@ -77,6 +89,7 @@ class MediaPipePoseBridge(
                     return
                 }
                 executor.execute {
+                    val started = SystemClock.elapsedRealtime()
                     try {
                         val detector = ensureDetector()
                         val path = args["path"]?.toString() ?: ""
@@ -88,14 +101,35 @@ class MediaPipePoseBridge(
                         val mpImage = BitmapImageBuilder(bitmap).build()
                         val output = detector.detect(mpImage)
                         val payload = serializeLandmarks(output, bitmap.width, bitmap.height)
+                        val latency = SystemClock.elapsedRealtime() - started
+                        processedFrames += 1
+                        lastLatencyMs = latency
+                        avgLatencyMs =
+                            if (processedFrames <= 1) latency.toDouble()
+                            else (avgLatencyMs * 0.85) + (latency * 0.15)
                         if (poseCallbackEnabled) {
                             emitPoseToFlutter(payload)
                         }
                         postSuccess(result, payload)
                     } catch (error: Throwable) {
+                        failedFrames += 1
                         postError(result, "mediapipe_image_failed", error.message ?: "Image pose processing failed")
                     }
                 }
+            }
+            "getDiagnostics" -> {
+                val total = processedFrames + failedFrames
+                val errorRate = if (total <= 0) 0.0 else failedFrames.toDouble() / total.toDouble()
+                result.success(
+                    mapOf(
+                        "processedFrames" to processedFrames,
+                        "failedFrames" to failedFrames,
+                        "errorRate" to errorRate,
+                        "lastLatencyMs" to lastLatencyMs,
+                        "avgLatencyMs" to avgLatencyMs,
+                        "callbackEnabled" to poseCallbackEnabled
+                    )
+                )
             }
             "setPoseCallbackEnabled" -> {
                 val args = call.arguments as? Map<*, *>

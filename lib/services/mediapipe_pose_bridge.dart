@@ -68,6 +68,10 @@ class MediaPipePoseBridge {
 
   static const double _visibilityThreshold = 0.35;
   static const double _smoothingT = 0.28;
+  int _processedFrames = 0;
+  int _failedFrames = 0;
+  double _avgLatencyMs = 0;
+  double _lastLatencyMs = 0;
 
   Stream<List<MediaPipePoseLandmark>> get landmarksStream =>
       _landmarksController.stream;
@@ -109,11 +113,19 @@ class MediaPipePoseBridge {
     MediaPipePoseFrameInput frame,
   ) async {
     await ensureInitialized();
+    final started = DateTime.now();
     final raw = await _channel.invokeMethod<List<dynamic>>(
       'processFrame',
       frame.toMap(),
     );
+    final latency = DateTime.now().difference(started).inMilliseconds.toDouble();
+    _processedFrames += 1;
+    _lastLatencyMs = latency;
+    _avgLatencyMs = _processedFrames <= 1
+        ? latency
+        : ((_avgLatencyMs * 0.85) + (latency * 0.15));
     if (raw == null || raw.isEmpty) {
+      _failedFrames += 1;
       return _handlePoseLoss();
     }
     return _optimizeLandmarks(
@@ -148,6 +160,27 @@ class MediaPipePoseBridge {
       // Ignore dispose failures.
     }
     await _landmarksController.close();
+  }
+
+  Future<Map<String, dynamic>> diagnostics() async {
+    await ensureInitialized();
+    try {
+      final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+        'getDiagnostics',
+      );
+      if (raw != null) {
+        return Map<String, dynamic>.from(raw);
+      }
+    } catch (_) {}
+    final total = _processedFrames + _failedFrames;
+    return <String, dynamic>{
+      'processedFrames': _processedFrames,
+      'failedFrames': _failedFrames,
+      'errorRate': total == 0 ? 0 : (_failedFrames / total),
+      'lastLatencyMs': _lastLatencyMs,
+      'avgLatencyMs': _avgLatencyMs,
+      'callbackEnabled': true,
+    };
   }
 
   Future<void> _handleNativeCallback(MethodCall call) async {

@@ -11,7 +11,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_core
   firebase_storage
   flutter_tts
-  flutter_unity_widget
   geolocator_windows
   maps_launcher
   permission_handler_windows

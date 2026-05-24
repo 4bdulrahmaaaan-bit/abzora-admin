@@ -8,7 +8,6 @@ allprojects {
         flatDir {
             dirs(
                 rootProject.file("app/libs"),
-                rootProject.file("../unityLibrary/unityLibrary/libs"),
             )
         }
     }

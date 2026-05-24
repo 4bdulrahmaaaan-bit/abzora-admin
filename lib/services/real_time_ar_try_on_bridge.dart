@@ -5,14 +5,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../models/ar_try_on_models.dart';
+import '../models/mediapipe_try_on_payload.dart';
 
 class RealTimeArTryOnBridge {
   RealTimeArTryOnBridge._();
 
   static final RealTimeArTryOnBridge instance = RealTimeArTryOnBridge._();
 
-  static const MethodChannel _channel = MethodChannel('abzora/realtime_ar_try_on');
-  static const EventChannel _events = EventChannel('abzora/realtime_ar_try_on/events');
+  static const MethodChannel _channel = MethodChannel(
+    'abzora/realtime_ar_try_on',
+  );
+  static const EventChannel _events = EventChannel(
+    'abzora/realtime_ar_try_on/events',
+  );
 
   Stream<Map<String, dynamic>>? _renderEvents;
 
@@ -34,6 +39,34 @@ class RealTimeArTryOnBridge {
     });
   }
 
+  Future<void> initializePayload({
+    required MediaPipeTryOnPayload payload,
+    bool preferBackCamera = false,
+    bool enableOcclusion = true,
+    double segmentationQuality = 0.7,
+    double segmentationEdgeSmoothing = 0.5,
+    int segmentationInferenceStride = 2,
+    double occlusionDetail = 0.6,
+  }) async {
+    await _channel.invokeMethod<void>('initialize', {
+      'productId': payload.productId,
+      'name': payload.name,
+      'category': payload.category,
+      'overlayAssetUrl': payload.overlayAssetUrl,
+      'transparentAssetUrl': payload.overlayAssetUrl,
+      'model3dUrl': payload.model3dUrl,
+      'alignmentConfig': payload.alignmentConfig,
+      'garmentConfig': payload.garmentConfig,
+      'preferBackCamera': preferBackCamera,
+      'enableOcclusion': enableOcclusion,
+      'segmentationQuality': segmentationQuality,
+      'segmentationEdgeSmoothing': segmentationEdgeSmoothing,
+      'segmentationInferenceStride': segmentationInferenceStride,
+      'occlusionDetail': occlusionDetail,
+      'platform': defaultTargetPlatform.name,
+    });
+  }
+
   Future<void> updateGarment(ArTryOnProductMetadata metadata) async {
     await _channel.invokeMethod<void>('updateGarment', {
       'productId': metadata.id,
@@ -50,6 +83,9 @@ class RealTimeArTryOnBridge {
     required Size viewportSize,
     required bool bodyDetected,
     double lightingScore = 0.5,
+    double segmentationMaskAlpha = 0.7,
+    double segmentationEdgeStability = 0.6,
+    double occlusionBlend = 0.7,
   }) async {
     await _channel.invokeMethod<void>('updatePoseFrame', {
       'poseFrame': poseFrame,
@@ -57,6 +93,9 @@ class RealTimeArTryOnBridge {
       'viewportHeight': viewportSize.height,
       'bodyDetected': bodyDetected,
       'lightingScore': lightingScore,
+      'segmentationMaskAlpha': segmentationMaskAlpha,
+      'segmentationEdgeStability': segmentationEdgeStability,
+      'occlusionBlend': occlusionBlend,
     });
   }
 
@@ -67,6 +106,14 @@ class RealTimeArTryOnBridge {
   Future<String?> capturePreview() async {
     final payload = await _channel.invokeMethod<String>('capturePreview');
     return payload?.trim().isEmpty ?? true ? null : payload?.trim();
+  }
+
+  Future<void> pause() async {
+    await _channel.invokeMethod<void>('pause');
+  }
+
+  Future<void> resume() async {
+    await _channel.invokeMethod<void>('resume');
   }
 
   Stream<Map<String, dynamic>> get renderEvents {

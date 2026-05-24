@@ -48,7 +48,16 @@ async function main() {
   assert(tryOn.garmentConfig && typeof tryOn.garmentConfig === 'object', 'try_on sample missing garmentConfig');
   assert(tryOn.template && typeof tryOn.template === 'object', 'try_on sample missing template');
   assert(isUrl(tryOn.model3d), 'try_on sample model3d must be valid URL');
-  assert(isUrl(tryOn.unityAssetBundleUrl), 'try_on sample unityAssetBundleUrl must be valid URL');
+  // Support both legacy and current payload fields during migration windows.
+  const bundleUrl = tryOn.assetBundleUrl || tryOn.assetBundleUrl || '';
+  if (bundleUrl) {
+    assert(isUrl(bundleUrl), 'assetBundleUrl/assetBundleUrl must be valid URL');
+  }
+  assert(typeof tryOn.rigProfile === 'string' && tryOn.rigProfile, 'try_on sample missing rigProfile');
+  assert(
+    typeof tryOn.materialProfile === 'string' && tryOn.materialProfile,
+    'try_on sample missing materialProfile'
+  );
 
   const lodModels = tryOn.garmentConfig?.lodModels || {};
   assert(isUrl(lodModels.lod0), 'garmentConfig.lodModels.lod0 must be valid URL');
@@ -57,6 +66,9 @@ async function main() {
 
   if (tryOn.garmentConfig?.fabricTextureUrl) {
     assert(isUrl(tryOn.garmentConfig.fabricTextureUrl), 'fabricTextureUrl must be valid URL');
+  }
+  if (tryOn.overlayAssetUrl) {
+    assert(isUrl(tryOn.overlayAssetUrl), 'overlayAssetUrl must be valid URL');
   }
 
   const fitScore = parsed['docs/ar/samples/fit_score_response.sample.json'];
@@ -72,3 +84,4 @@ main().catch((error) => {
   console.error('[release:ar-assets] failed:', error.message);
   process.exitCode = 1;
 });
+

@@ -14,7 +14,7 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/wishlist_provider.dart';
-import '../../models/abzora_unity_try_on_payload.dart';
+import '../../models/mediapipe_try_on_payload.dart';
 import '../../models/ar_try_on_models.dart';
 import '../../services/backend_commerce_service.dart';
 import '../../services/database_service.dart';
@@ -29,7 +29,6 @@ import '../../widgets/state_views.dart';
 import 'address_screen.dart';
 import 'ai_stylist_screen.dart';
 import 'abzora_ar_screen.dart';
-import 'live_ar_try_on_screen.dart';
 import 'trial_booking_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -480,8 +479,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     }
     final address = (auth.user?.address ?? '').trim();
     if (address.isNotEmpty) {
-      final condensed = address.split(',').map((part) => part.trim()).where((part) => part.isNotEmpty).take(2).join(', ');
-      return condensed.length > 46 ? '${condensed.substring(0, 46)}...' : condensed;
+      final condensed = address
+          .split(',')
+          .map((part) => part.trim())
+          .where((part) => part.isNotEmpty)
+          .take(2)
+          .join(', ');
+      return condensed.length > 46
+          ? '${condensed.substring(0, 46)}...'
+          : condensed;
     }
     return 'Add delivery address';
   }
@@ -562,7 +568,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     onPressed: () async {
                       Navigator.of(sheetContext).pop();
                       await Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const AddressScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const AddressScreen(),
+                        ),
                       );
                       if (!mounted) {
                         return;
@@ -570,7 +578,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                       setState(() {});
                     },
                     icon: Icon(
-                      hasAddress ? Icons.edit_location_alt_outlined : Icons.add_location_alt_outlined,
+                      hasAddress
+                          ? Icons.edit_location_alt_outlined
+                          : Icons.add_location_alt_outlined,
                     ),
                     label: Text(hasAddress ? 'Change address' : 'Add address'),
                     style: FilledButton.styleFrom(
@@ -844,42 +854,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   Future<void> _openLiveTryOn(Product product, Color accentColor) async {
-    var usingFallbackTryOn = false;
+    MediaPipeTryOnPayload? payload;
+    var usingCompatibilityMode = false;
     if (_backendCommerce.isConfigured) {
       try {
-        final metadata = await _backendCommerce.getTryOnProductMetadata(product.id);
+        final metadata = await _backendCommerce.getTryOnProductMetadata(
+          product.id,
+        );
         if (!mounted) return;
-
-        if (_hasUsableUnityGarmentAsset(metadata)) {
-          final payload = _buildAbzoraUnityPayload(metadata);
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AbzoraArScreen(
-                payload: payload,
-                onError: (message) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(message)),
-                  );
-                },
-              ),
-            ),
-          );
-          return;
-        }
-        usingFallbackTryOn = true;
+        payload = _buildMediaPipePayload(metadata);
+        usingCompatibilityMode = !_hasUsableGarmentAsset(metadata);
       } catch (_) {
-        // Fall back to existing in-app AR try-on if Unity flow is unavailable.
-        usingFallbackTryOn = true;
+        usingCompatibilityMode = true;
       }
+    } else {
+      usingCompatibilityMode = true;
     }
 
+    payload ??= _buildCompatibilityMediaPipePayload(product);
     if (!mounted) return;
-    if (usingFallbackTryOn) {
+    if (usingCompatibilityMode) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Opening Try Live in compatibility mode for this product.'),
+          content: Text(
+            'Opening Try Live in compatibility mode for this product.',
+          ),
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 2),
         ),
@@ -888,32 +887,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => LiveArTryOnScreen(
-          product: product,
-          accentColor: accentColor,
-          heroImageTag: _heroTagFor(product, _imageIndex),
-          entryImageUrl: product.images.isEmpty
-              ? null
-              : product.images[_imageIndex.clamp(0, product.images.length - 1)],
+        builder: (_) => AbzoraArScreen(
+          payload: payload!,
+          onError: (message) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(message)));
+          },
         ),
       ),
     );
   }
 
-  AbzoraUnityTryOnPayload _buildAbzoraUnityPayload(
-    ArTryOnProductMetadata metadata,
-  ) {
-    var resolvedModelUrl = _resolveUnityModelUrl(metadata);
-    var resolvedBundleUrl = _resolveUnityBundleUrl(metadata);
+  MediaPipeTryOnPayload _buildMediaPipePayload(ArTryOnProductMetadata metadata) {
+    var resolvedModelUrl = _resolveModelUrl(metadata);
+    var resolvedBundleUrl = _resolveBundleUrl(metadata);
     if (_looksLikeModelUrl(resolvedBundleUrl)) {
       if (resolvedModelUrl.isEmpty) {
         resolvedModelUrl = resolvedBundleUrl;
       }
       resolvedBundleUrl = '';
     }
-    final resolvedRigProfile = _resolveUnityRigProfile(metadata);
-    final resolvedMaterialProfile = _resolveUnityMaterialProfile(metadata);
-    return AbzoraUnityTryOnPayload(
+    final resolvedRigProfile = _resolveRigProfile(metadata);
+    final resolvedMaterialProfile = _resolveMaterialProfile(metadata);
+    return MediaPipeTryOnPayload(
       productId: metadata.id,
       name: metadata.name,
       category: metadata.category,
@@ -922,7 +920,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       garmentConfig: metadata.garmentConfig,
       alignmentConfig: metadata.alignmentConfig,
       model3dUrl: resolvedModelUrl,
-      unityAssetBundleUrl: resolvedBundleUrl,
+      assetBundleUrl: resolvedBundleUrl,
       rigProfile: resolvedRigProfile,
       materialProfile: resolvedMaterialProfile,
       overlayAssetUrl: metadata.overlayAssetUrl,
@@ -930,12 +928,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     );
   }
 
-  bool _hasUsableUnityGarmentAsset(ArTryOnProductMetadata metadata) {
-    return _resolveUnityBundleUrl(metadata).isNotEmpty ||
-        _resolveUnityModelUrl(metadata).isNotEmpty;
+  bool _hasUsableGarmentAsset(ArTryOnProductMetadata metadata) {
+    return _resolveBundleUrl(metadata).isNotEmpty ||
+        _resolveModelUrl(metadata).isNotEmpty;
   }
 
-  String _resolveUnityModelUrl(ArTryOnProductMetadata metadata) {
+  MediaPipeTryOnPayload _buildCompatibilityMediaPipePayload(Product product) {
+    return MediaPipeTryOnPayload(
+      productId: product.id,
+      name: product.name,
+      category: product.category.isEmpty ? 'shirt' : product.category,
+      templateId: 'compat_template',
+      template: const <String, dynamic>{},
+      garmentConfig: const <String, dynamic>{},
+      alignmentConfig: const <String, dynamic>{},
+      model3dUrl: '',
+      assetBundleUrl: '',
+      rigProfile: '',
+      materialProfile: '',
+      overlayAssetUrl: '',
+      measurements: const <String, double>{},
+      enableStaticPreviewFallback: true,
+    );
+  }
+
+  String _resolveModelUrl(ArTryOnProductMetadata metadata) {
     return _firstNonBlankString(<Object?>[
       metadata.model3dUrl,
       metadata.arAsset['model3d'],
@@ -962,38 +979,38 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     ]);
   }
 
-  String _resolveUnityBundleUrl(ArTryOnProductMetadata metadata) {
+  String _resolveBundleUrl(ArTryOnProductMetadata metadata) {
     final bundle = _firstNonBlankString(<Object?>[
-      metadata.unityAssetBundleUrl,
-      metadata.arAsset['unityAssetBundleUrl'],
+      metadata.assetBundleUrl,
+      metadata.arAsset['assetBundleUrl'],
       metadata.arAsset['assetBundleUrl'],
       metadata.arAsset['bundleUrl'],
-      _mapValue(metadata.templateData['unity'], 'assetBundleUrl'),
-      _mapValue(metadata.templateData['unity'], 'bundleUrl'),
-      _mapValue(metadata.templateData['unity'], 'androidBundleUrl'),
-      _mapValue(metadata.garmentConfig['unity'], 'assetBundleUrl'),
-      _mapValue(metadata.garmentConfig['unity'], 'bundleUrl'),
-      _mapValue(metadata.garmentConfig['unity'], 'androidBundleUrl'),
+      _mapValue(metadata.templateData['runtimeProfile'], 'assetBundleUrl'),
+      _mapValue(metadata.templateData['runtimeProfile'], 'bundleUrl'),
+      _mapValue(metadata.templateData['runtimeProfile'], 'androidBundleUrl'),
+      _mapValue(metadata.garmentConfig['runtimeProfile'], 'assetBundleUrl'),
+      _mapValue(metadata.garmentConfig['runtimeProfile'], 'bundleUrl'),
+      _mapValue(metadata.garmentConfig['runtimeProfile'], 'androidBundleUrl'),
     ]);
     return _looksLikeModelUrl(bundle) ? '' : bundle;
   }
 
-  String _resolveUnityRigProfile(ArTryOnProductMetadata metadata) {
+  String _resolveRigProfile(ArTryOnProductMetadata metadata) {
     return _firstNonBlankString(<Object?>[
       metadata.rigProfile,
       metadata.arAsset['rigProfile'],
       metadata.templateData['rigProfile'],
-      _mapValue(metadata.templateData['unity'], 'rigProfile'),
+      _mapValue(metadata.templateData['runtimeProfile'], 'rigProfile'),
       metadata.garmentConfig['rigProfile'],
     ]);
   }
 
-  String _resolveUnityMaterialProfile(ArTryOnProductMetadata metadata) {
+  String _resolveMaterialProfile(ArTryOnProductMetadata metadata) {
     return _firstNonBlankString(<Object?>[
       metadata.materialProfile,
       metadata.arAsset['materialProfile'],
       metadata.templateData['materialProfile'],
-      _mapValue(metadata.templateData['unity'], 'materialProfile'),
+      _mapValue(metadata.templateData['runtimeProfile'], 'materialProfile'),
       metadata.garmentConfig['materialProfile'],
       metadata.templateData['defaultMaterialProfile'],
     ]);
@@ -1543,7 +1560,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: _openDeliveryAddressSheet,
-              onHover: (value) => setState(() => _deliveryAddressHovered = value),
+              onHover: (value) =>
+                  setState(() => _deliveryAddressHovered = value),
               onHighlightChanged: (value) =>
                   setState(() => _deliveryAddressPressed = value),
               child: AnimatedContainer(
@@ -1767,6 +1785,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       ),
     );
   }
+
   Widget _buildCompleteTheLookSection(
     BuildContext context,
     double lookCardWidth,
@@ -2001,7 +2020,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                               }
                             : showSelectSizeHint,
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: primaryGold.withValues(alpha: 0.72)),
+                          side: BorderSide(
+                            color: primaryGold.withValues(alpha: 0.72),
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -5014,7 +5035,7 @@ class _MiniSelectionCard extends StatelessWidget {
             NumberFormat.currency(
               locale: 'en_IN',
               symbol: '\u20B9',
-      decimalDigits: 0,
+              decimalDigits: 0,
             ).format(product.effectivePrice),
             style: Theme.of(
               context,

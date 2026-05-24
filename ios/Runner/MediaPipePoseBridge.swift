@@ -18,6 +18,10 @@ final class MediaPipePoseBridge: NSObject, FlutterPlugin, AVCaptureVideoDataOutp
   private var streamEnabled = false
   private var callbackEnabled = false
   private var modelAssetPath = "assets/ml/pose_landmarker_lite.task"
+  private var processedFrames: Int = 0
+  private var failedFrames: Int = 0
+  private var lastLatencyMs: Double = 0
+  private var avgLatencyMs: Double = 0
 
   #if canImport(MediaPipeTasksVision)
   private var poseLandmarker: PoseLandmarker?
@@ -56,6 +60,18 @@ final class MediaPipePoseBridge: NSObject, FlutterPlugin, AVCaptureVideoDataOutp
         return
       }
       processImagePath(path, result: result)
+
+    case "getDiagnostics":
+      let total = processedFrames + failedFrames
+      let errorRate = total > 0 ? Double(failedFrames) / Double(total) : 0
+      result([
+        "processedFrames": processedFrames,
+        "failedFrames": failedFrames,
+        "errorRate": errorRate,
+        "lastLatencyMs": lastLatencyMs,
+        "avgLatencyMs": avgLatencyMs,
+        "callbackEnabled": callbackEnabled
+      ])
 
     case "setPoseCallbackEnabled":
       let enabled = (call.arguments as? [String: Any])?["enabled"] as? Bool ?? false
@@ -107,9 +123,11 @@ final class MediaPipePoseBridge: NSObject, FlutterPlugin, AVCaptureVideoDataOutp
       return
     }
     processingQueue.async {
+      let started = CFAbsoluteTimeGetCurrent()
       let data = jpegBytes.data
       guard let image = UIImage(data: data),
             let mpImage = try? MPImage(uiImage: image) else {
+        self.failedFrames += 1
         DispatchQueue.main.async {
           result([])
         }
@@ -118,6 +136,11 @@ final class MediaPipePoseBridge: NSObject, FlutterPlugin, AVCaptureVideoDataOutp
       let ts = (args["timestampMs"] as? NSNumber)?.intValue ?? Int(Date().timeIntervalSince1970 * 1000)
       let output = try? poseLandmarker.detect(videoFrame: mpImage, timestampInMilliseconds: ts)
       let payload = self.serialize(result: output)
+      let latencyMs = (CFAbsoluteTimeGetCurrent() - started) * 1000
+      self.processedFrames += 1
+      self.lastLatencyMs = latencyMs
+      self.avgLatencyMs =
+        self.processedFrames <= 1 ? latencyMs : ((self.avgLatencyMs * 0.85) + (latencyMs * 0.15))
       if self.callbackEnabled {
         self.emitToFlutter(payload)
       }
@@ -143,8 +166,10 @@ final class MediaPipePoseBridge: NSObject, FlutterPlugin, AVCaptureVideoDataOutp
       return
     }
     processingQueue.async {
+      let started = CFAbsoluteTimeGetCurrent()
       guard let image = UIImage(contentsOfFile: path),
             let mpImage = try? MPImage(uiImage: image) else {
+        self.failedFrames += 1
         DispatchQueue.main.async {
           result([])
         }
@@ -152,6 +177,11 @@ final class MediaPipePoseBridge: NSObject, FlutterPlugin, AVCaptureVideoDataOutp
       }
       let output = try? poseLandmarker.detect(image: mpImage)
       let payload = self.serialize(result: output)
+      let latencyMs = (CFAbsoluteTimeGetCurrent() - started) * 1000
+      self.processedFrames += 1
+      self.lastLatencyMs = latencyMs
+      self.avgLatencyMs =
+        self.processedFrames <= 1 ? latencyMs : ((self.avgLatencyMs * 0.85) + (latencyMs * 0.15))
       if self.callbackEnabled {
         self.emitToFlutter(payload)
       }

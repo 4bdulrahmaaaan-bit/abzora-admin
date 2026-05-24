@@ -60,13 +60,32 @@ class RealTimeArTryOnPlugin(
                 result.success(null)
             }
             "setCameraFacing" -> {
+                val front = call.argument<Boolean>("front") ?: true
+                activeViews.forEach { it.setCameraFacing(front) }
                 emitRenderEvent("camera_switched")
                 result.success(null)
             }
             "capturePreview" -> {
                 val previewPath = "${context.cacheDir.absolutePath}\\ar_preview_${UUID.randomUUID()}.jpg"
+                val captured = activeViews.firstOrNull()?.capturePreview(previewPath) ?: false
                 emitRenderEvent("capture_requested")
-                result.success(previewPath)
+                if (captured) {
+                    emitCaptureComplete(previewPath)
+                    result.success(previewPath)
+                } else {
+                    emitRenderError("capture_failed", "Unable to capture AR preview frame.")
+                    result.success(null)
+                }
+            }
+            "pause" -> {
+                activeViews.forEach { it.pause() }
+                emitRenderEvent("paused")
+                result.success(null)
+            }
+            "resume" -> {
+                activeViews.forEach { it.resume() }
+                emitRenderEvent("resumed")
+                result.success(null)
             }
             "dispose" -> {
                 lastConfig = emptyMap()
@@ -93,6 +112,27 @@ class RealTimeArTryOnPlugin(
                 "renderer" to "android_native_hybrid",
                 "occlusionEnabled" to (lastConfig["enableOcclusion"] as? Boolean ?: false),
                 "arCoreSupported" to isArCoreSupported(),
+                "timestampMs" to System.currentTimeMillis()
+            )
+        )
+    }
+
+    private fun emitCaptureComplete(path: String) {
+        eventSink?.success(
+            mapOf(
+                "type" to "capture_complete",
+                "path" to path,
+                "timestampMs" to System.currentTimeMillis()
+            )
+        )
+    }
+
+    private fun emitRenderError(code: String, message: String) {
+        eventSink?.success(
+            mapOf(
+                "type" to "renderer_error",
+                "code" to code,
+                "message" to message,
                 "timestampMs" to System.currentTimeMillis()
             )
         )
@@ -157,5 +197,21 @@ private class RealTimeArTryOnView(
 
     fun reset() {
         renderer.reset()
+    }
+
+    fun setCameraFacing(front: Boolean) {
+        renderer.setCameraFacing(front)
+    }
+
+    fun capturePreview(path: String): Boolean {
+        return renderer.capturePreview(path)
+    }
+
+    fun pause() {
+        renderer.pause()
+    }
+
+    fun resume() {
+        renderer.resume()
     }
 }

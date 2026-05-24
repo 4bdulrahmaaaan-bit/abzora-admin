@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 import '../../models/models.dart';
+import '../../services/backend_commerce_service.dart';
 import '../../theme.dart';
 import '../../widgets/state_views.dart';
 
@@ -36,16 +38,23 @@ class AdminArModerationSection extends StatefulWidget {
 }
 
 class _AdminArModerationSectionState extends State<AdminArModerationSection> {
+  final BackendCommerceService _backendCommerce = BackendCommerceService();
   final TextEditingController _searchController = TextEditingController();
   final Set<String> _selected = <String>{};
   String _statusFilter = 'pending';
   Product? _active;
   bool _busy = false;
+  bool _telemetryLoading = false;
+  Map<String, dynamic> _telemetrySummary = const <String, dynamic>{};
+  Timer? _telemetryRefreshTimer;
+  int _telemetryDays = 7;
 
   @override
   void initState() {
     super.initState();
     _active = widget.products.isEmpty ? null : widget.products.first;
+    _loadTelemetrySummary();
+    _startTelemetryAutoRefresh();
   }
 
   @override
@@ -63,6 +72,7 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
 
   @override
   void dispose() {
+    _telemetryRefreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -143,6 +153,49 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
     }
   }
 
+  Future<void> _loadTelemetrySummary() async {
+    if (!_backendCommerce.isConfigured) {
+      return;
+    }
+    setState(() => _telemetryLoading = true);
+    try {
+      final response = await _backendCommerce.getTryOnTelemetrySummary(
+        days: _telemetryDays,
+      );
+      final data = response['data'];
+      if (data is Map<String, dynamic>) {
+        _telemetrySummary = data;
+      } else if (data is Map) {
+        _telemetrySummary = Map<String, dynamic>.from(data);
+      }
+    } catch (_) {
+      _telemetrySummary = const <String, dynamic>{};
+    } finally {
+      if (mounted) {
+        setState(() => _telemetryLoading = false);
+      }
+    }
+  }
+
+  void _startTelemetryAutoRefresh() {
+    _telemetryRefreshTimer?.cancel();
+    if (!_backendCommerce.isConfigured) {
+      return;
+    }
+    _telemetryRefreshTimer = Timer.periodic(
+      const Duration(seconds: 45),
+      (_) {
+        if (!mounted) {
+          return;
+        }
+        if (_telemetryLoading) {
+          return;
+        }
+        _loadTelemetrySummary();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final filtered = _filtered;
@@ -152,6 +205,22 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
     final successRate = widget.products.isEmpty
         ? 0.0
         : widget.products.where((p) => _statusOf(p) == 'approved').length / widget.products.length;
+    final telemetryAverages = _telemetrySummary['averages'] as Map? ?? const {};
+    final telemetryRates = _telemetrySummary['rates'] as Map? ?? const {};
+    final telemetryBands = _telemetrySummary['bands'] as Map? ?? const {};
+    final telemetryDeviceTiers =
+        _telemetrySummary['deviceTiers'] as Map? ?? const {};
+    final telemetryDailyRaw = _telemetrySummary['daily'] as List? ?? const [];
+    final telemetryDaily = telemetryDailyRaw
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    final avgSessionQuality = (telemetryAverages['sessionQuality'] as num?)?.toDouble() ?? 0.0;
+    final thermalRiskRate = (telemetryRates['thermalRiskRate'] as num?)?.toDouble() ?? 0.0;
+    final trackingRiskRate = (telemetryRates['trackingRiskRate'] as num?)?.toDouble() ?? 0.0;
+    final segmentationRiskRate =
+        (telemetryRates['segmentationRiskRate'] as num?)?.toDouble() ?? 0.0;
+    final qualityBand = telemetryBands['qualityBand'] as Map? ?? const {};
     final mostUsed = [...widget.products]..sort((a, b) => b.viewCount.compareTo(a.viewCount));
 
     return Column(
@@ -193,9 +262,106 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
           children: [
             _metricCard('AR usage rate', '${(usageRate * 100).toStringAsFixed(1)}%'),
             _metricCard('Try-on success rate', '${(successRate * 100).toStringAsFixed(1)}%'),
+            _metricCard(
+              'Session quality (${_telemetryDays}d)',
+              _telemetryLoading
+                  ? 'Loading...'
+                  : '${(avgSessionQuality * 100).toStringAsFixed(1)}%',
+            ),
+            _metricCard(
+              'Thermal risk rate (${_telemetryDays}d)',
+              _telemetryLoading
+                  ? 'Loading...'
+                  : '${(thermalRiskRate * 100).toStringAsFixed(1)}%',
+            ),
+            _metricCard(
+              'Tracking risk rate (${_telemetryDays}d)',
+              _telemetryLoading
+                  ? 'Loading...'
+                  : '${(trackingRiskRate * 100).toStringAsFixed(1)}%',
+            ),
+            _metricCard(
+              'Segmentation risk rate (${_telemetryDays}d)',
+              _telemetryLoading
+                  ? 'Loading...'
+                  : '${(segmentationRiskRate * 100).toStringAsFixed(1)}%',
+            ),
             _metricCard('Most used', mostUsed.isEmpty ? '-' : mostUsed.first.name),
           ],
         ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            const Text(
+              'Telemetry window',
+              style: TextStyle(
+                color: AbzioTheme.grey600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 10),
+            SegmentedButton<int>(
+              segments: const <ButtonSegment<int>>[
+                ButtonSegment<int>(value: 7, label: Text('7d')),
+                ButtonSegment<int>(value: 14, label: Text('14d')),
+                ButtonSegment<int>(value: 30, label: Text('30d')),
+              ],
+              selected: <int>{_telemetryDays},
+              onSelectionChanged: (selection) {
+                final next = selection.isEmpty ? 7 : selection.first;
+                if (next == _telemetryDays) {
+                  return;
+                }
+                setState(() => _telemetryDays = next);
+                _loadTelemetrySummary();
+              },
+            ),
+            const SizedBox(width: 10),
+            OutlinedButton.icon(
+              onPressed: _telemetryLoading ? null : _loadTelemetrySummary,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Refresh now'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (!_telemetryLoading && qualityBand.isNotEmpty)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _bandChip('Excellent', qualityBand['excellent']),
+              _bandChip('Good', qualityBand['good']),
+              _bandChip('Fair', qualityBand['fair']),
+              _bandChip('Weak', qualityBand['weak']),
+            ],
+          ),
+        if (!_telemetryLoading && telemetryDeviceTiers.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: telemetryDeviceTiers.entries.map((entry) {
+              final tier = entry.key.toString();
+              final value = entry.value is Map
+                  ? Map<String, dynamic>.from(entry.value as Map)
+                  : const <String, dynamic>{};
+              final sessions = (value['sessions'] as num?)?.toInt() ?? 0;
+              final quality =
+                  ((value['avgSessionQuality'] as num?)?.toDouble() ?? 0) * 100;
+              final thermalRisk =
+                  ((value['thermalRiskRate'] as num?)?.toDouble() ?? 0) * 100;
+              return _metricCard(
+                '${tier.toUpperCase()} ($sessions)',
+                'Q ${quality.toStringAsFixed(1)}% | T ${thermalRisk.toStringAsFixed(1)}%',
+              );
+            }).toList(),
+          ),
+        ],
+        if (!_telemetryLoading && telemetryDaily.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _trendStrip(telemetryDaily),
+        ],
         const SizedBox(height: 12),
         Row(
           children: [
@@ -303,6 +469,85 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
           Text(label, style: const TextStyle(color: AbzioTheme.grey600, fontSize: 12)),
           const SizedBox(height: 4),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        ],
+      ),
+    );
+  }
+
+  Widget _bandChip(String label, dynamic rawCount) {
+    final count = (rawCount as num?)?.toInt() ?? 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F8),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AbzioTheme.grey100),
+      ),
+      child: Text(
+        '$label: $count',
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: AbzioTheme.grey600,
+        ),
+      ),
+    );
+  }
+
+  Widget _trendStrip(List<Map<String, dynamic>> daily) {
+    final points = daily.length <= 7 ? daily : daily.sublist(daily.length - 7);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AbzioTheme.grey100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '7-Day Session Quality Trend',
+            style: TextStyle(
+              color: AbzioTheme.grey600,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: points.map((point) {
+              final value = (point['avgSessionQuality'] as num?)?.toDouble() ?? 0.0;
+              final height = (18 + (value.clamp(0.0, 1.0) * 58)).toDouble();
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        height: height,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD8B978),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        point['day']?.toString().substring(5) ?? '--',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AbzioTheme.grey600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ],
       ),
     );

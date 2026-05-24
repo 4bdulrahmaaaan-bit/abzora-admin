@@ -17,7 +17,7 @@ class ArRealtimeTryOnResult {
   final int timestampMs;
   final String? styleHint;
 
-  factory ArRealtimeTryOnResult.fromUnityEvent(Map<String, dynamic> map) {
+  factory ArRealtimeTryOnResult.fromArEvent(Map<String, dynamic> map) {
     final payload = map['payload'] is Map
         ? Map<String, dynamic>.from(map['payload'] as Map)
         : map;
@@ -43,4 +43,7 @@ class ArRealtimeTryOnResult {
       styleHint: payload['styleHint']?.toString(),
     );
   }
+
+  factory ArRealtimeTryOnResult.fromUnityEvent(Map<String, dynamic> map) =>
+      ArRealtimeTryOnResult.fromArEvent(map);
 }

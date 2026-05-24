@@ -34,7 +34,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _stockController = TextEditingController();
   final _imageUrlsController = TextEditingController();
   final _model3dController = TextEditingController();
-  final _unityAssetBundleUrlController = TextEditingController();
+  final _assetBundleUrlController = TextEditingController();
   final _rigProfileController = TextEditingController();
   final _materialProfileController = TextEditingController();
   final _subcategoryController = TextEditingController();
@@ -95,7 +95,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _stockController.text = product.stock.toString();
       _imageUrlsController.text = product.images.join('\n');
       _model3dController.text = product.model3d ?? '';
-      _unityAssetBundleUrlController.text = product.unityAssetBundleUrl ?? '';
+      _assetBundleUrlController.text = product.assetBundleUrl ?? '';
       _rigProfileController.text = product.rigProfile ?? '';
       _materialProfileController.text = product.materialProfile ?? '';
       _subcategoryController.text = product.subcategory;
@@ -121,7 +121,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _stockController.dispose();
     _imageUrlsController.dispose();
     _model3dController.dispose();
-    _unityAssetBundleUrlController.dispose();
+    _assetBundleUrlController.dispose();
     _rigProfileController.dispose();
     _materialProfileController.dispose();
     _subcategoryController.dispose();
@@ -260,15 +260,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
             ),
             const SizedBox(height: 20),
 
-            _buildLabel('Unity AssetBundle URL'),
+            _buildLabel('3D Asset Bundle URL (Optional)'),
             TextField(
-              controller: _unityAssetBundleUrlController,
+              controller: _assetBundleUrlController,
+              onChanged: (_) => setState(() {}),
               style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-              decoration: const InputDecoration(
-                hintText:
-                    'https://cdn.example.com/unity/female_dress_bundle',
-                helperText:
-                    'Optional: if set with a valid rig profile, this product can open in Unity AR.',
+              decoration: InputDecoration(
+                hintText: 'https://cdn.example.com/ar/female_dress_bundle',
+                helperText: _AR runtimeBundleHelperText(),
               ),
             ),
             const SizedBox(height: 20),
@@ -460,7 +459,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
 
     final model3dUrl = _model3dController.text.trim();
-    final unityBundleUrl = _unityAssetBundleUrlController.text.trim();
+    var assetBundleUrl = _assetBundleUrlController.text.trim();
     if (model3dUrl.isNotEmpty &&
         _isValidHttpUrl(model3dUrl) &&
         !_looksLikeModelFileUrl(model3dUrl)) {
@@ -473,26 +472,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
       );
       return;
     }
-    if (unityBundleUrl.isNotEmpty) {
-      if (!_isValidHttpUrl(unityBundleUrl)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Unity AssetBundle URL must be a valid http/https URL.'),
-          ),
-        );
-        return;
-      }
-      if (_looksLikeModelFileUrl(unityBundleUrl)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Unity AssetBundle URL cannot be .glb/.gltf. Use 3D Model URL for GLB/GLTF.',
-            ),
-          ),
-        );
-        return;
-      }
+    // If a GLB/GLTF URL was accidentally pasted into AR bundle field,
+    // auto-clear it and continue using the 3D model URL path.
+    if (assetBundleUrl.isNotEmpty &&
+        (_looksLikeModelFileUrl(assetBundleUrl) ||
+            assetBundleUrl == model3dUrl)) {
+      assetBundleUrl = '';
+      _assetBundleUrlController.clear();
     }
+    // AR bundle URL is optional. Do not block product save if it is missing
+    // or malformed when vendors are using GLB-only AR assets.
+    final normalizedassetBundleUrl =
+        assetBundleUrl.isNotEmpty && _isValidHttpUrl(assetBundleUrl)
+        ? assetBundleUrl
+        : null;
 
     setState(() => _isUploading = true);
 
@@ -518,12 +511,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
       isCustomTailoring: existing?.isCustomTailoring ?? false,
       outfitType: existing?.outfitType,
       fabric: attributes['fabric'] ?? existing?.fabric,
-      model3d: _model3dController.text.trim().isEmpty
-          ? null
-          : model3dUrl,
-      unityAssetBundleUrl: _unityAssetBundleUrlController.text.trim().isEmpty
-          ? null
-          : unityBundleUrl,
+      model3d: _model3dController.text.trim().isEmpty ? null : model3dUrl,
+      assetBundleUrl: normalizedassetBundleUrl,
       rigProfile: _rigProfileController.text.trim().isEmpty
           ? null
           : _rigProfileController.text.trim(),
@@ -667,7 +656,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (uri == null) {
       return false;
     }
-    return (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
+    return (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
   }
 
   bool _looksLikeModelFileUrl(String value) {
@@ -742,6 +732,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return 'Showing ${resolved.toUpperCase()} specifications based on category and subcategory.';
   }
 
+  String _AR runtimeBundleHelperText() {
+    final value = _assetBundleUrlController.text.trim();
+    if (value.isEmpty) {
+      return 'Optional: add only if you have a true AR asset bundle URL.';
+    }
+    if (_looksLikeModelFileUrl(value)) {
+      return 'GLB/GLTF detected here. It will be ignored. Use the 3D Model field.';
+    }
+    if (!_isValidHttpUrl(value)) {
+      return 'Invalid asset bundle URL. It will be ignored on save.';
+    }
+    return 'Valid asset bundle URL detected.';
+  }
+
   Map<String, String> _collectAttributes() {
     final keys = {for (final section in _attributeSections) ...section.fields};
     final attributes = <String, String>{};
@@ -812,3 +816,5 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 }
+
+

@@ -9,7 +9,11 @@
     "release:backend": "node scripts/release_backend.mjs",
     "release:admin": "node scripts/release_admin_next.mjs",
     "release:ar-assets": "node scripts/release_validate_ar_assets.mjs",
-    "release:all": "node scripts/release_all.mjs"
+    "release:all": "node scripts/release_all.mjs",
+    "ar:ops:enterprise": "node scripts/ar_enterprise_rollout.mjs",
+    "ar:ops:device-lab": "node scripts/ar_device_lab_run.mjs",
+    "ar:ops:fit-promote": "node scripts/ar_fit_promote.mjs",
+    "ar:data:generate-fit": "node scripts/ar_generate_fit_dataset.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",

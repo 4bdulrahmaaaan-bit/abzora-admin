@@ -886,7 +886,7 @@ class Product {
   final String? outfitType;
   final String? fabric;
   final String? model3d;
-  final String? unityAssetBundleUrl;
+  final String? assetBundleUrl;
   final String? rigProfile;
   final String? materialProfile;
   final Map<String, String> attributes;
@@ -929,7 +929,7 @@ class Product {
     this.outfitType,
     this.fabric,
     this.model3d,
-    this.unityAssetBundleUrl,
+    this.assetBundleUrl,
     this.rigProfile,
     this.materialProfile,
     this.attributes = const {},
@@ -972,7 +972,7 @@ class Product {
     'outfitType': outfitType,
     'fabric': fabric,
     'model3d': model3d,
-    'unityAssetBundleUrl': unityAssetBundleUrl,
+    'assetBundleUrl': assetBundleUrl,
     'rigProfile': rigProfile,
     'materialProfile': materialProfile,
     'attributes': attributes,
@@ -1043,9 +1043,9 @@ class Product {
                 '';
             return raw.isEmpty ? null : raw;
           })(),
-    unityAssetBundleUrl:
-        (map['unityAssetBundleUrl']?.toString().trim().isNotEmpty ?? false)
-        ? map['unityAssetBundleUrl'].toString().trim()
+    assetBundleUrl:
+        (map['assetBundleUrl']?.toString().trim().isNotEmpty ?? false)
+        ? map['assetBundleUrl'].toString().trim()
         : null,
     rigProfile: (map['rigProfile']?.toString().trim().isNotEmpty ?? false)
         ? map['rigProfile'].toString().trim()
@@ -5046,3 +5046,4 @@ class CustomBrandProduct {
         category: map['category'] ?? '',
       );
 }
+
