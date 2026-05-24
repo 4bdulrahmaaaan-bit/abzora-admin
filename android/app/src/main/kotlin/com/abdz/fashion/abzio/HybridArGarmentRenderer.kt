@@ -17,6 +17,8 @@ import androidx.lifecycle.LifecycleOwner
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.webkit.WebView
+import android.webkit.WebSettings
 import java.net.URL
 import java.util.concurrent.Executors
 import kotlin.math.atan2
@@ -37,9 +39,20 @@ internal class HybridArGarmentRenderer(
       scaleType = ImageView.ScaleType.FIT_CENTER
       alpha = 0f
     }
+    private val glbView = WebView(context).apply {
+      setBackgroundColor(Color.TRANSPARENT)
+      alpha = 0f
+      settings.apply {
+        javaScriptEnabled = true
+        cacheMode = WebSettings.LOAD_DEFAULT
+        domStorageEnabled = true
+        mediaPlaybackRequiresUserGesture = false
+      }
+    }
     private var cameraProvider: ProcessCameraProvider? = null
     private var useFrontCamera = true
     private var garmentBitmap: Bitmap? = null
+    private var glbMode = false
 
     init {
       rootView.addView(
@@ -56,6 +69,13 @@ internal class HybridArGarmentRenderer(
           ViewGroup.LayoutParams.WRAP_CONTENT
         )
       )
+      rootView.addView(
+        glbView,
+        FrameLayout.LayoutParams(
+          ViewGroup.LayoutParams.WRAP_CONTENT,
+          ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+      )
       startCamera()
     }
 
@@ -67,7 +87,16 @@ internal class HybridArGarmentRenderer(
           ?: config["overlayAssetUrl"]?.toString()?.takeIf { it.isNotBlank() }
           ?: config["model3dUrl"]?.toString()?.takeIf { it.isNotBlank() }
           ?: return
-      loadOverlayBitmap(overlayAssetUrl)
+      val model3dUrl = config["model3dUrl"]?.toString()?.trim().orEmpty()
+      if (model3dUrl.endsWith(".glb", ignoreCase = true) || model3dUrl.endsWith(".gltf", ignoreCase = true)) {
+        glbMode = true
+        garmentView.alpha = 0f
+        loadGlbModel(model3dUrl)
+      } else {
+        glbMode = false
+        glbView.alpha = 0f
+        loadOverlayBitmap(overlayAssetUrl)
+      }
     }
 
     fun updatePose(args: Map<String, Any?>) {
@@ -88,7 +117,11 @@ internal class HybridArGarmentRenderer(
       val garmentDeformation = mapOfAny(poseFrame["garmentDeformation"])
       val arCompositing = mapOfAny(poseFrame["arCompositing"])
       if (!bodyDetected) {
-        garmentView.animate().alpha(0.32f).setDuration(120).start()
+        if (glbMode) {
+          glbView.animate().alpha(0.28f).setDuration(120).start()
+        } else {
+          garmentView.animate().alpha(0.32f).setDuration(120).start()
+        }
         return
       }
 
@@ -138,35 +171,41 @@ internal class HybridArGarmentRenderer(
       val depthSeparation = numberOf(arCompositing?.get("depthSeparation"), 0.3f).coerceIn(0.18f, 0.62f)
 
       rootView.post {
-        val layoutParams = garmentView.layoutParams as FrameLayout.LayoutParams
+        val target = if (glbMode) glbView else garmentView
+        val layoutParams = target.layoutParams as FrameLayout.LayoutParams
         layoutParams.width = width.toInt()
         layoutParams.height = height.toInt()
-        garmentView.layoutParams = layoutParams
-        garmentView.x = centerX - (width / 2f)
-        garmentView.y = centerY - (height / 2f)
-        garmentView.rotation = rotation
-        garmentView.alpha =
+        target.layoutParams = layoutParams
+        target.x = centerX - (width / 2f)
+        target.y = centerY - (height / 2f)
+        target.rotation = rotation
+        target.alpha =
           ((0.56f + (segmentationConfidence * 0.2f) + (layeringConfidence * 0.2f)) * renderQuality)
             .coerceIn(0.18f, 1f)
-        garmentView.translationZ = depthSeparation * 12f
-        garmentView.updateOcclusion(
-          enabled = occlusionEnabled,
-          leftShoulder = leftShoulder,
-          rightShoulder = rightShoulder,
-          leftHip = leftHip,
-          rightHip = rightHip,
-          viewX = garmentView.x,
-          viewY = garmentView.y,
-          overlapBlend = overlapBlend,
-          shadowOpacity = shadowOpacity,
-          contactShadowOpacity = contactShadowOpacity,
-          shadowSoftness = shadowSoftness
-        )
+        target.translationZ = depthSeparation * 12f
+        if (!glbMode) {
+          garmentView.updateOcclusion(
+            enabled = occlusionEnabled,
+            leftShoulder = leftShoulder,
+            rightShoulder = rightShoulder,
+            leftHip = leftHip,
+            rightHip = rightHip,
+            viewX = garmentView.x,
+            viewY = garmentView.y,
+            overlapBlend = overlapBlend,
+            shadowOpacity = shadowOpacity,
+            contactShadowOpacity = contactShadowOpacity,
+            shadowSoftness = shadowSoftness
+          )
+        }
       }
     }
 
     fun reset() {
-      rootView.post { garmentView.alpha = 0f }
+      rootView.post {
+        garmentView.alpha = 0f
+        glbView.alpha = 0f
+      }
     }
 
     fun pause() {
@@ -186,6 +225,8 @@ internal class HybridArGarmentRenderer(
       executor.shutdownNow()
       cameraProvider?.unbindAll()
       garmentBitmap?.recycle()
+      glbView.stopLoading()
+      glbView.destroy()
       rootView.removeAllViews()
     }
 
@@ -242,6 +283,29 @@ internal class HybridArGarmentRenderer(
             garmentView.alpha = max(garmentView.alpha, 0.35f)
           }
         }
+      }
+    }
+
+    private fun loadGlbModel(modelUrl: String) {
+      val html = """
+        <!doctype html>
+        <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+            <style>
+              html, body { margin:0; padding:0; background:transparent; overflow:hidden; }
+              model-viewer { width:100vw; height:100vh; background:transparent; }
+            </style>
+          </head>
+          <body>
+            <model-viewer src="$modelUrl" ar ar-modes="webxr scene-viewer" camera-controls auto-rotate shadow-intensity="0.6" exposure="1"></model-viewer>
+          </body>
+        </html>
+      """.trimIndent()
+      rootView.post {
+        glbView.loadDataWithBaseURL("https://abzora.app/", html, "text/html", "utf-8", null)
+        glbView.alpha = 0.58f
       }
     }
 
