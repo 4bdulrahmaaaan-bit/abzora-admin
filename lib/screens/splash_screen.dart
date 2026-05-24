@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../app_shell.dart';
+import '../utils/app_mode_routes.dart';
 import 'user/home_screen.dart';
 
 enum SplashIntensity { ultraSubtle, balanced, moreDramatic }
@@ -32,7 +33,6 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   static const _totalDuration = Duration(milliseconds: 1500);
-  static const _logoAsset = 'assets/branding/abzora_partner_icon.png';
   Timer? _timer;
   late final AnimationController _controller;
   late final Animation<double> _fadeAnimation;
@@ -83,8 +83,8 @@ class _SplashScreenState extends State<SplashScreen>
           opacity: _fadeAnimation,
           child: ScaleTransition(
             scale: _scaleAnimation,
-            child: const Image(
-              image: AssetImage(_logoAsset),
+            child: Image(
+              image: AssetImage(brandAssetForMode(widget.mode)),
               width: 168,
               height: 168,
               fit: BoxFit.contain,

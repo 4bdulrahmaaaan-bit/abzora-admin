@@ -373,6 +373,12 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
       }
       return;
     }
+    if (type == 'renderer_warning') {
+      final message = event['message']?.toString() ?? 'AR runtime warning.';
+      debugPrint('[Abianzo AR] warning: $message');
+      widget.onError?.call(message);
+      return;
+    }
     if (type == 'onError' || type == 'renderer_error') {
       final code = event['code']?.toString() ?? 'renderer_error';
       final message = event['message']?.toString() ?? 'Unexpected AR error.';
@@ -753,6 +759,15 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
     for (final camera in cameras) {
       if (camera.lensDirection == preferred) {
         return camera;
+      }
+    }
+    // If back camera was requested but exact back lens enum is unavailable on
+    // this device (some OEMs expose external/unknown), prefer any non-front.
+    if (!_useFrontCamera) {
+      for (final camera in cameras) {
+        if (camera.lensDirection != CameraLensDirection.front) {
+          return camera;
+        }
       }
     }
     for (final camera in cameras) {
@@ -2346,7 +2361,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${_trustCalibrationLine(_fitResult?.confidence ?? 0)} ${_fitPerceptionCue}.',
+                  '${_trustCalibrationLine(_fitResult?.confidence ?? 0)} $_fitPerceptionCue.',
                   style: const TextStyle(
                     color: Colors.white54,
                     fontSize: 12,
@@ -2584,7 +2599,8 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
   }
 
   Future<void> _switchCameraFacing() async {
-    final nextFront = !_useFrontCamera;
+    final previousFront = _useFrontCamera;
+    final nextFront = !previousFront;
     _useFrontCamera = nextFront;
     try {
       if (_poseStreamActive) {
@@ -2599,6 +2615,7 @@ class _AbzoraArScreenState extends State<AbzoraArScreen>
       }
       HapticFeedback.selectionClick();
     } catch (error) {
+      _useFrontCamera = previousFront;
       debugPrint('[Abianzo AR] Camera switch failed: $error');
       widget.onError?.call('Unable to switch camera right now.');
     }

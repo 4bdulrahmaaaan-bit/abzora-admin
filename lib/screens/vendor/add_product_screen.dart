@@ -458,7 +458,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
       return;
     }
 
-    final model3dUrl = _model3dController.text.trim();
+    final model3dUrl = _normalizeModel3dInput(_model3dController.text);
+    if (model3dUrl != _model3dController.text.trim()) {
+      _model3dController.text = model3dUrl;
+    }
     var assetBundleUrl = _assetBundleUrlController.text.trim();
     if (model3dUrl.isNotEmpty &&
         _isValidHttpUrl(model3dUrl) &&
@@ -467,6 +470,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
         const SnackBar(
           content: Text(
             '3D Model URL must end with .glb or .gltf (or use a valid model asset key).',
+          ),
+        ),
+      );
+      return;
+    }
+    if (model3dUrl.isNotEmpty &&
+        !_isValidHttpUrl(model3dUrl) &&
+        model3dUrl.contains('/')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '3D Model must be a full URL (https://...) or a simple asset key like shirt_001.glb.',
           ),
         ),
       );
@@ -667,6 +682,25 @@ class _AddProductScreenState extends State<AddProductScreen> {
         lower.endsWith('.fbx') ||
         lower.endsWith('.obj') ||
         lower.endsWith('.usdz');
+  }
+
+  String _normalizeModel3dInput(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) {
+      return '';
+    }
+    if (_isValidHttpUrl(value)) {
+      return value;
+    }
+    // Common vendor input from Cloudinary UI copied without domain:
+    // load/v177.../item.glb -> https://res.cloudinary.com/<cloud>/image/upload/load/v177.../item.glb
+    if (value.startsWith('load/') && _looksLikeModelFileUrl(value)) {
+      return 'https://res.cloudinary.com/dsgi8awyo/image/upload/$value';
+    }
+    if (value.startsWith('res.cloudinary.com/')) {
+      return 'https://$value';
+    }
+    return value;
   }
 
   List<String> _parseImageUrls(String raw) {

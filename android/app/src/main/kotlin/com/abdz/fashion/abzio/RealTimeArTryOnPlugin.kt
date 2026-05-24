@@ -49,6 +49,7 @@ class RealTimeArTryOnPlugin(
                 @Suppress("UNCHECKED_CAST")
                 lastConfig = call.arguments<Map<String, Any?>>() ?: emptyMap()
                 activeViews.forEach { it.applyConfig(lastConfig) }
+                evaluateGlbReadiness(lastConfig)
                 emitRenderEvent("configured")
                 result.success(null)
             }
@@ -135,6 +136,41 @@ class RealTimeArTryOnPlugin(
                 "message" to message,
                 "timestampMs" to System.currentTimeMillis()
             )
+        )
+    }
+
+    private fun emitRenderWarning(code: String, message: String) {
+        eventSink?.success(
+            mapOf(
+                "type" to "renderer_warning",
+                "code" to code,
+                "message" to message,
+                "timestampMs" to System.currentTimeMillis()
+            )
+        )
+    }
+
+    private fun evaluateGlbReadiness(config: Map<String, Any?>) {
+        val model3d = config["model3dUrl"]?.toString()?.trim().orEmpty()
+        val transparent = config["transparentAssetUrl"]?.toString()?.trim().orEmpty()
+        val overlay = config["overlayAssetUrl"]?.toString()?.trim().orEmpty()
+        val hasPngLikeOverlay = listOf(transparent, overlay).any {
+            it.contains(".png", ignoreCase = true) || it.contains(".webp", ignoreCase = true)
+        }
+        val isGlb = model3d.endsWith(".glb", ignoreCase = true) || model3d.endsWith(".gltf", ignoreCase = true)
+        if (!isGlb) {
+            return
+        }
+        if (!hasPngLikeOverlay) {
+            emitRenderWarning(
+                "glb_overlay_fallback_missing",
+                "GLB detected but image overlay fallback is missing. Current runtime uses overlay rendering."
+            )
+            return
+        }
+        emitRenderWarning(
+            "glb_overlay_fallback_active",
+            "GLB detected. Overlay fallback is active while native GLB runtime loader is being rolled out."
         )
     }
 

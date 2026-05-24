@@ -8,12 +8,6 @@ import android.graphics.Color
 import android.graphics.Path
 import java.io.File
 import java.io.FileOutputStream
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -31,10 +25,6 @@ internal class HybridArGarmentRenderer(
     private val rootView: FrameLayout
 ) {
     private val executor = Executors.newSingleThreadExecutor()
-    private val previewView = PreviewView(context).apply {
-      implementationMode = PreviewView.ImplementationMode.PERFORMANCE
-      scaleType = PreviewView.ScaleType.FILL_CENTER
-    }
     private val garmentView = OccludingGarmentImageView(context).apply {
       scaleType = ImageView.ScaleType.FIT_CENTER
       alpha = 0f
@@ -49,19 +39,12 @@ internal class HybridArGarmentRenderer(
         mediaPlaybackRequiresUserGesture = false
       }
     }
-    private var cameraProvider: ProcessCameraProvider? = null
-    private var useFrontCamera = true
     private var garmentBitmap: Bitmap? = null
     private var glbMode = false
 
     init {
-      rootView.addView(
-        previewView,
-        FrameLayout.LayoutParams(
-          ViewGroup.LayoutParams.MATCH_PARENT,
-          ViewGroup.LayoutParams.MATCH_PARENT
-        )
-      )
+      // Flutter owns the camera preview so camera switching stays consistent.
+      // This native view is intentionally garment/compositing-only.
       rootView.addView(
         garmentView,
         FrameLayout.LayoutParams(
@@ -76,12 +59,9 @@ internal class HybridArGarmentRenderer(
           ViewGroup.LayoutParams.WRAP_CONTENT
         )
       )
-      startCamera()
     }
 
     fun applyConfig(config: Map<String, Any?>) {
-      useFrontCamera = !(config["preferBackCamera"] as? Boolean ?: false)
-      startCamera()
       val overlayAssetUrl =
         config["transparentAssetUrl"]?.toString()?.takeIf { it.isNotBlank() }
           ?: config["overlayAssetUrl"]?.toString()?.takeIf { it.isNotBlank() }
@@ -209,21 +189,19 @@ internal class HybridArGarmentRenderer(
     }
 
     fun pause() {
-      cameraProvider?.unbindAll()
+      // Camera preview is owned by Flutter.
     }
 
     fun resume() {
-      startCamera()
+      // Camera preview is owned by Flutter.
     }
 
     fun setCameraFacing(front: Boolean) {
-      useFrontCamera = front
-      startCamera()
+      // Camera preview is owned by Flutter.
     }
 
     fun dispose() {
       executor.shutdownNow()
-      cameraProvider?.unbindAll()
       garmentBitmap?.recycle()
       glbView.stopLoading()
       glbView.destroy()
@@ -307,29 +285,6 @@ internal class HybridArGarmentRenderer(
         glbView.loadDataWithBaseURL("https://abzora.app/", html, "text/html", "utf-8", null)
         glbView.alpha = 0.58f
       }
-    }
-
-    private fun startCamera() {
-      val lifecycleOwner = rootView.context as? LifecycleOwner ?: return
-      val future = ProcessCameraProvider.getInstance(rootView.context)
-      future.addListener({
-        val provider = future.get()
-        cameraProvider = provider
-        val preview = Preview.Builder().build().also {
-          it.surfaceProvider = previewView.surfaceProvider
-        }
-        val selector = if (useFrontCamera) {
-          CameraSelector.DEFAULT_FRONT_CAMERA
-        } else {
-          CameraSelector.DEFAULT_BACK_CAMERA
-        }
-        try {
-          provider.unbindAll()
-          provider.bindToLifecycle(lifecycleOwner, selector, preview)
-        } catch (_: Throwable) {
-          previewView.setBackgroundColor(Color.BLACK)
-        }
-      }, ContextCompat.getMainExecutor(rootView.context))
     }
 
     private fun posePoint(raw: Any?): Pair<Float, Float>? {
