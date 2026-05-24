@@ -267,7 +267,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               style: GoogleFonts.inter(fontWeight: FontWeight.w600),
               decoration: InputDecoration(
                 hintText: 'https://cdn.example.com/ar/female_dress_bundle',
-                helperText: _AR runtimeBundleHelperText(),
+                helperText: _arRuntimeBundleHelperText(),
               ),
             ),
             const SizedBox(height: 20),
@@ -732,7 +732,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return 'Showing ${resolved.toUpperCase()} specifications based on category and subcategory.';
   }
 
-  String _AR runtimeBundleHelperText() {
+  String _arRuntimeBundleHelperText() {
     final value = _assetBundleUrlController.text.trim();
     if (value.isEmpty) {
       return 'Optional: add only if you have a true AR asset bundle URL.';
