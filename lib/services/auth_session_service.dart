@@ -5,12 +5,12 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import 'app_config.dart';
+import 'secure_session_storage.dart';
 
 enum SessionRecoveryStatus { recovered, offline, failed }
 
@@ -37,7 +37,7 @@ class AuthSessionService {
   static const Duration _refreshTimeout = Duration(seconds: 12);
   static const Duration _bootstrapTimeout = Duration(seconds: 15);
 
-  static const _secureStorage = FlutterSecureStorage();
+  static final _secureStorage = createSecureSessionStorage();
   static const String _kAccessToken = 'auth_access_token_v2';
   static const String _kRefreshToken = 'auth_refresh_token_v2';
   static const String _kAccessTokenExpiresAt =
@@ -254,14 +254,15 @@ class AuthSessionService {
     _sessionId = null;
     _userSnapshot = null;
     final prefs = await SharedPreferences.getInstance();
-    await Future.wait([
+    final storageClears = <Future<void>>[
       _secureStorage.delete(key: _kAccessToken),
       _secureStorage.delete(key: _kRefreshToken),
       _secureStorage.delete(key: _kAccessTokenExpiresAt),
       _secureStorage.delete(key: _kRefreshTokenExpiresAt),
       _secureStorage.delete(key: _kSessionId),
       prefs.remove(_kUserSnapshot),
-    ]);
+    ];
+    await Future.wait(storageClears);
   }
 
   Future<void> revokeCurrentSession({String reason = 'logout'}) async {
