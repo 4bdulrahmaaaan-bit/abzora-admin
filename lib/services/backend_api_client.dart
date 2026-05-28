@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 
 import 'app_config.dart';
+import 'auth_session_service.dart';
 
 class BackendApiException implements Exception {
   const BackendApiException(this.message, {required this.statusCode});
@@ -98,12 +98,11 @@ class BackendApiClient {
       headers['Content-Type'] = 'application/json';
     }
     if (authenticated) {
-      final token = await FirebaseAuth.instance.currentUser?.getIdToken(
-        forceRefreshToken,
-      );
-      if (token == null || token.isEmpty) {
-        throw StateError('Please sign in again to continue.');
-      }
+      final token = await AuthSessionService.instance
+          .requiredAuthorizationToken(
+            forceRefresh: forceRefreshToken,
+            failureMessage: 'Please sign in again to continue.',
+          );
       headers['Authorization'] = 'Bearer $token';
     }
     return headers;
@@ -123,12 +122,32 @@ class BackendApiClient {
       return response;
     }
 
+    debugPrint('BackendApiClient: 401 received, attempting one silent retry.');
+    final recovery = await AuthSessionService.instance.attemptSilentRecovery(
+      reason: 'backend_api_client',
+    );
+    if (recovery == SessionRecoveryStatus.offline) {
+      debugPrint(
+        'BackendApiClient: refresh deferred because the device is offline.',
+      );
+      return response;
+    }
+    if (recovery != SessionRecoveryStatus.recovered) {
+      debugPrint('BackendApiClient: silent recovery failed.');
+      await _notifyUnauthorized();
+      return response;
+    }
+
     headers = await _headers(
       includeJson: includeJson,
       authenticated: authenticated,
       forceRefreshToken: true,
     );
     response = await send(headers);
+    if (response.statusCode == 401) {
+      debugPrint('BackendApiClient: retry still unauthorized.');
+      await _notifyUnauthorized();
+    }
     return response;
   }
 
@@ -396,8 +415,9 @@ class BackendApiClient {
           () => _sendWithUnauthorizedRetry(
             authenticated: authenticated,
             includeJson: true,
-            send: (headers) =>
-                http.get(uri, headers: headers).timeout(const Duration(seconds: 20)),
+            send: (headers) => http
+                .get(uri, headers: headers)
+                .timeout(const Duration(seconds: 20)),
           ),
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
@@ -582,6 +602,7 @@ class BackendApiClient {
         );
         return request.send().timeout(const Duration(seconds: 30));
       }
+
       final response = await _executeWithDnsFallback(
         path: path,
         execute: (uri, candidateIndex) => withRetry(() async {

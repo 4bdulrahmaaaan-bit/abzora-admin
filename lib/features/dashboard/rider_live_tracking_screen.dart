@@ -15,6 +15,7 @@ import '../../core/services/rider_socket_service.dart';
 import '../../core/widgets/rider_glass_card.dart';
 import '../../models/models.dart';
 import '../../services/location_service.dart';
+import '../../services/auth_session_service.dart';
 
 class RiderLiveTrackingScreen extends StatefulWidget {
   const RiderLiveTrackingScreen({
@@ -89,20 +90,24 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
   }
 
   void _connectSocket() {
-    final authToken = FirebaseAuth.instance.currentUser;
-    if (authToken == null) {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) {
       return;
     }
-    authToken.getIdToken().then((token) {
-      if (token == null || token.isEmpty) {
-        return;
-      }
-      _socketService.connect(
-        riderId: widget.rider.id,
-        authToken: token,
-        orderId: widget.order.id,
-      );
-    });
+    unawaited(
+      AuthSessionService.instance
+          .requiredAuthorizationToken(
+            failureMessage:
+                'Please sign in again to continue rider tracking.',
+          )
+          .then((token) {
+        _socketService.connect(
+          riderId: widget.rider.id,
+          authToken: token,
+          orderId: widget.order.id,
+        );
+      }),
+    );
     _socketService.onConnect(() {
       if (mounted) {
         setState(() => _connected = true);
@@ -165,32 +170,32 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
     }
     _locationInFlight = true;
     try {
-    final result = await _locationService.getCurrentLocation();
-    final position = result.position;
-    if (position == null) {
-      return;
-    }
+      final result = await _locationService.getCurrentLocation();
+      final position = result.position;
+      if (position == null) {
+        return;
+      }
 
-    _riderPosition = LatLng(position.latitude, position.longitude);
-    if (mounted) {
-      setState(() {});
-      _fitCamera();
-    }
+      _riderPosition = LatLng(position.latitude, position.longitude);
+      if (mounted) {
+        setState(() {});
+        _fitCamera();
+      }
 
-    _socketService.emitLocationUpdate(
-      orderId: widget.order.id,
-      riderId: widget.rider.id,
-      latitude: position.latitude,
-      longitude: position.longitude,
-    );
-    await _apiService.postLocationUpdate(
-      orderId: widget.order.id,
-      riderId: widget.rider.id,
-      latitude: position.latitude,
-      longitude: position.longitude,
-    );
-    await _refreshEta();
-    _autoProgressStatus(position);
+      _socketService.emitLocationUpdate(
+        orderId: widget.order.id,
+        riderId: widget.rider.id,
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+      await _apiService.postLocationUpdate(
+        orderId: widget.order.id,
+        riderId: widget.rider.id,
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+      await _refreshEta();
+      _autoProgressStatus(position);
       _locationFailureStreak = 0;
     } catch (_) {
       _locationFailureStreak += 1;
@@ -205,32 +210,32 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
     }
     _etaInFlight = true;
     try {
-    if (_riderPosition == null || _activeTarget == null) {
-      return;
-    }
+      if (_riderPosition == null || _activeTarget == null) {
+        return;
+      }
 
-    final km = _locationService.distanceInKm(
-      startLatitude: _riderPosition!.latitude,
-      startLongitude: _riderPosition!.longitude,
-      endLatitude: _activeTarget!.latitude,
-      endLongitude: _activeTarget!.longitude,
-    );
+      final km = _locationService.distanceInKm(
+        startLatitude: _riderPosition!.latitude,
+        startLongitude: _riderPosition!.longitude,
+        endLatitude: _activeTarget!.latitude,
+        endLongitude: _activeTarget!.longitude,
+      );
 
-    final etaResponse = await _apiService.fetchEtaByOrderId(
-      orderId: widget.order.id,
-    );
-    final backendEta = (etaResponse['data'] is Map)
-        ? ((etaResponse['data']['etaMinutes'] as num?)?.toInt())
-        : ((etaResponse['etaMinutes'] as num?)?.toInt());
-    final fallbackEta = (km / 0.45).ceil();
+      final etaResponse = await _apiService.fetchEtaByOrderId(
+        orderId: widget.order.id,
+      );
+      final backendEta = (etaResponse['data'] is Map)
+          ? ((etaResponse['data']['etaMinutes'] as num?)?.toInt())
+          : ((etaResponse['etaMinutes'] as num?)?.toInt());
+      final fallbackEta = (km / 0.45).ceil();
 
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _remainingKm = km;
-      _etaMinutes = backendEta ?? fallbackEta;
-    });
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _remainingKm = km;
+        _etaMinutes = backendEta ?? fallbackEta;
+      });
       _etaFailureStreak = 0;
     } catch (_) {
       _etaFailureStreak += 1;

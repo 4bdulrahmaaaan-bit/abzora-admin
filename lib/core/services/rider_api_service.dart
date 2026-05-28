@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 
+import '../../services/authenticated_dio_factory.dart';
+
 class RiderApiService {
   RiderApiService()
-    : _dio = Dio(
+    : _dio = createAuthenticatedDio(
         BaseOptions(
           baseUrl: 'https://api.abzora.com',
           connectTimeout: const Duration(seconds: 15),

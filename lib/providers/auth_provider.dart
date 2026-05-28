@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/auth_service.dart';
+import '../services/auth_session_service.dart';
 import '../services/backend_api_client.dart';
 import '../services/backend_commerce_service.dart';
 import '../services/database_service.dart';
@@ -15,8 +16,9 @@ import '../services/app_navigation_service.dart';
 import '../services/storage_service.dart';
 import '../utils/app_mode_routes.dart';
 
-class AuthProvider with ChangeNotifier {
+class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
   final AuthService _authService = AuthService();
+  final AuthSessionService _sessionService = AuthSessionService.instance;
   final BackendCommerceService _backendCommerce = BackendCommerceService();
   final DatabaseService _db = DatabaseService();
   final LocationService _locationService = LocationService();
@@ -62,6 +64,7 @@ class AuthProvider with ChangeNotifier {
 
   AuthProvider() {
     BackendApiClient.registerUnauthorizedHandler(_handleUnauthorizedSession);
+    WidgetsBinding.instance.addObserver(this);
     _restoreSession();
     _userSubscription = _authService.user.listen((user) {
       _bindLiveProfile(user);
@@ -70,21 +73,35 @@ class AuthProvider with ChangeNotifier {
     });
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_handleAppResumed());
+    }
+  }
+
   void _bindLiveProfile(AppUser? user) {
-    _liveProfileSubscription?.cancel();
+    final previousProfileSubscription = _liveProfileSubscription;
+    _liveProfileSubscription = null;
+    unawaited(previousProfileSubscription?.cancel() ?? Future<void>.value());
     _user = user;
-    _isAuthenticated = user != null && (_token?.isNotEmpty ?? false);
+    _isAuthenticated = user != null;
+    debugPrint(
+      'AuthProvider: auth state changed -> ${user == null ? 'signed_out' : 'signed_in:${user.id}'}',
+    );
     if (user == null) {
       _token = null;
       _lastBackendProfileSyncKey = null;
+      unawaited(_sessionService.saveUserSnapshot(null));
       return;
     }
+    unawaited(_sessionService.saveUserSnapshot(user));
     unawaited(_refreshAuthToken());
     unawaited(_syncNotificationChannels(user));
     _maybeSyncBackendProfile(user);
     _liveProfileSubscription = _db.watchUser(user.id).listen((liveUser) {
       _user = liveUser ?? user;
-      _isAuthenticated = _user != null && (_token?.isNotEmpty ?? false);
+      _isAuthenticated = _user != null;
       if (_user != null) {
         _maybeSyncBackendProfile(_user!);
         unawaited(_syncNotificationChannels(_user!));
@@ -115,31 +132,24 @@ class AuthProvider with ChangeNotifier {
     }
     _isRefreshingAuthToken = true;
     try {
-      final firebaseUser = FirebaseAuth.instance.currentUser;
-      if (firebaseUser == null) {
-        _token = null;
-        _isAuthenticated = false;
-        notifyListeners();
-        return;
-      }
-      var idToken = await firebaseUser.getIdToken(forceRefresh);
-      if (idToken == null || idToken.isEmpty) {
-        idToken = await firebaseUser.getIdToken(true);
-      }
-      if (idToken == null || idToken.isEmpty) {
+      final token = await _sessionService.authorizationToken(
+        forceRefresh: forceRefresh,
+      );
+      if (token == null || token.isEmpty) {
         _lastTokenRefreshAt = DateTime.now();
         return;
       }
       _lastTokenRefreshAt = DateTime.now();
-      if (idToken != _token) {
-        _token = idToken;
-        _isAuthenticated = _user != null && (_token?.isNotEmpty ?? false);
+      if (token != _token) {
+        _token = token;
+        _isAuthenticated = _user != null;
         if (_user != null) {
           _maybeSyncBackendProfile(_user!);
         }
         notifyListeners();
       }
-    } catch (_) {
+    } catch (error) {
+      debugPrint('AuthProvider: token refresh failed: $error');
       _lastTokenRefreshAt = DateTime.now();
       // Keep existing session state on transient token refresh failures.
     } finally {
@@ -183,9 +193,17 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> _restoreSession() async {
     try {
+      await _sessionService.initialize();
+      await FirebaseAuth.instance.authStateChanges().first.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => FirebaseAuth.instance.currentUser,
+      );
+      await _sessionService.refreshIfNeeded();
       final existingUser = await _authService.getCurrentAppUser();
       if (existingUser != null) {
         _bindLiveProfile(existingUser);
+        await _sessionService.saveUserSnapshot(existingUser);
+        await _refreshAuthToken(forceRefresh: false);
       }
     } finally {
       _isInitialized = true;
@@ -214,7 +232,8 @@ class AuthProvider with ChangeNotifier {
       final result = await _authService.verifyOtp(otp);
       _lastSignInAt = DateTime.now();
       _user = result;
-      _isAuthenticated = result != null && (_token?.isNotEmpty ?? false);
+      _isAuthenticated = result != null;
+      await _sessionService.saveUserSnapshot(result);
       unawaited(_refreshAuthToken());
       return result;
     } finally {
@@ -230,10 +249,11 @@ class AuthProvider with ChangeNotifier {
     try {
       final backendUser = await _backendCommerce.getCurrentUserProfile();
       _user = backendUser;
-      _isAuthenticated = _user != null && (_token?.isNotEmpty ?? false);
+      _isAuthenticated = _user != null;
       _maybeSyncBackendProfile(backendUser);
       unawaited(_syncNotificationChannels(backendUser));
       unawaited(_db.saveUser(backendUser));
+      await _sessionService.saveUserSnapshot(backendUser);
       notifyListeners();
       return backendUser;
     } catch (_) {
@@ -249,7 +269,8 @@ class AuthProvider with ChangeNotifier {
       final result = await _authService.signInWithGoogleAdmin();
       _lastSignInAt = DateTime.now();
       _user = result;
-      _isAuthenticated = result != null && (_token?.isNotEmpty ?? false);
+      _isAuthenticated = result != null;
+      await _sessionService.saveUserSnapshot(result);
       unawaited(_refreshAuthToken());
       return result;
     } finally {
@@ -266,7 +287,8 @@ class AuthProvider with ChangeNotifier {
       final result = await _authService.signInWithGoogleUser();
       _lastSignInAt = DateTime.now();
       _user = result;
-      _isAuthenticated = result != null && (_token?.isNotEmpty ?? false);
+      _isAuthenticated = result != null;
+      await _sessionService.saveUserSnapshot(result);
       unawaited(_refreshAuthToken());
       return result;
     } finally {
@@ -285,10 +307,14 @@ class AuthProvider with ChangeNotifier {
     }
     _isLoggingOut = true;
     final currentUserId = _user?.id;
+    debugPrint(
+      'AuthProvider: logout requested (userId: ${currentUserId ?? 'none'}).',
+    );
     try {
       await _authService.signOut();
     } finally {
       await _liveProfileSubscription?.cancel();
+      await _sessionService.clearSession(reason: 'logout');
       await _clearLocalUserCache(currentUserId);
       _clearMemoryState();
       notifyListeners();
@@ -306,7 +332,8 @@ class AuthProvider with ChangeNotifier {
     if (!_isAuthenticated || _isLoggingOut) {
       return;
     }
-    final signedInJustNow = _lastSignInAt != null &&
+    final signedInJustNow =
+        _lastSignInAt != null &&
         DateTime.now().difference(_lastSignInAt!).inSeconds < 30;
     if (signedInJustNow) {
       return;
@@ -324,15 +351,44 @@ class AuthProvider with ChangeNotifier {
     }
     _lastUnauthorizedSignalAt = now;
     _lastUnauthorizedRecoveryAttemptAt = now;
+    debugPrint(
+      'AuthProvider: unauthorized session detected, attempting silent recovery.',
+    );
 
-    await _refreshAuthToken(forceRefresh: true);
-    if (_token != null && _token!.isNotEmpty && _consecutiveUnauthorizedSignals < 2) {
+    final recovery = await _sessionService.attemptSilentRecovery(
+      reason: 'auth_provider',
+    );
+    if (recovery == SessionRecoveryStatus.offline) {
+      debugPrint(
+        'AuthProvider: recovery deferred because the device is offline.',
+      );
+      return;
+    }
+    if (recovery == SessionRecoveryStatus.recovered) {
+      await _refreshAuthToken(forceRefresh: true);
+      if (_token != null &&
+          _token!.isNotEmpty &&
+          _consecutiveUnauthorizedSignals < 2) {
+        return;
+      }
       return;
     }
     await logout();
     await AppNavigationService.resetToHome(
-      message: 'Session expired. Please sign in again.',
+      message: 'Your session could not be restored. Please sign in again.',
     );
+  }
+
+  Future<void> _handleAppResumed() async {
+    if (!_isAuthenticated || _isLoggingOut) {
+      return;
+    }
+    debugPrint('AuthProvider: app resumed, validating session silently.');
+    final refreshed = await _sessionService.refreshIfNeeded();
+    if (!refreshed) {
+      return;
+    }
+    await _refreshAuthToken(forceRefresh: false);
   }
 
   Future<void> _clearLocalUserCache(String? userId) async {
@@ -382,6 +438,7 @@ class AuthProvider with ChangeNotifier {
     final current = await _authService.getCurrentAppUser();
     if (current != null) {
       _bindLiveProfile(current);
+      await _sessionService.saveUserSnapshot(current);
       unawaited(_refreshAuthToken());
       notifyListeners();
     }
@@ -491,9 +548,10 @@ class AuthProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     BackendApiClient.registerUnauthorizedHandler(null);
-    _userSubscription?.cancel();
-    _liveProfileSubscription?.cancel();
+    unawaited(_userSubscription?.cancel() ?? Future<void>.value());
+    unawaited(_liveProfileSubscription?.cancel() ?? Future<void>.value());
     super.dispose();
   }
 }

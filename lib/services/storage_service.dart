@@ -1,17 +1,17 @@
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'app_config.dart';
+import 'auth_session_service.dart';
 import 'backend_api_client.dart';
 import 'image_url_service.dart';
 
 class StorageService {
   StorageService({BackendApiClient? backendApiClient})
-      : _backendApiClient = backendApiClient ?? const BackendApiClient();
+    : _backendApiClient = backendApiClient ?? const BackendApiClient();
 
   static const int _maxUploadBytes = 8 * 1024 * 1024;
   static const Set<String> _allowedFolders = {
@@ -91,9 +91,7 @@ class StorageService {
     );
   }
 
-  Future<String> _uploadViaBackend({
-    required XFile file,
-  }) async {
+  Future<String> _uploadViaBackend({required XFile file}) async {
     final extension = _fileExtension(file.name);
     final payload = await _backendApiClient.multipart(
       '/upload',
@@ -145,18 +143,16 @@ class StorageService {
     required String ownerId,
     String? fileName,
   }) async {
-    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
-    if (token == null || token.isEmpty) {
-      throw StateError('Signed uploads require an authenticated user session.');
-    }
+    final headers = await AuthSessionService.instance
+        .requiredAuthorizationHeaders(
+          failureMessage:
+              'Signed uploads require an authenticated user session.',
+        );
 
     final publicId = _buildPublicId(fileName ?? file.name);
     final signResponse = await http.post(
       Uri.parse(AppConfig.cloudinarySignedUploadEndpoint),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+      headers: headers,
       body: jsonEncode({
         'folder': folder,
         'ownerId': ownerId,
@@ -170,32 +166,43 @@ class StorageService {
         : jsonDecode(signResponse.body) as Map<String, dynamic>;
     if (signResponse.statusCode < 200 || signResponse.statusCode >= 300) {
       throw StateError(
-        signPayload['error']?.toString() ?? 'Cloudinary signed upload could not be initialized.',
+        signPayload['error']?.toString() ??
+            'Cloudinary signed upload could not be initialized.',
       );
     }
 
-    final cloudName = (signPayload['cloudName']?.toString().trim().isNotEmpty ?? false)
+    final cloudName =
+        (signPayload['cloudName']?.toString().trim().isNotEmpty ?? false)
         ? signPayload['cloudName'].toString().trim()
         : AppConfig.cloudinaryCloudName;
     final signature = signPayload['signature']?.toString() ?? '';
     final apiKey = signPayload['apiKey']?.toString() ?? '';
     final timestamp = signPayload['timestamp']?.toString() ?? '';
-    final signedFolder = signPayload['folder']?.toString() ?? '$folder/$ownerId';
+    final signedFolder =
+        signPayload['folder']?.toString() ?? '$folder/$ownerId';
     final signedPublicId = signPayload['publicId']?.toString() ?? publicId;
 
-    if (cloudName.isEmpty || signature.isEmpty || apiKey.isEmpty || timestamp.isEmpty) {
-      throw StateError('Signed upload response is missing required Cloudinary fields.');
+    if (cloudName.isEmpty ||
+        signature.isEmpty ||
+        apiKey.isEmpty ||
+        timestamp.isEmpty) {
+      throw StateError(
+        'Signed upload response is missing required Cloudinary fields.',
+      );
     }
 
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload'),
-    )
-      ..fields['api_key'] = apiKey
-      ..fields['timestamp'] = timestamp
-      ..fields['signature'] = signature
-      ..fields['folder'] = signedFolder
-      ..fields['public_id'] = signedPublicId;
+    final request =
+        http.MultipartRequest(
+            'POST',
+            Uri.parse(
+              'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
+            ),
+          )
+          ..fields['api_key'] = apiKey
+          ..fields['timestamp'] = timestamp
+          ..fields['signature'] = signature
+          ..fields['folder'] = signedFolder
+          ..fields['public_id'] = signedPublicId;
 
     final uploadPreset = signPayload['uploadPreset']?.toString();
     if (uploadPreset != null && uploadPreset.trim().isNotEmpty) {
@@ -216,11 +223,14 @@ class StorageService {
   Future<String> _sendCloudinaryUpload(http.MultipartRequest request) async {
     final response = await request.send();
     final body = await response.stream.bytesToString();
-    final payload = body.isEmpty ? <String, dynamic>{} : jsonDecode(body) as Map<String, dynamic>;
+    final payload = body.isEmpty
+        ? <String, dynamic>{}
+        : jsonDecode(body) as Map<String, dynamic>;
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final message = payload['error'] is Map<String, dynamic>
-          ? (payload['error']['message']?.toString() ?? 'Cloudinary upload failed.')
+          ? (payload['error']['message']?.toString() ??
+                'Cloudinary upload failed.')
           : 'Cloudinary upload failed.';
       throw StateError(message);
     }
@@ -234,7 +244,9 @@ class StorageService {
   }
 
   String _buildPublicId(String seed) {
-    final sanitized = _sanitizePathSegment(seed.replaceAll(RegExp(r'\.[^.]+$'), ''));
+    final sanitized = _sanitizePathSegment(
+      seed.replaceAll(RegExp(r'\.[^.]+$'), ''),
+    );
     final fallback = sanitized.isEmpty ? 'upload' : sanitized;
     return '$fallback-${DateTime.now().millisecondsSinceEpoch}';
   }

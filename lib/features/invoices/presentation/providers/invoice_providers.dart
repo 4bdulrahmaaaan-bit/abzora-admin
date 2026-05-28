@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/datasources/invoice_remote_data_source.dart';
 import '../../data/repositories/invoice_repository.dart';
 import '../../domain/entities/invoice_entity.dart';
+import '../../../../services/authenticated_dio_factory.dart';
 
 class InvoiceListQuery {
   const InvoiceListQuery({
@@ -73,7 +73,7 @@ class InvoicePagerState {
 }
 
 final invoiceDioProvider = Provider<Dio>((ref) {
-  final dio = Dio(
+  return createAuthenticatedDio(
     BaseOptions(
       baseUrl: const String.fromEnvironment(
         'BACKEND_BASE_URL',
@@ -83,19 +83,6 @@ final invoiceDioProvider = Provider<Dio>((ref) {
       receiveTimeout: const Duration(seconds: 20),
     ),
   );
-  dio.interceptors.add(
-    InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final user = FirebaseAuth.instance.currentUser;
-        final token = await user?.getIdToken();
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        handler.next(options);
-      },
-    ),
-  );
-  return dio;
 });
 
 final invoiceRepositoryProvider = Provider<InvoiceRepository>((ref) {
@@ -104,23 +91,27 @@ final invoiceRepositoryProvider = Provider<InvoiceRepository>((ref) {
   );
 });
 
-final myInvoicesProvider = FutureProvider.autoDispose<List<InvoiceEntity>>((ref) {
+final myInvoicesProvider = FutureProvider.autoDispose<List<InvoiceEntity>>((
+  ref,
+) {
   return ref.watch(invoiceRepositoryProvider).getMyInvoices();
 });
 
-final invoiceDetailsProvider =
-    FutureProvider.autoDispose.family<InvoiceEntity, String>((ref, id) {
-  return ref.watch(invoiceRepositoryProvider).getInvoice(id);
-});
+final invoiceDetailsProvider = FutureProvider.autoDispose
+    .family<InvoiceEntity, String>((ref, id) {
+      return ref.watch(invoiceRepositoryProvider).getInvoice(id);
+    });
 
-final gstSummaryProvider =
-    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+final gstSummaryProvider = FutureProvider.autoDispose<Map<String, dynamic>>((
+  ref,
+) {
   return ref.watch(invoiceRepositoryProvider).getGstSummary();
 });
 
-final customerInvoiceQueryProvider = StateProvider.autoDispose<InvoiceListQuery>(
-  (ref) => const InvoiceListQuery(),
-);
+final customerInvoiceQueryProvider =
+    StateProvider.autoDispose<InvoiceListQuery>(
+      (ref) => const InvoiceListQuery(),
+    );
 
 final vendorInvoiceQueryProvider = StateProvider.autoDispose<InvoiceListQuery>(
   (ref) => const InvoiceListQuery(limit: 50),
@@ -153,7 +144,9 @@ class InvoicePagerNotifier extends StateNotifier<InvoicePagerState> {
     state = state.copyWith(loading: true, error: '');
     try {
       final rows = await _loadPage(q);
-      final merged = <String, InvoiceEntity>{for (final i in state.items) i.id: i};
+      final merged = <String, InvoiceEntity>{
+        for (final i in state.items) i.id: i,
+      };
       for (final row in rows) {
         merged[row.id] = row;
       }
@@ -170,77 +163,81 @@ class InvoicePagerNotifier extends StateNotifier<InvoicePagerState> {
 }
 
 final customerInvoicePagerProvider =
-    StateNotifierProvider.autoDispose<InvoicePagerNotifier, InvoicePagerState>((ref) {
-  final repo = ref.watch(invoiceRepositoryProvider);
-  final notifier = InvoicePagerNotifier(
-    (query) => repo.getMyInvoices(),
-  );
-  unawaited(notifier.refresh());
-  return notifier;
-});
+    StateNotifierProvider.autoDispose<InvoicePagerNotifier, InvoicePagerState>((
+      ref,
+    ) {
+      final repo = ref.watch(invoiceRepositoryProvider);
+      final notifier = InvoicePagerNotifier((query) => repo.getMyInvoices());
+      unawaited(notifier.refresh());
+      return notifier;
+    });
 
 final vendorInvoicePagerProvider =
-    StateNotifierProvider.autoDispose<InvoicePagerNotifier, InvoicePagerState>((ref) {
-  final repo = ref.watch(invoiceRepositoryProvider);
-  final notifier = InvoicePagerNotifier(
-    (query) => repo.getVendorInvoices(limit: query.limit),
-  );
-  unawaited(notifier.refresh());
-  return notifier;
-});
+    StateNotifierProvider.autoDispose<InvoicePagerNotifier, InvoicePagerState>((
+      ref,
+    ) {
+      final repo = ref.watch(invoiceRepositoryProvider);
+      final notifier = InvoicePagerNotifier(
+        (query) => repo.getVendorInvoices(limit: query.limit),
+      );
+      unawaited(notifier.refresh());
+      return notifier;
+    });
 
 final adminInvoicePagerProvider =
-    StateNotifierProvider.autoDispose<InvoicePagerNotifier, InvoicePagerState>((ref) {
-  final repo = ref.watch(invoiceRepositoryProvider);
-  final notifier = InvoicePagerNotifier(
-    (query) => repo.getAdminInvoices(
-      limit: query.limit,
-      page: query.page,
-      paymentStatus: query.paymentStatus,
-      status: query.status,
-      search: query.search,
-    ),
-  );
-  unawaited(notifier.refresh());
-  return notifier;
-});
+    StateNotifierProvider.autoDispose<InvoicePagerNotifier, InvoicePagerState>((
+      ref,
+    ) {
+      final repo = ref.watch(invoiceRepositoryProvider);
+      final notifier = InvoicePagerNotifier(
+        (query) => repo.getAdminInvoices(
+          limit: query.limit,
+          page: query.page,
+          paymentStatus: query.paymentStatus,
+          status: query.status,
+          search: query.search,
+        ),
+      );
+      unawaited(notifier.refresh());
+      return notifier;
+    });
 
 final invoiceEmailLogsProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
-  return ref.watch(invoiceRepositoryProvider).getEmailLogs(limit: 200);
-});
+      return ref.watch(invoiceRepositoryProvider).getEmailLogs(limit: 200);
+    });
 
 final invoiceReplayDashboardProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
-  return ref.watch(invoiceRepositoryProvider).getReplayDashboard();
-});
+      return ref.watch(invoiceRepositoryProvider).getReplayDashboard();
+    });
 
 final invoiceQueueHealthProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
-  return ref.watch(invoiceRepositoryProvider).getQueueHealth();
-});
+      return ref.watch(invoiceRepositoryProvider).getQueueHealth();
+    });
 
 final invoiceStorageHealthProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
-  return ref.watch(invoiceRepositoryProvider).getStorageHealth();
-});
+      return ref.watch(invoiceRepositoryProvider).getStorageHealth();
+    });
 
 final invoiceEmailHealthProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
-  return ref.watch(invoiceRepositoryProvider).getEmailHealth();
-});
+      return ref.watch(invoiceRepositoryProvider).getEmailHealth();
+    });
 
 final invoiceOpsHealthProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
-  return ref.watch(invoiceRepositoryProvider).getInvoiceHealth();
-});
+      return ref.watch(invoiceRepositoryProvider).getInvoiceHealth();
+    });
 
 final invoiceReplayAuditProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
-  return ref.watch(invoiceRepositoryProvider).getReplayAudit(limit: 200);
-});
+      return ref.watch(invoiceRepositoryProvider).getReplayAudit(limit: 200);
+    });
 
 final invoiceSuppressionsProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
-  return ref.watch(invoiceRepositoryProvider).getSuppressions(limit: 200);
-});
+      return ref.watch(invoiceRepositoryProvider).getSuppressions(limit: 200);
+    });

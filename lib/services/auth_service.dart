@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/models.dart';
+import 'auth_session_service.dart';
 import 'backend_commerce_service.dart';
 import 'database_service.dart';
 
@@ -88,10 +89,14 @@ class AuthService {
               'Phone authentication hit an internal Firebase error. Please verify phone sign-in and authorized domains.';
       }
       final firebaseMessage = (error.message ?? '').trim();
-      if (firebaseMessage.toLowerCase().contains('requested action is invalid')) {
+      if (firebaseMessage.toLowerCase().contains(
+        'requested action is invalid',
+      )) {
         return 'Google sign-in is blocked by Firebase/Auth handler setup. Verify Google sign-in is enabled, authorized domains include abzora-admin.vercel.app and abzora-bbed7.firebaseapp.com, and the browser API key allows both websites.';
       }
-      return firebaseMessage.isNotEmpty ? firebaseMessage : 'Authentication failed.';
+      return firebaseMessage.isNotEmpty
+          ? firebaseMessage
+          : 'Authentication failed.';
     }
     if (error is Error || error is Exception) {
       final raw = error.toString().trim();
@@ -121,13 +126,23 @@ class AuthService {
     String? phoneNumber,
   }) async {
     if (_backendCommerce.isConfigured) {
+      await AuthSessionService.instance.ensureSessionForCurrentUser(
+        forceRefreshIdToken: false,
+      );
+    }
+    if (_backendCommerce.isConfigured) {
       try {
         final backendUser = await _backendCommerce.getCurrentUserProfile();
         final normalized = backendUser.copyWith(
-          email: backendUser.email.isNotEmpty ? backendUser.email : (firebaseUser.email ?? ''),
+          email: backendUser.email.isNotEmpty
+              ? backendUser.email
+              : (firebaseUser.email ?? ''),
           phone: (backendUser.phone ?? '').isNotEmpty
               ? backendUser.phone
-              : (firebaseUser.phoneNumber ?? phoneNumber ?? _pendingPhoneNumber ?? ''),
+              : (firebaseUser.phoneNumber ??
+                    phoneNumber ??
+                    _pendingPhoneNumber ??
+                    ''),
         );
         unawaited(_db.saveUser(normalized));
         return normalized;
@@ -155,7 +170,8 @@ class AuthService {
       id: firebaseUser.uid,
       name: '',
       email: firebaseUser.email ?? '',
-      phone: firebaseUser.phoneNumber ?? phoneNumber ?? _pendingPhoneNumber ?? '',
+      phone:
+          firebaseUser.phoneNumber ?? phoneNumber ?? _pendingPhoneNumber ?? '',
       address: '',
       area: '',
       city: '',
@@ -223,15 +239,21 @@ class AuthService {
 
       final appUser = await _backendCommerce.getCurrentUserProfile();
       final normalized = appUser.copyWith(
-        email: appUser.email.isNotEmpty ? appUser.email : (firebaseUser.email ?? ''),
-        phone: (appUser.phone ?? '').isNotEmpty ? appUser.phone : (firebaseUser.phoneNumber ?? ''),
+        email: appUser.email.isNotEmpty
+            ? appUser.email
+            : (firebaseUser.email ?? ''),
+        phone: (appUser.phone ?? '').isNotEmpty
+            ? appUser.phone
+            : (firebaseUser.phoneNumber ?? ''),
       );
       unawaited(_db.saveUser(normalized));
 
       final normalizedRole = normalized.role.trim().toLowerCase();
       if (normalizedRole != 'admin' && normalizedRole != 'super_admin') {
         await signOut();
-        throw StateError('Access denied. Use an approved admin Google account.');
+        throw StateError(
+          'Access denied. Use an approved admin Google account.',
+        );
       }
 
       return normalized;
@@ -306,7 +328,10 @@ class AuthService {
             final result = await auth.signInWithCredential(credential);
             final firebaseUser = result.user;
             if (firebaseUser != null) {
-              await _ensurePhoneProfile(firebaseUser, phoneNumber: normalizedPhone);
+              await _ensurePhoneProfile(
+                firebaseUser,
+                phoneNumber: normalizedPhone,
+              );
               await _savePhoneNumberToBackend(
                 firebaseUser.phoneNumber ?? normalizedPhone,
               );
@@ -405,7 +430,9 @@ class AuthService {
         final authorized = await _db.isAdminDeviceAuthorized(user: appUser);
         if (!authorized) {
           await signOut();
-          throw StateError('This device is not authorized for super admin access.');
+          throw StateError(
+            'This device is not authorized for super admin access.',
+          );
         }
         await _db.notifyAdminLogin(user: appUser);
       }
@@ -421,6 +448,7 @@ class AuthService {
     if (auth != null) {
       await auth.signOut();
     }
+    await AuthSessionService.instance.revokeCurrentSession(reason: 'sign_out');
     _verificationId = null;
     _webConfirmationResult = null;
     _pendingPhoneNumber = null;

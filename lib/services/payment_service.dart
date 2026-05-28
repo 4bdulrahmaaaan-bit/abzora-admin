@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 import 'app_config.dart';
+import 'auth_session_service.dart';
 import 'card_vault_service.dart';
 
 class PaymentCheckoutResult {
@@ -44,6 +44,14 @@ class PaymentService {
   Completer<PaymentCheckoutResult>? _paymentCompleter;
   Completer<PaymentCardVaultResult>? _cardVaultCompleter;
 
+  Future<Map<String, String>> _authorizedJsonHeaders({
+    required String failureMessage,
+  }) async {
+    return AuthSessionService.instance.requiredAuthorizationHeaders(
+      failureMessage: failureMessage,
+    );
+  }
+
   Future<PaymentCheckoutResult> processCheckout({
     required BuildContext context,
     required String userId,
@@ -55,7 +63,9 @@ class PaymentService {
     required String description,
   }) async {
     if (!AppConfig.hasRazorpayKey) {
-      throw StateError('Online payments are not configured right now. Please use Cash on Delivery.');
+      throw StateError(
+        'Online payments are not configured right now. Please use Cash on Delivery.',
+      );
     }
 
     _paymentCompleter = Completer<PaymentCheckoutResult>();
@@ -78,11 +88,7 @@ class PaymentService {
       'currency': orderPayload.currency,
       'name': 'Abianzo',
       'description': description,
-      'prefill': {
-        'contact': contact,
-        'email': email,
-        'name': name,
-      },
+      'prefill': {'contact': contact, 'email': email, 'name': name},
       'method': {
         'upi': true,
         'card': true,
@@ -91,12 +97,9 @@ class PaymentService {
         'emi': false,
       },
       'external': {
-        'wallets': ['paytm']
+        'wallets': ['paytm'],
       },
-      'notes': {
-        'flow': 'checkout',
-        'userId': userId,
-      },
+      'notes': {'flow': 'checkout', 'userId': userId},
     };
 
     try {
@@ -105,7 +108,9 @@ class PaymentService {
         const Duration(minutes: 5),
         onTimeout: () {
           if (!(_paymentCompleter?.isCompleted ?? true)) {
-            _paymentCompleter?.complete(const PaymentCheckoutResult(success: false));
+            _paymentCompleter?.complete(
+              const PaymentCheckoutResult(success: false),
+            );
           }
           return const PaymentCheckoutResult(success: false);
         },
@@ -117,7 +122,9 @@ class PaymentService {
     } catch (error) {
       debugPrint('Razorpay error: $error');
       if (!(_paymentCompleter?.isCompleted ?? true)) {
-        _paymentCompleter?.complete(const PaymentCheckoutResult(success: false));
+        _paymentCompleter?.complete(
+          const PaymentCheckoutResult(success: false),
+        );
       }
       return const PaymentCheckoutResult(success: false);
     } finally {
@@ -164,7 +171,8 @@ class PaymentService {
     if (!result.success) {
       return result;
     }
-    final hasBackendOrderId = backendOrderId != null && backendOrderId.isNotEmpty;
+    final hasBackendOrderId =
+        backendOrderId != null && backendOrderId.isNotEmpty;
     if (!hasBackendOrderId) {
       return PaymentCheckoutResult(
         success: true,
@@ -186,19 +194,17 @@ class PaymentService {
       );
     }
     if (!AppConfig.hasRazorpayVerificationEndpoint) {
-      throw StateError('Online payment verification is not configured right now.');
+      throw StateError(
+        'Online payment verification is not configured right now.',
+      );
     }
-    final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
-    if (idToken == null || idToken.isEmpty) {
-      throw StateError('Please sign in again before continuing to payment.');
-    }
+    final headers = await _authorizedJsonHeaders(
+      failureMessage: 'Please sign in again before continuing to payment.',
+    );
     final response = await http
         .post(
           Uri.parse(AppConfig.effectiveRazorpayVerificationEndpoint),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $idToken',
-          },
+          headers: headers,
           body: jsonEncode({
             'orderId': backendOrderId,
             'paymentId': result.paymentId,
@@ -213,11 +219,13 @@ class PaymentService {
     final data = payload is Map && payload['data'] is Map
         ? Map<String, dynamic>.from(payload['data'] as Map)
         : payload is Map
-            ? Map<String, dynamic>.from(payload)
-            : const <String, dynamic>{};
+        ? Map<String, dynamic>.from(payload)
+        : const <String, dynamic>{};
     final verified = data['verified'] == true;
     if (!verified) {
-      throw StateError('Payment verification failed. Please contact support if you were charged.');
+      throw StateError(
+        'Payment verification failed. Please contact support if you were charged.',
+      );
     }
     return PaymentCheckoutResult(
       success: true,
@@ -255,10 +263,15 @@ class PaymentService {
     }
 
     final payload = jsonDecode(response.body);
-    final map = payload is Map ? Map<String, dynamic>.from(payload) : const <String, dynamic>{};
+    final map = payload is Map
+        ? Map<String, dynamic>.from(payload)
+        : const <String, dynamic>{};
     final success = map['success'] == true || map['refunded'] == true;
     if (!success) {
-      throw StateError(map['message']?.toString() ?? 'Refund could not be processed right now.');
+      throw StateError(
+        map['message']?.toString() ??
+            'Refund could not be processed right now.',
+      );
     }
 
     return PaymentRefundResult(
@@ -279,7 +292,8 @@ class PaymentService {
     required String description,
   }) async {
     final amountInPaise = (amount * 100).round();
-    final hasBackendOrderId = backendOrderId != null && backendOrderId.isNotEmpty;
+    final hasBackendOrderId =
+        backendOrderId != null && backendOrderId.isNotEmpty;
     if (!AppConfig.hasRazorpayOrderEndpoint || !hasBackendOrderId) {
       return _RazorpayOrderPayload(
         orderId: '',
@@ -288,18 +302,14 @@ class PaymentService {
       );
     }
 
-    final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
-    if (idToken == null || idToken.isEmpty) {
-      throw StateError('Please sign in again before continuing to payment.');
-    }
+    final headers = await _authorizedJsonHeaders(
+      failureMessage: 'Please sign in again before continuing to payment.',
+    );
 
     final response = await http
         .post(
           Uri.parse(AppConfig.effectiveRazorpayOrderEndpoint),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $idToken',
-          },
+          headers: headers,
           body: jsonEncode({
             'orderId': backendOrderId,
             'amount': amount,
@@ -335,21 +345,19 @@ class PaymentService {
     required String contact,
   }) async {
     if (!AppConfig.hasRazorpayCardVaulting) {
-      throw StateError('Saved cards are not configured yet. Add the card vaulting endpoints to continue.');
+      throw StateError(
+        'Saved cards are not configured yet. Add the card vaulting endpoints to continue.',
+      );
     }
 
-    final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
-    if (idToken == null || idToken.isEmpty) {
-      throw StateError('Please sign in again before saving a card.');
-    }
+    final headers = await _authorizedJsonHeaders(
+      failureMessage: 'Please sign in again before saving a card.',
+    );
 
     final setupResponse = await http
         .post(
           Uri.parse(AppConfig.razorpayCardSetupEndpoint),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $idToken',
-          },
+          headers: headers,
           body: jsonEncode({
             'userId': userId,
             'name': name.trim(),
@@ -389,11 +397,7 @@ class PaymentService {
       'currency': currency,
       'name': 'Abianzo',
       'description': 'Secure card verification',
-      'prefill': {
-        'contact': contact,
-        'email': email,
-        'name': name,
-      },
+      'prefill': {'contact': contact, 'email': email, 'name': name},
       'method': {
         'card': true,
         'upi': false,
@@ -401,10 +405,7 @@ class PaymentService {
         'wallet': false,
         'emi': false,
       },
-      'notes': {
-        'flow': 'card_vault',
-        'userId': userId,
-      },
+      'notes': {'flow': 'card_vault', 'userId': userId},
     };
 
     try {
@@ -414,10 +415,16 @@ class PaymentService {
         onTimeout: () {
           if (!(_cardVaultCompleter?.isCompleted ?? true)) {
             _cardVaultCompleter?.complete(
-              const PaymentCardVaultResult(success: false, message: 'Card setup timed out.'),
+              const PaymentCardVaultResult(
+                success: false,
+                message: 'Card setup timed out.',
+              ),
             );
           }
-          return const PaymentCardVaultResult(success: false, message: 'Card setup timed out.');
+          return const PaymentCardVaultResult(
+            success: false,
+            message: 'Card setup timed out.',
+          );
         },
       );
 
@@ -428,10 +435,9 @@ class PaymentService {
       final finalizeResponse = await http
           .post(
             Uri.parse(AppConfig.razorpayCardFinalizeEndpoint),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $idToken',
-            },
+            headers: await _authorizedJsonHeaders(
+              failureMessage: 'Please sign in again before saving a card.',
+            ),
             body: jsonEncode({
               'userId': userId,
               'paymentId': checkoutResult.paymentId,
@@ -441,8 +447,11 @@ class PaymentService {
           )
           .timeout(const Duration(seconds: 20));
 
-      if (finalizeResponse.statusCode < 200 || finalizeResponse.statusCode >= 300) {
-        throw StateError('Card verification finished, but the secure token could not be saved.');
+      if (finalizeResponse.statusCode < 200 ||
+          finalizeResponse.statusCode >= 300) {
+        throw StateError(
+          'Card verification finished, but the secure token could not be saved.',
+        );
       }
 
       final finalizePayload = jsonDecode(finalizeResponse.body);
@@ -498,7 +507,8 @@ class PaymentService {
       _cardVaultCompleter?.complete(
         PaymentCardVaultResult(
           success: false,
-          message: '${response.walletName ?? 'Wallet'} is not supported for saved cards.',
+          message:
+              '${response.walletName ?? 'Wallet'} is not supported for saved cards.',
         ),
       );
     }
