@@ -29,7 +29,7 @@ jobs:
       - name: Prepare backend workspace
         run: |
           rm -rf backend
-          git clone --depth 1 https://github.com/4bdulrahmaaaan-bit/abzora-backend.git backend
+          git clone --depth 1 https://github.com/4bdulrahmaaaan-bit/abianzo-backend.git backend
           ls -la backend
           cat backend/package.json
 
@@ -79,7 +79,7 @@ jobs:
       - name: Prepare backend workspace
         run: |
           rm -rf backend
-          git clone --depth 1 https://github.com/4bdulrahmaaaan-bit/abzora-backend.git backend
+          git clone --depth 1 https://github.com/4bdulrahmaaaan-bit/abianzo-backend.git backend
 
       - name: Setup Node
         uses: actions/setup-node@v5

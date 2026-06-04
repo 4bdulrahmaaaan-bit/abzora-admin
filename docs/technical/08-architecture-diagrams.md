@@ -89,17 +89,17 @@ graph TD
 
 ```mermaid
 graph TD
-  IN[Ingress NGINX] --> API[Service abzora-api]
-  IN --> WSSVC[Service abzora-websocket]
-  IN --> ADMSVC[Service abzora-admin]
+  IN[Ingress NGINX] --> API[Service abianzo-api]
+  IN --> WSSVC[Service abianzo-websocket]
+  IN --> ADMSVC[Service abianzo-admin]
 
-  API --> APIPOD[Deployment abzora-api]
-  WSSVC --> WSPOD[Deployment abzora-websocket]
+  API --> APIPOD[Deployment abianzo-api]
+  WSSVC --> WSPOD[Deployment abianzo-websocket]
   ADMSVC --> APIPOD
 
   APIPOD --> REDIS[(StatefulSet redis)]
   WSPOD --> REDIS
-  WRK[Deployment abzora-worker] --> REDIS
+  WRK[Deployment abianzo-worker] --> REDIS
 
   APIPOD --> MDB[(External MongoDB)]
   WRK --> MDB

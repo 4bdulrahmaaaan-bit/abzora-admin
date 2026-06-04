@@ -1,11 +1,11 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: abzora-websocket-ingress
+  name: abianzo-websocket-ingress
 spec:
   tls:
     - hosts:
-        - ws.staging.abzora.example.com
-      secretName: staging-abzora-ws-tls
+        - ws.staging.abianzo.example.com
+      secretName: staging-abianzo-ws-tls
   rules:
-    - host: ws.staging.abzora.example.com
+    - host: ws.staging.abianzo.example.com

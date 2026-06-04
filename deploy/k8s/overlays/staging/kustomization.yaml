@@ -10,22 +10,22 @@ patches:
       group: networking.k8s.io
       version: v1
       kind: Ingress
-      name: abzora-api-ingress
+      name: abianzo-api-ingress
   - path: patch-ingress-websocket.yaml
     target:
       group: networking.k8s.io
       version: v1
       kind: Ingress
-      name: abzora-websocket-ingress
+      name: abianzo-websocket-ingress
   - path: patch-ingress-admin.yaml
     target:
       group: networking.k8s.io
       version: v1
       kind: Ingress
-      name: abzora-admin-ingress
+      name: abianzo-admin-ingress
   - path: patch-ingress-webhook.yaml
     target:
       group: networking.k8s.io
       version: v1
       kind: Ingress
-      name: abzora-webhook-ingress
+      name: abianzo-webhook-ingress

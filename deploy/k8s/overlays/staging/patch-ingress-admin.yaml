@@ -1,11 +1,11 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: abzora-admin-ingress
+  name: abianzo-admin-ingress
 spec:
   tls:
     - hosts:
-        - admin.staging.abzora.example.com
-      secretName: staging-abzora-admin-tls
+        - admin.staging.abianzo.example.com
+      secretName: staging-abianzo-admin-tls
   rules:
-    - host: admin.staging.abzora.example.com
+    - host: admin.staging.abianzo.example.com

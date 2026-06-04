@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: abzora-worker
-  namespace: abzora
+  name: abianzo-worker
+  namespace: abianzo
 spec:
   replicas: 2
   strategy:
@@ -12,11 +12,11 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: abzora-worker
+      app: abianzo-worker
   template:
     metadata:
       labels:
-        app: abzora-worker
+        app: abianzo-worker
         tier: worker
     spec:
       terminationGracePeriodSeconds: 60
@@ -27,18 +27,18 @@ spec:
               podAffinityTerm:
                 labelSelector:
                   matchLabels:
-                    app: abzora-worker
+                    app: abianzo-worker
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: worker
-          image: ghcr.io/abzora/backend:latest
+          image: ghcr.io/abianzo/backend:latest
           imagePullPolicy: IfNotPresent
           command: ["node", "server.js"]
           envFrom:
             - configMapRef:
-                name: abzora-app-config
+                name: abianzo-app-config
             - secretRef:
-                name: abzora-app-secrets
+                name: abianzo-app-secrets
           env:
             - name: PAYMENT_OUTBOX_WORKER_ENABLED
               value: "true"

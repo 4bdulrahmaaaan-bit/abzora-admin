@@ -61,5 +61,5 @@ Repository includes:
 ## Operational Notes
 
 - Redis warm-up is asynchronous; readiness is the traffic gate.
-- Websocket and worker behavior differ by deployment role (`abzora-api` vs `abzora-websocket` vs `abzora-worker`) through env toggles.
+- Websocket and worker behavior differ by deployment role (`abianzo-api` vs `abianzo-websocket` vs `abianzo-worker`) through env toggles.
 - Graceful shutdown is explicit and time-bounded to prevent hanging pod terminations.

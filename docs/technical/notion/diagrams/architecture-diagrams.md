@@ -84,9 +84,9 @@ graph TD
 
 ```mermaid
 graph TD
-  ING[Ingress NGINX] --> APISVC[Service abzora-api]
-  ING --> WSSVC[Service abzora-websocket]
-  ING --> ADMSVC[Service abzora-admin]
+  ING[Ingress NGINX] --> APISVC[Service abianzo-api]
+  ING --> WSSVC[Service abianzo-websocket]
+  ING --> ADMSVC[Service abianzo-admin]
   APISVC --> APIPOD[Deployment API]
   WSSVC --> WSPOD[Deployment Websocket]
   ADMSVC --> APIPOD

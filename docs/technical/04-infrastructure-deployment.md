@@ -2,18 +2,18 @@
 
 ## Kubernetes Topology
 
-Base namespace: `abzora`.
+Base namespace: `abianzo`.
 
 Workloads:
-- `Deployment/abzora-api`
-- `Deployment/abzora-websocket`
-- `Deployment/abzora-worker`
+- `Deployment/abianzo-api`
+- `Deployment/abianzo-websocket`
+- `Deployment/abianzo-worker`
 - `StatefulSet/redis`
 
 Services:
-- `Service/abzora-api`
-- `Service/abzora-websocket`
-- `Service/abzora-admin`
+- `Service/abianzo-api`
+- `Service/abianzo-websocket`
+- `Service/abianzo-admin`
 - `Service/redis`
 
 ## Ingress and Load Balancing

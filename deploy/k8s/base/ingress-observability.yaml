@@ -20,29 +20,29 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: abzora-ingress-alerts
+  name: abianzo-ingress-alerts
   namespace: monitoring
   labels:
     release: kube-prometheus-stack
 spec:
   groups:
-    - name: abzora.ingress
+    - name: abianzo.ingress
       rules:
-        - alert: AbzoraIngressHigh5xxRate
-          expr: sum(rate(nginx_ingress_controller_requests{namespace="abzora",status=~"5.."}[5m])) > 5
+        - alert: AbianzoIngressHigh5xxRate
+          expr: sum(rate(nginx_ingress_controller_requests{namespace="abianzo",status=~"5.."}[5m])) > 5
           for: 10m
           labels:
             severity: critical
           annotations:
-            summary: "Abzora ingress 5xx error rate is high"
-        - alert: AbzoraIngressHighLatencyP95
-          expr: histogram_quantile(0.95, sum(rate(nginx_ingress_controller_request_duration_seconds_bucket{namespace="abzora"}[5m])) by (le)) > 1.5
+            summary: "Abianzo ingress 5xx error rate is high"
+        - alert: AbianzoIngressHighLatencyP95
+          expr: histogram_quantile(0.95, sum(rate(nginx_ingress_controller_request_duration_seconds_bucket{namespace="abianzo"}[5m])) by (le)) > 1.5
           for: 10m
           labels:
             severity: warning
           annotations:
-            summary: "Abzora ingress p95 latency is elevated"
-        - alert: AbzoraIngressWebsocketChurn
+            summary: "Abianzo ingress p95 latency is elevated"
+        - alert: AbianzoIngressWebsocketChurn
           expr: sum(rate(nginx_ingress_controller_nginx_process_connections_total{state="handled"}[5m])) > 200
           for: 15m
           labels:

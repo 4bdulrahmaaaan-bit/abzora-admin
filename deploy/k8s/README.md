@@ -8,9 +8,9 @@
 
 ## Components
 
-- API deployment (`abzora-api`)
-- Worker deployment (`abzora-worker`)
-- Websocket deployment (`abzora-websocket`)
+- API deployment (`abianzo-api`)
+- Worker deployment (`abianzo-worker`)
+- Websocket deployment (`abianzo-websocket`)
 - Redis statefulset (`redis`)
 - Ingress + services
 - HPA + PDB + anti-affinity/topology spread
@@ -18,10 +18,10 @@
 
 ## Ingress Architecture
 
-- `abzora-api-ingress`: general API traffic
-- `abzora-websocket-ingress`: websocket upgrade paths (`/tracking/ws`, `/ws/pricing`)
-- `abzora-admin-ingress`: admin panel traffic with stricter source-range and connection limits
-- `abzora-webhook-ingress`: webhook ingestion endpoints with tighter body and timeout tuning
+- `abianzo-api-ingress`: general API traffic
+- `abianzo-websocket-ingress`: websocket upgrade paths (`/tracking/ws`, `/ws/pricing`)
+- `abianzo-admin-ingress`: admin panel traffic with stricter source-range and connection limits
+- `abianzo-webhook-ingress`: webhook ingestion endpoints with tighter body and timeout tuning
 
 Sticky-session strategy:
 - Websocket ingress uses `affinity: none` intentionally.

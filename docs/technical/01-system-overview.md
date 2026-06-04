@@ -32,9 +32,9 @@ ABZORA is implemented as a multi-surface commerce platform with:
 ## Deployment Topology
 
 Base Kubernetes layout:
-- `abzora-api` deployment: synchronous API traffic
-- `abzora-websocket` deployment: websocket handling (outbox/webhook workers disabled)
-- `abzora-worker` deployment: worker execution (outbox/webhook workers enabled)
+- `abianzo-api` deployment: synchronous API traffic
+- `abianzo-websocket` deployment: websocket handling (outbox/webhook workers disabled)
+- `abianzo-worker` deployment: worker execution (outbox/webhook workers enabled)
 - `redis` statefulset: single-replica Redis with AOF enabled
 - Ingress split by concern: API, websocket, admin, webhook
 - HPA, PDB, anti-affinity, and topology spread constraints for pod resilience

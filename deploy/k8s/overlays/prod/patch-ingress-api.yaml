@@ -1,14 +1,14 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: abzora-api-ingress
+  name: abianzo-api-ingress
   annotations:
     nginx.ingress.kubernetes.io/limit-rps: "100"
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "4"
 spec:
   tls:
     - hosts:
-        - api.abzora.com
-      secretName: prod-abzora-api-tls
+        - api.abianzo.com
+      secretName: prod-abianzo-api-tls
   rules:
-    - host: api.abzora.com
+    - host: api.abianzo.com

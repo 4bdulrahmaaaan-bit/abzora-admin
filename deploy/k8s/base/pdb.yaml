@@ -1,32 +1,32 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: abzora-api-pdb
-  namespace: abzora
+  name: abianzo-api-pdb
+  namespace: abianzo
 spec:
   minAvailable: 2
   selector:
     matchLabels:
-      app: abzora-api
+      app: abianzo-api
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: abzora-worker-pdb
-  namespace: abzora
+  name: abianzo-worker-pdb
+  namespace: abianzo
 spec:
   minAvailable: 1
   selector:
     matchLabels:
-      app: abzora-worker
+      app: abianzo-worker
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: abzora-websocket-pdb
-  namespace: abzora
+  name: abianzo-websocket-pdb
+  namespace: abianzo
 spec:
   minAvailable: 1
   selector:
     matchLabels:
-      app: abzora-websocket
+      app: abianzo-websocket

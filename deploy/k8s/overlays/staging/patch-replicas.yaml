@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: abzora-api
-  namespace: abzora
+  name: abianzo-api
+  namespace: abianzo
 spec:
   replicas: 2
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: abzora-worker
-  namespace: abzora
+  name: abianzo-worker
+  namespace: abianzo
 spec:
   replicas: 1
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: abzora-websocket
-  namespace: abzora
+  name: abianzo-websocket
+  namespace: abianzo
 spec:
   replicas: 1

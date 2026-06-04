@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: abzora-websocket
-  namespace: abzora
+  name: abianzo-websocket
+  namespace: abianzo
 spec:
   replicas: 2
   strategy:
@@ -12,11 +12,11 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: abzora-websocket
+      app: abianzo-websocket
   template:
     metadata:
       labels:
-        app: abzora-websocket
+        app: abianzo-websocket
         tier: websocket
     spec:
       terminationGracePeriodSeconds: 45
@@ -27,17 +27,17 @@ spec:
               podAffinityTerm:
                 labelSelector:
                   matchLabels:
-                    app: abzora-websocket
+                    app: abianzo-websocket
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: websocket
-          image: ghcr.io/abzora/backend:latest
+          image: ghcr.io/abianzo/backend:latest
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef:
-                name: abzora-app-config
+                name: abianzo-app-config
             - secretRef:
-                name: abzora-app-secrets
+                name: abianzo-app-secrets
           env:
             - name: PAYMENT_OUTBOX_WORKER_ENABLED
               value: "false"

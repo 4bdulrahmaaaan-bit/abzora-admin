@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: abzora-api
-  namespace: abzora
+  name: abianzo-api
+  namespace: abianzo
 spec:
   replicas: 4
   strategy:
@@ -13,24 +13,24 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: abzora-worker
-  namespace: abzora
+  name: abianzo-worker
+  namespace: abianzo
 spec:
   replicas: 3
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: abzora-websocket
-  namespace: abzora
+  name: abianzo-websocket
+  namespace: abianzo
 spec:
   replicas: 3
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: abzora-api-hpa
-  namespace: abzora
+  name: abianzo-api-hpa
+  namespace: abianzo
 spec:
   minReplicas: 4
   maxReplicas: 30
@@ -38,8 +38,8 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: abzora-worker-hpa
-  namespace: abzora
+  name: abianzo-worker-hpa
+  namespace: abianzo
 spec:
   minReplicas: 3
   maxReplicas: 40
@@ -47,8 +47,8 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: abzora-websocket-hpa
-  namespace: abzora
+  name: abianzo-websocket-hpa
+  namespace: abianzo
 spec:
   minReplicas: 3
   maxReplicas: 20

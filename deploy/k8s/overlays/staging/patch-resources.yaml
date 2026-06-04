@@ -1,8 +1,8 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: abzora-api-hpa
-  namespace: abzora
+  name: abianzo-api-hpa
+  namespace: abianzo
 spec:
   minReplicas: 2
   maxReplicas: 8
@@ -10,8 +10,8 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: abzora-worker-hpa
-  namespace: abzora
+  name: abianzo-worker-hpa
+  namespace: abianzo
 spec:
   minReplicas: 1
   maxReplicas: 6
@@ -19,8 +19,8 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: abzora-websocket-hpa
-  namespace: abzora
+  name: abianzo-websocket-hpa
+  namespace: abianzo
 spec:
   minReplicas: 1
   maxReplicas: 5

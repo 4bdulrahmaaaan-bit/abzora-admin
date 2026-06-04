@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: abzora-api
-  namespace: abzora
+  name: abianzo-api
+  namespace: abianzo
 spec:
   selector:
-    app: abzora-api
+    app: abianzo-api
   ports:
     - name: http
       port: 80
@@ -14,11 +14,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: abzora-websocket
-  namespace: abzora
+  name: abianzo-websocket
+  namespace: abianzo
 spec:
   selector:
-    app: abzora-websocket
+    app: abianzo-websocket
   ports:
     - name: http
       port: 80
@@ -27,11 +27,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: abzora-admin
-  namespace: abzora
+  name: abianzo-admin
+  namespace: abianzo
 spec:
   selector:
-    app: abzora-api
+    app: abianzo-api
   ports:
     - name: http
       port: 80
@@ -41,7 +41,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: redis
-  namespace: abzora
+  namespace: abianzo
 spec:
   selector:
     app: redis

@@ -25,9 +25,9 @@ ABZORA is implemented as a multi-surface commerce platform composed of:
 
 ## Deployment Topology
 
-- `Deployment/abzora-api`
-- `Deployment/abzora-websocket`
-- `Deployment/abzora-worker`
+- `Deployment/abianzo-api`
+- `Deployment/abianzo-websocket`
+- `Deployment/abianzo-worker`
 - `StatefulSet/redis`
 - Dedicated ingress objects for API, websocket, admin, and webhook traffic
 

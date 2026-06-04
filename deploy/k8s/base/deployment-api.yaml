@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: abzora-api
-  namespace: abzora
+  name: abianzo-api
+  namespace: abianzo
 spec:
   replicas: 3
   strategy:
@@ -12,11 +12,11 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: abzora-api
+      app: abianzo-api
   template:
     metadata:
       labels:
-        app: abzora-api
+        app: abianzo-api
         tier: api
     spec:
       terminationGracePeriodSeconds: 45
@@ -27,7 +27,7 @@ spec:
               podAffinityTerm:
                 labelSelector:
                   matchLabels:
-                    app: abzora-api
+                    app: abianzo-api
                 topologyKey: kubernetes.io/hostname
       topologySpreadConstraints:
         - maxSkew: 1
@@ -35,18 +35,18 @@ spec:
           whenUnsatisfiable: ScheduleAnyway
           labelSelector:
             matchLabels:
-              app: abzora-api
+              app: abianzo-api
       containers:
         - name: api
-          image: ghcr.io/abzora/backend:latest
+          image: ghcr.io/abianzo/backend:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
           envFrom:
             - configMapRef:
-                name: abzora-app-config
+                name: abianzo-app-config
             - secretRef:
-                name: abzora-app-secrets
+                name: abianzo-app-secrets
           resources:
             requests:
               cpu: "400m"
