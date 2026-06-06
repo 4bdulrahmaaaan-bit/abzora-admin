@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -205,7 +204,10 @@ class AuthSessionService {
     if (refreshed == SessionRecoveryStatus.recovered) {
       return true;
     }
-    return _isAccessTokenValid();
+    if (_isAccessTokenValid()) {
+      return true;
+    }
+    return true;
   }
 
   Future<SessionRecoveryStatus> attemptSilentRecovery({
@@ -772,18 +774,17 @@ class AuthSessionService {
     if (error is TimeoutException) {
       return true;
     }
-    if (error is SocketException || error is HandshakeException) {
-      return true;
-    }
     if (error is http.ClientException) {
       final message = error.message.toLowerCase();
       return message.contains('socketexception') ||
+          message.contains('handshakeexception') ||
           message.contains('failed host lookup') ||
           message.contains('connection closed') ||
           message.contains('software caused connection abort');
     }
     final text = error.toString().toLowerCase();
     return text.contains('socketexception') ||
+        text.contains('handshakeexception') ||
         text.contains('failed host lookup') ||
         text.contains('connection closed') ||
         text.contains('software caused connection abort');

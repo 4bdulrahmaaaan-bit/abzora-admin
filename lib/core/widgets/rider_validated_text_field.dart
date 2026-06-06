@@ -50,24 +50,34 @@ class RiderValidatedTextField extends StatelessWidget {
       autovalidateMode: AutovalidateMode.always,
       onChanged: onChanged,
       validator: validator,
+      cursorColor: const Color(0xFFC8A86B),
+      style: const TextStyle(
+        color: Color(0xFF111111),
+        fontWeight: FontWeight.w500,
+      ),
       decoration: InputDecoration(
         labelText: label,
         helperText: mergedHelper,
         errorText: error,
         counterText: '',
+        filled: true,
+        fillColor: const Color(0xFFF9F7F2),
+        labelStyle: const TextStyle(color: Color(0xFF666666)),
+        hintStyle: const TextStyle(color: Color(0xFF7A7366)),
+        floatingLabelStyle: const TextStyle(color: Color(0xFFC8A86B)),
         suffixIcon: isValid
             ? const Icon(Icons.check_circle_rounded, color: Colors.greenAccent)
             : null,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: error != null ? Colors.redAccent : Colors.white24,
+            color: error != null ? Colors.redAccent : const Color(0xFFE8DCC2),
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: error != null ? Colors.redAccent : const Color(0xFFD4AF37),
+            color: error != null ? Colors.redAccent : const Color(0xFFC8A86B),
             width: 1.3,
           ),
         ),

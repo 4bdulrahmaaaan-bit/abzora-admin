@@ -7,7 +7,7 @@ import '../../services/card_vault_service.dart';
 import '../../services/database_service.dart';
 import '../../services/payment_service.dart';
 import '../../theme.dart';
-import '../../widgets/tap_scale.dart';
+import '../../widgets/abzio_motion.dart';
 
 class AddCardScreen extends StatefulWidget {
   const AddCardScreen({super.key});
@@ -16,45 +16,38 @@ class AddCardScreen extends StatefulWidget {
   State<AddCardScreen> createState() => _AddCardScreenState();
 }
 
-class _AddCardScreenState extends State<AddCardScreen> with TickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
-  final _numberController = TextEditingController();
-  final _nameController = TextEditingController();
-  final _expiryController = TextEditingController();
-  final _cvvController = TextEditingController();
-  final _numberFocus = FocusNode();
-  final _nameFocus = FocusNode();
-  final _expiryFocus = FocusNode();
-  final _cvvFocus = FocusNode();
+class _AddCardScreenState extends State<AddCardScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _numberController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _expiryController = TextEditingController();
+  final TextEditingController _cvvController = TextEditingController();
+  final FocusNode _numberFocus = FocusNode();
+  final FocusNode _nameFocus = FocusNode();
+  final FocusNode _expiryFocus = FocusNode();
+  final FocusNode _cvvFocus = FocusNode();
 
-  late final AnimationController _heroController;
-  late final Animation<double> _heroScale;
   final PaymentService _paymentService = PaymentService();
   final DatabaseService _database = DatabaseService();
   final CardVaultService _cardVaultService = CardVaultService();
+
   bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
-    _heroController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 320),
-    )..forward();
-    _heroScale = CurvedAnimation(
-      parent: _heroController,
-      curve: Curves.easeOutCubic,
-    );
-
-    _numberController.addListener(_onFieldChanged);
-    _nameController.addListener(_onFieldChanged);
-    _expiryController.addListener(_onFieldChanged);
-    _cvvController.addListener(_onFieldChanged);
+    _numberController.addListener(_onCardChanged);
+    _nameController.addListener(_onCardChanged);
+    _expiryController.addListener(_onCardChanged);
+    _cvvController.addListener(_onCardChanged);
   }
 
   @override
   void dispose() {
-    _heroController.dispose();
+    _numberController.removeListener(_onCardChanged);
+    _nameController.removeListener(_onCardChanged);
+    _expiryController.removeListener(_onCardChanged);
+    _cvvController.removeListener(_onCardChanged);
     _numberController.dispose();
     _nameController.dispose();
     _expiryController.dispose();
@@ -63,133 +56,95 @@ class _AddCardScreenState extends State<AddCardScreen> with TickerProviderStateM
     _nameFocus.dispose();
     _expiryFocus.dispose();
     _cvvFocus.dispose();
-    _paymentService.dispose();
     super.dispose();
   }
 
-  void _onFieldChanged() {
+  void _onCardChanged() {
     if (mounted) {
       setState(() {});
     }
   }
 
-  String get _digitsOnly => _numberController.text.replaceAll(RegExp(r'\D'), '');
+  String get _digitsOnlyNumber => _numberController.text.replaceAll(RegExp(r'\D'), '');
+
+  String get _cardBrand => _detectBrand(_digitsOnlyNumber);
 
   String get _maskedPreviewNumber {
-    if (_digitsOnly.isEmpty) {
-      return 'XXXX XXXX XXXX XXXX';
+    final digits = _digitsOnlyNumber.padRight(16, 'X');
+    final buffer = StringBuffer();
+    for (var index = 0; index < 16; index++) {
+      if (index > 0 && index % 4 == 0) buffer.write(' ');
+      buffer.write(digits[index]);
     }
-    final visible = _digitsOnly.length > 4 ? _digitsOnly.substring(_digitsOnly.length - 4) : _digitsOnly;
-    return 'XXXX XXXX XXXX ${visible.padLeft(4, 'X')}';
+    return buffer.toString();
   }
 
-  String get _previewName {
-    final name = _nameController.text.trim();
-    return name.isEmpty ? 'CARD HOLDER' : name.toUpperCase();
+  String get _expiryPreview {
+    final text = _expiryController.text.trim();
+    return text.isEmpty ? 'MM/YY' : text;
   }
 
-  String get _previewExpiry {
-    final expiry = _expiryController.text.trim();
-    return expiry.isEmpty ? 'MM/YY' : expiry;
-  }
-
-  String get _cardTypeLabel {
-    final digits = _digitsOnly;
-    if (digits.startsWith('4')) {
-      return 'VISA';
+  String _detectBrand(String digits) {
+    if (digits.startsWith('4')) return 'Visa';
+    if (digits.startsWith('5')) return 'Mastercard';
+    if (digits.startsWith('60') || digits.startsWith('65') || digits.startsWith('81')) {
+      return 'RuPay';
     }
-    if (RegExp(r'^(5[1-5])').hasMatch(digits) ||
-        RegExp(r'^(222[1-9]|22[3-9]\d|2[3-6]\d{2}|27[01]\d|2720)').hasMatch(digits)) {
-      return 'MASTERCARD';
+    if (digits.length >= 2) {
+      final firstTwo = int.tryParse(digits.substring(0, 2)) ?? 0;
+      if (firstTwo >= 51 && firstTwo <= 55) return 'Mastercard';
+      if (firstTwo == 60 || firstTwo == 65) return 'RuPay';
     }
-    if (RegExp(r'^(60|65|508|81|82)').hasMatch(digits)) {
-      return 'RUPAY';
-    }
-    return 'CARD';
-  }
-
-  bool get _isFormValid {
-    return _validateCardNumber(_numberController.text) == null &&
-        _validateName(_nameController.text) == null &&
-        _validateExpiry(_expiryController.text) == null &&
-        _validateCvv(_cvvController.text) == null;
+    return 'Card Brand';
   }
 
   String? _validateCardNumber(String? value) {
     final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
-    if (digits.isEmpty) {
-      return 'Enter your card number';
-    }
-    if (digits.length < 16 || digits.length > 19) {
-      return 'Enter a valid card number';
-    }
-    if (!_passesLuhn(digits)) {
-      return 'Card number looks invalid';
-    }
+    if (digits.isEmpty) return 'Card number is required';
+    if (digits.length < 12) return 'Card number looks invalid';
     return null;
   }
 
   String? _validateName(String? value) {
-    final name = value?.trim() ?? '';
-    if (name.isEmpty) {
-      return 'Enter the card holder name';
-    }
-    if (name.length < 2) {
-      return 'Name is too short';
-    }
+    final trimmed = (value ?? '').trim();
+    if (trimmed.isEmpty) return 'Card holder name is required';
+    if (trimmed.length < 2) return 'Enter a valid card holder name';
     return null;
   }
 
   String? _validateExpiry(String? value) {
-    final expiry = value?.trim() ?? '';
-    if (!RegExp(r'^\d{2}/\d{2}$').hasMatch(expiry)) {
-      return 'Use MM/YY';
-    }
-    final month = int.tryParse(expiry.substring(0, 2));
-    final year = int.tryParse(expiry.substring(3, 5));
-    if (month == null || year == null || month < 1 || month > 12) {
-      return 'Enter a valid expiry';
-    }
+    final trimmed = (value ?? '').trim();
+    final match = RegExp(r'^(0[1-9]|1[0-2])\/(\d{2})$').firstMatch(trimmed);
+    if (trimmed.isEmpty) return 'Expiry is required';
+    if (match == null) return 'Use MM/YY';
+    final month = int.parse(match.group(1)!);
+    final year = 2000 + int.parse(match.group(2)!);
     final now = DateTime.now();
-    final fullYear = 2000 + year;
-    final lastValidDay = DateTime(fullYear, month + 1, 0);
-    if (lastValidDay.isBefore(DateTime(now.year, now.month, now.day))) {
+    if (year < now.year || (year == now.year && month < now.month)) {
       return 'Card has expired';
     }
     return null;
   }
 
   String? _validateCvv(String? value) {
-    final cvv = (value ?? '').trim();
-    if (!RegExp(r'^\d{3,4}$').hasMatch(cvv)) {
-      return 'Enter a valid CVV';
-    }
+    final trimmed = (value ?? '').trim();
+    if (trimmed.isEmpty) return 'CVV is required';
+    if (trimmed.length < 3) return 'CVV looks invalid';
     return null;
   }
 
-  bool _passesLuhn(String input) {
-    var sum = 0;
-    var alternate = false;
-    for (var i = input.length - 1; i >= 0; i--) {
-      var digit = int.parse(input[i]);
-      if (alternate) {
-        digit *= 2;
-        if (digit > 9) {
-          digit -= 9;
-        }
-      }
-      sum += digit;
-      alternate = !alternate;
-    }
-    return sum % 10 == 0;
-  }
-
   Future<void> _saveCard() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
-    final auth = context.read<AuthProvider>();
-    final user = auth.user;
-    if (!_formKey.currentState!.validate() || _submitting || user == null) {
+    if (_submitting) return;
+
+    FocusScope.of(context).unfocus();
+    final valid = _formKey.currentState?.validate() ?? false;
+    if (!valid) return;
+
+    final user = context.read<AuthProvider>().user;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to save a card.')),
+      );
       return;
     }
 
@@ -198,41 +153,25 @@ class _AddCardScreenState extends State<AddCardScreen> with TickerProviderStateM
       final result = await _paymentService.tokenizeCard(
         userId: user.id,
         name: _nameController.text.trim(),
-        email: user.email,
+        email: user.email.trim().isNotEmpty ? user.email.trim() : '${user.id}@abianzo.app',
         contact: user.phone ?? '',
       );
-      if (!result.success) {
+      if (!result.success || result.card == null) {
         throw StateError(result.message ?? 'Payment failed, try again.');
       }
-      if (result.card != null) {
-        await _cardVaultService.saveCardSummary(result.card!);
-      }
+
+      await _cardVaultService.saveCardSummary(result.card!);
       await _database.savePreferredPaymentMethod(user.id, 'CARDS');
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(
-            result.card == null
-                ? 'Card saved securely.'
-                : '${result.card!.cardType} ending in ${result.card!.last4} saved securely.',
-          ),
-        ),
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Card verified securely and saved.')),
       );
-      navigator.pop(true);
+      Navigator.pop(context, true);
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(
-            error is StateError ? error.message : 'We could not save the card right now.',
-          ),
-        ),
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save card: $error')),
       );
     } finally {
       if (mounted) {
@@ -241,36 +180,11 @@ class _AddCardScreenState extends State<AddCardScreen> with TickerProviderStateM
     }
   }
 
-  InputDecoration _decoration(BuildContext context, String label, {Widget? suffixIcon, String? hintText}) {
-    final borderColor = context.abzioBorder;
+  InputDecoration _fieldDecoration(BuildContext context, String label, {String? hintText, Widget? suffixIcon}) {
     return InputDecoration(
       labelText: label,
       hintText: hintText,
-      floatingLabelBehavior: FloatingLabelBehavior.auto,
-      filled: true,
-      fillColor: Colors.white,
       suffixIcon: suffixIcon,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: borderColor),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: borderColor),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: AbzioTheme.accentColor, width: 1.5),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: Color(0xFFD24B4B)),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: Color(0xFFD24B4B), width: 1.2),
-      ),
     );
   }
 
@@ -278,114 +192,37 @@ class _AddCardScreenState extends State<AddCardScreen> with TickerProviderStateM
   Widget build(BuildContext context) {
     return AbzioThemeScope.light(
       child: Scaffold(
-        backgroundColor: const Color(0xFFFFFBF5),
-        appBar: AppBar(
-          title: const Text('Add Card'),
-        ),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        appBar: AppBar(title: const Text('Add Card')),
         body: SafeArea(
           child: Form(
             key: _formKey,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              padding: const EdgeInsets.fromLTRB(
+                AbzioTheme.screenHorizontalPadding,
+                16,
+                AbzioTheme.screenHorizontalPadding,
+                28,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ScaleTransition(
-                    scale: Tween<double>(begin: 0.96, end: 1).animate(_heroScale),
-                    child: FadeTransition(
-                      opacity: _heroScale,
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(28),
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFF1C1610),
-                              Color(0xFF332617),
-                              Color(0xFF5A431B),
-                            ],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF9B7B2D).withValues(alpha: 0.2),
-                              blurRadius: 28,
-                              offset: const Offset(0, 18),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: Text(
-                                    _cardTypeLabel,
-                                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                          color: const Color(0xFFFFE4A3),
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 1.1,
-                                        ),
-                                  ),
-                                ),
-                                const Spacer(),
-                                const Icon(Icons.lock_outline_rounded, color: Color(0xFFFFE4A3)),
-                              ],
-                            ),
-                            const SizedBox(height: 34),
-                            Text(
-                              _maskedPreviewNumber,
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 2,
-                                  ),
-                            ),
-                            const SizedBox(height: 28),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _PreviewLabel(
-                                    label: 'Card Holder',
-                                    value: _previewName,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                _PreviewLabel(
-                                  label: 'Expires',
-                                  value: _previewExpiry,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  _CardPreview(
+                    brand: _cardBrand,
+                    number: _maskedPreviewNumber,
+                    holder: _nameController.text.trim().isEmpty
+                        ? 'CARD HOLDER'
+                        : _nameController.text.trim().toUpperCase(),
+                    expiry: _expiryPreview,
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: AbzioTheme.sectionGap),
                   Text(
                     'Card details',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Enter your card once for a faster checkout preference. Abianzo never stores raw card details.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: context.abzioSecondaryText,
-                          height: 1.45,
-                        ),
-                  ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: _numberController,
                     focusNode: _numberFocus,
@@ -393,23 +230,27 @@ class _AddCardScreenState extends State<AddCardScreen> with TickerProviderStateM
                     textInputAction: TextInputAction.next,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(19),
+                      LengthLimitingTextInputFormatter(16),
                       _CardNumberFormatter(),
                     ],
-                    decoration: _decoration(
+                    decoration: _fieldDecoration(
                       context,
                       'Card Number',
-                      hintText: '1234 5678 9012 3456',
+                      hintText: 'XXXX XXXX XXXX XXXX',
                       suffixIcon: Padding(
-                        padding: const EdgeInsets.only(right: 14),
+                        padding: const EdgeInsetsDirectional.only(end: 12),
                         child: Center(
-                          widthFactor: 1,
-                          child: Text(
-                            _cardTypeLabel,
-                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: AbzioTheme.accentColor,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                          widthFactor: 0,
+                          child: AnimatedSwitcher(
+                            duration: AbzioMotion.medium,
+                            child: Text(
+                              _cardBrand,
+                              key: ValueKey(_cardBrand),
+                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: AbzioTheme.accentColor,
+                                  ),
+                            ),
                           ),
                         ),
                       ),
@@ -417,17 +258,17 @@ class _AddCardScreenState extends State<AddCardScreen> with TickerProviderStateM
                     validator: _validateCardNumber,
                     onFieldSubmitted: (_) => _nameFocus.requestFocus(),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: _nameController,
                     focusNode: _nameFocus,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
-                    decoration: _decoration(context, 'Card Holder Name', hintText: 'Name on card'),
+                    decoration: _fieldDecoration(context, 'Card Holder', hintText: 'Name on card'),
                     validator: _validateName,
                     onFieldSubmitted: (_) => _expiryFocus.requestFocus(),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -441,12 +282,12 @@ class _AddCardScreenState extends State<AddCardScreen> with TickerProviderStateM
                             LengthLimitingTextInputFormatter(4),
                             _ExpiryDateFormatter(),
                           ],
-                          decoration: _decoration(context, 'Expiry Date', hintText: 'MM/YY'),
+                          decoration: _fieldDecoration(context, 'Expiry', hintText: 'MM/YY'),
                           validator: _validateExpiry,
                           onFieldSubmitted: (_) => _cvvFocus.requestFocus(),
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: TextFormField(
                           controller: _cvvController,
@@ -458,87 +299,47 @@ class _AddCardScreenState extends State<AddCardScreen> with TickerProviderStateM
                             FilteringTextInputFormatter.digitsOnly,
                             LengthLimitingTextInputFormatter(4),
                           ],
-                          decoration: _decoration(
-                            context,
-                            'CVV',
-                            hintText: '123',
-                            suffixIcon: const Icon(Icons.shield_outlined),
-                          ),
+                          decoration: _fieldDecoration(context, 'CVV', hintText: '•••'),
                           validator: _validateCvv,
                           onFieldSubmitted: (_) => _saveCard(),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: context.abzioBorder),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFF7E4),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.lock_rounded,
-                            color: AbzioTheme.accentColor,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Your card details are passed only to Razorpay for secure verification. Abianzo stores only a card reference, card type, and the last four digits.',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: context.abzioSecondaryText,
-                                  height: 1.4,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  TapScale(
-                    onTap: _isFormValid && !_submitting ? _saveCard : null,
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isFormValid && !_submitting ? _saveCard : null,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 17),
-                          backgroundColor: AbzioTheme.accentColor,
-                          foregroundColor: AbzioTheme.textPrimary,
-                          disabledBackgroundColor: const Color(0xFFE6D8AA),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: _submitting
-                            ? const SizedBox(
-                                height: 22,
-                                width: 22,
-                                child: CircularProgressIndicator(strokeWidth: 2.2),
-                              )
-                            : const Text(
-                                'Save Card',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: AbzioTheme.sectionGap),
+                  _SecurityBlock(),
                 ],
+              ),
+            ),
+          ),
+        ),
+        bottomNavigationBar: AnimatedPadding(
+          duration: AbzioMotion.medium,
+          curve: AbzioMotion.curve,
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+          child: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.94),
+                border: Border(
+                  top: BorderSide(color: context.abzioBorder.withValues(alpha: 0.65)),
+                ),
+              ),
+              child: SizedBox(
+                height: 60,
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submitting ? null : _saveCard,
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.4),
+                        )
+                      : const Text('Securely Verify Card'),
+                ),
               ),
             ),
           ),
@@ -548,8 +349,93 @@ class _AddCardScreenState extends State<AddCardScreen> with TickerProviderStateM
   }
 }
 
-class _PreviewLabel extends StatelessWidget {
-  const _PreviewLabel({
+class _CardPreview extends StatelessWidget {
+  const _CardPreview({
+    required this.brand,
+    required this.number,
+    required this.holder,
+    required this.expiry,
+  });
+
+  final String brand;
+  final String number;
+  final String holder;
+  final String expiry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 200,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AbzioTheme.cardRadius),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF1F1913),
+            Color(0xFF332817),
+            Color(0xFF5E461D),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF9B7B2D).withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  brand,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: const Color(0xFFFFE4A3),
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                      ),
+                ),
+              ),
+              const Spacer(),
+              const Icon(Icons.lock_outline_rounded, color: Color(0xFFFFE4A3)),
+            ],
+          ),
+          Text(
+            number,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 2,
+                ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: _PreviewField(label: 'Card Holder', value: holder),
+              ),
+              const SizedBox(width: 18),
+              _PreviewField(label: 'Expiry', value: expiry),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewField extends StatelessWidget {
+  const _PreviewField({
     required this.label,
     required this.value,
   });
@@ -565,7 +451,7 @@ class _PreviewLabel extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Colors.white.withValues(alpha: 0.7),
+                color: Colors.white.withValues(alpha: 0.72),
                 letterSpacing: 1.1,
               ),
         ),
@@ -584,17 +470,70 @@ class _PreviewLabel extends StatelessWidget {
   }
 }
 
+class _SecurityBlock extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF3),
+        borderRadius: BorderRadius.circular(AbzioTheme.cardRadius),
+        border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AbzioTheme.accentColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.lock_outline_rounded,
+              color: AbzioTheme.accentColor,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Secure Card Verification',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Your card details are sent directly to Razorpay.\n\nAbianzo never stores card numbers or CVV data.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: context.abzioSecondaryText,
+                        height: 1.45,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CardNumberFormatter extends TextInputFormatter {
+  const _CardNumberFormatter();
+
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
     final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
     final buffer = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
+    for (var i = 0; i < digits.length && i < 16; i++) {
+      if (i > 0 && i % 4 == 0) buffer.write(' ');
       buffer.write(digits[i]);
-      final next = i + 1;
-      if (next % 4 == 0 && next != digits.length) {
-        buffer.write(' ');
-      }
     }
     final text = buffer.toString();
     return TextEditingValue(
@@ -605,14 +544,14 @@ class _CardNumberFormatter extends TextInputFormatter {
 }
 
 class _ExpiryDateFormatter extends TextInputFormatter {
+  const _ExpiryDateFormatter();
+
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
     final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
     final buffer = StringBuffer();
     for (var i = 0; i < digits.length && i < 4; i++) {
-      if (i == 2) {
-        buffer.write('/');
-      }
+      if (i == 2) buffer.write('/');
       buffer.write(digits[i]);
     }
     final text = buffer.toString();

@@ -20,6 +20,10 @@ class PoseStabilizationEngine {
   DateTime? _lastTimestamp;
   final JointKalmanFilter2D _leftShoulderFilter = JointKalmanFilter2D();
   final JointKalmanFilter2D _rightShoulderFilter = JointKalmanFilter2D();
+  final JointKalmanFilter2D _leftElbowFilter = JointKalmanFilter2D();
+  final JointKalmanFilter2D _rightElbowFilter = JointKalmanFilter2D();
+  final JointKalmanFilter2D _leftWristFilter = JointKalmanFilter2D();
+  final JointKalmanFilter2D _rightWristFilter = JointKalmanFilter2D();
   final JointKalmanFilter2D _leftHipFilter = JointKalmanFilter2D();
   final JointKalmanFilter2D _rightHipFilter = JointKalmanFilter2D();
   final JointKalmanFilter2D _shoulderCenterFilter = JointKalmanFilter2D();
@@ -57,6 +61,10 @@ class PoseStabilizationEngine {
       _rightShoulderFilter,
       frame.rightShoulder,
     );
+    final filteredLeftElbow = kalman(_leftElbowFilter, frame.leftElbow);
+    final filteredRightElbow = kalman(_rightElbowFilter, frame.rightElbow);
+    final filteredLeftWrist = kalman(_leftWristFilter, frame.leftWrist);
+    final filteredRightWrist = kalman(_rightWristFilter, frame.rightWrist);
     final filteredLeftHip = kalman(_leftHipFilter, frame.leftHip);
     final filteredRightHip = kalman(_rightHipFilter, frame.rightHip);
     final filteredShoulderCenter = kalman(
@@ -69,6 +77,10 @@ class PoseStabilizationEngine {
       feedback: frame.feedback,
       leftShoulder: filteredLeftShoulder,
       rightShoulder: filteredRightShoulder,
+      leftElbow: filteredLeftElbow,
+      rightElbow: filteredRightElbow,
+      leftWrist: filteredLeftWrist,
+      rightWrist: filteredRightWrist,
       leftHip: filteredLeftHip,
       rightHip: filteredRightHip,
       shoulderCenter: filteredShoulderCenter,
@@ -105,6 +117,10 @@ class PoseStabilizationEngine {
         preSmoothed.rightShoulder,
         stabilizedSmoothing,
       ),
+      leftElbow: _stabilizePoint(previous.leftElbow, preSmoothed.leftElbow, stabilizedSmoothing),
+      rightElbow: _stabilizePoint(previous.rightElbow, preSmoothed.rightElbow, stabilizedSmoothing),
+      leftWrist: _stabilizePoint(previous.leftWrist, preSmoothed.leftWrist, stabilizedSmoothing),
+      rightWrist: _stabilizePoint(previous.rightWrist, preSmoothed.rightWrist, stabilizedSmoothing),
       leftHip: _stabilizePoint(previous.leftHip, preSmoothed.leftHip, stabilizedSmoothing),
       rightHip: _stabilizePoint(previous.rightHip, preSmoothed.rightHip, stabilizedSmoothing),
       shoulderCenter: _stabilizePoint(
@@ -134,6 +150,10 @@ class PoseStabilizationEngine {
     _lastTimestamp = null;
     _leftShoulderFilter.reset();
     _rightShoulderFilter.reset();
+    _leftElbowFilter.reset();
+    _rightElbowFilter.reset();
+    _leftWristFilter.reset();
+    _rightWristFilter.reset();
     _leftHipFilter.reset();
     _rightHipFilter.reset();
     _shoulderCenterFilter.reset();

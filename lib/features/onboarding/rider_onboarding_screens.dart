@@ -126,30 +126,30 @@ class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
   >
   _banners = [
     (
-      title: 'REAL-TIME ORDERS',
-      subtitle: 'Smart navigation and instant delivery updates',
-      icon: Icons.route_rounded,
+      title: 'Earn More',
+      subtitle: 'Weekly payouts and performance bonuses',
+      icon: Icons.currency_rupee_rounded,
       imagePath: 'assets/onboarding/rider_visual_0.jpg',
       textTopOffset: 2,
     ),
     (
-      title: 'DELIVER WITH CONFIDENCE',
-      subtitle: 'Safe rides with smart support',
-      icon: Icons.verified_user_rounded,
+      title: 'Real-Time Orders',
+      subtitle: 'Accept and manage deliveries instantly',
+      icon: Icons.route_rounded,
       imagePath: 'assets/onboarding/rider_visual_1.jpg',
       textTopOffset: 6,
     ),
     (
-      title: 'START YOUR DAY STRONG',
-      subtitle: 'Deliver smarter across Chennai',
-      icon: Icons.schedule_rounded,
+      title: 'Deliver with Confidence',
+      subtitle: 'Navigation, support and secure payments',
+      icon: Icons.verified_user_rounded,
       imagePath: 'assets/onboarding/rider_visual_2.jpg',
       textTopOffset: -2,
     ),
     (
-      title: 'EARN MORE',
-      subtitle: 'Weekly payouts and incentives',
-      icon: Icons.currency_rupee_rounded,
+      title: 'Flexible Working Hours',
+      subtitle: 'Ride whenever it suits your schedule',
+      icon: Icons.schedule_rounded,
       imagePath: 'assets/onboarding/rider_visual_3.jpg',
       textTopOffset: 8,
     ),
@@ -259,6 +259,20 @@ class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
                           Transform.scale(scale: scale, child: child),
                       child: Image.asset(banner.imagePath, fit: BoxFit.cover),
                     ),
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.55),
+                              Colors.black.withValues(alpha: 0.20),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                     Positioned(
                       left: 0,
                       right: 0,
@@ -286,8 +300,8 @@ class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
                                         style: const TextStyle(
                                           fontSize: 36,
                                           fontFamily: 'Cormorant Garamond',
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFFD4AF37),
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFFFFFFFF),
                                           letterSpacing: 0.5,
                                           height: 1.05,
                                           shadows: [
@@ -303,13 +317,15 @@ class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
                                       Text(
                                         banner.subtitle,
                                         textAlign: TextAlign.center,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 16,
-                                          color: Color(0xFFF5E7C1),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.90,
+                                          ),
                                           fontFamily: 'Poppins',
                                           fontWeight: FontWeight.w500,
                                           height: 1.4,
-                                          shadows: [
+                                          shadows: const [
                                             Shadow(
                                               color: Color(0x33000000),
                                               blurRadius: 6,
@@ -348,7 +364,7 @@ class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
                   decoration: BoxDecoration(
                     color: active
                         ? const Color(0xFFD4AF37)
-                        : const Color(0xFF555555),
+                        : const Color(0xFFE0E0E0),
                     borderRadius: BorderRadius.circular(8),
                   ),
                 );
@@ -461,7 +477,7 @@ class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
                                     ),
                                   )
                                 : const Text(
-                                    'Get Started',
+                                    'Continue with Mobile',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
@@ -477,7 +493,7 @@ class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
                         text: "By logging in, I agree to Abianzo's ",
                         children: [
                           TextSpan(
-                            text: 'terms and condition',
+                            text: 'Terms & Conditions',
                             style: const TextStyle(
                               color: Color(0xFF8A6A16),
                               fontWeight: FontWeight.w800,

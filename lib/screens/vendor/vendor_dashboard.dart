@@ -750,7 +750,7 @@ class _VendorDashboardState extends State<VendorDashboard>
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.asset(
-                  'assets/branding/abzora_partner_icon.png',
+                  'assets/branding/abianzo_partner_icon.png',
                   fit: BoxFit.cover,
                   width: 30,
                   height: 30,
@@ -1764,3 +1764,4 @@ class _AddProductCard extends StatelessWidget {
     );
   }
 }
+

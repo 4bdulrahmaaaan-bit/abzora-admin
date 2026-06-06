@@ -30,7 +30,7 @@ class RealTimeArTryOnBridge {
       'productId': metadata.id,
       'overlayAssetUrl': metadata.overlayAssetUrl,
       'transparentAssetUrl': metadata.transparentAssetUrl,
-      'model3dUrl': metadata.model3dUrl,
+      'model3dUrl': _normalizeCloudinaryModelUrl(metadata.model3dUrl),
       'alignmentConfig': metadata.alignmentConfig,
       'arAsset': metadata.arAsset,
       'preferBackCamera': preferBackCamera,
@@ -54,7 +54,7 @@ class RealTimeArTryOnBridge {
       'category': payload.category,
       'overlayAssetUrl': payload.overlayAssetUrl,
       'transparentAssetUrl': payload.overlayAssetUrl,
-      'model3dUrl': payload.model3dUrl,
+      'model3dUrl': _normalizeCloudinaryModelUrl(payload.model3dUrl),
       'alignmentConfig': payload.alignmentConfig,
       'garmentConfig': payload.garmentConfig,
       'preferBackCamera': preferBackCamera,
@@ -72,7 +72,7 @@ class RealTimeArTryOnBridge {
       'productId': metadata.id,
       'overlayAssetUrl': metadata.overlayAssetUrl,
       'transparentAssetUrl': metadata.transparentAssetUrl,
-      'model3dUrl': metadata.model3dUrl,
+      'model3dUrl': _normalizeCloudinaryModelUrl(metadata.model3dUrl),
       'alignmentConfig': metadata.alignmentConfig,
       'arAsset': metadata.arAsset,
     });
@@ -138,5 +138,33 @@ class RealTimeArTryOnBridge {
       return 'ios';
     }
     return 'unknown';
+  }
+
+  String _normalizeCloudinaryModelUrl(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+    final lower = trimmed.toLowerCase();
+    if (lower.startsWith('load/') &&
+        (lower.endsWith('.glb') || lower.endsWith('.gltf'))) {
+      return _normalizeCloudinaryModelUrl(
+        'https://res.cloudinary.com/dsgi8awyo/image/upload/$trimmed',
+      );
+    }
+    if (lower.startsWith('res.cloudinary.com/')) {
+      return _normalizeCloudinaryModelUrl('https://$trimmed');
+    }
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null || !uri.host.contains('res.cloudinary.com')) {
+      return trimmed;
+    }
+    if (!(lower.endsWith('.glb') || lower.endsWith('.gltf'))) {
+      return trimmed;
+    }
+    if (trimmed.contains('/raw/upload/')) {
+      return trimmed;
+    }
+    return trimmed.replaceFirst('/image/upload/', '/raw/upload/');
   }
 }

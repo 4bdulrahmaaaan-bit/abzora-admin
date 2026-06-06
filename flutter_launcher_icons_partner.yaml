@@ -1,8 +1,8 @@
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: assets/branding/abzora_partner_icon.png
+  image_path: assets/branding/abianzo_partner_icon.png
   remove_alpha_ios: true
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: assets/branding/abzora_partner_icon.png
+  adaptive_icon_foreground: assets/branding/abianzo_partner_icon.png
   adaptive_icon_foreground_inset: 20

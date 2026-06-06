@@ -11,6 +11,7 @@ import '../../services/body_scan_service.dart';
 import '../../services/database_service.dart';
 import '../../services/pose_measurement_service.dart';
 import '../../theme.dart';
+import '../../utils/app_error_text.dart';
 import '../../utils/soft_auth_gate.dart';
 import '../../widgets/tap_scale.dart';
 import 'live_body_scan_camera_screen.dart';
@@ -36,12 +37,15 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
   XFile? _sideImage;
   PoseRefinementResult? _frontPoseRefinement;
   PoseRefinementResult? _sidePoseRefinement;
+  int _frontSampleCount = 0;
+  int _sideSampleCount = 0;
   double _heightCm = 170;
   double _weightKg = 68;
   String _bodyFrame = 'regular';
   String _fitPreference = 'regular';
   bool _isAnalyzing = false;
   bool _isSaving = false;
+  bool _isGuidedScanning = false;
   SizePredictionResult? _result;
 
   @override
@@ -81,7 +85,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
     });
   }
 
-  Future<void> _openLiveCapture({required bool isFront}) async {
+  Future<LiveBodyScanCapture?> _openLiveCapture({required bool isFront}) async {
     final capture = await Navigator.push<LiveBodyScanCapture>(
       context,
       MaterialPageRoute(
@@ -93,49 +97,91 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
       ),
     );
     if (!mounted || capture == null) {
-      return;
+      return null;
     }
     setState(() {
       final file = XFile(capture.imagePath);
       if (isFront) {
         _frontImage = file;
         _frontPoseRefinement = capture.poseRefinement;
+        _frontSampleCount = capture.sampleCount;
       } else {
         _sideImage = file;
         _sidePoseRefinement = capture.poseRefinement;
+        _sideSampleCount = capture.sampleCount;
       }
     });
+    return capture;
+  }
+
+  Future<void> _runGuidedScan() async {
+    if (_isGuidedScanning || _isAnalyzing || _isSaving) {
+      return;
+    }
+    setState(() => _isGuidedScanning = true);
+    try {
+      final front = await _openLiveCapture(isFront: true);
+      if (!mounted || front == null) {
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+      await _openLiveCapture(isFront: false);
+    } finally {
+      if (mounted) {
+        setState(() => _isGuidedScanning = false);
+      }
+    }
   }
 
   Future<void> _analyze() async {
-    setState(() => _isAnalyzing = true);
-    await Future<void>.delayed(const Duration(milliseconds: 550));
-    final poseRefinement = PoseRefinementResult.merge(
-      _frontPoseRefinement,
-      _sidePoseRefinement,
-    );
-    final result = _bodyScanService.analyze(
-      BodyScanInput(
-        heightCm: _heightCm,
-        weightKg: _weightKg,
-        bodyFrame: _bodyFrame,
-        fitPreference: _fitPreference,
-        frontImagePath: _frontImage?.path,
-        sideImagePath: _sideImage?.path,
-      ),
-      poseRefinement: poseRefinement,
-    );
-    if (!mounted) {
+    if (_isAnalyzing || _isSaving || _isGuidedScanning) {
       return;
     }
-    HapticFeedback.mediumImpact();
-    setState(() {
-      _result = result;
-      _isAnalyzing = false;
-    });
+    setState(() => _isAnalyzing = true);
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 550));
+      final poseRefinement = PoseRefinementResult.merge(
+        _frontPoseRefinement,
+        _sidePoseRefinement,
+      );
+      final result = _bodyScanService.analyze(
+        BodyScanInput(
+          heightCm: _heightCm,
+          weightKg: _weightKg,
+          bodyFrame: _bodyFrame,
+          fitPreference: _fitPreference,
+          frontImagePath: _frontImage?.path,
+          sideImagePath: _sideImage?.path,
+        ),
+        poseRefinement: poseRefinement,
+      );
+      if (!mounted) {
+        return;
+      }
+      HapticFeedback.mediumImpact();
+      setState(() {
+        _result = result;
+      });
+    } catch (error, stackTrace) {
+      if (!mounted) {
+        return;
+      }
+      debugPrint('BodyScanScreen: analyze failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
+    } finally {
+      if (mounted) {
+        setState(() => _isAnalyzing = false);
+      }
+    }
   }
 
   Future<void> _saveProfile() async {
+    if (_isSaving || _isAnalyzing) {
+      return;
+    }
     final auth = context.read<AuthProvider>();
     final result = _result;
     if (result == null) {
@@ -158,45 +204,62 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
     }
 
     setState(() => _isSaving = true);
-    final profile = result.toMeasurementProfile(
-      userId: user.id,
-      label: _labelController.text.trim().isEmpty
-          ? 'AI Scan Profile'
-          : _labelController.text.trim(),
-    );
-    final bodyProfile = BodyProfile(
-      heightCm: _heightCm,
-      weightKg: _weightKg,
-      bodyType: _bodyTypeForSizing(result.detectedBodyType),
-      recommendedSize: result.shirtSize,
-      pantSize: result.pantSize,
-      fitPreference: _fitPreference,
-      shoulderCm: result.shoulderCm,
-      chestCm: result.chestCm,
-      waistCm: result.waistCm,
-      hipCm: result.hipCm,
-      armLengthCm: result.armLengthCm,
-      inseamCm: result.inseamCm,
-      confidence: result.confidence,
-      scanFrameCount: 45,
-      scanSource: (_frontImage != null && _sideImage != null)
-          ? 'front_side'
-          : 'front_only',
-      updatedAt: DateTime.now().toIso8601String(),
-    );
-    await _database.saveMeasurementProfile(profile);
-    await _database.saveBodyProfile(user.id, bodyProfile);
-    if (!mounted) {
-      return;
+    try {
+      final profile = result.toMeasurementProfile(
+        userId: user.id,
+        label: _labelController.text.trim().isEmpty
+            ? 'AI Scan Profile'
+            : _labelController.text.trim(),
+      );
+      final bodyProfile = BodyProfile(
+        heightCm: _heightCm,
+        weightKg: _weightKg,
+        bodyType: _bodyTypeForSizing(result.detectedBodyType),
+        recommendedSize: result.shirtSize,
+        pantSize: result.pantSize,
+        fitPreference: _fitPreference,
+        shoulderCm: result.shoulderCm,
+        chestCm: result.chestCm,
+        waistCm: result.waistCm,
+        hipCm: result.hipCm,
+        armLengthCm: result.armLengthCm,
+        inseamCm: result.inseamCm,
+        confidence: result.confidence,
+        scanFrameCount: (_frontSampleCount + _sideSampleCount)
+            .clamp(30, 140)
+            .toInt(),
+        scanSource: (_frontImage != null && _sideImage != null)
+            ? 'front_side'
+            : 'front_only',
+        updatedAt: DateTime.now().toIso8601String(),
+      );
+      await _database.saveMeasurementProfile(profile);
+      await _database.saveBodyProfile(user.id, bodyProfile);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Body profile saved and ready to use.'),
+        ),
+      );
+      Navigator.pop(context, profile);
+    } catch (error, stackTrace) {
+      if (!mounted) {
+        return;
+      }
+      debugPrint('BodyScanScreen: save profile failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
-    setState(() => _isSaving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text('Body profile saved and ready to use.'),
-      ),
-    );
-    Navigator.pop(context, profile);
   }
 
   String _bodyTypeForSizing(String detectedBodyType) {
@@ -249,12 +312,15 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                   children: [
                     _heroCard(),
                     const SizedBox(height: 20),
+                    _guidedScanCard(),
+                    const SizedBox(height: 14),
                     _captureCard(
                       title: 'Front view',
                       subtitle: 'Stand straight inside the silhouette guide.',
                       file: _frontImage,
                       refinement: _frontPoseRefinement,
                       accent: const Color(0xFFE7C95E),
+                      busy: _isAnalyzing || _isSaving || _isGuidedScanning,
                       onCamera: () => _openLiveCapture(isFront: true),
                       onGallery: () => _pickImage(
                         source: ImageSource.gallery,
@@ -269,6 +335,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                       file: _sideImage,
                       refinement: _sidePoseRefinement,
                       accent: const Color(0xFFD7B149),
+                      busy: _isAnalyzing || _isSaving || _isGuidedScanning,
                       onCamera: () => _openLiveCapture(isFront: false),
                       onGallery: () => _pickImage(
                         source: ImageSource.gallery,
@@ -281,11 +348,20 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: TapScale(
-                        onTap: _isAnalyzing ? null : _analyze,
+                        onTap: (_isAnalyzing || _isSaving || _isGuidedScanning)
+                            ? null
+                            : _analyze,
                         child: ElevatedButton.icon(
-                          onPressed: _isAnalyzing ? null : _analyze,
+                          onPressed:
+                              (_isAnalyzing || _isSaving || _isGuidedScanning)
+                              ? null
+                              : _analyze,
                           icon: const Icon(Icons.auto_awesome_rounded),
-                          label: const Text('✨ Analyze my perfect fit'),
+                          label: Text(
+                            _isAnalyzing
+                                ? 'Analyzing...'
+                                : 'Analyze Measurements',
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFD7B55C),
                             foregroundColor: Colors.black,
@@ -414,7 +490,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
           ),
           const SizedBox(height: 14),
           Text(
-            'Smart body scan',
+            'Smart Body Scan',
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
@@ -451,12 +527,160 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
     );
   }
 
+  Widget _guidedScanCard() {
+    final frontReady = _frontImage != null;
+    final sideReady = _sideImage != null;
+    final isComplete = frontReady && sideReady;
+    final statusLabel = isComplete
+        ? 'Front + side captured'
+        : frontReady
+        ? 'Front ready, side recommended'
+        : 'Start with the front view';
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFEFB),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE9DDCA)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4E7C7),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.camera_alt_outlined,
+                  color: Color(0xFF8C6A33),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Guided scan',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Front and side captures are auto-stabilized and combined for a cleaner measurement profile.',
+                      style: TextStyle(
+                        color: context.abzioSecondaryText,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _scanStatusPill(label: 'Front', active: frontReady),
+              _scanStatusPill(label: 'Side', active: sideReady),
+              _scanStatusPill(label: 'Auto capture', active: true),
+              _scanStatusPill(label: statusLabel, active: isComplete),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: isComplete ? 1 : (frontReady ? 0.55 : 0.15),
+              minHeight: 6,
+              backgroundColor: const Color(0xFFF1E7D6),
+              color: const Color(0xFFD7B55C),
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: TapScale(
+              onTap: (_isGuidedScanning || _isAnalyzing || _isSaving)
+                  ? null
+                  : _runGuidedScan,
+              child: ElevatedButton.icon(
+                onPressed: (_isGuidedScanning || _isAnalyzing || _isSaving)
+                    ? null
+                    : _runGuidedScan,
+                icon: _isGuidedScanning
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.black,
+                        ),
+                      )
+                    : const Icon(Icons.play_circle_outline_rounded),
+                label: Text(
+                  _isGuidedScanning
+                      ? 'Running guided scan...'
+                      : 'Run guided scan',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E1813),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _scanStatusPill({required String label, required bool active}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: active ? const Color(0xFFF4E7C7) : const Color(0xFFF5F1EA),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: active ? const Color(0xFF503B17) : const Color(0xFF7A7266),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
   Widget _captureCard({
     required String title,
     required String subtitle,
     required XFile? file,
     required PoseRefinementResult? refinement,
     required Color accent,
+    required bool busy,
     required VoidCallback onCamera,
     required VoidCallback onGallery,
   }) {
@@ -549,8 +773,8 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(84),
                                 border: Border.all(
-                                  color: accent.withValues(alpha: 0.48),
-                                  width: 1.8,
+                                  color: accent.withValues(alpha: 0.72),
+                                  width: 2.2,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
@@ -566,7 +790,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                                 child: Icon(
                                   Icons.accessibility_new_rounded,
                                   size: 72,
-                                  color: accent.withValues(alpha: 0.32),
+                                  color: accent.withValues(alpha: 0.44),
                                 ),
                               ),
                             );
@@ -624,7 +848,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: onCamera,
+                  onPressed: busy ? null : onCamera,
                   icon: const Icon(Icons.videocam_outlined),
                   label: const Text('Live Scan'),
                   style: ElevatedButton.styleFrom(
@@ -640,7 +864,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: onGallery,
+                  onPressed: busy ? null : onGallery,
                   icon: const Icon(Icons.photo_library_outlined),
                   label: const Text('Gallery'),
                   style: OutlinedButton.styleFrom(
@@ -694,7 +918,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
-              'Your images are never stored. Only measurements are محفوظ.',
+              'Your images are never stored. Only measurements are saved.',
               style: TextStyle(color: context.abzioSecondaryText, height: 1.4),
             ),
           ),
@@ -847,7 +1071,7 @@ class _BodyScanScreenState extends State<BodyScanScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Your Fit Profile Ready ✅',
+                      'Your Fit Profile Is Ready',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: AbzioTheme.accentColor,
                         fontWeight: FontWeight.w800,

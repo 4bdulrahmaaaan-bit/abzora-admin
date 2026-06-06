@@ -56,7 +56,7 @@ class CartProvider with ChangeNotifier {
 
   final DatabaseService _db;
   final BackendCommerceService _backendCommerce = BackendCommerceService();
-  static const String _cartStorageKey = 'abzora_local_cart_v1';
+  static const String _cartStorageKey = 'abianzo_local_cart_v1';
   final List<CartItem> _items = [];
   String? _appliedCoupon;
   double _discountPercentage = 0.0;

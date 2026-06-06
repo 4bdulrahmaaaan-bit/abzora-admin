@@ -76,7 +76,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
         : _vehicle.text.trim();
 
     return Container(
-      color: const Color(0xFFFAFAFA),
+      color: const Color(0xFFF8F5EF),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         children: [
@@ -90,7 +90,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD4AF37),
+                        color: const Color(0xFFC8A86B),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       alignment: Alignment.center,
@@ -118,7 +118,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: Color(0xFF171717),
+                              color: Color(0xFF111111),
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
                             ),
@@ -130,7 +130,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
                                 : 'Mobile not available',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Color(0xFF7B756E)),
+                            style: const TextStyle(color: Color(0xFF666666)),
                           ),
                         ],
                       ),
@@ -148,7 +148,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
                         textAlign: TextAlign.right,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Color(0xFF6F6A63),
+                          color: Color(0xFF666666),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -205,7 +205,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
                     onPressed: _saving ? null : _save,
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
-                      backgroundColor: const Color(0xFFD4AF37),
+                      backgroundColor: const Color(0xFFC8A86B),
                       foregroundColor: const Color(0xFF111111),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -232,7 +232,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
       style: const TextStyle(
         fontSize: 17,
         fontWeight: FontWeight.w900,
-        color: Color(0xFF171717),
+        color: Color(0xFF111111),
       ),
     );
   }
@@ -241,7 +241,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF7),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFFECE4D2)),
       ),
@@ -254,13 +254,13 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: approved ? const Color(0x2239D98A) : const Color(0x22D4AF37),
+        color: approved ? const Color(0x2239D98A) : const Color(0x22C8A86B),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         status,
         style: TextStyle(
-          color: approved ? const Color(0xFF39D98A) : const Color(0xFFD4AF37),
+          color: approved ? const Color(0xFF39D98A) : const Color(0xFF8D6A2E),
           fontSize: 11,
           fontWeight: FontWeight.w700,
         ),
@@ -283,13 +283,13 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: const Color(0xFFD4AF37)),
+          Icon(icon, size: 18, color: const Color(0xFF8D6A2E)),
           const SizedBox(height: 8),
           Text(
             title,
             style: const TextStyle(
               fontSize: 12,
-              color: Color(0xFF7B756E),
+          color: Color(0xFF666666),
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -300,7 +300,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 14,
-              color: Color(0xFF171717),
+              color: Color(0xFF111111),
               fontWeight: FontWeight.w800,
             ),
           ),

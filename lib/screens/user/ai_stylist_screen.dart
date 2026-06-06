@@ -107,8 +107,8 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
 
     final firstName = _firstName(user?.name);
     final opener = widget.product != null
-        ? 'Hi $firstName, I am Abianzo Stylist ✨. I can help you style ${widget.product!.name}, suggest colors, and guide the best fit for this piece.'
-        : 'Hi $firstName, I am Abianzo Stylist ✨. Ask me what to wear, which colors fit the season, or what size should feel best for you.';
+        ? 'Hello $firstName, I am your Abianzo stylist. I can help you style ${widget.product!.name}, refine color pairings, and guide the best fit for this piece.'
+        : 'Hello $firstName, I am your Abianzo stylist. Ask me what to wear, which colors feel most elevated, or what size should feel best for you.';
 
     if (!mounted) {
       return;
@@ -266,7 +266,7 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFDFC),
         appBar: AppBar(
-          title: const Text('Abianzo Stylist ✨'),
+          title: const Text('Private Stylist'),
         ),
         body: SafeArea(
           child: Column(
@@ -291,7 +291,7 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Some profile context could not be loaded, so the stylist is using a lighter fallback mode right now.',
+                          'Some profile context could not be loaded, so the stylist is using a lighter concierge mode for now.',
                           style: TextStyle(
                             color: context.abzioSecondaryText,
                             height: 1.4,
@@ -385,7 +385,7 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(
-                      'Abianzo Stylist ✨',
+                      'Abianzo Stylist',
                       style: TextStyle(
                         color: AbzioTheme.accentColor,
                         fontSize: 12,
@@ -553,7 +553,7 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Rs ${product.effectivePrice.toStringAsFixed(0)}',
+                    '₹${product.effectivePrice.toStringAsFixed(0)}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AbzioTheme.accentColor,
                           fontWeight: FontWeight.w800,
@@ -805,3 +805,4 @@ class _StylistMessage {
     );
   }
 }
+

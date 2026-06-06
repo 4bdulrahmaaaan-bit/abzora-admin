@@ -30,10 +30,8 @@ subprojects {
 subprojects {
     tasks.withType<KotlinCompile>().configureEach {
         compilerOptions {
-            // Some third-party plugins still force Kotlin 1.6, which is unsupported by Kotlin 2.2+.
-            // Pin the language/api levels globally so plugin modules can still compile.
-            languageVersion.set(KotlinVersion.KOTLIN_1_8)
-            apiVersion.set(KotlinVersion.KOTLIN_1_8)
+            languageVersion.set(KotlinVersion.KOTLIN_2_0)
+            apiVersion.set(KotlinVersion.KOTLIN_2_0)
         }
     }
 }

@@ -18,12 +18,14 @@ import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
 import 'admin_ar_moderation_section.dart';
 import 'admin_banners_section.dart';
+import 'admin_cms_section.dart';
 import 'admin_categories_section.dart';
 
 enum AdminWebSection {
   dashboard,
   operations,
   banners,
+  cms,
   categories,
   kyc,
   support,
@@ -121,6 +123,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   String _supportTypeFilter = 'all';
   String _pricingUserType = 'new';
   String _pricingDemandLevel = 'normal';
+  String _productWorkspaceMode = 'catalog';
+  String? _selectedVariantProductId;
 
   int _vendorPage = 0;
   int _userPage = 0;
@@ -323,6 +327,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         _users = results[3] as List<AppUser>;
         _stores = results[4] as List<Store>;
         _products = results[5] as List<Product>;
+        if (_selectedVariantProductId == null ||
+            !_products.any((product) => product.id == _selectedVariantProductId)) {
+          _selectedVariantProductId = _products.isNotEmpty ? _products.first.id : null;
+        }
         _orders = results[6] as List<OrderModel>;
         _payouts = results[7] as List<PayoutModel>;
         _notifications = results[8] as List<AppNotification>;
@@ -983,6 +991,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         fabric: product.fabric,
         model3d: product.model3d,
         attributes: product.attributes,
+        attributeTemplateKey: product.attributeTemplateKey,
+        attributeTemplateVersion: product.attributeTemplateVersion,
+        structuredAttributes: product.structuredAttributes,
         arAsset: product.arAsset,
         customizations: product.customizations,
         measurements: product.measurements,
@@ -994,6 +1005,498 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       ),
       actor: _actor,
     );
+    await _load();
+  }
+
+  Product? get _selectedVariantProduct {
+    if (_products.isEmpty) {
+      return null;
+    }
+    if (_selectedVariantProductId == null) {
+      return _products.first;
+    }
+    return _products.cast<Product?>().firstWhere(
+          (product) => product?.id == _selectedVariantProductId,
+          orElse: () => _products.first,
+        );
+  }
+
+  Future<void> _setProductWorkspaceMode(String mode) async {
+    setState(() => _productWorkspaceMode = mode);
+  }
+
+  Future<void> _bulkUpdateVariantStock(Product product) async {
+    final stockMapController = TextEditingController(
+      text: product.colorVariants.map((variant) => '${variant.name}: ${variant.stock}').join('\n'),
+    );
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Bulk Update Stock - ${product.name}'),
+        content: SizedBox(
+          width: 520,
+          child: TextField(
+            controller: stockMapController,
+            maxLines: 12,
+            decoration: const InputDecoration(
+              labelText: 'Variant stock map',
+              helperText: 'Format: Black: 10\nBrown: 5',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Apply')),
+        ],
+      ),
+    );
+    if (result != true) {
+      stockMapController.dispose();
+      return;
+    }
+
+    final stockByName = <String, int>{};
+    for (final line in stockMapController.text.split(RegExp(r'[\r\n]+'))) {
+      final value = line.trim();
+      if (value.isEmpty || !value.contains(':')) {
+        continue;
+      }
+      final parts = value.split(':');
+      final name = parts.first.trim();
+      final stock = int.tryParse(parts.sublist(1).join(':').trim()) ?? 0;
+      if (name.isNotEmpty) {
+        stockByName[name.toLowerCase()] = stock;
+      }
+    }
+
+    final updatedVariants = product.colorVariants.map((variant) {
+      final nextStock = stockByName[variant.name.toLowerCase()] ?? variant.stock;
+      final nextSizeStocks = variant.sizeStocks.isEmpty && variant.sizes.isNotEmpty
+          ? [
+              for (final size in variant.sizes)
+                ProductVariantSizeStock(
+                  sizeName: size,
+                  stockQuantity: (nextStock / variant.sizes.length).floor(),
+                ),
+            ]
+          : variant.sizeStocks;
+      return variant.copyWith(
+        stock: nextStock,
+        sizeStocks: nextSizeStocks,
+      );
+    }).toList();
+
+    stockMapController.dispose();
+    await _db.updateProduct(
+      product.copyWith(colorVariants: updatedVariants),
+      actor: _actor,
+    );
+    await _load();
+  }
+
+  Future<void> _bulkReplaceVariantImages(Product product) async {
+    final variantNameController = TextEditingController();
+    final imagesController = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Bulk Replace Variant Images - ${product.name}'),
+        content: SizedBox(
+          width: 520,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: variantNameController,
+                decoration: const InputDecoration(labelText: 'Color name'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: imagesController,
+                maxLines: 10,
+                decoration: const InputDecoration(
+                  labelText: 'Gallery image URLs',
+                  helperText: 'One URL per line',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Apply')),
+        ],
+      ),
+    );
+    if (result != true) {
+      variantNameController.dispose();
+      imagesController.dispose();
+      return;
+    }
+
+    final variantName = variantNameController.text.trim().toLowerCase();
+    final images = imagesController.text
+        .split(RegExp(r'[\r\n]+'))
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+    final updatedVariants = product.colorVariants.map((variant) {
+      if (variant.name.toLowerCase() != variantName) {
+        return variant;
+      }
+      return variant.copyWith(
+        images: images,
+        thumbnail: images.isNotEmpty ? images.first : variant.thumbnail,
+        imageUrl: images.isNotEmpty ? images.first : variant.imageUrl,
+      );
+    }).toList();
+
+    variantNameController.dispose();
+    imagesController.dispose();
+    await _db.updateProduct(
+      product.copyWith(colorVariants: updatedVariants),
+      actor: _actor,
+    );
+    await _load();
+  }
+
+  List<String> _parseCsvList(String raw) {
+    return raw
+        .split(RegExp(r'[,\n\r]+'))
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+  }
+
+  List<ProductVariantSizeStock> _parseVariantSizeStocks(String raw) {
+    return raw
+        .split(RegExp(r'[\r\n]+'))
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .map((line) {
+          final parts = line.split(':');
+          final sizeName = parts.first.trim();
+          final stock = parts.length > 1 ? int.tryParse(parts.sublist(1).join(':').trim()) ?? 0 : 0;
+          return ProductVariantSizeStock(
+            sizeName: sizeName,
+            stockQuantity: stock,
+          );
+        })
+        .where((item) => item.sizeName.isNotEmpty)
+        .toList();
+  }
+
+  Future<ProductColorVariant?> _openVariantEditor({
+    required Product product,
+    ProductColorVariant? initial,
+    bool duplicate = false,
+  }) async {
+    final nameController = TextEditingController(text: duplicate ? '' : initial?.colorName.isNotEmpty == true ? initial!.colorName : initial?.name ?? '');
+    final hexController = TextEditingController(text: duplicate ? '#C6A769' : initial?.hex ?? '#C6A769');
+    final skuController = TextEditingController(text: duplicate ? '' : initial?.sku ?? '');
+    final barcodeController = TextEditingController(text: duplicate ? '' : initial?.barcode ?? '');
+    final priceController = TextEditingController(text: duplicate ? '' : (initial?.price?.toStringAsFixed(0) ?? ''));
+    final discountController = TextEditingController(text: duplicate ? '' : (initial?.discountPrice?.toStringAsFixed(0) ?? ''));
+    final stockController = TextEditingController(text: duplicate ? '0' : initial?.stock.toString() ?? '0');
+    final thumbnailController = TextEditingController(
+      text: duplicate ? '' : (initial?.thumbnail.isNotEmpty == true ? initial!.thumbnail : initial?.imageUrl ?? ''),
+    );
+    final galleryController = TextEditingController(
+      text: duplicate ? '' : (initial?.images.join('\n') ?? ''),
+    );
+    final sizesController = TextEditingController(
+      text: duplicate ? '' : (initial?.sizes.join(', ') ?? ''),
+    );
+    final sizeStocksController = TextEditingController(
+      text: duplicate ? '' : (initial?.sizeStocks.map((item) => '${item.sizeName}:${item.stockQuantity}').join('\n') ?? ''),
+    );
+    final etaController = TextEditingController(text: duplicate ? '' : (initial?.deliveryInfo['etaLabel']?.toString() ?? ''));
+    bool sameDayEligible = initial?.deliveryInfo['sameDayEligible'] != false;
+    bool freeReturns = initial?.deliveryInfo['freeReturns'] != false;
+    bool cashOnDelivery = initial?.deliveryInfo['cashOnDelivery'] != false;
+    bool active = (initial?.status ?? 'active') == 'active';
+
+    final result = await showDialog<ProductColorVariant?>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          scrollable: true,
+          title: Text(initial == null ? 'Add Variant' : 'Edit Variant'),
+          content: SizedBox(
+            width: 560,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(labelText: 'Color Name'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 110,
+                      child: TextField(
+                        controller: hexController,
+                        decoration: const InputDecoration(labelText: 'Hex'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: skuController,
+                        decoration: const InputDecoration(labelText: 'SKU'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: barcodeController,
+                        decoration: const InputDecoration(labelText: 'Barcode'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: priceController,
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => setDialogState(() {}),
+                        decoration: const InputDecoration(labelText: 'Price Override'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: discountController,
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => setDialogState(() {}),
+                        decoration: const InputDecoration(labelText: 'Discount Price'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _buildLiveDiscountPreview(
+                  priceController.text,
+                  discountController.text,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: stockController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Variant Stock'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: thumbnailController,
+                  decoration: const InputDecoration(labelText: 'Thumbnail URL'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: galleryController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Gallery Images',
+                    helperText: 'One URL per line',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: sizesController,
+                  decoration: const InputDecoration(
+                    labelText: 'Sizes',
+                    helperText: 'Comma separated: S, M, L, XL',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: sizeStocksController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Size Stock Map',
+                    helperText: 'Format: S:10\\nM:8\\nL:4',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: etaController,
+                  decoration: const InputDecoration(labelText: 'ETA Label'),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilterChip(
+                      label: const Text('Active'),
+                      selected: active,
+                      onSelected: (value) => setDialogState(() => active = value),
+                    ),
+                    FilterChip(
+                      label: const Text('Same Day'),
+                      selected: sameDayEligible,
+                      onSelected: (value) => setDialogState(() => sameDayEligible = value),
+                    ),
+                    FilterChip(
+                      label: const Text('Free Returns'),
+                      selected: freeReturns,
+                      onSelected: (value) => setDialogState(() => freeReturns = value),
+                    ),
+                    FilterChip(
+                      label: const Text('COD'),
+                      selected: cashOnDelivery,
+                      onSelected: (value) => setDialogState(() => cashOnDelivery = value),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                if (name.isEmpty) {
+                  return;
+                }
+                Navigator.pop(
+                  dialogContext,
+                  ProductColorVariant(
+                    variantId: initial?.variantId ?? '',
+                    productId: product.id,
+                    name: name,
+                    colorName: name,
+                    hex: hexController.text.trim().isEmpty ? '#C6A769' : hexController.text.trim(),
+                    imageUrl: thumbnailController.text.trim(),
+                    sku: skuController.text.trim(),
+                    barcode: barcodeController.text.trim(),
+                    price: double.tryParse(priceController.text.trim()),
+                    discountPrice: double.tryParse(discountController.text.trim()),
+                    stock: int.tryParse(stockController.text.trim()) ?? 0,
+                    status: active ? 'active' : 'inactive',
+                    thumbnail: thumbnailController.text.trim(),
+                    images: _parseCsvList(galleryController.text),
+                    sizes: _parseCsvList(sizesController.text),
+                    sizeStocks: _parseVariantSizeStocks(sizeStocksController.text),
+                    deliveryInfo: {
+                      'sameDayEligible': sameDayEligible,
+                      'freeReturns': freeReturns,
+                      'cashOnDelivery': cashOnDelivery,
+                      'etaLabel': etaController.text.trim(),
+                    },
+                    createdAt: initial?.createdAt ?? DateTime.now().toIso8601String(),
+                    updatedAt: DateTime.now().toIso8601String(),
+                  ),
+                );
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    nameController.dispose();
+    hexController.dispose();
+    skuController.dispose();
+    barcodeController.dispose();
+    priceController.dispose();
+    discountController.dispose();
+    stockController.dispose();
+    thumbnailController.dispose();
+    galleryController.dispose();
+    sizesController.dispose();
+    sizeStocksController.dispose();
+    etaController.dispose();
+    return result;
+  }
+
+  Widget _buildLiveDiscountPreview(String sellingPriceText, String originalPriceText) {
+    final sellingPrice = double.tryParse(sellingPriceText.trim());
+    final originalPrice = double.tryParse(originalPriceText.trim());
+    final hasValidPrices =
+        sellingPrice != null && sellingPrice > 0 && originalPrice != null && originalPrice > 0;
+    final safeSellingPrice = sellingPrice ?? 0;
+    final safeOriginalPrice = originalPrice ?? 0;
+    final discountPercent = hasValidPrices && safeOriginalPrice > safeSellingPrice
+        ? (((safeOriginalPrice - safeSellingPrice) / safeOriginalPrice) * 100).round()
+        : 0;
+    final formatter = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+      decimalDigits: 0,
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9F7F1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE7DDCA)),
+      ),
+      child: Row(
+        children: [
+          Text(
+            'Live discount preview',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF111111),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            hasValidPrices
+                ? '${formatter.format(safeSellingPrice)}  ${formatter.format(safeOriginalPrice)}  $discountPercent% OFF'
+                : 'Enter both prices to preview discount',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: hasValidPrices ? const Color(0xFF111111) : AbzioTheme.grey500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _editVariant(Product product, int index) async {
+    if (index < 0 || index >= product.colorVariants.length) {
+      return;
+    }
+    final updatedVariant = await _openVariantEditor(
+      product: product,
+      initial: product.colorVariants[index],
+    );
+    if (updatedVariant == null) {
+      return;
+    }
+    final updatedVariants = [...product.colorVariants];
+    updatedVariants[index] = updatedVariant;
+    await _db.updateProduct(product.copyWith(colorVariants: updatedVariants), actor: _actor);
+    await _load();
+  }
+
+  Future<void> _reorderVariants(Product product, int oldIndex, int newIndex) async {
+    final variants = [...product.colorVariants];
+    final item = variants.removeAt(oldIndex);
+    variants.insert(newIndex, item);
+    await _db.updateProduct(product.copyWith(colorVariants: variants), actor: _actor);
     await _load();
   }
 
@@ -1155,6 +1658,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       fabric: product.fabric,
       model3d: product.model3d,
       attributes: product.attributes,
+      attributeTemplateKey: product.attributeTemplateKey,
+      attributeTemplateVersion: product.attributeTemplateVersion,
+      structuredAttributes: product.structuredAttributes,
       arAsset: arAsset,
       customizations: product.customizations,
       measurements: product.measurements,
@@ -1529,7 +2035,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         buffer.write(',');
       }
     }
-    return 'Rs ${buffer.toString()}';
+    return '₹${buffer.toString()}';
   }
 
   String _formatAiCost(double value) {
@@ -1800,6 +2306,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       (AdminWebSection.dashboard, Icons.dashboard_outlined, 'Dashboard'),
       (AdminWebSection.operations, Icons.emergency_outlined, 'Operations'),
       (AdminWebSection.banners, Icons.view_carousel_outlined, 'Banners'),
+      (AdminWebSection.cms, Icons.edit_note_outlined, 'CMS'),
       (AdminWebSection.categories, Icons.category_outlined, 'Categories'),
       (AdminWebSection.kyc, Icons.verified_user_outlined, 'KYC Requests'),
       (AdminWebSection.support, Icons.support_agent_rounded, 'Support'),
@@ -2023,6 +2530,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 title: 'Banner tools need backend mode',
                 subtitle:
                     'Homepage banner management is available only when the admin panel is connected to the backend API.',
+              );
+      case AdminWebSection.cms:
+        return _usesBackendCommerce
+            ? const AdminCmsSection()
+            : _buildBackendUnavailableState(
+                title: 'CMS tools need backend mode',
+                subtitle:
+                    'Static pages, FAQs, announcements, and navigation editing are available only when the admin panel is connected to the backend API.',
               );
       case AdminWebSection.categories:
         return _usesBackendCommerce
@@ -2575,7 +3090,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   _MetricCard(
                     title: 'Total Revenue',
                     value: analytics == null
-                        ? 'Rs 0'
+                        ? '₹0'
                         : _formatCurrency(analytics.totalRevenue),
                   ),
                 ],
@@ -4954,6 +5469,31 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _Panel(
+          title: 'Products workspace',
+          subtitle: 'Switch between catalog management and color-variant inventory.',
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              ChoiceChip(
+                label: const Text('Catalog'),
+                selected: _productWorkspaceMode == 'catalog',
+                onSelected: (_) => _setProductWorkspaceMode('catalog'),
+              ),
+              ChoiceChip(
+                label: const Text('Variants & Inventory'),
+                selected: _productWorkspaceMode == 'variants',
+                onSelected: (_) => _setProductWorkspaceMode('variants'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (_productWorkspaceMode == 'variants') ...[
+          _buildVariantWorkspace(),
+          const SizedBox(height: 16),
+        ],
         _FilterPanel(
           title: 'Product management',
           subtitle:
@@ -5066,6 +5606,259 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _buildVariantWorkspace() {
+    final product = _selectedVariantProduct;
+    final variants = product?.colorVariants ?? const <ProductColorVariant>[];
+    final totalStock = variants.fold<int>(0, (sum, variant) => sum + variant.stock);
+    final outOfStockCount = variants.where((variant) => variant.stock <= 0).length;
+    final ProductColorVariant? topVariant = variants.isEmpty
+        ? null
+        : variants.reduce((current, next) => next.stock > current.stock ? next : current);
+    return _Panel(
+      title: 'Variants & inventory',
+      subtitle: product == null
+          ? 'No products available'
+          : '${variants.length} color variant(s) for ${product.name}',
+      child: product == null
+          ? const AbzioEmptyCard(
+              title: 'No products available',
+              subtitle: 'Create a product first to manage its color variants.',
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: product.id,
+                        decoration: const InputDecoration(labelText: 'Select Product'),
+                        items: _products
+                            .map(
+                              (item) => DropdownMenuItem<String>(
+                                value: item.id,
+                                child: Text(item.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setState(() => _selectedVariantProductId = value);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => _bulkUpdateVariantStock(product),
+                      icon: const Icon(Icons.inventory_2_outlined),
+                      label: const Text('Bulk Stock'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _bulkReplaceVariantImages(product),
+                      icon: const Icon(Icons.photo_library_outlined),
+                      label: const Text('Bulk Images'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _Panel(
+                  title: 'Color performance snapshot',
+                  subtitle: 'Estimated signals based on current catalog and inventory mix.',
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      _MetricCard(title: 'Total stock', value: totalStock.toString()),
+                      _MetricCard(title: 'Out of stock colors', value: outOfStockCount.toString()),
+                      _MetricCard(
+                        title: 'Top color',
+                        value: topVariant == null ? '-' : (topVariant.colorName.isNotEmpty ? topVariant.colorName : topVariant.name),
+                      ),
+                      _MetricCard(
+                        title: 'Estimated sales by color',
+                        value: product.purchaseCount <= 0 || totalStock <= 0
+                            ? '0'
+                            : '${product.purchaseCount}',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _adminChip('${variants.length} variants'),
+                    _adminChip('${variants.where((variant) => variant.stock <= 0).length} out of stock'),
+                    _adminChip('${variants.fold<int>(0, (sum, variant) => sum + variant.images.length)} gallery images'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (variants.isEmpty)
+                  const AbzioEmptyCard(
+                    title: 'No color variants yet',
+                    subtitle:
+                        'Open the product editor to add colors, sizes, galleries, and SKU details.',
+                  )
+                else
+                  ReorderableListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    buildDefaultDragHandles: false,
+                    itemCount: variants.length,
+                    onReorderItem: (oldIndex, newIndex) => _reorderVariants(product, oldIndex, newIndex),
+                    itemBuilder: (context, index) {
+                      final variant = variants[index];
+                      final variantName = variant.colorName.isNotEmpty ? variant.colorName : variant.name;
+                      final createdLabel = variant.createdAt == null
+                          ? 'Saved'
+                          : DateFormat('dd MMM yyyy').format(
+                              DateTime.tryParse(variant.createdAt ?? '') ?? DateTime.now(),
+                            );
+                      return Container(
+                        key: ValueKey('${variant.variantId.isEmpty ? variantName : variant.variantId}-$index'),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFE9DECB)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 12,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF7F1E5),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(Icons.drag_indicator_rounded, color: Color(0xFF8B7A5B)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: SizedBox(
+                                width: 56,
+                                height: 56,
+                                child: variant.thumbnail.isNotEmpty
+                                    ? AbzioNetworkImage(
+                                        imageUrl: variant.thumbnail,
+                                        fallbackLabel: variantName,
+                                      )
+                                    : Container(
+                                        color: const Color(0xFFF3F3F3),
+                                        child: const Icon(Icons.palette_outlined, size: 18),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    variantName,
+                                    style: GoogleFonts.inter(fontWeight: FontWeight.w800),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'SKU ${variant.sku.isEmpty ? 'Auto' : variant.sku} • Stock ${variant.stock} • ${variant.status.toUpperCase()}',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: AbzioTheme.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      _adminChip('${variant.images.length + (variant.thumbnail.isNotEmpty ? 1 : 0)} images'),
+                                      _adminChip('${variant.sizes.length} sizes'),
+                                      _adminChip(createdLabel),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      OutlinedButton.icon(
+                                        onPressed: () => _editVariant(product, index),
+                                        icon: const Icon(Icons.edit_outlined, size: 18),
+                                        label: const Text('Edit'),
+                                      ),
+                                      OutlinedButton.icon(
+                                        onPressed: () => _bulkReplaceVariantImages(product),
+                                        icon: const Icon(Icons.photo_library_outlined, size: 18),
+                                        label: const Text('Bulk Images'),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  _formatCurrency(variant.price ?? product.price),
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                TextButton(
+                                  onPressed: () => _editVariant(product, index),
+                                  child: const Text('Edit Sizes'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+    );
+  }
+
+  Widget _adminChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5EFE2),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.inter(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF8B7A5B),
+        ),
+      ),
     );
   }
 
@@ -7537,7 +8330,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText: percent ? 'Percent value' : 'Numeric value',
-              prefixText: percent ? '' : 'Rs ',
+              prefixText: percent ? '' : '₹ ',
             ),
           ),
           actions: [
@@ -7731,7 +8524,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     _pricingMetricTile(
                       title: '0-2 km fee',
                       value:
-                          'Rs ${_pricingValue(delivery, 'slabUpTo2Km', 49).toStringAsFixed(0)}',
+                          '₹${_pricingValue(delivery, 'slabUpTo2Km', 49).toStringAsFixed(0)}',
                       subtitle: 'Short radius same-day delivery.',
                       onEdit: () => _editPricingNumber(
                         title: '0-2 km delivery fee',
@@ -7749,7 +8542,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     _pricingMetricTile(
                       title: '2-5 km fee',
                       value:
-                          'Rs ${_pricingValue(delivery, 'slab2To5Km', 69).toStringAsFixed(0)}',
+                          '₹${_pricingValue(delivery, 'slab2To5Km', 69).toStringAsFixed(0)}',
                       subtitle: 'Mid-range same-day delivery.',
                       onEdit: () => _editPricingNumber(
                         title: '2-5 km delivery fee',
@@ -7763,7 +8556,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     _pricingMetricTile(
                       title: '5+ km fee',
                       value:
-                          'Rs ${_pricingValue(delivery, 'slabAbove5Km', 79).toStringAsFixed(0)}',
+                          '₹${_pricingValue(delivery, 'slabAbove5Km', 79).toStringAsFixed(0)}',
                       subtitle: 'Long-radius same-day delivery.',
                       onEdit: () => _editPricingNumber(
                         title: '5+ km delivery fee',
@@ -7809,7 +8602,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     _pricingMetricTile(
                       title: 'Trial fee',
                       value:
-                          'Rs ${_pricingValue(trial, 'trialFee', 99).toStringAsFixed(0)}',
+                          '₹${_pricingValue(trial, 'trialFee', 99).toStringAsFixed(0)}',
                       subtitle: 'Applied to try-at-home experiences.',
                       onEdit: () => _editPricingNumber(
                         title: 'Trial fee',
@@ -7855,7 +8648,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     _pricingMetricTile(
                       title: 'First-order discount',
                       value:
-                          'Rs ${_pricingValue(discounts, 'firstOrderDiscount', 100).toStringAsFixed(0)}',
+                          '₹${_pricingValue(discounts, 'firstOrderDiscount', 100).toStringAsFixed(0)}',
                       subtitle: 'Applied to first-time eligible customers.',
                       onEdit: () => _editPricingNumber(
                         title: 'First-order discount',
@@ -7904,7 +8697,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     _pricingMetricTile(
                       title: 'Base rider payout',
                       value:
-                          'Rs ${_pricingValue(rider, 'basePayout', 30).toStringAsFixed(0)}',
+                          '₹${_pricingValue(rider, 'basePayout', 30).toStringAsFixed(0)}',
                       subtitle: 'Minimum same-day payout per order.',
                       onEdit: () => _editPricingNumber(
                         title: 'Base rider payout',
@@ -7918,7 +8711,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     _pricingMetricTile(
                       title: 'Peak bonus',
                       value:
-                          'Rs ${_pricingValue(rider, 'peakBonus', 10).toStringAsFixed(0)}',
+                          '₹${_pricingValue(rider, 'peakBonus', 10).toStringAsFixed(0)}',
                       subtitle: 'Applied during busy windows.',
                       onEdit: () => _editPricingNumber(
                         title: 'Peak bonus',
@@ -7932,7 +8725,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     _pricingMetricTile(
                       title: 'Trial payout base',
                       value:
-                          'Rs ${_pricingValue(rider, 'trialPayoutBase', 60).toStringAsFixed(0)}',
+                          '₹${_pricingValue(rider, 'trialPayoutBase', 60).toStringAsFixed(0)}',
                       subtitle: 'Two-trip try-at-home payout floor.',
                       onEdit: () => _editPricingNumber(
                         title: 'Trial payout base',
@@ -8021,7 +8814,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                       ),
                       decoration: const InputDecoration(
                         labelText: 'Order value',
-                        prefixText: 'Rs ',
+                        prefixText: '₹ ',
                       ),
                     ),
                   ),
@@ -8950,3 +9743,4 @@ class _MiniBarChart extends StatelessWidget {
     );
   }
 }
+

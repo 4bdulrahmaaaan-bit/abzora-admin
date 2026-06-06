@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -17,9 +17,8 @@ import 'rider_route_screen.dart';
 import 'rider_tasks_screen.dart';
 
 class _RiderUi {
-  static const Color ivory = Color(0xFFF8F7F4);
-  static const Color matte = Color(0xFF0F0F10);
-  static const Color gold = Color(0xFFD4B06A);
+  static const Color ivory = Color(0xFFF8F5EF);
+  static const Color gold = Color(0xFFC8A86B);
 }
 
 class RiderDashboard extends StatelessWidget {
@@ -40,7 +39,7 @@ class RiderDashboard extends StatelessWidget {
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(
-            labelText: 'Amount (Rs)',
+            labelText: 'Amount (₹)',
             hintText: '200',
           ),
         ),
@@ -131,9 +130,58 @@ class RiderDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return RiderDashboardContent(
+      embedded: embedded,
+      requestWithdrawal: _requestWithdrawal,
+      managePayoutAccount: _managePayoutAccount,
+    );
+  }
+}
+
+class RiderDashboardContent extends StatefulWidget {
+  const RiderDashboardContent({
+    super.key,
+    required this.embedded,
+    required this.requestWithdrawal,
+    required this.managePayoutAccount,
+  });
+
+  final bool embedded;
+  final Future<void> Function(BuildContext context, AppUser actor) requestWithdrawal;
+  final Future<void> Function(
+    BuildContext context,
+    AppUser actor,
+    PayoutProfileSummary profile,
+  ) managePayoutAccount;
+
+  @override
+  State<RiderDashboardContent> createState() => _RiderDashboardContentState();
+}
+
+class _RiderDashboardContentState extends State<RiderDashboardContent> {
+  final RiderService _service = RiderService();
+  Future<RiderDashboardSnapshot>? _dashboardFuture;
+  String? _boundActorId;
+
+  void _ensureDashboardFuture(AppUser actor) {
+    if (_boundActorId == actor.id && _dashboardFuture != null) {
+      return;
+    }
+    _boundActorId = actor.id;
+    _dashboardFuture = _service.loadDashboardSnapshot(actor);
+  }
+
+  Future<void> _refreshDashboard(AppUser actor) async {
+    setState(() {
+      _dashboardFuture = _service.loadDashboardSnapshot(actor);
+    });
+    await _dashboardFuture;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final actor = auth.user;
-    final service = RiderService();
 
     Widget content;
     if (actor == null) {
@@ -154,144 +202,114 @@ class RiderDashboard extends StatelessWidget {
     } else if (actor.riderApprovalStatus != 'approved') {
       content = _PendingApprovalView(actor: actor);
     } else {
-      content = RefreshIndicator(
-        onRefresh: () => context.read<AuthProvider>().refreshCurrentUser(),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-            children: [
-              _RiderHeroCard(rider: actor),
-              const SizedBox(height: 16),
-              StreamBuilder<RiderAnalytics>(
-                stream: DatabaseService().watchPolledValue(
-                  () => DatabaseService().getRiderAnalytics(actor: actor),
-                ),
-                builder: (context, analyticsSnapshot) {
-                  return StreamBuilder<WalletSummary>(
-                    stream: DatabaseService().watchPolledValue(
-                      () => DatabaseService().getRiderWallet(actor: actor),
-                    ),
-                    builder: (context, walletSnapshot) {
-                      final wallet = walletSnapshot.data;
-                      final analytics = analyticsSnapshot.data;
-                      return Column(
-                        children: [
-                          _RiderRealtimeStats(
-                            todayDeliveries: analytics?.todayDeliveries ?? 0,
-                            earningsToday: analytics?.earningsToday ?? 0,
-                            pendingPayout: analytics?.pendingPayout ?? wallet?.pendingAmount ?? 0,
-                          ),
-                          const SizedBox(height: 14),
-                          _RiderWalletCard(
-                            balance: wallet?.balance ?? analytics?.availableBalance ?? actor.walletBalance,
-                            pendingAmount: wallet?.pendingAmount ?? analytics?.pendingPayout ?? 0,
-                            reservedAmount: wallet?.reservedAmount ?? analytics?.reservedAmount ?? 0,
-                            totalEarnings: wallet?.totalEarnings ?? analytics?.totalEarnings ?? actor.walletBalance,
-                            payoutProfile: wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
-                            transactions: analytics?.transactions ?? const <WalletTransaction>[],
-                            onWithdraw: () {
-                              final profile = wallet?.payoutProfile ?? const PayoutProfileSummary.empty();
-                              if (!profile.isConfigured) {
-                                _managePayoutAccount(context, actor, profile);
-                                return;
-                              }
-                              _requestWithdrawal(context, actor);
-                            },
-                            onManagePayoutAccount: () => _managePayoutAccount(
-                              context,
-                              actor,
-                              wallet?.payoutProfile ?? const PayoutProfileSummary.empty(),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
-            const SizedBox(height: 20),
-            StreamBuilder<List<OrderModel>>(
-              stream: service.watchAssignedOrders(actor),
-              builder: (context, assignedSnapshot) {
-                final assignedOrders = assignedSnapshot.data ?? const <OrderModel>[];
-                return StreamBuilder<List<UnifiedRiderTask>>(
-                  stream: service.watchUnifiedTasks(actor),
-                  builder: (context, taskSnapshot) {
-                    final tasks = taskSnapshot.data ?? const <UnifiedRiderTask>[];
-                    final assignedCount = tasks.where((task) => task.status == 'assigned').length;
-                    final activeCount = tasks.where((task) => task.status == 'in_progress').length;
-                    final completedCount = tasks.where((task) => task.status == 'completed').length;
+      _ensureDashboardFuture(actor);
+      content = FutureBuilder<RiderDashboardSnapshot>(
+        future: _dashboardFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              snapshot.data == null) {
+            return const AbzioLoadingView(
+              title: 'Loading rider dashboard',
+              subtitle: 'Preparing wallet, deliveries, and route data.',
+            );
+          }
+          final data = snapshot.data;
+          if (data == null) {
+            return const AbzioEmptyCard(
+              title: 'Unable to load rider dashboard',
+              subtitle: 'Please try refreshing the dashboard.',
+            );
+          }
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _RiderStatusStrip(
-                          assignedCount: assignedCount,
-                          activeCount: activeCount,
-                          completedCount: completedCount,
-                        ),
-                        const SizedBox(height: 14),
-                        _RouteLaunchCard(taskCount: tasks.length),
-                        const SizedBox(height: 24),
-                        Text('AVAILABLE DELIVERIES', style: Theme.of(context).textTheme.labelMedium),
-                        const SizedBox(height: 12),
-                        StreamBuilder<List<OrderModel>>(
-                          stream: service.watchAvailableDeliveries(),
-                          builder: (context, availableSnapshot) {
-                            if (availableSnapshot.connectionState == ConnectionState.waiting) {
-                              return const AbzioLoadingView(
-                                title: 'Loading available deliveries',
-                                subtitle: 'Checking orders ready for pickup.',
-                              );
-                            }
-                            final availableOrders = availableSnapshot.data ?? const <OrderModel>[];
-                            if (availableOrders.isEmpty) {
-                              return const AbzioEmptyCard(
-                                title: 'No deliveries ready right now',
-                                subtitle: 'Nearby return pickups and delivery requests will appear here as logistics updates arrive.',
-                              );
-                            }
-                            return Column(
-                              children: availableOrders
-                                  .map(
-                                    (order) => _AvailableDeliveryCard(
-                                      order: order,
-                                      rider: actor,
-                                      service: service,
-                                    ),
-                                  )
-                                  .toList(),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        Text('UNIFIED TASK QUEUE', style: Theme.of(context).textTheme.labelMedium),
-                        const SizedBox(height: 12),
-                        if (taskSnapshot.connectionState == ConnectionState.waiting)
-                          const AbzioLoadingView(
-                            title: 'Loading rider tasks',
-                            subtitle: 'Preparing your delivery and return route.',
-                          )
-                        else if (tasks.isEmpty && assignedOrders.isEmpty)
-                          const AbzioEmptyCard(
-                            title: 'No active tasks yet',
-                            subtitle: 'Accept an available delivery and nearby return pickups will be bundled here automatically.',
-                          )
-                        else ...[
-                          ...tasks.map((task) => _UnifiedTaskCard(task: task, service: service, rider: actor)),
-                          ...assignedOrders.map((order) => _AssignedOrderCard(order: order)),
-                        ],
-                      ],
-                    );
+          return RefreshIndicator(
+            onRefresh: () => _refreshDashboard(actor),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              children: [
+                _RiderHeroCard(rider: actor),
+                const SizedBox(height: 16),
+                _RiderRealtimeStats(
+                  todayDeliveries: data.analytics.todayDeliveries,
+                  earningsToday: data.analytics.earningsToday,
+                  pendingPayout:
+                      data.analytics.pendingPayout + data.wallet.pendingAmount,
+                ),
+                const SizedBox(height: 14),
+                _RiderWalletCard(
+                  balance: data.wallet.balance,
+                  pendingAmount: data.wallet.pendingAmount,
+                  reservedAmount: data.wallet.reservedAmount,
+                  totalEarnings: data.wallet.totalEarnings,
+                  payoutProfile: data.wallet.payoutProfile,
+                  transactions: data.analytics.transactions,
+                  onWithdraw: () {
+                    final profile = data.wallet.payoutProfile;
+                    if (!profile.isConfigured) {
+                      widget.managePayoutAccount(context, actor, profile);
+                      return;
+                    }
+                    widget.requestWithdrawal(context, actor);
                   },
-                );
-              },
+                  onManagePayoutAccount: () => widget.managePayoutAccount(
+                    context,
+                    actor,
+                    data.wallet.payoutProfile,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _RiderStatusStrip(
+                  assignedCount: data.assignedCount,
+                  activeCount: data.activeCount,
+                  completedCount: data.completedCount,
+                ),
+                const SizedBox(height: 14),
+                _RouteLaunchCard(taskCount: data.tasks.length),
+                const SizedBox(height: 24),
+                Text('AVAILABLE DELIVERIES', style: Theme.of(context).textTheme.labelMedium),
+                const SizedBox(height: 12),
+                if (data.availableDeliveries.isEmpty)
+                  const AbzioEmptyCard(
+                    title: 'No deliveries ready right now',
+                    subtitle:
+                        'Nearby return pickups and delivery requests will appear here as logistics updates arrive.',
+                  )
+                else
+                  ...data.availableDeliveries.map(
+                    (order) => _AvailableDeliveryCard(
+                      order: order,
+                      rider: actor,
+                      service: _service,
+                    ),
+                  ),
+                const SizedBox(height: 24),
+                Text('UNIFIED TASK QUEUE', style: Theme.of(context).textTheme.labelMedium),
+                const SizedBox(height: 12),
+                if (data.tasks.isEmpty && data.assignedOrders.isEmpty)
+                  const AbzioEmptyCard(
+                    title: 'No active tasks yet',
+                    subtitle:
+                        'Accept an available delivery and nearby return pickups will be bundled here automatically.',
+                  )
+                else ...[
+                  ...data.tasks.map(
+                    (task) => _UnifiedTaskCard(
+                      task: task,
+                      service: _service,
+                      rider: actor,
+                    ),
+                  ),
+                  ...data.assignedOrders.map(
+                    (order) => _AssignedOrderCard(order: order),
+                  ),
+                ],
+              ],
             ),
-          ],
-        ),
+          );
+        },
       );
     }
 
-    if (embedded) {
+    if (widget.embedded) {
       return ColoredBox(
         color: _RiderUi.ivory,
         child: content,
@@ -311,13 +329,13 @@ class RiderDashboard extends StatelessWidget {
           height: 74,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.84),
+            color: const Color(0xFFFEFCF8),
             borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.65)),
+            border: Border.all(color: const Color(0xFFE8DCC2)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 24,
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
             ],
@@ -394,7 +412,7 @@ class _QuickNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? _RiderUi.gold : const Color(0xFF4E4E55);
+    final color = active ? _RiderUi.gold : const Color(0xFF6D655B);
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
@@ -403,7 +421,7 @@ class _QuickNavItem extends StatelessWidget {
         curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(horizontal: active ? 14 : 10, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? _RiderUi.matte : Colors.transparent,
+          color: active ? const Color(0xFFFFF8E9) : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
@@ -444,19 +462,19 @@ class _RouteLaunchCard extends StatelessWidget {
       child: Ink(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: const Color(0xFFF9F6EA),
+          color: const Color(0xFFFFFEFB),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.28)),
+          border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.18)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AbzioTheme.accentColor.withValues(alpha: 0.14),
+                color: const Color(0xFFF7F1E1),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(Icons.alt_route_rounded, color: Colors.black),
+              child: const Icon(Icons.alt_route_rounded, color: Color(0xFF8D6A2E)),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -481,7 +499,7 @@ class _RouteLaunchCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            const Icon(Icons.arrow_forward_rounded, color: Colors.black),
+            const Icon(Icons.arrow_forward_rounded, color: Color(0xFF8D6A2E)),
           ],
         ),
       ),
@@ -503,13 +521,14 @@ class _PendingApprovalView extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: _RiderUi.matte,
+            color: const Color(0xFFFFFEFB),
             borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0xFFE8DCC2)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.14),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -528,14 +547,14 @@ class _PendingApprovalView extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 submitted ? 'Application under review' : 'Complete your rider profile',
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+                style: GoogleFonts.inter(color: const Color(0xFF111111), fontSize: 22, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Text(
                 submitted
                     ? 'Your delivery partner profile is pending admin approval. Deliveries will appear here once approved.'
                     : 'Add your vehicle and city details so Abianzo can review your rider application.',
-                style: GoogleFonts.inter(color: Colors.white70, height: 1.5),
+                style: GoogleFonts.inter(color: const Color(0xFF666666), height: 1.5),
               ),
             ],
           ),
@@ -569,13 +588,14 @@ class _RiderHeroCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _RiderUi.matte,
+        color: const Color(0xFFFFFEFB),
         borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFE8DCC2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.14),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -589,12 +609,12 @@ class _RiderHeroCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             rider.name.isEmpty ? 'Abianzo Rider' : rider.name,
-            style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Colors.white),
+            style: Theme.of(context).textTheme.displayMedium?.copyWith(color: const Color(0xFF111111)),
           ),
           const SizedBox(height: 6),
           Text(
             '${rider.riderVehicleType ?? 'Bike'} • ${rider.riderCity ?? rider.city ?? 'City not set'}',
-            style: GoogleFonts.inter(color: Colors.white70),
+            style: GoogleFonts.inter(color: const Color(0xFF666666)),
           ),
         ],
       ),
@@ -642,7 +662,7 @@ class _RiderRealtimeStats extends StatelessWidget {
   final double earningsToday;
   final double pendingPayout;
 
-  String _money(double amount) => 'Rs ${amount.toStringAsFixed(0)}';
+  String _money(double amount) => '₹${amount.toStringAsFixed(0)}';
 
   @override
   Widget build(BuildContext context) {
@@ -697,16 +717,23 @@ class _RiderWalletCard extends StatelessWidget {
   final VoidCallback onWithdraw;
   final VoidCallback onManagePayoutAccount;
 
-  String _money(double amount) => 'Rs ${amount.toStringAsFixed(0)}';
+  String _money(double amount) => '₹${amount.toStringAsFixed(0)}';
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFFEFB),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AbzioTheme.grey100),
+        border: Border.all(color: const Color(0xFFE8DCC2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -716,13 +743,19 @@ class _RiderWalletCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Earnings Wallet',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16),
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16, color: const Color(0xFF111111)),
                 ),
               ),
               OutlinedButton.icon(
                 onPressed: onWithdraw,
                 icon: const Icon(Icons.payments_outlined, size: 18),
                 label: const Text('Withdraw'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF8D6A2E),
+                  side: const BorderSide(color: Color(0xFFE8DCC2)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                ),
               ),
             ],
           ),
@@ -774,7 +807,7 @@ class _RiderWalletCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Recent payouts',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 15),
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 15, color: const Color(0xFF111111)),
               ),
             ),
             const SizedBox(height: 8),
@@ -783,19 +816,19 @@ class _RiderWalletCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   children: [
-                    const Icon(Icons.payments_outlined, size: 18, color: Color(0xFF666666)),
+                    const Icon(Icons.payments_outlined, size: 18, color: Color(0xFF8D6A2E)),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         transaction.note.isEmpty ? transaction.status : transaction.note,
-                        style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500),
+                        style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666)),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
                       _money(transaction.amount.abs()),
-                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF111111)),
                     ),
                   ],
                 ),
@@ -824,20 +857,21 @@ class _RiderMoneyTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.08),
+        color: const Color(0xFFFBF8F1),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE8DCC2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AbzioTheme.grey500),
+            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF666666)),
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w800),
+            style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w800, color: tint),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -866,9 +900,9 @@ class _RiderStatusTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFFEFB),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AbzioTheme.grey100),
+        border: Border.all(color: const Color(0xFFE8DCC2)),
       ),
       child: Row(
         children: [
@@ -884,9 +918,9 @@ class _RiderStatusTile extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(tile.value, style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w800)),
+              Text(tile.value, style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF111111))),
               const SizedBox(height: 2),
-              Text(tile.label, style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500)),
+              Text(tile.label, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666))),
             ],
           ),
         ],
@@ -939,24 +973,28 @@ class _AvailableDeliveryCardState extends State<_AvailableDeliveryCard> {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFFEFB),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AbzioTheme.grey100),
+        border: Border.all(color: const Color(0xFFE8DCC2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             widget.order.invoiceNumber.isEmpty ? widget.order.id : widget.order.invoiceNumber,
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w800),
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w800, color: const Color(0xFF111111)),
           ),
           const SizedBox(height: 8),
-          Text(widget.order.shippingAddress, style: GoogleFonts.inter(color: AbzioTheme.grey600, height: 1.45)),
+          Text(widget.order.shippingAddress, style: GoogleFonts.inter(color: const Color(0xFF666666), height: 1.45)),
           const SizedBox(height: 8),
-          Text(
-            '${widget.order.items.length} item(s) • Rs ${widget.order.totalAmount.toInt()}',
-            style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500),
-          ),
+          Text('${widget.order.items.length} item(s) • ₹${widget.order.totalAmount.toInt()}', style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666))),
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
@@ -988,9 +1026,16 @@ class _AssignedOrderCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFFEFB),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AbzioTheme.grey100),
+        border: Border.all(color: const Color(0xFFE8DCC2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1000,7 +1045,7 @@ class _AssignedOrderCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber,
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w800),
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w800, color: const Color(0xFF111111)),
                 ),
               ),
               _DeliveryStatusPill(status: order.deliveryStatus),
@@ -1009,7 +1054,7 @@ class _AssignedOrderCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(order.shippingAddress, style: GoogleFonts.inter(color: AbzioTheme.grey600, height: 1.45)),
           const SizedBox(height: 8),
-          Text('${order.items.length} item(s)', style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500)),
+          Text('${order.items.length} item(s)', style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666))),
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
@@ -1097,9 +1142,16 @@ class _UnifiedTaskCardState extends State<_UnifiedTaskCard> {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFFEFB),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AbzioTheme.grey100),
+        border: Border.all(color: const Color(0xFFE8DCC2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1131,13 +1183,13 @@ class _UnifiedTaskCardState extends State<_UnifiedTaskCard> {
             ],
           ),
           const SizedBox(height: 10),
-          Text(widget.task.address, style: GoogleFonts.inter(color: AbzioTheme.grey600, height: 1.45)),
+          Text(widget.task.address, style: GoogleFonts.inter(color: const Color(0xFF666666), height: 1.45)),
           const SizedBox(height: 8),
           Text(
             isReturn
                 ? 'Bundled return pickup on your route'
                 : 'Unified delivery task synced from dispatch',
-            style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500),
+            style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666)),
           ),
           if (isReturn) ...[
             const SizedBox(height: 14),
@@ -1192,3 +1244,5 @@ class _DeliveryStatusPill extends StatelessWidget {
     );
   }
 }
+
+

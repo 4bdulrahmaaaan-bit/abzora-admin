@@ -2,11 +2,14 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/text_constants.dart';
+import '../../models/category_management_model.dart';
 import '../../models/banner_model.dart';
 import '../../models/models.dart';
 import '../../models/outfit_recommendation_model.dart';
@@ -25,7 +28,6 @@ import '../../widgets/product_grid.dart';
 import '../../widgets/shimmer_box.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/tap_scale.dart';
-import '../atelier/atelier_flow_screen.dart';
 import 'ai_stylist_screen.dart';
 import 'location_bottom_sheet.dart';
 import 'order_tracking_screen.dart';
@@ -44,11 +46,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-  static const String _hasUsedAiKey = 'abzora_has_used_ai_stylist';
+  static const String _hasUsedAiKey = 'abianzo_has_used_ai_stylist';
   late final List<Widget?> _lazyScreens = List<Widget?>.filled(4, null);
 
   bool _hasUsedAi = false;
   bool _isNavVisible = true;
+  double _lastScrollOffset = 0;
+  double _scrollDeltaAccumulator = 0;
+  static const double _navToggleThreshold = 18;
 
   @override
   void initState() {
@@ -107,23 +112,93 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildScreen(int index) {
     switch (index) {
       case 0:
-        return HomeContent(
-          onOpenAiStylist: _openAiStylist,
-          onNavVisibilityChanged: (visible) {
-            if (!mounted || _isNavVisible == visible) {
-              return;
-            }
-            setState(() => _isNavVisible = visible);
-          },
+        return NotificationListener<ScrollNotification>(
+          onNotification: (notification) =>
+              _handleScrollNotification(notification),
+          child: HomeContent(onOpenAiStylist: _openAiStylist),
         );
       case 1:
-        return const AtelierFlowScreen();
+        return NotificationListener<ScrollNotification>(
+          onNotification: (notification) =>
+              _handleScrollNotification(notification),
+          child: const CategoriesScreen(),
+        );
       case 2:
-        return const OrderTrackingScreen();
+        return NotificationListener<ScrollNotification>(
+          onNotification: (notification) =>
+              _handleScrollNotification(notification),
+          child: const OrderTrackingScreen(),
+        );
       case 3:
-        return const ProfileScreen();
+        return NotificationListener<ScrollNotification>(
+          onNotification: (notification) =>
+              _handleScrollNotification(notification),
+          child: const ProfileScreen(),
+        );
       default:
         return const SizedBox.shrink();
+    }
+  }
+
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (notification.depth > 0) {
+      return false;
+    }
+
+    final metrics = notification.metrics;
+    if (metrics.pixels <= metrics.minScrollExtent + 0.5) {
+      _resetNavVisibility();
+      return false;
+    }
+
+    if (notification is ScrollUpdateNotification) {
+      final offset = metrics.pixels;
+      final delta = offset - _lastScrollOffset;
+      _lastScrollOffset = offset;
+
+      if (delta.abs() < 0.5) {
+        return false;
+      }
+
+      _scrollDeltaAccumulator += delta;
+
+      if (_scrollDeltaAccumulator >= _navToggleThreshold && _isNavVisible) {
+        _setNavVisibility(false);
+      } else if (_scrollDeltaAccumulator <= -_navToggleThreshold &&
+          !_isNavVisible) {
+        _setNavVisibility(true);
+      }
+    } else if (notification is UserScrollNotification) {
+      if (notification.direction == ScrollDirection.forward) {
+        _setNavVisibility(true);
+      } else if (notification.direction == ScrollDirection.reverse &&
+          metrics.pixels > metrics.minScrollExtent + 12) {
+        _setNavVisibility(false);
+      }
+    }
+
+    return false;
+  }
+
+  void _setNavVisibility(bool visible) {
+    if (!mounted || _isNavVisible == visible) {
+      return;
+    }
+    setState(() => _isNavVisible = visible);
+    if (visible) {
+      _scrollDeltaAccumulator = 0;
+    } else {
+      _scrollDeltaAccumulator = 0;
+    }
+  }
+
+  void _resetNavVisibility() {
+    _lastScrollOffset = 0;
+    _scrollDeltaAccumulator = 0;
+    if (!_isNavVisible && mounted) {
+      setState(() => _isNavVisible = true);
+    } else {
+      _isNavVisible = true;
     }
   }
 
@@ -138,6 +213,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final navHeight =
+        60.0 + (bottomInset > 0 ? bottomInset.clamp(0.0, 6.0) : 0.0);
     return AbzioThemeScope.light(
       child: DecoratedBox(
         decoration: const BoxDecoration(
@@ -148,106 +226,112 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: Scaffold(
-          extendBody: true,
+          extendBody: false,
           backgroundColor: Colors.transparent,
           body: IndexedStack(index: _currentIndex, children: _screens()),
-          bottomNavigationBar: AnimatedSlide(
-            duration: const Duration(milliseconds: 260),
+          bottomNavigationBar: AnimatedSize(
+            duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
-            offset: _isNavVisible ? Offset.zero : const Offset(0, 1),
-            child: SafeArea(
-              top: false,
-              minimum: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(22),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: const Color(0xCCFCFBF8),
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: const Color(0xFFE6DFD1)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 18,
-                          offset: const Offset(0, -4),
+            alignment: Alignment.topCenter,
+            child: _isNavVisible
+                ? DecoratedBox(
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFCFBF8),
+                      border: Border(
+                        top: BorderSide(color: Color(0xFFE6DFD1), width: 1),
+                      ),
+                    ),
+                    child: SizedBox(
+                      height: navHeight,
+                      width: double.infinity,
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          bottom: bottomInset > 0 ? 4 : 0,
                         ),
-                      ],
-                    ),
-                    child: NavigationBarTheme(
-                      data: NavigationBarThemeData(
-                        height: 62,
-                        backgroundColor: Colors.transparent,
-                        indicatorColor: Colors.transparent,
-                        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-                        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                          final selected = states.contains(WidgetState.selected);
-                          return TextStyle(
-                            fontSize: 11,
-                            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                            color: selected
-                                ? const Color(0xFFC6A769)
-                                : const Color(0xFF666666),
-                          );
-                        }),
-                      ),
-                      child: NavigationBar(
-                        selectedIndex: _currentIndex,
-                        onDestinationSelected: (index) async {
-                          if (!mounted) {
-                            return;
-                          }
-                          setState(() => _currentIndex = index);
-                        },
-                        destinations: const [
-                          NavigationDestination(
-                            icon: Icon(Icons.home_outlined, color: Color(0xFF666666)),
-                            selectedIcon: Icon(
-                              Icons.home_rounded,
-                              color: Color(0xFFC6A769),
+                        child: Row(
+                          children: [
+                            _buildBottomNavItem(
+                              index: 0,
+                              icon: Icons.home_outlined,
+                              selectedIcon: Icons.home_rounded,
+                              label: 'Home',
                             ),
-                            label: 'Home',
-                          ),
-                          NavigationDestination(
-                            icon: Icon(
-                              Icons.design_services_outlined,
-                              color: Color(0xFF666666),
+                            _buildBottomNavItem(
+                              index: 1,
+                              icon: Icons.category_outlined,
+                              selectedIcon: Icons.category_rounded,
+                              label: AbianzoText.customNavLabel,
                             ),
-                            selectedIcon: Icon(
-                              Icons.design_services_rounded,
-                              color: Color(0xFFC6A769),
+                            _buildBottomNavItem(
+                              index: 2,
+                              icon: Icons.receipt_long_outlined,
+                              selectedIcon: Icons.receipt_long_rounded,
+                              label: 'Orders',
                             ),
-                            label: AbzoraText.customNavLabel,
-                          ),
-                          NavigationDestination(
-                            icon: Icon(
-                              Icons.receipt_long_outlined,
-                              color: Color(0xFF666666),
+                            _buildBottomNavItem(
+                              index: 3,
+                              icon: Icons.person_outline_rounded,
+                              selectedIcon: Icons.person_rounded,
+                              label: 'Profile',
                             ),
-                            selectedIcon: Icon(
-                              Icons.receipt_long_rounded,
-                              color: Color(0xFFC6A769),
-                            ),
-                            label: 'Orders',
-                          ),
-                          NavigationDestination(
-                            icon: Icon(
-                              Icons.person_outline_rounded,
-                              color: Color(0xFF666666),
-                            ),
-                            selectedIcon: Icon(
-                              Icons.person_rounded,
-                              color: Color(0xFFC6A769),
-                            ),
-                            label: 'Profile',
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavItem({
+    required int index,
+    required IconData icon,
+    required IconData selectedIcon,
+    required String label,
+  }) {
+    final selected = _currentIndex == index;
+    final activeColor = const Color(0xFFC9A45C);
+    final inactiveColor = const Color(0xFF7A7A7A);
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            if (!mounted) {
+              return;
+            }
+            setState(() {
+              _currentIndex = index;
+              _isNavVisible = true;
+              _scrollDeltaAccumulator = 0;
+              _lastScrollOffset = 0;
+            });
+          },
+          child: SizedBox.expand(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  selected ? selectedIcon : icon,
+                  size: 22,
+                  color: selected ? activeColor : inactiveColor,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    height: 1.0,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    color: selected ? activeColor : inactiveColor,
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
@@ -256,31 +340,869 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class HomeContent extends StatefulWidget {
-  const HomeContent({
-    super.key,
-    required this.onOpenAiStylist,
-    this.onNavVisibilityChanged,
+class CategoriesScreen extends StatefulWidget {
+  const CategoriesScreen({super.key});
+
+  @override
+  State<CategoriesScreen> createState() => _CategoriesScreenState();
+}
+
+class _CategoriesScreenState extends State<CategoriesScreen> {
+  String _selectedCategory = 'View All';
+  Future<_LuxuryCategoriesFeed>? _feedFuture;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _feedFuture ??= _loadFeed();
+  }
+
+  Future<_LuxuryCategoriesFeed> _loadFeed() async {
+    final feed = _LuxuryCategoriesFeed.curated();
+    final urls = feed.preloadImageUrls;
+
+    await Future.wait(
+      urls.map((url) async {
+        try {
+          await precacheImage(NetworkImage(url), context);
+        } catch (_) {
+          // The screen still renders with graceful image fallbacks.
+        }
+      }),
+    );
+
+    return feed;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final background = const Color(0xFFF9F7F2);
+
+    return Scaffold(
+      backgroundColor: background,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(color: Color(0xFFF9F7F2)),
+        child: SafeArea(
+          bottom: false,
+          child: FutureBuilder<_LuxuryCategoriesFeed>(
+            future: _feedFuture,
+            builder: (context, snapshot) {
+              final isLoading =
+                  snapshot.connectionState != ConnectionState.done ||
+                  !snapshot.hasData;
+              final feed = snapshot.data ?? _LuxuryCategoriesFeed.curated();
+
+              return Stack(
+                children: [
+                  Positioned(
+                    top: -80,
+                    right: -60,
+                    child: IgnorePointer(
+                      child: Container(
+                        width: 220,
+                        height: 220,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              const Color(0xFFD9C6A3).withValues(alpha: 0.16),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 120,
+                    left: -90,
+                    child: IgnorePointer(
+                      child: Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              const Color(0xFFB79A6C).withValues(alpha: 0.10),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  isLoading
+                      ? _LuxuryCategoriesSkeleton(
+                          selectedCategory: _selectedCategory,
+                        )
+                      : _LuxuryCategoriesContent(
+                          feed: feed,
+                          selectedCategory: _selectedCategory,
+                          onCategorySelected: (category) {
+                            setState(() => _selectedCategory = category);
+                          },
+                        ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LuxuryCategoriesContent extends StatelessWidget {
+  const _LuxuryCategoriesContent({
+    required this.feed,
+    required this.selectedCategory,
+    required this.onCategorySelected,
   });
 
+  final _LuxuryCategoriesFeed feed;
+  final String selectedCategory;
+  final ValueChanged<String> onCategorySelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+          sliver: SliverToBoxAdapter(
+            child: _LuxuryHeader(selectedCategory: selectedCategory),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          sliver: SliverToBoxAdapter(
+            child: _LuxuryCategoryRail(
+              categories: feed.categories,
+              selectedCategory: selectedCategory,
+              onCategorySelected: onCategorySelected,
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 30, 20, 0),
+          sliver: SliverToBoxAdapter(
+            child: _LuxurySectionTitle(
+              overline: 'Featured collections',
+              title: 'Editorial curation',
+              subtitle:
+                  'Luxury edits with a quieter, more considered point of view.',
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+          sliver: SliverToBoxAdapter(
+            child: _LuxuryCollectionsSection(collections: feed.collections),
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+      ],
+    );
+  }
+}
+
+class _LuxuryHeader extends StatelessWidget {
+  const _LuxuryHeader({required this.selectedCategory});
+
+  final String selectedCategory;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final titleStyle = GoogleFonts.cormorantGaramond(
+      fontSize: 46,
+      height: 0.96,
+      color: const Color(0xFF121212),
+      fontWeight: FontWeight.w600,
+      letterSpacing: -0.3,
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Categories', style: titleStyle),
+          const SizedBox(height: 12),
+          Text(
+            'A curated edit of fashion, beauty, and home essentials.',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: const Color(0xFF5B5348),
+              height: 1.45,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 16),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: Container(
+              key: ValueKey(selectedCategory),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFBF8F2),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: const Color(0xFFE5D8C6)),
+              ),
+              child: Text(
+                selectedCategory == 'View All'
+                    ? 'Browsing the full curated edit'
+                    : 'Browsing $selectedCategory',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: const Color(0xFF252525),
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.25,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LuxuryCategoryRail extends StatelessWidget {
+  const _LuxuryCategoryRail({
+    required this.categories,
+    required this.selectedCategory,
+    required this.onCategorySelected,
+  });
+
+  final List<_CuratedCategory> categories;
+  final String selectedCategory;
+  final ValueChanged<String> onCategorySelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final cardWidth = screenWidth >= 900
+        ? 260.0
+        : screenWidth >= 600
+        ? 238.0
+        : 214.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _LuxurySectionTitle(
+          overline: 'Curated categories',
+          title: 'Explore the edit',
+          subtitle:
+              'Only the categories that matter, presented with more breathing room.',
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 324,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: categories.length,
+            padding: const EdgeInsets.only(right: 4),
+            separatorBuilder: (context, index) => const SizedBox(width: 16),
+            itemBuilder: (context, index) {
+              final category = categories[index];
+              final isSelected =
+                  selectedCategory.toLowerCase() ==
+                  category.label.toLowerCase();
+              return _LuxuryCategoryCard(
+                width: cardWidth,
+                category: category,
+                isSelected: isSelected,
+                onTap: () => onCategorySelected(category.label),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LuxuryCollectionsSection extends StatelessWidget {
+  const _LuxuryCollectionsSection({required this.collections});
+
+  final List<_CuratedCollection> collections;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isWide = width >= 700;
+
+    if (isWide) {
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: collections.length,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: width >= 1050 ? 2 : 1,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: width >= 1050 ? 1.72 : 2.0,
+        ),
+        itemBuilder: (context, index) {
+          return _LuxuryEditorialBanner(collection: collections[index]);
+        },
+      );
+    }
+
+    return Column(
+      children: [
+        for (var i = 0; i < collections.length; i++) ...[
+          _LuxuryEditorialBanner(collection: collections[i]),
+          if (i != collections.length - 1) const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
+}
+
+class _LuxuryCategoryCard extends StatelessWidget {
+  const _LuxuryCategoryCard({
+    required this.width,
+    required this.category,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final double width;
+  final _CuratedCategory category;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = isSelected
+        ? const Color(0xFFB8935A)
+        : const Color(0xFFE8DDCF);
+    final shadowColor = isSelected
+        ? const Color(0xFFAA8851).withValues(alpha: 0.14)
+        : Colors.black.withValues(alpha: 0.05);
+
+    return TapScale(
+      onTap: onTap,
+      scale: isSelected ? 0.985 : 0.99,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+        width: width,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFDF9),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: borderColor, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: shadowColor,
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    AbzioNetworkImage(
+                      imageUrl: category.imageUrl,
+                      fallbackLabel: category.label,
+                      fit: BoxFit.cover,
+                      priority: true,
+                      overlay: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.14),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (isSelected)
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: const Color(
+                              0xFFC8A96A,
+                            ).withValues(alpha: 0.38),
+                            width: 1.2,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              category.label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF171717),
+                letterSpacing: -0.1,
+              ),
+            ),
+            const SizedBox(height: 6),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              width: isSelected ? 30 : 12,
+              height: 2,
+              decoration: BoxDecoration(
+                color: const Color(0xFFC8A96A),
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LuxuryEditorialBanner extends StatelessWidget {
+  const _LuxuryEditorialBanner({required this.collection});
+
+  final _CuratedCollection collection;
+
+  @override
+  Widget build(BuildContext context) {
+    return TapScale(
+      scale: 0.992,
+      onTap: () {},
+      child: Container(
+        height: 224,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 28,
+              offset: const Offset(0, 14),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              AbzioNetworkImage(
+                imageUrl: collection.imageUrl,
+                fallbackLabel: collection.title,
+                fit: BoxFit.cover,
+                priority: true,
+                overlay: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.04),
+                        Colors.black.withValues(alpha: 0.30),
+                        Colors.black.withValues(alpha: 0.62),
+                      ],
+                      stops: const [0.0, 0.58, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 18,
+                right: 18,
+                bottom: 18,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.16),
+                        ),
+                      ),
+                      child: Text(
+                        collection.eyebrow.toUpperCase(),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.9,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      collection.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.cormorantGaramond(
+                        fontSize: 30,
+                        height: 0.94,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      collection.subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.88),
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LuxurySectionTitle extends StatelessWidget {
+  const _LuxurySectionTitle({
+    required this.overline,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String overline;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          overline.toUpperCase(),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: const Color(0xFF8C7A63),
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          style: GoogleFonts.cormorantGaramond(
+            fontSize: 30,
+            height: 0.98,
+            color: const Color(0xFF131313),
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: const Color(0xFF63594B),
+            height: 1.45,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LuxuryCategoriesSkeleton extends StatelessWidget {
+  const _LuxuryCategoriesSkeleton({required this.selectedCategory});
+
+  final String selectedCategory;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final cardWidth = width >= 900
+        ? 260.0
+        : width >= 600
+        ? 238.0
+        : 214.0;
+
+    return ListView(
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
+      padding: const EdgeInsets.only(bottom: 24),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+          child: _LuxuryHeader(selectedCategory: selectedCategory),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _LuxurySectionTitle(
+                overline: 'Curated categories',
+                title: 'Explore the edit',
+                subtitle:
+                    'Only the categories that matter, presented with more breathing room.',
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                height: 324,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: 4,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: 16),
+                  itemBuilder: (context, index) {
+                    return Container(
+                      width: cardWidth,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFDF9),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFE8DDCF)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 24,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
+                      ),
+                      child: const Column(
+                        children: [
+                          Expanded(
+                            child: ShimmerBox(
+                              width: double.infinity,
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(20),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 14),
+                          ShimmerBox(
+                            width: 120,
+                            height: 14,
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                          ),
+                          SizedBox(height: 6),
+                          ShimmerBox(
+                            width: 32,
+                            height: 2,
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(999),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 30),
+              const _LuxurySectionTitle(
+                overline: 'Featured collections',
+                title: 'Editorial curation',
+                subtitle:
+                    'Luxury edits with a quieter, more considered point of view.',
+              ),
+              const SizedBox(height: 18),
+              Column(
+                children: List.generate(
+                  5,
+                  (index) => Padding(
+                    padding: EdgeInsets.only(bottom: index == 4 ? 0 : 16),
+                    child: const ShimmerCard(
+                      height: 176,
+                      padding: EdgeInsets.all(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LuxuryCategoriesFeed {
+  const _LuxuryCategoriesFeed({
+    required this.categories,
+    required this.collections,
+  });
+
+  final List<_CuratedCategory> categories;
+  final List<_CuratedCollection> collections;
+
+  List<String> get preloadImageUrls => [
+    ...categories.map((item) => item.imageUrl),
+    ...collections.map((item) => item.imageUrl),
+  ];
+
+  factory _LuxuryCategoriesFeed.curated() {
+    return const _LuxuryCategoriesFeed(
+      categories: [
+        _CuratedCategory(
+          label: 'Men',
+          imageUrl:
+              'https://images.unsplash.com/photo-1516826957135-700dedea698c?auto=format&fit=crop&q=80&w=1200',
+        ),
+        _CuratedCategory(
+          label: 'Women',
+          imageUrl:
+              'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=1200',
+        ),
+        _CuratedCategory(
+          label: 'Footwear',
+          imageUrl:
+              'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=1200',
+        ),
+        _CuratedCategory(
+          label: 'Accessories',
+          imageUrl:
+              'https://images.unsplash.com/photo-1523398002811-999ca8dec234?auto=format&fit=crop&q=80&w=1200',
+        ),
+        _CuratedCategory(
+          label: 'Beauty',
+          imageUrl:
+              'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=1200',
+        ),
+        _CuratedCategory(
+          label: 'Wedding & Occasion',
+          imageUrl:
+              'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200',
+        ),
+        _CuratedCategory(
+          label: 'Home & Living',
+          imageUrl:
+              'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&q=80&w=1200',
+        ),
+        _CuratedCategory(
+          label: 'View All',
+          imageUrl:
+              'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=1200',
+        ),
+      ],
+      collections: [
+        _CuratedCollection(
+          eyebrow: 'Luxury picks',
+          title: 'Luxury Picks',
+          subtitle:
+              'Tailored essentials, refined textures, and timeless accessories.',
+          imageUrl:
+              'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=1400',
+        ),
+        _CuratedCollection(
+          eyebrow: 'New arrivals',
+          title: 'New Arrivals',
+          subtitle:
+              'Fresh silhouettes and elevated staples for the season ahead.',
+          imageUrl:
+              'https://images.unsplash.com/photo-1496747612613-4cf98b9d8a33?auto=format&fit=crop&q=80&w=1400',
+        ),
+        _CuratedCollection(
+          eyebrow: 'Summer edit',
+          title: 'Summer Edit',
+          subtitle:
+              'Linen, lightness, and understated ease in warm neutral tones.',
+          imageUrl:
+              'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=1400',
+        ),
+        _CuratedCollection(
+          eyebrow: 'Wedding collection',
+          title: 'Wedding Collection',
+          subtitle:
+              'Ceremony-ready looks with quiet drama and polished detail.',
+          imageUrl:
+              'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1400',
+        ),
+        _CuratedCollection(
+          eyebrow: 'Trending now',
+          title: 'Trending Now',
+          subtitle:
+              'The pieces defining the mood of the moment, curated softly.',
+          imageUrl:
+              'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=1400',
+        ),
+      ],
+    );
+  }
+}
+
+class _CuratedCategory {
+  const _CuratedCategory({required this.label, required this.imageUrl});
+
+  final String label;
+  final String imageUrl;
+}
+
+class _CuratedCollection {
+  const _CuratedCollection({
+    required this.eyebrow,
+    required this.title,
+    required this.subtitle,
+    required this.imageUrl,
+  });
+
+  final String eyebrow;
+  final String title;
+  final String subtitle;
+  final String imageUrl;
+}
+
+class HomeContent extends StatefulWidget {
+  const HomeContent({super.key, required this.onOpenAiStylist});
+
   final VoidCallback onOpenAiStylist;
-  final ValueChanged<bool>? onNavVisibilityChanged;
 
   @override
   State<HomeContent> createState() => _HomeContentState();
 }
 
-class _HomeContentState extends State<HomeContent> {
+class _HomeContentState extends State<HomeContent>
+    with AutomaticKeepAliveClientMixin {
   final _scrollController = ScrollController();
   bool _profileModalShown = false;
   bool _isHeaderScrolled = false;
   Timer? _loadMoreThrottle;
   String? _lastHydratedUserId;
   bool _isHydratingForUser = false;
-  double _lastScrollOffset = 0;
-  double _scrollDeltaAccumulator = 0;
-  bool _navVisible = true;
-  static const double _navToggleThreshold = 20;
+  String _selectedCategory = 'View All';
 
   @override
   void initState() {
@@ -297,28 +1219,6 @@ class _HomeContentState extends State<HomeContent> {
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) {
         return;
-      }
-      final offset = _scrollController.offset;
-      final delta = offset - _lastScrollOffset;
-      _lastScrollOffset = offset;
-      if (offset <= 0) {
-        _scrollDeltaAccumulator = 0;
-        if (!_navVisible) {
-          _navVisible = true;
-          widget.onNavVisibilityChanged?.call(true);
-        }
-      } else {
-        _scrollDeltaAccumulator += delta;
-        if (_scrollDeltaAccumulator >= _navToggleThreshold && _navVisible) {
-          _navVisible = false;
-          _scrollDeltaAccumulator = 0;
-          widget.onNavVisibilityChanged?.call(false);
-        } else if (_scrollDeltaAccumulator <= -_navToggleThreshold &&
-            !_navVisible) {
-          _navVisible = true;
-          _scrollDeltaAccumulator = 0;
-          widget.onNavVisibilityChanged?.call(true);
-        }
       }
       final shouldCompressHeader = _scrollController.offset > 18;
       if (shouldCompressHeader != _isHeaderScrolled && mounted) {
@@ -342,7 +1242,7 @@ class _HomeContentState extends State<HomeContent> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final auth = context.read<AuthProvider>();
+    final auth = context.watch<AuthProvider>();
     final userId = auth.user?.id;
     if (userId == _lastHydratedUserId) {
       return;
@@ -355,6 +1255,9 @@ class _HomeContentState extends State<HomeContent> {
       _refreshForCurrentUser();
     });
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   Future<void> _refreshForCurrentUser() async {
     if (_isHydratingForUser || !mounted) {
@@ -379,13 +1282,113 @@ class _HomeContentState extends State<HomeContent> {
     super.dispose();
   }
 
+  List<Product> _filterProductsForCategory(List<Product> products) {
+    final normalized = _selectedCategory.trim().toLowerCase();
+    if (normalized.isEmpty || normalized == 'view all') {
+      return products;
+    }
+
+    final keywords = switch (normalized) {
+      'men' => const [
+        'men',
+        'male',
+        'mens',
+        'shirt',
+        'suit',
+        'blazer',
+        'kurta',
+        'trouser',
+        'jacket',
+      ],
+      'women' => const [
+        'women',
+        'female',
+        'ladies',
+        'dress',
+        'saree',
+        'kurti',
+        'top',
+        'skirt',
+        'gown',
+      ],
+      'wedding' => const [
+        'wedding',
+        'bridal',
+        'ceremony',
+        'occasion',
+        'lehenga',
+        'sherwani',
+        'tuxedo',
+        'ethnic',
+      ],
+      'footwear' => const [
+        'footwear',
+        'shoe',
+        'shoes',
+        'sneaker',
+        'sneakers',
+        'loafer',
+        'heel',
+        'heels',
+        'sandal',
+        'boot',
+      ],
+      'beauty' => const [
+        'beauty',
+        'makeup',
+        'skincare',
+        'perfume',
+        'fragrance',
+        'cosmetic',
+        'cosmetics',
+      ],
+      'accessories' => const [
+        'accessory',
+        'accessories',
+        'watch',
+        'bag',
+        'belt',
+        'jewelry',
+        'jewellery',
+        'sunglass',
+      ],
+      _ => const <String>[],
+    };
+
+    if (keywords.isEmpty) {
+      return products;
+    }
+
+    final filtered = products.where((product) {
+      final haystack =
+          '${product.name} ${product.description} ${product.category} ${product.subcategory}'
+              .toLowerCase();
+      return keywords.any(haystack.contains);
+    }).toList();
+
+    return filtered.isEmpty ? products : filtered;
+  }
+
+  String _selectedCategoryTitle() {
+    final normalized = _selectedCategory.trim().toLowerCase();
+    if (normalized.isEmpty || normalized == 'view all') {
+      return 'All curated picks';
+    }
+    return 'Best of $_selectedCategory';
+  }
+
+  String _selectedCategorySubtitle() {
+    final normalized = _selectedCategory.trim().toLowerCase();
+    if (normalized.isEmpty || normalized == 'view all') {
+      return 'Popular pieces across the full Abianzo edit';
+    }
+    return 'Curated luxury pieces for $_selectedCategory';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-    final user = auth.user;
-    final userName = (user != null && user.name.trim().isNotEmpty)
-        ? user.name
-        : '';
+    super.build(context);
+    final auth = context.read<AuthProvider>();
 
     return Consumer2<ProductProvider, LocationProvider>(
       builder: (context, provider, locationProvider, child) {
@@ -393,17 +1396,29 @@ class _HomeContentState extends State<HomeContent> {
             ? provider.searchResults
             : provider.locationProducts;
         final stores = provider.nearbyStores;
-        final banners = context.watch<BannerProvider>().banners;
-        final headline = user == null
-            ? AbzoraText.locationLoggedOutTitle
-            : locationProvider.deliveryHeadline(userName);
-        final trendingProducts = products.take(4).toList();
-        final justForYouProducts = products.skip(4).take(4).toList();
+        final banners = context.select<BannerProvider, List<BannerModel>>(
+          (bannerProvider) => bannerProvider.banners,
+        );
+        final headerCopy = locationProvider.hasResolvedLocation
+            ? locationProvider.deliveryHeaderCopy('')
+            : const DeliveryHeaderCopy(
+                title: AbianzoText.locationLoggedOutTitle,
+                subtitle: AbianzoText.locationLoggedOutSubtitle,
+              );
+        final filteredProducts = _filterProductsForCategory(products);
+        final trendingProducts = filteredProducts.take(4).toList();
+        final justForYouProducts = filteredProducts.skip(4).take(4).toList();
+        final trendingSubtitle = _selectedCategory == 'View All'
+            ? 'Popular picks from nearby stores'
+            : 'Popular $_selectedCategory picks from nearby stores';
+        final justForYouSubtitle = _selectedCategory == 'View All'
+            ? 'Based on your style'
+            : 'More $_selectedCategory inspired finds';
         final storesSection = _buildStoresSection(
           context,
           provider: provider,
           stores: stores,
-          products: products,
+          products: filteredProducts,
         );
 
         return SafeArea(
@@ -412,7 +1427,7 @@ class _HomeContentState extends State<HomeContent> {
           child: Scaffold(
             backgroundColor: const Color(0xFFF8F8F8),
             appBar: HomeHeader(
-              location: headline,
+              locationTitle: headerCopy.title,
               isScrolled: _isHeaderScrolled,
               onSearchTap: () => Navigator.push(
                 context,
@@ -469,30 +1484,30 @@ class _HomeContentState extends State<HomeContent> {
                               ),
                             ),
                           ),
+                          SliverPersistentHeader(
+                            pinned: true,
+                            delegate: _CategoryTabsHeaderDelegate(
+                              selectedTab: _resolveHomeCategoryTab(
+                                _selectedCategory,
+                              ),
+                              onCategorySelected: (category) {
+                                setState(() => _selectedCategory = category);
+                              },
+                            ),
+                          ),
                           SliverToBoxAdapter(
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(
                                 16,
-                                24,
+                                2,
                                 16,
-                                24,
+                                14,
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const CategorySection(),
-                                  const SizedBox(height: 24),
-                                  _tailoringHighlight(
-                                    onStart: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const AtelierFlowScreen(),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 24),
-                                ],
+                              child: CategorySection(
+                                selectedCategory: _selectedCategory,
+                                onCategorySelected: (category) {
+                                  setState(() => _selectedCategory = category);
+                                },
                               ),
                             ),
                           ),
@@ -503,9 +1518,9 @@ class _HomeContentState extends State<HomeContent> {
                               ),
                               sliver: SliverToBoxAdapter(
                                 child: AbzioEmptyCard(
-                                  title: AbzoraText.homeEmptyTitle,
-                                  subtitle: AbzoraText.homeEmptySubtitle,
-                                  ctaLabel: AbzoraText.homeEmptyCta,
+                                  title: AbianzoText.homeEmptyTitle,
+                                  subtitle: AbianzoText.homeEmptySubtitle,
+                                  ctaLabel: AbianzoText.homeEmptyCta,
                                   onTap: () => provider.fetchHomeData(
                                     forceLocationRefresh: true,
                                     user: auth.user,
@@ -522,28 +1537,39 @@ class _HomeContentState extends State<HomeContent> {
                                   16,
                                   104,
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _productSection(
-                                      context,
-                                      title: AbzoraText.trendingNearYouTitle,
-                                      subtitle:
-                                          AbzoraText.trendingNearYouSubtitle,
-                                      products: trendingProducts,
-                                    ),
-                                    const SizedBox(height: 24),
-                                    _productSection(
-                                      context,
-                                      title: AbzoraText.justForYouTitle,
-                                      subtitle: AbzoraText.justForYouSubtitle,
-                                      products: justForYouProducts.isEmpty
-                                          ? trendingProducts
-                                          : justForYouProducts,
-                                    ),
-                                    const SizedBox(height: 24),
-                                    storesSection,
-                                  ],
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 280),
+                                  switchInCurve: Curves.easeOutCubic,
+                                  switchOutCurve: Curves.easeInCubic,
+                                  child: Column(
+                                    key: ValueKey(_selectedCategory),
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _sectionHeader(
+                                        title: _selectedCategoryTitle(),
+                                        subtitle: _selectedCategorySubtitle(),
+                                      ),
+                                      const SizedBox(height: 18),
+                                      _productSection(
+                                        context,
+                                        title: AbianzoText.trendingNearYouTitle,
+                                        subtitle: trendingSubtitle,
+                                        products: trendingProducts,
+                                      ),
+                                      const SizedBox(height: 24),
+                                      _productSection(
+                                        context,
+                                        title: AbianzoText.justForYouTitle,
+                                        subtitle: justForYouSubtitle,
+                                        products: justForYouProducts.isEmpty
+                                            ? trendingProducts
+                                            : justForYouProducts,
+                                      ),
+                                      const SizedBox(height: 24),
+                                      storesSection,
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -612,7 +1638,7 @@ class _HomeContentState extends State<HomeContent> {
                 return;
               }
               scaffoldMessenger.showSnackBar(
-                const SnackBar(content: Text(AbzoraText.locationDetectError)),
+                const SnackBar(content: Text(AbianzoText.locationDetectError)),
               );
             }
           },
@@ -729,8 +1755,8 @@ class _HomeContentState extends State<HomeContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
-          title: AbzoraText.storesNearYou,
-          subtitle: AbzoraText.locationSubtext,
+          title: AbianzoText.storesNearYou,
+          subtitle: AbianzoText.locationSubtext,
         ),
         const SizedBox(height: 12),
         if (provider.isLocationLoading)
@@ -981,14 +2007,14 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
                               _premiumField(
                                 controller: widget.nameController,
                                 focusNode: _nameFocusNode,
-                                label: AbzoraText.profileSetupNameLabel,
+                                label: AbianzoText.profileSetupNameLabel,
                                 icon: Icons.person_outline_rounded,
                               ),
                               const SizedBox(height: 14),
                               _premiumField(
                                 controller: widget.addressController,
                                 focusNode: _addressFocusNode,
-                                label: AbzoraText.profileSetupAddressLabel,
+                                label: AbianzoText.profileSetupAddressLabel,
                                 icon: Icons.location_on_outlined,
                                 maxLines: 3,
                                 helper: 'Auto-detected via GPS',
@@ -1163,203 +2189,6 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
               width: 1.4,
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-Widget _tailoringHighlight({required VoidCallback onStart}) {
-  return Builder(
-    builder: (context) => TapScale(
-      onTap: onStart,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 292),
-        padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[
-              Color(0xFF101010),
-              Color(0xFF1D1710),
-              Color(0xFF2A2116),
-            ],
-          ),
-          border: Border.all(color: const Color(0x24FFFFFF)),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: const Color(0xFFC6A769).withValues(alpha: 0.10),
-              blurRadius: 18,
-              spreadRadius: 1,
-              offset: const Offset(0, 6),
-            ),
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.18),
-              blurRadius: 26,
-              offset: const Offset(0, 14),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF101010).withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: const Color(0xFFC6A769).withValues(alpha: 0.35),
-                    ),
-                  ),
-                  child: const Text(
-                    'ATELIER',
-                    style: TextStyle(
-                      color: Color(0xFFC6A769),
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.design_services_rounded,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text(
-              AbzoraText.customClothingTitle,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Colors.white,
-                fontSize: 30,
-                fontWeight: FontWeight.w800,
-                height: 1.05,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Crafted to your body. Designed with your chosen boutique.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.white.withValues(alpha: 0.80),
-                fontSize: 14,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: const [
-                _AtelierChip(label: 'Featured Designers'),
-                _AtelierChip(label: 'Precision Fit'),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.verified_rounded, color: Color(0xFFFFE7A7)),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Choose your store first. Preview tailoring choices with live pricing.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.88),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onStart,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC6A769),
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size.fromHeight(46),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      elevation: 1.5,
-                    ),
-                    child: const Text(
-                      'Enter Atelier',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: onStart,
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.white.withValues(alpha: 0.88),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 14,
-                    ),
-                    backgroundColor: Colors.white.withValues(alpha: 0.08),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text('Explore Designers'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-class _AtelierChip extends StatelessWidget {
-  const _AtelierChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -1620,265 +2449,766 @@ class _AiStylistFloatingButton extends StatelessWidget {
 }
 
 class CategorySection extends StatefulWidget {
-  const CategorySection({super.key});
+  const CategorySection({
+    super.key,
+    required this.selectedCategory,
+    required this.onCategorySelected,
+  });
+
+  final String selectedCategory;
+  final ValueChanged<String> onCategorySelected;
 
   @override
   State<CategorySection> createState() => _CategorySectionState();
 }
 
 class _CategorySectionState extends State<CategorySection> {
-  static final List<_CategorySectionItem> _categoryItems = [
-    _CategorySectionItem(
-      label: 'Men',
-      icon: Icons.male_rounded,
-      imageUrl:
-          'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=600',
-    ),
-    _CategorySectionItem(
-      label: 'Women',
-      icon: Icons.female_rounded,
-      imageUrl:
-          'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=600',
-    ),
-    _CategorySectionItem(
-      label: 'Wedding',
-      icon: Icons.celebration_rounded,
-      imageUrl:
-          'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=600',
-    ),
-    _CategorySectionItem(
-      label: 'Accessories',
-      icon: Icons.watch_outlined,
-      imageUrl:
-          'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&q=80&w=600',
-    ),
-  ];
-
-  int _selectedCategoryIndex = 0;
   final BackendApiClient _apiClient = const BackendApiClient();
-  late final Future<HomeVisualConfigModel> _homeVisualsFuture;
+  late final Future<_CategoryRailData> _categoryRailFuture;
 
   @override
   void initState() {
     super.initState();
-    _homeVisualsFuture = _fetchHomeVisuals();
+    _categoryRailFuture = _fetchCategoryRailData();
   }
 
-  Future<HomeVisualConfigModel> _fetchHomeVisuals() async {
+  Future<_CategoryRailData> _fetchCategoryRailData() async {
     if (!_apiClient.isConfigured) {
-      return const HomeVisualConfigModel();
+      return const _CategoryRailData();
     }
     try {
-      final payload = await _apiClient.get('/home-visuals');
-      return HomeVisualConfigModel.fromMap(
-        Map<String, dynamic>.from(payload as Map),
-      );
+      final results = await Future.wait([
+        _apiClient.get('/api/categories/home'),
+        _apiClient.get('/home-visuals'),
+      ]);
+      final categoriesPayload = results[0];
+      final visualsPayload = results[1];
+      final categoriesMap = categoriesPayload is Map<String, dynamic>
+          ? categoriesPayload
+          : Map<String, dynamic>.from(categoriesPayload as Map);
+      final categories =
+          (categoriesMap['data'] as List? ?? const [])
+              .whereType<Map>()
+              .map(
+                (item) => CategoryManagementModel.fromMap(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .where((category) => category.isActive && category.showOnHome)
+              .toList()
+            ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
+      final visualsMap = Map<String, dynamic>.from(visualsPayload as Map);
+      final visualsData = visualsMap['data'] is Map
+          ? Map<String, dynamic>.from(visualsMap['data'] as Map)
+          : visualsMap;
+      final visuals = HomeVisualConfigModel.fromMap(visualsData);
+      return _CategoryRailData(categories: categories, visuals: visuals);
     } catch (_) {
-      return const HomeVisualConfigModel();
+      return const _CategoryRailData();
     }
   }
 
-  List<_CategorySectionItem> _resolveCategories(HomeVisualConfigModel? config) {
-    final allowedLabels = _categoryItems
-        .map((item) => item.label.toLowerCase())
-        .toSet();
-    final remote =
-        (config?.categoryVisuals ?? const <HomeCategoryVisualModel>[])
-            .where(
-              (item) =>
-                  item.isActive &&
-                  item.imageUrl.trim().isNotEmpty &&
-                  allowedLabels.contains(item.label.trim().toLowerCase()),
-            )
-            .toList();
-    if (remote.isNotEmpty) {
-      return remote
-          .map(
-            (item) => _CategorySectionItem(
-              label: item.label,
-              icon: _iconForCategoryKey(item.icon),
-              imageUrl: item.imageUrl,
+  List<_CategoryStripItem> _itemsForTab(_CategoryRailData data, String tab) {
+    final remoteImagesByLabel = <String, String>{
+      for (final visual in data.visuals.categoryVisuals)
+        if (visual.isActive && visual.imageUrl.trim().isNotEmpty)
+          visual.label.trim().toLowerCase(): visual.imageUrl.trim(),
+      for (final category in data.categories)
+        if (category.isActive &&
+            category.showOnHome &&
+            (category.image.trim().isNotEmpty ||
+                category.bannerImage.trim().isNotEmpty))
+          category.name.trim().toLowerCase():
+              category.image.trim().isNotEmpty
+                  ? category.image.trim()
+                  : category.bannerImage.trim(),
+    };
+
+    final fallbacks = <String, List<String>>{
+      'Men': ['Shirts', 'T-Shirts', 'Jeans', 'Footwear', 'Watches'],
+      'Women': ['Dresses', 'Ethnic', 'Heels', 'Bags', 'Beauty'],
+      'Kids': ['Boys', 'Girls', 'Infants', 'School', 'Footwear'],
+      'Wedding': ['Bride', 'Groom', 'Jewellery', 'Footwear', 'Accessories'],
+      'Luxury': ['Designer Wear', 'Watches', 'Bags', 'Jewellery', 'Beauty'],
+    };
+    const defaultImages = <String, String>{
+      'Shirts':
+          'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=900',
+      'T-Shirts':
+          'https://images.unsplash.com/photo-1523398002811-999ca8dec234?auto=format&fit=crop&q=80&w=900',
+      'Jeans':
+          'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=900',
+      'Footwear':
+          'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=900',
+      'Watches':
+          'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&q=80&w=900',
+      'Dresses':
+          'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=900',
+      'Ethnic':
+          'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&q=80&w=900',
+      'Heels':
+          'https://images.unsplash.com/photo-1515347619252-60a4bf4fff4f?auto=format&fit=crop&q=80&w=900',
+      'Bags':
+          'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=900',
+      'Beauty':
+          'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=900',
+      'Jewellery':
+          'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&q=80&w=900',
+      'Boys':
+          'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=900',
+      'Girls':
+          'https://images.unsplash.com/photo-1450297166380-c1f5a7b3f9f1?auto=format&fit=crop&q=80&w=900',
+      'Infants':
+          'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=80&w=900',
+      'School':
+          'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&q=80&w=900',
+      'Bride':
+          'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=900',
+      'Groom':
+          'https://images.unsplash.com/photo-1515169067868-5387ec356754?auto=format&fit=crop&q=80&w=900',
+      'Accessories':
+          'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=900',
+      'Designer Wear':
+          'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=900',
+      'Designer':
+          'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=900',
+      'Premium Watches':
+          'https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=900',
+      'Fine Jewellery':
+          'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&q=80&w=900',
+    };
+
+    final labels = fallbacks[tab] ?? fallbacks['Men']!;
+    return labels
+        .map(
+          (label) => _CategoryStripItem(
+            label: label,
+            imageUrl: remoteImagesByLabel[label.toLowerCase()] ??
+                defaultImages[label] ??
+                defaultImages['Shirts']!,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  List<_CategoryCollectionStripItem> _collectionsForTab(String tab) {
+    const fallback = <_CategoryCollectionStripItem>[
+      _CategoryCollectionStripItem(
+        label: 'Explore',
+        imageUrl:
+            'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=900',
+      ),
+      _CategoryCollectionStripItem(
+        label: 'Essentials',
+        imageUrl:
+            'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=900',
+      ),
+      _CategoryCollectionStripItem(
+        label: 'Editors',
+        imageUrl:
+            'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=900',
+      ),
+      _CategoryCollectionStripItem(
+        label: 'New In',
+        imageUrl:
+            'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=900',
+      ),
+    ];
+
+    final map = <String, List<_CategoryCollectionStripItem>>{
+      'Men': [
+        _CategoryCollectionStripItem(
+          label: 'Shirts',
+          imageUrl:
+              'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Jeans',
+          imageUrl:
+              'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Sneakers',
+          imageUrl:
+              'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Watches',
+          imageUrl:
+              'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&q=80&w=900',
+        ),
+      ],
+      'Women': [
+        _CategoryCollectionStripItem(
+          label: 'Dresses',
+          imageUrl:
+              'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Bags',
+          imageUrl:
+              'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Beauty',
+          imageUrl:
+              'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Heels',
+          imageUrl:
+              'https://images.unsplash.com/photo-1515347619252-60a4bf4fff4f?auto=format&fit=crop&q=80&w=900',
+        ),
+      ],
+      'Kids': [
+        _CategoryCollectionStripItem(
+          label: 'Boys',
+          imageUrl:
+              'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Girls',
+          imageUrl:
+              'https://images.unsplash.com/photo-1450297166380-c1f5a7b3f9f1?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Footwear',
+          imageUrl:
+              'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Toys',
+          imageUrl:
+              'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=80&w=900',
+        ),
+      ],
+      'Wedding': [
+        _CategoryCollectionStripItem(
+          label: 'Bridewear',
+          imageUrl:
+              'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Sherwani',
+          imageUrl:
+              'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Jewellery',
+          imageUrl:
+              'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Accessories',
+          imageUrl:
+              'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=900',
+        ),
+      ],
+      'Luxury': [
+        _CategoryCollectionStripItem(
+          label: 'Designer',
+          imageUrl:
+              'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Watches',
+          imageUrl:
+              'https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Beauty',
+          imageUrl:
+              'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=900',
+        ),
+        _CategoryCollectionStripItem(
+          label: 'Handbags',
+          imageUrl:
+              'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=900',
+        ),
+      ],
+    };
+
+    return map[tab] ?? fallback;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<_CategoryRailData>(
+      future: _categoryRailFuture,
+      builder: (context, snapshot) {
+        final data = snapshot.data ?? const _CategoryRailData();
+        final parentTab = _resolveHomeCategoryTab(widget.selectedCategory);
+        final items = _itemsForTab(data, parentTab);
+        final collections = _collectionsForTab(parentTab);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              child: SizedBox(
+                key: ValueKey<String>(parentTab),
+                height: 108,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  itemCount: items.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: 16),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return _CategoryStripTile(
+                      item: item,
+                      isSelected:
+                          widget.selectedCategory.toLowerCase() ==
+                          item.label.toLowerCase(),
+                      onTap: () {
+                        widget.onCategorySelected(item.label);
+                      },
+                    );
+                  },
+                ),
+              ),
             ),
-          )
-          .toList();
-    }
-    return _categoryItems;
+            const SizedBox(height: 8),
+            _CategoryCollectionStrip(
+              title: _collectionTitleForTab(parentTab),
+              subtitle: _collectionSubtitleForTab(parentTab),
+              items: collections,
+            ),
+          ],
+        );
+      },
+    );
   }
+}
 
-  IconData _iconForCategoryKey(String key) {
-    switch (key) {
-      case 'male':
-        return Icons.male_rounded;
-      case 'female':
-        return Icons.female_rounded;
-      case 'sparkle':
-        return Icons.auto_awesome_rounded;
-      case 'watch':
-        return Icons.watch_outlined;
-      case 'shirt':
-        return Icons.checkroom_rounded;
-      case 'celebration':
-        return Icons.celebration_rounded;
-      case 'sneakers':
-        return Icons.directions_run_rounded;
-      case 'beauty':
-        return Icons.face_retouching_natural_outlined;
-      default:
-        return Icons.category_rounded;
-    }
+class _CategoryRailData {
+  const _CategoryRailData({
+    this.categories = const [],
+    this.visuals = const HomeVisualConfigModel(),
+  });
+
+  final List<CategoryManagementModel> categories;
+  final HomeVisualConfigModel visuals;
+}
+
+class _CategoryStripItem {
+  const _CategoryStripItem({required this.label, required this.imageUrl});
+
+  final String label;
+  final String imageUrl;
+}
+
+class _CategoryStripTile extends StatelessWidget {
+  const _CategoryStripTile({
+    required this.item,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final _CategoryStripItem item;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return TapScale(
+      scale: isSelected ? 1.04 : 0.985,
+      onTap: onTap,
+      child: SizedBox(
+        width: 88,
+        child: Column(
+          children: [
+            SizedBox(
+              width: 88,
+              height: 88,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    AbzioNetworkImage(
+                      imageUrl: item.imageUrl,
+                      fallbackLabel: item.label,
+                      fit: BoxFit.cover,
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.22),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        border: isSelected
+                            ? Border.all(
+                                color: const Color(0xFFC8A86B),
+                                width: 2,
+                              )
+                            : null,
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: const Color(0xFFC8A86B)
+                                      .withValues(alpha: 0.16),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ]
+                            : [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.08),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 3),
+            SizedBox(
+              height: 17,
+              child: Text(
+                item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1B1B1B),
+                    ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
+}
+
+String _resolveHomeCategoryTab(String value) {
+  final normalized = value.trim().toLowerCase();
+  if (normalized.isEmpty) {
+    return 'Men';
+  }
+  const directTabs = <String>['men', 'women', 'kids', 'wedding', 'luxury'];
+  if (directTabs.contains(normalized)) {
+    return normalized.substring(0, 1).toUpperCase() + normalized.substring(1);
+  }
+  const mapped = <String, String>{
+    'shirts': 'Men',
+    't-shirts': 'Men',
+    'jeans': 'Men',
+    'footwear': 'Men',
+    'watches': 'Men',
+    'tailoring': 'Men',
+    'dresses': 'Women',
+    'ethnic': 'Women',
+    'heels': 'Women',
+    'bags': 'Women',
+    'beauty': 'Women',
+    'jewellery': 'Women',
+    'boys': 'Kids',
+    'girls': 'Kids',
+    'infants': 'Kids',
+    'school': 'Kids',
+    'toys': 'Kids',
+    'bride': 'Wedding',
+    'groom': 'Wedding',
+    'accessories': 'Wedding',
+    'bridewear': 'Wedding',
+    'sherwani': 'Wedding',
+    'designer wear': 'Luxury',
+    'designer': 'Luxury',
+    'premium watches': 'Luxury',
+    'leather goods': 'Luxury',
+    'luxury shoes': 'Luxury',
+    'fine jewellery': 'Luxury',
+    'custom made': 'Luxury',
+    'handbags': 'Luxury',
+  };
+  return mapped[normalized] ?? 'Men';
+}
+
+String _collectionTitleForTab(String tab) {
+  return switch (tab) {
+    'Men' => 'Essentials for Everyday',
+    'Women' => 'Trending Women\'s Picks',
+    'Kids' => 'Playful Premium Picks',
+    'Wedding' => 'Wedding Season Edits',
+    'Luxury' => 'Curated Luxury',
+    _ => 'Essentials for Everyday',
+  };
+}
+
+String _collectionSubtitleForTab(String tab) {
+  return switch (tab) {
+    'Men' => 'Tailored, refined, and easy to shop.',
+    'Women' => 'Elevated edits with a fashion-first lens.',
+    'Kids' => 'Lifestyle picks for every little moment.',
+    'Wedding' => 'Ceremony-ready pieces with quiet drama.',
+    'Luxury' => 'Minimal, modern, and distinctly premium.',
+    _ => 'Tailored, refined, and easy to shop.',
+  };
+}
+
+class _CategoryCollectionStripItem {
+  const _CategoryCollectionStripItem({
+    required this.label,
+    required this.imageUrl,
+  });
+
+  final String label;
+  final String imageUrl;
+}
+
+class _CategoryCollectionStrip extends StatelessWidget {
+  const _CategoryCollectionStrip({
+    required this.title,
+    required this.subtitle,
+    required this.items,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<_CategoryCollectionStripItem> items;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FutureBuilder<HomeVisualConfigModel>(
-          future: _homeVisualsFuture,
-          builder: (context, snapshot) {
-            final categories = _resolveCategories(snapshot.data);
-            final selectedIndex = categories.isEmpty
-                ? 0
-                : _selectedCategoryIndex.clamp(0, categories.length - 1);
-            return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 260),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              child: SizedBox(
-                key: const ValueKey('home-categories'),
-                height: 126,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: categories.length,
-                  padding: EdgeInsets.zero,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 14),
-                  itemBuilder: (context, index) {
-                    final category = categories[index];
-                    final isSelected = selectedIndex == index;
-                    return TapScale(
-                      scale: 0.95,
-                      onTap: () {
-                        if (selectedIndex == index) {
-                          return;
-                        }
-                        setState(() => _selectedCategoryIndex = index);
-                      },
-                      child: InkWell(
-                        onTap: () {
-                          if (selectedIndex == index) {
-                            return;
-                          }
-                          setState(() => _selectedCategoryIndex = index);
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: SizedBox(
-                          width: 92,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 220),
-                                curve: Curves.easeOutCubic,
-                                width: 88,
-                                height: 96,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? const Color(0xFFC6A769)
-                                        : const Color(0xFFE6E6E6),
-                                    width: isSelected ? 1.4 : 1,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.05,
-                                      ),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 5),
-                                    ),
-                                    if (isSelected)
-                                      BoxShadow(
-                                        color: const Color(
-                                          0xFFC6A769,
-                                        ).withValues(alpha: 0.22),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(15),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      AbzioNetworkImage(
-                                        imageUrl: category.imageUrl,
-                                        fallbackLabel: category.label,
-                                        fit: BoxFit.cover,
-                                      ),
-                                      DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                            colors: [
-                                              Colors.transparent,
-                                              Colors.black.withValues(
-                                                alpha: 0.24,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                category.label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      fontSize: 12,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w800
-                                          : FontWeight.w700,
-                                      color: isSelected
-                                          ? const Color(0xFF111111)
-                                          : const Color(0xFF666666),
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF111111),
               ),
-            );
-          },
+        ),
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: 12,
+                color: const Color(0xFF6D6254),
+                height: 1.2,
+              ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 104,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.zero,
+            itemCount: items.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return _CategoryCollectionCard(item: item);
+            },
+          ),
         ),
       ],
     );
   }
 }
 
-class _CategorySectionItem {
-  const _CategorySectionItem({
-    required this.label,
-    required this.icon,
-    required this.imageUrl,
+class _CategoryCollectionCard extends StatelessWidget {
+  const _CategoryCollectionCard({required this.item});
+
+  final _CategoryCollectionStripItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 140,
+      child: TapScale(
+        scale: 0.99,
+        onTap: () {},
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              AbzioNetworkImage(
+                imageUrl: item.imageUrl,
+                fallbackLabel: item.label,
+                fit: BoxFit.cover,
+              ),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.46),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 10,
+                right: 10,
+                bottom: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: Text(
+                    item.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryTabsHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _CategoryTabsHeaderDelegate({
+    required this.selectedTab,
+    required this.onCategorySelected,
   });
 
-  final String label;
-  final IconData icon;
-  final String imageUrl;
+  final String selectedTab;
+  final ValueChanged<String> onCategorySelected;
+
+  @override
+  double get minExtent => 56;
+
+  @override
+  double get maxExtent => 56;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: const Color(0xFFF8F5EF),
+      padding: EdgeInsets.zero,
+      child: _CategoryTabsBar(
+        selectedTab: selectedTab,
+        onCategorySelected: onCategorySelected,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _CategoryTabsHeaderDelegate oldDelegate) {
+    return oldDelegate.selectedTab != selectedTab ||
+        oldDelegate.onCategorySelected != onCategorySelected;
+  }
+}
+
+class _CategoryTabsBar extends StatelessWidget {
+  const _CategoryTabsBar({
+    required this.selectedTab,
+    required this.onCategorySelected,
+  });
+
+  final String selectedTab;
+  final ValueChanged<String> onCategorySelected;
+
+  static const List<String> _tabs = <String>[
+    'Men',
+    'Women',
+    'Kids',
+    'Wedding',
+    'Luxury',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 56,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: _tabs.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 24),
+        itemBuilder: (context, index) {
+          final tab = _tabs[index];
+          final selected = tab == selectedTab;
+          return TapScale(
+            scale: selected ? 0.99 : 1,
+            onTap: () => onCategorySelected(tab),
+            child: SizedBox(
+              width: 70,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                      color: selected
+                          ? const Color(0xFFC8A86B)
+                          : const Color(0xFF444444),
+                      height: 1.1,
+                    ),
+                    child: Text(tab, textAlign: TextAlign.center),
+                  ),
+                  const SizedBox(height: 5),
+                  AnimatedOpacity(
+                    duration: const Duration(milliseconds: 250),
+                    opacity: selected ? 1 : 0,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic,
+                      width: selected ? 36 : 0,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC8A86B),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 Widget _sectionHeader({required String title, required String subtitle}) {
@@ -1924,8 +3254,15 @@ Widget _storesFallbackSection(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE6E6E6)),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE8DCC2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -1933,8 +3270,8 @@ Widget _storesFallbackSection(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFFF7F7F7),
-                borderRadius: BorderRadius.circular(10),
+                color: const Color(0xFFF9F7F2),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
                 Icons.storefront_rounded,
@@ -3441,9 +4778,11 @@ class _HomePromoBannerSlotState extends State<HomePromoBannerSlot> {
     }
     try {
       final payload = await _apiClient.get('/home-visuals');
-      return HomeVisualConfigModel.fromMap(
-        Map<String, dynamic>.from(payload as Map),
-      );
+      final map = Map<String, dynamic>.from(payload as Map);
+      final data = map['data'] is Map
+          ? Map<String, dynamic>.from(map['data'] as Map)
+          : map;
+      return HomeVisualConfigModel.fromMap(data);
     } catch (_) {
       return const HomeVisualConfigModel();
     }
@@ -3531,8 +4870,15 @@ Widget _storeCard({required NearbyStore nearby, required VoidCallback onTap}) {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE6E6E6)),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE8DCC2)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -3541,7 +4887,7 @@ Widget _storeCard({required NearbyStore nearby, required VoidCallback onTap}) {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7F7F7),
+                  color: const Color(0xFFF9F7F2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 clipBehavior: Clip.antiAlias,
@@ -3613,7 +4959,7 @@ class _StoreSkeletonList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          AbzoraText.storesLoading,
+          AbianzoText.storesLoading,
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: context.abzioSecondaryText),
@@ -3648,3 +4994,4 @@ class _StoreSkeletonList extends StatelessWidget {
     );
   }
 }
+

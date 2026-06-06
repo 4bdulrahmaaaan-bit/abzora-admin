@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/auth_session_service.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_error_text.dart';
 import '../../widgets/state_views.dart';
@@ -19,13 +20,28 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
   final DatabaseService _db = DatabaseService();
   Future<Store?>? _storeFuture;
   String? _boundUserId;
+  String? _boundAuthToken;
 
-  void _bindStoreFuture(AppUser? user) {
-    if (user == null || _boundUserId == user.id) {
+  Future<Store?> _loadStoreForUser(AppUser user) async {
+    try {
+      await AuthSessionService.instance.refreshIfNeeded();
+      return await _db.getStoreByOwner(user.id);
+    } catch (error) {
+      debugPrint('VendorProfileScreen: store load failed for ${user.id}: $error');
+      return null;
+    }
+  }
+
+  void _bindStoreFuture(AppUser? user, String? authToken) {
+    if (user == null) {
+      return;
+    }
+    if (_boundUserId == user.id && _boundAuthToken == authToken && _storeFuture != null) {
       return;
     }
     _boundUserId = user.id;
-    _storeFuture = _db.getStoreByOwner(user.id);
+    _boundAuthToken = authToken;
+    _storeFuture = _loadStoreForUser(user);
   }
 
   Future<void> _logout() async {
@@ -38,8 +54,9 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().user;
-    _bindStoreFuture(user);
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
+    _bindStoreFuture(user, auth.token);
 
     if (user == null) {
       return const Scaffold(
@@ -78,6 +95,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                 ctaLabel: 'TRY AGAIN',
                 onTap: () => setState(() {
                   _boundUserId = null;
+                  _boundAuthToken = null;
                   _storeFuture = null;
                 }),
               ),

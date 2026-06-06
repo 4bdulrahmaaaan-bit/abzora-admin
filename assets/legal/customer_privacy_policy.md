@@ -1,13 +1,13 @@
-# Abzora Customer Privacy Policy
+# Abianzo Customer Privacy Policy
 
 **Effective Date:** 12 May 2026  
-**Privacy Contact:** privacy@abzora.in  
-**Support:** support@abzora.in
+**Privacy Contact:** privacy@abianzo.in  
+**Support:** support@abianzo.in
 
 ## 1. Definitions
 1. "Personal Data" means data about an identifiable individual.
 2. "Processing" means collection, use, storage, sharing, or deletion.
-3. "Services" means Abzora apps and related systems.
+3. "Services" means Abianzo apps and related systems.
 
 ## 2. Scope
 1. This policy applies to customer app users in India.
@@ -54,14 +54,14 @@
 
 ## 9. Security Practices
 1. Access controls, encrypted transport, role-based permissions, and audit logs.
-2. Tokenized/secure payment workflows; Abzora does not store full card details.
+2. Tokenized/secure payment workflows; Abianzo does not store full card details.
 3. Monitoring against unauthorized access and abuse attempts.
 
 ## 10. Your Rights
 1. Access and review personal data.
 2. Request correction of inaccurate data.
 3. Request account deletion subject to legal retention requirements.
-4. Request grievance review through privacy@abzora.in.
+4. Request grievance review through privacy@abianzo.in.
 
 ## 11. Children
 1. Platform is not intended for children below legal age for independent commerce use.
@@ -70,8 +70,8 @@
 1. If any processing occurs outside India through service providers, safeguards are applied as required by law.
 
 ## 13. IT Act and DPDP Compliance
-1. Abzora aligns with the Information Technology Act, 2000 and applicable rules.
-2. Abzora follows Digital Personal Data Protection Act, 2023 obligations for consent, purpose limitation, user rights, and grievance handling.
+1. Abianzo aligns with the Information Technology Act, 2000 and applicable rules.
+2. Abianzo follows Digital Personal Data Protection Act, 2023 obligations for consent, purpose limitation, user rights, and grievance handling.
 
 ## 14. Policy Updates
 1. We may revise this policy and notify material changes through app or website.

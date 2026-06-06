@@ -381,7 +381,7 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Delivery completed. Earned Rs ${(widget.order.totalAmount * 0.1).toStringAsFixed(0)}',
+          'Delivery completed. Earned ₹${(widget.order.totalAmount * 0.1).toStringAsFixed(0)}',
         ),
       ),
     );
@@ -574,7 +574,7 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
                   _chip('${_remainingKm.toStringAsFixed(1)} km remaining'),
                   _chip('$_etaMinutes mins away'),
                   _chip(
-                    'Earn Rs ${(widget.order.totalAmount * 0.1).toStringAsFixed(0)}',
+                    'Earn ₹${(widget.order.totalAmount * 0.1).toStringAsFixed(0)}',
                   ),
                 ],
               ),

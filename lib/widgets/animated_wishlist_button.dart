@@ -155,41 +155,49 @@ class _AnimatedWishlistButtonState extends State<AnimatedWishlistButton>
                       ),
                     ),
                   ),
-                DecoratedBox(
-                  decoration: widget.backgroundColor == null
-                      ? const BoxDecoration()
-                      : BoxDecoration(
-                          color: widget.backgroundColor,
-                          shape: BoxShape.circle,
-                        ),
-                  child: SizedBox(
+                if (widget.backgroundColor != null)
+                  Container(
                     width: widget.size,
                     height: widget.size,
-                    child: Center(
-                      child: widget.isLoading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 180),
-                              transitionBuilder: (child, animation) {
-                                return ScaleTransition(
-                                  scale: animation,
-                                  child: child,
-                                );
-                              },
-                              child: Icon(
-                                widget.isSelected
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                                key: ValueKey<bool>(widget.isSelected),
-                                color: iconColor,
-                                size: widget.iconSize,
-                              ),
-                            ),
+                    decoration: BoxDecoration(
+                      color: widget.backgroundColor,
+                      shape: BoxShape.circle,
                     ),
+                  ),
+                SizedBox(
+                  width: widget.size,
+                  height: widget.size,
+                  child: Center(
+                    child: widget.isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            transitionBuilder: (child, animation) {
+                              return ScaleTransition(
+                                scale: animation,
+                                child: child,
+                              );
+                            },
+                            child: Icon(
+                              widget.isSelected
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              key: ValueKey<bool>(widget.isSelected),
+                              color: iconColor,
+                              size: widget.iconSize,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withValues(alpha: 0.28),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
                   ),
                 ),
               ],

@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/models.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/database_service.dart';
+import '../../utils/soft_auth_gate.dart';
+import 'body_scan_screen.dart';
 
 class FindMyFitFlowScreen extends StatefulWidget {
   const FindMyFitFlowScreen({super.key});
@@ -10,11 +17,15 @@ class FindMyFitFlowScreen extends StatefulWidget {
 
 class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
     with TickerProviderStateMixin {
+  final DatabaseService _database = DatabaseService();
   int _step = 0;
   double _heightCm = 170;
   double _weightKg = 65;
   String _bodyType = 'Regular';
   String _fitPreference = 'Regular';
+  MeasurementProfile? _scanProfile;
+  bool _scanUsed = false;
+  bool _isSaving = false;
   bool _saveDone = false;
 
   late final AnimationController _resultController;
@@ -35,7 +46,7 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
     super.initState();
     _resultController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 420),
+      duration: const Duration(milliseconds: 300),
     );
     _resultSizeOpacity = CurvedAnimation(
       parent: _resultController,
@@ -83,10 +94,10 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFDF9),
+      backgroundColor: const Color(0xFFF7F4EE),
       appBar: AppBar(
         title: const Text('Find My Fit'),
-        backgroundColor: const Color(0xFFFFFDF9),
+        backgroundColor: const Color(0xFFF7F4EE),
         elevation: 0,
       ),
       body: SafeArea(
@@ -98,7 +109,7 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
               const SizedBox(height: 14),
               Expanded(
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 340),
+                  duration: const Duration(milliseconds: 300),
                   switchInCurve: _flowCurve,
                   switchOutCurve: _flowCurve,
                   transitionBuilder: (child, animation) {
@@ -123,7 +134,7 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
   }
 
   Widget _progressBar() {
-    final progress = (_step + 1) / 6;
+    final progress = (_step + 1) / 7;
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),
       child: Container(
@@ -185,6 +196,8 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
         return _bodyTypeStep();
       case 4:
         return _fitPreferenceStep();
+      case 5:
+        return _smartScanStep();
       default:
         return _resultStep();
     }
@@ -219,12 +232,12 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
           ),
           const SizedBox(height: 8),
           const Text(
-            'Get accurate size in under 10 seconds',
+            'Get personalized sizing in one guided flow',
             style: TextStyle(fontSize: 16, color: Color(0xFF6D6559), height: 1.5),
           ),
           const SizedBox(height: 14),
           const Text(
-            'No measurements needed',
+            'Manual inputs first, smart scan optional',
             style: TextStyle(fontSize: 14, color: Color(0xFF8D836F)),
           ),
           const Spacer(),
@@ -375,32 +388,231 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('How do you like your fit?', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+          const Text(
+            'Fit Preference',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Choose the silhouette you normally prefer.',
+            style: TextStyle(fontSize: 15, color: Color(0xFF6D6559), height: 1.45),
+          ),
           const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: _fitPrefs.map((pref) {
-              final selected = _fitPreference == pref;
-            return ChoiceChip(
-              label: Text(pref),
-              selected: selected,
-              onSelected: (_) {
-                HapticFeedback.selectionClick();
-                setState(() => _fitPreference = pref);
-              },
-              selectedColor: const Color(0xFFF1DFC0),
-              backgroundColor: Colors.white,
-                labelStyle: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: selected ? const Color(0xFF7D633A) : const Color(0xFF6B6458),
+          ..._fitPrefs.map((pref) {
+            final selected = _fitPreference == pref;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() => _fitPreference = pref);
+                },
+                child: Ink(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: selected ? const Color(0xFFF6E9CE) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: selected ? const Color(0xFFC9A55A) : const Color(0xFFF0E7D9),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: selected
+                            ? const Color(0x22C9A55A)
+                            : Colors.black.withValues(alpha: 0.04),
+                        blurRadius: selected ? 16 : 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? Colors.white.withValues(alpha: 0.58)
+                              : const Color(0xFFF6F1E6),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          pref == 'Tight'
+                              ? Icons.compress_rounded
+                              : pref == 'Loose'
+                              ? Icons.unfold_more_rounded
+                              : Icons.straighten_rounded,
+                          color: selected
+                              ? const Color(0xFF8D744A)
+                              : const Color(0xFF7D776E),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              pref,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: selected
+                                    ? const Color(0xFF7D633A)
+                                    : const Color(0xFF2C2A27),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              pref == 'Tight'
+                                  ? 'Tailored and close to the body'
+                                  : pref == 'Loose'
+                                  ? 'Relaxed with more room'
+                                  : 'Balanced everyday fit',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: selected
+                                    ? const Color(0xFF7D633A).withValues(alpha: 0.8)
+                                    : const Color(0xFF6B6458),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-              );
-            }).toList(),
+              ),
+            );
+          }),
+          const Spacer(),
+          _primaryButton(text: 'Continue', onPressed: _next),
+        ],
+      ),
+    );
+  }
+
+  Widget _smartScanStep() {
+    return Container(
+      key: const ValueKey('smartScan'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Smart Body Scan',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Optional AI-powered body analysis for a more accurate fit.',
+            style: TextStyle(fontSize: 15, color: Color(0xFF6D6559), height: 1.45),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFF3F1EB)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F2E7),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.document_scanner_outlined,
+                    color: Color(0xFF8D744A),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Use your camera to estimate body proportions for more accurate sizing recommendations.',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF4F4A40),
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: const [
+                    _ScanChip(label: 'Front View'),
+                    _ScanChip(label: 'Side View'),
+                    _ScanChip(label: 'Use Camera or Gallery'),
+                    _ScanChip(label: '+2% Accuracy'),
+                  ],
+                ),
+                if (_scanUsed && _scanProfile != null) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    'Last scan saved as ${_scanProfile!.label}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF7D776C),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
           const Spacer(),
-          _primaryButton(text: 'Analyze Fit', onPressed: _next),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _step = 6);
+                    _resultController.forward(from: 0);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFF0E3D0)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    foregroundColor: const Color(0xFF111111),
+                    minimumSize: const Size.fromHeight(52),
+                  ),
+                  child: const Text('Skip'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _startScan,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFC9A55A),
+                    foregroundColor: const Color(0xFF111111),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    minimumSize: const Size.fromHeight(52),
+                    elevation: 0,
+                  ),
+                  child: const Text('Start Scan'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -456,6 +668,16 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
                   opacity: _resultCard2Opacity,
                   child: const Text('Based on similar users', style: TextStyle(fontSize: 13, color: Color(0xFF8D836F))),
                 ),
+                if (_scanUsed) ...[
+                  const SizedBox(height: 8),
+                  FadeTransition(
+                    opacity: _resultCard2Opacity,
+                    child: const Text(
+                      'Smart Scan included',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF8D836F)),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -465,13 +687,7 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
             child: _primaryButton(
               text: _saveDone ? 'Saved' : 'Save Fit Profile',
               trailingCheck: _saveDone,
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                setState(() => _saveDone = true);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Fit profile saved')),
-                );
-              },
+              onPressed: _saveFitProfile,
             ),
           ),
           const SizedBox(height: 10),
@@ -510,15 +726,78 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
   }
 
   void _next() {
-    if (_step < 5) {
+    if (_step < 6) {
       HapticFeedback.selectionClick();
       setState(() {
         _step += 1;
-        if (_step == 5) {
+        if (_step == 6) {
           _resultController.forward(from: 0);
         }
       });
     }
+  }
+
+  Future<void> _startScan() async {
+    HapticFeedback.mediumImpact();
+    final profile = await Navigator.push<MeasurementProfile>(
+      context,
+      MaterialPageRoute(builder: (_) => const BodyScanScreen()),
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _scanUsed = profile != null;
+      _scanProfile = profile;
+      _step = 6;
+    });
+    _resultController.forward(from: 0);
+  }
+
+  Future<void> _saveFitProfile() async {
+    if (_isSaving || _saveDone) {
+      return;
+    }
+    final user = context.read<AuthProvider>().user;
+    if (user == null) {
+      final allowed = await SoftAuthGate.ensureAuthenticated(
+        context,
+        intentLabel: 'Save fit profile',
+      );
+      if (!allowed || !mounted) {
+        return;
+      }
+    }
+    final currentUser = context.read<AuthProvider>().user;
+    if (currentUser == null) {
+      return;
+    }
+    setState(() => _isSaving = true);
+    final profile = BodyProfile(
+      heightCm: _heightCm,
+      weightKg: _weightKg,
+      bodyType: _bodyType.toLowerCase(),
+      recommendedSize: _recommendSize(),
+      fitPreference: _fitPreference.toLowerCase(),
+      confidence: _bodyType == 'Regular' && _fitPreference == 'Regular'
+          ? 0.92
+          : 0.84,
+      scanFrameCount: _scanUsed ? 72 : 0,
+      scanSource: _scanUsed ? 'smart_scan' : 'manual',
+      updatedAt: DateTime.now().toIso8601String(),
+    );
+    await _database.saveBodyProfile(currentUser.id, profile);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _saveDone = true;
+      _isSaving = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Fit profile saved')),
+    );
+    Navigator.pop(context, true);
   }
 
   String _recommendSize() {
@@ -538,6 +817,32 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
     if (_fitPreference == 'Tight') return 'A close-cut fit is recommended for your profile.';
     if (_fitPreference == 'Loose') return 'A relaxed silhouette will feel best on you.';
     return 'Regular fit recommended';
+  }
+}
+
+class _ScanChip extends StatelessWidget {
+  const _ScanChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F5EF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFF0E7D9)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF5B5244),
+        ),
+      ),
+    );
   }
 }
 

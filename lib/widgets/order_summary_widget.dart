@@ -102,7 +102,7 @@ class _OrderItemCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Rs ${(item.product.price * item.quantity).toStringAsFixed(0)}',
+                  '₹${(item.product.price * item.quantity).toStringAsFixed(0)}',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -139,3 +139,4 @@ class _InfoPill extends StatelessWidget {
     );
   }
 }
+

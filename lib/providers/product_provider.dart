@@ -118,6 +118,9 @@ class ProductProvider with ChangeNotifier {
         _searchResults = _applyFilter(_locationProducts, _searchFilter);
         _hasMoreProducts = true;
       }
+      _locationProducts = _withDistanceLabels(_locationProducts);
+      _trendingProducts = _withDistanceLabels(_trendingProducts);
+      _searchResults = _withDistanceLabels(_searchResults);
       debugPrint(
         'Home data ready: stores=${_allStores.length}, nearby=${nearbyStores.length}, products=${_locationProducts.length}',
       );
@@ -130,20 +133,20 @@ class ProductProvider with ChangeNotifier {
             _streamDebounce = Timer(
               const Duration(milliseconds: 320),
               () async {
-                  try {
-                    final buffered = _pendingStreamProducts ?? const <Product>[];
-                    final storeIds = _activeNearbyStoreIds();
-                    final liveProducts = storeIds.isEmpty
-                        ? buffered
-                        : buffered
+                try {
+                  final buffered = _pendingStreamProducts ?? const <Product>[];
+                  final storeIds = _activeNearbyStoreIds();
+                  final liveProducts = storeIds.isEmpty
+                      ? buffered
+                      : buffered
                             .where((item) => storeIds.contains(item.storeId))
                             .toList();
-                    final ranked = await _safePersonalize(
-                      liveProducts.isEmpty ? buffered : liveProducts,
-                    );
-                    _trendingProducts = ranked.take(10).toList();
-                    _searchResults = _applyFilter(ranked, _searchFilter);
-                    notifyListeners();
+                  final ranked = await _safePersonalize(
+                    liveProducts.isEmpty ? buffered : liveProducts,
+                  );
+                  _trendingProducts = ranked.take(10).toList();
+                  _searchResults = _applyFilter(ranked, _searchFilter);
+                  notifyListeners();
                 } catch (error) {
                   debugPrint('Realtime personalization fallback: $error');
                 }
@@ -245,14 +248,17 @@ class ProductProvider with ChangeNotifier {
         final page = await _db.getProductsPage(
           limit: 25,
           startAfterKey: _lastProductKey,
+          userLatitude: userPosition?.latitude,
+          userLongitude: userPosition?.longitude,
+          radiusKm: radiusKm,
         );
         _lastProductKey = page.lastKey;
         hasMore = page.hasMore;
         final filteredMatches = targetStoreIds.isEmpty
             ? page.items
             : page.items
-                .where((product) => targetStoreIds.contains(product.storeId))
-                .toList();
+                  .where((product) => targetStoreIds.contains(product.storeId))
+                  .toList();
         final pageMatches = filteredMatches.isEmpty
             ? page.items
             : filteredMatches;
@@ -268,14 +274,16 @@ class ProductProvider with ChangeNotifier {
     if (newlyMatched.isEmpty) {
       try {
         final streamFallback = await _db.watchAllProducts().first.timeout(
-              const Duration(seconds: 6),
-            );
+          const Duration(seconds: 6),
+        );
         if (streamFallback.isNotEmpty) {
           final filtered = targetStoreIds.isEmpty
               ? streamFallback
               : streamFallback
-                  .where((product) => targetStoreIds.contains(product.storeId))
-                  .toList();
+                    .where(
+                      (product) => targetStoreIds.contains(product.storeId),
+                    )
+                    .toList();
           newlyMatched.addAll(filtered.isEmpty ? streamFallback : filtered);
         }
       } catch (error) {
@@ -285,10 +293,10 @@ class ProductProvider with ChangeNotifier {
 
     _hasMoreProducts = hasMore;
     final merged = _mergeUniqueProducts(_locationProducts, newlyMatched);
-    _locationProducts = await _safePersonalize(merged);
-    _trendingProducts = _locationProducts.take(10).toList();
+    _locationProducts = _withDistanceLabels(await _safePersonalize(merged));
+    _trendingProducts = _withDistanceLabels(_locationProducts.take(10).toList());
     if (resetSearch) {
-      _searchResults = _applyFilter(_locationProducts, _searchFilter);
+      _searchResults = _withDistanceLabels(_applyFilter(_locationProducts, _searchFilter));
     }
     debugPrint(
       'Products page merged: incoming=${newlyMatched.length}, total=${_locationProducts.length}, hasMore=$_hasMoreProducts',
@@ -297,13 +305,18 @@ class ProductProvider with ChangeNotifier {
 
   Future<void> _loadGenericCatalogFallback({required bool resetSearch}) async {
     try {
-      final page = await _db.getProductsPage(limit: 25);
+      final page = await _db.getProductsPage(
+        limit: 25,
+        userLatitude: userPosition?.latitude,
+        userLongitude: userPosition?.longitude,
+        radiusKm: radiusKm,
+      );
       final base = page.items;
       if (base.isNotEmpty) {
-        _locationProducts = await _safePersonalize(base);
-        _trendingProducts = _locationProducts.take(10).toList();
+        _locationProducts = _withDistanceLabels(await _safePersonalize(base));
+        _trendingProducts = _withDistanceLabels(_locationProducts.take(10).toList());
         if (resetSearch) {
-          _searchResults = _applyFilter(_locationProducts, _searchFilter);
+          _searchResults = _withDistanceLabels(_applyFilter(_locationProducts, _searchFilter));
         }
         _hasMoreProducts = page.hasMore;
         _lastProductKey = page.lastKey;
@@ -315,13 +328,13 @@ class ProductProvider with ChangeNotifier {
 
     try {
       final streamProducts = await _db.watchAllProducts().first.timeout(
-            const Duration(seconds: 6),
-          );
+        const Duration(seconds: 6),
+      );
       if (streamProducts.isNotEmpty) {
-        _locationProducts = await _safePersonalize(streamProducts);
-        _trendingProducts = _locationProducts.take(10).toList();
+        _locationProducts = _withDistanceLabels(await _safePersonalize(streamProducts));
+        _trendingProducts = _withDistanceLabels(_locationProducts.take(10).toList());
         if (resetSearch) {
-          _searchResults = _applyFilter(_locationProducts, _searchFilter);
+          _searchResults = _withDistanceLabels(_applyFilter(_locationProducts, _searchFilter));
         }
         _hasMoreProducts = false;
       }
@@ -344,10 +357,61 @@ class ProductProvider with ChangeNotifier {
           text.contains('session expired') ||
           text.contains('too many authentication requests');
       if (!isAuthFallback) {
-        debugPrint('Personalization unavailable, showing base products: $error');
+        debugPrint(
+          'Personalization unavailable, showing base products: $error',
+        );
       }
       return products;
     }
+  }
+
+  List<Product> _withDistanceLabels(List<Product> products) {
+    if (products.isEmpty) {
+      return const <Product>[];
+    }
+    final position = userPosition;
+    return products.map((product) {
+      final store = product.store;
+      final backendDistance = product.distanceKm;
+      final backendLabel = product.distanceLabel?.trim() ?? '';
+      double? distanceKm = backendDistance;
+      String? distanceLabel = backendLabel.isNotEmpty ? backendLabel : null;
+
+      if (distanceKm == null &&
+          position != null &&
+          store?.latitude != null &&
+          store?.longitude != null) {
+        distanceKm = LocationService().distanceInKm(
+          startLatitude: position.latitude,
+          startLongitude: position.longitude,
+          endLatitude: store!.latitude!,
+          endLongitude: store.longitude!,
+        );
+      }
+
+      if (distanceLabel == null && distanceKm != null) {
+        distanceLabel = _formatDistanceLabel(distanceKm);
+      }
+
+      if (distanceKm == product.distanceKm && distanceLabel == product.distanceLabel) {
+        return product;
+      }
+
+      return product.copyWith(
+        distanceKm: distanceKm,
+        distanceLabel: distanceLabel,
+      );
+    }).toList(growable: false);
+  }
+
+  String _formatDistanceLabel(double distanceKm) {
+    if (distanceKm < 1) {
+      return 'Nearby';
+    }
+    if (distanceKm < 10) {
+      return '${distanceKm.toStringAsFixed(1)} km';
+    }
+    return '${distanceKm.round()} km';
   }
 
   List<Product> _mergeUniqueProducts(
@@ -433,7 +497,9 @@ class ProductProvider with ChangeNotifier {
               filter.brand == 'All' ||
               product.brand.toLowerCase() == filter.brand.toLowerCase(),
         )
-        .where((product) => !filter.sameDayAvailable || _sameDayAvailable(product))
+        .where(
+          (product) => !filter.sameDayAvailable || _sameDayAvailable(product),
+        )
         .where(
           (product) =>
               !filter.tryAtHomeAvailable || _tryAtHomeAvailable(product),
@@ -448,7 +514,8 @@ class ProductProvider with ChangeNotifier {
         .where(
           (product) =>
               filter.fitConfidence == 'All' ||
-              _fitConfidenceLabel(product) == filter.fitConfidence.toLowerCase(),
+              _fitConfidenceLabel(product) ==
+                  filter.fitConfidence.toLowerCase(),
         )
         .where(
           (product) =>
@@ -478,9 +545,11 @@ class ProductProvider with ChangeNotifier {
         case ProductSortOption.priceHighToLow:
           return b.effectivePrice.compareTo(a.effectivePrice);
         case ProductSortOption.newest:
-          final aDate = DateTime.tryParse(a.createdAt ?? '') ??
+          final aDate =
+              DateTime.tryParse(a.createdAt ?? '') ??
               DateTime.fromMillisecondsSinceEpoch(0);
-          final bDate = DateTime.tryParse(b.createdAt ?? '') ??
+          final bDate =
+              DateTime.tryParse(b.createdAt ?? '') ??
               DateTime.fromMillisecondsSinceEpoch(0);
           return bDate.compareTo(aDate);
         case ProductSortOption.popularity:
@@ -500,10 +569,13 @@ class ProductProvider with ChangeNotifier {
   }
 
   String _productGender(Product product) {
-    final raw =
-        product.attributes['gender'] ??
-        product.attributes['targetGender'] ??
-        product.category;
+    final raw = product.attributeText(
+      'gender',
+      fallback: product.attributeText(
+        'targetGender',
+        fallback: product.category,
+      ),
+    );
     final normalized = raw.toLowerCase();
     if (normalized.contains('women') || normalized.contains('lady')) {
       return 'women';
@@ -515,10 +587,10 @@ class ProductProvider with ChangeNotifier {
   }
 
   List<String> _productColors(Product product) {
-    final raw =
-        product.attributes['color'] ??
-        product.attributes['colors'] ??
-        '';
+    final raw = product.attributeText(
+      'color',
+      fallback: product.attributeText('colors'),
+    );
     if (raw.trim().isEmpty) {
       return const [];
     }
@@ -530,31 +602,25 @@ class ProductProvider with ChangeNotifier {
   }
 
   bool _sameDayAvailable(Product product) {
-    final raw =
-        product.attributes['sameDayAvailable'] ??
-        product.attributes['sameDayEligible'] ??
-        '';
-    return raw.toLowerCase() == 'true' || raw == '1';
+    return product.attributeBool('sameDayAvailable') ||
+        product.attributeBool('sameDayEligible');
   }
 
   bool _tryAtHomeAvailable(Product product) {
-    final raw = product.attributes['tryAtHomeAvailable'] ?? '';
-    return raw.toLowerCase() == 'true' || raw == '1';
+    return product.attributeBool('tryAtHomeAvailable') ||
+        product.attributeBool('tryAtHomeEligible');
   }
 
   bool _customizable(Product product) {
     if (product.isCustomTailoring) {
       return true;
     }
-    final raw =
-        product.attributes['customizable'] ??
-        product.attributes['atelierEnabled'] ??
-        '';
-    return raw.toLowerCase() == 'true' || raw == '1';
+    return product.attributeBool('customizable') ||
+        product.attributeBool('atelierEnabled');
   }
 
   String _deliveryTime(Product product) {
-    final raw = (product.attributes['deliveryTime'] ?? '').toLowerCase().trim();
+    final raw = product.attributeText('deliveryTime').toLowerCase().trim();
     if (raw == 'today' || raw == 'tomorrow' || raw == '2-3 days') {
       return raw;
     }
@@ -562,8 +628,10 @@ class ProductProvider with ChangeNotifier {
   }
 
   String _fitConfidenceLabel(Product product) {
-    final raw =
-        (product.attributes['fitConfidenceLabel'] ?? '').toLowerCase().trim();
+    final raw = product
+        .attributeText('fitConfidenceLabel')
+        .toLowerCase()
+        .trim();
     if (raw == 'high' || raw == 'medium' || raw == 'low') {
       return raw;
     }
@@ -574,7 +642,7 @@ class ProductProvider with ChangeNotifier {
   }
 
   String _returnRisk(Product product) {
-    final raw = (product.attributes['returnRisk'] ?? '').toLowerCase().trim();
+    final raw = product.attributeText('returnRisk').toLowerCase().trim();
     if (raw == 'high' || raw == 'low') {
       return raw;
     }
@@ -620,6 +688,9 @@ class ProductProvider with ChangeNotifier {
       return;
     }
     _locationNotifyDebounce = Timer(const Duration(milliseconds: 90), () {
+      _locationProducts = _withDistanceLabels(_locationProducts);
+      _trendingProducts = _withDistanceLabels(_trendingProducts);
+      _searchResults = _withDistanceLabels(_searchResults);
       notifyListeners();
     });
   }

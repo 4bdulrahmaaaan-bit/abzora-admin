@@ -1040,3 +1040,4 @@ class _RiskScore {
   final String recommendation;
   final List<String> reasons;
 }
+

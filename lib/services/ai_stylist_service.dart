@@ -564,3 +564,4 @@ class AiStylistService {
     return '#${order.id} | ${DateFormat('dd MMM').format(order.timestamp)} | INR ${order.totalAmount.toStringAsFixed(0)}';
   }
 }
+

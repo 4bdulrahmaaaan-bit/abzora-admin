@@ -16,6 +16,7 @@ import firebase_core
 import firebase_database
 import firebase_messaging
 import firebase_storage
+import flutter_secure_storage_macos
 import flutter_tts
 import geolocator_apple
 import maps_launcher
@@ -41,6 +42,7 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   FLTFirebaseDatabasePlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseDatabasePlugin"))
   FLTFirebaseMessagingPlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseMessagingPlugin"))
   FLTFirebaseStoragePlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseStoragePlugin"))
+  FlutterSecureStoragePlugin.register(with: registry.registrar(forPlugin: "FlutterSecureStoragePlugin"))
   FlutterTtsPlugin.register(with: registry.registrar(forPlugin: "FlutterTtsPlugin"))
   GeolocatorPlugin.register(with: registry.registrar(forPlugin: "GeolocatorPlugin"))
   MapsLauncherPlugin.register(with: registry.registrar(forPlugin: "MapsLauncherPlugin"))

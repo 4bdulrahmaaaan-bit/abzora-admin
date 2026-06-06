@@ -45,7 +45,7 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
 
   final NumberFormat _money = NumberFormat.currency(
     locale: 'en_IN',
-    symbol: 'Rs ',
+    symbol: '₹',
     decimalDigits: 0,
   );
 
@@ -1030,3 +1030,4 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
     );
   }
 }
+

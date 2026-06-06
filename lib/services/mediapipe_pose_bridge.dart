@@ -66,7 +66,7 @@ class MediaPipePoseBridge {
   final Map<String, MediaPipePoseLandmark> _previousByType =
       <String, MediaPipePoseLandmark>{};
 
-  static const double _visibilityThreshold = 0.35;
+  static const double _visibilityThreshold = 0.08;
   static const double _smoothingT = 0.28;
   int _processedFrames = 0;
   int _failedFrames = 0;
@@ -77,7 +77,7 @@ class MediaPipePoseBridge {
       _landmarksController.stream;
 
   Future<void> ensureInitialized({
-    String modelAssetPath = 'assets/ml/pose_landmarker_lite.task',
+    String modelAssetPath = 'ml/pose_landmarker_lite.task',
   }) async {
     if (_initialized) {
       return;
@@ -91,7 +91,7 @@ class MediaPipePoseBridge {
       throw PlatformException(
         code: 'mediapipe_init_failed',
         message:
-            'MediaPipe Pose could not initialize. Ensure pose_landmarker_lite.task is bundled at assets/ml/pose_landmarker_lite.task.',
+            'MediaPipe Pose could not initialize. Ensure pose_landmarker_lite.task is bundled at android/app/src/main/assets/ml/pose_landmarker_lite.task.',
       );
     }
     if (!_callbackBound) {

@@ -1,19 +1,19 @@
-# Abzora Rider Terms & Conditions
+# Abianzo Rider Terms & Conditions
 
 **Effective Date:** 12 May 2026  
-**Support:** support@abzora.in
+**Support:** support@abianzo.in
 
 ## 1. Definitions
 1. "Rider" means an independent delivery partner using the rider app.
 2. "Task" means a pickup/drop delivery assignment.
 
 ## 2. Independent Contractor Clause
-1. Rider is an independent contractor and not an employee of Abzora.
+1. Rider is an independent contractor and not an employee of Abianzo.
 2. No employer-employee benefits, PF, gratuity, or statutory employment benefits are created.
 
 ## 3. Eligibility and Onboarding
 1. Rider must provide valid KYC, government ID, driving license (where applicable), vehicle documents, and insurance.
-2. Abzora may verify and periodically re-verify records.
+2. Abianzo may verify and periodically re-verify records.
 
 ## 4. GPS Tracking Consent
 1. Rider consents to live GPS tracking during active tasks for safety, dispatch, and customer transparency.
@@ -36,14 +36,14 @@
 
 ## 8. Fraud Prevention
 1. Fake pickup/drop scans, OTP misuse, collusion, or cash theft are serious violations.
-2. Abzora may hold payouts and initiate investigation.
+2. Abianzo may hold payouts and initiate investigation.
 
 ## 9. Suspension and Termination
-1. Abzora may suspend/terminate rider account for safety incidents, fraud, repeated SLA breaches, documentation lapses, or legal risk.
+1. Abianzo may suspend/terminate rider account for safety incidents, fraud, repeated SLA breaches, documentation lapses, or legal risk.
 
 ## 10. Liability, Indemnity, and Force Majeure
-1. Rider indemnifies Abzora for losses caused by rider misconduct or legal non-compliance.
-2. Abzora liability is limited as per applicable law.
+1. Rider indemnifies Abianzo for losses caused by rider misconduct or legal non-compliance.
+2. Abianzo liability is limited as per applicable law.
 3. Force majeure events may impact assignments and payouts.
 
 ## 11. Governing Law and Arbitration

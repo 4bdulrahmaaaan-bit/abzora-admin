@@ -231,6 +231,7 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
               controller: _logoController,
               decoration: const InputDecoration(
                 hintText: 'https://...logo.jpg',
+                helperText: 'Use a clean square logo with a simple background.',
               ),
             ),
             const SizedBox(height: 10),
@@ -247,6 +248,8 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
               controller: _bannerController,
               decoration: const InputDecoration(
                 hintText: 'https://...banner.jpg',
+                helperText:
+                    'Best results use wide editorial banners with soft luxury lighting.',
               ),
             ),
             const SizedBox(height: 10),
@@ -381,3 +384,4 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
     );
   }
 }
+

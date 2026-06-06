@@ -1,5 +1,5 @@
 {
-  "name": "abzora-rtdb-rules-tests",
+  "name": "abianzo-rtdb-rules-tests",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,7 +13,10 @@
     "ar:ops:enterprise": "node scripts/ar_enterprise_rollout.mjs",
     "ar:ops:device-lab": "node scripts/ar_device_lab_run.mjs",
     "ar:ops:fit-promote": "node scripts/ar_fit_promote.mjs",
-    "ar:data:generate-fit": "node scripts/ar_generate_fit_dataset.mjs"
+    "ar:data:generate-fit": "node scripts/ar_generate_fit_dataset.mjs",
+    "docker:up": "docker compose up --build -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",

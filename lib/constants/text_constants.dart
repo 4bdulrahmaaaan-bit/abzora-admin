@@ -1,10 +1,9 @@
-class AbzoraText {
+class AbianzoText {
   static const brandName = 'Abianzo';
   static const brandTagline = 'Style Near You';
-  static const premiumMarketplaceBadge = 'Premium Fashion Marketplace';
-  static const customNavLabel = 'Atelier';
+  static const customNavLabel = 'Categories';
   static const heroSearchTitlePrefix = 'Search in';
-  static const profileSetupTitle = 'Complete your profile for perfect fit ✨';
+  static const profileSetupTitle = 'Complete your profile for a perfect fit';
   static const profileSetupNameLabel = 'Name';
   static const profileSetupAddressLabel = 'Address';
   static const locationDetectError = 'Unable to detect location';
@@ -13,13 +12,16 @@ class AbzoraText {
   static const remove = 'REMOVE';
   static const total = 'TOTAL';
 
-  static const locationLoggedOutTitle = 'Set your delivery location';
-  static const locationSubtext = 'Find styles near you';
-  static const locationLoggedOutSubtitle = 'Choose your location to discover premium stores nearby';
-  static const locationManualSubtitle = 'Using your selected city for nearby style discovery';
+  static const locationLoggedOutTitle = 'Set location';
+  static const locationSubtext =
+      'Premium boutiques nearby, curated for your neighborhood';
+  static const locationLoggedOutSubtitle = '';
+  static const locationManualSubtitle =
+      'Using your selected neighborhood for nearby style discovery';
 
-  static const homeLoadingTitle = 'Loading premium fashion near you';
-  static const homeLoadingSubtitle = 'Curating nearby stores, fresh arrivals, and custom styles.';
+  static const homeLoadingTitle = 'Loading luxury fashion near you';
+  static const homeLoadingSubtitle =
+      'Curating nearby stores, fresh arrivals, and custom styles.';
 
   static const storesNearYou = 'Stores near you';
   static const storesLoading = 'Discovering styles near you...';
@@ -27,14 +29,15 @@ class AbzoraText {
   static const storesFallbackSubtitle =
       'We could not find stores in your current radius, so we picked the nearest available options.';
   static const storesEmptyTitle = 'No stores near you yet';
-  static const storesEmptySubtitle = 'Try updating your location or expanding your search.';
+  static const storesEmptySubtitle =
+      'Try updating your location or expanding your search.';
   static const changeLocation = 'Change location';
   static const expandTo25Km = 'Expand to 25 km';
 
   static const customClothingTitle = 'Tailored Just for You';
   static const customClothingSubtitle =
       'Choose a designer first, then create a made-to-measure look';
-  static const customClothingCta = 'Enter Atelier';
+  static const customClothingCta = 'Explore Fit';
 
   static const trendingNearYouTitle = 'Trending Near You';
   static const trendingNearYouSubtitle = 'Popular picks from nearby stores';
@@ -43,19 +46,22 @@ class AbzoraText {
   static const recentlyViewedTitle = 'Recently Viewed';
   static const recentlyViewedSubtitle = 'Pick up where you left off';
 
-  static const homeEmptyTitle = 'Discover premium styles near you';
-  static const homeEmptySubtitle = 'Update your location to unlock the best edits from nearby stores.';
+  static const homeEmptyTitle = 'Discover luxury styles near you';
+  static const homeEmptySubtitle =
+      'Update your location to unlock the best edits from nearby stores.';
   static const homeEmptyCta = 'Shop Now';
 
   static const wishlistTitle = 'Wishlist';
   static const wishlistLoadingTitle = 'Loading your saved styles';
   static const wishlistLoadingSubtitle = 'Bringing back the pieces you loved.';
   static const wishlistEmptyTitle = 'Save styles you love';
-  static const wishlistEmptySubtitle = 'Tap the heart on any product to build your personal fashion edit.';
+  static const wishlistEmptySubtitle =
+      'Tap the heart on any product to build your personal fashion edit.';
 
   static const cartTitle = 'YOUR BAG';
   static const cartEmptyTitle = 'Your bag is waiting';
-  static const cartEmptySubtitle = 'Add standout pieces from nearby stores and return here for a smooth checkout.';
+  static const cartEmptySubtitle =
+      'Add standout pieces from nearby stores and return here for a smooth checkout.';
   static const cartEmptyCta = 'Shop Now';
 
   static const searchHint = 'Search styles, brands, or stores';
@@ -64,9 +70,11 @@ class AbzoraText {
   static const searchTrendingTitle = 'Trending searches';
   static const searchSuggestedCategoriesTitle = 'Suggested categories';
   static const searchEmptyTitle = 'No results found';
-  static const searchEmptySubtitle = 'Try another keyword or browse the suggested categories.';
+  static const searchEmptySubtitle =
+      'Try another keyword or browse the suggested categories.';
 
-  static const bagReminderSuccess = 'We will remind you to return to your bag later.';
+  static const bagReminderSuccess =
+      'We will remind you to return to your bag later.';
 
   static const oneStoreBagNotice =
       'Your bag supports one store at a time so pricing, delivery, and support stay precise.';
@@ -82,20 +90,14 @@ class HomeCategoryCopy {
   final String title;
   final String subtitle;
 
-  const HomeCategoryCopy({
-    required this.title,
-    required this.subtitle,
-  });
+  const HomeCategoryCopy({required this.title, required this.subtitle});
 }
 
 class HeroBannerCopy {
   final String title;
   final String cta;
 
-  const HeroBannerCopy({
-    required this.title,
-    required this.cta,
-  });
+  const HeroBannerCopy({required this.title, required this.cta});
 }
 
 class PromoBannerCopy {
@@ -112,11 +114,17 @@ class PromoBannerCopy {
   });
 }
 
-class AbzoraCopySets {
+class AbianzoCopySets {
   static const heroBanners = <HeroBannerCopy>[
     HeroBannerCopy(title: 'Style that defines you', cta: 'Explore Collection'),
-    HeroBannerCopy(title: 'Curated fashion from stores near you', cta: 'Shop Now'),
-    HeroBannerCopy(title: 'Discover premium looks around you', cta: 'Explore Collection'),
+    HeroBannerCopy(
+      title: 'Curated fashion from stores near you',
+      cta: 'Shop Now',
+    ),
+    HeroBannerCopy(
+      title: 'Discover premium looks around you',
+      cta: 'Explore Collection',
+    ),
   ];
 
   static const categories = <HomeCategoryCopy>[
@@ -135,15 +143,18 @@ class AbzoraCopySets {
     ),
     PromoBannerCopy(
       eyebrow: 'Limited Offer',
-      title: 'Intro offer on atelier tailoring',
-      subtitle: 'Choose your designer, personalize the details, and enjoy a sharper reason to order today.',
-      cta: 'Enter Atelier',
+      title: 'Intro offer on custom tailoring',
+      subtitle:
+          'Choose your designer, personalize the details, and enjoy a sharper reason to order today.',
+      cta: 'Explore Fit',
     ),
     PromoBannerCopy(
       eyebrow: 'Local Discovery',
       title: 'Top-rated stores near your city',
-      subtitle: 'Handpicked edits from the best-reviewed fashion stores nearby.',
+      subtitle:
+          'Handpicked edits from the best-reviewed fashion stores nearby.',
       cta: 'View Stores',
     ),
   ];
 }
+

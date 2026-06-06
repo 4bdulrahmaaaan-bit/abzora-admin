@@ -18,7 +18,7 @@ React/Next admin folder.
 Use the deployed backend:
 
 ```text
-https://abzora-backend.onrender.com
+https://abianzo-backend.onrender.com
 ```
 
 In this codebase, Flutter uses:
@@ -69,7 +69,7 @@ Already available on Render:
 ### Build command
 
 ```bash
-flutter build web --release --dart-define=BACKEND_BASE_URL=https://abzora-backend.onrender.com
+flutter build web --release --dart-define=BACKEND_BASE_URL=https://abianzo-backend.onrender.com
 ```
 
 ### Output directory

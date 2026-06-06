@@ -19,10 +19,6 @@ class LocationProvider with ChangeNotifier {
   static const List<double> radiusOptionsKm = [10, 25, 50];
   static const Map<String, _ManualCity> _manualCities = {
     'Chennai': _ManualCity('Chennai', 13.0827, 80.2707),
-    'Bangalore': _ManualCity('Bangalore', 12.9716, 77.5946),
-    'Hyderabad': _ManualCity('Hyderabad', 17.3850, 78.4867),
-    'Mumbai': _ManualCity('Mumbai', 19.0760, 72.8777),
-    'Delhi': _ManualCity('Delhi', 28.6139, 77.2090),
   };
 
   final DatabaseService _db;
@@ -63,18 +59,53 @@ class LocationProvider with ChangeNotifier {
   String get displayAddress => _resolvedAddress?.address.trim().isNotEmpty == true ? _resolvedAddress!.address : _activeLocation;
   String get displayArea => _resolvedAddress?.area.trim().isNotEmpty == true ? _resolvedAddress!.area : _activeLocation;
   String get displayCity => _resolvedAddress?.city.trim().isNotEmpty == true ? _resolvedAddress!.city : _activeLocation;
+  String get displayPincode {
+    final resolved = _resolvedAddress?.postalCode.trim() ?? '';
+    if (resolved.isNotEmpty) {
+      return resolved;
+    }
+    final currentAddress = _currentUser?.address ?? '';
+    final match = RegExp(r'\b(\d{6})\b').firstMatch(currentAddress);
+    return match?.group(1) ?? '';
+  }
 
-  String deliveryHeadline(String userName) {
-    final recipient = userName.trim().isEmpty ? 'You' : userName.trim();
-    final city = displayCity.trim().isEmpty ? _activeLocation : displayCity.trim();
-    return 'Delivering to $recipient, $city';
+  String deliveryHeadline() {
+    final locality = displayArea.trim();
+    final city = displayCity.trim();
+    final destination = locality.isNotEmpty
+        ? locality
+        : city.isNotEmpty
+            ? city
+            : _activeLocation;
+    return 'Delivering to $destination';
+  }
+
+  DeliveryHeaderCopy deliveryHeaderCopy(String userName) {
+    if (!hasResolvedLocation) {
+      return const DeliveryHeaderCopy(
+        title: AbianzoText.locationLoggedOutTitle,
+        subtitle: '',
+      );
+    }
+
+    final locality = displayArea.trim();
+    final city = displayCity.trim();
+    final destination = locality.isNotEmpty
+        ? locality
+        : city.isNotEmpty
+            ? city
+            : _activeLocation;
+    return DeliveryHeaderCopy(
+      title: 'Delivering to $destination',
+      subtitle: '',
+    );
   }
 
   String deliverySubline() {
     if (_isManualLocation) {
-      return AbzoraText.locationManualSubtitle;
+      return AbianzoText.locationManualSubtitle;
     }
-    return AbzoraText.locationSubtext;
+    return AbianzoText.locationSubtext;
   }
 
   Future<void> bootstrap({
@@ -149,13 +180,13 @@ class LocationProvider with ChangeNotifier {
     _currentUser = user ?? _currentUser;
     _isManualLocation = true;
     _status = LocationStatus.manual;
-    _errorMessage = 'Using manual city until GPS is available.';
+    _errorMessage = 'Using Chennai until GPS is available.';
     _activeLocation = selected.city;
     _resolvedAddress = LocationAddress(
       address: selected.city,
       area: selected.city,
       city: selected.city,
-      state: '',
+      state: 'Tamil Nadu',
       postalCode: '',
     );
     _userPosition = Position(
@@ -276,7 +307,7 @@ class LocationProvider with ChangeNotifier {
       address: (user.address ?? '').trim().isEmpty ? _activeLocation : user.address!.trim(),
       area: user.area?.trim() ?? '',
       city: savedCity,
-      state: '',
+      state: 'Tamil Nadu',
       postalCode: '',
     );
     if (hasCoordinates) {
@@ -441,6 +472,16 @@ class LocationProvider with ChangeNotifier {
   }
 }
 
+class DeliveryHeaderCopy {
+  final String title;
+  final String subtitle;
+
+  const DeliveryHeaderCopy({
+    required this.title,
+    required this.subtitle,
+  });
+}
+
 class _ManualCity {
   final String city;
   final double latitude;
@@ -448,3 +489,5 @@ class _ManualCity {
 
   const _ManualCity(this.city, this.latitude, this.longitude);
 }
+
+

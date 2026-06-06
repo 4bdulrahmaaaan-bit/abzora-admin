@@ -17,7 +17,7 @@ class RiderGlassCard extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
@@ -26,20 +26,20 @@ class RiderGlassCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white.withValues(alpha: 0.08),
-                Colors.white.withValues(alpha: 0.03),
+                Colors.white.withValues(alpha: 0.98),
+                const Color(0xFFFCFBF7),
               ],
             ),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            border: Border.all(color: const Color(0xFFE7E0D3)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.35),
-                blurRadius: 26,
-                offset: const Offset(0, 12),
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
               ),
               BoxShadow(
-                color: const Color(0xFFD4AF37).withValues(alpha: 0.06),
-                blurRadius: 30,
+                color: const Color(0xFFC8A86B).withValues(alpha: 0.08),
+                blurRadius: 28,
                 spreadRadius: 1,
               ),
             ],

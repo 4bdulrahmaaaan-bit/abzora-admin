@@ -867,3 +867,4 @@ class _ReviewBadge extends StatelessWidget {
     );
   }
 }
+

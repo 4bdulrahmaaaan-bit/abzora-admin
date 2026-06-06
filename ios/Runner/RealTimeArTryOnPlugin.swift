@@ -268,24 +268,8 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
       }
       return
     }
-    let segmentationConfidence =
-      max(
-        0.0,
-        min(
-          1.0,
-          (poseFrame["segmentationConfidence"] as? Double) ??
-            ((args["segmentationConfidence"] as? Double) ?? 0.5)
-        )
-      )
-    let renderQuality =
-      max(
-        0.35,
-        min(
-          1.0,
-          (poseFrame["renderQuality"] as? Double) ??
-            ((args["renderQuality"] as? Double) ?? 0.8)
-        )
-      )
+    let segmentationConfidence = number(from: poseFrame["segmentationConfidence"] ?? args["segmentationConfidence"], fallback: 0.5, min: 0.0, max: 1.0)
+    let renderQuality = number(from: poseFrame["renderQuality"] ?? args["renderQuality"], fallback: 0.8, min: 0.35, max: 1.0)
     let occlusionEnabled =
       (poseFrame["occlusionEnabled"] as? Bool) ?? ((args["occlusionEnabled"] as? Bool) ?? false)
     let garmentAlignment = poseFrame["garmentAlignment"] as? [String: Any]
@@ -442,11 +426,9 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
   }
 
   private func point(from raw: Any?) -> CGPoint? {
-    guard
-      let dict = raw as? [String: Any],
-      let x = dict["x"] as? Double,
-      let y = dict["y"] as? Double
-    else { return nil }
+    guard let dict = raw as? [String: Any] else { return nil }
+    let x = (dict["x"] as? NSNumber)?.doubleValue ?? 0.0
+    let y = (dict["y"] as? NSNumber)?.doubleValue ?? 0.0
     return CGPoint(x: x, y: y)
   }
 
@@ -487,7 +469,7 @@ final class RealTimeArTryOnView: NSObject, FlutterPlatformView {
           </style>
         </head>
         <body>
-          <model-viewer src="\(escapedUrl)" camera-controls auto-rotate shadow-intensity="0.6" exposure="1"></model-viewer>
+          <model-viewer src="\(escapedUrl)" camera-orbit="0deg 90deg 2.5m" disable-zoom disable-pan disable-tap shadow-intensity="0.6" exposure="1" autoplay></model-viewer>
         </body>
       </html>
     """

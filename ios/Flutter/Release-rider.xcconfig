@@ -1,5 +1,6 @@
 #include "Release.xcconfig"
 APP_DISPLAY_NAME=Abianzo Rider
 LAUNCH_SCREEN_STORYBOARD=LaunchScreenRider
+LAUNCH_IMAGE_NAME=LaunchImageRider
 APP_ICON_NAME=AppIconRider
 APP_BUNDLE_IDENTIFIER=com.abdz.fashion.abzio.rider

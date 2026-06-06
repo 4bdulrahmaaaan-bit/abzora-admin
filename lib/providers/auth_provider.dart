@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,6 +16,7 @@ import '../services/notification_service.dart';
 import '../services/app_navigation_service.dart';
 import '../services/storage_service.dart';
 import '../utils/app_mode_routes.dart';
+import 'auth_session_recovery_policy.dart';
 
 class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
   final AuthService _authService = AuthService();
@@ -31,13 +33,12 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
   bool _isLoading = false;
   bool _isUpdatingProfile = false;
   bool _isInitialized = false;
+  bool _isRestoringSession = false;
   bool _isLoggingOut = false;
   bool _isRefreshingAuthToken = false;
   DateTime? _lastSignInAt;
   DateTime? _lastTokenRefreshAt;
-  DateTime? _lastUnauthorizedSignalAt;
   DateTime? _lastUnauthorizedRecoveryAttemptAt;
-  int _consecutiveUnauthorizedSignals = 0;
   String? _pendingPhoneNumber;
   String? _lastBackendProfileSyncKey;
 
@@ -100,7 +101,11 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     unawaited(_syncNotificationChannels(user));
     _maybeSyncBackendProfile(user);
     _liveProfileSubscription = _db.watchUser(user.id).listen((liveUser) {
-      _user = liveUser ?? user;
+      final nextUser = liveUser ?? user;
+      if (_isSameUserSnapshot(_user, nextUser)) {
+        return;
+      }
+      _user = nextUser;
       _isAuthenticated = _user != null;
       if (_user != null) {
         _maybeSyncBackendProfile(_user!);
@@ -109,6 +114,39 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
       unawaited(_refreshAuthToken());
       notifyListeners();
     });
+  }
+
+  bool _isSameUserSnapshot(AppUser? left, AppUser? right) {
+    if (identical(left, right)) {
+      return true;
+    }
+    if (left == null || right == null) {
+      return left == right;
+    }
+    return left.id == right.id &&
+        left.name == right.name &&
+        left.email == right.email &&
+        left.profileImageUrl == right.profileImageUrl &&
+        left.phone == right.phone &&
+        left.address == right.address &&
+        left.area == right.area &&
+        left.city == right.city &&
+        left.latitude == right.latitude &&
+        left.longitude == right.longitude &&
+        left.deliveryRadiusKm == right.deliveryRadiusKm &&
+        left.locationUpdatedAt == right.locationUpdatedAt &&
+        left.createdAt == right.createdAt &&
+        left.role == right.role &&
+        left.isActive == right.isActive &&
+        left.storeId == right.storeId &&
+        left.walletBalance == right.walletBalance &&
+        mapEquals(left.roles, right.roles) &&
+        left.riderApprovalStatus == right.riderApprovalStatus &&
+        left.riderVehicleType == right.riderVehicleType &&
+        left.riderLicenseNumber == right.riderLicenseNumber &&
+        left.riderCity == right.riderCity &&
+        left.referralCode == right.referralCode &&
+        left.referredBy == right.referredBy;
   }
 
   Future<void> _syncNotificationChannels(AppUser user) async {
@@ -192,6 +230,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
   }
 
   Future<void> _restoreSession() async {
+    _isRestoringSession = true;
     try {
       await _sessionService.initialize();
       await FirebaseAuth.instance.authStateChanges().first.timeout(
@@ -206,6 +245,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
         await _refreshAuthToken(forceRefresh: false);
       }
     } finally {
+      _isRestoringSession = false;
       _isInitialized = true;
       notifyListeners();
     }
@@ -329,7 +369,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
   }
 
   Future<void> _handleUnauthorizedSession() async {
-    if (!_isAuthenticated || _isLoggingOut) {
+    if (!_isAuthenticated || _isLoggingOut || _isRestoringSession) {
       return;
     }
     final signedInJustNow =
@@ -343,13 +383,6 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
         now.difference(_lastUnauthorizedRecoveryAttemptAt!).inSeconds < 30) {
       return;
     }
-    if (_lastUnauthorizedSignalAt == null ||
-        now.difference(_lastUnauthorizedSignalAt!).inMinutes >= 2) {
-      _consecutiveUnauthorizedSignals = 1;
-    } else {
-      _consecutiveUnauthorizedSignals += 1;
-    }
-    _lastUnauthorizedSignalAt = now;
     _lastUnauthorizedRecoveryAttemptAt = now;
     debugPrint(
       'AuthProvider: unauthorized session detected, attempting silent recovery.',
@@ -366,11 +399,34 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     }
     if (recovery == SessionRecoveryStatus.recovered) {
       await _refreshAuthToken(forceRefresh: true);
-      if (_token != null &&
-          _token!.isNotEmpty &&
-          _consecutiveUnauthorizedSignals < 2) {
+      if (_token != null && _token!.isNotEmpty) {
         return;
       }
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        debugPrint(
+          'AuthProvider: backend recovery succeeded but token refresh was empty; keeping Firebase session alive.',
+        );
+        return;
+      }
+      return;
+    }
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser != null) {
+      debugPrint(
+        'AuthProvider: backend recovery failed, but Firebase session is still present; keeping user signed in until explicit logout.',
+      );
+      await _refreshAuthToken(forceRefresh: true);
+      return;
+    }
+    if (!shouldForceLogoutAfterUnauthorizedRecovery(
+      isRestoringSession: _isRestoringSession,
+      firebaseUserPresent: firebaseUser != null,
+      localUserPresent: _user != null,
+    )) {
+      debugPrint(
+        'AuthProvider: backend recovery failed, but a live session source is still present; keeping the user signed in.',
+      );
       return;
     }
     await logout();
@@ -397,7 +453,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
       final keys = prefs.getKeys();
       for (final key in keys) {
         final isSessionScoped =
-            key == 'abzora_local_cart_v1' || key.startsWith('payment_pref_');
+            key == 'abianzo_local_cart_v1' || key.startsWith('payment_pref_');
         final isUserScoped =
             userId != null && userId.isNotEmpty && key.contains(userId);
         if (isSessionScoped || isUserScoped) {
@@ -417,9 +473,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     _lastBackendProfileSyncKey = null;
     _lastSignInAt = null;
     _lastTokenRefreshAt = null;
-    _lastUnauthorizedSignalAt = null;
     _lastUnauthorizedRecoveryAttemptAt = null;
-    _consecutiveUnauthorizedSignals = 0;
   }
 
   void setUser(AppUser user) {

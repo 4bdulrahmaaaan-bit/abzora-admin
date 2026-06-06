@@ -606,12 +606,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           backendOrderId: pendingOrder.id,
           name: currentUser.name.trim().isEmpty ? 'Abianzo Member' : currentUser.name.trim(),
           amount: payableAmount,
-          email: currentUser.email.isEmpty ? 'guest@abzora.app' : currentUser.email,
+          email: currentUser.email.isEmpty ? 'guest@abianzo.app' : currentUser.email,
           contact: currentUser.phone ?? _selectedAddress!.phone,
           description: cart.hasCustomTailoring ? 'Custom clothing checkout' : 'Marketplace checkout',
         );
         if (!paymentResult.success) {
-          _logCheckout('Abianzo checkout: payment failed or cancelled');
+      _logCheckout('Abianzo checkout: payment failed or cancelled');
           if (mounted) {
             messenger.showSnackBar(
               const SnackBar(content: Text('Payment was not completed.')),
@@ -635,7 +635,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             userId: currentUser.id,
             name: currentUser.name.trim().isEmpty ? 'Abianzo Member' : currentUser.name.trim(),
             amount: payableAmount,
-            email: currentUser.email.isEmpty ? 'guest@abzora.app' : currentUser.email,
+            email: currentUser.email.isEmpty ? 'guest@abianzo.app' : currentUser.email,
             contact: currentUser.phone ?? _selectedAddress!.phone,
             description: cart.hasCustomTailoring ? 'Custom clothing checkout' : 'Marketplace checkout',
           );
@@ -802,9 +802,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return AbzioThemeScope.light(
       child: Scaffold(
-        backgroundColor: const Color(0xFFFFFBF5),
+        backgroundColor: const Color(0xFFFAF9F6),
         appBar: AppBar(
           scrolledUnderElevation: 0,
+          backgroundColor: const Color(0xFFFAF9F6),
+          foregroundColor: const Color(0xFF1F1F1C),
           titleSpacing: 0,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -880,7 +882,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     const SizedBox(height: 10),
                     _BestOfferBanner(
                       loading: _loadingCouponOffer,
-                      title: _bestCouponOffer?.title ?? 'Special offer for you',
+                      title: _bestCouponOffer?.title ?? 'Private offer for you',
                       subtitle: _bestCouponOffer?.subtitle,
                       code: _bestCouponOffer?.code ?? (cart.hasCustomTailoring ? 'ELITE20' : 'ABZORA10'),
                       discountLabel: _bestCouponOffer == null
@@ -906,7 +908,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 12),
                 _SectionShell(
                   title: 'Payment Method',
-                  subtitle: 'Fast, secure checkout tailored for you.',
+                  subtitle: 'A quiet, secure final review before you pay.',
                   child: _PremiumPaymentSelector(
                     selectedMethod: _paymentMethod,
                     codAvailable: _isCodAvailable(cart),
@@ -938,20 +940,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           child: Container(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFFEFDFC),
-                  Colors.white,
-                ],
-              ),
-              border: Border(top: BorderSide(color: context.abzioBorder)),
+              color: const Color(0xFFFCFBF8),
+              border: Border(top: BorderSide(color: const Color(0xFFE8E0D2))),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 24,
-                  offset: const Offset(0, -10),
+                  color: Colors.black.withValues(alpha: 0.045),
+                  blurRadius: 18,
+                  offset: const Offset(0, -8),
                 ),
               ],
             ),
@@ -1000,12 +995,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     );
 
                     final actionButton = DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFE1C768), AbzioTheme.accentColor],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFD9C27A), Color(0xFFC6A769)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                         child: ElevatedButton(
                           onPressed: _processing ? null : () => _placeOrder(cart),
                           style: ElevatedButton.styleFrom(
@@ -2344,7 +2339,7 @@ class _ReferralCreditCard extends StatelessWidget {
               children: [
                 Text(
                   current.autoApplied && current.appliedCredits > 0
-                      ? 'Rs ${current.appliedCredits.toStringAsFixed(0)} credits applied automatically'
+                      ? '₹${current.appliedCredits.toStringAsFixed(0)} credits applied automatically'
                       : current.message,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
@@ -2352,7 +2347,7 @@ class _ReferralCreditCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Available credits: Rs ${current.availableCredits.toStringAsFixed(0)}',
+                  'Available credits: ₹${current.availableCredits.toStringAsFixed(0)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: context.abzioSecondaryText,
                         fontSize: 11,
@@ -2582,4 +2577,5 @@ class _AddressOptionTile extends StatelessWidget {
     );
   }
 }
+
 

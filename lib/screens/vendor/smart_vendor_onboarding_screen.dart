@@ -403,3 +403,4 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
     );
   }
 }
+

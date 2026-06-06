@@ -116,7 +116,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 TextField(
                   onChanged: (value) => setState(() => _searchQuery = value.trim()),
                   decoration: InputDecoration(
-                    hintText: 'Search by product, atelier, or order ID',
+                    hintText: 'Search by product, tailoring, or order ID',
                     prefixIcon: Icon(
                       Icons.search_rounded,
                       size: 20,
@@ -210,7 +210,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final query = _searchQuery.toLowerCase();
     final itemText = order.items.map((item) => '${item.productName} ${item.size}').join(' ').toLowerCase();
     final orderLabel = (order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber).toLowerCase();
-    final atelierText = [
+    final tailoringText = [
       order.selectedDesignerName,
       order.customizationSummary,
       order.customDesignOptions['fabric'],
@@ -219,7 +219,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     ].whereType<Object>().map((value) => value.toString().toLowerCase()).join(' ');
     return itemText.contains(query) ||
         orderLabel.contains(query) ||
-        atelierText.contains(query) ||
+        tailoringText.contains(query) ||
         _statusLabel(order).toLowerCase().contains(query);
   }
 
@@ -227,8 +227,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     switch (_activeFilter) {
       case _OrderFilter.all:
         return true;
-      case _OrderFilter.atelier:
-        return _isAtelierOrder(order);
       case _OrderFilter.marketplace:
         return !_isAtelierOrder(order);
     }
@@ -384,12 +382,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     if (_isAtelierOrder(order)) {
       final label = _statusLabel(order);
       if (label == 'Cancelled') {
-        return 'The atelier journey has been paused.';
+        return 'The tailoring journey has been paused.';
       }
       if (label == 'Delivered') {
         return 'Crafted and delivered on ${DateFormat('EEE, dd MMM').format(_estimatedDelivery(order))}';
       }
-      return 'Your outfit is moving through the atelier.';
+      return 'Your outfit is moving through tailoring.';
     }
     final label = _statusLabel(order);
     if (label == 'Cancelled') {
@@ -487,7 +485,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
 enum _OrderFilter {
   all('All'),
-  atelier('Atelier ✂️'),
   marketplace('Orders 🛒');
 
   const _OrderFilter(this.label);
@@ -1005,7 +1002,7 @@ class _OrderDetailsPage extends StatelessWidget {
       child: Scaffold(
         backgroundColor: const Color(0xFFFCF8F2),
         appBar: AppBar(
-          title: Text(_isCustomTailoring ? 'Atelier Order' : 'Order Details'),
+          title: Text(_isCustomTailoring ? 'Tailoring Order' : 'Order Details'),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 12),
@@ -2954,7 +2951,7 @@ class _OrderListCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: Text(
-                                'Atelier',
+                                'Tailoring',
                                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                       color: const Color(0xFF8C6A12),
                                       fontWeight: FontWeight.w800,
@@ -3057,3 +3054,4 @@ class _OrderListCard extends StatelessWidget {
     );
   }
 }
+

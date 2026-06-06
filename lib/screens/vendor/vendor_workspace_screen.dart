@@ -1662,3 +1662,4 @@ class _Skeleton extends StatelessWidget {
         children: List.generate(6, (i) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Container(height: i == 1 ? 180 : 90, decoration: BoxDecoration(color: const Color(0xFFEFECE4), borderRadius: BorderRadius.circular(16))))),
       );
 }
+

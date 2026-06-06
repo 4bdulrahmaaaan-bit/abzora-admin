@@ -1,0 +1,11 @@
+.git
+.idea
+.dart_tool
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+node_modules/
+backend/
+tmp/
+*.log

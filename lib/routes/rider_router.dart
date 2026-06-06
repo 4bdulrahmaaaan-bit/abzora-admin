@@ -1,23 +1,20 @@
 import 'package:go_router/go_router.dart';
 
-import '../features/dashboard/rider_dashboard_screen.dart';
 import '../features/onboarding/rider_onboarding_screens.dart';
+import '../screens/rider/rider_dashboard.dart';
+import '../screens/rider/rider_onboarding_screen.dart';
 import 'rider_routes.dart';
 
 final riderRouter = GoRouter(
-  initialLocation: RiderRoutes.splash,
+  initialLocation: RiderRoutes.auth,
   routes: [
-    GoRoute(
-      path: RiderRoutes.splash,
-      builder: (context, state) => const RiderSplashScreen(),
-    ),
     GoRoute(
       path: RiderRoutes.auth,
       builder: (context, state) => const RiderAuthBannerScreen(),
     ),
     GoRoute(
       path: RiderRoutes.profileSetup,
-      builder: (context, state) => const RiderOnboardingFlowScreen(),
+      builder: (context, state) => const RiderOnboardingScreen(),
     ),
     GoRoute(
       path: RiderRoutes.success,
@@ -25,7 +22,7 @@ final riderRouter = GoRouter(
     ),
     GoRoute(
       path: RiderRoutes.dashboard,
-      builder: (context, state) => const RiderDashboardScreen(),
+      builder: (context, state) => const RiderDashboard(),
     ),
   ],
 );

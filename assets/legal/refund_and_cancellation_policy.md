@@ -1,4 +1,4 @@
-# Abzora Refund & Cancellation Policy
+# Abianzo Refund & Cancellation Policy
 
 **Effective Date:** 12 May 2026
 
@@ -20,7 +20,7 @@
 
 ## 4. Refund Timeline
 1. UPI/Card/Wallet refunds usually within 5-10 business days.
-2. Bank delays may extend timelines; Abzora is not responsible for banking network delays.
+2. Bank delays may extend timelines; Abianzo is not responsible for banking network delays.
 
 ## 5. COD Refunds
 1. COD refunds are processed to bank/UPI after verification.
@@ -35,4 +35,4 @@
 1. Repeated suspicious refund claims may trigger review, hold, or account action.
 
 ## 9. Final Decision
-1. Refund decisions are made by Abzora based on evidence, logs, and vendor/rider response.
+1. Refund decisions are made by Abianzo based on evidence, logs, and vendor/rider response.

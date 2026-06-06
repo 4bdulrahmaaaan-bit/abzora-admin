@@ -1,9 +1,9 @@
-# Abzora Cookie Policy
+# Abianzo Cookie Policy
 
 **Effective Date:** 12 May 2026
 
 ## 1. Applicability
-1. This policy applies to Abzora websites and web panels where cookies or similar technologies are used.
+1. This policy applies to Abianzo websites and web panels where cookies or similar technologies are used.
 
 ## 2. Cookie Types
 1. Essential cookies for authentication and security.

@@ -9,14 +9,53 @@ import 'package:flutter/foundation.dart';
 import 'app_config.dart';
 import 'auth_session_service.dart';
 
+enum BackendFailureKind {
+  noInternet,
+  dnsLookup,
+  timeout,
+  backendUnavailable,
+  clientError,
+  serverError,
+  tlsFailure,
+  unknown,
+}
+
 class BackendApiException implements Exception {
-  const BackendApiException(this.message, {required this.statusCode});
+  const BackendApiException(
+    this.message, {
+    required this.statusCode,
+    required this.failureKind,
+    this.endpoint = '',
+    this.method = '',
+    this.exceptionType = '',
+    this.timeoutDuration,
+  });
 
   final String message;
   final int statusCode;
+  final BackendFailureKind failureKind;
+  final String endpoint;
+  final String method;
+  final String exceptionType;
+  final Duration? timeoutDuration;
 
   bool get isUnauthorized => statusCode == 401;
   bool get isForbidden => statusCode == 403;
+  bool get isTimeout => failureKind == BackendFailureKind.timeout;
+  bool get isDnsLookupFailure => failureKind == BackendFailureKind.dnsLookup;
+  bool get isNoInternetConnection =>
+      failureKind == BackendFailureKind.noInternet;
+  bool get isBackendUnavailable =>
+      failureKind == BackendFailureKind.backendUnavailable;
+  bool get isServerError => failureKind == BackendFailureKind.serverError;
+  bool get isClientError => failureKind == BackendFailureKind.clientError;
+  bool get isTlsFailure => failureKind == BackendFailureKind.tlsFailure;
+  bool get isNetworkIssue =>
+      isNoInternetConnection ||
+      isDnsLookupFailure ||
+      isTimeout ||
+      isBackendUnavailable ||
+      isTlsFailure;
 
   @override
   String toString() => message;
@@ -86,6 +125,163 @@ class BackendApiClient {
     if (!backendAvailability.value.isAvailable) {
       backendAvailability.value = const BackendAvailability.available();
     }
+  }
+
+  void _logFailure({
+    required String method,
+    required String path,
+    required int statusCode,
+    required String exceptionType,
+    Duration? timeoutDuration,
+    String? message,
+  }) {
+    final timeoutLabel = timeoutDuration == null
+        ? 'n/a'
+        : '${timeoutDuration.inSeconds}s';
+    debugPrint(
+      'BackendApiClient failure: endpoint=$method $path, statusCode=$statusCode, '
+      'exceptionType=$exceptionType, timeout=$timeoutLabel${message == null ? '' : ', message=$message'}',
+    );
+  }
+
+  bool _isNoInternetError(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('network is unreachable') ||
+        text.contains('no route to host') ||
+        text.contains('host is down') ||
+        text.contains('there was no internet connection') ||
+        text.contains('internet connection') ||
+        text.contains('network unreachable');
+  }
+
+  bool _isDnsLookupError(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('failed host lookup') ||
+        text.contains('no address associated with hostname') ||
+        text.contains('name or service not known') ||
+        text.contains('temporary failure in name resolution');
+  }
+
+  bool _isBackendUnavailableError(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('connection refused') ||
+        text.contains('connection reset') ||
+        text.contains('connection closed') ||
+        text.contains('software caused connection abort') ||
+        text.contains('broken pipe') ||
+        text.contains('connection aborted');
+  }
+
+  bool _isTlsFailure(Object error) {
+    final text = error.toString().toLowerCase();
+    return error is HandshakeException ||
+        text.contains('handshakeexception') ||
+        text.contains('certificate') ||
+        text.contains('ssl');
+  }
+
+  BackendFailureKind _classifyTransportFailure(Object error) {
+    if (error is TimeoutException) {
+      return BackendFailureKind.timeout;
+    }
+    if (error is SocketException) {
+      if (_isDnsLookupError(error)) {
+        return BackendFailureKind.dnsLookup;
+      }
+      if (_isNoInternetError(error)) {
+        return BackendFailureKind.noInternet;
+      }
+      if (_isBackendUnavailableError(error)) {
+        return BackendFailureKind.backendUnavailable;
+      }
+    }
+    if (error is http.ClientException) {
+      if (_isDnsLookupError(error)) {
+        return BackendFailureKind.dnsLookup;
+      }
+      if (_isNoInternetError(error)) {
+        return BackendFailureKind.noInternet;
+      }
+      if (_isBackendUnavailableError(error)) {
+        return BackendFailureKind.backendUnavailable;
+      }
+    }
+    if (_isTlsFailure(error)) {
+      return BackendFailureKind.tlsFailure;
+    }
+    final text = error.toString().toLowerCase();
+    if (text.contains('socketexception') &&
+        text.contains('failed host lookup')) {
+      return BackendFailureKind.dnsLookup;
+    }
+    if (text.contains('socketexception')) {
+      return BackendFailureKind.backendUnavailable;
+    }
+    return BackendFailureKind.unknown;
+  }
+
+  String _transportMessage(BackendFailureKind kind, Duration timeoutDuration) {
+    switch (kind) {
+      case BackendFailureKind.noInternet:
+        return 'No internet connection. Check your network and try again.';
+      case BackendFailureKind.dnsLookup:
+        return 'DNS lookup failed. Please check the backend domain and try again.';
+      case BackendFailureKind.timeout:
+        return 'Request timed out after ${timeoutDuration.inSeconds}s. Please try again.';
+      case BackendFailureKind.backendUnavailable:
+        return 'Backend unreachable. Please try again in a moment.';
+      case BackendFailureKind.clientError:
+        return 'Network request failed. Please try again.';
+      case BackendFailureKind.serverError:
+        return 'Server error. Please try again in a moment.';
+      case BackendFailureKind.tlsFailure:
+        return 'Secure connection to the backend failed. Please try again.';
+      case BackendFailureKind.unknown:
+        return 'Network request failed. Please try again.';
+    }
+  }
+
+  BackendApiException _transportException({
+    required String method,
+    required String path,
+    required Object error,
+    required Duration timeoutDuration,
+  }) {
+    final kind = _classifyTransportFailure(error);
+    final statusCode = switch (kind) {
+      BackendFailureKind.timeout => 408,
+      BackendFailureKind.backendUnavailable => 503,
+      BackendFailureKind.serverError => 500,
+      BackendFailureKind.clientError => 400,
+      BackendFailureKind.dnsLookup => 0,
+      BackendFailureKind.noInternet => 0,
+      BackendFailureKind.tlsFailure => 525,
+      BackendFailureKind.unknown => 0,
+    };
+    final message = _transportMessage(kind, timeoutDuration);
+    _logFailure(
+      method: method,
+      path: path,
+      statusCode: statusCode,
+      exceptionType: error.runtimeType.toString(),
+      timeoutDuration: timeoutDuration,
+      message: message,
+    );
+    if (kind == BackendFailureKind.backendUnavailable ||
+        kind == BackendFailureKind.timeout ||
+        kind == BackendFailureKind.tlsFailure ||
+        kind == BackendFailureKind.serverError) {
+      _markBackendDown(message);
+    }
+    return BackendApiException(
+      message,
+      statusCode: statusCode,
+      failureKind: kind,
+      endpoint: '$method $path',
+      method: method,
+      exceptionType: error.runtimeType.toString(),
+      timeoutDuration: timeoutDuration,
+    );
   }
 
   Future<Map<String, String>> _headers({
@@ -199,6 +395,9 @@ class BackendApiClient {
   }
 
   bool _isTransientNetworkError(Object error) {
+    if (error is BackendApiException) {
+      return error.isNetworkIssue || error.isServerError;
+    }
     if (error is TimeoutException) {
       return true;
     }
@@ -217,12 +416,6 @@ class BackendApiClient {
         asText.contains('failed host lookup') ||
         asText.contains('software caused connection abort') ||
         asText.contains('connection closed');
-  }
-
-  bool _isDnsLookupError(Object error) {
-    final asText = error.toString().toLowerCase();
-    return asText.contains('failed host lookup') ||
-        asText.contains('no address associated with hostname');
   }
 
   Future<T> _executeWithDnsFallback<T>({
@@ -318,12 +511,34 @@ class BackendApiClient {
 
     if (!looksLikeJson) {
       final preview = rawBody.replaceAll(RegExp(r'\s+'), ' ');
-      _markBackendDown('Backend responded with non-JSON content.');
+      if (response.statusCode >= 500) {
+        _markBackendDown(
+          'Server error (${response.statusCode}). Please try again in a moment.',
+        );
+      }
+      _logFailure(
+        method: method,
+        path: path,
+        statusCode: response.statusCode,
+        exceptionType: 'HttpStatusException',
+        message: response.statusCode >= 500
+            ? 'Server error (${response.statusCode}). Please try again in a moment.'
+            : 'Backend returned a non-JSON response.',
+      );
       throw BackendApiException(
         response.statusCode >= 200 && response.statusCode < 300
-            ? 'Backend returned a non-JSON response. Please verify backend URL/deployment.'
-            : 'Backend request failed (${response.statusCode}). ${preview.length > 120 ? '${preview.substring(0, 120)}...' : preview}',
+            ? 'Backend returned a non-JSON response. Please verify backend deployment.'
+            : _statusMessageForCode(
+                response.statusCode,
+                backendMessage: preview,
+              ),
         statusCode: response.statusCode,
+        failureKind: response.statusCode >= 500
+            ? BackendFailureKind.serverError
+            : BackendFailureKind.clientError,
+        endpoint: '$method $path',
+        method: method,
+        exceptionType: 'HttpStatusException',
       );
     }
 
@@ -331,10 +546,28 @@ class BackendApiClient {
     try {
       decoded = jsonDecode(rawBody);
     } on FormatException {
-      _markBackendDown('Backend returned invalid JSON.');
-      throw BackendApiException(
-        'Backend returned invalid JSON. Please verify backend deployment.',
+      if (response.statusCode >= 500) {
+        _markBackendDown(
+          'Server error (${response.statusCode}). Please try again in a moment.',
+        );
+      }
+      _logFailure(
+        method: method,
+        path: path,
         statusCode: response.statusCode,
+        exceptionType: 'FormatException',
+      );
+      throw BackendApiException(
+        response.statusCode >= 500
+            ? 'Server error (${response.statusCode}). Please try again in a moment.'
+            : 'Backend returned invalid JSON. Please verify backend deployment.',
+        statusCode: response.statusCode,
+        failureKind: response.statusCode >= 500
+            ? BackendFailureKind.serverError
+            : BackendFailureKind.clientError,
+        endpoint: '$method $path',
+        method: method,
+        exceptionType: 'FormatException',
       );
     }
     if (decoded is Map<String, dynamic>) {
@@ -346,17 +579,38 @@ class BackendApiClient {
           }
         }
         if (response.statusCode >= 500) {
-          _markBackendDown('Backend error (${response.statusCode}).');
+          _markBackendDown(
+            'Server error (${response.statusCode}). Please try again in a moment.',
+          );
         }
         final backendMessage =
             decoded['message']?.toString() ?? 'Request failed.';
+        final message = _statusMessageForCode(
+          response.statusCode,
+          backendMessage: backendMessage,
+        );
+        _logFailure(
+          method: method,
+          path: path,
+          statusCode: response.statusCode,
+          exceptionType: 'HttpStatusException',
+          message: message,
+        );
         throw BackendApiException(
           _augmentServiceabilityMessage(
-            _normalizeErrorMessage(backendMessage, response.statusCode),
+            _normalizeErrorMessage(message, response.statusCode),
             method: method,
             path: path,
           ),
           statusCode: response.statusCode,
+          failureKind: response.statusCode >= 500
+              ? BackendFailureKind.serverError
+              : (response.statusCode >= 400
+                    ? BackendFailureKind.clientError
+                    : BackendFailureKind.unknown),
+          endpoint: '$method $path',
+          method: method,
+          exceptionType: 'HttpStatusException',
         );
       }
       _markBackendOk();
@@ -367,11 +621,27 @@ class BackendApiClient {
         // Non-JSON 401 payloads are ambiguous; avoid forcing logout here.
       }
       if (response.statusCode >= 500) {
-        _markBackendDown('Backend error (${response.statusCode}).');
+        _markBackendDown(
+          'Server error (${response.statusCode}). Please try again in a moment.',
+        );
       }
-      throw BackendApiException(
-        _normalizeErrorMessage('Request failed.', response.statusCode),
+      final message = _statusMessageForCode(response.statusCode);
+      _logFailure(
+        method: method,
+        path: path,
         statusCode: response.statusCode,
+        exceptionType: 'HttpStatusException',
+        message: message,
+      );
+      throw BackendApiException(
+        _normalizeErrorMessage(message, response.statusCode),
+        statusCode: response.statusCode,
+        failureKind: response.statusCode >= 500
+            ? BackendFailureKind.serverError
+            : BackendFailureKind.clientError,
+        endpoint: '$method $path',
+        method: method,
+        exceptionType: 'HttpStatusException',
       );
     }
     _markBackendOk();
@@ -383,6 +653,31 @@ class BackendApiClient {
       return 'Session expired. Please sign in again.';
     }
     return message;
+  }
+
+  String _statusMessageForCode(int statusCode, {String? backendMessage}) {
+    final message = backendMessage?.trim() ?? '';
+    if (message.isNotEmpty &&
+        message.toLowerCase() != 'request failed.' &&
+        message.toLowerCase() != 'failed') {
+      if (statusCode >= 500) {
+        return message;
+      }
+      return message;
+    }
+    return switch (statusCode) {
+      400 => 'Request was invalid. Please check your input and try again.',
+      401 => 'Unauthorized. Please sign in again.',
+      403 => 'Access denied. Please sign in with the correct account.',
+      404 => 'The requested resource was not found.',
+      408 => 'Request timed out. Please try again.',
+      409 =>
+        'This request conflicts with current data. Please refresh and try again.',
+      422 => 'Some details need attention. Please review and try again.',
+      429 => 'Too many requests. Please wait a moment and try again.',
+      >= 500 => 'Server error. Please try again in a moment.',
+      _ => 'Unexpected response from the backend. Please try again in a moment.',
+    };
   }
 
   bool _shouldNotifyUnauthorizedSession(String message) {
@@ -407,6 +702,7 @@ class BackendApiClient {
     bool authenticated = false,
     Map<String, String>? queryParameters,
   }) async {
+    const timeout = Duration(seconds: 20);
     try {
       final response = await _executeWithDnsFallback(
         path: path,
@@ -415,26 +711,40 @@ class BackendApiClient {
           () => _sendWithUnauthorizedRetry(
             authenticated: authenticated,
             includeJson: true,
-            send: (headers) => http
-                .get(uri, headers: headers)
-                .timeout(const Duration(seconds: 20)),
+            send: (headers) => http.get(uri, headers: headers).timeout(timeout),
           ),
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
       return _extractPayload(response, method: 'GET', path: path);
-    } on SocketException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on http.ClientException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on HandshakeException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on TimeoutException {
-      _markBackendDown('Backend timed out.');
-      rethrow;
+    } on TimeoutException catch (error) {
+      throw _transportException(
+        method: 'GET',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on SocketException catch (error) {
+      throw _transportException(
+        method: 'GET',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on http.ClientException catch (error) {
+      throw _transportException(
+        method: 'GET',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on HandshakeException catch (error) {
+      throw _transportException(
+        method: 'GET',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
     }
   }
 
@@ -443,6 +753,7 @@ class BackendApiClient {
     bool authenticated = false,
     Map<String, dynamic> body = const {},
   }) async {
+    const timeout = Duration(seconds: 25);
     try {
       final payload = jsonEncode(body);
       final response = await _executeWithDnsFallback(
@@ -453,24 +764,40 @@ class BackendApiClient {
             includeJson: true,
             send: (headers) => http
                 .post(uri, headers: headers, body: payload)
-                .timeout(const Duration(seconds: 25)),
+                .timeout(timeout),
           ),
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
       return _extractPayload(response, method: 'POST', path: path);
-    } on SocketException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on http.ClientException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on HandshakeException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on TimeoutException {
-      _markBackendDown('Backend timed out.');
-      rethrow;
+    } on TimeoutException catch (error) {
+      throw _transportException(
+        method: 'POST',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on SocketException catch (error) {
+      throw _transportException(
+        method: 'POST',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on http.ClientException catch (error) {
+      throw _transportException(
+        method: 'POST',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on HandshakeException catch (error) {
+      throw _transportException(
+        method: 'POST',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
     }
   }
 
@@ -479,6 +806,7 @@ class BackendApiClient {
     bool authenticated = false,
     Map<String, dynamic> body = const {},
   }) async {
+    const timeout = Duration(seconds: 25);
     try {
       final payload = jsonEncode(body);
       final response = await _executeWithDnsFallback(
@@ -487,26 +815,41 @@ class BackendApiClient {
           () => _sendWithUnauthorizedRetry(
             authenticated: authenticated,
             includeJson: true,
-            send: (headers) => http
-                .put(uri, headers: headers, body: payload)
-                .timeout(const Duration(seconds: 25)),
+            send: (headers) =>
+                http.put(uri, headers: headers, body: payload).timeout(timeout),
           ),
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
       return _extractPayload(response, method: 'PUT', path: path);
-    } on SocketException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on http.ClientException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on HandshakeException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on TimeoutException {
-      _markBackendDown('Backend timed out.');
-      rethrow;
+    } on TimeoutException catch (error) {
+      throw _transportException(
+        method: 'PUT',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on SocketException catch (error) {
+      throw _transportException(
+        method: 'PUT',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on http.ClientException catch (error) {
+      throw _transportException(
+        method: 'PUT',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on HandshakeException catch (error) {
+      throw _transportException(
+        method: 'PUT',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
     }
   }
 
@@ -515,6 +858,7 @@ class BackendApiClient {
     bool authenticated = false,
     Map<String, dynamic> body = const {},
   }) async {
+    const timeout = Duration(seconds: 25);
     try {
       final payload = jsonEncode(body);
       final response = await _executeWithDnsFallback(
@@ -525,28 +869,45 @@ class BackendApiClient {
             includeJson: true,
             send: (headers) => http
                 .patch(uri, headers: headers, body: payload)
-                .timeout(const Duration(seconds: 25)),
+                .timeout(timeout),
           ),
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
       return _extractPayload(response, method: 'PATCH', path: path);
-    } on SocketException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on http.ClientException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on HandshakeException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on TimeoutException {
-      _markBackendDown('Backend timed out.');
-      rethrow;
+    } on TimeoutException catch (error) {
+      throw _transportException(
+        method: 'PATCH',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on SocketException catch (error) {
+      throw _transportException(
+        method: 'PATCH',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on http.ClientException catch (error) {
+      throw _transportException(
+        method: 'PATCH',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on HandshakeException catch (error) {
+      throw _transportException(
+        method: 'PATCH',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
     }
   }
 
   Future<dynamic> delete(String path, {bool authenticated = false}) async {
+    const timeout = Duration(seconds: 20);
     try {
       final response = await _executeWithDnsFallback(
         path: path,
@@ -554,26 +915,41 @@ class BackendApiClient {
           () => _sendWithUnauthorizedRetry(
             authenticated: authenticated,
             includeJson: true,
-            send: (headers) => http
-                .delete(uri, headers: headers)
-                .timeout(const Duration(seconds: 20)),
+            send: (headers) =>
+                http.delete(uri, headers: headers).timeout(timeout),
           ),
           maxAttempts: candidateIndex == 0 ? 2 : 1,
         ),
       );
       return _extractPayload(response, method: 'DELETE', path: path);
-    } on SocketException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on http.ClientException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on HandshakeException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on TimeoutException {
-      _markBackendDown('Backend timed out.');
-      rethrow;
+    } on TimeoutException catch (error) {
+      throw _transportException(
+        method: 'DELETE',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on SocketException catch (error) {
+      throw _transportException(
+        method: 'DELETE',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on http.ClientException catch (error) {
+      throw _transportException(
+        method: 'DELETE',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on HandshakeException catch (error) {
+      throw _transportException(
+        method: 'DELETE',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
     }
   }
 
@@ -585,6 +961,7 @@ class BackendApiClient {
     MediaType? contentType,
     bool authenticated = true,
   }) async {
+    const timeout = Duration(seconds: 30);
     try {
       Future<http.StreamedResponse> sendMultipart({
         required Uri uri,
@@ -600,7 +977,7 @@ class BackendApiClient {
             contentType: contentType,
           ),
         );
-        return request.send().timeout(const Duration(seconds: 30));
+        return request.send().timeout(timeout);
       }
 
       final response = await _executeWithDnsFallback(
@@ -629,18 +1006,34 @@ class BackendApiClient {
         headers: response.headers,
       );
       return _extractPayload(wrapped, method: 'POST', path: path);
-    } on SocketException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on http.ClientException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on HandshakeException {
-      _markBackendDown('Backend unreachable.');
-      rethrow;
-    } on TimeoutException {
-      _markBackendDown('Backend timed out.');
-      rethrow;
+    } on TimeoutException catch (error) {
+      throw _transportException(
+        method: 'POST',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on SocketException catch (error) {
+      throw _transportException(
+        method: 'POST',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on http.ClientException catch (error) {
+      throw _transportException(
+        method: 'POST',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
+    } on HandshakeException catch (error) {
+      throw _transportException(
+        method: 'POST',
+        path: path,
+        error: error,
+        timeoutDuration: timeout,
+      );
     }
   }
 }

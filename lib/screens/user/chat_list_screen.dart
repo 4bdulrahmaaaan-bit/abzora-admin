@@ -602,7 +602,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              'Abianzo Assistant ✨',
+                                              'Abianzo Assistant',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w800,
                                               ),
@@ -831,3 +831,4 @@ class _SummaryChip extends StatelessWidget {
     );
   }
 }
+

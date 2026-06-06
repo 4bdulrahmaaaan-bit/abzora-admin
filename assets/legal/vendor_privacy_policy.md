@@ -1,7 +1,7 @@
-# Abzora Vendor Privacy Policy
+# Abianzo Vendor Privacy Policy
 
 **Effective Date:** 12 May 2026  
-**Privacy Contact:** privacy@abzora.in
+**Privacy Contact:** privacy@abianzo.in
 
 ## 1. Scope
 1. Applies to vendor app users and vendor representatives.

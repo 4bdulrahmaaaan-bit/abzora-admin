@@ -1,8 +1,8 @@
-# Abzora Account Deletion Policy
+# Abianzo Account Deletion Policy
 
 **Effective Date:** 12 May 2026  
-**Deletion Support:** support@abzora.in  
-**Privacy Contact:** privacy@abzora.in
+**Deletion Support:** support@abianzo.in  
+**Privacy Contact:** privacy@abianzo.in
 
 ## 1. Deletion Request Process
 1. Users can request deletion from in-app settings or by emailing support.

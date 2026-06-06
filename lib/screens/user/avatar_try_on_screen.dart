@@ -9,7 +9,7 @@ import '../../services/avatar_try_on_service.dart';
 import '../../services/backend_commerce_service.dart';
 import '../../services/three_d_asset_pipeline_service.dart';
 import '../../theme.dart';
-import 'abzora_ar_screen.dart';
+import 'abianzo_ar_screen.dart';
 
 class AvatarTryOnScreen extends StatefulWidget {
   const AvatarTryOnScreen({
@@ -41,7 +41,7 @@ class _AvatarTryOnScreenState extends State<AvatarTryOnScreen> {
   bool _isFront = true;
 
   String get _avatarModelUrl {
-    final mapped = widget.product.attributes['avatarModelUrl']?.trim() ?? '';
+    final mapped = widget.product.attributeText('avatarModelUrl');
     if (mapped.isNotEmpty) {
       return mapped;
     }
@@ -142,7 +142,7 @@ class _AvatarTryOnScreenState extends State<AvatarTryOnScreen> {
       }
     });
 
-    window.abzoraAvatar = {
+    window.abianzoAvatar = {
       setBodyProfile: (profile) => {
         chest = Number(profile.chestMorph ?? 0.5);
         waist = Number(profile.waistMorph ?? 0.5);
@@ -181,27 +181,27 @@ class _AvatarTryOnScreenState extends State<AvatarTryOnScreen> {
       'hipMorph': params.hipMorph,
     });
     await _webViewController.runJavaScript(
-      "window.abzoraAvatar && window.abzoraAvatar.setBodyProfile($payload);",
+      "window.abianzoAvatar && window.abianzoAvatar.setBodyProfile($payload);",
     );
   }
 
   Future<void> _setFront(bool value) async {
     setState(() => _isFront = value);
     await _webViewController.runJavaScript(
-      "window.abzoraAvatar && window.abzoraAvatar.setFront(${value ? 'true' : 'false'});",
+      "window.abianzoAvatar && window.abianzoAvatar.setFront(${value ? 'true' : 'false'});",
     );
   }
 
   void _setZoom(double value) {
     setState(() => _zoom = value);
     _webViewController.runJavaScript(
-      "window.abzoraAvatar && window.abzoraAvatar.setZoom(${value.toStringAsFixed(3)});",
+      "window.abianzoAvatar && window.abianzoAvatar.setZoom(${value.toStringAsFixed(3)});",
     );
   }
 
   Future<void> _capture() async {
     final result = await _webViewController.runJavaScriptReturningResult(
-      "window.abzoraAvatar && window.abzoraAvatar.capture ? window.abzoraAvatar.capture() : '';",
+      "window.abianzoAvatar && window.abianzoAvatar.capture ? window.abianzoAvatar.capture() : '';",
     );
     final value = result.toString();
     if (!mounted) {
@@ -224,7 +224,7 @@ class _AvatarTryOnScreenState extends State<AvatarTryOnScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AbzoraArScreen(payload: _buildArFallbackPayload()),
+        builder: (_) => AbianzoArScreen(payload: _buildArFallbackPayload()),
       ),
     );
   }
@@ -258,11 +258,11 @@ class _AvatarTryOnScreenState extends State<AvatarTryOnScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6EF),
       appBar: AppBar(
-        title: const Text('3D Avatar Try-On'),
+        title: const Text('Live Try-On Studio'),
         actions: [
           TextButton(
             onPressed: _openFallback2d,
-            child: const Text('2D AR Fallback'),
+            child: const Text('2D Try-On'),
           ),
         ],
       ),
@@ -281,7 +281,7 @@ class _AvatarTryOnScreenState extends State<AvatarTryOnScreen> {
                           const Icon(Icons.view_in_ar_rounded, size: 42),
                           const SizedBox(height: 10),
                           const Text(
-                            '3D renderer unavailable on this device.',
+                            'Live renderer unavailable on this device.',
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 12),
@@ -301,7 +301,7 @@ class _AvatarTryOnScreenState extends State<AvatarTryOnScreen> {
                             const SizedBox(height: 12),
                           ElevatedButton(
                             onPressed: _openFallback2d,
-                            child: const Text('Open 2D AR Try-On'),
+                            child: const Text('Open 2D Try-On'),
                           ),
                         ],
                       ),
@@ -389,6 +389,4 @@ class _AvatarTryOnScreenState extends State<AvatarTryOnScreen> {
     );
   }
 }
-
-
 

@@ -54,7 +54,7 @@ class LightweightArCompositingEngine {
       shadowOpacity: (0.1 + (qualityBudget * 0.22)).clamp(0.08, 0.3),
       contactShadowOpacity:
           (0.12 + (qualityBudget * 0.25) + (confidence * 0.08)).clamp(0.1, 0.36),
-      shadowSoftness: (0.42 + (qualityBudget * 0.34)).clamp(0.36, 0.86),
+      shadowSoftness: (0.50 + (qualityBudget * 0.32)).clamp(0.42, 0.9),
       depthSeparation: (0.2 + (qualityBudget * 0.38)).clamp(0.18, 0.62),
       torsoDepthLift: ((alignment.torsoScale - 1.0).abs() * 0.35 +
               (deformation.torsoScaleY - 1.0).abs() * 0.5 +
@@ -64,7 +64,7 @@ class LightweightArCompositingEngine {
               (deformation.chestInflation - 1.0).abs() * 0.55 +
               (qualityBudget * 0.1))
           .clamp(0.03, 0.26),
-      overlapBlend: ((occlusionBlend * 0.7) + (confidence * 0.3)).clamp(0.2, 0.96),
+      overlapBlend: ((occlusionBlend * 0.58) + (confidence * 0.42)).clamp(0.28, 0.9),
       layeringConfidence: confidence,
     );
 
@@ -109,4 +109,3 @@ class LightweightArCompositingEngine {
     _previous = null;
   }
 }
-

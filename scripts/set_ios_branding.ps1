@@ -25,9 +25,9 @@ Copy-Item -Path (Join-Path $launchSrc '*') -Destination $launchDest -Recurse -Fo
 $infoPlist = Join-Path $root 'ios\Runner\Info.plist'
 $xml = Get-Content -Raw $infoPlist
 $appName = switch ($Flavor) {
-  'customer' { 'Abzora' }
-  'vendor' { 'Abzora Vendor' }
-  'rider' { 'Abzora Rider' }
+  'customer' { 'Abianzo' }
+  'vendor' { 'Abianzo Vendor' }
+  'rider' { 'Abianzo Rider' }
 }
 $storyboard = "LaunchScreen$suffix"
 

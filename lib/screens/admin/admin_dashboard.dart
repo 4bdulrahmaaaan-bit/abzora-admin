@@ -239,7 +239,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         content: Text(
           payout == null
               ? 'No payout-ready earnings are available for ${store.name} yet.'
-              : 'Processed payout of Rs ${payout.amount.toInt()} for ${store.name}.',
+              : 'Processed payout of ₹${payout.amount.toInt()} for ${store.name}.',
         ),
       ),
     );
@@ -517,7 +517,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         ),
                         _OpsHeroMetric(
                           label: 'Revenue Today',
-                          value: 'Rs ${todayRevenue.toInt()}',
+                          value: '₹${todayRevenue.toInt()}',
                           trend: _trendPercent(todayRevenue, yesterdayRevenue),
                           color: Colors.green,
                           icon: Icons.payments_outlined,
@@ -631,7 +631,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
                           title: Text('${dispute.type} • ${dispute.orderId}'),
-                          subtitle: Text('${dispute.reason}\nRs ${dispute.amount.toInt()} • ${dispute.status}'),
+                          subtitle: Text('${dispute.reason}\n₹${dispute.amount.toInt()} • ${dispute.status}'),
                           isThreeLine: true,
                           trailing: PopupMenuButton<String>(
                             onSelected: (value) => _approveDispute(dispute, value),
@@ -654,10 +654,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     childAspectRatio: 1.5,
                       children: [
                       _AdminMetric(label: 'Orders Today', value: '${_analytics?.ordersToday ?? 0}', icon: Icons.today_outlined, color: Colors.green),
-                      _AdminMetric(label: 'Revenue', value: 'Rs ${_analytics?.totalRevenue.toInt() ?? 0}', icon: Icons.payments_outlined, color: AbzioTheme.accentColor),
-                      _AdminMetric(label: 'Commission', value: 'Rs ${_analytics?.platformCommissionRevenue.toInt() ?? 0}', icon: Icons.account_balance_outlined, color: Colors.blue),
-                      _AdminMetric(label: 'Vendor Payouts', value: 'Rs ${_analytics?.vendorPayouts.toInt() ?? 0}', icon: Icons.store_outlined, color: Colors.orange),
-                      _AdminMetric(label: 'Rider Payouts', value: 'Rs ${_analytics?.riderPayouts.toInt() ?? 0}', icon: Icons.delivery_dining_outlined, color: Colors.purple),
+                      _AdminMetric(label: 'Revenue', value: '₹${_analytics?.totalRevenue.toInt() ?? 0}', icon: Icons.payments_outlined, color: AbzioTheme.accentColor),
+                      _AdminMetric(label: 'Commission', value: '₹${_analytics?.platformCommissionRevenue.toInt() ?? 0}', icon: Icons.account_balance_outlined, color: Colors.blue),
+                      _AdminMetric(label: 'Vendor Payouts', value: '₹${_analytics?.vendorPayouts.toInt() ?? 0}', icon: Icons.store_outlined, color: Colors.orange),
+                      _AdminMetric(label: 'Rider Payouts', value: '₹${_analytics?.riderPayouts.toInt() ?? 0}', icon: Icons.delivery_dining_outlined, color: Colors.purple),
                       _AdminMetric(label: 'Total Orders', value: '${_analytics?.totalOrders ?? 0}', icon: Icons.shopping_cart_outlined, color: Colors.black87),
                       ],
                     ),
@@ -679,9 +679,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             spacing: 10,
                             runSpacing: 8,
                             children: [
-                              _FinancePill(label: 'Vendor Pending', value: 'Rs ${_finance!.vendorPending.toInt()}'),
-                              _FinancePill(label: 'Rider Pending', value: 'Rs ${_finance!.riderPending.toInt()}'),
-                              _FinancePill(label: 'Pending Withdrawals', value: 'Rs ${_finance!.pendingWithdrawalAmount.toInt()}'),
+                              _FinancePill(label: 'Vendor Pending', value: '₹${_finance!.vendorPending.toInt()}'),
+                              _FinancePill(label: 'Rider Pending', value: '₹${_finance!.riderPending.toInt()}'),
+                              _FinancePill(label: 'Pending Withdrawals', value: '₹${_finance!.pendingWithdrawalAmount.toInt()}'),
                               _FinancePill(label: 'Flagged Users', value: '${_finance!.flaggedUsers}'),
                               _FinancePill(label: 'Fraud Alerts', value: '${_finance!.fraudAlerts.length}'),
                             ],
@@ -777,7 +777,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
                           title: Text(store.name),
-                          subtitle: Text('Wallet balance Rs ${store.walletBalance.toInt()} | Commission ${(store.commissionRate * 100).toInt()}%'),
+                          subtitle: Text('Wallet balance ₹${store.walletBalance.toInt()} | Commission ${(store.commissionRate * 100).toInt()}%'),
                           trailing: OutlinedButton(
                             onPressed: () => _processPayout(store),
                             child: const Text('PAYOUT'),

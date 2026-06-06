@@ -75,7 +75,7 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
               size: 34,
               radius: 9,
               padding: EdgeInsets.all(2),
-              assetPath: 'assets/branding/abzora_partner_icon.png',
+              assetPath: 'assets/branding/abianzo_partner_icon.png',
             ),
             const SizedBox(width: 10),
             Column(
@@ -129,3 +129,4 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
     );
   }
 }
+

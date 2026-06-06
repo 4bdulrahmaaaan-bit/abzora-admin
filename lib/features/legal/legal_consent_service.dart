@@ -14,6 +14,9 @@ class LegalConsentService {
     required AbzioAppMode mode,
   }) async {
     final audience = LegalVersioning.audienceFor(user: user, mode: mode);
+    if (audience == LegalAudience.customer || audience == LegalAudience.common) {
+      return false;
+    }
     if (audience == LegalAudience.vendor) {
       return false;
     }

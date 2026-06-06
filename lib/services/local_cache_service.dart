@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalCacheService {
-  static const String _prefix = 'abzora_cache_';
+  static const String _prefix = 'abianzo_cache_';
 
   Future<void> saveJson(String key, Map<String, dynamic> value) async {
     final prefs = await SharedPreferences.getInstance();

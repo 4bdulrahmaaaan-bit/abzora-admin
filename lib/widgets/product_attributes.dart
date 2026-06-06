@@ -8,10 +8,12 @@ class ProductAttributes extends StatelessWidget {
     super.key,
     required this.category,
     required this.attributes,
+    this.structuredAttributes,
   });
 
   final String category;
   final Map<String, dynamic> attributes;
+  final List<Map<String, dynamic>>? structuredAttributes;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +27,19 @@ class ProductAttributes extends StatelessWidget {
       cleanedAttributes[key] = value;
     }
 
-    if (cleanedAttributes.isEmpty) {
+    final cleanedStructured = <Map<String, dynamic>>[];
+    for (final entry in structuredAttributes ?? const []) {
+      if (entry['key'] == null) continue;
+      final key = '${entry['key']}'.trim().toLowerCase();
+      if (key.isEmpty) continue;
+      cleanedStructured.add({
+        ...entry,
+        'key': key,
+        'value': entry['value'],
+      });
+    }
+
+    if (cleanedAttributes.isEmpty && cleanedStructured.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -38,16 +52,29 @@ class ProductAttributes extends StatelessWidget {
           ),
         ];
 
-    final visibleSections = sections
-        .map((section) {
-          final rows = section.fields
+    final visibleSections = sections.map((section) {
+      final structuredRows = cleanedStructured
+          .where(
+            (field) =>
+                (field['section']?.toString().trim() ?? '').toLowerCase() ==
+                section.title.toLowerCase(),
+          )
+          .map((field) {
+            final value = field['value'];
+            final normalizedValue = value is List
+                ? value.map((item) => '$item').where((item) => item.trim().isNotEmpty).join(', ')
+                : '$value';
+            return MapEntry('${field['key']}', normalizedValue);
+          })
+          .toList();
+      final rows = structuredRows.isNotEmpty
+          ? structuredRows
+          : section.fields
               .where((field) => cleanedAttributes.containsKey(field))
               .map((field) => MapEntry(field, cleanedAttributes[field]!))
               .toList();
-          return MapEntry(section.title, rows);
-        })
-        .where((entry) => entry.value.isNotEmpty)
-        .toList();
+      return MapEntry(section.title, rows);
+    }).where((entry) => entry.value.isNotEmpty).toList();
 
     if (visibleSections.isEmpty) {
       return const SizedBox.shrink();

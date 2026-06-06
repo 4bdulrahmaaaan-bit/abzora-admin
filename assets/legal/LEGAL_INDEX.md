@@ -1,4 +1,4 @@
-# Abzora Legal Index
+# Abianzo Legal Index
 
 **Effective Date:** 12 May 2026  
 **Default Policy Version:** v1.0.0
@@ -19,7 +19,7 @@
 13. rider_agreement
 
 ## Consent Version Control
-Abzora apps enforce legal re-consent using audience-level versions.
+Abianzo apps enforce legal re-consent using audience-level versions.
 
 ### Default App Versions
 - Customer: v1.0.0
@@ -36,5 +36,5 @@ Set values in Firebase Realtime Database path:
 When version changes, users are prompted to re-accept Terms and Privacy on next app launch.
 
 ## Contacts
-- Support: support@abzora.in
-- Privacy: privacy@abzora.in
+- Support: support@abianzo.in
+- Privacy: privacy@abianzo.in

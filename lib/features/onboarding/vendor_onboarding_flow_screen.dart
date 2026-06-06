@@ -66,7 +66,7 @@ class _VendorOnboardingFlowScreenState
       _phone.text = user.phone ?? '';
       _email.text = user.email;
       _address.text = user.address ?? '';
-      _city.text = user.city ?? '';
+      _city.text = 'Chennai';
     }
   }
 
@@ -479,7 +479,12 @@ class _VendorOnboardingFlowScreenState
                         hint: 'Street, area, landmark',
                         maxLines: 2,
                       ),
-                      _field(_city, 'City', hint: 'Bengaluru'),
+                      _field(
+                        _city,
+                        'City',
+                        hint: 'Chennai',
+                        readOnly: true,
+                      ),
                     ]),
                     _card('Craft & Expertise', [
                       _field(
@@ -665,6 +670,7 @@ class _VendorOnboardingFlowScreenState
     String hint = '',
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    bool readOnly = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -673,6 +679,7 @@ class _VendorOnboardingFlowScreenState
         maxLines: maxLines,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
+        readOnly: readOnly,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
@@ -753,3 +760,4 @@ class _VendorOnboardingSuccessScreen extends StatelessWidget {
     );
   }
 }
+

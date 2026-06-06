@@ -135,8 +135,16 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE7E0D3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,7 +152,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
           Text(
             'ORDER ${widget.order.invoiceNumber.isEmpty ? widget.order.id : widget.order.invoiceNumber}',
             style: GoogleFonts.poppins(
-              color: AbzioTheme.accentColor,
+              color: const Color(0xFF8D6A2E),
               fontWeight: FontWeight.w800,
               fontSize: 12,
               letterSpacing: 1.2,
@@ -153,12 +161,12 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
           const SizedBox(height: 10),
           Text(
             customer?.name.isNotEmpty == true ? customer!.name : 'Customer delivery',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 22),
+            style: GoogleFonts.inter(color: const Color(0xFF111111), fontWeight: FontWeight.w700, fontSize: 22),
           ),
           const SizedBox(height: 6),
           Text(
             widget.order.deliveryStatus,
-            style: GoogleFonts.inter(color: Colors.white70),
+            style: GoogleFonts.inter(color: const Color(0xFF666666)),
           ),
         ],
       ),
@@ -171,12 +179,12 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AbzioTheme.grey100),
+        border: Border.all(color: const Color(0xFFE7E0D3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Customer Details', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+          Text('Customer Details', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: const Color(0xFF111111))),
           const SizedBox(height: 12),
           _detailRow(Icons.person_outline_rounded, customer?.name.isNotEmpty == true ? customer!.name : 'Customer'),
           _detailRow(Icons.location_on_outlined, widget.order.shippingAddress),
@@ -193,12 +201,12 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AbzioTheme.grey100),
+        border: Border.all(color: const Color(0xFFE7E0D3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Order Items', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+          Text('Order Items', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: const Color(0xFF111111))),
           const SizedBox(height: 12),
           ...widget.order.items.map((item) {
             return Padding(
@@ -206,9 +214,9 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(item.productName, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                    child: Text(item.productName, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFF111111))),
                   ),
-                  Text('x${item.quantity}', style: GoogleFonts.inter(color: AbzioTheme.grey600)),
+                  Text('x${item.quantity}', style: GoogleFonts.inter(color: const Color(0xFF666666))),
                 ],
               ),
             );
@@ -225,12 +233,12 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AbzioTheme.grey100),
+        border: Border.all(color: const Color(0xFFE7E0D3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Delivery Actions', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+          Text('Delivery Actions', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: const Color(0xFF111111))),
           const SizedBox(height: 14),
           if (status == 'Assigned')
             _actionButton('Pick Up Order', () => _setStatus('Picked up')),

@@ -194,12 +194,16 @@ class _RouteHeroCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Colors.black, Color(0xFF191919)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE7E0D3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +221,7 @@ class _RouteHeroCard extends StatelessWidget {
           Text(
             'Drive smarter, $riderName',
             style: GoogleFonts.inter(
-              color: Colors.white,
+              color: const Color(0xFF111111),
               fontSize: 24,
               fontWeight: FontWeight.w700,
             ),
@@ -226,7 +230,7 @@ class _RouteHeroCard extends StatelessWidget {
           Text(
             'Your route keeps deliveries first, then nearby return pickups to cut empty trips.',
             style: GoogleFonts.inter(
-              color: Colors.white70,
+              color: const Color(0xFF666666),
               height: 1.45,
             ),
           ),
@@ -260,9 +264,9 @@ class _HeroMetricChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: const Color(0xFFE7E0D3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,7 +274,7 @@ class _HeroMetricChip extends StatelessWidget {
           Text(
             value,
             style: GoogleFonts.poppins(
-              color: Colors.white,
+              color: const Color(0xFF111111),
               fontSize: 18,
               fontWeight: FontWeight.w800,
             ),
@@ -278,7 +282,7 @@ class _HeroMetricChip extends StatelessWidget {
           Text(
             label,
             style: GoogleFonts.inter(
-              color: Colors.white70,
+              color: const Color(0xFF666666),
               fontSize: 12,
             ),
           ),
@@ -311,7 +315,7 @@ class _RouteSectionHeader extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           subtitle,
-          style: GoogleFonts.inter(color: AbzioTheme.grey600, height: 1.4),
+          style: GoogleFonts.inter(color: const Color(0xFF666666), height: 1.4),
         ),
       ],
     );
@@ -350,6 +354,7 @@ class _RouteStopCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE7E0D3)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -386,12 +391,12 @@ class _RouteStopCard extends StatelessWidget {
                   children: [
                     Text(
                       stop.routeLabel,
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: const Color(0xFF111111)),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       stop.customerName,
-                      style: GoogleFonts.inter(color: AbzioTheme.grey600),
+                      style: GoogleFonts.inter(color: const Color(0xFF666666)),
                     ),
                   ],
                 ),
@@ -417,7 +422,7 @@ class _RouteStopCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             stop.task.address,
-            style: GoogleFonts.inter(color: AbzioTheme.grey600, height: 1.45),
+            style: GoogleFonts.inter(color: const Color(0xFF666666), height: 1.45),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -439,7 +444,7 @@ class _RouteStopCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             stop.supportText,
-            style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500),
+            style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666)),
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -452,7 +457,7 @@ class _RouteStopCard extends StatelessWidget {
                 : ElevatedButton(
                     onPressed: onAction,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: stop.isReturn ? accent : Colors.black,
+                      backgroundColor: stop.isReturn ? accent : const Color(0xFF111111),
                     ),
                     child: Text(buttonLabel),
                   ),
@@ -477,19 +482,19 @@ class _MiniInfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AbzioTheme.grey50,
+        color: const Color(0xFFF6F1E6),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AbzioTheme.grey500),
+          Icon(icon, size: 16, color: const Color(0xFF8D6A2E)),
           const SizedBox(width: 6),
           Text(
             label,
             style: GoogleFonts.inter(
               fontSize: 12,
-              color: AbzioTheme.grey600,
+              color: const Color(0xFF666666),
             ),
           ),
         ],
@@ -497,3 +502,4 @@ class _MiniInfoChip extends StatelessWidget {
     );
   }
 }
+

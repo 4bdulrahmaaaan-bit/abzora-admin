@@ -1,5 +1,6 @@
 #include "Debug.xcconfig"
 APP_DISPLAY_NAME=Abianzo
 LAUNCH_SCREEN_STORYBOARD=LaunchScreenCustomer
+LAUNCH_IMAGE_NAME=LaunchImageCustomer
 APP_ICON_NAME=AppIconCustomer
 APP_BUNDLE_IDENTIFIER=com.abdz.fashion.abzio

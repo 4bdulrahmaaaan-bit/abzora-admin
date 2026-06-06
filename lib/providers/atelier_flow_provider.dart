@@ -82,7 +82,7 @@ class AtelierFlowProvider extends ChangeNotifier {
       AtelierDesigner(
         id: 'atelier-noir',
         name: 'Atelier Noir',
-        city: 'Hyderabad',
+        city: 'Chennai',
         rating: 4.8,
         priceBand: 'Premium',
         tags: ['Luxury tailoring', '2-day dispatch'],
@@ -92,7 +92,7 @@ class AtelierFlowProvider extends ChangeNotifier {
       AtelierDesigner(
         id: 'house-of-arc',
         name: 'House of Arc',
-        city: 'Bengaluru',
+        city: 'Chennai',
         rating: 4.7,
         priceBand: 'Premium',
         tags: ['Precision fit', 'Private fittings'],

@@ -113,12 +113,13 @@ class ThreeDAssetPipelineService {
     }
 
     final categoryKey = _normalizeCategory(product);
-    final fit =
-        (product.attributes['fit_type'] ??
-                product.attributes['fit'] ??
-                'regular')
-            .trim()
-            .toLowerCase();
+    final fit = product
+        .attributeText(
+          'fit_type',
+          fallback: product.attributeText('fit', fallback: 'regular'),
+        )
+        .trim()
+        .toLowerCase();
     final byCategory = _assetByKey.values
         .where((asset) => asset.category == categoryKey)
         .toList();

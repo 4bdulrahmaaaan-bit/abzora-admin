@@ -662,7 +662,7 @@ class _OrderSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Rs ${order.totalAmount.toStringAsFixed(0)}',
+                  '₹${order.totalAmount.toStringAsFixed(0)}',
                   style: const TextStyle(color: Color(0xFFC6A769), fontWeight: FontWeight.w700),
                 ),
               ],

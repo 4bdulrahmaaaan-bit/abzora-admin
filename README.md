@@ -74,3 +74,41 @@ The repo currently includes tests for:
 - app smoke boot
 
 See the [test](/C:/Users/AAA/Documents/abzio/test) folder.
+
+## Docker Setup
+
+The entire Abzora stack (Flutter Web frontend, Node.js backend, MongoDB, and Redis) is containerized for easy setup. 
+A new developer can clone the repository and run the entire stack without installing external dependencies locally.
+
+### Start the entire stack
+
+```powershell
+npm run docker:up
+# or manually: docker compose up --build -d
+```
+
+### Stop the stack
+
+```powershell
+npm run docker:down
+# or manually: docker compose down
+```
+
+### View logs
+
+```powershell
+npm run docker:logs
+# or manually: docker compose logs -f
+```
+
+### Rebuilding containers
+
+If you make structural changes or need to force a rebuild:
+
+```powershell
+docker compose up --build --force-recreate -d
+```
+
+### Environment Variables
+
+When running via Docker, environment variables are loaded from `.env.docker`. Modify this file to adjust the containerized services' local ports or keys.

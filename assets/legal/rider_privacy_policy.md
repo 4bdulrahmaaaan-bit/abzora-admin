@@ -1,7 +1,7 @@
-# Abzora Rider Privacy Policy
+# Abianzo Rider Privacy Policy
 
 **Effective Date:** 12 May 2026  
-**Privacy Contact:** privacy@abzora.in
+**Privacy Contact:** privacy@abianzo.in
 
 ## 1. Data Collected
 1. Identity and KYC data.
@@ -28,5 +28,5 @@
 2. Security controls include access restrictions, encrypted transfer, and monitoring.
 
 ## 6. Contact and Dispute
-1. privacy@abzora.in for privacy requests.
+1. privacy@abianzo.in for privacy requests.
 2. Indian law and arbitration in Bengaluru.

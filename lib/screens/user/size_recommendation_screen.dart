@@ -14,10 +14,7 @@ import '../../widgets/tap_scale.dart';
 import 'body_scan_screen.dart';
 
 class SizeRecommendationScreen extends StatefulWidget {
-  const SizeRecommendationScreen({
-    super.key,
-    this.product,
-  });
+  const SizeRecommendationScreen({super.key, this.product});
 
   final Product? product;
 
@@ -123,8 +120,12 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
     }
     setState(() {
       _selectedProfile = profile;
-      _profiles = [profile, ..._profiles.where((item) => item.id != profile.id)];
+      _profiles = [
+        profile,
+        ..._profiles.where((item) => item.id != profile.id),
+      ];
     });
+    await _calculate();
   }
 
   String? _resolveProductFit() {
@@ -159,14 +160,16 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
     SizePredictionResult seed,
     Map<String, dynamic> payload,
   ) {
-    final recommendedSize =
-        (payload['recommendedSize'] ?? seed.shirtSize).toString().toUpperCase();
+    final recommendedSize = (payload['recommendedSize'] ?? seed.shirtSize)
+        .toString()
+        .toUpperCase();
     final confidence = _confidenceValue(
       payload['confidencePercent'] ?? payload['confidence'] ?? seed.confidence,
     );
-    final reasoning = (payload['reasoning'] ?? payload['reason'] ?? seed.reasoning)
-        .toString()
-        .trim();
+    final reasoning =
+        (payload['reasoning'] ?? payload['reason'] ?? seed.reasoning)
+            .toString()
+            .trim();
     final message = (payload['message'] ?? seed.message).toString().trim();
 
     return SizePredictionResult(
@@ -189,13 +192,20 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
       bodyOutlineHighlights: [
         'We suggest size $recommendedSize',
         '${(confidence * 100).round()}% match with your body profile',
-        'Confidence ${confidence >= 0.86 ? 'High' : confidence >= 0.72 ? 'Medium' : 'Low'} based on height, weight, and body type',
+        'Confidence ${confidence >= 0.86
+            ? 'High'
+            : confidence >= 0.72
+            ? 'Medium'
+            : 'Low'} based on height, weight, and body type',
         ...seed.bodyOutlineHighlights,
       ],
     );
   }
 
   Future<void> _calculate() async {
+    if (!mounted) {
+      return;
+    }
     final auth = context.read<AuthProvider>();
     final user = auth.user;
     final productFit = _resolveProductFit();
@@ -252,7 +262,9 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
             armLengthCm: seed.armLengthCm,
             inseamCm: seed.inseamCm,
             availableSizes: widget.product?.sizes,
-            sizeChart: widget.product?.attributes,
+            sizeChart: widget.product == null
+                ? null
+                : _sizeChartPayload(widget.product!),
           );
           final payload = response['data'] is Map
               ? Map<String, dynamic>.from(response['data'] as Map)
@@ -266,9 +278,10 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
       }
     }
 
-    final variant = widget.product == null
+    final productRecommendation = widget.product == null
         ? null
-        : _bodyScanService.chooseBestProductSize(widget.product!, result);
+        : _bodyScanService.recommendProductSize(widget.product!, result);
+    final variant = productRecommendation?.recommendedSize;
 
     if (user != null) {
       final bodyProfile = BodyProfile(
@@ -286,7 +299,7 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
         inseamCm: result.inseamCm,
         confidence: result.confidence,
         scanSource: _selectedProfile != null ? 'saved_profile' : 'manual',
-        scanFrameCount: _selectedProfile != null ? 30 : 0,
+        scanFrameCount: _selectedProfile != null ? 45 : 0,
         updatedAt: DateTime.now().toIso8601String(),
       );
       await _database.saveBodyProfile(user.id, bodyProfile);
@@ -320,6 +333,16 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
     if (waist < 90) return '34';
     if (waist < 96) return '36';
     return '38';
+  }
+
+  Map<String, String> _sizeChartPayload(Product product) {
+    final structuredChart = product.attributeObject('sizeChart');
+    if (structuredChart.isNotEmpty) {
+      return structuredChart.map(
+        (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
+      );
+    }
+    return product.attributes;
   }
 
   void _useRecommendation() {
@@ -422,10 +445,7 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFF8E6),
-            Colors.white,
-          ],
+          colors: [Color(0xFFFFF8E6), Colors.white],
         ),
         border: Border.all(
           color: AbzioTheme.accentColor.withValues(alpha: 0.18),
@@ -436,17 +456,17 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
         children: [
           Text(
             'Personal size prediction',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
           Text(
             'Use your saved body profile or a quick manual fallback to get a stronger size recommendation before you order.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: context.abzioSecondaryText,
-                  height: 1.5,
-                ),
+              color: context.abzioSecondaryText,
+              height: 1.5,
+            ),
           ),
         ],
       ),
@@ -512,9 +532,9 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
         children: [
           Text(
             'Saved body profile',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           if (_bodyProfile != null) ...[
             const SizedBox(height: 6),
@@ -547,8 +567,9 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
                   .toList(),
               onChanged: (value) {
                 setState(() {
-                  _selectedProfile =
-                      _profiles.firstWhere((item) => item.id == value);
+                  _selectedProfile = _profiles.firstWhere(
+                    (item) => item.id == value,
+                  );
                 });
               },
               decoration: const InputDecoration(
@@ -582,9 +603,9 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
         children: [
           Text(
             'Manual fallback',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           Text(
@@ -705,9 +726,9 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
                 child: Text(
                   'Your best fit',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AbzioTheme.accentColor,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: AbzioTheme.accentColor,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               _confidenceBadge(result.confidenceLabel),
@@ -716,9 +737,9 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
           const SizedBox(height: 8),
           Text(
             'Recommended for you: $displayedSize (${(result.confidence * 100).round()}% match)',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           if (_recommendedVariant != null) ...[
             const SizedBox(height: 6),
@@ -730,10 +751,7 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
           const SizedBox(height: 10),
           Text(
             result.message,
-            style: TextStyle(
-              color: context.abzioSecondaryText,
-              height: 1.45,
-            ),
+            style: TextStyle(color: context.abzioSecondaryText, height: 1.45),
           ),
           if (result.reasoning.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -773,8 +791,10 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
                   curve: Curves.easeOut,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AbzioTheme.accentColor
@@ -855,10 +875,7 @@ class _SizeRecommendationScreenState extends State<SizeRecommendationScreen> {
       ),
       child: Text(
         '${confidenceLabel[0].toUpperCase()}${confidenceLabel.substring(1)} confidence',
-        style: TextStyle(
-          fontWeight: FontWeight.w800,
-          color: textColor,
-        ),
+        style: TextStyle(fontWeight: FontWeight.w800, color: textColor),
       ),
     );
   }

@@ -51,6 +51,28 @@ class RiderRouteStop {
   }
 }
 
+class RiderDashboardSnapshot {
+  const RiderDashboardSnapshot({
+    required this.analytics,
+    required this.wallet,
+    required this.availableDeliveries,
+    required this.assignedOrders,
+    required this.tasks,
+    required this.fetchedAt,
+  });
+
+  final RiderAnalytics analytics;
+  final WalletSummary wallet;
+  final List<OrderModel> availableDeliveries;
+  final List<OrderModel> assignedOrders;
+  final List<UnifiedRiderTask> tasks;
+  final DateTime fetchedAt;
+
+  int get assignedCount => tasks.where((task) => task.status == 'assigned').length;
+  int get activeCount => tasks.where((task) => task.status == 'in_progress').length;
+  int get completedCount => tasks.where((task) => task.status == 'completed').length;
+}
+
 class RiderService {
   final DatabaseService _db;
 
@@ -66,6 +88,64 @@ class RiderService {
 
   Stream<List<UnifiedRiderTask>> watchUnifiedTasks(AppUser rider) {
     return _db.watchRiderTasks(rider);
+  }
+
+  Future<RiderDashboardSnapshot> loadDashboardSnapshot(AppUser rider) async {
+    Future<T?> safe<T>(Future<T> Function() loader) async {
+      try {
+        return await loader();
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final analyticsFuture = safe(() => _db.getRiderAnalytics(actor: rider));
+    final walletFuture = safe(() => _db.getRiderWallet(actor: rider));
+    final availableFuture = safe(() => _db.getAvailableDeliveryOrders());
+    final assignedFuture = safe(() => _db.getRiderOrders(rider).first);
+    final tasksFuture = safe(() => _db.getRiderTasks(rider));
+
+    final results = await Future.wait<Object?>([
+      analyticsFuture as Future<Object?>,
+      walletFuture as Future<Object?>,
+      availableFuture as Future<Object?>,
+      assignedFuture as Future<Object?>,
+      tasksFuture as Future<Object?>,
+    ]);
+
+    final analytics = results[0] as RiderAnalytics?;
+    final wallet = results[1] as WalletSummary?;
+    final availableDeliveries = (results[2] as List<OrderModel>?) ?? const [];
+    final assignedOrders = (results[3] as List<OrderModel>?) ?? const [];
+    final tasks = (results[4] as List<UnifiedRiderTask>?) ?? const [];
+
+    return RiderDashboardSnapshot(
+      analytics: analytics ??
+          RiderAnalytics(
+            todayDeliveries: 0,
+            earningsToday: 0,
+            totalEarnings: 0,
+            pendingPayout: 0,
+            availableBalance: rider.walletBalance,
+            reservedAmount: 0,
+          ),
+      wallet: wallet ??
+          WalletSummary(
+            id: rider.id,
+            kind: 'rider',
+            linkedId: rider.id,
+            balance: rider.walletBalance,
+            pendingAmount: 0,
+            reservedAmount: 0,
+            totalEarnings: rider.walletBalance,
+            totalWithdrawn: 0,
+            lastSettlementDate: '',
+          ),
+      availableDeliveries: availableDeliveries,
+      assignedOrders: assignedOrders,
+      tasks: tasks,
+      fetchedAt: DateTime.now(),
+    );
   }
 
   Future<List<RiderRouteStop>> getOptimizedRoute(AppUser rider) async {

@@ -101,11 +101,11 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/branding/abzora_customer_icon.png
+  image_path: assets/branding/abianzo_customer_icon.png
   remove_alpha_ios: true
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: assets/branding/abzora_customer_icon.png
-  adaptive_icon_foreground_inset: 20
+  adaptive_icon_foreground: assets/branding/abianzo_customer_icon.png
+  adaptive_icon_foreground_inset: 22
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -119,9 +119,9 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/branding/abzora_customer_icon.png
-    - assets/branding/abzora_partner_icon.png
-    - assets/branding/abzora_rider_icon.png
+    - assets/branding/abianzo_customer_icon.png
+    - assets/branding/abianzo_partner_icon.png
+    - assets/branding/abianzo_rider_icon.png
     - assets/branding/abianzo_vendor_splash_1080x1920.png
     - assets/branding/abianzo_rider_splash_1080x1920.png
     - assets/branding/abianzo_customer_splash_1080x1920.png

@@ -100,18 +100,18 @@ class DatabaseService {
   }
 
   bool _isTransientBackendIssue(Object error) {
-    final message = error.toString().toLowerCase();
-    if (error is BackendApiException &&
-        (error.statusCode == 404 ||
-            error.statusCode == 401 ||
-            error.statusCode == 403)) {
-      return true;
+    if (error is BackendApiException) {
+      return error.isNetworkIssue ||
+          error.isServerError ||
+          error.statusCode == 404 ||
+          error.statusCode == 401 ||
+          error.statusCode == 403;
     }
+    final message = error.toString().toLowerCase();
     return error is SocketException ||
         error is TimeoutException ||
         message.contains('404') ||
         message.contains('failed host lookup') ||
-        message.contains('backend unreachable') ||
         message.contains('connection closed') ||
         message.contains('clientexception');
   }
@@ -558,7 +558,7 @@ class DatabaseService {
         appliedCredits: 0,
         autoApplied: false,
         eligible: false,
-        message: 'Referral credits unlock on orders of Rs 499 or more.',
+        message: 'Referral credits unlock on orders of ₹499 or more.',
       );
     }
 
@@ -594,7 +594,7 @@ class DatabaseService {
         autoApplied: false,
         eligible: true,
         message:
-            'You can keep your Rs ${availableCredits.toStringAsFixed(0)} credits for a smaller order.',
+            'You can keep your ₹${availableCredits.toStringAsFixed(0)} credits for a smaller order.',
       );
     }
     return SmartCreditDecision(
@@ -603,8 +603,8 @@ class DatabaseService {
       autoApplied: autoApplied,
       eligible: true,
       message: autoApplied
-          ? 'Rs ${applied.toStringAsFixed(0)} credits applied automatically'
-          : 'Use Rs ${applied.toStringAsFixed(0)} credits?',
+          ? '₹${applied.toStringAsFixed(0)} credits applied automatically'
+          : 'Use ₹${applied.toStringAsFixed(0)} credits?',
     );
   }
 
@@ -1301,7 +1301,7 @@ class DatabaseService {
           id: 'growth-welcome-${now.millisecondsSinceEpoch}',
           title: 'Your first look deserves a reward',
           body:
-              'Use ${offer.code} on $leadingProductName and get Rs 100 off your first eligible order.',
+              'Use ${offer.code} on $leadingProductName and get ₹100 off your first eligible order.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -1352,7 +1352,7 @@ class DatabaseService {
           id: 'growth-cart-${now.millisecondsSinceEpoch}',
           title: 'Your bag is waiting',
           body:
-              'Finish checkout with ${offer.code} and save Rs 75 on picks like $leadingProductName.',
+              'Finish checkout with ${offer.code} and save ₹75 on picks like $leadingProductName.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -1405,7 +1405,7 @@ class DatabaseService {
           id: 'growth-winback-${now.millisecondsSinceEpoch}',
           title: 'New looks are waiting',
           body:
-              'Come back to Abianzo, explore $leadingProductName, and use ${offer.code} for Rs 50 off.',
+              'Come back to Abianzo, explore $leadingProductName, and use ${offer.code} for ₹50 off.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -1460,7 +1460,7 @@ class DatabaseService {
           id: 'growth-referral-${now.millisecondsSinceEpoch}',
           title: 'VIP reward unlocked',
           body:
-              'Use ${vipOffer.code} on $leadingProductName for Rs 30 off, then invite friends with $referralCode to reward both wardrobes.',
+              'Use ${vipOffer.code} on $leadingProductName for ₹30 off, then invite friends with $referralCode to reward both wardrobes.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -2540,6 +2540,7 @@ class DatabaseService {
     }
 
     return Product(
+      store: product.store,
       id: product.id,
       storeId: product.storeId,
       name: product.name,
@@ -2553,7 +2554,16 @@ class DatabaseService {
       viewCount: product.viewCount,
       cartCount: product.cartCount,
       purchaseCount: product.purchaseCount,
+      distanceKm: product.distanceKm,
+      distanceLabel: product.distanceLabel,
       images: product.images,
+      highlights: product.highlights,
+      colorVariants: product.colorVariants,
+      boutiqueInfo: product.boutiqueInfo,
+      deliveryInfo: product.deliveryInfo,
+      socialProof: product.socialProof,
+      specifications: product.specifications,
+      completeLookProductIds: product.completeLookProductIds,
       sizes: product.sizes,
       stock: product.stock,
       category: product.category,
@@ -2569,6 +2579,9 @@ class DatabaseService {
       customizations: product.customizations,
       measurements: product.measurements,
       addons: product.addons,
+      attributeTemplateKey: product.attributeTemplateKey,
+      attributeTemplateVersion: product.attributeTemplateVersion,
+      structuredAttributes: product.structuredAttributes,
       measurementProfileLabel: product.measurementProfileLabel,
       neededBy: product.neededBy,
       tailoringDeliveryMode: product.tailoringDeliveryMode,
@@ -2687,6 +2700,7 @@ class DatabaseService {
         : product.originalPrice;
 
     return Product(
+      store: product.store,
       id: product.id,
       storeId: product.storeId,
       name: product.name,
@@ -2701,6 +2715,13 @@ class DatabaseService {
       cartCount: product.cartCount,
       purchaseCount: product.purchaseCount,
       images: product.images,
+      highlights: product.highlights,
+      colorVariants: product.colorVariants,
+      boutiqueInfo: product.boutiqueInfo,
+      deliveryInfo: product.deliveryInfo,
+      socialProof: product.socialProof,
+      specifications: product.specifications,
+      completeLookProductIds: product.completeLookProductIds,
       sizes: product.sizes,
       stock: product.stock,
       category: product.category,
@@ -2713,6 +2734,9 @@ class DatabaseService {
       outfitType: product.outfitType,
       fabric: product.fabric,
       attributes: product.attributes,
+      attributeTemplateKey: product.attributeTemplateKey,
+      attributeTemplateVersion: product.attributeTemplateVersion,
+      structuredAttributes: product.structuredAttributes,
       arAsset: product.arAsset,
       customizations: product.customizations,
       measurements: product.measurements,
@@ -2839,6 +2863,9 @@ class DatabaseService {
   Future<List<Product>> getProductsByStore(
     String storeId, {
     bool includeInactive = false,
+    double? userLatitude,
+    double? userLongitude,
+    double? radiusKm,
   }) async {
     if (_backendCommerce.isConfigured) {
       final products = includeInactive
@@ -2846,6 +2873,10 @@ class DatabaseService {
           : await _backendCommerce.getProducts(
               queryParameters: {
                 if (storeId.trim().isNotEmpty) 'storeId': storeId.trim(),
+                if (userLatitude != null) 'latitude': userLatitude.toString(),
+                if (userLongitude != null)
+                  'longitude': userLongitude.toString(),
+                if (radiusKm != null) 'radiusKm': radiusKm.toString(),
               },
             );
       return products
@@ -2857,6 +2888,40 @@ class DatabaseService {
         .map(_decorateProduct)
         .toList();
     return products.where((product) => product.storeId == storeId).toList();
+  }
+
+  Future<Product?> getProductById(
+    String productId, {
+    double? userLatitude,
+    double? userLongitude,
+    double? radiusKm,
+  }) async {
+    final normalizedId = productId.trim();
+    if (normalizedId.isEmpty) {
+      return null;
+    }
+    if (_backendCommerce.isConfigured) {
+      try {
+        final product = await _backendCommerce.getProductById(
+          normalizedId,
+          queryParameters: {
+            if (userLatitude != null) 'latitude': userLatitude.toString(),
+            if (userLongitude != null) 'longitude': userLongitude.toString(),
+            if (radiusKm != null) 'radiusKm': radiusKm.toString(),
+          },
+        );
+        return _decorateProduct(product);
+      } catch (error) {
+        debugPrint('Backend product fetch failed for $normalizedId: $error');
+      }
+    }
+    final products = (await _productService.fetchAll()).map(_decorateProduct);
+    for (final product in products) {
+      if (product.id == normalizedId) {
+        return product;
+      }
+    }
+    return null;
   }
 
   Future<List<Product>> getTrendingProducts() async {
@@ -2903,6 +2968,9 @@ class DatabaseService {
     String? startAfterKey,
     SearchFilter? filter,
     int page = 1,
+    double? userLatitude,
+    double? userLongitude,
+    double? radiusKm,
   }) async {
     if (_backendCommerce.isConfigured) {
       try {
@@ -2912,6 +2980,9 @@ class DatabaseService {
             'limit': '$limit',
             'page': '${page < 1 ? 1 : page}',
             if (filter != null) ...filter.toBackendQuery(),
+            if (userLatitude != null) 'latitude': userLatitude.toString(),
+            if (userLongitude != null) 'longitude': userLongitude.toString(),
+            if (radiusKm != null) 'radiusKm': radiusKm.toString(),
           };
           final serverItems = (await _backendCommerce.getProducts(
             queryParameters: query,
@@ -3033,6 +3104,7 @@ class DatabaseService {
     }
     final nowIso = _nowIso();
     final updatedProduct = Product(
+      store: product.store,
       id: product.id,
       storeId: product.storeId,
       name: product.name,
@@ -3049,6 +3121,13 @@ class DatabaseService {
       cartCount: product.cartCount,
       purchaseCount: product.purchaseCount,
       images: product.images,
+      highlights: product.highlights,
+      colorVariants: product.colorVariants,
+      boutiqueInfo: product.boutiqueInfo,
+      deliveryInfo: product.deliveryInfo,
+      socialProof: product.socialProof,
+      specifications: product.specifications,
+      completeLookProductIds: product.completeLookProductIds,
       sizes: product.sizes,
       stock: product.stock,
       category: product.category,
@@ -3292,6 +3371,9 @@ class DatabaseService {
         customizations: product.customizations,
         measurements: product.measurements,
         addons: product.addons,
+        attributeTemplateKey: product.attributeTemplateKey,
+        attributeTemplateVersion: product.attributeTemplateVersion,
+        structuredAttributes: product.structuredAttributes,
         measurementProfileLabel: product.measurementProfileLabel,
         neededBy: product.neededBy,
         tailoringDeliveryMode: product.tailoringDeliveryMode,
@@ -3322,6 +3404,7 @@ class DatabaseService {
               filter.occasion == 'All' ||
               _occasionFor(product) == filter.occasion,
         )
+        .where((product) => _matchesDynamicFilters(product, filter))
         .where((product) {
           final query = filter.query.trim().toLowerCase();
           if (query.isEmpty) {
@@ -3336,7 +3419,123 @@ class DatabaseService {
     return products;
   }
 
+  bool _matchesDynamicFilters(Product product, SearchFilter filter) {
+    if (!filter.hasAttributeFilters) {
+      return true;
+    }
+
+    for (final entry in filter.attributeFlags.entries) {
+      if (!entry.value) {
+        continue;
+      }
+      if (!_matchesDynamicFilterValue(product, entry.key, const ['true'])) {
+        return false;
+      }
+    }
+
+    for (final entry in filter.attributeFilters.entries) {
+      final values = entry.value
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+      if (values.isEmpty) {
+        continue;
+      }
+      if (!_matchesDynamicFilterValue(product, entry.key, values)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool _matchesDynamicFilterValue(
+    Product product,
+    String key,
+    List<String> values,
+  ) {
+    final normalizedKey = key.trim().toLowerCase().replaceAll(
+      RegExp(r'[\s-]+'),
+      '_',
+    );
+    final tokens = <String>{
+      ...product.attributeList(normalizedKey).map((item) => item.toLowerCase()),
+      product.attributeText(normalizedKey).toLowerCase().trim(),
+      product
+          .attributeText(normalizedKey.replaceAll('_', ''))
+          .toLowerCase()
+          .trim(),
+      product
+          .attributeText(normalizedKey.replaceAll('_', ' '))
+          .toLowerCase()
+          .trim(),
+      product.category.toLowerCase(),
+      product.subcategory.toLowerCase(),
+      if (normalizedKey == 'brand') product.brand.toLowerCase(),
+      if (normalizedKey == 'color' || normalizedKey == 'colors')
+        ...product.colorVariants.map(
+          (variant) => variant.colorName.toLowerCase(),
+        ),
+      if (normalizedKey == 'size' || normalizedKey == 'sizes')
+        ...product.sizes.map((size) => size.toLowerCase()),
+    }.where((item) => item.trim().isNotEmpty).toSet();
+
+    if (normalizedKey == 'same_day_available' ||
+        normalizedKey == 'same_day_delivery') {
+      return values.any((value) => value.toLowerCase() == 'true')
+          ? product.sameDayAvailable
+          : tokens
+                .intersection(values.map((item) => item.toLowerCase()).toSet())
+                .isNotEmpty;
+    }
+    if (normalizedKey == 'try_at_home_available') {
+      return values.any((value) => value.toLowerCase() == 'true')
+          ? product.tryAtHomeAvailable
+          : tokens
+                .intersection(values.map((item) => item.toLowerCase()).toSet())
+                .isNotEmpty;
+    }
+    if (normalizedKey == 'virtual_try_on_available' ||
+        normalizedKey == 'try_on_available') {
+      return values.any((value) => value.toLowerCase() == 'true')
+          ? product.tryOnAvailable
+          : tokens
+                .intersection(values.map((item) => item.toLowerCase()).toSet())
+                .isNotEmpty;
+    }
+
+    return values.any((candidate) {
+      final normalizedCandidate = candidate.toLowerCase();
+      return tokens.any(
+        (token) =>
+            token == normalizedCandidate ||
+            token.contains(normalizedCandidate) ||
+            normalizedCandidate.contains(token),
+      );
+    });
+  }
+
   Future<List<Product>> getCompleteTheLook(Product product) async {
+    final curatedIds = product.completeLookProductIds
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty && item != product.id)
+        .toList();
+    if (curatedIds.isNotEmpty) {
+      final catalog = _backendCommerce.isConfigured
+          ? await _backendCommerce.getProducts()
+          : (await _productService.fetchAll()).map(_decorateProduct).toList();
+      final byId = {for (final item in catalog) item.id: item};
+      final curated = <Product>[];
+      for (final id in curatedIds) {
+        final candidate = byId[id];
+        if (candidate != null && candidate.storeId == product.storeId) {
+          curated.add(candidate);
+        }
+      }
+      if (curated.isNotEmpty) {
+        return curated.take(3).toList();
+      }
+    }
     if (_backendCommerce.isConfigured) {
       try {
         final outfits = await _backendCommerce.getCompleteLook(
@@ -3897,6 +4096,8 @@ class DatabaseService {
       rating: review.rating,
       comment: review.comment,
       imagePath: review.imagePath,
+      verifiedPurchase: review.verifiedPurchase,
+      helpfulVotes: review.helpfulVotes,
       createdAt: review.createdAt,
     );
     await _ref('reviews/${resolvedReview.id}').set(resolvedReview.toMap());
@@ -4012,6 +4213,10 @@ class DatabaseService {
           ? DateTime.now().toIso8601String()
           : profile.updatedAt,
     );
+    if (_backendCommerce.isConfigured) {
+      await _backendCommerce.saveBodyProfile(resolved);
+      return;
+    }
     final existingMemory = await getUserMemory(userId);
     final memory =
         (existingMemory ??
@@ -4029,10 +4234,6 @@ class DatabaseService {
               scanSource: resolved.scanSource,
               updatedAt: resolved.updatedAt,
             );
-    if (_backendCommerce.isConfigured) {
-      await _backendCommerce.saveBodyProfile(resolved);
-      return;
-    }
     await _ref('').update({
       'users/$userId/bodyProfile': resolved.toMap(),
       'userMemory/$userId': memory.toMap(),
@@ -4145,6 +4346,7 @@ class DatabaseService {
         ? 'p${DateTime.now().millisecondsSinceEpoch}'
         : product.id;
     final resolvedProduct = Product(
+      store: product.store,
       id: productId,
       storeId: product.storeId,
       name: product.name,
@@ -4161,6 +4363,13 @@ class DatabaseService {
       cartCount: product.cartCount,
       purchaseCount: product.purchaseCount,
       images: product.images,
+      highlights: product.highlights,
+      colorVariants: product.colorVariants,
+      boutiqueInfo: product.boutiqueInfo,
+      deliveryInfo: product.deliveryInfo,
+      socialProof: product.socialProof,
+      specifications: product.specifications,
+      completeLookProductIds: product.completeLookProductIds,
       sizes: product.sizes,
       stock: product.stock,
       category: product.category,
@@ -4212,6 +4421,7 @@ class DatabaseService {
         return;
       }
       final sanitized = Product(
+        store: existing.store,
         id: existing.id,
         storeId: existing.storeId,
         name: updatedProduct.name,
@@ -4231,6 +4441,13 @@ class DatabaseService {
         cartCount: existing.cartCount,
         purchaseCount: existing.purchaseCount,
         images: updatedProduct.images,
+        highlights: updatedProduct.highlights,
+        colorVariants: updatedProduct.colorVariants,
+        boutiqueInfo: updatedProduct.boutiqueInfo,
+        deliveryInfo: updatedProduct.deliveryInfo,
+        socialProof: updatedProduct.socialProof,
+        specifications: updatedProduct.specifications,
+        completeLookProductIds: updatedProduct.completeLookProductIds,
         sizes: updatedProduct.sizes,
         stock: updatedProduct.stock,
         category: updatedProduct.category,
@@ -4244,6 +4461,9 @@ class DatabaseService {
         fabric: updatedProduct.fabric,
         model3d: updatedProduct.model3d,
         attributes: updatedProduct.attributes,
+        attributeTemplateKey: updatedProduct.attributeTemplateKey,
+        attributeTemplateVersion: updatedProduct.attributeTemplateVersion,
+        structuredAttributes: updatedProduct.structuredAttributes,
         arAsset: updatedProduct.arAsset,
         customizations: updatedProduct.customizations,
         measurements: updatedProduct.measurements,
@@ -4344,6 +4564,7 @@ class DatabaseService {
       ..['generatedAt'] = DateTime.now().toIso8601String();
     await updateProduct(
       Product(
+        store: product.store,
         id: product.id,
         storeId: product.storeId,
         name: product.name,
@@ -4358,6 +4579,13 @@ class DatabaseService {
         cartCount: product.cartCount,
         purchaseCount: product.purchaseCount,
         images: product.images,
+        highlights: product.highlights,
+        colorVariants: product.colorVariants,
+        boutiqueInfo: product.boutiqueInfo,
+        deliveryInfo: product.deliveryInfo,
+        socialProof: product.socialProof,
+        specifications: product.specifications,
+        completeLookProductIds: product.completeLookProductIds,
         sizes: product.sizes,
         stock: product.stock,
         category: product.category,
@@ -4519,7 +4747,7 @@ class DatabaseService {
     }
     if (walletCreditUsed > 75) {
       throw StateError(
-        'A maximum of Rs 75 referral credit can be used per order.',
+        'A maximum of ₹75 referral credit can be used per order.',
       );
     }
     if (paymentMethod.toUpperCase() != 'COD' &&
@@ -4741,6 +4969,7 @@ class DatabaseService {
         continue;
       }
       final updatedProduct = Product(
+        store: product.store,
         id: product.id,
         storeId: product.storeId,
         name: product.name,
@@ -4757,6 +4986,13 @@ class DatabaseService {
         cartCount: product.cartCount,
         purchaseCount: product.purchaseCount + item.quantity,
         images: product.images,
+        highlights: product.highlights,
+        colorVariants: product.colorVariants,
+        boutiqueInfo: product.boutiqueInfo,
+        deliveryInfo: product.deliveryInfo,
+        socialProof: product.socialProof,
+        specifications: product.specifications,
+        completeLookProductIds: product.completeLookProductIds,
         sizes: product.sizes,
         stock: product.stock,
         category: product.category,
@@ -7627,7 +7863,7 @@ class DatabaseService {
             id: 'n-payout-${DateTime.now().millisecondsSinceEpoch}',
             title: 'Payout processed',
             body:
-                'Vendor payout of Rs ${payout.amount.toInt()} has been processed.',
+                'Vendor payout of ₹${payout.amount.toInt()} has been processed.',
             type: 'payout',
             isRead: false,
             timestamp: DateTime.now(),
@@ -7692,8 +7928,7 @@ class DatabaseService {
       AppNotification(
         id: 'n-payout-${now.millisecondsSinceEpoch}',
         title: 'Payout processed',
-        body:
-            'Vendor payout of Rs ${payout.amount.toInt()} has been processed.',
+        body: 'Vendor payout of ₹${payout.amount.toInt()} has been processed.',
         type: 'payout',
         isRead: false,
         timestamp: now,
@@ -9158,26 +9393,12 @@ class DatabaseService {
 
   Future<List<FaqItem>> getFaqItems() async {
     if (_backendCommerce.isConfigured) {
-      return const <FaqItem>[
-        FaqItem(
-          id: 'faq-delivery',
-          question: 'How long does delivery take?',
-          answer:
-              'Most orders are delivered within 2-5 business days based on your city.',
-        ),
-        FaqItem(
-          id: 'faq-payment',
-          question: 'Which payment methods are supported?',
-          answer:
-              'UPI, cards, and Cash on Delivery are supported based on checkout eligibility.',
-        ),
-        FaqItem(
-          id: 'faq-returns',
-          question: 'How do I request a return or refund?',
-          answer:
-              'Open your order details and choose return/refund if the order is eligible.',
-        ),
-      ];
+      try {
+        final faqs = await _backendCommerce.getCmsFaqItems();
+        if (faqs.isNotEmpty) {
+          return faqs;
+        }
+      } catch (_) {}
     }
     final faqs = await _fetchCollection(
       'faq',
@@ -10404,14 +10625,14 @@ class DatabaseService {
           .copyWith(
             lastMessage: welcomeMessage,
             lastMessageAt: nowIso,
-            lastSenderId: 'abzora-assistant',
+            lastSenderId: 'abianzo-assistant',
             lastSenderRole: 'assistant',
           )
           .toMap(),
       'supportTickets/$ticketId': ticket.toMap(),
       'messages/$chatId/msg-$timestampSeed': SupportMessage(
         id: 'msg-$timestampSeed',
-        senderId: 'abzora-assistant',
+        senderId: 'abianzo-assistant',
         senderRole: 'assistant',
         text: welcomeMessage,
         timestamp: nowIso,
@@ -10595,7 +10816,7 @@ class DatabaseService {
       updates.addAll({
         'messages/$chatId/$assistantId': SupportMessage(
           id: assistantId,
-          senderId: 'abzora-assistant',
+          senderId: 'abianzo-assistant',
           senderRole: 'assistant',
           text: assistantReply.trim(),
           timestamp: assistantTimestamp,
@@ -10603,7 +10824,7 @@ class DatabaseService {
         ).toMap(),
         'supportChats/$chatId/lastMessage': assistantReply.trim(),
         'supportChats/$chatId/lastMessageAt': assistantTimestamp,
-        'supportChats/$chatId/lastSenderId': 'abzora-assistant',
+        'supportChats/$chatId/lastSenderId': 'abianzo-assistant',
         'supportChats/$chatId/lastSenderRole': 'assistant',
         'supportChats/$chatId/updatedAt': assistantTimestamp,
         'supportChats/$chatId/unreadCountAdmin': 0,
@@ -11441,8 +11662,7 @@ class DatabaseService {
       action: 'adjust_wallet',
       targetType: 'store',
       targetId: storeId,
-      message:
-          'Adjusted wallet for $storeId by Rs ${delta.toStringAsFixed(0)}.',
+      message: 'Adjusted wallet for $storeId by ₹${delta.toStringAsFixed(0)}.',
       actor: actor,
     );
   }

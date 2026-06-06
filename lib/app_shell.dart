@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:provider/provider.dart';
 
@@ -23,7 +24,7 @@ import 'screens/ops/ops_account_screen.dart';
 import 'screens/ops/ops_shell_screen.dart';
 import 'screens/otp_verification_screen.dart';
 import 'screens/rider/rider_dashboard.dart';
-import 'screens/splash_screen.dart';
+import 'screens/rider/rider_onboarding_screen.dart';
 import 'screens/admin/admin_analytics_screen.dart';
 import 'screens/admin/admin_web_panel.dart';
 import 'screens/user/cart_screen.dart';
@@ -36,6 +37,7 @@ import 'screens/user/notifications_screen.dart';
 import 'screens/user/order_tracking_screen.dart';
 import 'screens/user/fast_delivery_tracking_screen.dart';
 import 'screens/user/payment_methods_screen.dart';
+import 'screens/user/profile_completion_flow_screen.dart';
 import 'screens/user/product_detail_screen.dart';
 import 'screens/user/profile_screen.dart';
 import 'screens/user/referral_screen.dart';
@@ -48,7 +50,6 @@ import 'features/invoices/presentation/screens/invoice_details_screen.dart';
 import 'features/invoices/presentation/screens/invoice_pdf_viewer_screen.dart';
 import 'features/invoices/presentation/screens/refund_timeline_screen.dart';
 import 'features/invoices/presentation/screens/credit_note_screen.dart';
-import 'screens/atelier/atelier_flow_screen.dart';
 import 'screens/admin/admin_kyc_screen.dart';
 import 'screens/admin/admin_orders_screen.dart';
 import 'screens/admin/admin_payouts_screen.dart';
@@ -81,6 +82,9 @@ Future<void> bootstrapAndRunWithInitialRoute(
   await runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
       _installGlobalErrorHandling();
       await AppBootstrapService().initialize();
       final imageCache = PaintingBinding.instance.imageCache;
@@ -213,12 +217,10 @@ class AbzioApp extends StatelessWidget {
       initialRoute: initialRoute,
       routes: {
         '/': (context) => _AppLaunchGate(mode: mode),
-        '/login': (context) => mode == AbzioAppMode.vendor
-            ? const _VendorAuthBannerScreen()
-            : LoginScreen(
-                mode: mode,
-                adminEntry: kIsWeb && mode == AbzioAppMode.unified,
-              ),
+        '/login': (context) => LoginScreen(
+          mode: mode,
+          adminEntry: kIsWeb && mode == AbzioAppMode.unified,
+        ),
         '/admin-login': (context) =>
             const LoginScreen(mode: AbzioAppMode.unified, adminEntry: true),
         '/otp': (context) => OtpVerificationScreen(mode: mode),
@@ -231,7 +233,6 @@ class AbzioApp extends StatelessWidget {
         '/signup': (context) => const SignupScreen(),
         '/shop': (context) => const HomeScreen(),
         '/home': (context) => const HomeScreen(),
-        '/atelier-flow': (context) => const AtelierFlowScreen(),
         '/ops': (context) {
           if (mode == AbzioAppMode.vendor) {
             return const VendorDashboard();
@@ -249,6 +250,8 @@ class AbzioApp extends StatelessWidget {
         '/addresses': (context) => const AddressScreen(),
         '/add-card': (context) => const AddCardScreen(),
         '/payments': (context) => const PaymentMethodsScreen(),
+        '/profile-completion': (context) => const ProfileCompletionFlowScreen(),
+        '/profile-setup': (context) => const RiderOnboardingScreen(),
         '/cart': (context) => const CartScreen(),
         '/checkout': (context) => const CheckoutScreen(),
         '/orders': (context) => const OrderTrackingScreen(),
@@ -339,26 +342,15 @@ class _AppLaunchGate extends StatefulWidget {
 
 class _AppLaunchGateState extends State<_AppLaunchGate> {
   bool _didRoute = false;
-  static const Duration _minimumSplashDuration = Duration(milliseconds: 1500);
-  Timer? _splashTimer;
-  bool _hasShownMinimumSplash = false;
+  bool _didScheduleRoute = false;
 
   @override
   void initState() {
     super.initState();
-    _splashTimer = Timer(_minimumSplashDuration, () {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _hasShownMinimumSplash = true;
-      });
-    });
   }
 
   @override
   void dispose() {
-    _splashTimer?.cancel();
     super.dispose();
   }
 
@@ -372,6 +364,75 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
         path.startsWith('/admin/');
   }
 
+  PageRouteBuilder<void> _launchRoute(Widget page) {
+    return PageRouteBuilder<void>(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionDuration: const Duration(milliseconds: 320),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final slideAnimation =
+            Tween<Offset>(
+              begin: const Offset(0, 0.03),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            );
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(position: slideAnimation, child: child),
+        );
+      },
+    );
+  }
+
+  Widget _launchDestinationForRoute(String route, AppUser? user) {
+    switch (route) {
+      case '/login':
+        return LoginScreen(
+          mode: widget.mode,
+          adminEntry: kIsWeb && widget.mode == AbzioAppMode.unified,
+        );
+      case '/admin-login':
+        return const LoginScreen(mode: AbzioAppMode.unified, adminEntry: true);
+      case '/admin':
+        return _AdminRoute(mode: widget.mode);
+      case '/ops':
+        if (widget.mode == AbzioAppMode.vendor) {
+          return const VendorDashboard();
+        }
+        if (widget.mode == AbzioAppMode.rider) {
+          return const RiderDashboard();
+        }
+        return const OpsShellScreen();
+      case '/vendor-dashboard':
+        return const VendorDashboard();
+      case '/vendor-profile':
+        return const VendorProfileScreen();
+      case '/rider-dashboard':
+        return const RiderDashboard();
+      case '/profile-setup':
+        return const RiderOnboardingScreen();
+      case '/profile':
+        if (widget.mode == AbzioAppMode.vendor) {
+          return const VendorProfileScreen();
+        }
+        if (isPartnerMode(widget.mode)) {
+          return OpsAccountScreen(mode: widget.mode);
+        }
+        return const ProfileScreen();
+      case '/shop':
+      case '/home':
+        return const HomeScreen();
+      default:
+        if (user != null) {
+          return const HomeScreen();
+        }
+        return LoginScreen(
+          mode: widget.mode,
+          adminEntry: kIsWeb && widget.mode == AbzioAppMode.unified,
+        );
+    }
+  }
+
   Future<void> _navigateToResolvedRoute(AuthProvider auth) async {
     if (!mounted || _didRoute) {
       return;
@@ -382,8 +443,9 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
 
     if (user != null) {
       if (widget.mode == AbzioAppMode.vendor) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          routeForUserInMode(user, widget.mode),
+        final route = routeForUserInMode(user, widget.mode);
+        Navigator.of(context).pushAndRemoveUntil(
+          _launchRoute(_launchDestinationForRoute(route, user)),
           (route) => false,
         );
         return;
@@ -402,15 +464,14 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
           mode: widget.mode,
         );
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => LegalConsentScreen(audience: audience),
-          ),
+          _launchRoute(LegalConsentScreen(audience: audience)),
           (route) => false,
         );
         return;
       }
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        routeForUserInMode(user, widget.mode),
+      final route = routeForUserInMode(user, widget.mode);
+      Navigator.of(context).pushAndRemoveUntil(
+        _launchRoute(_launchDestinationForRoute(route, user)),
         (route) => false,
       );
       unawaited(
@@ -426,32 +487,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
 
     if (isPartnerMode(widget.mode)) {
       Navigator.of(context).pushAndRemoveUntil(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              widget.mode == AbzioAppMode.vendor
-              ? const _VendorAuthBannerScreen()
-              : LoginScreen(
-                  mode: widget.mode,
-                  adminEntry: kIsWeb && widget.mode == AbzioAppMode.unified,
-                ),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            final slideAnimation =
-                Tween<Offset>(
-                  begin: const Offset(0.04, 0),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutCubic,
-                  ),
-                );
-            return FadeTransition(
-              opacity: animation,
-              child: SlideTransition(position: slideAnimation, child: child),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 280),
-        ),
+        _launchRoute(_launchDestinationForRoute('/login', null)),
         (route) => false,
       );
       return;
@@ -459,79 +495,41 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
 
     if (widget.mode == AbzioAppMode.unified && _wantsAdminEntryFromUrl) {
       Navigator.of(context).pushAndRemoveUntil(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              const LoginScreen(mode: AbzioAppMode.unified, adminEntry: true),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            final slideAnimation =
-                Tween<Offset>(
-                  begin: const Offset(0.04, 0),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutCubic,
-                  ),
-                );
-            return FadeTransition(
-              opacity: animation,
-              child: SlideTransition(position: slideAnimation, child: child),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 280),
-        ),
+        _launchRoute(_launchDestinationForRoute('/admin-login', null)),
         (route) => false,
       );
       return;
     }
 
-    Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+    Navigator.of(context).pushAndRemoveUntil(
+      _launchRoute(_launchDestinationForRoute('/home', null)),
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
 
-    if (!_hasShownMinimumSplash) {
-      return SplashScreen(mode: widget.mode, autoNavigate: false);
-    }
-
-    if (!auth.isInitialized) {
-      return SplashScreen(mode: widget.mode, autoNavigate: false);
-    }
-
-    if (auth.user == null) {
-      if (widget.mode == AbzioAppMode.vendor) {
-        return const _VendorAuthBannerScreen();
-      }
-      if (isPartnerMode(widget.mode)) {
-        return LoginScreen(
-          mode: widget.mode,
-          adminEntry: kIsWeb && widget.mode == AbzioAppMode.unified,
-        );
-      }
-      return const HomeScreen();
-    }
-
-    if (!_didRoute) {
+    if (auth.isInitialized && !_didScheduleRoute) {
+      _didScheduleRoute = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         unawaited(_navigateToResolvedRoute(auth));
       });
     }
 
-    return SplashScreen(mode: widget.mode, autoNavigate: false);
+    return const ColoredBox(color: Color(0xFFF9F7F2));
   }
 }
 
-class _VendorAuthBannerScreen extends StatefulWidget {
-  const _VendorAuthBannerScreen();
+class VendorAuthBannerScreen extends StatefulWidget {
+  const VendorAuthBannerScreen({super.key});
 
   @override
-  State<_VendorAuthBannerScreen> createState() =>
-      _VendorAuthBannerScreenState();
+  State<VendorAuthBannerScreen> createState() => _VendorAuthBannerScreenState();
 }
 
-class _VendorAuthBannerScreenState extends State<_VendorAuthBannerScreen> {
+class _VendorAuthBannerScreenState extends State<VendorAuthBannerScreen> {
   final PageController _controller = PageController();
   final TextEditingController _phoneController = TextEditingController();
   Timer? _timer;

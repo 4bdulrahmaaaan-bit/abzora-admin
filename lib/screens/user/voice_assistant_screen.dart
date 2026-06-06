@@ -587,3 +587,4 @@ class _SubtitleCard extends StatelessWidget {
     );
   }
 }
+

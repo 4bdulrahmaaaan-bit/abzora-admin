@@ -10,7 +10,7 @@ import '../../widgets/state_views.dart';
 class RiderEarningsScreen extends StatelessWidget {
   const RiderEarningsScreen({super.key});
 
-  String _money(double amount) => 'Rs ${amount.toStringAsFixed(0)}';
+  String _money(double amount) => '₹${amount.toStringAsFixed(0)}';
 
   @override
   Widget build(BuildContext context) {
@@ -155,4 +155,3 @@ class RiderEarningsScreen extends StatelessWidget {
     );
   }
 }
-

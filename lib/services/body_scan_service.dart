@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import '../models/models.dart';
@@ -95,6 +96,20 @@ class SizePredictionResult {
   }
 }
 
+class ProductSizeRecommendation {
+  const ProductSizeRecommendation({
+    required this.recommendedSize,
+    required this.confidence,
+    required this.reasoning,
+    required this.usedProductChart,
+  });
+
+  final String recommendedSize;
+  final double confidence;
+  final List<String> reasoning;
+  final bool usedProductChart;
+}
+
 class BodyScanService {
   const BodyScanService();
 
@@ -167,14 +182,14 @@ class BodyScanService {
     final inseam = (input.heightCm * 0.46) + (frameBias * 0.2);
 
     final pantSize = _pantSizeFor(waist);
-    final confidence = (_confidenceFor(input, bmi) +
-            (poseRefinement?.confidenceBoost ?? 0))
-        .clamp(0.74, 0.98);
+    final confidence =
+        (_confidenceFor(input, bmi) + (poseRefinement?.confidenceBoost ?? 0))
+            .clamp(0.74, 0.98);
     final fit = bmi >= 28
         ? 'Relaxed'
         : bmi <= 20
-            ? 'Slim'
-            : 'Regular';
+        ? 'Slim'
+        : 'Regular';
 
     return SizePredictionResult(
       shirtSize: shirtSize,
@@ -189,15 +204,18 @@ class BodyScanService {
       lengthCm: length,
       fit: fit,
       confidence: confidence,
-      accuracyLabel: poseRefinement?.accuracyLabel ??
+      accuracyLabel:
+          poseRefinement?.accuracyLabel ??
           (input.sideImagePath != null && input.sideImagePath!.isNotEmpty
               ? 'High'
               : input.frontImagePath != null && input.frontImagePath!.isNotEmpty
-                  ? 'Medium'
-                  : 'Low'),
-      detectedBodyType: poseRefinement?.detectedBodyType ??
+              ? 'Medium'
+              : 'Low'),
+      detectedBodyType:
+          poseRefinement?.detectedBodyType ??
           _bodyTypeFromFrame(normalizedFrame),
-      bodyTypeConfidence: poseRefinement?.bodyTypeConfidence ??
+      bodyTypeConfidence:
+          poseRefinement?.bodyTypeConfidence ??
           (normalizedFrame == 'regular' ? 0.78 : 0.72),
       usedManualEstimate: !hasScanData,
       canImproveWithSideScan:
@@ -233,18 +251,76 @@ class BodyScanService {
   }
 
   String chooseBestProductSize(Product product, SizePredictionResult result) {
-    if (product.sizes.isEmpty) {
-      return result.shirtSize;
+    return recommendProductSize(product, result).recommendedSize;
+  }
+
+  ProductSizeRecommendation recommendProductSize(
+    Product product,
+    SizePredictionResult result,
+  ) {
+    final normalizedSizes = product.sizes
+        .map((size) => size.trim().toUpperCase())
+        .where((size) => size.isNotEmpty)
+        .toList();
+    if (normalizedSizes.isEmpty) {
+      return ProductSizeRecommendation(
+        recommendedSize: result.shirtSize,
+        confidence: result.confidence,
+        reasoning: const [
+          'No product sizes were listed, so we used the body profile size.',
+        ],
+        usedProductChart: false,
+      );
     }
-    final normalized = product.sizes.map((size) => size.toUpperCase()).toList();
+
+    final productChart = _buildProductSizeChart(product, normalizedSizes);
+    if (productChart.isNotEmpty) {
+      final best = _bestSizeFromChart(
+        productChart,
+        chest: result.chestCm,
+        waist: result.waistCm,
+        hip: result.hipCm,
+      );
+      if (best != null) {
+        final fitConfidence = _productChartConfidence(
+          productChart[best],
+          chest: result.chestCm,
+          waist: result.waistCm,
+          hip: result.hipCm,
+        );
+        return ProductSizeRecommendation(
+          recommendedSize: best,
+          confidence: fitConfidence,
+          reasoning: [
+            'Aligned your scan with the product size chart.',
+            'Chest, waist, and hip measurements were weighed against the garment measurements.',
+          ],
+          usedProductChart: true,
+        );
+      }
+    }
+
+    final normalized = normalizedSizes;
     if (normalized.contains(result.shirtSize.toUpperCase())) {
-      return result.shirtSize.toUpperCase();
+      return ProductSizeRecommendation(
+        recommendedSize: result.shirtSize.toUpperCase(),
+        confidence: result.confidence,
+        reasoning: ['The product offers your body-profile size directly.'],
+        usedProductChart: false,
+      );
     }
+
     const order = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
     final shirtIndex = order.indexOf(result.shirtSize.toUpperCase());
     if (shirtIndex < 0) {
-      return normalized.first;
+      return ProductSizeRecommendation(
+        recommendedSize: normalized.first,
+        confidence: (result.confidence * 0.9).clamp(0.45, 0.96),
+        reasoning: ['Used the closest available product size.'],
+        usedProductChart: false,
+      );
     }
+
     String best = normalized.first;
     var bestDistance = 999;
     for (final size in normalized) {
@@ -258,11 +334,21 @@ class BodyScanService {
         best = size;
       }
     }
-    return best;
+
+    return ProductSizeRecommendation(
+      recommendedSize: best,
+      confidence: (result.confidence - (bestDistance * 0.05)).clamp(0.48, 0.94),
+      reasoning: [
+        'Used the closest available product size to your scan recommendation.',
+      ],
+      usedProductChart: false,
+    );
   }
 
   double _confidenceFor(BodyScanInput input, double bmi) {
-    var value = input.sideImagePath != null && input.sideImagePath!.isNotEmpty ? 0.91 : 0.84;
+    var value = input.sideImagePath != null && input.sideImagePath!.isNotEmpty
+        ? 0.91
+        : 0.84;
     if (input.frontImagePath != null && input.frontImagePath!.isNotEmpty) {
       value += 0.03;
     }
@@ -290,5 +376,247 @@ class BodyScanService {
       default:
         return 'Regular';
     }
+  }
+
+  Map<String, Map<String, double>> _buildProductSizeChart(
+    Product product,
+    List<String> availableSizes,
+  ) {
+    final chart = <String, Map<String, double>>{};
+    final jsonSizeChart = _parseJsonSizeChart(
+      product.attributeText('sizeChart'),
+    );
+    if (jsonSizeChart.isNotEmpty) {
+      chart.addAll(jsonSizeChart);
+    }
+
+    for (final entry in product.attributes.entries) {
+      final sizeMatch = RegExp(
+        r'\b(xs|s|m|l|xl|xxl|xxxl)\b',
+        caseSensitive: false,
+      ).firstMatch(entry.key);
+      if (sizeMatch == null) {
+        continue;
+      }
+      final size = sizeMatch.group(1)!.toUpperCase();
+      final metric = _metricFromKey(entry.key);
+      final measurement = _toMeasurement(entry.value);
+      if (metric == null || measurement == null) {
+        continue;
+      }
+      chart.putIfAbsent(size, () => <String, double>{});
+      chart[size]![metric] = measurement;
+    }
+
+    for (final entry in product.structuredAttributes) {
+      final sizeLabel =
+          entry['size']?.toString().trim().toUpperCase() ??
+          entry['label']?.toString().trim().toUpperCase() ??
+          '';
+      if (!RegExp(r'^(XS|S|M|L|XL|XXL|XXXL)$').hasMatch(sizeLabel)) {
+        continue;
+      }
+      final metric = _metricFromKey(entry['key']?.toString() ?? '');
+      final measurement = _toMeasurement(entry['value']?.toString());
+      if (metric == null || measurement == null) {
+        continue;
+      }
+      chart.putIfAbsent(sizeLabel, () => <String, double>{});
+      chart[sizeLabel]![metric] = measurement;
+    }
+
+    if (chart.isEmpty) {
+      final categoryChart = _categorySizeChart(
+        product.category,
+        product.outfitType,
+        availableSizes,
+      );
+      chart.addAll(categoryChart);
+    }
+
+    return chart;
+  }
+
+  Map<String, Map<String, double>> _parseJsonSizeChart(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return const {};
+    }
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        return const {};
+      }
+      final result = <String, Map<String, double>>{};
+      for (final entry in decoded.entries) {
+        final size = entry.key.toString().trim().toUpperCase();
+        if (size.isEmpty) {
+          continue;
+        }
+        final value = entry.value;
+        if (value is! Map) {
+          continue;
+        }
+        final parsed = <String, double>{};
+        for (final metric in value.entries) {
+          final metricName = _metricFromKey(metric.key.toString());
+          final measurement = _toMeasurement(metric.value?.toString());
+          if (metricName == null || measurement == null) {
+            continue;
+          }
+          parsed[metricName] = measurement;
+        }
+        if (parsed.isNotEmpty) {
+          result[size] = parsed;
+        }
+      }
+      return result;
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  String? _metricFromKey(String key) {
+    final normalized = key.trim().toLowerCase();
+    if (normalized.contains('chest')) return 'chest';
+    if (normalized.contains('waist')) return 'waist';
+    if (normalized.contains('hip')) return 'hip';
+    if (normalized.contains('shoulder')) return 'shoulder';
+    if (normalized.contains('inseam')) return 'inseam';
+    if (normalized.contains('arm')) return 'armLength';
+    return null;
+  }
+
+  double? _toMeasurement(String? value) {
+    if (value == null) {
+      return null;
+    }
+    final text = value.trim();
+    if (text.isEmpty) {
+      return null;
+    }
+    final rangeMatch = RegExp(
+      r'(\d+(?:\.\d+)?)\s*[-to]+\s*(\d+(?:\.\d+)?)',
+      caseSensitive: false,
+    ).firstMatch(text);
+    if (rangeMatch != null) {
+      final left = double.tryParse(rangeMatch.group(1)!);
+      final right = double.tryParse(rangeMatch.group(2)!);
+      if (left != null && right != null) {
+        return (left + right) / 2;
+      }
+    }
+    return double.tryParse(text.replaceAll(RegExp(r'[^0-9.]'), ''));
+  }
+
+  Map<String, Map<String, double>> _categorySizeChart(
+    String category,
+    String? outfitType,
+    List<String> availableSizes,
+  ) {
+    final normalizedCategory = category.trim().toLowerCase();
+    final normalizedFit = (outfitType ?? '').trim().toLowerCase();
+    final base = switch (normalizedCategory) {
+      'pants' ||
+      'trousers' ||
+      'bottomwear' => <String, double>{'waist': 86, 'hip': 102, 'inseam': 79},
+      'kurta' || 'ethnic' || 'traditional' => <String, double>{
+        'chest': 104,
+        'waist': 98,
+        'shoulder': 45,
+      },
+      'jacket' || 'outerwear' => <String, double>{
+        'chest': 106,
+        'waist': 100,
+        'shoulder': 46,
+      },
+      _ => <String, double>{'chest': 100, 'waist': 92, 'shoulder': 44},
+    };
+    final fitAdjustment = switch (normalizedFit) {
+      'slim' => -2.0,
+      'oversized' => 4.0,
+      'relaxed' => 2.0,
+      'athletic' => 1.0,
+      _ => 0.0,
+    };
+
+    final sizes = availableSizes.isNotEmpty ? availableSizes : _shirtOrder;
+    return {
+      for (var i = 0; i < sizes.length; i += 1)
+        sizes[i]: {
+          for (final entry in base.entries)
+            entry.key: entry.value + ((i - 2) * 4) + fitAdjustment,
+        },
+    };
+  }
+
+  String? _bestSizeFromChart(
+    Map<String, Map<String, double>> chart, {
+    required double chest,
+    required double waist,
+    required double hip,
+  }) {
+    if (chart.isEmpty) {
+      return null;
+    }
+    String? bestSize;
+    var bestScore = double.infinity;
+    for (final entry in chart.entries) {
+      var score = 0.0;
+      final measurements = entry.value;
+      if (measurements['chest'] != null) {
+        score += (measurements['chest']! - chest).abs() * 1.2;
+      }
+      if (measurements['waist'] != null) {
+        score += (measurements['waist']! - waist).abs() * 1.0;
+      }
+      if (measurements['hip'] != null) {
+        score += (measurements['hip']! - hip).abs() * 0.9;
+      }
+      if (score < bestScore) {
+        bestScore = score;
+        bestSize = entry.key;
+      }
+    }
+    return bestSize;
+  }
+
+  double _productChartConfidence(
+    Map<String, double>? measurements, {
+    required double chest,
+    required double waist,
+    required double hip,
+  }) {
+    if (measurements == null || measurements.isEmpty) {
+      return 0.74;
+    }
+    var penalty = 0.0;
+    var usedMetrics = 0;
+    if (measurements['chest'] != null) {
+      penalty +=
+          ((measurements['chest']! - chest).abs() /
+              math.max(measurements['chest']!, 1)) *
+          1.2;
+      usedMetrics += 1;
+    }
+    if (measurements['waist'] != null) {
+      penalty +=
+          ((measurements['waist']! - waist).abs() /
+              math.max(measurements['waist']!, 1)) *
+          1.0;
+      usedMetrics += 1;
+    }
+    if (measurements['hip'] != null) {
+      penalty +=
+          ((measurements['hip']! - hip).abs() /
+              math.max(measurements['hip']!, 1)) *
+          0.9;
+      usedMetrics += 1;
+    }
+    final base = usedMetrics >= 3
+        ? 0.93
+        : usedMetrics == 2
+        ? 0.87
+        : 0.81;
+    return (base - (penalty * 0.35)).clamp(0.55, 0.97);
   }
 }

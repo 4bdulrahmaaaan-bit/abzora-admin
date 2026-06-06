@@ -2,11 +2,7 @@ import 'dart:math' as math;
 
 import 'mediapipe_pose_bridge.dart';
 
-enum PoseGuideState {
-  detecting,
-  adjust,
-  aligned,
-}
+enum PoseGuideState { detecting, adjust, aligned }
 
 class PoseFrameFeedback {
   const PoseFrameFeedback({
@@ -31,6 +27,10 @@ class TryOnPoseFrame {
     required this.feedback,
     required this.leftShoulder,
     required this.rightShoulder,
+    required this.leftElbow,
+    required this.rightElbow,
+    required this.leftWrist,
+    required this.rightWrist,
     required this.leftHip,
     required this.rightHip,
     required this.shoulderCenter,
@@ -43,6 +43,10 @@ class TryOnPoseFrame {
   final PoseFrameFeedback feedback;
   final NormalizedLandmarkPoint leftShoulder;
   final NormalizedLandmarkPoint rightShoulder;
+  final NormalizedLandmarkPoint leftElbow;
+  final NormalizedLandmarkPoint rightElbow;
+  final NormalizedLandmarkPoint leftWrist;
+  final NormalizedLandmarkPoint rightWrist;
   final NormalizedLandmarkPoint leftHip;
   final NormalizedLandmarkPoint rightHip;
   final NormalizedLandmarkPoint shoulderCenter;
@@ -97,11 +101,7 @@ class PoseRefinementResult {
   final int confidencePercent;
 
   Map<String, double> toMeasurementCm() {
-    return {
-      'chest': chestCm,
-      'waist': waistCm,
-      'hips': hipCm,
-    };
+    return {'chest': chestCm, 'waist': waistCm, 'hips': hipCm};
   }
 
   Map<String, dynamic> toMeasurementOutput() {
@@ -144,20 +144,20 @@ class PoseRefinementResult {
       ],
       accuracyLabel: 'High',
       detectedBodyType: bodyType.$1,
-      bodyTypeConfidence: math.max(
-        front.bodyTypeConfidence,
-        bodyType.$2,
-      ).clamp(0.0, 0.99),
+      bodyTypeConfidence: math
+          .max(front.bodyTypeConfidence, bodyType.$2)
+          .clamp(0.0, 0.99),
       shoulderWidthCm: front.shoulderWidthCm,
       chestCm: front.chestCm,
       waistCm: improvedWaist,
       hipCm: improvedHip,
       bodyRatio: bodyRatio,
       usedSideScan: true,
-      confidencePercent: (((front.confidencePercent * 0.65) + (side.confidencePercent * 0.35))
-              .round()
-              .clamp(72, 98))
-          .toInt(),
+      confidencePercent:
+          (((front.confidencePercent * 0.65) + (side.confidencePercent * 0.35))
+                  .round()
+                  .clamp(72, 98))
+              .toInt(),
     );
   }
 
@@ -170,26 +170,32 @@ class PoseRefinementResult {
     double sum(double Function(PoseRefinementResult item) picker) =>
         effective.fold<double>(0, (total, item) => total + picker(item));
     final count = effective.length.toDouble();
-    final avgChest = sum((item) => item.chestCm) / count;
-    final avgWaist = sum((item) => item.waistCm) / count;
-    final avgHip = sum((item) => item.hipCm) / count;
-    final avgShoulder = sum((item) => item.shoulderWidthCm) / count;
+    final avgChest = _weightedAverage(effective, (item) => item.chestCm);
+    final avgWaist = _weightedAverage(effective, (item) => item.waistCm);
+    final avgHip = _weightedAverage(effective, (item) => item.hipCm);
+    final avgShoulder = _weightedAverage(
+      effective,
+      (item) => item.shoulderWidthCm,
+    );
     final avgRatio = avgWaist <= 0 ? 1.0 : avgChest / avgWaist;
     final bodyType = PoseMeasurementService._bodyTypeFromRatio(avgRatio);
     final spread = _relativeSpread(effective);
     final sampleScore = (effective.length / 10).clamp(0.0, 1.0);
     final stabilityScore = (1 - spread).clamp(0.0, 1.0);
-    final confidencePercent = ((56 + (sampleScore * 24) + (stabilityScore * 20))
-            .round()
-            .clamp(56, 98))
-        .toInt();
+    final confidencePercent =
+        ((56 + (sampleScore * 24) + (stabilityScore * 20)).round().clamp(
+          56,
+          98,
+        )).toInt();
     return PoseRefinementResult(
       chestAdjustment: sum((item) => item.chestAdjustment) / count,
       waistAdjustment: sum((item) => item.waistAdjustment) / count,
       hipAdjustment: sum((item) => item.hipAdjustment) / count,
       shoulderAdjustment: sum((item) => item.shoulderAdjustment) / count,
-      confidenceBoost: (sum((item) => item.confidenceBoost) / count)
-          .clamp(0.04, 0.16),
+      confidenceBoost: (sum((item) => item.confidenceBoost) / count).clamp(
+        0.04,
+        0.16,
+      ),
       highlights: [
         'Averaged ${effective.length} pose frames for smoother measurements',
         if (effective.length < results.length)
@@ -198,8 +204,8 @@ class PoseRefinementResult {
       accuracyLabel: confidencePercent >= 88
           ? 'High'
           : confidencePercent >= 72
-              ? 'Medium'
-              : 'Low',
+          ? 'Medium'
+          : 'Low',
       detectedBodyType: bodyType.$1,
       bodyTypeConfidence: bodyType.$2,
       shoulderWidthCm: avgShoulder,
@@ -210,6 +216,32 @@ class PoseRefinementResult {
       usedSideScan: effective.any((item) => item.usedSideScan),
       confidencePercent: confidencePercent,
     );
+  }
+
+  static double _weightedAverage(
+    List<PoseRefinementResult> rows,
+    double Function(PoseRefinementResult item) picker,
+  ) {
+    if (rows.isEmpty) {
+      return 0;
+    }
+
+    var totalWeight = 0.0;
+    var weightedSum = 0.0;
+    for (final item in rows) {
+      final confidenceWeight = (item.confidencePercent / 100).clamp(0.45, 1.0);
+      final boostWeight = 1 + (item.confidenceBoost * 3.5);
+      final weight = confidenceWeight * boostWeight;
+      totalWeight += weight;
+      weightedSum += picker(item) * weight;
+    }
+
+    if (totalWeight <= 0) {
+      return rows.fold<double>(0, (sum, item) => sum + picker(item)) /
+          rows.length;
+    }
+
+    return weightedSum / totalWeight;
   }
 
   static List<PoseRefinementResult> _discardOutliers(
@@ -227,7 +259,9 @@ class PoseRefinementResult {
       final chestRel = _relativeDelta(row.chestCm, chestMedian);
       final waistRel = _relativeDelta(row.waistCm, waistMedian);
       final hipRel = _relativeDelta(row.hipCm, hipMedian);
-      return chestRel <= tolerance && waistRel <= tolerance && hipRel <= tolerance;
+      return chestRel <= tolerance &&
+          waistRel <= tolerance &&
+          hipRel <= tolerance;
     }).toList();
     return kept.length >= 4 ? kept : rows;
   }
@@ -236,9 +270,15 @@ class PoseRefinementResult {
     if (rows.length <= 1) {
       return 0;
     }
-    final chestSpread = _coefficientOfVariation(rows.map((e) => e.chestCm).toList());
-    final waistSpread = _coefficientOfVariation(rows.map((e) => e.waistCm).toList());
-    final hipSpread = _coefficientOfVariation(rows.map((e) => e.hipCm).toList());
+    final chestSpread = _coefficientOfVariation(
+      rows.map((e) => e.chestCm).toList(),
+    );
+    final waistSpread = _coefficientOfVariation(
+      rows.map((e) => e.waistCm).toList(),
+    );
+    final hipSpread = _coefficientOfVariation(
+      rows.map((e) => e.hipCm).toList(),
+    );
     return ((chestSpread + waistSpread + hipSpread) / 3).clamp(0.0, 1.0);
   }
 
@@ -250,11 +290,12 @@ class PoseRefinementResult {
     if (mean.abs() < 0.0001) {
       return 0;
     }
-    final variance = values.fold<double>(
-              0,
-              (sum, v) => sum + math.pow(v - mean, 2).toDouble(),
-            ) /
-            values.length;
+    final variance =
+        values.fold<double>(
+          0,
+          (sum, v) => sum + math.pow(v - mean, 2).toDouble(),
+        ) /
+        values.length;
     return (math.sqrt(variance) / mean.abs()).clamp(0.0, 1.0);
   }
 
@@ -293,11 +334,7 @@ class PoseMeasurementService {
     if (pose == null) {
       return null;
     }
-    return _buildRefinement(
-      pose,
-      heightCm: heightCm,
-      isSideView: isSideView,
-    );
+    return _buildRefinement(pose, heightCm: heightCm, isSideView: isSideView);
   }
 
   Future<PoseFrameFeedback> analyzeLiveInputImage(
@@ -305,7 +342,9 @@ class PoseMeasurementService {
     required double heightCm,
     bool isSideView = false,
   }) async {
-    final landmarks = await MediaPipePoseBridge.instance.processFrame(inputFrame);
+    final landmarks = await MediaPipePoseBridge.instance.processFrame(
+      inputFrame,
+    );
     final pose = _toPose(landmarks);
     if (pose == null) {
       return const PoseFrameFeedback(
@@ -327,13 +366,17 @@ class PoseMeasurementService {
     MediaPipePoseFrameInput inputFrame, {
     bool isSideView = false,
   }) async {
-    final landmarks = await MediaPipePoseBridge.instance.processFrame(inputFrame);
+    final landmarks = await MediaPipePoseBridge.instance.processFrame(
+      inputFrame,
+    );
     final pose = _toPose(landmarks);
     if (pose == null) {
       return null;
     }
     return _buildTryOnFrame(
       pose,
+      frameWidth: inputFrame.width,
+      frameHeight: inputFrame.height,
       isSideView: isSideView,
     );
   }
@@ -343,16 +386,14 @@ class PoseMeasurementService {
     required double heightCm,
     bool isSideView = false,
   }) async {
-    final landmarks = await MediaPipePoseBridge.instance.processFrame(inputFrame);
+    final landmarks = await MediaPipePoseBridge.instance.processFrame(
+      inputFrame,
+    );
     final pose = _toPose(landmarks);
     if (pose == null) {
       return null;
     }
-    return _buildRefinement(
-      pose,
-      heightCm: heightCm,
-      isSideView: isSideView,
-    );
+    return _buildRefinement(pose, heightCm: heightCm, isSideView: isSideView);
   }
 
   Pose? _toPose(List<MediaPipePoseLandmark> landmarks) {
@@ -385,6 +426,10 @@ class PoseMeasurementService {
   }) {
     final leftShoulder = pose.landmarks[PoseLandmarkType.leftShoulder];
     final rightShoulder = pose.landmarks[PoseLandmarkType.rightShoulder];
+    final leftElbow = pose.landmarks[PoseLandmarkType.leftElbow];
+    final rightElbow = pose.landmarks[PoseLandmarkType.rightElbow];
+    final leftWrist = pose.landmarks[PoseLandmarkType.leftWrist];
+    final rightWrist = pose.landmarks[PoseLandmarkType.rightWrist];
     final leftHip = pose.landmarks[PoseLandmarkType.leftHip];
     final rightHip = pose.landmarks[PoseLandmarkType.rightHip];
     final leftKnee = pose.landmarks[PoseLandmarkType.leftKnee];
@@ -414,6 +459,10 @@ class PoseMeasurementService {
     final skeleton = _skeletonSegments(
       leftShoulder: leftShoulder,
       rightShoulder: rightShoulder,
+      leftElbow: leftElbow,
+      rightElbow: rightElbow,
+      leftWrist: leftWrist,
+      rightWrist: rightWrist,
       leftHip: leftHip,
       rightHip: rightHip,
       leftKnee: leftKnee,
@@ -428,10 +477,6 @@ class PoseMeasurementService {
       rightShoulder.visibility,
       leftHip.visibility,
       rightHip.visibility,
-      leftKnee.visibility,
-      rightKnee.visibility,
-      leftAnkle.visibility,
-      rightAnkle.visibility,
       nose.visibility,
     ];
     final avgVisibility =
@@ -446,25 +491,33 @@ class PoseMeasurementService {
       );
     }
 
-    final shoulderSlope =
-        ((leftShoulder.y - rightShoulder.y).abs() / 220).clamp(0.0, 1.0);
+    final shoulderSlope = ((leftShoulder.y - rightShoulder.y).abs() / 220)
+        .clamp(0.0, 1.0);
     final hipSlope = ((leftHip.y - rightHip.y).abs() / 240).clamp(0.0, 1.0);
     final torsoCenterX =
         ((leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4);
-    final bodyCenterOffset =
-        ((torsoCenterX - nose.x).abs() / 180).clamp(0.0, 1.0);
-    final heightPixels =
-        (((leftAnkle.y + rightAnkle.y) / 2) - nose.y).abs().clamp(1.0, 9999.0);
-    final shoulderWidth =
-        _distance(leftShoulder.x, leftShoulder.y, rightShoulder.x, rightShoulder.y);
+    final bodyCenterOffset = ((torsoCenterX - nose.x).abs() / 180).clamp(
+      0.0,
+      1.0,
+    );
+    final heightPixels = (((leftAnkle.y + rightAnkle.y) / 2) - nose.y)
+        .abs()
+        .clamp(1.0, 9999.0);
+    final shoulderWidth = _distance(
+      leftShoulder.x,
+      leftShoulder.y,
+      rightShoulder.x,
+      rightShoulder.y,
+    );
     final widthCoverage = (shoulderWidth / heightPixels).clamp(0.0, 1.0);
 
-    final alignmentScore = (1 -
-            (shoulderSlope * 0.28) -
-            (hipSlope * 0.24) -
-            (bodyCenterOffset * 0.34) +
-            (widthCoverage * 0.22))
-        .clamp(0.0, 1.0);
+    final alignmentScore =
+        (1 -
+                (shoulderSlope * 0.28) -
+                (hipSlope * 0.24) -
+                (bodyCenterOffset * 0.34) +
+                (widthCoverage * 0.22))
+            .clamp(0.0, 1.0);
 
     if (alignmentScore >= 0.82) {
       return PoseFrameFeedback(
@@ -495,10 +548,16 @@ class PoseMeasurementService {
 
   TryOnPoseFrame? _buildTryOnFrame(
     Pose pose, {
+    required int frameWidth,
+    required int frameHeight,
     required bool isSideView,
   }) {
     final leftShoulder = pose.landmarks[PoseLandmarkType.leftShoulder];
     final rightShoulder = pose.landmarks[PoseLandmarkType.rightShoulder];
+    final leftElbow = pose.landmarks[PoseLandmarkType.leftElbow];
+    final rightElbow = pose.landmarks[PoseLandmarkType.rightElbow];
+    final leftWrist = pose.landmarks[PoseLandmarkType.leftWrist];
+    final rightWrist = pose.landmarks[PoseLandmarkType.rightWrist];
     final leftHip = pose.landmarks[PoseLandmarkType.leftHip];
     final rightHip = pose.landmarks[PoseLandmarkType.rightHip];
     final leftKnee = pose.landmarks[PoseLandmarkType.leftKnee];
@@ -507,65 +566,126 @@ class PoseMeasurementService {
     final rightAnkle = pose.landmarks[PoseLandmarkType.rightAnkle];
     final nose = pose.landmarks[PoseLandmarkType.nose];
 
-    if (leftShoulder == null ||
-        rightShoulder == null ||
-        leftHip == null ||
-        rightHip == null ||
-        leftKnee == null ||
-        rightKnee == null ||
-        nose == null ||
-        leftAnkle == null ||
-        rightAnkle == null) {
+    if (leftShoulder == null || rightShoulder == null) {
       return null;
     }
 
-    final feedback = _buildFrameFeedback(
-      pose,
-      heightCm: 170,
-      isSideView: isSideView,
-    );
-    final allPoints = <PoseLandmark>[
-      leftShoulder,
-      rightShoulder,
+    final optionalPoints = <PoseLandmark?>[
       leftHip,
       rightHip,
+      leftElbow,
+      rightElbow,
+      leftWrist,
+      rightWrist,
       leftKnee,
       rightKnee,
       leftAnkle,
       rightAnkle,
       nose,
     ];
+    final allPoints = <PoseLandmark>[
+      leftShoulder,
+      rightShoulder,
+      ...optionalPoints.whereType<PoseLandmark>(),
+    ];
     final avgVisibility =
         allPoints.map((point) => point.visibility).reduce((a, b) => a + b) /
         allPoints.length;
-    final coreVisibility = [
-      leftShoulder.visibility,
-      rightShoulder.visibility,
-      leftHip.visibility,
-      rightHip.visibility,
-    ].reduce((a, b) => a + b) /
+    final estimatedHipVisibility =
+        math.min(leftShoulder.visibility, rightShoulder.visibility) * 0.72;
+    final coreVisibility =
+        [
+          leftShoulder.visibility,
+          rightShoulder.visibility,
+          leftHip?.visibility ?? estimatedHipVisibility,
+          rightHip?.visibility ?? estimatedHipVisibility,
+        ].reduce((a, b) => a + b) /
         4;
-    if (avgVisibility < 0.4 || coreVisibility < 0.5) {
+    if (avgVisibility < 0.05 || coreVisibility < 0.10) {
       return null;
     }
-    final minX = allPoints.map((point) => point.x).reduce(math.min);
-    final maxX = allPoints.map((point) => point.x).reduce(math.max);
-    final minY = allPoints.map((point) => point.y).reduce(math.min);
-    final maxY = allPoints.map((point) => point.y).reduce(math.max);
-    final rangeX = math.max(1.0, maxX - minX);
-    final rangeY = math.max(1.0, maxY - minY);
+    final safeFrameWidth = math.max(1.0, frameWidth.toDouble());
+    final safeFrameHeight = math.max(1.0, frameHeight.toDouble());
 
     NormalizedLandmarkPoint normalize(PoseLandmark point) {
+      final normalizedX = point.x > 1.0 ? point.x / safeFrameWidth : point.x;
+      final normalizedY = point.y > 1.0 ? point.y / safeFrameHeight : point.y;
       return NormalizedLandmarkPoint(
-        ((point.x - minX) / rangeX).clamp(0.0, 1.0),
-        ((point.y - minY) / rangeY).clamp(0.0, 1.0),
+        normalizedX.clamp(0.0, 1.0),
+        normalizedY.clamp(0.0, 1.0),
       );
     }
 
     final normalizedLeftShoulder = normalize(leftShoulder);
     final normalizedRightShoulder = normalize(rightShoulder);
-    final normalizedLeftHip = normalize(leftHip);
-    final normalizedRightHip = normalize(rightHip);
+    final shoulderCenterForEstimate = NormalizedLandmarkPoint(
+      (normalizedLeftShoulder.x + normalizedRightShoulder.x) / 2,
+      (normalizedLeftShoulder.y + normalizedRightShoulder.y) / 2,
+    );
+    final estimatedShoulderWidth = _distance(
+      normalizedLeftShoulder.x,
+      normalizedLeftShoulder.y,
+      normalizedRightShoulder.x,
+      normalizedRightShoulder.y,
+    ).clamp(0.08, 0.42);
+    final estimatedTorsoHeight = (estimatedShoulderWidth * 1.75)
+        .clamp(0.22, 0.44)
+        .toDouble();
+    final estimatedHipSpread = (estimatedShoulderWidth * 0.76)
+        .clamp(0.07, 0.34)
+        .toDouble();
+    final estimatedHipY = (shoulderCenterForEstimate.y + estimatedTorsoHeight)
+        .clamp(0.24, 0.92);
+    final normalizedLeftHip = leftHip != null
+        ? normalize(leftHip)
+        : NormalizedLandmarkPoint(
+            (shoulderCenterForEstimate.x - (estimatedHipSpread / 2)).clamp(
+              0.04,
+              0.96,
+            ),
+            estimatedHipY.toDouble(),
+          );
+    final normalizedRightHip = rightHip != null
+        ? normalize(rightHip)
+        : NormalizedLandmarkPoint(
+            (shoulderCenterForEstimate.x + (estimatedHipSpread / 2)).clamp(
+              0.04,
+              0.96,
+            ),
+            estimatedHipY.toDouble(),
+          );
+    final normalizedLeftElbow = leftElbow != null
+        ? normalize(leftElbow)
+        : _estimatedArmPoint(
+            shoulder: normalizedLeftShoulder,
+            hip: normalizedLeftHip,
+            side: -1,
+            elbow: true,
+          );
+    final normalizedRightElbow = rightElbow != null
+        ? normalize(rightElbow)
+        : _estimatedArmPoint(
+            shoulder: normalizedRightShoulder,
+            hip: normalizedRightHip,
+            side: 1,
+            elbow: true,
+          );
+    final normalizedLeftWrist = leftWrist != null
+        ? normalize(leftWrist)
+        : _estimatedArmPoint(
+            shoulder: normalizedLeftShoulder,
+            hip: normalizedLeftHip,
+            side: -1,
+            elbow: false,
+          );
+    final normalizedRightWrist = rightWrist != null
+        ? normalize(rightWrist)
+        : _estimatedArmPoint(
+            shoulder: normalizedRightShoulder,
+            hip: normalizedRightHip,
+            side: 1,
+            elbow: false,
+          );
     final shoulderCenter = NormalizedLandmarkPoint(
       (normalizedLeftShoulder.x + normalizedRightShoulder.x) / 2,
       (normalizedLeftShoulder.y + normalizedRightShoulder.y) / 2,
@@ -590,11 +710,53 @@ class PoseMeasurementService {
       normalizedRightShoulder.y - normalizedLeftShoulder.y,
       normalizedRightShoulder.x - normalizedLeftShoulder.x,
     );
+    final hasFullBody =
+        leftKnee != null &&
+        rightKnee != null &&
+        leftAnkle != null &&
+        rightAnkle != null &&
+        nose != null;
+    final hasMeasuredHips = leftHip != null && rightHip != null;
+    final feedback = hasFullBody
+        ? _buildFrameFeedback(pose, heightCm: 170, isSideView: isSideView)
+        : PoseFrameFeedback(
+            state: coreVisibility >= 0.46
+                ? PoseGuideState.aligned
+                : PoseGuideState.adjust,
+            message: hasMeasuredHips ? 'Torso lock' : 'Shoulder lock',
+            progress:
+                (hasMeasuredHips
+                        ? coreVisibility.clamp(0.52, 0.88)
+                        : (coreVisibility * 0.86).clamp(0.46, 0.74))
+                    .toDouble(),
+            skeletonSegments: <List<NormalizedLandmarkPoint>>[
+              <NormalizedLandmarkPoint>[
+                normalizedLeftShoulder,
+                normalizedRightShoulder,
+              ],
+              <NormalizedLandmarkPoint>[
+                normalizedLeftShoulder,
+                normalizedLeftHip,
+              ],
+              <NormalizedLandmarkPoint>[
+                normalizedRightShoulder,
+                normalizedRightHip,
+              ],
+              <NormalizedLandmarkPoint>[normalizedLeftHip, normalizedRightHip],
+            ],
+            alignmentHint: hasMeasuredHips
+                ? 'Keep shoulders and waist visible'
+                : 'Shoulders locked. Step back slightly for waist calibration',
+          );
 
     return TryOnPoseFrame(
       feedback: feedback,
       leftShoulder: normalizedLeftShoulder,
       rightShoulder: normalizedRightShoulder,
+      leftElbow: normalizedLeftElbow,
+      rightElbow: normalizedRightElbow,
+      leftWrist: normalizedLeftWrist,
+      rightWrist: normalizedRightWrist,
       leftHip: normalizedLeftHip,
       rightHip: normalizedRightHip,
       shoulderCenter: shoulderCenter,
@@ -652,12 +814,7 @@ class PoseMeasurementService {
       rightShoulder.x,
       rightShoulder.y,
     );
-    final hipWidthPx = _distance(
-      leftHip.x,
-      leftHip.y,
-      rightHip.x,
-      rightHip.y,
-    );
+    final hipWidthPx = _distance(leftHip.x, leftHip.y, rightHip.x, rightHip.y);
 
     final shoulderWidthCm = shoulderWidthPx * cmPerPixel;
     final hipWidthCm = hipWidthPx * cmPerPixel;
@@ -713,6 +870,10 @@ class PoseMeasurementService {
   List<List<NormalizedLandmarkPoint>> _skeletonSegments({
     required PoseLandmark leftShoulder,
     required PoseLandmark rightShoulder,
+    required PoseLandmark? leftElbow,
+    required PoseLandmark? rightElbow,
+    required PoseLandmark? leftWrist,
+    required PoseLandmark? rightWrist,
     required PoseLandmark leftHip,
     required PoseLandmark rightHip,
     required PoseLandmark leftKnee,
@@ -725,6 +886,10 @@ class PoseMeasurementService {
       [leftShoulder, rightShoulder],
       [leftShoulder, leftHip],
       [rightShoulder, rightHip],
+      if (leftElbow != null) [leftShoulder, leftElbow],
+      if (rightElbow != null) [rightShoulder, rightElbow],
+      if (leftWrist != null && leftElbow != null) [leftElbow, leftWrist],
+      if (rightWrist != null && rightElbow != null) [rightElbow, rightWrist],
       [leftHip, rightHip],
       [leftHip, leftKnee],
       [rightHip, rightKnee],
@@ -740,6 +905,22 @@ class PoseMeasurementService {
               .toList(),
         )
         .toList();
+  }
+
+  NormalizedLandmarkPoint _estimatedArmPoint({
+    required NormalizedLandmarkPoint shoulder,
+    required NormalizedLandmarkPoint hip,
+    required int side,
+    required bool elbow,
+  }) {
+    final shoulderToHipY = (hip.y - shoulder.y).clamp(0.08, 0.42);
+    final shoulderToHipX = (hip.x - shoulder.x).clamp(-0.22, 0.22);
+    final horizontalReach = elbow ? 0.12 : 0.22;
+    final verticalReach = elbow ? 0.30 : 0.55;
+    final x = (shoulder.x + (shoulderToHipX * 0.20) + (side * horizontalReach))
+        .clamp(0.0, 1.0);
+    final y = (shoulder.y + (shoulderToHipY * verticalReach)).clamp(0.0, 1.0);
+    return NormalizedLandmarkPoint(x, y);
   }
 
   double _distance(double x1, double y1, double x2, double y2) {
@@ -780,6 +961,10 @@ enum PoseLandmarkType {
   nose('nose'),
   leftShoulder('left_shoulder'),
   rightShoulder('right_shoulder'),
+  leftElbow('left_elbow'),
+  rightElbow('right_elbow'),
+  leftWrist('left_wrist'),
+  rightWrist('right_wrist'),
   leftHip('left_hip'),
   rightHip('right_hip'),
   leftKnee('left_knee'),

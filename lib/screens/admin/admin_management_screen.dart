@@ -9,6 +9,7 @@ import '../../services/location_service.dart';
 import '../../theme.dart';
 import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
+import '../vendor/add_product_screen.dart';
 
 class AdminManagementScreen extends StatefulWidget {
   final int initialTab;
@@ -291,61 +292,161 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
   }
 
   Future<void> _editProduct(Product product) async {
-    final stockController = TextEditingController(text: product.stock.toString());
-    final priceController = TextEditingController(text: product.price.toStringAsFixed(0));
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Update Product'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: priceController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price')),
-            const SizedBox(height: 12),
-            TextField(controller: stockController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Stock')),
-          ],
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddProductScreen(
+          storeId: product.storeId,
+          existingProduct: product,
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
-        ],
       ),
-    );
-    if (result != true) {
-      return;
-    }
-
-    await _db.updateProduct(
-      Product(
-        id: product.id,
-        storeId: product.storeId,
-        name: product.name,
-        brand: product.brand,
-        description: product.description,
-        price: double.tryParse(priceController.text.trim()) ?? product.price,
-        originalPrice: product.originalPrice,
-        images: product.images,
-        sizes: product.sizes,
-        stock: int.tryParse(stockController.text.trim()) ?? product.stock,
-        category: product.category,
-        isActive: product.isActive,
-        createdAt: product.createdAt,
-        rating: product.rating,
-        reviewCount: product.reviewCount,
-        isCustomTailoring: product.isCustomTailoring,
-        outfitType: product.outfitType,
-        fabric: product.fabric,
-        customizations: product.customizations,
-        measurements: product.measurements,
-        addons: product.addons,
-        measurementProfileLabel: product.measurementProfileLabel,
-        neededBy: product.neededBy,
-        tailoringDeliveryMode: product.tailoringDeliveryMode,
-        tailoringExtraCost: product.tailoringExtraCost,
-      ),
-      actor: _actor,
     );
     await _load();
+  }
+
+  Future<void> _viewProductVariants(Product product) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final variants = product.colorVariants;
+        return SafeArea(
+          top: false,
+          child: Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(sheetContext).size.height * 0.9),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${product.name} Variants', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 4),
+                            Text('${variants.length} color variant(s)', style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500)),
+                          ],
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.pop(sheetContext);
+                          _editProduct(product);
+                        },
+                        icon: const Icon(Icons.edit_outlined),
+                        label: const Text('Edit Product'),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: variants.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: AbzioEmptyCard(
+                              title: 'No variants yet',
+                              subtitle: 'Open the product editor to add color variants, sizes, images, and stock.',
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: variants.length,
+                          separatorBuilder: (context, index) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final variant = variants[index];
+                            return Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFCFAF5),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: const Color(0xFFE9DECB)),
+                              ),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: SizedBox(
+                                      width: 56,
+                                      height: 56,
+                                      child: variant.thumbnail.isNotEmpty
+                                          ? AbzioNetworkImage(
+                                              imageUrl: variant.thumbnail,
+                                              fallbackLabel: variant.colorName.isNotEmpty ? variant.colorName : variant.name,
+                                            )
+                                          : Container(
+                                              color: const Color(0xFFF2E7CF),
+                                              child: const Icon(Icons.palette_outlined, color: Color(0xFFC6A769)),
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          variant.colorName.isNotEmpty ? variant.colorName : variant.name,
+                                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'SKU ${variant.sku.isNotEmpty ? variant.sku : 'Auto'} • Stock ${variant.stock} • ${variant.status}',
+                                          style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 6,
+                                          runSpacing: 6,
+                                          children: [
+                                            _adminChip('Images ${variant.images.length + (variant.thumbnail.isNotEmpty ? 1 : 0)}'),
+                                            _adminChip('Sizes ${variant.sizes.length}'),
+                                            _adminChip(variant.hex.toUpperCase()),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _adminChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5EFE2),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.inter(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF8B7A5B),
+        ),
+      ),
+    );
   }
 
   @override
@@ -654,11 +755,18 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
               ),
             ),
             title: Text(product.name),
-            subtitle: Text('Rs ${product.price.toInt()} | Stock ${product.stock} | Store ${product.storeId}'),
+            subtitle: Text(
+              '₹${product.price.toInt()} | Stock ${product.stock} | ${product.colorVariants.length} variant(s) | Store ${product.storeId}',
+            ),
             trailing: width < 380
                 ? Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      IconButton(
+                        onPressed: () => _viewProductVariants(product),
+                        icon: const Icon(Icons.palette_outlined),
+                        tooltip: 'View variants',
+                      ),
                       IconButton(onPressed: () => _editProduct(product), icon: const Icon(Icons.edit_outlined)),
                       IconButton(
                         onPressed: () async {
@@ -672,6 +780,11 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                 : Wrap(
                     spacing: 8,
                     children: [
+                      IconButton(
+                        onPressed: () => _viewProductVariants(product),
+                        icon: const Icon(Icons.palette_outlined),
+                        tooltip: 'View variants',
+                      ),
                       IconButton(onPressed: () => _editProduct(product), icon: const Icon(Icons.edit_outlined)),
                       IconButton(
                         onPressed: () async {
@@ -704,7 +817,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
               children: [
                 Text('Order ${order.id}', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
-                Text('${order.items.length} item(s) | Rs ${order.totalAmount.toInt()} | Store ${order.storeId}'),
+                Text('${order.items.length} item(s) | ₹${order.totalAmount.toInt()} | Store ${order.storeId}'),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: statuses.contains(order.status) ? order.status : statuses.first,

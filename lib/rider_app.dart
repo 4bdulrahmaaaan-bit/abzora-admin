@@ -5,8 +5,8 @@ import 'core/theme/rider_theme.dart';
 import 'providers/auth_provider.dart';
 import 'routes/rider_router.dart';
 
-class AbzoraRiderApp extends StatelessWidget {
-  const AbzoraRiderApp({super.key});
+class AbianzoRiderApp extends StatelessWidget {
+  const AbianzoRiderApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +15,10 @@ class AbzoraRiderApp extends StatelessWidget {
       child: MaterialApp.router(
         title: 'Abianzo Rider',
         debugShowCheckedModeBanner: false,
-        theme: RiderTheme.dark(),
+        theme: RiderTheme.light(),
         routerConfig: riderRouter,
       ),
     );
   }
 }
+

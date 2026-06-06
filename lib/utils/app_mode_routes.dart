@@ -65,13 +65,13 @@ String splashSubtitleForMode(AbzioAppMode mode) {
 String brandAssetForMode(AbzioAppMode mode) {
   switch (mode) {
     case AbzioAppMode.rider:
-      return 'assets/branding/abzora_rider_icon.png';
+      return 'assets/branding/abianzo_rider_icon.png';
     case AbzioAppMode.vendor:
     case AbzioAppMode.operations:
-      return 'assets/branding/abzora_partner_icon.png';
+      return 'assets/branding/abianzo_partner_icon.png';
     case AbzioAppMode.customer:
     case AbzioAppMode.unified:
-      return 'assets/branding/abzora_customer_icon.png';
+      return 'assets/branding/abianzo_customer_icon.png';
   }
 }
 
@@ -151,10 +151,14 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
       }
       return '/vendor-profile';
     case AbzioAppMode.rider:
+      if (normalizedUserRole(user) == 'rider' &&
+          user.riderApprovalStatus.trim().toLowerCase() != 'approved') {
+        return '/profile-setup';
+      }
       if (hasRiderOperationsAccess(user)) {
         return '/rider-dashboard';
       }
-      return '/login';
+      return '/profile-setup';
     case AbzioAppMode.operations:
       if (canAccessOperationsMode(user)) {
         return '/ops';
@@ -225,3 +229,4 @@ String? accessRestrictionMessage(AppUser? user, AbzioAppMode mode) {
 bool isBuildScopeRestrictionMessage(String message) {
   return message.startsWith('This build is for ');
 }
+

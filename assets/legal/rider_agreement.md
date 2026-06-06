@@ -1,9 +1,9 @@
-# Abzora Rider Agreement
+# Abianzo Rider Agreement
 
 **Effective Date:** 12 May 2026
 
 ## 1. Independent Contractor Relationship
-1. Rider is an independent contractor and not an employee of Abzora.
+1. Rider is an independent contractor and not an employee of Abianzo.
 
 ## 2. Eligibility and Documentation
 1. Rider must maintain valid KYC, license, and vehicle/insurance records where applicable.
@@ -23,10 +23,10 @@
 1. Fake deliveries, location spoofing, or payout fraud may result in immediate suspension and legal action.
 
 ## 7. Liability and Indemnity
-1. Rider indemnifies Abzora for losses caused by rider negligence, misconduct, or legal non-compliance.
+1. Rider indemnifies Abianzo for losses caused by rider negligence, misconduct, or legal non-compliance.
 
 ## 8. Termination
-1. Either party may discontinue participation; Abzora may terminate for compliance and safety reasons.
+1. Either party may discontinue participation; Abianzo may terminate for compliance and safety reasons.
 
 ## 9. Governing Law and Arbitration
 1. Indian law applies.

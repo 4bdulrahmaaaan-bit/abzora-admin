@@ -103,7 +103,7 @@ class OpsAccountScreen extends StatelessWidget {
                   size: 88,
                   radius: 24,
                   backgroundColor: Colors.white,
-                  assetPath: 'assets/branding/abzora_partner_icon.png',
+                  assetPath: 'assets/branding/abianzo_partner_icon.png',
                 ),
                 const SizedBox(height: 18),
                 Text(

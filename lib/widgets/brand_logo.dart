@@ -17,7 +17,7 @@ class BrandLogo extends StatelessWidget {
     this.padding = const EdgeInsets.all(4),
     this.shadows = const [],
     this.gradient,
-    this.assetPath = 'assets/branding/abzora_customer_icon.png',
+    this.assetPath = 'assets/branding/abianzo_customer_icon.png',
   });
 
   const BrandLogo.hero({
@@ -47,7 +47,7 @@ class BrandLogo extends StatelessWidget {
         Color(0xFF030303),
       ],
     ),
-    this.assetPath = 'assets/branding/abzora_customer_icon.png',
+    this.assetPath = 'assets/branding/abianzo_customer_icon.png',
   });
 
   @override

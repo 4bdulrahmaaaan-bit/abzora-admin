@@ -47,12 +47,12 @@ class LightweightGarmentDeformationEngine {
     final target = GarmentDeformationSnapshot(
       deformationStrength: strength,
       secondaryMotionDamping: damping,
-      torsoScaleX: _blendToOne(alignment.torsoScale, strength, 0.36),
-      torsoScaleY: _blendToOne(alignment.torsoScale, strength, 0.2),
-      chestInflation: _blendToOne(alignment.chestScale, strength, 0.48),
-      waistTaper: _blendToOne(alignment.waistScale, strength, 0.52),
+      torsoScaleX: _blendToOne(alignment.torsoScale, strength, 0.48),
+      torsoScaleY: _blendToOne(alignment.torsoScale, strength, 0.32),
+      chestInflation: _blendToOne(alignment.chestScale, strength, 0.62),
+      waistTaper: _blendToOne(alignment.waistScale * alignment.waistTaperFactor, strength, 0.68),
       hipEase: _blendToOne(alignment.hipScale, strength, 0.45),
-      shoulderTension: _blendToOne(alignment.shoulderScale, strength, 0.42),
+      shoulderTension: _blendToOne(alignment.shoulderScale, strength, 0.58),
       stability: ((alignment.stabilityScore * 0.65) + (motionQuality * 0.35))
           .clamp(0.0, 1.0),
     );
@@ -83,7 +83,7 @@ class LightweightGarmentDeformationEngine {
 
   double _blendToOne(double value, double strength, double weight) {
     final clampedWeight = (weight * strength).clamp(0.0, 1.0);
-    return (1 + ((value - 1) * clampedWeight)).clamp(0.82, 1.2);
+    return (1 + ((value - 1) * clampedWeight)).clamp(0.76, 1.22);
   }
 
   double _tierBudget(ArDeviceTier tier) {
@@ -103,4 +103,3 @@ class LightweightGarmentDeformationEngine {
     _previous = null;
   }
 }
-

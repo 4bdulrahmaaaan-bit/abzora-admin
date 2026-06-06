@@ -102,7 +102,7 @@ class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             SizedBox(height: 8),
-            Text('Email: rider-support@abzora.com'),
+            Text('Email: rider-support@abianzo.com'),
             SizedBox(height: 4),
             Text('Phone: +91 90000 00000'),
           ],

@@ -11,11 +11,7 @@ class AbzioLoadingView extends StatelessWidget {
   final String title;
   final String? subtitle;
 
-  const AbzioLoadingView({
-    super.key,
-    this.title = 'Loading',
-    this.subtitle,
-  });
+  const AbzioLoadingView({super.key, this.title = 'Loading', this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -29,12 +25,12 @@ class AbzioLoadingView extends StatelessWidget {
               width: 62,
               height: 62,
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF4D8),
-                borderRadius: BorderRadius.circular(22),
+                color: const Color(0xFFFFF7E9),
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: AbzioTheme.accentColor.withValues(alpha: 0.10),
-                    blurRadius: 18,
+                    color: AbzioTheme.accentColor.withValues(alpha: 0.08),
+                    blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
                 ],
@@ -54,9 +50,9 @@ class AbzioLoadingView extends StatelessWidget {
             Text(
               title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AbzioTheme.textPrimary,
-                  ),
+                fontWeight: FontWeight.w800,
+                color: AbzioTheme.textPrimary,
+              ),
               textAlign: TextAlign.center,
             ),
             if (subtitle != null) ...[
@@ -64,9 +60,9 @@ class AbzioLoadingView extends StatelessWidget {
               Text(
                 subtitle!,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: context.abzioSecondaryText,
-                      height: 1.4,
-                    ),
+                  color: context.abzioSecondaryText,
+                  height: 1.4,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -97,13 +93,13 @@ class AbzioEmptyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
-      color: const Color(0xFFFFFDF8),
+      color: const Color(0xFFFFFCF8),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: BorderSide(color: context.abzioBorder),
+        borderRadius: BorderRadius.circular(28),
+        side: BorderSide(color: context.abzioBorder.withValues(alpha: 0.72)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -111,12 +107,12 @@ class AbzioEmptyCard extends StatelessWidget {
               width: 58,
               height: 58,
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF4D8),
-                borderRadius: BorderRadius.circular(20),
+                color: const Color(0xFFFFF7E9),
+                borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
-                    color: AbzioTheme.accentColor.withValues(alpha: 0.08),
-                    blurRadius: 14,
+                    color: AbzioTheme.accentColor.withValues(alpha: 0.07),
+                    blurRadius: 16,
                     offset: const Offset(0, 8),
                   ),
                 ],
@@ -145,18 +141,18 @@ class AbzioEmptyCard extends StatelessWidget {
             Text(
               title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
-                    color: AbzioTheme.textPrimary,
-                  ),
+                fontWeight: FontWeight.w800,
+                height: 1.15,
+                color: AbzioTheme.textPrimary,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: context.abzioSecondaryText,
-                    height: 1.45,
-                  ),
+                color: context.abzioSecondaryText,
+                height: 1.45,
+              ),
             ),
             if (ctaLabel != null && onTap != null) ...[
               const SizedBox(height: 16),
@@ -165,17 +161,20 @@ class AbzioEmptyCard extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: AbzioTheme.accentColor,
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 13,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 child: Text(
                   ctaLabel!,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black,
-                      ),
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black,
+                  ),
                 ),
               ),
             ],
@@ -189,6 +188,7 @@ class AbzioEmptyCard extends StatelessWidget {
 class AbzioNetworkImage extends StatefulWidget {
   final String imageUrl;
   final BoxFit fit;
+  final Alignment alignment;
   final BorderRadius? borderRadius;
   final Widget? overlay;
   final String fallbackLabel;
@@ -201,6 +201,7 @@ class AbzioNetworkImage extends StatefulWidget {
     super.key,
     required this.imageUrl,
     this.fit = BoxFit.cover,
+    this.alignment = Alignment.center,
     this.borderRadius,
     this.overlay,
     this.fallbackLabel = 'Abianzo',
@@ -247,8 +248,9 @@ class _AbzioNetworkImageState extends State<AbzioNetworkImage> {
     }
 
     final overlayWidget = widget.overlay;
-    final overlayChildren =
-        overlayWidget == null ? const <Widget>[] : <Widget>[overlayWidget];
+    final overlayChildren = overlayWidget == null
+        ? const <Widget>[]
+        : <Widget>[overlayWidget];
 
     final child = LayoutBuilder(
       builder: (context, constraints) {
@@ -262,8 +264,9 @@ class _AbzioNetworkImageState extends State<AbzioNetworkImage> {
           cacheHeight = (constraints.maxHeight * dpr).round();
         }
         if (widget.maxWidth != null) {
-          cacheWidth =
-              cacheWidth == null ? widget.maxWidth : math.min(cacheWidth, widget.maxWidth!);
+          cacheWidth = cacheWidth == null
+              ? widget.maxWidth
+              : math.min(cacheWidth, widget.maxWidth!);
         }
         if (widget.maxHeight != null) {
           cacheHeight = cacheHeight == null
@@ -279,15 +282,15 @@ class _AbzioNetworkImageState extends State<AbzioNetworkImage> {
             CachedNetworkImage(
               imageUrl: url,
               fit: widget.fit,
+              alignment: widget.alignment,
               memCacheWidth: cacheWidth,
               memCacheHeight: cacheHeight,
               useOldImageOnUrlChange: true,
               fadeInDuration: const Duration(milliseconds: 220),
               fadeOutDuration: const Duration(milliseconds: 140),
               placeholder: (context, url) => const _AbzioImagePlaceholder(),
-              errorWidget: (context, url, error) => _AbzioImageFallback(
-                label: widget.fallbackLabel,
-              ),
+              errorWidget: (context, url, error) =>
+                  _AbzioImageFallback(label: widget.fallbackLabel),
             ),
             ...overlayChildren,
           ],
@@ -299,10 +302,7 @@ class _AbzioNetworkImageState extends State<AbzioNetworkImage> {
       return child;
     }
 
-    return ClipRRect(
-      borderRadius: widget.borderRadius!,
-      child: child,
-    );
+    return ClipRRect(borderRadius: widget.borderRadius!, child: child);
   }
 }
 
@@ -318,9 +318,7 @@ class _AbzioImagePlaceholder extends StatelessWidget {
 class _AbzioImageFallback extends StatelessWidget {
   final String label;
 
-  const _AbzioImageFallback({
-    required this.label,
-  });
+  const _AbzioImageFallback({required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -384,3 +382,4 @@ class _AbzioImageFallback extends StatelessWidget {
     );
   }
 }
+

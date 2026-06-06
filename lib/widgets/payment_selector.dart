@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'abzio_motion.dart';
 
 class PaymentSelector extends StatelessWidget {
   const PaymentSelector({
@@ -17,19 +18,29 @@ class PaymentSelector extends StatelessWidget {
     return Column(
       children: [
         _PaymentOptionCard(
-          icon: Icons.payments_outlined,
-          title: 'Cash on Delivery',
-          subtitle: 'Pay after your order arrives',
-          value: 'COD',
+          icon: Icons.qr_code_2_rounded,
+          title: 'UPI',
+          subtitle: 'Google Pay, PhonePe, Paytm',
+          badge: 'Recommended',
+          value: 'UPI',
           selectedValue: selectedMethod,
           onTap: onChanged,
         ),
         const SizedBox(height: 12),
         _PaymentOptionCard(
-          icon: Icons.account_balance_wallet_outlined,
-          title: 'Razorpay',
-          subtitle: 'UPI, cards and net banking',
-          value: 'RAZORPAY',
+          icon: Icons.credit_card_rounded,
+          title: 'Cards',
+          subtitle: 'Visa, Mastercard, RuPay',
+          value: 'CARDS',
+          selectedValue: selectedMethod,
+          onTap: onChanged,
+        ),
+        const SizedBox(height: 12),
+        _PaymentOptionCard(
+          icon: Icons.payments_outlined,
+          title: 'Cash on Delivery',
+          subtitle: 'Pay when delivered',
+          value: 'COD',
           selectedValue: selectedMethod,
           onTap: onChanged,
         ),
@@ -46,6 +57,7 @@ class _PaymentOptionCard extends StatelessWidget {
     required this.value,
     required this.selectedValue,
     required this.onTap,
+    this.badge,
   });
 
   final IconData icon;
@@ -53,77 +65,117 @@ class _PaymentOptionCard extends StatelessWidget {
   final String subtitle;
   final String value;
   final String? selectedValue;
+  final String? badge;
   final ValueChanged<String> onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final selected = selectedValue == value;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () => onTap(value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? AbzioTheme.accentColor : context.abzioBorder,
-            width: selected ? 1.6 : 1,
-          ),
-          boxShadow: selected ? context.abzioShadow : const [],
-        ),
-        child: Row(
-          children: [
-            Container(
-              height: 46,
-              width: 46,
-              decoration: BoxDecoration(
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$title, $subtitle${badge != null ? ', $badge' : ''}',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onTap(value),
+          borderRadius: BorderRadius.circular(AbzioTheme.cardRadius),
+          child: AnimatedContainer(
+            duration: AbzioMotion.medium,
+            curve: AbzioMotion.curve,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: selected ? AbzioTheme.accentColor : Colors.white,
+              borderRadius: BorderRadius.circular(AbzioTheme.cardRadius),
+              border: Border.all(
                 color: selected
-                    ? AbzioTheme.accentColor.withValues(alpha: 0.16)
-                    : context.abzioMuted,
-                borderRadius: BorderRadius.circular(14),
+                    ? AbzioTheme.accentColor.withValues(alpha: 0.55)
+                    : context.abzioBorder,
               ),
-              child: Icon(
-                icon,
-                color: selected ? AbzioTheme.accentColor : context.abzioSecondaryText,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: context.abzioSecondaryText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              height: 22,
-              width: 22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: selected ? AbzioTheme.accentColor : Colors.transparent,
-                border: Border.all(
-                  color: selected ? AbzioTheme.accentColor : context.abzioBorder,
-                  width: 1.4,
+              boxShadow: [
+                BoxShadow(
+                  color: selected
+                      ? AbzioTheme.accentColor.withValues(alpha: 0.14)
+                      : Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10),
                 ),
-              ),
-              child: selected
-                  ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
-                  : null,
+              ],
             ),
-          ],
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? Colors.white.withValues(alpha: 0.18)
+                        : const Color(0xFFF7F0E1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: selected ? Colors.white : AbzioTheme.accentColor,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: selected ? Colors.white : AbzioTheme.textPrimary,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                          ),
+                          if (badge != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? Colors.white.withValues(alpha: 0.18)
+                                    : AbzioTheme.accentColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                badge!,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: selected ? Colors.white : AbzioTheme.textPrimary,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: selected
+                                  ? Colors.white.withValues(alpha: 0.88)
+                                  : context.abzioSecondaryText,
+                              height: 1.35,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  selected ? Icons.check_circle_rounded : Icons.arrow_forward_ios_rounded,
+                  size: selected ? 20 : 16,
+                  color: selected ? Colors.white : AbzioTheme.accentColor,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

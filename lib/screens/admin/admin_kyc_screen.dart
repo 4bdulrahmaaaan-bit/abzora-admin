@@ -699,10 +699,10 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
           if ((meta['experienceYears']?.toString().trim().isNotEmpty ?? false))
             'Experience Years': meta['experienceYears'].toString(),
           if ((meta['startingPrice']?.toString().trim().isNotEmpty ?? false))
-            'Starting Price': 'Rs ${meta['startingPrice']}',
+            'Starting Price': '₹${meta['startingPrice']}',
           if ((meta['typicalPriceUpper']?.toString().trim().isNotEmpty ??
               false))
-            'Upper Price Range': 'Rs ${meta['typicalPriceUpper']}',
+            'Upper Price Range': '₹${meta['typicalPriceUpper']}',
           if ((meta['productionTimeDays']?.toString().trim().isNotEmpty ??
               false))
             'Production Days': meta['productionTimeDays'].toString(),

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../services/image_url_service.dart';
 
@@ -859,6 +861,7 @@ class UserAddress {
 }
 
 class Product {
+  final Store? store;
   final String id;
   final String storeId;
   final String name;
@@ -872,7 +875,16 @@ class Product {
   final int viewCount;
   final int cartCount;
   final int purchaseCount;
+  final double? distanceKm;
+  final String? distanceLabel;
   final List<String> images;
+  final List<String> highlights;
+  final List<ProductColorVariant> colorVariants;
+  final Map<String, dynamic> boutiqueInfo;
+  final Map<String, dynamic> deliveryInfo;
+  final Map<String, dynamic> socialProof;
+  final Map<String, String> specifications;
+  final List<String> completeLookProductIds;
   final List<String> sizes;
   final int stock;
   final String category;
@@ -890,6 +902,9 @@ class Product {
   final String? rigProfile;
   final String? materialProfile;
   final Map<String, String> attributes;
+  final String attributeTemplateKey;
+  final int attributeTemplateVersion;
+  final List<Map<String, dynamic>> structuredAttributes;
   final Map<String, dynamic> arAsset;
   final Map<String, String> customizations;
   final Map<String, double> measurements;
@@ -902,6 +917,7 @@ class Product {
   final double tailoringExtraCost;
 
   Product({
+    this.store,
     required this.id,
     required this.storeId,
     required this.name,
@@ -915,7 +931,16 @@ class Product {
     this.viewCount = 0,
     this.cartCount = 0,
     this.purchaseCount = 0,
+    this.distanceKm,
+    this.distanceLabel,
     required this.images,
+    this.highlights = const [],
+    this.colorVariants = const [],
+    this.boutiqueInfo = const {},
+    this.deliveryInfo = const {},
+    this.socialProof = const {},
+    this.specifications = const {},
+    this.completeLookProductIds = const [],
     required this.sizes,
     required this.stock,
     required this.category,
@@ -933,6 +958,9 @@ class Product {
     this.rigProfile,
     this.materialProfile,
     this.attributes = const {},
+    this.attributeTemplateKey = 'generic',
+    this.attributeTemplateVersion = 1,
+    this.structuredAttributes = const [],
     this.arAsset = const {},
     this.customizations = const {},
     this.measurements = const {},
@@ -944,6 +972,124 @@ class Product {
     this.tailoringDeliveryMode,
     this.tailoringExtraCost = 0,
   });
+
+  Product copyWith({
+    Store? store,
+    String? id,
+    String? storeId,
+    String? name,
+    String? brand,
+    String? description,
+    double? price,
+    double? basePrice,
+    double? dynamicPrice,
+    double? originalPrice,
+    double? demandScore,
+    int? viewCount,
+    int? cartCount,
+    int? purchaseCount,
+    double? distanceKm,
+    String? distanceLabel,
+    List<String>? images,
+    List<String>? highlights,
+    List<ProductColorVariant>? colorVariants,
+    Map<String, dynamic>? boutiqueInfo,
+    Map<String, dynamic>? deliveryInfo,
+    Map<String, dynamic>? socialProof,
+    Map<String, String>? specifications,
+    List<String>? completeLookProductIds,
+    List<String>? sizes,
+    int? stock,
+    String? category,
+    String? subcategory,
+    bool? isActive,
+    String? createdAt,
+    double? rating,
+    int? reviewCount,
+    String? lastPriceUpdated,
+    bool? isCustomTailoring,
+    String? outfitType,
+    String? fabric,
+    String? model3d,
+    String? assetBundleUrl,
+    String? rigProfile,
+    String? materialProfile,
+    Map<String, String>? attributes,
+    String? attributeTemplateKey,
+    int? attributeTemplateVersion,
+    List<Map<String, dynamic>>? structuredAttributes,
+    Map<String, dynamic>? arAsset,
+    Map<String, String>? customizations,
+    Map<String, double>? measurements,
+    List<String>? addons,
+    Map<String, dynamic>? atelier,
+    Map<String, dynamic>? garmentConfig,
+    String? measurementProfileLabel,
+    DateTime? neededBy,
+    String? tailoringDeliveryMode,
+    double? tailoringExtraCost,
+  }) {
+    return Product(
+      store: store ?? this.store,
+      id: id ?? this.id,
+      storeId: storeId ?? this.storeId,
+      name: name ?? this.name,
+      brand: brand ?? this.brand,
+      description: description ?? this.description,
+      price: price ?? this.price,
+      basePrice: basePrice ?? this.basePrice,
+      dynamicPrice: dynamicPrice ?? this.dynamicPrice,
+      originalPrice: originalPrice ?? this.originalPrice,
+      demandScore: demandScore ?? this.demandScore,
+      viewCount: viewCount ?? this.viewCount,
+      cartCount: cartCount ?? this.cartCount,
+      purchaseCount: purchaseCount ?? this.purchaseCount,
+      distanceKm: distanceKm ?? this.distanceKm,
+      distanceLabel: distanceLabel ?? this.distanceLabel,
+      images: images ?? this.images,
+      highlights: highlights ?? this.highlights,
+      colorVariants: colorVariants ?? this.colorVariants,
+      boutiqueInfo: boutiqueInfo ?? this.boutiqueInfo,
+      deliveryInfo: deliveryInfo ?? this.deliveryInfo,
+      socialProof: socialProof ?? this.socialProof,
+      specifications: specifications ?? this.specifications,
+      completeLookProductIds:
+          completeLookProductIds ?? this.completeLookProductIds,
+      sizes: sizes ?? this.sizes,
+      stock: stock ?? this.stock,
+      category: category ?? this.category,
+      subcategory: subcategory ?? this.subcategory,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
+      lastPriceUpdated: lastPriceUpdated ?? this.lastPriceUpdated,
+      isCustomTailoring: isCustomTailoring ?? this.isCustomTailoring,
+      outfitType: outfitType ?? this.outfitType,
+      fabric: fabric ?? this.fabric,
+      model3d: model3d ?? this.model3d,
+      assetBundleUrl: assetBundleUrl ?? this.assetBundleUrl,
+      rigProfile: rigProfile ?? this.rigProfile,
+      materialProfile: materialProfile ?? this.materialProfile,
+      attributes: attributes ?? this.attributes,
+      attributeTemplateKey: attributeTemplateKey ?? this.attributeTemplateKey,
+      attributeTemplateVersion:
+          attributeTemplateVersion ?? this.attributeTemplateVersion,
+      structuredAttributes: structuredAttributes ?? this.structuredAttributes,
+      arAsset: arAsset ?? this.arAsset,
+      customizations: customizations ?? this.customizations,
+      measurements: measurements ?? this.measurements,
+      addons: addons ?? this.addons,
+      atelier: atelier ?? this.atelier,
+      garmentConfig: garmentConfig ?? this.garmentConfig,
+      measurementProfileLabel:
+          measurementProfileLabel ?? this.measurementProfileLabel,
+      neededBy: neededBy ?? this.neededBy,
+      tailoringDeliveryMode:
+          tailoringDeliveryMode ?? this.tailoringDeliveryMode,
+      tailoringExtraCost: tailoringExtraCost ?? this.tailoringExtraCost,
+    );
+  }
 
   Map<String, dynamic> toMap() => {
     'storeId': storeId,
@@ -958,7 +1104,16 @@ class Product {
     'viewCount': viewCount,
     'cartCount': cartCount,
     'purchaseCount': purchaseCount,
+    'distanceKm': distanceKm,
+    'distanceLabel': distanceLabel,
     'images': images,
+    'highlights': highlights,
+    'colorVariants': colorVariants.map((variant) => variant.toMap()).toList(),
+    'boutiqueInfo': boutiqueInfo,
+    'deliveryInfo': deliveryInfo,
+    'socialProof': socialProof,
+    'specifications': specifications,
+    'completeLookProductIds': completeLookProductIds,
     'sizes': sizes,
     'stock': stock,
     'category': category,
@@ -976,6 +1131,9 @@ class Product {
     'rigProfile': rigProfile,
     'materialProfile': materialProfile,
     'attributes': attributes,
+    'attributeTemplateKey': attributeTemplateKey,
+    'attributeTemplateVersion': attributeTemplateVersion,
+    'structuredAttributes': structuredAttributes,
     'arAsset': arAsset,
     'customizations': customizations,
     'measurements': measurements,
@@ -986,9 +1144,18 @@ class Product {
     'neededBy': neededBy?.toIso8601String(),
     'tailoringDeliveryMode': tailoringDeliveryMode,
     'tailoringExtraCost': tailoringExtraCost,
+    'store': store?.toMap(),
   };
 
   factory Product.fromMap(Map<String, dynamic> map, String docId) => Product(
+    store: map['store'] is Map
+        ? () {
+            final storeMap = Map<String, dynamic>.from(map['store'] as Map);
+            final storeDocId =
+                storeMap['id']?.toString() ?? map['storeId']?.toString() ?? '';
+            return Store.fromMap(storeMap, storeDocId);
+          }()
+        : null,
     id: docId,
     storeId: map['storeId'] ?? '',
     name: map['name'] ?? '',
@@ -1020,8 +1187,46 @@ class Product {
     viewCount: map['viewCount'] ?? 0,
     cartCount: map['cartCount'] ?? 0,
     purchaseCount: map['purchaseCount'] ?? 0,
+    distanceKm: map['distanceKm'] == null
+        ? null
+        : (map['distanceKm'] as num).toDouble(),
+    distanceLabel: map['distanceLabel']?.toString(),
     images: ImageUrlService.normalizeStoredImages(
       map['images'] as List? ?? const [],
+    ),
+    highlights: List<String>.from(map['highlights'] ?? const []),
+    colorVariants: (map['colorVariants'] as List? ?? const [])
+        .whereType<Map>()
+        .map(
+          (item) =>
+              ProductColorVariant.fromMap(Map<String, dynamic>.from(item)),
+        )
+        .toList(),
+    boutiqueInfo: Map<String, dynamic>.from(map['boutiqueInfo'] ?? const {}),
+    deliveryInfo: (() {
+      final delivery = Map<String, dynamic>.from(
+        map['deliveryInfo'] ?? const {},
+      );
+      for (final key in const [
+        'sameDayAvailable',
+        'sameDayEligible',
+        'tryAtHomeAvailable',
+        'tryAtHomeEligible',
+      ]) {
+        if (map.containsKey(key)) {
+          delivery[key] = map[key];
+        }
+      }
+      return delivery;
+    })(),
+    socialProof: Map<String, dynamic>.from(map['socialProof'] ?? const {}),
+    specifications: Map<String, String>.from(
+      (map['specifications'] as Map? ?? const {}).map(
+        (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
+      ),
+    ),
+    completeLookProductIds: List<String>.from(
+      map['completeLookProductIds'] ?? const [],
     ),
     sizes: List<String>.from(map['sizes'] ?? []),
     stock: map['stock'] ?? 0,
@@ -1059,6 +1264,17 @@ class Product {
         (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
       ),
     ),
+    attributeTemplateKey:
+        (map['attributeTemplateKey']?.toString().trim().isNotEmpty ?? false)
+        ? map['attributeTemplateKey'].toString().trim()
+        : 'generic',
+    attributeTemplateVersion: map['attributeTemplateVersion'] is num
+        ? (map['attributeTemplateVersion'] as num).toInt()
+        : 1,
+    structuredAttributes: (map['structuredAttributes'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(),
     arAsset: Map<String, dynamic>.from(map['arAsset'] as Map? ?? const {}),
     customizations: Map<String, String>.from(map['customizations'] ?? const {}),
     measurements: (map['measurements'] as Map? ?? const {}).map(
@@ -1077,10 +1293,331 @@ class Product {
 
   double get effectivePrice => dynamicPrice ?? price;
 
+  bool get sameDayAvailable {
+    return deliveryInfo['sameDayEligible'] == true ||
+        deliveryInfo['sameDayAvailable'] == true ||
+        attributeBool('sameDayAvailable') ||
+        attributeBool('sameDayEligible');
+  }
+
+  bool get tryAtHomeAvailable {
+    return deliveryInfo['tryAtHomeEligible'] == true ||
+        deliveryInfo['tryAtHomeAvailable'] == true ||
+        attributeBool('tryAtHomeAvailable') ||
+        attributeBool('tryAtHomeEligible');
+  }
+
+  bool get tryOnAvailable {
+    return (model3d ?? '').trim().isNotEmpty ||
+        arAsset.isNotEmpty ||
+        attributeBool('tryOnAvailable');
+  }
+
   bool get hasDynamicDiscount =>
       basePrice != null && effectivePrice < (basePrice ?? effectivePrice);
 
   bool get isLimitedStock => stock > 0 && stock <= 5;
+
+  Map<String, dynamic>? structuredAttribute(String key) {
+    final normalized = key.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    for (final entry in structuredAttributes) {
+      final entryKey = entry['key']?.toString().trim().toLowerCase() ?? '';
+      if (entryKey == normalized) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
+  dynamic attributeValue(String key) {
+    final normalized = key.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    final structured = structuredAttribute(normalized);
+    if (structured != null) {
+      final value = structured['value'];
+      if (value != null && (value is! String || value.trim().isNotEmpty)) {
+        return value;
+      }
+    }
+
+    if (attributes.containsKey(normalized)) {
+      return attributes[normalized];
+    }
+
+    final specMatch = specifications.entries.firstWhere(
+      (entry) => entry.key.trim().toLowerCase() == normalized,
+      orElse: () => const MapEntry<String, String>('', ''),
+    );
+    if (specMatch.key.isNotEmpty) {
+      return specMatch.value;
+    }
+
+    for (final entry in attributes.entries) {
+      final candidate = entry.key.trim().toLowerCase();
+      if (candidate == normalized) {
+        return entry.value;
+      }
+    }
+
+    return null;
+  }
+
+  String attributeText(String key, {String fallback = ''}) {
+    final value = attributeValue(key);
+    if (value == null) {
+      return fallback;
+    }
+    if (value is String) {
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? fallback : trimmed;
+    }
+    return value.toString().trim();
+  }
+
+  bool attributeBool(String key, {bool fallback = false}) {
+    final value = attributeValue(key);
+    if (value is bool) {
+      return value;
+    }
+    final text = value?.toString().trim().toLowerCase() ?? '';
+    if (text.isEmpty) {
+      return fallback;
+    }
+    if (['true', '1', 'yes', 'y', 'on'].contains(text)) {
+      return true;
+    }
+    if (['false', '0', 'no', 'n', 'off'].contains(text)) {
+      return false;
+    }
+    return fallback;
+  }
+
+  List<String> attributeList(String key) {
+    final value = attributeValue(key);
+    if (value == null) {
+      return const [];
+    }
+    if (value is List) {
+      return value
+          .map((item) => item?.toString().trim() ?? '')
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    final text = value.toString().trim();
+    if (text.isEmpty) {
+      return const [];
+    }
+    return text
+        .split(RegExp(r'[,|/]'))
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  Map<String, dynamic> attributeObject(String key) {
+    final value = attributeValue(key);
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    if (value is String) {
+      final text = value.trim();
+      if (text.isEmpty) {
+        return const {};
+      }
+      try {
+        final decoded = jsonDecode(text);
+        if (decoded is Map) {
+          return Map<String, dynamic>.from(decoded);
+        }
+      } catch (_) {
+        return const {};
+      }
+    }
+    return const {};
+  }
+}
+
+class ProductColorVariant {
+  final String variantId;
+  final String productId;
+  final String name;
+  final String colorName;
+  final String hex;
+  final String imageUrl;
+  final String sku;
+  final String barcode;
+  final double? price;
+  final double? discountPrice;
+  final int stock;
+  final String status;
+  final String thumbnail;
+  final List<String> images;
+  final List<String> sizes;
+  final List<ProductVariantSizeStock> sizeStocks;
+  final Map<String, dynamic> deliveryInfo;
+  final String? createdAt;
+  final String? updatedAt;
+
+  const ProductColorVariant({
+    this.variantId = '',
+    this.productId = '',
+    required this.name,
+    this.colorName = '',
+    this.hex = '#C6A769',
+    this.imageUrl = '',
+    this.sku = '',
+    this.barcode = '',
+    this.price,
+    this.discountPrice,
+    this.stock = 0,
+    this.status = 'active',
+    this.thumbnail = '',
+    this.images = const [],
+    this.sizes = const [],
+    this.sizeStocks = const [],
+    this.deliveryInfo = const {},
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  ProductColorVariant copyWith({
+    String? variantId,
+    String? productId,
+    String? name,
+    String? colorName,
+    String? hex,
+    String? imageUrl,
+    String? sku,
+    String? barcode,
+    double? price,
+    double? discountPrice,
+    int? stock,
+    String? status,
+    String? thumbnail,
+    List<String>? images,
+    List<String>? sizes,
+    List<ProductVariantSizeStock>? sizeStocks,
+    Map<String, dynamic>? deliveryInfo,
+    String? createdAt,
+    String? updatedAt,
+  }) {
+    return ProductColorVariant(
+      variantId: variantId ?? this.variantId,
+      productId: productId ?? this.productId,
+      name: name ?? this.name,
+      colorName: colorName ?? this.colorName,
+      hex: hex ?? this.hex,
+      imageUrl: imageUrl ?? this.imageUrl,
+      sku: sku ?? this.sku,
+      barcode: barcode ?? this.barcode,
+      price: price ?? this.price,
+      discountPrice: discountPrice ?? this.discountPrice,
+      stock: stock ?? this.stock,
+      status: status ?? this.status,
+      thumbnail: thumbnail ?? this.thumbnail,
+      images: images ?? this.images,
+      sizes: sizes ?? this.sizes,
+      sizeStocks: sizeStocks ?? this.sizeStocks,
+      deliveryInfo: deliveryInfo ?? this.deliveryInfo,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'variantId': variantId,
+    'productId': productId,
+    'name': name,
+    'colorName': colorName,
+    'hex': hex,
+    'imageUrl': imageUrl,
+    'sku': sku,
+    'barcode': barcode,
+    'price': price,
+    'discountPrice': discountPrice,
+    'stock': stock,
+    'status': status,
+    'thumbnail': thumbnail,
+    'images': images,
+    'sizes': sizes,
+    'sizeStocks': sizeStocks.map((item) => item.toMap()).toList(),
+    'deliveryInfo': deliveryInfo,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+  };
+
+  factory ProductColorVariant.fromMap(
+    Map<String, dynamic> map,
+  ) => ProductColorVariant(
+    variantId:
+        map['variantId']?.toString().trim() ??
+        map['id']?.toString().trim() ??
+        '',
+    productId: map['productId']?.toString().trim() ?? '',
+    name:
+        map['name']?.toString().trim() ?? map['label']?.toString().trim() ?? '',
+    colorName: map['colorName']?.toString().trim().isNotEmpty == true
+        ? map['colorName'].toString().trim()
+        : (map['name']?.toString().trim() ?? ''),
+    hex: map['hex']?.toString().trim().isNotEmpty == true
+        ? map['hex'].toString().trim()
+        : '#C6A769',
+    imageUrl: map['imageUrl']?.toString().trim().isNotEmpty == true
+        ? map['imageUrl'].toString().trim()
+        : '',
+    sku: map['sku']?.toString().trim() ?? '',
+    barcode: map['barcode']?.toString().trim() ?? '',
+    price: map['price'] == null ? null : (map['price'] as num).toDouble(),
+    discountPrice: map['discountPrice'] == null
+        ? null
+        : (map['discountPrice'] as num).toDouble(),
+    stock: ((map['stock'] ?? 0) as num).toInt(),
+    status: map['status']?.toString().trim().isNotEmpty == true
+        ? map['status'].toString().trim()
+        : 'active',
+    thumbnail: map['thumbnail']?.toString().trim().isNotEmpty == true
+        ? map['thumbnail'].toString().trim()
+        : '',
+    images: List<String>.from(map['images'] ?? const []),
+    sizes: List<String>.from(map['sizes'] ?? const []),
+    sizeStocks: (map['sizeStocks'] as List? ?? const [])
+        .whereType<Map>()
+        .map(
+          (item) =>
+              ProductVariantSizeStock.fromMap(Map<String, dynamic>.from(item)),
+        )
+        .toList(),
+    deliveryInfo: Map<String, dynamic>.from(map['deliveryInfo'] ?? const {}),
+    createdAt: map['createdAt']?.toString(),
+    updatedAt: map['updatedAt']?.toString(),
+  );
+}
+
+class ProductVariantSizeStock {
+  final String sizeName;
+  final int stockQuantity;
+
+  const ProductVariantSizeStock({
+    required this.sizeName,
+    this.stockQuantity = 0,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'sizeName': sizeName,
+    'stockQuantity': stockQuantity,
+  };
+
+  factory ProductVariantSizeStock.fromMap(Map<String, dynamic> map) =>
+      ProductVariantSizeStock(
+        sizeName: map['sizeName']?.toString().trim() ?? '',
+        stockQuantity: ((map['stockQuantity'] ?? 0) as num).toInt(),
+      );
 }
 
 class OrderModel {
@@ -2060,6 +2597,8 @@ class ReviewModel {
   final double rating;
   final String comment;
   final String? imagePath;
+  final bool verifiedPurchase;
+  final int helpfulVotes;
   final DateTime createdAt;
 
   ReviewModel({
@@ -2071,6 +2610,8 @@ class ReviewModel {
     required this.rating,
     required this.comment,
     this.imagePath,
+    this.verifiedPurchase = false,
+    this.helpfulVotes = 0,
     required this.createdAt,
   });
 
@@ -2082,6 +2623,8 @@ class ReviewModel {
     'rating': rating,
     'comment': comment,
     'imagePath': imagePath,
+    'verifiedPurchase': verifiedPurchase,
+    'helpfulVotes': helpfulVotes,
     'createdAt': createdAt.toIso8601String(),
   };
 
@@ -2095,6 +2638,8 @@ class ReviewModel {
         rating: (map['rating'] ?? 0.0).toDouble(),
         comment: map['comment'] ?? '',
         imagePath: map['imagePath'],
+        verifiedPurchase: map['verifiedPurchase'] ?? false,
+        helpfulVotes: map['helpfulVotes'] ?? 0,
         createdAt: DateTime.parse(
           map['createdAt'] ?? DateTime.now().toIso8601String(),
         ),
@@ -4238,6 +4783,8 @@ class SearchFilter {
   final String returnRisk;
   final double minRating;
   final ProductSortOption sort;
+  final Map<String, List<String>> attributeFilters;
+  final Map<String, bool> attributeFlags;
 
   const SearchFilter({
     this.query = '',
@@ -4257,6 +4804,8 @@ class SearchFilter {
     this.returnRisk = 'All',
     this.minRating = 0,
     this.sort = ProductSortOption.relevance,
+    this.attributeFilters = const {},
+    this.attributeFlags = const {},
   });
 
   SearchFilter copyWith({
@@ -4277,6 +4826,8 @@ class SearchFilter {
     String? returnRisk,
     double? minRating,
     ProductSortOption? sort,
+    Map<String, List<String>>? attributeFilters,
+    Map<String, bool>? attributeFlags,
   }) {
     return SearchFilter(
       query: query ?? this.query,
@@ -4296,6 +4847,8 @@ class SearchFilter {
       returnRisk: returnRisk ?? this.returnRisk,
       minRating: minRating ?? this.minRating,
       sort: sort ?? this.sort,
+      attributeFilters: attributeFilters ?? this.attributeFilters,
+      attributeFlags: attributeFlags ?? this.attributeFlags,
     );
   }
 
@@ -4315,6 +4868,10 @@ class SearchFilter {
     if (returnRisk != 'All') count += 1;
     if (minRating > 0) count += 1;
     if (priceRange.start > 0 || priceRange.end < 10000) count += 1;
+    count += attributeFilters.values
+        .where((values) => values.any((item) => item.trim().isNotEmpty))
+        .length;
+    count += attributeFlags.values.where((flag) => flag).length;
     return count;
   }
 
@@ -4333,6 +4890,24 @@ class SearchFilter {
     if (fitConfidence != 'All') query['fitConfidence'] = fitConfidence;
     if (returnRisk != 'All') query['returnRisk'] = returnRisk;
     if (minRating > 0) query['rating'] = minRating.toStringAsFixed(1);
+    final dynamicFilters = <String, dynamic>{};
+    for (final entry in attributeFilters.entries) {
+      final values = entry.value
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+      if (values.isNotEmpty) {
+        dynamicFilters[entry.key] = values;
+      }
+    }
+    for (final entry in attributeFlags.entries) {
+      if (entry.value) {
+        dynamicFilters[entry.key] = true;
+      }
+    }
+    if (dynamicFilters.isNotEmpty) {
+      query['filters'] = jsonEncode(dynamicFilters);
+    }
     query['minPrice'] = priceRange.start.round().toString();
     query['maxPrice'] = priceRange.end.round().toString();
     query['sort'] = switch (sort) {
@@ -4347,6 +4922,12 @@ class SearchFilter {
     if (limit != null && limit > 0) query['limit'] = '$limit';
     return query;
   }
+
+  bool get hasAttributeFilters =>
+      attributeFilters.values.any(
+        (values) => values.any((item) => item.trim().isNotEmpty),
+      ) ||
+      attributeFlags.values.any((flag) => flag);
 }
 
 class DisputeRecord {
@@ -4467,18 +5048,8 @@ class PlatformSettings {
     this.checkoutEnabled = true,
     this.marketplaceEnabled = true,
     this.riderDispatchEnabled = true,
-    this.cities = const {
-      'Mumbai': true,
-      'Delhi': true,
-      'Bangalore': true,
-      'Hyderabad': true,
-    },
-    this.regionVendorAvailability = const {
-      'Mumbai': true,
-      'Delhi': true,
-      'Bangalore': true,
-      'Hyderabad': true,
-    },
+    this.cities = const {'Chennai': true},
+    this.regionVendorAvailability = const {'Chennai': true},
     this.allowedAdminDevices = const ['web-chrome', 'windows-desktop'],
     this.adminIdleTimeoutMinutes = 10,
     this.adminPinEnabled = false,
@@ -4555,22 +5126,10 @@ class PlatformSettings {
         marketplaceEnabled: map['marketplaceEnabled'] ?? true,
         riderDispatchEnabled: map['riderDispatchEnabled'] ?? true,
         cities: Map<String, bool>.from(
-          map['cities'] ??
-              const {
-                'Mumbai': true,
-                'Delhi': true,
-                'Bangalore': true,
-                'Hyderabad': true,
-              },
+          map['cities'] ?? const {'Chennai': true},
         ),
         regionVendorAvailability: Map<String, bool>.from(
-          map['regionVendorAvailability'] ??
-              const {
-                'Mumbai': true,
-                'Delhi': true,
-                'Bangalore': true,
-                'Hyderabad': true,
-              },
+          map['regionVendorAvailability'] ?? const {'Chennai': true},
         ),
         allowedAdminDevices: List<String>.from(
           map['allowedAdminDevices'] ?? const ['web-chrome', 'windows-desktop'],
@@ -5046,4 +5605,3 @@ class CustomBrandProduct {
         category: map['category'] ?? '',
       );
 }
-

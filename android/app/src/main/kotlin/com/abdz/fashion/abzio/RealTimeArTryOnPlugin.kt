@@ -168,10 +168,7 @@ class RealTimeArTryOnPlugin(
             )
             return
         }
-        emitRenderWarning(
-            "glb_overlay_fallback_active",
-            "GLB detected. Overlay fallback is active while native GLB runtime loader is being rolled out."
-        )
+        emitRenderEvent("glb_ready")
     }
 
     private fun isArCoreSupported(): Boolean {

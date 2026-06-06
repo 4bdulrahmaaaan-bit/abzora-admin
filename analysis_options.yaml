@@ -11,6 +11,7 @@ include: package:flutter_lints/flutter.yaml
 
 analyzer:
   exclude:
+    - packages/flutter_unity_widget/**
 
 linter:
   # The lint rules applied to this project can be customized in the

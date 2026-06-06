@@ -14,6 +14,7 @@ import '../utils/app_error_text.dart';
 import '../utils/app_mode_routes.dart';
 import '../features/legal/legal_consent_screen.dart';
 import '../features/legal/legal_document_registry.dart';
+import '../features/legal/legal_policy_hub_screen.dart';
 import '../widgets/brand_logo.dart';
 import '../widgets/tap_scale.dart';
 import 'otp_verification_screen.dart';
@@ -56,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'Partner Sign In';
       case AbzioAppMode.customer:
       case AbzioAppMode.unified:
-        return 'Welcome Back';
+        return 'Sign in to Abianzo';
     }
   }
 
@@ -70,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'Access your vendor or rider workspace';
       case AbzioAppMode.customer:
       case AbzioAppMode.unified:
-        return 'Access your style, fits, and orders';
+        return 'Access your AI Fit profile, AR try-ons, wishlist and orders.';
     }
   }
 
@@ -255,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final isFocused = _phoneFocusNode.hasFocus;
     final hasError = _phoneError != null;
     final logoAsset = widget.mode == AbzioAppMode.rider
-        ? 'assets/branding/abzora_rider_icon.png'
+        ? 'assets/branding/abianzo_rider_icon.png'
         : brandAssetForMode(widget.mode);
 
     return AbzioThemeScope.light(
@@ -384,40 +385,36 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ] else ...[
                       if (_isPrimaryFashionLogin) ...[
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 18,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: const [
-                              _BenefitChip(
-                                icon: Icons.auto_awesome_outlined,
-                                label: 'Resume Trial',
-                              ),
-                              _BenefitChip(
-                                icon: Icons.straighten_outlined,
-                                label: 'Save Fit Profile',
-                              ),
-                              _BenefitChip(
-                                icon: Icons.local_shipping_outlined,
-                                label: 'Track Orders',
-                              ),
-                            ],
+                        Text(
+                          'Why Sign In?',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1,
+                            color: const Color(0xFF8A8A8A),
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 12),
+                        const _BenefitRow(
+                          icon: Icons.straighten_outlined,
+                          label: 'Save AI Fit preferences',
+                        ),
+                        const SizedBox(height: 10),
+                        const _BenefitRow(
+                          icon: Icons.favorite_border_rounded,
+                          label: 'Access your wishlist',
+                        ),
+                        const SizedBox(height: 10),
+                        const _BenefitRow(
+                          icon: Icons.local_shipping_outlined,
+                          label: 'Track orders easily',
+                        ),
+                        const SizedBox(height: 10),
+                        const _BenefitRow(
+                          icon: Icons.refresh_rounded,
+                          label: 'Resume AR Try-On sessions',
+                        ),
+                        const SizedBox(height: 26),
                       ],
                       Text(
                         _isPartnerLogin ? 'Partner Number' : 'Mobile Number',
@@ -435,12 +432,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         curve: Curves.easeOutCubic,
                         height: 56,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: hasError
-                                ? const Color(0xFFD64C4C)
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: hasError
+                                  ? const Color(0xFFD64C4C)
                                 : isFocused
                                 ? const Color(0xFFC6A769)
                                 : const Color(0xFFE5E5E5),
@@ -540,7 +537,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 0xFFC6A769,
                               ).withValues(alpha: 0.32),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(14),
                               ),
                             ),
                             child: auth.isLoading
@@ -568,10 +565,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                     Text.rich(
                       TextSpan(
-                        text: "By logging in, I agree to Abianzo's ",
+                        text: 'By continuing, you agree to our ',
                         children: [
                           TextSpan(
-                            text: 'terms and condition',
+                            text: 'Terms & Conditions',
                             style: const TextStyle(
                               color: Color(0xFF8A6A16),
                               fontWeight: FontWeight.w800,
@@ -583,6 +580,27 @@ class _LoginScreenState extends State<LoginScreen> {
                                   MaterialPageRoute(
                                     builder: (_) => const LegalConsentScreen(
                                       audience: LegalAudience.customer,
+                                    ),
+                                  ),
+                                );
+                              },
+                          ),
+                          const TextSpan(text: ' and '),
+                          TextSpan(
+                            text: 'Privacy Policy',
+                            style: const TextStyle(
+                              color: Color(0xFF8A6A16),
+                              fontWeight: FontWeight.w800,
+                              decoration: TextDecoration.underline,
+                            ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const LegalPolicyHubScreen(
+                                      audience: LegalAudience.customer,
+                                      title: 'Privacy Policy',
                                     ),
                                   ),
                                 );
@@ -609,38 +627,38 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class _BenefitChip extends StatelessWidget {
-  const _BenefitChip({required this.icon, required this.label});
+class _BenefitRow extends StatelessWidget {
+  const _BenefitRow({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F5F2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: const Color(0xFF111111)),
-          const SizedBox(width: 6),
-          Text(
+    return Row(
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF4EEE2),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 15, color: const Color(0xFF8A6A16)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
             label,
             style: GoogleFonts.inter(
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF111111),
+              color: const Color(0xFF1C1C1C),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
+

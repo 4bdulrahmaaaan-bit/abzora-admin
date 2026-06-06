@@ -151,7 +151,7 @@ class _RiderFormScreenState extends State<RiderFormScreen> {
       );
     }
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('Rider KYC Onboarding')),
       body: Form(
         key: _formKey,

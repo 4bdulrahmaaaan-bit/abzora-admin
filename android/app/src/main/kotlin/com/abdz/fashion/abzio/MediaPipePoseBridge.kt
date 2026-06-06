@@ -1,8 +1,11 @@
 package com.abdz.fashion.abzio
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.os.SystemClock
+import android.util.Log
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
@@ -13,6 +16,11 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.nio.MappedByteBuffer
+import java.nio.channels.FileChannel
 
 class MediaPipePoseBridge(
     private val context: Context,
@@ -37,12 +45,14 @@ class MediaPipePoseBridge(
             "initialize" -> {
                 val args = call.arguments as? Map<*, *>
                 val modelAssetPath = args?.get("modelAssetPath")?.toString()
-                    ?: "assets/ml/pose_landmarker_lite.task"
+                    ?: "ml/pose_landmarker_lite.task"
                 executor.execute {
                     try {
                         ensureDetector(modelAssetPath)
+                        Log.d("ABZORA_POSE", "MediaPipe initialized with $modelAssetPath")
                         postSuccess(result, true)
                     } catch (error: Throwable) {
+                        Log.e("ABZORA_POSE", "MediaPipe initialize failed: ${error.message}")
                         postSuccess(result, false)
                     }
                 }
@@ -58,15 +68,15 @@ class MediaPipePoseBridge(
                         val detector = ensureDetector()
                         val bytes = args["jpegBytes"] as? ByteArray
                             ?: throw IllegalArgumentException("jpegBytes missing")
-                        val width = (args["width"] as? Number)?.toInt() ?: 0
-                        val height = (args["height"] as? Number)?.toInt() ?: 0
-                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        val rotation = (args["rotation"] as? Number)?.toInt() ?: 0
+                        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                             ?: throw IllegalStateException("Could not decode JPEG frame")
+                        val bitmap = rotateBitmap(decoded, rotation)
                         val mpImage = BitmapImageBuilder(bitmap).build()
                         val timestampMs = (args["timestampMs"] as? Number)?.toLong()
                             ?: SystemClock.uptimeMillis()
                         val output = detector.detectForVideo(mpImage, timestampMs)
-                        val payload = serializeLandmarks(output, width, height)
+                        val payload = serializeLandmarks(output)
                         val latency = SystemClock.elapsedRealtime() - started
                         processedFrames += 1
                         lastLatencyMs = latency
@@ -79,6 +89,7 @@ class MediaPipePoseBridge(
                         postSuccess(result, payload)
                     } catch (error: Throwable) {
                         failedFrames += 1
+                        Log.e("ABZORA_POSE", "processFrame failed: ${error.message}")
                         postError(result, "mediapipe_process_failed", error.message ?: "Pose processing failed")
                     }
                 }
@@ -100,7 +111,7 @@ class MediaPipePoseBridge(
                             ?: throw IllegalStateException("Could not decode file at $path")
                         val mpImage = BitmapImageBuilder(bitmap).build()
                         val output = detector.detect(mpImage)
-                        val payload = serializeLandmarks(output, bitmap.width, bitmap.height)
+                        val payload = serializeLandmarks(output)
                         val latency = SystemClock.elapsedRealtime() - started
                         processedFrames += 1
                         lastLatencyMs = latency
@@ -113,6 +124,7 @@ class MediaPipePoseBridge(
                         postSuccess(result, payload)
                     } catch (error: Throwable) {
                         failedFrames += 1
+                        Log.e("ABZORA_POSE", "processImagePath failed: ${error.message}")
                         postError(result, "mediapipe_image_failed", error.message ?: "Image pose processing failed")
                     }
                 }
@@ -144,33 +156,111 @@ class MediaPipePoseBridge(
         }
     }
 
-    private fun ensureDetector(modelAssetPath: String = "assets/ml/pose_landmarker_lite.task"): PoseLandmarker {
+    private fun ensureDetector(modelAssetPath: String = "ml/pose_landmarker_lite.task"): PoseLandmarker {
         poseLandmarker?.let { return it }
-        val options = PoseLandmarker.PoseLandmarkerOptions.builder()
-            .setBaseOptions(
-                BaseOptions.builder()
-                    .setModelAssetPath(modelAssetPath)
-                    .build()
-            )
-            .setRunningMode(RunningMode.VIDEO)
-            .setNumPoses(1)
-            .setMinPoseDetectionConfidence(0.5f)
-            .setMinPosePresenceConfidence(0.5f)
-            .setMinTrackingConfidence(0.5f)
+        val normalizedAssetPath = modelAssetPath
+            .replace("flutter_assets/assets/", "")
+            .replace("assets/", "")
+            .trimStart('/')
+        val candidates = listOf(
+            normalizedAssetPath,
+            modelAssetPath,
+            "ml/pose_landmarker_lite.task",
+            "pose_landmarker_lite.task"
+        ).distinct()
+        var lastError: Throwable? = null
+        for (candidate in candidates) {
+            try {
+                val modelFile = resolveModelFile(candidate)
+                val detector = if (modelFile != null) {
+                    val baseOptions = buildBaseOptions(modelFile)
+                    val options = PoseLandmarker.PoseLandmarkerOptions.builder()
+                        .setBaseOptions(baseOptions)
+                        .setRunningMode(RunningMode.VIDEO)
+                        .setNumPoses(1)
+                        .setMinPoseDetectionConfidence(0.35f)
+                        .setMinPosePresenceConfidence(0.35f)
+                        .setMinTrackingConfidence(0.35f)
+                        .build()
+                    PoseLandmarker.createFromOptions(context, options)
+                } else {
+                    PoseLandmarker.createFromFile(context, candidate)
+                }
+                poseLandmarker = detector
+                Log.d("ABZORA_POSE", "Pose detector ready: ${modelFile?.absolutePath ?: candidate}")
+                return detector
+            } catch (error: Throwable) {
+                lastError = error
+                Log.e("ABZORA_POSE", "Pose detector candidate failed $candidate: ${error.message}")
+            }
+        }
+        throw lastError ?: IllegalStateException("Pose detector could not be created")
+    }
+
+    private fun buildBaseOptions(modelFile: File): BaseOptions {
+        val buffer = FileInputStream(modelFile).channel.use { channel ->
+            channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size())
+        }
+        val builder = BaseOptions.builder()
+        val methods = listOf("setModelAssetBuffer", "setModelBuffer")
+        for (methodName in methods) {
+            val method = builder.javaClass.methods.firstOrNull { candidate ->
+                candidate.name == methodName && candidate.parameterTypes.size == 1
+            }
+            if (method != null) {
+                try {
+                    method.invoke(builder, buffer)
+                    return builder.build()
+                } catch (_: Throwable) {
+                    // Try next setter or fallback below.
+                }
+            }
+        }
+        return builder
+            .setModelAssetPath(modelFile.absolutePath)
             .build()
-        val detector = PoseLandmarker.createFromOptions(context, options)
-        poseLandmarker = detector
-        return detector
+    }
+
+    private fun resolveModelFile(assetPath: String): File? {
+        val fileCandidates = listOf(
+            File(assetPath),
+            File(context.cacheDir, assetPath),
+            File(context.cacheDir, "abzora_pose_models/${assetPath.replace('/', '_')}")
+        )
+        for (file in fileCandidates) {
+            if (file.exists() && file.length() > 0) {
+                return file
+            }
+        }
+        val assetCandidates = listOf(
+            assetPath,
+            "ml/pose_landmarker_lite.task",
+            "pose_landmarker_lite.task"
+        ).distinct()
+        for (candidate in assetCandidates) {
+            try {
+                val cached = File(context.cacheDir, "abzora_pose_models/${candidate.replace('/', '_')}")
+                cached.parentFile?.mkdirs()
+                context.assets.open(candidate).use { input ->
+                    FileOutputStream(cached).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                if (cached.exists() && cached.length() > 0) {
+                    Log.d("ABZORA_POSE", "Pose model resolved from asset $candidate -> ${cached.absolutePath}")
+                    return cached
+                }
+            } catch (_: Throwable) {
+                // Try next candidate.
+            }
+        }
+        return null
     }
 
     private fun serializeLandmarks(
-        output: PoseLandmarkerResult,
-        frameWidth: Int,
-        frameHeight: Int
+        output: PoseLandmarkerResult
     ): List<Map<String, Any>> {
         val firstPose = output.landmarks().firstOrNull() ?: return emptyList()
-        val width = if (frameWidth <= 0) 1 else frameWidth
-        val height = if (frameHeight <= 0) 1 else frameHeight
         val labels = listOf(
             "nose",
             "left_eye_inner",
@@ -208,19 +298,27 @@ class MediaPipePoseBridge(
         )
         return firstPose.mapIndexed { index, landmark ->
             val visibility: Float = try {
-                landmark.visibility().orElse(0f)
+                landmark.visibility().orElse(1f)
             } catch (_: Throwable) {
-                0f
+                1f
             }
             mapOf(
                 "type" to (labels.getOrNull(index) ?: "unknown_$index"),
-                // Return pixel space so existing Flutter measurement math remains stable.
-                "x" to (landmark.x() * width.toDouble()),
-                "y" to (landmark.y() * height.toDouble()),
+                "x" to landmark.x().toDouble(),
+                "y" to landmark.y().toDouble(),
                 "z" to landmark.z().toDouble(),
                 "visibility" to visibility.toDouble()
             )
         }
+    }
+
+    private fun rotateBitmap(bitmap: Bitmap, rotationDegrees: Int): Bitmap {
+        val normalized = ((rotationDegrees % 360) + 360) % 360
+        if (normalized == 0) {
+            return bitmap
+        }
+        val matrix = Matrix().apply { postRotate(normalized.toFloat()) }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
     fun dispose() {

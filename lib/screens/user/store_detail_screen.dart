@@ -115,7 +115,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                     }
                     if (context.mounted) Navigator.pop(context, true);
                   },
-                  child: const Text('SAVE REVIEW'),
+                  child: const Text('Save review'),
                 ),
               ),
             ],
@@ -143,7 +143,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 220,
+            expandedHeight: 260,
             pinned: true,
             backgroundColor: AbzioTheme.lightTextPrimary,
             flexibleSpace: FlexibleSpaceBar(
@@ -213,22 +213,22 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
               padding: const EdgeInsets.all(16),
               child: _loading
                   ? const AbzioLoadingView(
-                      title: 'Loading store',
-                      subtitle: 'Pulling the latest products, reviews, and store details.',
+                      title: 'Loading boutique',
+                      subtitle: 'Pulling the latest pieces, reviews, and store details.',
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(18),
+                          padding: const EdgeInsets.all(22),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFFDF8),
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(color: const Color(0xFFF0E3C5)),
+                            color: const Color(0xFFFFFCF8),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFE6D6BE)),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFB8963F).withValues(alpha: 0.06),
-                                blurRadius: 18,
+                                color: const Color(0xFFB8963F).withValues(alpha: 0.05),
+                                blurRadius: 20,
                                 offset: const Offset(0, 10),
                               ),
                             ],
@@ -238,17 +238,49 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.store_mall_directory_outlined, size: 20),
+                                  const Icon(
+                                    Icons.store_mall_directory_outlined,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      '${widget.store.name} is showing only products from this local store.',
-                                      style: Theme.of(context).textTheme.bodySmall,
+                                      '${widget.store.name} is presented as a private boutique edit, with craft, tailoring, and collection depth highlighted first.',
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
                                     ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _StoreStoryChip(
+                                    label:
+                                        '${widget.store.customVendorProfile.experienceYears}+ years',
+                                  ),
+                                  _StoreStoryChip(
+                                    label:
+                                        widget.store.customVendorProfile.productionTimeDays > 0
+                                        ? '${widget.store.customVendorProfile.productionTimeDays} day production'
+                                        : 'Curated production',
+                                  ),
+                                  _StoreStoryChip(
+                                    label: widget
+                                        .store.customVendorProfile
+                                        .supportsAlterations
+                                        ? 'Alterations supported'
+                                        : 'Selected tailoring only',
+                                  ),
+                                  if (widget.store.vendorRank > 0)
+                                    _StoreStoryChip(
+                                      label: 'Rank #${widget.store.vendorRank}',
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
@@ -265,9 +297,31 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                                     )
                                     .toList(),
                               ),
+                              if (widget.store.vendorHighlights.isNotEmpty) ...[
+                                const SizedBox(height: 14),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: widget.store.vendorHighlights
+                                      .take(4)
+                                      .map(
+                                        (highlight) => _StoreStoryChip(
+                                          label: highlight,
+                                          muted: true,
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                              ],
                               if (widget.store.tagline.isNotEmpty) ...[
                                 const SizedBox(height: 12),
-                                Text(widget.store.tagline, style: Theme.of(context).textTheme.titleMedium),
+                                Text(
+                                  widget.store.tagline,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
                               ],
                             ],
                           ),
@@ -276,15 +330,15 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Featured Collection', style: Theme.of(context).textTheme.labelMedium),
+                            Text('Curated Edit', style: Theme.of(context).textTheme.labelMedium),
                             TextButton(onPressed: () => _writeStoreReview(myReview), child: Text(myReview == null ? 'RATE STORE' : 'EDIT REVIEW')),
                           ],
                         ),
                         const SizedBox(height: 12),
                         if (_products.isEmpty)
                           const AbzioEmptyCard(
-                            title: 'Collection coming soon',
-                            subtitle: 'This storefront is live, but its first product edit is still being prepared.',
+                            title: 'Curated edit coming soon',
+                            subtitle: 'This storefront is live, but its first selection is still being prepared.',
                           )
                         else
                           GridView.builder(
@@ -300,7 +354,10 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                               childAspectRatio: 0.62,
                             ),
                             itemCount: _products.length,
-                            itemBuilder: (context, index) => ProductCard(product: _products[index]),
+                            itemBuilder: (context, index) => ProductCard(
+                              product: _products[index],
+                              storeLabel: widget.store.name,
+                            ),
                           ),
                         const SizedBox(height: 24),
                         Text('Store Reviews', style: Theme.of(context).textTheme.labelMedium),
@@ -341,6 +398,37 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
           ),
         ],
       ),
+      ),
+    );
+  }
+}
+
+class _StoreStoryChip extends StatelessWidget {
+  const _StoreStoryChip({
+    required this.label,
+    this.muted = false,
+  });
+
+  final String label;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: muted ? Colors.white : const Color(0xFFFFF4D8),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: muted ? const Color(0xFFE9E1D1) : const Color(0xFFF0DFC0),
+        ),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: const Color(0xFF5F4A1A),
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

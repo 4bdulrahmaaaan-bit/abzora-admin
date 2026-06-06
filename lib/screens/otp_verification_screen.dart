@@ -497,7 +497,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     final phone = widget.phoneNumber ?? auth.pendingPhoneNumber ?? '';
     final isBusy = auth.isLoading || _autoSubmitting;
     final logoAsset = widget.mode == AbzioAppMode.rider
-        ? 'assets/branding/abzora_rider_icon.png'
+        ? 'assets/branding/abianzo_rider_icon.png'
         : brandAssetForMode(widget.mode);
 
     return AbzioThemeScope.light(

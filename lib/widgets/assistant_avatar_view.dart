@@ -53,7 +53,7 @@ class _AssistantAvatarViewState extends State<AssistantAvatarView> {
   Future<void> _pushAvatarStateToWeb(AssistantAvatarState state) async {
     try {
       await _controller?.runJavaScript(
-        "window.postMessage({ type: 'abzoraAvatarState', state: '${state.name}' }, '*');",
+        "window.postMessage({ type: 'abianzoAvatarState', state: '${state.name}' }, '*');",
       );
     } catch (_) {
       // If the embedded avatar page does not support state hooks yet,

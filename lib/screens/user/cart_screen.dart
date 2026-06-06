@@ -23,7 +23,8 @@ class CartScreen extends StatefulWidget {
   State<CartScreen> createState() => _CartScreenState();
 }
 
-class _CartScreenState extends State<CartScreen> {
+class _CartScreenState extends State<CartScreen>
+    with AutomaticKeepAliveClientMixin {
   final DatabaseService _database = DatabaseService();
   final NumberFormat _currency = NumberFormat.currency(
     locale: 'en_IN',
@@ -44,6 +45,9 @@ class _CartScreenState extends State<CartScreen> {
     super.didChangeDependencies();
     _ensureRecommendations(context.read<CartProvider>());
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   void _ensureRecommendations(CartProvider cart) {
     if (cart.items.isEmpty) {
@@ -229,12 +233,13 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-    final productProvider = context.watch<ProductProvider>();
+    super.build(context);
+    final auth = context.read<AuthProvider>();
+    final productProvider = context.read<ProductProvider>();
 
     return AbzioThemeScope.light(
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F7F3),
+        backgroundColor: const Color(0xFFFAF9F6),
         body: Consumer<CartProvider>(
           builder: (context, cart, child) {
             _ensureRecommendations(cart);
@@ -445,13 +450,13 @@ class _BagHeader extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFDF8),
-          border: Border(bottom: BorderSide(color: const Color(0xFFF0E3C5))),
+          color: const Color(0xFFFCFBF8),
+          border: Border(bottom: BorderSide(color: const Color(0xFFE8E0D2))),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFB8963F).withValues(alpha: 0.08),
-              blurRadius: 28,
-              offset: const Offset(0, 14),
+              color: Colors.black.withValues(alpha: 0.045),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -470,7 +475,7 @@ class _BagHeader extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Shopping Bag',
+                        'Your Bag',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -480,7 +485,7 @@ class _BagHeader extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'You are saving $savingsLabel',
+                        'You are saving $savingsLabel on this bag',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -624,7 +629,7 @@ class _AddressCard extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7F1DF),
+                  color: const Color(0xFFF2E2BB),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -655,7 +660,7 @@ class _AddressCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF5E5B55),
+                        color: const Color(0xFF6A655A),
                         fontSize: 12,
                       ),
                     ),
@@ -680,7 +685,7 @@ class _AddressCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F7F3),
+              color: const Color(0xFFF8F5EE),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -1909,7 +1914,7 @@ class _BagFooterState extends State<_BagFooter>
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF8D6D20),
+                      color: const Color(0xFF7B5C1A),
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.2,
                     ),
@@ -1971,12 +1976,12 @@ class _BagFooterState extends State<_BagFooter>
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFD6B76F), Color(0xFFBC9543)],
+                    colors: [Color(0xFFD9C27A), Color(0xFFC6A769)],
                   ),
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFC8A95D).withValues(alpha: 0.25),
+                      color: const Color(0xFFC8A95D).withValues(alpha: 0.20),
                       blurRadius: 14,
                       offset: const Offset(0, 8),
                     ),
@@ -2008,7 +2013,7 @@ class _BagFooterState extends State<_BagFooter>
                       ),
                       const SizedBox(width: 8),
                       const Text(
-                        'PLACE ORDER',
+                        'PROCEED TO CHECKOUT',
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.2,
@@ -2128,14 +2133,14 @@ class _BagCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF8),
+        color: const Color(0xFFFCFBF8),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFF0E3C5)),
+        border: Border.all(color: const Color(0xFFE8E0D2)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFB8963F).withValues(alpha: 0.07),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),

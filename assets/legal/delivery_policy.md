@@ -1,4 +1,4 @@
-# Abzora Delivery Policy
+# Abianzo Delivery Policy
 
 **Effective Date:** 12 May 2026
 

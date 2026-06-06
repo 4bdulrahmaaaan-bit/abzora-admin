@@ -39,7 +39,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
   }
 
   String _shareMessage(String code) {
-    return 'Get Rs 75 on Abianzo\nUse my code: $code\nDownload now: ${AppConfig.appDownloadLink}';
+    return 'Get ₹75 on Abianzo\nUse my code: $code\nDownload now: ${AppConfig.appDownloadLink}';
   }
 
   Future<void> _shareWhatsApp(String code) async {
@@ -202,7 +202,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                           ),
                         ),
                         child: const Text(
-                          'Invite & Earn Rs 75',
+                          'Invite & Earn ₹75',
                           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -256,12 +256,12 @@ class _ReferralScreenState extends State<ReferralScreen> {
           ),
           const SizedBox(height: 18),
           Text(
-            'Earn Rs 75 for every friend',
+            'Earn ₹75 for every friend',
             style: Theme.of(context).textTheme.displayMedium?.copyWith(fontSize: 30),
           ),
           const SizedBox(height: 8),
           Text(
-            'They get Rs 75. You get Rs 75 when they place their first order of Rs 499 or more.',
+            'They get ₹75. You get ₹75 when they place their first order of ₹499 or more.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: context.abzioSecondaryText,
                   height: 1.45,
@@ -395,9 +395,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
         children: [
           Expanded(child: _statCard(context, 'Friends invited', '$invitedCount')),
           const SizedBox(width: 12),
-          Expanded(child: _statCard(context, 'Credits earned', 'Rs ${earnedCredits.toStringAsFixed(0)}', highlight: true)),
+          Expanded(child: _statCard(context, 'Credits earned', '₹${earnedCredits.toStringAsFixed(0)}', highlight: true)),
           const SizedBox(width: 12),
-          Expanded(child: _statCard(context, 'Wallet balance', 'Rs ${walletBalance.toStringAsFixed(0)}')),
+          Expanded(child: _statCard(context, 'Wallet balance', '₹${walletBalance.toStringAsFixed(0)}')),
         ],
       ),
     );
@@ -421,11 +421,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
         children: [
           Row(
             children: [
-              Expanded(child: _tierPill(context, 'Bronze', 'Rs 75', tier == 'Bronze')),
+              Expanded(child: _tierPill(context, 'Bronze', '₹75', tier == 'Bronze')),
               const SizedBox(width: 10),
-              Expanded(child: _tierPill(context, 'Silver', 'Rs 100', tier == 'Silver')),
+              Expanded(child: _tierPill(context, 'Silver', '₹100', tier == 'Silver')),
               const SizedBox(width: 10),
-              Expanded(child: _tierPill(context, 'Gold', 'Rs 150', tier == 'Gold')),
+              Expanded(child: _tierPill(context, 'Gold', '₹150', tier == 'Gold')),
             ],
           ),
           const SizedBox(height: 16),
@@ -457,7 +457,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
     final steps = [
       ('1', 'Share your code', 'Send your premium invite code to friends.'),
       ('2', 'They sign up', 'Your friend joins Abianzo using your code.'),
-      ('3', 'They place an order', 'Their first order must be Rs 499 or more.'),
+      ('3', 'They place an order', 'Their first order must be ₹499 or more.'),
       ('4', 'Both earn credits', 'You both receive Abianzo Credits automatically.'),
     ];
     return _shell(
@@ -523,7 +523,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                         const SizedBox(height: 4),
                         Text(
                           completed
-                              ? 'You earned Rs ${item.referrerReward.toStringAsFixed(0)} from this referral.'
+                              ? 'You earned ₹${item.referrerReward.toStringAsFixed(0)} from this referral.'
                               : 'Waiting for the friend\'s first qualifying order.',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: context.abzioSecondaryText,
@@ -716,3 +716,4 @@ class _ReferralScreenState extends State<ReferralScreen> {
     );
   }
 }
+

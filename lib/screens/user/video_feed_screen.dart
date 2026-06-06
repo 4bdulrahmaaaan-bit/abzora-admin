@@ -19,10 +19,10 @@ class _VideoFeedScreenState extends State<VideoFeedScreen> {
   int _currentIndex = 0;
 
   final List<Map<String, dynamic>> _reels = [
-    {'image': 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=600&q=80', 'product': 'Classic Linen Blazer', 'store': 'Zyla Fashion', 'price': 'Rs 4,999', 'likes': '12.4K', 'tag': 'MEN\'S ESSENTIALS'},
-    {'image': 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80', 'product': 'Satin Evening Dress', 'store': 'Elite Threads', 'price': 'Rs 2,499', 'likes': '8.7K', 'tag': 'WOMEN\'S COLLECTION'},
-    {'image': 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600&q=80', 'product': 'Embroidered Sherwani', 'store': 'Moda Casa', 'price': 'Rs 12,999', 'likes': '21.3K', 'tag': 'WEDDING SPECIAL'},
-    {'image': 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&q=80', 'product': 'Floral Summer Dress', 'store': 'Urban Vogue', 'price': 'Rs 1,599', 'likes': '5.2K', 'tag': 'SUMMER VIBES'},
+    {'image': 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=600&q=80', 'product': 'Classic Linen Blazer', 'store': 'Zyla Fashion', 'price': '₹4,999', 'likes': '12.4K', 'tag': 'MEN\'S ESSENTIALS'},
+    {'image': 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80', 'product': 'Satin Evening Dress', 'store': 'Elite Threads', 'price': '₹2,499', 'likes': '8.7K', 'tag': 'WOMEN\'S COLLECTION'},
+    {'image': 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600&q=80', 'product': 'Embroidered Sherwani', 'store': 'Moda Casa', 'price': '₹12,999', 'likes': '21.3K', 'tag': 'WEDDING SPECIAL'},
+    {'image': 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&q=80', 'product': 'Floral Summer Dress', 'store': 'Urban Vogue', 'price': '₹1,599', 'likes': '5.2K', 'tag': 'SUMMER VIBES'},
   ];
 
   final Set<int> _wishlistedIndices = {};

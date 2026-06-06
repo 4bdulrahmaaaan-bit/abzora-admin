@@ -41,6 +41,10 @@ class ArStatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 2,
+        softWrap: true,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.start,
         style: const TextStyle(
           color: Colors.white70,
           fontSize: 11,

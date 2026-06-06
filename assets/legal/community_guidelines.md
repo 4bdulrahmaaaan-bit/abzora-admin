@@ -1,4 +1,4 @@
-# Abzora Community Guidelines
+# Abianzo Community Guidelines
 
 **Effective Date:** 12 May 2026
 
@@ -22,4 +22,4 @@
 2. Report suspicious activity via support immediately.
 
 ## 6. Enforcement
-1. Abzora may warn, restrict, suspend, or permanently ban accounts for violations.
+1. Abianzo may warn, restrict, suspend, or permanently ban accounts for violations.

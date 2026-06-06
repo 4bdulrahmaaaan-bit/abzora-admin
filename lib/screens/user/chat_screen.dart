@@ -328,7 +328,7 @@ class _ChatScreenState extends State<ChatScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Abianzo Assistant ✨'),
+            const Text('Abianzo Assistant'),
             Text(
               _subtitleForChat(widget.chat),
               style: TextStyle(
@@ -970,3 +970,4 @@ class _MessageBubble extends StatelessWidget {
     return DateFormat('hh:mm a').format(parsed);
   }
 }
+

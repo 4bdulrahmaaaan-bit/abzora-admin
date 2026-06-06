@@ -1,5 +1,6 @@
 import '../models/banner_model.dart';
 import '../models/ar_try_on_models.dart';
+import '../models/cms_model.dart';
 import '../models/category_management_model.dart';
 import '../models/models.dart';
 import '../models/outfit_recommendation_model.dart';
@@ -17,13 +18,15 @@ class BackendCommerceService {
   bool get isConfigured => _client.isConfigured;
 
   bool _isTransientNetworkIssue(Object error) {
+    if (error is BackendApiException) {
+      return error.isNetworkIssue || error.isServerError || error.isClientError;
+    }
     final message = error.toString().toLowerCase();
-    return message.contains('failed host lookup') ||
-        message.contains('backend unreachable') ||
-        message.contains('socketexception') ||
+    return message.contains('socketexception') ||
         message.contains('connection closed') ||
         message.contains('timed out') ||
-        message.contains('clientexception');
+        message.contains('clientexception') ||
+        message.contains('failed host lookup');
   }
 
   Map<String, dynamic> _optionalEntry(String key, Object? value) {
@@ -131,18 +134,27 @@ class BackendCommerceService {
         return null;
       }
       return BodyProfile.fromMap(map);
-    } catch (_) {
-      final payload = await _client.get('/auth/memory', authenticated: true);
-      if (payload == null) {
-        return null;
+    } on BackendApiException catch (error, stackTrace) {
+      debugPrint(
+        'BackendCommerceService.getBodyProfile failed: '
+        'status=${error.statusCode}, kind=${error.failureKind}, '
+        'endpoint=${error.endpoint}, method=${error.method}, message=${error.message}',
+      );
+      debugPrintStack(stackTrace: stackTrace);
+      if (error.statusCode == 404 || error.statusCode == 405) {
+        final payload = await _client.get('/auth/memory', authenticated: true);
+        if (payload == null) {
+          return null;
+        }
+        final map = Map<String, dynamic>.from(payload as Map);
+        final height = map['heightCm'];
+        final weight = map['weightKg'];
+        if (height == null || weight == null) {
+          return null;
+        }
+        return BodyProfile.fromMap(map);
       }
-      final map = Map<String, dynamic>.from(payload as Map);
-      final height = map['heightCm'];
-      final weight = map['weightKg'];
-      if (height == null || weight == null) {
-        return null;
-      }
-      return BodyProfile.fromMap(map);
+      rethrow;
     }
   }
 
@@ -189,13 +201,22 @@ class BackendCommerceService {
         },
       );
       return BodyProfile.fromMap(Map<String, dynamic>.from(payload as Map));
-    } catch (_) {
-      final payload = await _client.put(
-        '/auth/memory',
-        authenticated: true,
-        body: {...profile.toMap(), 'size': profile.recommendedSize},
+    } on BackendApiException catch (error, stackTrace) {
+      debugPrint(
+        'BackendCommerceService.saveBodyProfile failed: '
+        'status=${error.statusCode}, kind=${error.failureKind}, '
+        'endpoint=${error.endpoint}, method=${error.method}, message=${error.message}',
       );
-      return BodyProfile.fromMap(Map<String, dynamic>.from(payload as Map));
+      debugPrintStack(stackTrace: stackTrace);
+      if (error.statusCode == 404 || error.statusCode == 405) {
+        final payload = await _client.put(
+          '/auth/memory',
+          authenticated: true,
+          body: {...profile.toMap(), 'size': profile.recommendedSize},
+        );
+        return BodyProfile.fromMap(Map<String, dynamic>.from(payload as Map));
+      }
+      rethrow;
     }
   }
 
@@ -563,9 +584,11 @@ class BackendCommerceService {
       adminView ? '/admin/home-visuals' : '/home-visuals',
       authenticated: adminView,
     );
-    return HomeVisualConfigModel.fromMap(
-      Map<String, dynamic>.from(payload as Map),
-    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    final data = map['data'] is Map
+        ? Map<String, dynamic>.from(map['data'] as Map)
+        : map;
+    return HomeVisualConfigModel.fromMap(data);
   }
 
   Future<HomeVisualConfigModel> saveHomeVisualConfig(
@@ -576,22 +599,46 @@ class BackendCommerceService {
       authenticated: true,
       body: config.toMap(),
     );
-    return HomeVisualConfigModel.fromMap(
-      Map<String, dynamic>.from(payload as Map),
-    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    final data = map['data'] is Map
+        ? Map<String, dynamic>.from(map['data'] as Map)
+        : map;
+    return HomeVisualConfigModel.fromMap(data);
   }
 
-  Future<List<CategoryManagementModel>> getAdminCategories() async {
-    final payload = await _client.get('/api/categories', authenticated: true);
-    final items = payload is List ? payload : const [];
-    return items
-        .whereType<Map>()
-        .map(
-          (item) =>
-              CategoryManagementModel.fromMap(Map<String, dynamic>.from(item)),
-        )
-        .toList()
-      ..sort((left, right) => left.order.compareTo(right.order));
+  Future<CategoryManagementPage> getAdminCategories({
+    int page = 1,
+    int limit = 20,
+    String search = '',
+    String status = 'all',
+    String parentId = '',
+    String tabType = 'all',
+    String featured = 'all',
+    bool showOnHome = false,
+    bool includeDeleted = false,
+  }) async {
+    final payload = await _client.get(
+      '/api/categories',
+      authenticated: true,
+      queryParameters: {
+        'view': 'admin',
+        'page': page.toString(),
+        'limit': limit.toString(),
+        if (search.trim().isNotEmpty) 'search': search.trim(),
+        if (status.trim().isNotEmpty && status != 'all')
+          'status': status.trim(),
+        if (parentId.trim().isNotEmpty) 'parentId': parentId.trim(),
+        if (tabType.trim().isNotEmpty && tabType != 'all')
+          'tabType': tabType.trim(),
+        if (featured.trim().isNotEmpty && featured != 'all')
+          'featured': featured.trim(),
+        if (showOnHome) 'showOnHome': 'true',
+        if (includeDeleted) 'includeDeleted': 'true',
+      },
+    );
+    return CategoryManagementPage.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
   }
 
   Future<CategoryManagementModel> createCategory(
@@ -636,6 +683,178 @@ class BackendCommerceService {
 
   Future<void> deleteCategory(String categoryId) async {
     await _client.delete('/api/categories/$categoryId', authenticated: true);
+  }
+
+  Future<CategoryManagementModel> toggleCategoryFeatured({
+    required String categoryId,
+    required bool isFeatured,
+  }) async {
+    final payload = await _client.patch(
+      '/api/categories/$categoryId/featured',
+      authenticated: true,
+      body: {'isFeatured': isFeatured},
+    );
+    return CategoryManagementModel.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
+  }
+
+  Future<void> reorderCategories(
+    List<CategoryManagementModel> categories,
+  ) async {
+    await _client.patch(
+      '/api/categories/reorder',
+      authenticated: true,
+      body: {
+        'items': categories
+            .map(
+              (category) => {
+                'id': category.id,
+                'sortOrder': category.sortOrder,
+              },
+            )
+            .toList(),
+      },
+    );
+  }
+
+  Future<List<CategoryManagementModel>> getHomeCategories({
+    String tabType = 'All',
+  }) async {
+    final payload = await _client.get(
+      '/api/categories/home',
+      queryParameters: {
+        if (tabType.trim().isNotEmpty && tabType != 'All')
+          'tabType': tabType.trim(),
+      },
+    );
+    final map = payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+    final items = (map['data'] as List? ?? const []);
+    return items
+        .whereType<Map>()
+        .map(
+          (item) =>
+              CategoryManagementModel.fromMap(Map<String, dynamic>.from(item)),
+        )
+        .toList()
+      ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
+  }
+
+  Future<CmsEntryPage> getCmsEntries({
+    required String type,
+    int page = 1,
+    int limit = 20,
+    String search = '',
+    String status = 'all',
+    String category = '',
+    String featured = 'all',
+    String section = '',
+    String published = 'all',
+  }) async {
+    final payload = await _client.get(
+      '/cms',
+      authenticated: true,
+      queryParameters: {
+        'type': type,
+        'page': page.toString(),
+        'limit': limit.toString(),
+        if (search.trim().isNotEmpty) 'search': search.trim(),
+        if (status.trim().isNotEmpty && status != 'all')
+          'status': status.trim(),
+        if (category.trim().isNotEmpty) 'category': category.trim(),
+        if (featured.trim().isNotEmpty && featured != 'all')
+          'featured': featured.trim(),
+        if (section.trim().isNotEmpty) 'section': section.trim(),
+        if (published.trim().isNotEmpty && published != 'all')
+          'published': published.trim(),
+      },
+    );
+    return CmsEntryPage.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<List<CmsEntryModel>> getCmsEntriesList({
+    required String type,
+    String status = 'all',
+  }) async {
+    final payload = await _client.get(
+      '/cms',
+      authenticated: true,
+      queryParameters: {
+        'type': type,
+        if (status.trim().isNotEmpty && status != 'all')
+          'status': status.trim(),
+      },
+    );
+    final map = Map<String, dynamic>.from(payload as Map);
+    final items = (map['data'] as List? ?? const []);
+    return items
+        .whereType<Map>()
+        .map((item) => CmsEntryModel.fromMap(Map<String, dynamic>.from(item)))
+        .toList()
+      ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
+  }
+
+  Future<CmsEntryModel> createCmsEntry(CmsEntryModel entry) async {
+    final payload = await _client.post(
+      '/cms',
+      authenticated: true,
+      body: entry.toMap(),
+    );
+    return CmsEntryModel.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<CmsEntryModel> updateCmsEntry(CmsEntryModel entry) async {
+    final payload = await _client.put(
+      '/cms/${entry.id}',
+      authenticated: true,
+      body: entry.toMap(),
+    );
+    return CmsEntryModel.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<void> deleteCmsEntry(String entryId) async {
+    await _client.delete('/cms/$entryId', authenticated: true);
+  }
+
+  Future<CmsEntryModel> toggleCmsEntryStatus({
+    required String entryId,
+    required bool isActive,
+  }) async {
+    final payload = await _client.patch(
+      '/cms/$entryId/status',
+      authenticated: true,
+      body: {'isActive': isActive},
+    );
+    return CmsEntryModel.fromMap(Map<String, dynamic>.from(payload as Map));
+  }
+
+  Future<void> reorderCmsEntries(List<CmsEntryModel> entries) async {
+    await _client.patch(
+      '/cms/reorder',
+      authenticated: true,
+      body: {
+        'items': entries
+            .map((entry) => {'id': entry.id, 'sortOrder': entry.sortOrder})
+            .toList(),
+      },
+    );
+  }
+
+  Future<List<FaqItem>> getCmsFaqItems() async {
+    final payload = await _client.get('/cms/faqs');
+    final map = Map<String, dynamic>.from(payload as Map);
+    final items = (map['data'] as List? ?? const []);
+    return items
+        .whereType<Map>()
+        .map(
+          (item) => FaqItem.fromMap(
+            Map<String, dynamic>.from(item),
+            item['id']?.toString() ?? '',
+          ),
+        )
+        .toList();
   }
 
   Future<SubcategoryManagementModel> addSubcategory({
@@ -688,6 +907,36 @@ class BackendCommerceService {
         .whereType<Map>()
         .map((item) => _productFromBackend(Map<String, dynamic>.from(item)))
         .toList();
+  }
+
+  Future<Map<String, dynamic>> getProductFilterConfig({
+    String? category,
+    String? subcategory,
+  }) async {
+    final payload = await _client.get(
+      '/products/filters/config',
+      queryParameters: {
+        if (category != null && category.trim().isNotEmpty)
+          'category': category.trim(),
+        if (subcategory != null && subcategory.trim().isNotEmpty)
+          'subcategory': subcategory.trim(),
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
+  }
+
+  Future<Product> getProductById(
+    String productId, {
+    Map<String, String>? queryParameters,
+  }) async {
+    final payload = await _client.get(
+      '/products/$productId',
+      queryParameters: queryParameters,
+    );
+    final map = payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+    return _productFromBackend(map);
   }
 
   Future<List<Product>> getVendorProducts({String? storeId}) async {
@@ -3103,9 +3352,7 @@ class BackendCommerceService {
     );
   }
 
-  Future<Map<String, dynamic>> getTryOnTelemetrySummary({
-    int days = 7,
-  }) async {
+  Future<Map<String, dynamic>> getTryOnTelemetrySummary({int days = 7}) async {
     final normalizedDays = days.clamp(1, 30);
     final payload = await _client.get(
       '/ar/tryon/telemetry/summary?days=$normalizedDays',
@@ -3117,9 +3364,7 @@ class BackendCommerceService {
     return Map<String, dynamic>.from(payload as Map);
   }
 
-  Future<Map<String, dynamic>> getArEnterpriseSummary({
-    int days = 14,
-  }) async {
+  Future<Map<String, dynamic>> getArEnterpriseSummary({int days = 14}) async {
     final normalizedDays = days.clamp(1, 60);
     final payload = await _client.get(
       '/ar/ops/enterprise/summary?days=$normalizedDays',
@@ -3131,9 +3376,7 @@ class BackendCommerceService {
     return Map<String, dynamic>.from(payload as Map);
   }
 
-  Future<List<Map<String, dynamic>>> getArFitRuns({
-    int limit = 20,
-  }) async {
+  Future<List<Map<String, dynamic>>> getArFitRuns({int limit = 20}) async {
     final safeLimit = limit.clamp(1, 100);
     final payload = await _client.get(
       '/ar/ops/fit/runs?limit=$safeLimit',
@@ -3212,10 +3455,7 @@ class BackendCommerceService {
     final payload = await _client.post(
       '/ar/ops/garment/jobs',
       authenticated: true,
-      body: {
-        'mode': mode,
-        if (productIds.isNotEmpty) 'productIds': productIds,
-      },
+      body: {'mode': mode, if (productIds.isNotEmpty) 'productIds': productIds},
     );
     return payload is Map<String, dynamic>
         ? payload
@@ -4091,16 +4331,30 @@ class BackendCommerceService {
       'name': product.name,
       'brand': product.brand,
       'price': product.price,
+      'original_price': product.originalPrice,
       'description': product.description,
       'stock': product.stock,
       'category': product.category,
       'subcategory': product.subcategory,
       'images': product.images,
+      'highlights': product.highlights,
+      'colorVariants': product.colorVariants
+          .map((variant) => variant.toMap())
+          .toList(),
+      'boutiqueInfo': product.boutiqueInfo,
+      'deliveryInfo': product.deliveryInfo,
+      'socialProof': product.socialProof,
+      'specifications': product.specifications,
+      'completeLookProductIds': product.completeLookProductIds,
+      'store': product.store?.toMap(),
       'model3d': product.model3d,
       'assetBundleUrl': product.assetBundleUrl,
       'rigProfile': product.rigProfile,
       'materialProfile': product.materialProfile,
       'attributes': product.attributes,
+      'attributeTemplateKey': product.attributeTemplateKey,
+      'attributeTemplateVersion': product.attributeTemplateVersion,
+      'structuredAttributes': product.structuredAttributes,
       'arAsset': product.arAsset,
       if (product.arAsset.isNotEmpty) 'disableArAssetGeneration': true,
       'isActive': product.isActive,
@@ -4175,6 +4429,7 @@ class BackendCommerceService {
       'brand': resolvedBrand,
       'brandName': map['brandName'],
       'storeName': map['storeName'],
+      'store': map['store'],
       'description': map['description'] ?? '',
       'price': map['price'] ?? 0,
       'basePrice': map['basePrice'] ?? map['price'],
@@ -4184,7 +4439,16 @@ class BackendCommerceService {
       'viewCount': map['viewCount'] ?? 0,
       'cartCount': map['cartCount'] ?? 0,
       'purchaseCount': map['purchaseCount'] ?? 0,
+      'distanceKm': map['distanceKm'],
+      'distanceLabel': map['distanceLabel'],
       'images': map['images'] ?? const [],
+      'highlights': map['highlights'] ?? const [],
+      'colorVariants': map['colorVariants'] ?? const [],
+      'boutiqueInfo': map['boutiqueInfo'] ?? const {},
+      'deliveryInfo': map['deliveryInfo'] ?? const {},
+      'socialProof': map['socialProof'] ?? const {},
+      'specifications': map['specifications'] ?? const {},
+      'completeLookProductIds': map['completeLookProductIds'] ?? const [],
       'model3d': map['model3d'],
       'assetBundleUrl': map['assetBundleUrl'],
       'rigProfile': map['rigProfile'],
@@ -4491,4 +4755,3 @@ class BackendCommerceService {
     }, map['id']?.toString() ?? '');
   }
 }
-
