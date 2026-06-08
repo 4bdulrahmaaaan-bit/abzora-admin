@@ -1,5 +1,8 @@
 import 'app_shell.dart';
 
 Future<void> main() async {
-  await bootstrapAndRun(AbzioAppMode.unified);
+  await bootstrapAndRunWithInitialRoute(
+    AbzioAppMode.unified,
+    initialRoute: '/admin-login',
+  );
 }
