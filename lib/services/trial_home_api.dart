@@ -1,5 +1,7 @@
 import '../models/trial_session.dart';
 import 'backend_api_client.dart';
+import 'inventory_service.dart';
+import 'trial_status_guard.dart';
 
 class TrialHomeApi {
   TrialHomeApi({BackendApiClient? client})
@@ -11,49 +13,56 @@ class TrialHomeApi {
 
   Future<TrialSession> bookTrial({
     required List<Map<String, dynamic>> items,
-    List<Map<String, dynamic>> recommendedItems = const <Map<String, dynamic>>[],
     required String addressLabel,
     required String deliverySlot,
     String deliveryWindowLabel = 'Delivered in 24 hours',
-    String experienceType = 'premium',
     double trialFee = 99,
+    int trialDurationMinutes = 30,
+    bool bookingFeePaid = true,
+    String? bookingPaymentId,
+    String? bookingOrderId,
   }) async {
     final payload = await _client.post(
       '/trial-home/book',
       authenticated: true,
       body: {
         'items': items,
-        'recommendedItems': recommendedItems,
         'addressLabel': addressLabel,
         'deliverySlot': deliverySlot,
         'deliveryWindowLabel': deliveryWindowLabel,
-        'experienceType': experienceType,
         'trialFee': trialFee,
+        'trialDurationMinutes': trialDurationMinutes,
+        'bookingFeePaid': bookingFeePaid,
+        'bookingPaymentId': ?bookingPaymentId,
+        'bookingOrderId': ?bookingOrderId,
       },
     );
-    return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+    final session = TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+    final productIds = items.map((item) => item['productId']?.toString() ?? '').where((id) => id.isNotEmpty).toList();
+    await InventoryService().reserveTrialInventory(productIds);
+    return session;
   }
 
   Future<TrialSession> requestTrial({
     required List<Map<String, dynamic>> items,
-    List<Map<String, dynamic>> recommendedItems = const <Map<String, dynamic>>[],
     required String addressLabel,
     required String deliverySlot,
     String deliveryWindowLabel = 'Delivered in 24 hours',
-    String experienceType = 'premium',
     double trialFee = 99,
+    int trialDurationMinutes = 30,
+    bool bookingFeePaid = true,
   }) async {
     final payload = await _client.post(
       '/trial-home/request',
       authenticated: true,
       body: {
         'items': items,
-        'recommendedItems': recommendedItems,
         'addressLabel': addressLabel,
         'deliverySlot': deliverySlot,
         'deliveryWindowLabel': deliveryWindowLabel,
-        'experienceType': experienceType,
         'trialFee': trialFee,
+        'trialDurationMinutes': trialDurationMinutes,
+        'bookingFeePaid': bookingFeePaid,
       },
     );
     return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
@@ -87,9 +96,11 @@ class TrialHomeApi {
     List<Map<String, dynamic>>? items,
     String? addressLabel,
     String? deliverySlot,
-    String? experienceType,
     String? paymentStatus,
   }) async {
+    final currentSession = await getTrialById(id);
+    TrialStatusGuard.validateModifiable(currentSession.status);
+
     final body = <String, dynamic>{};
     if (items != null) {
       body['items'] = items;
@@ -99,9 +110,6 @@ class TrialHomeApi {
     }
     if (deliverySlot != null) {
       body['deliverySlot'] = deliverySlot;
-    }
-    if (experienceType != null) {
-      body['experienceType'] = experienceType;
     }
     if (paymentStatus != null) {
       body['paymentStatus'] = paymentStatus;
@@ -115,31 +123,34 @@ class TrialHomeApi {
   }
 
   Future<TrialSession> cancelTrial(String id, {String note = ''}) async {
+    final currentSession = await getTrialById(id);
+    TrialStatusGuard.validateTransition(currentSession.status, 'cancelled');
+
     final payload = await _client.patch(
       '/trial-home/$id/cancel',
       authenticated: true,
       body: {'note': note},
     );
-    return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+    final session = TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+    final productIds = session.items.map((i) => i.productId).toList();
+    await InventoryService().releaseTrialInventory(productIds);
+    return session;
   }
 
-  Future<TrialSession> submitFitFeedback(
+  Future<TrialSession> awaitFinalPayment(
     String id, {
-    required String fit,
-    String note = '',
-    String tailoringRecommendation = '',
-    List<String> adjustmentOptions = const <String>[],
-    String status = 'completed',
+    required List<String> keptItems,
+    List<String> returnedItems = const <String>[],
   }) async {
+    final currentSession = await getTrialById(id);
+    TrialStatusGuard.validateTransition(currentSession.status, 'awaiting_final_payment');
+
     final payload = await _client.post(
-      '/trial-home/$id/fit-feedback',
+      '/trial-home/$id/await-payment',
       authenticated: true,
       body: {
-        'fit': fit,
-        'note': note,
-        'tailoringRecommendation': tailoringRecommendation,
-        'adjustmentOptions': adjustmentOptions,
-        'status': status,
+        'keptItems': keptItems,
+        'returnedItems': returnedItems,
       },
     );
     return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
@@ -151,7 +162,14 @@ class TrialHomeApi {
     List<String> returnedItems = const <String>[],
     String orderId = '',
     String paymentStatus = 'held',
+    String paymentMethod = 'online',
+    String? finalPaymentId,
+    String? finalOrderId,
+    double? finalAmount,
   }) async {
+    final currentSession = await getTrialById(id);
+    TrialStatusGuard.validateTransition(currentSession.status, 'converted_to_order');
+
     final payload = await _client.post(
       '/trial-home/$id/convert-to-order',
       authenticated: true,
@@ -160,50 +178,29 @@ class TrialHomeApi {
         'returnedItems': returnedItems,
         'orderId': orderId,
         'paymentStatus': paymentStatus,
+        'paymentMethod': paymentMethod,
+        'finalPaymentId': ?finalPaymentId,
+        'finalOrderId': ?finalOrderId,
+        'finalAmount': ?finalAmount,
       },
     );
-    return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+    final session = TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+    final productIds = session.items.map((i) => i.productId).toList();
+    await InventoryService().releaseTrialInventory(productIds);
+    return session;
   }
 
-  Future<TrialSession> convertToTailoring(
-    String id, {
-    required String tailoringRequest,
-    String tailoringRecommendation = 'Adjust with custom tailoring',
-    List<String> adjustmentOptions = const <String>[],
-  }) async {
-    final payload = await _client.post(
-      '/trial-home/$id/convert-to-tailoring',
-      authenticated: true,
-      body: {
-        'tailoringRequest': tailoringRequest,
-        'tailoringRecommendation': tailoringRecommendation,
-        'adjustmentOptions': adjustmentOptions,
-      },
-    );
-    return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
-  }
+  Future<TrialSession> markNoShow(String id) async {
+    final currentSession = await getTrialById(id);
+    TrialStatusGuard.validateTransition(currentSession.status, 'no_show');
 
-  Future<TrialSession> approveTrial(
-    String id, {
-    String note = '',
-  }) async {
     final payload = await _client.post(
-      '/trial-home/$id/approve',
+      '/trial-home/$id/no-show',
       authenticated: true,
-      body: {'note': note},
     );
-    return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
-  }
-
-  Future<TrialSession> rejectTrial(
-    String id, {
-    String note = '',
-  }) async {
-    final payload = await _client.post(
-      '/trial-home/$id/reject',
-      authenticated: true,
-      body: {'note': note},
-    );
-    return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+    final session = TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+    final productIds = session.items.map((i) => i.productId).toList();
+    await InventoryService().releaseTrialInventory(productIds);
+    return session;
   }
 }

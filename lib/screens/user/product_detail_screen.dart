@@ -13,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/trial_cart_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../models/mediapipe_try_on_payload.dart';
 import '../../models/ar_try_on_models.dart';
@@ -29,7 +30,7 @@ import 'address_screen.dart';
 import 'ai_stylist_screen.dart';
 import 'abianzo_ar_screen.dart';
 import 'size_recommendation_screen.dart';
-import 'trial_booking_screen.dart';
+import 'tbyb/tbyb_product_selection_screen.dart';
 import 'store_detail_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -889,23 +890,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     }
   }
 
-  String _recommendedSizeFor(Product product) {
-    final sizes = product.sizes
-        .map((size) => size.trim().toUpperCase())
-        .where((size) => size.isNotEmpty)
-        .toList();
-    if (_selectedSize != null && _selectedSize!.trim().isNotEmpty) {
-      return _selectedSize!.trim().toUpperCase();
-    }
-    if (sizes.contains('M')) {
-      return 'M';
-    }
-    if (sizes.isNotEmpty) {
-      return sizes.first;
-    }
-    return 'M';
-  }
-
   String _sameDayCity(AuthProvider auth) {
     final city = (auth.user?.city ?? '').trim();
     if (city.isNotEmpty) {
@@ -1070,7 +1054,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     unawaited(_trackExperienceEvent('trial_request', cta: 'TRY_HOME'));
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
-      intentLabel: 'Start Try at Home',
+      intentLabel: 'Add to Trial Cart',
       trigger: AuthPromptTrigger.tryOn,
       productId: product.id,
       productPreview: AuthPromptProductPreview(
@@ -1082,25 +1066,38 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     if (!allowed || !mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text('Try-On Ready'),
-        duration: Duration(milliseconds: 1200),
-      ),
-    );
-    final address = _resolveDeliverySummary(context.read<AuthProvider>());
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TrialBookingScreen(
-          availableItems: _completeTheLook,
-          recommendedItems: _completeTheLook,
-          seedProduct: product,
-          addressLabel: address,
-          recommendedSize: _recommendedSizeFor(product),
+
+    final trialCart = context.read<TrialCartProvider>();
+    final size = (_selectedSize ?? 'M').trim();
+
+    try {
+      trialCart.addItem(product, size);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: const Text('Added to Trial Cart'),
+          action: SnackBarAction(
+            label: 'VIEW CART',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const TbybProductSelectionScreen(),
+                ),
+              );
+            },
+          ),
+          duration: const Duration(seconds: 4),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(e.toString()),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   // ignore: unused_element
@@ -1744,6 +1741,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               ),
               TextButton(
                 onPressed: () async {
+                  if (context.read<AuthProvider>().requiresProfileSetup) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please complete your profile first.')));
+                    Navigator.pushNamed(context, '/profile-completion');
+                    return;
+                  }
                   final recommendation =
                       await Navigator.push<SizeRecommendationOutcome>(
                         context,
@@ -2151,7 +2153,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       scale: 0.985,
       onTap: onTap,
       child: Container(
-        height: 48,
+        height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -3190,12 +3192,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         ),
         const SizedBox(height: 8),
         SizedBox(
-          height: 286,
+          height: 440,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             itemCount: _completeTheLook.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            separatorBuilder: (_, _) => const SizedBox(width: 16),
             itemBuilder: (context, index) {
               final item = _completeTheLook[index];
               final discount =
@@ -3205,29 +3207,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                             100)
                         .round()
                   : 0;
+              final hasDiscount = discount > 0;
               return Container(
-                width: 170,
+                width: 185,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFF3F1EB)),
+                  border: Border.all(
+                    color: const Color(0xFFC6A769).withValues(alpha: 0.25),
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 12,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withValues(alpha: 0.035),
+                      blurRadius: 18,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(20),
                       ),
                       child: AspectRatio(
-                        aspectRatio: 0.92,
+                        aspectRatio: 4 / 5,
                         child: AbzioNetworkImage(
                           imageUrl: item.images.isNotEmpty
                               ? item.images.first
@@ -3239,7 +3244,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     ),
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                        padding: const EdgeInsets.all(12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -3249,61 +3254,81 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                   : _product.brand,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: const Color(0xFF6F675A),
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF6F675A),
+                              ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              item.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: const Color(0xFF111111),
-                                    fontWeight: FontWeight.w800,
-                                    height: 1.2,
-                                  ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              formatter.format(item.price),
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(
-                                    color: const Color(0xFF111111),
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                            if (item.originalPrice != null &&
-                                item.originalPrice! > item.price) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                formatter.format(item.originalPrice),
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      decoration: TextDecoration.lineThrough,
-                                      color: const Color(0xFF9A9A9A),
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                            SizedBox(
+                              height: 40,
+                              child: Text(
+                                item.name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF111111),
+                                  height: 1.2,
+                                ),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '$discount% OFF',
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: const Color(0xFF2E7D32),
+                            ),
+                            const Spacer(),
+                            SizedBox(
+                              height: 44,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                                    textBaseline: TextBaseline.alphabetic,
+                                    children: [
+                                      Text(
+                                        formatter.format(item.price),
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF111111),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      if (hasDiscount)
+                                        Expanded(
+                                          child: Text(
+                                            formatter.format(item.originalPrice),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              decoration: TextDecoration.lineThrough,
+                                              color: Color(0xFF9A9A9A),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    hasDiscount ? '$discount% OFF' : ' ',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF2E7D32),
                                       fontWeight: FontWeight.w800,
                                     ),
+                                  ),
+                                ],
                               ),
-                            ],
-                            const Spacer(),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: SizedBox(
-                                    height: 34,
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 42,
+                              child: Row(
+                                children: [
+                                  Expanded(
                                     child: OutlinedButton(
                                       onPressed: () => _openLiveTryOn(
                                         item,
@@ -3313,24 +3338,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                         side: const BorderSide(
                                           color: Color(0xFFC9A86A),
                                         ),
-                                        foregroundColor: const Color(
-                                          0xFF111111,
-                                        ),
+                                        foregroundColor: const Color(0xFF111111),
                                         padding: EdgeInsets.zero,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                          borderRadius: BorderRadius.circular(12),
                                         ),
                                       ),
-                                      child: const Text('Try On'),
+                                      child: const Text(
+                                        'Try On',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: SizedBox(
-                                    height: 34,
+                                  const SizedBox(width: 8),
+                                  Expanded(
                                     child: FilledButton(
                                       onPressed: () {
                                         final selected = item.sizes.isNotEmpty
@@ -3340,36 +3364,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                           item,
                                           selected,
                                         );
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
+                                        ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
-                                            content: Text(
-                                              '${item.name} added to bag',
-                                            ),
+                                            content: Text('${item.name} added to bag'),
                                           ),
                                         );
                                       },
                                       style: FilledButton.styleFrom(
-                                        backgroundColor: const Color(
-                                          0xFFC8A96A,
-                                        ),
-                                        foregroundColor: const Color(
-                                          0xFF111111,
-                                        ),
+                                        backgroundColor: const Color(0xFFC8A96A),
+                                        foregroundColor: const Color(0xFF111111),
                                         padding: EdgeInsets.zero,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                          borderRadius: BorderRadius.circular(12),
                                         ),
                                         elevation: 0,
                                       ),
-                                      child: const Text('Add'),
+                                      child: const Text(
+                                        'Add',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -3662,8 +3682,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             children: [
               Expanded(
                 child: SizedBox(
-                  height: 48,
-                  child: OutlinedButton(
+                  height: 56, child: OutlinedButton(
                     onPressed: hasSelectedSize
                         ? () {
                             HapticFeedback.lightImpact();
@@ -3695,8 +3714,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               Expanded(
                 flex: 2,
                 child: SizedBox(
-                  height: 48,
-                  child: ElevatedButton(
+                  height: 56, child: ElevatedButton(
                     onPressed: isInCart
                         ? () {
                             HapticFeedback.lightImpact();
@@ -4316,6 +4334,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           ),
                           TextButton(
                             onPressed: () async {
+                              if (context.read<AuthProvider>().requiresProfileSetup) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please complete your profile first.')));
+                                Navigator.pushNamed(context, '/profile-completion');
+                                return;
+                              }
                               final messenger =
                                   ScaffoldMessenger.of(context);
                               final recommendation =
@@ -4507,6 +4530,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                   const SizedBox(height: 2),
                                   TextButton(
                                     onPressed: () async {
+                                      if (context.read<AuthProvider>().requiresProfileSetup) {
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please complete your profile first.')));
+                                        Navigator.pushNamed(context, '/profile-completion');
+                                        return;
+                                      }
                                       final messenger =
                                           ScaffoldMessenger.of(context);
                                       final recommendation =
@@ -4972,16 +5000,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           ),
                           const SizedBox(height: 12),
                           SizedBox(
-                            height: 48,
-                            child: ElevatedButton(
+                            height: 56, child: ElevatedButton(
                               onPressed: _handleAddToCartPress,
                               child: const Text('Add to Cart'),
                             ),
                           ),
                           const SizedBox(height: 8),
                           SizedBox(
-                            height: 48,
-                            child: OutlinedButton(
+                            height: 56, child: OutlinedButton(
                               onPressed: _buyNow,
                               child: const Text('Buy Now'),
                             ),
@@ -5003,8 +5029,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                               children: [
                                 Expanded(
                                   child: SizedBox(
-                                    height: 48,
-                                    child: ElevatedButton(
+                                    height: 56, child: ElevatedButton(
                                       onPressed: _handleAddToCartPress,
                                       child: const Text('Add to Cart'),
                                     ),
@@ -5013,8 +5038,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: SizedBox(
-                                    height: 48,
-                                    child: OutlinedButton(
+                                    height: 56, child: OutlinedButton(
                                       onPressed: _buyNow,
                                       child: const Text('Buy Now'),
                                     ),
@@ -6207,7 +6231,7 @@ class _PerfectFitExperienceSheetState
             children: [
               _SelectionRowCard(
                 title: _slot,
-                subtitle: 'Trial Fee: \u20B999 refundable',
+                subtitle: '₹99 Trial Booking Fee. Adjusted on purchase.',
                 selected: true,
                 onTap: () {},
               ),

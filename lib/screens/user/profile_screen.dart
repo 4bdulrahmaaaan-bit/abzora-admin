@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -11,7 +11,6 @@ import '../../services/database_service.dart';
 import '../../theme.dart';
 import '../../widgets/brand_logo.dart';
 import '../../widgets/global_skeletons.dart';
-import '../../widgets/state_views.dart';
 import '../../widgets/tap_scale.dart';
 import '../../utils/app_mode_routes.dart';
 import '../login_screen.dart';
@@ -25,8 +24,6 @@ import 'order_tracking_screen.dart';
 import 'referral_screen.dart';
 import 'saved_fit_profile_screen.dart';
 import 'wishlist_screen.dart';
-import '../../features/onboarding/vendor_onboarding_flow_screen.dart';
-import '../../features/legal/account_deletion_request_screen.dart';
 import '../../features/legal/legal_consent_screen.dart';
 import '../../features/legal/legal_document_registry.dart';
 import '../../features/legal/legal_policy_hub_screen.dart';
@@ -117,7 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     final nextUser = auth.user;
     final nextFingerprint = _profileFingerprint(nextUser);
     final nextImageUrl = nextUser?.profileImageUrl?.trim() ?? '';
-    final shouldBeReady = nextUser != null || auth.isInitialized;
+    final shouldBeReady = auth.isInitialized;
     final userChanged = force ||
         !_profileHydrated ||
         nextFingerprint != _cachedProfileFingerprint ||
@@ -250,7 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.build(context);
     final auth = _authProvider ?? context.read<AuthProvider>();
     final user = _cachedProfileUser ?? auth.user;
-    if (!_profileHydrated || _isRefreshingProfile) {
+    if (!auth.isInitialized || !_profileHydrated || _isRefreshingProfile) {
       return _buildProfileLoadingScaffold(context);
     }
     if (user == null) {
@@ -269,17 +266,21 @@ class _ProfileScreenState extends State<ProfileScreen>
       );
     }
 
-    final name = user.name.trim().isNotEmpty
-        ? user.name.trim()
-        : 'Abianzo Member';
-    final nameParts = name
-        .split(' ')
-        .where((part) => part.trim().isNotEmpty)
-        .toList();
-    final firstName = nameParts.isEmpty ? 'there' : nameParts.first;
-    final phone = user.phone?.trim().isNotEmpty == true
-        ? user.phone!.trim()
-        : 'No phone linked';
+    final String actualName = user.name.trim();
+    final String actualPhone = user.phone?.trim() ?? '';
+    final bool hasName = actualName.isNotEmpty;
+
+    final hour = DateTime.now().hour;
+    final timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    
+    final nameParts = actualName.split(' ').where((part) => part.isNotEmpty).toList();
+    final firstName = nameParts.isNotEmpty ? nameParts.first : '';
+    final greetingText = hasName ? '$timeGreeting, $firstName' : timeGreeting;
+
+    final name = hasName ? actualName : 'Complete Your Profile';
+    final phone = hasName 
+        ? (actualPhone.isNotEmpty ? actualPhone : 'No phone linked')
+        : 'Add your name and details';
     final address = user.address?.trim().isNotEmpty == true
         ? user.address!.trim()
         : 'Set location';
@@ -309,7 +310,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Good evening, $firstName',
+                            greetingText,
                             style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(fontWeight: FontWeight.w800),
                           ),
@@ -327,7 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     const SizedBox(height: 14),
                     _reveal(
                       0.02,
-                      _buildEliteCard(
+                      _buildProfileHeaderCard(
                         context,
                         auth: auth,
                         user: user,
@@ -339,78 +340,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                     ),
                     const SizedBox(height: 14),
-                    _reveal(0.04, _buildValueStrip(context, user)),
+                    _reveal(0.03, _buildPremiumEliteCard(context)),
                     const SizedBox(height: 18),
-                    const SizedBox(height: 26),
-                    _reveal(
-                      0.08,
-                      _sectionTitle(
-                        eyebrow: 'Quick Access',
-                        title: 'Your fashion dashboard',
-                        subtitle:
-                            'Orders, saved edits, offers, and support arranged with clear hierarchy.',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _reveal(0.14, _quickActionGrid(context)),
+                    _reveal(0.04, _buildValueStrip(context, user)),
                     const SizedBox(height: 24),
                     _reveal(
-                      0.22,
-                      _sectionTitle(
-                        eyebrow: 'Profile • Fit Profile',
-                        title: 'Your Fit Profile',
-                        subtitle:
-                            'Personalized sizing and tailoring, designed for you',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _reveal(0.28, _styleSection(context, user)),
-                    const SizedBox(height: 24),
-                    _reveal(
-                      0.36,
-                      _sectionTitle(
-                        eyebrow: 'Account',
-                        title: 'Manage your preferences',
-                        subtitle:
-                            'Delivery, payments, and notifications tuned for a seamless shopping flow.',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _reveal(
-                      0.42,
-                      FutureBuilder<_ProfileSetupSnapshot>(
-                        future: _profileSetupFor(user.id),
-                        builder: (context, snapshot) {
-                          final loading =
-                              snapshot.connectionState == ConnectionState.waiting;
-                          final setup = snapshot.data;
-                          return _buildSettingsList(
-                            context,
-                            city,
-                            showCompleteProfileCard: !loading &&
-                                !(setup?.isComplete ?? false),
-                            showCompletionLoading: loading,
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    _reveal(0.46, _buildLegalPolicyEntry(context)),
-                    const SizedBox(height: 24),
-                    _reveal(
-                      0.50,
-                      _sectionTitle(
-                        eyebrow: 'Growth',
-                        title: 'Grow with Abianzo',
-                        subtitle:
-                            'Partner opportunities, referral rewards, and premium member perks.',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _reveal(0.56, _buildGrowthSection(context)),
-                    const SizedBox(height: 24),
-                    _reveal(
-                      0.64,
+                      0.06,
                       _sectionTitle(
                         eyebrow: 'AI Support',
                         title: 'Instant help for styling and orders',
@@ -420,7 +355,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     const SizedBox(height: 14),
                     _reveal(
-                      0.70,
+                      0.08,
                       StreamBuilder<List<SupportChat>>(
                         stream: _database.watchSupportChatsForUser(actor: user),
                         builder: (context, snapshot) {
@@ -492,9 +427,88 @@ class _ProfileScreenState extends State<ProfileScreen>
                         },
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    _reveal(0.14, _quickActionGrid(context)),
+                    const SizedBox(height: 24),
+                    _reveal(
+                      0.22,
+                      _sectionTitle(
+                        eyebrow: 'Profile • Fit Profile',
+                        title: 'Your Fit Profile',
+                        subtitle:
+                            'Personalized sizing recommendations for better shopping.',
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _reveal(0.28, _styleSection(context, user)),
+                    const SizedBox(height: 24),
+                    _reveal(
+                      0.32,
+                      _sectionTitle(
+                        eyebrow: 'Account • Essentials',
+                        title: 'Shopping Essentials',
+                        subtitle: 'Manage delivery locations and payment preferences.',
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _reveal(0.34, _buildShoppingEssentials(context, city)),
+                    const SizedBox(height: 24),
+                    _reveal(
+                      0.38,
+                      _sectionTitle(
+                        eyebrow: 'Rewards',
+                        title: 'Referrals & Offers',
+                        subtitle: 'Invite friends, earn style credits, and unlock drops.',
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _reveal(0.40, _buildRewardsSection(context)),
+                    const SizedBox(height: 24),
+
+                    _reveal(
+                      0.50,
+                      _sectionTitle(
+                        eyebrow: 'Account',
+                        title: 'Manage your preferences',
+                        subtitle:
+                            'Delivery, payments, and notifications tuned for a seamless shopping flow.',
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _reveal(
+                      0.56,
+                      FutureBuilder<_ProfileSetupSnapshot>(
+                        future: _profileSetupFor(user.id),
+                        builder: (context, snapshot) {
+                          final loading =
+                              snapshot.connectionState == ConnectionState.waiting;
+                          final setup = snapshot.data;
+                          return _buildSettingsList(
+                            context,
+                            city,
+                            showCompleteProfileCard: !loading &&
+                                !(setup?.isComplete ?? false),
+                            showCompletionLoading: loading,
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _reveal(0.60, _buildLegalPolicyEntry(context)),
+                    const SizedBox(height: 24),
+                    _reveal(
+                      0.64,
+                      _sectionTitle(
+                        eyebrow: 'Sell',
+                        title: 'Sell on Abianzo',
+                        subtitle: 'Onboard as a premium fashion vendor.',
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _reveal(0.66, _buildSellerEntry(context)),
                     const SizedBox(height: 28),
                     _reveal(
-                      0.78,
+                      0.68,
                       OutlinedButton.icon(
                         onPressed: () => _confirmLogout(context),
                         icon: Icon(
@@ -857,7 +871,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     return const ShimmerProfileHeader();
   }
 
-  Widget _buildEliteCard(
+  Widget _buildProfileHeaderCard(
     BuildContext context, {
     required AuthProvider auth,
     required AppUser? user,
@@ -868,7 +882,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     ImageProvider<Object>? profileImageProvider,
   }) {
     final completionScore = _profileCompletion(user);
-    final initials = _profileInitials(name);
+    final initials = _profileInitials(user?.name ?? '');
     final cachedImageProvider = profileImageProvider;
 
     return Container(
@@ -928,33 +942,34 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                       ),
                     ),
-                    Positioned(
-                      right: 4,
-                      bottom: 4,
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AbzioTheme.accentColor.withValues(
-                              alpha: 0.28,
+                    if (initials.isNotEmpty)
+                      Positioned(
+                        right: 4,
+                        bottom: 4,
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AbzioTheme.accentColor.withValues(
+                                alpha: 0.28,
+                              ),
                             ),
                           ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            initials,
-                            style: const TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black,
+                          child: Center(
+                            child: Text(
+                              initials,
+                              style: const TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.black,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -1035,64 +1050,72 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          TapScale(
-            onTap: () => _showComingSoon(
-              context,
-              title: 'Abianzo Elite',
-              message:
-                  'Elite membership perks, concierge support, and private drops will appear here.',
-            ),
-            child: _eliteBadge(),
-          ),
           const SizedBox(height: 12),
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: completionScore / 100),
-            duration: const Duration(milliseconds: 700),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: context.abzioBorder.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: FractionallySizedBox(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: value.clamp(0.0, 1.0),
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            color: const Color(0xFFD6BA67),
+          if (completionScore >= 100)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F9F3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.check_circle, color: Color(0xFFC6A769), size: 18),
+                  SizedBox(width: 8),
+                  Text('Profile Verified', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF111111))),
+                ],
+              ),
+            )
+          else ...[
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: completionScore / 100),
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: context.abzioBorder.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: value.clamp(0.0, 1.0),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(999),
+                              color: const Color(0xFFD6BA67),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '$completionScore%',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w800,
+                    const SizedBox(width: 6),
+                    Text(
+                      '$completionScore%',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Complete your profile to unlock faster checkout',
-            style: TextStyle(
-              color: context.abzioSecondaryText,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+                  ],
+                );
+              },
             ),
-          ),
+            const SizedBox(height: 6),
+            Text(
+              'Complete your profile to unlock faster checkout',
+              style: TextStyle(
+                color: context.abzioSecondaryText,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           if (auth.isUpdatingProfile) ...[
             const SizedBox(height: 14),
             LinearProgressIndicator(
@@ -1101,31 +1124,6 @@ class _ProfileScreenState extends State<ProfileScreen>
               backgroundColor: context.abzioBorder,
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _eliteBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE2C46D),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.workspace_premium_outlined, size: 16, color: Colors.black),
-          SizedBox(width: 8),
-          Text(
-            'Unlock Abianzo Elite',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w800,
-              fontSize: 12,
-            ),
-          ),
         ],
       ),
     );
@@ -1291,230 +1289,76 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _styleSection(BuildContext context, AppUser? user) {
-    if (user == null) {
-      return const AbzioEmptyCard(
-        title: 'Sign in to unlock custom clothing',
-        subtitle:
-            'Your measurements, made-to-order fits, and styling progress will appear here.',
-      );
-    }
-
-    final normalizedRole = user.role.trim().toLowerCase();
-    if (normalizedRole == 'vendor' || normalizedRole == 'rider') {
-      return const AbzioEmptyCard(
-        title: 'Customer style profile only',
-        subtitle:
-            'Measurements, body scans, and fit memory are available in the customer shopping experience.',
-      );
-    }
-
+    if (user == null) return const SizedBox.shrink();
     return FutureBuilder<_StyleProfileSnapshot>(
       future: _styleSnapshotFor(user.id),
       builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return const AbzioEmptyCard(
-            title: 'Style profile unavailable right now',
-            subtitle:
-                'Measurements and smart-fit details could not be loaded, but the rest of your profile is still available.',
-          );
-        }
+        if (snapshot.hasError) return const SizedBox.shrink();
 
         final styleSnapshot = snapshot.data;
-        final measurementProfiles =
-            styleSnapshot?.measurementProfiles ?? const <MeasurementProfile>[];
         final bodyProfile = styleSnapshot?.bodyProfile;
-        final city = (user.city ?? '').trim().isEmpty
-            ? 'Location pending'
-            : user.city!.trim();
-        final savedProfileSubtitle = snapshot.connectionState ==
-                ConnectionState.waiting
-            ? 'Checking your saved fit details'
-            : bodyProfile == null && measurementProfiles.isEmpty
-            ? 'View and edit your fit details'
-            : bodyProfile != null
-            ? '${bodyProfile.recommendedSize.isNotEmpty ? bodyProfile.recommendedSize : 'M'} fit • Updated ${_relativeScanTime(bodyProfile.updatedAt)}'
-            : '${measurementProfiles.length} saved profile${measurementProfiles.length == 1 ? '' : 's'}';
+        
+        final subtitle = bodyProfile != null
+            ? '${bodyProfile.recommendedSize.isNotEmpty ? bodyProfile.recommendedSize : 'M'} Fit • Updated ${_relativeScanTime(bodyProfile.updatedAt)}'
+            : 'View and manage your saved measurements';
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _styleHighlightCard(
-              context,
-              icon: Icons.straighten_outlined,
-              title: 'Saved Fit Profile',
-              subtitle:
-                  savedProfileSubtitle,
-              highlighted: true,
-              onTap: () => _push(
-                context,
-                const SavedFitProfileScreen(),
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _styleHighlightCard(
-                    context,
-                    icon: Icons.location_on_outlined,
-                    title: 'Addresses',
-                    subtitle: city == 'Location pending'
-                        ? 'Add your preferred delivery spot'
-                        : 'Deliver to $city',
-                    compact: true,
-                    onTap: () => _editAddress(context),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _styleHighlightCard(
-                    context,
-                    icon: Icons.credit_card_outlined,
-                    title: 'Payment Methods',
-                    subtitle: 'Secure cards and UPI options',
-                    compact: true,
-                    onTap: () => _showPaymentMethodsSheet(context),
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
+          child: _buildListItem(
+            icon: Icons.straighten_rounded,
+            title: 'Saved Fit Profile',
+            subtitle: subtitle,
+            onTap: () => _push(context, const SavedFitProfileScreen()),
+            minimal: true,
+          ),
         );
       },
     );
   }
 
-  Widget _styleHighlightCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    bool highlighted = false,
-    bool neutral = false,
-    String? noteLabel,
-    bool compact = false,
-  }) {
-    final radius = compact ? 18.0 : 20.0;
-    final cardGradient = highlighted
-        ? const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF6E9CE), Color(0xFFE9D4A6)],
-          )
-        : null;
-    final cardColor = neutral ? const Color(0xFFFCFAF6) : Colors.white;
-
-    return TapScale(
-      onTap: onTap,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(radius),
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(radius),
-              gradient: cardGradient,
-              color: cardGradient == null ? cardColor : null,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: highlighted ? 0.07 : 0.045,
-                  ),
-                  blurRadius: highlighted ? 22 : 16,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(
-                compact
-                    ? 16
-                    : highlighted
-                    ? 20
-                    : 18,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: compact ? 42 : 48,
-                    height: compact ? 42 : 48,
-                    decoration: BoxDecoration(
-                      color: highlighted
-                          ? Colors.white.withValues(alpha: 0.45)
-                          : const Color(0xFFF3EFE8),
-                      borderRadius: BorderRadius.circular(compact ? 14 : 16),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: const Color(0xFF8E7446),
-                      size: compact ? 20 : 22,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (noteLabel != null) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1ECE1),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              noteLabel,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: context.abzioSecondaryText,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                        Text(
-                          title,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: compact
-                                ? 15
-                                : highlighted
-                                ? 18
-                                : 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: context.abzioSecondaryText,
-                            height: 1.45,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: highlighted ? 16 : 14,
-                    color: const Color(
-                      0xFF8E7446,
-                    ).withValues(alpha: highlighted ? 0.9 : 0.65),
-                  ),
-                ],
-              ),
-            ),
+  Widget _buildShoppingEssentials(BuildContext context, String city) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-        ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildListItem(
+            icon: Icons.location_on_outlined,
+            title: 'Addresses',
+            subtitle: city == 'Location pending'
+                ? 'Add your preferred delivery spot'
+                : 'Deliver to $city',
+            onTap: () => _editAddress(context),
+            minimal: true,
+          ),
+          _minimalDivider(context),
+          _buildListItem(
+            icon: Icons.credit_card_outlined,
+            title: 'Payment Methods',
+            subtitle: 'Secure cards and UPI options',
+            onTap: () => _showPaymentMethodsSheet(context),
+            minimal: true,
+          ),
+        ],
       ),
     );
   }
@@ -1748,111 +1592,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _vendorOnboardingCard(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required VoidCallback onTap,
-    String? badge,
-  }) {
-    return TapScale(
-      onTap: onTap,
-      scale: 0.97,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              color: Colors.white.withValues(alpha: 0.90),
-              border: Border.all(
-                color: context.abzioBorder.withValues(alpha: 0.75),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AbzioTheme.accentColor.withValues(alpha: 0.16),
-                      ),
-                    ),
-                    child: Icon(icon, color: AbzioTheme.accentColor),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: context.abzioSecondaryText,
-                            height: 1.4,
-                          ),
-                        ),
-                        if (badge != null) ...[
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFF3CB),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: AbzioTheme.accentColor.withValues(
-                                  alpha: 0.20,
-                                ),
-                              ),
-                            ),
-                            child: Text(
-                              badge,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: AbzioTheme.accentColor,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 16,
-                    color: AbzioTheme.accentColor,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSettingsList(
     BuildContext context,
     String city, {
@@ -1880,24 +1619,6 @@ class _ProfileScreenState extends State<ProfileScreen>
             _minimalDivider(context),
           ],
           _buildListItem(
-            icon: Icons.location_on_outlined,
-            title: 'Addresses',
-            subtitle: city == 'Location pending'
-                ? 'Add your preferred delivery spot'
-                : 'Deliver to $city',
-            onTap: () => _editAddress(context),
-            minimal: true,
-          ),
-          _minimalDivider(context),
-          _buildListItem(
-            icon: Icons.credit_card_outlined,
-            title: 'Payment Methods',
-            subtitle: 'Secure cards and UPI options',
-            onTap: () => _showPaymentMethodsSheet(context),
-            minimal: true,
-          ),
-          _minimalDivider(context),
-          _buildListItem(
             icon: Icons.notifications_none_rounded,
             title: 'Notifications',
             subtitle: 'Order, offer, and delivery alerts',
@@ -1909,60 +1630,124 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildGrowthSection(BuildContext context) {
-    return Column(
-      children: [
-        _vendorOnboardingCard(
-          context,
-          title: 'Join as Ready-Made Vendor',
-          subtitle:
-              'Sell in-stock fashion products and grow with marketplace demand.',
-          icon: Icons.storefront_outlined,
-          badge: 'Ready-Made',
-          onTap: () => _push(context, const VendorRegistrationScreen()),
-        ),
-        const SizedBox(height: 12),
-        _vendorOnboardingCard(
-          context,
-          title: 'Join as Custom Made-to-Order Vendor',
-          subtitle:
-              'Offer made-to-measure tailoring with premium client workflows.',
-          icon: Icons.design_services_outlined,
-          badge: 'Custom',
-          onTap: () => _push(context, const VendorOnboardingFlowScreen()),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.82),
-            borderRadius: BorderRadius.circular(20),
+  Widget _buildRewardsSection(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          child: Column(
-            children: [
-              _buildListItem(
-                icon: Icons.card_giftcard_rounded,
-                title: 'Refer & Earn',
-                subtitle: 'Invite friends and unlock style credits',
-                onTap: () => _push(context, const ReferralScreen()),
-                minimal: true,
-              ),
-              _minimalDivider(context),
-              _buildListItem(
-                icon: Icons.local_offer_outlined,
-                title: 'Offers & Rewards',
-                subtitle: 'Private drops, loyalty perks, and seasonal edits',
-                onTap: () => _showComingSoon(
-                  context,
-                  title: 'Offers & rewards',
-                  message:
-                      'Curated rewards and luxury member offers will be available here.',
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildListItem(
+            icon: Icons.card_giftcard_rounded,
+            title: 'Refer & Earn',
+            subtitle: 'Invite friends and unlock style credits',
+            onTap: () => _push(context, const ReferralScreen()),
+            minimal: true,
+          ),
+          _minimalDivider(context),
+          _buildListItem(
+            icon: Icons.local_offer_outlined,
+            title: 'Offers & Rewards',
+            subtitle: 'Private drops, loyalty perks, and seasonal edits',
+            onTap: () => _showComingSoon(
+              context,
+              title: 'Offers & rewards',
+              message: 'Curated rewards and luxury member offers will be available here.',
+            ),
+            minimal: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSellerEntry(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: _buildListItem(
+        icon: Icons.storefront_outlined,
+        title: 'Sell on Abianzo',
+        subtitle: 'Start selling fashion products on the marketplace',
+        onTap: () => _push(context, const VendorRegistrationScreen()),
+        minimal: true,
+      ),
+    );
+  }
+
+  Widget _buildPremiumEliteCard(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFC6A769),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFC6A769).withValues(alpha: 0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'ABIANZO ELITE',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.0,
+                  ),
                 ),
-                minimal: true,
-              ),
-            ],
+                SizedBox(height: 12),
+                Text('• Priority delivery', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                SizedBox(height: 4),
+                Text('• Exclusive drops', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                SizedBox(height: 4),
+                Text('• Bonus rewards', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              ],
+            ),
           ),
-        ),
-      ],
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: const Text(
+              'Join Elite →',
+              style: TextStyle(
+                color: Color(0xFFC6A769),
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2217,7 +2002,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         .where((part) => part.isNotEmpty)
         .toList();
     if (parts.isEmpty) {
-      return 'A';
+      return '';
     }
     if (parts.length == 1) {
       return parts.first.substring(0, 1).toUpperCase();
@@ -2773,57 +2558,35 @@ class _ProfileScreenState extends State<ProfileScreen>
       children: [
         _sectionTitle(
           eyebrow: 'Legal',
-          title: 'Policies and Compliance',
-          subtitle:
-              'View terms, privacy, refunds, delivery policy, and request account deletion.',
+          title: 'Legal & Policies',
         ),
         const SizedBox(height: 12),
-        Card(
-          child: Column(
-            children: [
-              ListTile(
-                title: const Text('Legal & Policy Center'),
-                subtitle: const Text('All customer legal documents'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const LegalPolicyHubScreen(
-                      audience: LegalAudience.customer,
-                      title: 'Customer Legal Center',
-                    ),
-                  ),
-                ),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                title: const Text('Terms & Privacy Consent'),
-                subtitle: const Text('Review and accept legal consent'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const LegalConsentScreen(
-                      audience: LegalAudience.customer,
-                    ),
-                  ),
-                ),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                title: const Text('Request Account Deletion'),
-                subtitle: const Text('Submit deletion request via support'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AccountDeletionRequestScreen(
-                      roleLabel: 'Customer',
-                    ),
-                  ),
-                ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
+          ),
+          child: _buildListItem(
+            icon: Icons.gavel_rounded,
+            title: 'Legal & Policies',
+            subtitle: 'Manage legal documents and privacy settings',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const LegalPolicyHubScreen(
+                  audience: LegalAudience.customer,
+                  title: 'Customer Legal Center',
+                ),
+              ),
+            ),
+            minimal: true,
           ),
         ),
       ],

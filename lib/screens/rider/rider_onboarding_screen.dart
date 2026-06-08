@@ -428,8 +428,7 @@ class _RiderOnboardingActionCard extends StatelessWidget {
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
+            height: 56, child: ElevatedButton(
               onPressed: onPrimaryAction,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFC8A86B),

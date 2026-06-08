@@ -18,6 +18,7 @@ import 'providers/network_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/trial_home_provider.dart';
+import 'providers/trial_cart_provider.dart';
 import 'providers/wishlist_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/ops/ops_account_screen.dart';
@@ -68,6 +69,7 @@ import 'services/notification_service.dart';
 import 'theme.dart';
 import 'widgets/offline_widgets.dart';
 import 'widgets/safe_widget.dart';
+import 'widgets/global_skeletons.dart';
 
 enum AbzioAppMode { unified, customer, operations, vendor, rider }
 
@@ -126,6 +128,7 @@ Future<void> bootstrapAndRunWithInitialRoute(
                 },
               ),
               ChangeNotifierProvider(create: (_) => TrialHomeProvider()),
+              ChangeNotifierProvider(create: (_) => TrialCartProvider()),
               ChangeNotifierProvider(create: (_) => ThemeProvider()),
             ],
             child: AbzioApp(mode: mode, initialRoute: initialRoute),
@@ -367,20 +370,8 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
   PageRouteBuilder<void> _launchRoute(Widget page) {
     return PageRouteBuilder<void>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionDuration: const Duration(milliseconds: 320),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final slideAnimation =
-            Tween<Offset>(
-              begin: const Offset(0, 0.03),
-              end: Offset.zero,
-            ).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-            );
-        return FadeTransition(
-          opacity: animation,
-          child: SlideTransition(position: slideAnimation, child: child),
-        );
-      },
+      transitionDuration: Duration.zero,
+      reverseTransitionDuration: Duration.zero,
     );
   }
 
@@ -438,12 +429,25 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       return;
     }
 
+    final isLaunchReady = auth.isInitialized && auth.profileLoaded && auth.vendorPermissionsResolved;
+    if (!isLaunchReady) {
+      return;
+    }
+
     final user = auth.user;
     _didRoute = true;
+    
+    debugPrint('=== ROUTE DECISION ===');
+    debugPrint('uid=${user?.id ?? "null"}');
+    debugPrint('role=${user?.role ?? "null"}');
+    debugPrint('vendorId=${user?.storeId ?? "null"}');
+    debugPrint('hasVendorAccess=${hasVendorOperationsAccess(user)}');
 
     if (user != null) {
       if (widget.mode == AbzioAppMode.vendor) {
         final route = routeForUserInMode(user, widget.mode);
+        debugPrint('route=$route');
+        debugPrint('======================');
         Navigator.of(context).pushAndRemoveUntil(
           _launchRoute(_launchDestinationForRoute(route, user)),
           (route) => false,
@@ -463,6 +467,8 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
           user: user,
           mode: widget.mode,
         );
+        debugPrint('route=/legal-consent');
+        debugPrint('======================');
         Navigator.of(context).pushAndRemoveUntil(
           _launchRoute(LegalConsentScreen(audience: audience)),
           (route) => false,
@@ -470,6 +476,8 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
         return;
       }
       final route = routeForUserInMode(user, widget.mode);
+      debugPrint('route=$route');
+      debugPrint('======================');
       Navigator.of(context).pushAndRemoveUntil(
         _launchRoute(_launchDestinationForRoute(route, user)),
         (route) => false,
@@ -486,6 +494,8 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     }
 
     if (isPartnerMode(widget.mode)) {
+      debugPrint('route=/login');
+      debugPrint('======================');
       Navigator.of(context).pushAndRemoveUntil(
         _launchRoute(_launchDestinationForRoute('/login', null)),
         (route) => false,
@@ -494,6 +504,8 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     }
 
     if (widget.mode == AbzioAppMode.unified && _wantsAdminEntryFromUrl) {
+      debugPrint('route=/admin-login');
+      debugPrint('======================');
       Navigator.of(context).pushAndRemoveUntil(
         _launchRoute(_launchDestinationForRoute('/admin-login', null)),
         (route) => false,
@@ -501,6 +513,8 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       return;
     }
 
+    debugPrint('route=/home');
+    debugPrint('======================');
     Navigator.of(context).pushAndRemoveUntil(
       _launchRoute(_launchDestinationForRoute('/home', null)),
       (route) => false,
@@ -511,14 +525,21 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
 
-    if (auth.isInitialized && !_didScheduleRoute) {
+    final isLaunchReady = auth.isInitialized && auth.profileLoaded && auth.vendorPermissionsResolved;
+
+    if (isLaunchReady && !_didScheduleRoute) {
       _didScheduleRoute = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         unawaited(_navigateToResolvedRoute(auth));
       });
     }
 
-    return const ColoredBox(color: Color(0xFFF9F7F2));
+    return const Scaffold(
+      backgroundColor: Color(0xFFF9F7F2),
+      body: SafeArea(
+        child: GlobalHomeSkeleton(),
+      ),
+    );
   }
 }
 

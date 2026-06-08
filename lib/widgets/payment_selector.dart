@@ -107,7 +107,7 @@ class _PaymentOptionCard extends StatelessWidget {
               children: [
                 Container(
                   width: 48,
-                  height: 48,
+                  height: 56,
                   decoration: BoxDecoration(
                     color: selected
                         ? Colors.white.withValues(alpha: 0.18)

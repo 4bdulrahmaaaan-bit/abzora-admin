@@ -101,13 +101,14 @@ class _AdminTrialHomeScreenState extends State<AdminTrialHomeScreen> {
         return const Color(0xFF8C6B1A);
       case 'trial_in_progress':
         return const Color(0xFF2666A8);
+      case 'awaiting_final_payment':
+        return const Color(0xFFD32F2F);
       case 'completed':
         return const Color(0xFF2F7D4B);
       case 'converted_to_order':
-        return const Color(0xFF206A3B);
-      case 'converted_to_tailoring':
-        return const Color(0xFF6A2B82);
+        return const Color(0xFF388E3C);
       case 'cancelled':
+      case 'no_show':
         return const Color(0xFFB0492F);
       default:
         return AbzioTheme.grey600;
@@ -133,9 +134,12 @@ class _AdminTrialHomeScreenState extends State<AdminTrialHomeScreen> {
       builder: (context) {
         final actions = <(String, String)>[
           ('confirmed', 'Confirm'),
+          ('rider_assigned', 'Assign Rider'),
           ('out_for_trial_delivery', 'Mark Out for Trial'),
           ('trial_in_progress', 'Mark In Progress'),
+          ('awaiting_final_payment', 'Await Payment'),
           ('completed', 'Mark Completed'),
+          ('no_show', 'Mark No Show'),
           ('cancelled', 'Cancel'),
         ];
         return SafeArea(
@@ -176,7 +180,7 @@ class _AdminTrialHomeScreenState extends State<AdminTrialHomeScreen> {
                 _InfoRow(label: 'User', value: detail.userId),
                 _InfoRow(
                   label: 'Items',
-                  value: '${detail.items.length} selected / ${detail.recommendedItems.length} styled',
+                  value: '${detail.items.length} selected',
                 ),
                 _InfoRow(label: 'Slot', value: detail.deliverySlot),
                 _InfoRow(label: 'Address', value: detail.addressLabel),
@@ -215,10 +219,11 @@ class _AdminTrialHomeScreenState extends State<AdminTrialHomeScreen> {
       ('all', 'All'),
       ('booked', 'Booked'),
       ('out_for_trial_delivery', 'Out'),
+      ('arrived', 'Arrived'),
       ('trial_in_progress', 'In Progress'),
-      ('completed', 'Completed'),
+      ('awaiting_final_payment', 'Awaiting Payment'),
       ('converted_to_order', 'Order'),
-      ('converted_to_tailoring', 'Tailoring'),
+      ('no_show', 'No Show'),
       ('cancelled', 'Cancelled'),
     ];
 
@@ -233,6 +238,8 @@ class _AdminTrialHomeScreenState extends State<AdminTrialHomeScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                 children: [
+                  _buildAnalytics(context),
+                  const SizedBox(height: 16),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -327,17 +334,10 @@ class _AdminTrialHomeScreenState extends State<AdminTrialHomeScreen> {
                                       .bodySmall
                                       ?.copyWith(color: AbzioTheme.grey600),
                                 ),
+
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Approval: ${session.approvalStatus.toUpperCase()}${session.approvedBy.isNotEmpty ? ' by ${session.approvedBy}' : ''}',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(color: AbzioTheme.grey600),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  '\u20B9${session.trialFee.toStringAsFixed(0)} refundable | ${session.paymentStatus}',
+                                  '\u20B9${session.trialFee.toStringAsFixed(0)} Booking Fee | ${session.paymentStatus}',
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodySmall
@@ -351,6 +351,79 @@ class _AdminTrialHomeScreenState extends State<AdminTrialHomeScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildAnalytics(BuildContext context) {
+    if (_sessions.isEmpty) return const SizedBox.shrink();
+    
+    final activeTrials = _sessions.where((s) => s.isInProgress || s.isBooked).length;
+    final completedTrials = _sessions.where((s) => s.status == 'converted_to_order').length;
+    final awaitingPaymentCount = _sessions.where((s) => s.status == 'awaiting_final_payment').length;
+    final noShowCount = _sessions.where((s) => s.status == 'no_show').length;
+    final cancelledCount = _sessions.where((s) => s.status == 'cancelled').length;
+    final totalBooked = _sessions.length;
+
+    final noShowPercentage = totalBooked > 0 ? (noShowCount / totalBooked) * 100 : 0.0;
+    final inventoryReservedCount = _sessions.where((s) => s.status == 'booked' || s.status == 'rider_assigned' || s.status == 'out_for_trial_delivery' || s.status == 'arrived' || s.status == 'trial_in_progress' || s.status == 'awaiting_final_payment').fold<int>(0, (sum, s) => sum + s.items.length);
+    final codOrders = _sessions.where((s) => s.paymentStatus == 'cod').length;
+    final onlineOrders = _sessions.where((s) => s.paymentStatus == 'online').length;
+    
+    final conversionDenominator = totalBooked - cancelledCount - noShowCount;
+    final conversionRate = conversionDenominator > 0 ? (completedTrials / conversionDenominator) * 100 : 0.0;
+    
+    final totalRevenue = _sessions.where((s) => s.status == 'converted_to_order').fold<double>(0, (sum, s) => sum + s.trialFee);
+    final aov = completedTrials > 0 ? totalRevenue / completedTrials : 0.0;
+    final revenuePerTrial = completedTrials > 0 ? totalRevenue / completedTrials : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('TBYB Analytics', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            children: [
+              _StatItem(label: 'Active Trials', value: '$activeTrials'),
+              _StatItem(label: 'Completed Trials', value: '$completedTrials'),
+              _StatItem(label: 'Awaiting Payment', value: '$awaitingPaymentCount'),
+              _StatItem(label: 'No Show Count', value: '$noShowCount'),
+              _StatItem(label: 'No Show %', value: '${noShowPercentage.toStringAsFixed(1)}%'),
+              _StatItem(label: 'Reserved Inventory', value: '$inventoryReservedCount items'),
+              _StatItem(label: 'COD Orders', value: '$codOrders'),
+              _StatItem(label: 'Online Orders', value: '$onlineOrders'),
+              _StatItem(label: 'Conversion Rate', value: '${conversionRate.toStringAsFixed(1)}%'),
+              _StatItem(label: 'Avg Order Value', value: '₹${aov.toStringAsFixed(0)}'),
+              _StatItem(label: 'Revenue/Trial', value: '₹${revenuePerTrial.toStringAsFixed(0)}'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  const _StatItem({required this.label, required this.value});
+  final String label;
+  final String value;
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      ],
     );
   }
 }

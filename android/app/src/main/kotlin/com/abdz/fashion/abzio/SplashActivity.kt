@@ -36,7 +36,7 @@ class SplashActivity : Activity() {
         window.decorView.postDelayed({
             startActivity(
                 Intent(this, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 },
             )
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)

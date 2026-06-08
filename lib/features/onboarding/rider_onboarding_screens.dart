@@ -1756,7 +1756,7 @@ class _RiderOnboardingFlowScreenState
             borderRadius: BorderRadius.circular(12),
             child: Container(
               width: 48,
-              height: 48,
+              height: 56,
               color: Colors.white.withValues(alpha: 0.92),
               padding: const EdgeInsets.all(4),
               child: Image.asset(

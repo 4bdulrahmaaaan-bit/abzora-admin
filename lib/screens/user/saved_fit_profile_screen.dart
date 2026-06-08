@@ -7,6 +7,7 @@ import '../../services/database_service.dart';
 import 'body_scan_screen.dart';
 import 'profile_completion_flow_screen.dart';
 import 'size_recommendation_screen.dart';
+import '../../widgets/premium_button.dart';
 
 class SavedFitProfileScreen extends StatefulWidget {
   const SavedFitProfileScreen({super.key});
@@ -23,7 +24,10 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final user = context.read<AuthProvider>().user;
+    final auth = context.watch<AuthProvider>();
+    if (!auth.isInitialized) return;
+    
+    final user = auth.user;
     if (user == null) {
       _future = null;
       _userId = null;
@@ -80,6 +84,12 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
         child: FutureBuilder<_SavedFitData>(
           future: _future,
           builder: (context, snapshot) {
+            final auth = context.read<AuthProvider>();
+            if (!auth.isInitialized || snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFFC9A55A)),
+              );
+            }
             if (snapshot.hasError) {
               return const Center(
                 child: Text('Saved fit profile unavailable right now.'),
@@ -181,8 +191,9 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   if (hasSavedProfile) ...[
-                    _actionButton(
+                    PremiumButton(
                       label: 'Edit Profile',
+                      filled: false,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -191,24 +202,39 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    _actionButton(
+                    PremiumButton(
                       label: 'Recalculate Recommendation',
                       filled: true,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SizeRecommendationScreen()),
-                      ),
+                      onTap: () {
+                        if (context.read<AuthProvider>().requiresProfileSetup) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please complete your profile first.')));
+                          Navigator.pushNamed(context, '/profile-completion');
+                          return;
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SizeRecommendationScreen()),
+                        );
+                      },
                     ),
                     const SizedBox(height: 10),
-                    _actionButton(
+                    PremiumButton(
                       label: 'Run Smart Scan Again',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const BodyScanScreen()),
-                      ),
+                      filled: false,
+                      onTap: () {
+                        if (context.read<AuthProvider>().requiresProfileSetup) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please complete your profile first.')));
+                          Navigator.pushNamed(context, '/profile-completion');
+                          return;
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const BodyScanScreen()),
+                        );
+                      },
                     ),
                   ] else
-                    _actionButton(
+                    PremiumButton(
                       label: 'Start Fit Profile',
                       filled: true,
                       onTap: () => Navigator.push(
@@ -264,31 +290,6 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
         .join(' ');
   }
 
-  Widget _actionButton({
-    required String label,
-    required VoidCallback onTap,
-    bool filled = false,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      height: 48,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: filled ? const Color(0xFFC9A55A) : Colors.white,
-          foregroundColor: const Color(0xFF111111),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-            side: BorderSide(
-              color: filled ? Colors.transparent : const Color(0xFFF3F1EB),
-            ),
-          ),
-        ),
-        child: Text(label),
-      ),
-    );
-  }
 }
 
 class _SavedFitData {

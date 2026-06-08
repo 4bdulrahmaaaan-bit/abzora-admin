@@ -10,13 +10,6 @@ class CameraFrameEncoder {
     if (image.planes.isEmpty) {
       return null;
     }
-    if (image.format.group == ImageFormatGroup.yuv420) {
-      final converted = _convertYuv420ToImage(image);
-      if (converted == null) {
-        return null;
-      }
-      return Uint8List.fromList(img.encodeJpg(converted, quality: 82));
-    }
     if (image.format.group == ImageFormatGroup.bgra8888) {
       final converted = _convertBgra8888ToImage(image);
       if (converted == null) {
@@ -24,6 +17,32 @@ class CameraFrameEncoder {
       }
       return Uint8List.fromList(img.encodeJpg(converted, quality: 82));
     }
+    
+    if (image.format.group == ImageFormatGroup.yuv420 || image.planes.length >= 3) {
+      final converted = _convertYuv420ToImage(image);
+      if (converted == null) {
+        return null;
+      }
+      return Uint8List.fromList(img.encodeJpg(converted, quality: 82));
+    }
+
+    if (image.planes.isNotEmpty) {
+      final bytes = image.planes.first.bytes;
+      if (bytes.length > 2 && bytes[0] == 0xFF && bytes[1] == 0xD8) {
+        return bytes;
+      }
+      if (image.format.group == ImageFormatGroup.jpeg) {
+        return bytes;
+      }
+    }
+    
+    if (image.planes.length >= 3) {
+      final converted = _convertYuv420ToImage(image);
+      if (converted != null) {
+        return Uint8List.fromList(img.encodeJpg(converted, quality: 82));
+      }
+    }
+    
     return null;
   }
 
@@ -38,11 +57,26 @@ class CameraFrameEncoder {
     final uPlane = image.planes[1];
     final vPlane = image.planes[2];
 
-    final yRowStride = yPlane.bytesPerRow;
+    var yRowStride = yPlane.bytesPerRow;
+    var uRowStride = uPlane.bytesPerRow;
+    var vRowStride = vPlane.bytesPerRow;
+
+    // Detect Motorola/budget device bug where reported rowStride includes alignment padding 
+    // but the actual buffer is tightly packed without padding.
+    if (yPlane.bytes.length == width * height) {
+      yRowStride = width;
+    }
+    final uvWidth = width >> 1;
+    final uvHeight = height >> 1;
+    if (uPlane.bytes.length == uvWidth * uvHeight) {
+      uRowStride = uvWidth;
+    }
+    if (vPlane.bytes.length == uvWidth * uvHeight) {
+      vRowStride = uvWidth;
+    }
+
     final yPixelStride = yPlane.bytesPerPixel ?? 1;
-    final uRowStride = uPlane.bytesPerRow;
     final uPixelStride = uPlane.bytesPerPixel ?? 1;
-    final vRowStride = vPlane.bytesPerRow;
     final vPixelStride = vPlane.bytesPerPixel ?? 1;
 
     for (var y = 0; y < height; y++) {
@@ -54,9 +88,9 @@ class CameraFrameEncoder {
         final uIndex = (uvRow * uRowStride) + (uvCol * uPixelStride);
         final vIndex = (uvRow * vRowStride) + (uvCol * vPixelStride);
 
-        final yp = yPlane.bytes[yIndex];
-        final up = uPlane.bytes[uIndex];
-        final vp = vPlane.bytes[vIndex];
+        final yp = yIndex < yPlane.bytes.length ? yPlane.bytes[yIndex] : 0;
+        final up = uIndex < uPlane.bytes.length ? uPlane.bytes[uIndex] : 128;
+        final vp = vIndex < vPlane.bytes.length ? vPlane.bytes[vIndex] : 128;
 
         final c = yp - 16;
         final d = up - 128;
@@ -76,19 +110,27 @@ class CameraFrameEncoder {
     final plane = image.planes.first;
     final width = image.width;
     final height = image.height;
-    final rowStride = plane.bytesPerRow;
+    var rowStride = plane.bytesPerRow;
     const bytesPerPixel = 4;
+    
+    // Detect Motorola/budget device bug for BGRA
+    if (plane.bytes.length == width * height * bytesPerPixel) {
+      rowStride = width * bytesPerPixel;
+    }
+
     final out = img.Image(width: width, height: height);
 
     for (var y = 0; y < height; y++) {
       final rowOffset = y * rowStride;
       for (var x = 0; x < width; x++) {
         final index = rowOffset + (x * bytesPerPixel);
-        final b = plane.bytes[index];
-        final g = plane.bytes[index + 1];
-        final r = plane.bytes[index + 2];
-        final a = plane.bytes[index + 3];
-        out.setPixelRgba(x, y, r, g, b, a);
+        if (index + 3 < plane.bytes.length) {
+          final b = plane.bytes[index];
+          final g = plane.bytes[index + 1];
+          final r = plane.bytes[index + 2];
+          final a = plane.bytes[index + 3];
+          out.setPixelRgba(x, y, r, g, b, a);
+        }
       }
     }
     return out;

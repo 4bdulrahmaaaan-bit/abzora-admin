@@ -532,6 +532,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       return;
     }
+    if (auth.requiresProfileSetup) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please complete your profile before placing an order.')),
+      );
+      navigator.pushNamed('/profile-completion');
+      return;
+    }
     if (_usesOnlinePayment(selectedPaymentMethod) && !AppConfig.hasRazorpayKey) {
       messenger.showSnackBar(
         const SnackBar(
@@ -1550,7 +1557,7 @@ class _PremiumPaymentSelector extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              height: 48,
+              height: 56,
               width: 48,
               decoration: BoxDecoration(
                 color: _methodAccent(activeMethod).withValues(alpha: 0.12),

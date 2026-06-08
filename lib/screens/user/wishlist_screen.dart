@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../constants/text_constants.dart';
 import '../../models/models.dart';
 import '../../models/mediapipe_try_on_payload.dart';
 import '../../providers/auth_provider.dart';
@@ -25,6 +24,7 @@ import 'package:geolocator/geolocator.dart';
 import 'abianzo_ar_screen.dart';
 import 'search_screen.dart';
 import 'product_detail_screen.dart';
+import 'cart_screen.dart';
 
 class WishlistScreen extends StatefulWidget {
   const WishlistScreen({super.key});
@@ -1179,33 +1179,19 @@ class _WishlistScreenState extends State<WishlistScreen> {
         ),
         centerTitle: true,
         titleSpacing: 0,
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              AbianzoText.wishlistTitle,
+        title: Consumer<WishlistProvider>(
+          builder: (context, wishlist, child) {
+            final count = wishlist.items.length;
+            return Text(
+              'Wishlist${count > 0 ? ' ($count)' : ''}',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: 20,
                 height: 1.0,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF111111),
               ),
-            ),
-            const SizedBox(height: 2),
-            Consumer<WishlistProvider>(
-              builder: (context, wishlist, child) {
-                final count = wishlist.items.length;
-                return Text(
-                  '$count Saved ${count == 1 ? 'Item' : 'Items'}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF6A6257),
-                    fontWeight: FontWeight.w500,
-                    height: 1.0,
-                  ),
-                );
-              },
-            ),
-          ],
+            );
+          },
         ),
       ),
       body: FutureBuilder<List<_WishlistEntry>>(
@@ -1491,22 +1477,6 @@ class _WishlistProductCard extends StatelessWidget {
     }
   }
 
-  void _addToBag(BuildContext context, Product product) {
-    final selectedSize = product.sizes.isNotEmpty ? product.sizes.first : 'M';
-    final result = context.read<CartProvider>().addToCart(
-      product,
-      selectedSize,
-    );
-    if (result == CartAddResult.storeConflict && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Your bag already contains products from another store.',
-          ),
-        ),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1514,11 +1484,13 @@ class _WishlistProductCard extends StatelessWidget {
     final imageUrl = displayProduct.images.isNotEmpty
         ? displayProduct.images.first
         : item.image;
-    final brand = displayProduct.brand.trim().isNotEmpty
+    final String brand = displayProduct.brand.trim().isNotEmpty
         ? displayProduct.brand.trim()
         : (displayProduct.store?.name.trim().isNotEmpty == true
               ? displayProduct.store!.name.trim()
-              : 'Abianzo');
+              : 'Unknown Brand');
+    
+    final selectedSize = displayProduct.sizes.isNotEmpty ? displayProduct.sizes.first : '';
     final stockLabel = displayProduct.stock <= 0
         ? 'Out of stock'
         : displayProduct.isLimitedStock
@@ -1557,7 +1529,7 @@ class _WishlistProductCard extends StatelessWidget {
               ],
             ),
             child: Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1565,8 +1537,9 @@ class _WishlistProductCard extends StatelessWidget {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(22),
-                        child: AspectRatio(
-                          aspectRatio: 1.04,
+                        child: SizedBox(
+                          height: 340,
+                          width: double.infinity,
                           child: imageUrl.isEmpty
                               ? const _WishlistImageFallback()
                               : Image.network(
@@ -1611,7 +1584,7 @@ class _WishlistProductCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                   Text(
                     brand.toUpperCase(),
                     maxLines: 1,
@@ -1622,7 +1595,7 @@ class _WishlistProductCard extends StatelessWidget {
                       letterSpacing: 0.8,
                     ),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 4),
                   Text(
                     displayProduct.name,
                     maxLines: 2,
@@ -1633,37 +1606,45 @@ class _WishlistProductCard extends StatelessWidget {
                       height: 1.18,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Row(
+                  const SizedBox(height: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _formatPrice(_effectivePrice),
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: const Color(0xFF17130F),
-                              fontWeight: FontWeight.w900,
+                      if (_discountPercent > 0) ...[
+                        Row(
+                          children: [
+                            Text(
+                              _formatPrice(_effectivePrice),
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: const Color(0xFF17130F),
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
-                      ),
-                      if (_originalPrice != null) ...[
-                        const SizedBox(width: 8),
-                        Text(
-                          _formatPrice(_originalPrice!),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
+                            const SizedBox(width: 8),
+                            Text(
+                              _formatPrice(_originalPrice!),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: const Color(0xFF8B8277),
                                 decoration: TextDecoration.lineThrough,
                               ),
-                        ),
-                      ],
-                      if (_discountPercent > 0) ...[
-                        const SizedBox(width: 8),
-                        Text(
-                          '$_discountPercent% OFF',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '$_discountPercent% OFF',
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                 color: const Color(0xFF2F7A3D),
                                 fontWeight: FontWeight.w800,
                               ),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        Text(
+                          _formatPrice(_effectivePrice),
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: const Color(0xFF17130F),
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ],
                     ],
@@ -1682,24 +1663,20 @@ class _WishlistProductCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: FilledButton(
-                      onPressed: displayProduct.stock <= 0
-                          ? null
-                          : () => _addToBag(context, displayProduct),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF17130F),
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: const Color(0xFFD8D0C5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(22),
-                        ),
+                  const SizedBox(height: 12),
+                  if (selectedSize.isNotEmpty) ...[
+                    Text(
+                      'Size: $selectedSize',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF111111),
                       ),
-                      child: const Text('Add to Bag'),
                     ),
+                    const SizedBox(height: 8),
+                  ],
+                  _WishlistBagButton(
+                    product: displayProduct,
+                    selectedSize: selectedSize,
                   ),
                 ],
               ),
@@ -1737,33 +1714,34 @@ class _WishlistBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(999),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.72),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 14, color: const Color(0xFF8D6A2E)),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF17130F),
-                ),
-              ),
-            ],
+        ],
+        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF8D6A2E)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF17130F),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -1959,7 +1937,7 @@ class _WishlistTile extends StatelessWidget {
         : item.name;
     final brand = displayProduct?.brand.trim().isNotEmpty == true
         ? displayProduct!.brand.trim()
-        : 'Abianzo';
+        : '';
     final price = displayProduct?.effectivePrice ?? item.price;
     final original = displayProduct?.originalPrice ?? displayProduct?.basePrice;
     final discount = _discountPercent(displayProduct).round();
@@ -2121,8 +2099,7 @@ class _WishlistTile extends StatelessWidget {
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
-                      height: 48,
-                      child: FilledButton(
+                      height: 56, child: FilledButton(
                         onPressed: () => _addToBag(context, actionProduct),
                         style: FilledButton.styleFrom(
                           backgroundColor: const Color(0xFF111111),
@@ -2271,7 +2248,7 @@ class _WishlistCarouselCard extends StatelessWidget {
         : item.name;
     final brand = displayProduct?.brand.trim().isNotEmpty == true
         ? displayProduct!.brand.trim()
-        : 'Abianzo';
+        : '';
     final price = displayProduct?.effectivePrice ?? item.price;
     final distanceLabel = _distanceOverlayLabel(displayProduct);
 
@@ -3083,7 +3060,7 @@ class _WishlistFilterSheetState extends State<_WishlistFilterSheet> {
             children: [
               Container(
                 width: 48,
-                height: 48,
+                height: 56,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: entry.value,
@@ -4434,7 +4411,7 @@ class _LuxuryWishlistEmptyState extends StatelessWidget {
               alignment: Alignment.center,
               children: const [
                 Icon(
-                  Icons.shopping_bag_outlined,
+                  Icons.favorite_border_rounded,
                   size: 54,
                   color: Color(0xFF8E6E2F),
                 ),
@@ -4461,7 +4438,7 @@ class _LuxuryWishlistEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Save pieces you love and access them anytime.',
+            'Save your favorite styles and find them here.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF695F53),
@@ -4470,8 +4447,7 @@ class _LuxuryWishlistEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           SizedBox(
-            height: 48,
-            child: FilledButton(
+            height: 56, child: FilledButton(
               onPressed: () => Navigator.of(context).maybePop(),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF17130F),
@@ -4484,6 +4460,89 @@ class _LuxuryWishlistEmptyState extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _WishlistBagButton extends StatefulWidget {
+  const _WishlistBagButton({required this.product, required this.selectedSize});
+
+  final Product product;
+  final String selectedSize;
+
+  @override
+  State<_WishlistBagButton> createState() => _WishlistBagButtonState();
+}
+
+class _WishlistBagButtonState extends State<_WishlistBagButton> {
+  bool _justAdded = false;
+
+  void _handleTap(BuildContext context, bool inBag) {
+    if (inBag) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CartScreen()),
+      );
+      return;
+    }
+
+    final cart = context.read<CartProvider>();
+    final size = widget.selectedSize.isNotEmpty ? widget.selectedSize : 'M';
+    final result = cart.addToCart(widget.product, size);
+
+    if (result == CartAddResult.storeConflict && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your bag already contains products from another store.'),
+        ),
+      );
+    } else if ((result == CartAddResult.added || result == CartAddResult.updated) && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Added to Bag')),
+      );
+      setState(() => _justAdded = true);
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) {
+          setState(() => _justAdded = false);
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cart = context.watch<CartProvider>();
+    final inBag = cart.items.any((item) => item.product.id == widget.product.id);
+    final disabled = widget.product.stock <= 0;
+
+    String label = 'Add to Bag';
+    if (_justAdded) {
+      label = '✓ Added';
+    } else if (inBag) {
+      label = 'View Bag';
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      height: 56, child: FilledButton(
+        onPressed: disabled ? null : () => _handleTap(context, inBag),
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF17130F),
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: const Color(0xFFD8D0C5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: Text(
+            label,
+            key: ValueKey(label),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
       ),
     );
   }

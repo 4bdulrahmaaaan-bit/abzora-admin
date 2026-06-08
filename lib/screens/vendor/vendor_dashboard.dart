@@ -1686,7 +1686,7 @@ class _ProductPreviewCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    product.isActive ? 'Active' : 'Hidden',
+                    product.status == ProductStatus.active ? 'Active' : 'Hidden',
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,

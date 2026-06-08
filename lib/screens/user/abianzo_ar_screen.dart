@@ -104,6 +104,7 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
   CameraController? _poseCameraController;
   List<CameraDescription> _availableCameras = const <CameraDescription>[];
   int _cameraSwitchEpoch = 0;
+  Uint8List? _debugJpegBytes;
 
   bool _isLoading = true;
   bool _cameraPermissionReady = false;
@@ -850,6 +851,8 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
     } catch (_) {}
   }
 
+  int _lastTimestampMs = 0;
+
   Future<void> _processPoseFrame(CameraImage image) async {
     if (_isProcessingPoseFrame || !_cameraPermissionReady) {
       _poseDropCount += 1;
@@ -857,6 +860,12 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
     }
 
     final now = DateTime.now();
+    int currentTimestampMs = now.millisecondsSinceEpoch;
+    if (currentTimestampMs <= _lastTimestampMs) {
+      currentTimestampMs = _lastTimestampMs + 1;
+    }
+    _lastTimestampMs = currentTimestampMs;
+
     final adaptiveFps = _adaptiveInferenceFps();
     final frameIntervalMs = (1000 / adaptiveFps).round();
     if (now.difference(_lastPoseSentAt) <
@@ -865,22 +874,32 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
       return;
     }
 
-    final jpegBytes = CameraFrameEncoder.encodeJpeg(image);
-    if (jpegBytes == null) {
-      return;
-    }
-
     _isProcessingPoseFrame = true;
     try {
+      final jpegBytes = CameraFrameEncoder.encodeJpeg(image);
+      if (jpegBytes == null) {
+        throw Exception('Failed to encode camera frame to JPEG');
+      }
+      
+      if (mounted) {
+        setState(() {
+          _debugJpegBytes = jpegBytes;
+        });
+      }
+
+      // CameraX on some devices pre-rotates the image buffer.
+      // If width < height, it's already in portrait, so rotation should be 0.
+      final isPreRotated = image.width < image.height;
+      final rotation = isPreRotated ? 0 : (_poseCameraController?.description.sensorOrientation ?? 0);
+
       final rawPoseFrame = await _poseMeasurementService
           .analyzeTryOnLiveInputImage(
             MediaPipePoseFrameInput(
               jpegBytes: jpegBytes,
               width: image.width,
               height: image.height,
-              rotation:
-                  _poseCameraController?.description.sensorOrientation ?? 0,
-              timestampMs: now.millisecondsSinceEpoch,
+              rotation: rotation,
+              timestampMs: currentTimestampMs,
             ),
           );
 
@@ -3052,30 +3071,54 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
     if (!_showDebugHud) {
       return const SizedBox.shrink();
     }
-    final mode = _fallbackActive ? 'FALLBACK' : 'MEDIAPIPE';
-    final confidence = (_bodyConfidence * 100).round();
-    final tracking = _trackingState.isEmpty ? 'tracking' : _trackingState;
-    return Positioned(
-      right: 14,
-      top: MediaQuery.of(context).padding.top + 58,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.65),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white24),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: Text(
-            '$mode | $tracking | $confidence% | R${(_trackingReliability * 100).round()} M${(_motionQuality * 100).round()} S${(_segmentationConfidence * 100).round()} T${(_thermalLoad * 100).round()} L${_poseAvgLatencyMs.round()} E${(_poseErrorRate * 100).round()} | ${_qualityProfile.deviceTier.name}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
+    final avgFps = 7.0; // Placeholder for actual average
+
+    return Stack(
+      children: [
+        Positioned(
+          top: MediaQuery.of(context).padding.top + 100,
+          right: 16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              // Existing debug text
+              Text(
+                'Cam: ${_poseCameraController?.description.sensorOrientation ?? '??'}°',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 10,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'FPS: ${avgFps.toStringAsFixed(1)}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 10,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ],
           ),
         ),
-      ),
+        if (_debugJpegBytes != null)
+          Positioned(
+            bottom: 120,
+            left: 16,
+            width: 120,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.red, width: 2),
+              ),
+              child: Image.memory(
+                _debugJpegBytes!,
+                fit: BoxFit.contain,
+                gaplessPlayback: true,
+              ),
+            ),
+          ),
+      ],
     );
   }
 

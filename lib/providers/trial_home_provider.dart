@@ -37,13 +37,10 @@ class TrialHomeProvider with ChangeNotifier {
 
   Future<TrialSession> requestTrial({
     required List<Product> items,
-    List<Product> recommendedItems = const <Product>[],
     required String addressLabel,
     required String deliverySlot,
     String deliveryWindowLabel = 'Delivered in 24 hours',
-    String experienceType = 'premium',
-    String recommendedSize = 'M',
-    double fitConfidence = 92,
+    int trialDurationMinutes = 30,
   }) async {
     final actionKey = 'request:${items.map((item) => item.id).join(',')}';
     return _runGuarded(
@@ -52,23 +49,14 @@ class TrialHomeProvider with ChangeNotifier {
           items: items
               .map((product) => TrialSessionItem.fromProduct(
                     product,
-                    recommendedSize: recommendedSize,
-                    fitConfidence: fitConfidence,
-                  ).toMap())
-              .toList(),
-          recommendedItems: recommendedItems
-              .map((product) => TrialSessionItem.fromProduct(
-                    product,
-                    recommendedSize: recommendedSize,
-                    fitConfidence: fitConfidence - 6,
-                    styledForYou: true,
-                    source: 'styled',
+                    recommendedSize: product.sizes.isNotEmpty ? product.sizes.first : 'M',
+                    fitConfidence: 99,
                   ).toMap())
               .toList(),
           addressLabel: addressLabel,
           deliverySlot: deliverySlot,
           deliveryWindowLabel: deliveryWindowLabel,
-          experienceType: experienceType,
+          trialDurationMinutes: trialDurationMinutes,
         );
         _currentTrial = session;
         return session;
@@ -79,23 +67,35 @@ class TrialHomeProvider with ChangeNotifier {
 
   Future<TrialSession> bookTrial({
     required List<Product> items,
-    List<Product> recommendedItems = const <Product>[],
     required String addressLabel,
     required String deliverySlot,
     String deliveryWindowLabel = 'Delivered in 24 hours',
-    String experienceType = 'premium',
-    String recommendedSize = 'M',
-    double fitConfidence = 92,
-  }) {
-    return requestTrial(
-      items: items,
-      recommendedItems: recommendedItems,
-      addressLabel: addressLabel,
-      deliverySlot: deliverySlot,
-      deliveryWindowLabel: deliveryWindowLabel,
-      experienceType: experienceType,
-      recommendedSize: recommendedSize,
-      fitConfidence: fitConfidence,
+    int trialDurationMinutes = 30,
+    String? bookingPaymentId,
+    String? bookingOrderId,
+  }) async {
+    final actionKey = 'book:${items.map((item) => item.id).join(',')}';
+    return _runGuarded(
+      () async {
+        final session = await _api.bookTrial(
+          items: items
+              .map((product) => TrialSessionItem.fromProduct(
+                    product,
+                    recommendedSize: product.sizes.isNotEmpty ? product.sizes.first : 'M',
+                    fitConfidence: 99,
+                  ).toMap())
+              .toList(),
+          addressLabel: addressLabel,
+          deliverySlot: deliverySlot,
+          deliveryWindowLabel: deliveryWindowLabel,
+          trialDurationMinutes: trialDurationMinutes,
+          bookingPaymentId: bookingPaymentId,
+          bookingOrderId: bookingOrderId,
+        );
+        _currentTrial = session;
+        return session;
+      },
+      actionKey: actionKey,
     );
   }
 
@@ -104,7 +104,6 @@ class TrialHomeProvider with ChangeNotifier {
     List<Product>? items,
     String? addressLabel,
     String? deliverySlot,
-    String? experienceType,
     String recommendedSize = 'M',
     double fitConfidence = 92,
   }) async {
@@ -120,7 +119,6 @@ class TrialHomeProvider with ChangeNotifier {
             .toList(),
         addressLabel: addressLabel,
         deliverySlot: deliverySlot,
-        experienceType: experienceType,
       );
       _currentTrial = session;
       return session;
@@ -135,51 +133,44 @@ class TrialHomeProvider with ChangeNotifier {
     }, actionKey: 'cancel:$trialId');
   }
 
-  Future<TrialSession> submitFeedback({
+  Future<TrialSession> awaitFinalPayment({
     required String trialId,
-    required String fit,
-    String note = '',
-    String tailoringRecommendation = '',
-    List<String> adjustmentOptions = const <String>[],
-    String status = 'completed',
+    required List<String> keptItems,
+    required List<String> returnedItems,
   }) async {
     return _runGuarded(() async {
-      final session = await _api.submitFitFeedback(
+      final session = await _api.awaitFinalPayment(
         trialId,
-        fit: fit,
-        note: note,
-        tailoringRecommendation: tailoringRecommendation,
-        adjustmentOptions: adjustmentOptions,
-        status: status,
+        keptItems: keptItems,
+        returnedItems: returnedItems,
       );
       _currentTrial = session;
       return session;
-    }, actionKey: 'feedback:$trialId');
+    }, actionKey: 'await_payment:$trialId');
   }
 
   Future<TrialSession> completeTrial({
     required String trialId,
     required List<String> keptItems,
     required List<String> returnedItems,
-    bool useTailoring = false,
-    String tailoringRequest = '',
-    List<String> adjustmentOptions = const <String>[],
+    String paymentMethod = 'online',
+    String? finalPaymentId,
+    String? finalOrderId,
+    double? finalAmount,
   }) async {
     return _runGuarded(() async {
-      final session = useTailoring
-          ? await _api.convertToTailoring(
-              trialId,
-              tailoringRequest: tailoringRequest,
-              adjustmentOptions: adjustmentOptions,
-            )
-          : await _api.convertToOrder(
-              trialId,
-              keptItems: keptItems,
-              returnedItems: returnedItems,
-            );
+      final session = await _api.convertToOrder(
+        trialId,
+        keptItems: keptItems,
+        returnedItems: returnedItems,
+        paymentMethod: paymentMethod,
+        finalPaymentId: finalPaymentId,
+        finalOrderId: finalOrderId,
+        finalAmount: finalAmount,
+      );
       _currentTrial = session;
       return session;
-    }, actionKey: 'complete:$trialId:${useTailoring ? 'tailor' : 'order'}');
+    }, actionKey: 'complete:$trialId:order');
   }
 
   Future<T> _runGuarded<T>(

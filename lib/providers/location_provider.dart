@@ -96,7 +96,7 @@ class LocationProvider with ChangeNotifier {
             ? city
             : _activeLocation;
     return DeliveryHeaderCopy(
-      title: 'Delivering to $destination',
+      title: destination,
       subtitle: '',
     );
   }

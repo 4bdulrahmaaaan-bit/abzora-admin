@@ -269,3 +269,33 @@ class ShimmerBannerBlock extends StatelessWidget {
     );
   }
 }
+
+class GlobalHomeSkeleton extends StatelessWidget {
+  const GlobalHomeSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          ShimmerCard(height: 68),
+          SizedBox(height: 12),
+          ShimmerCard(height: 56),
+          SizedBox(height: 12),
+          ShimmerBannerBlock(),
+          SizedBox(height: 12),
+          ShimmerCard(height: 108),
+          SizedBox(height: 12),
+          ShimmerCategoryRow(),
+          SizedBox(height: 12),
+          ShimmerBannerBlock(),
+          SizedBox(height: 12),
+          ShimmerProductGrid(),
+        ],
+      ),
+    );
+  }
+}

@@ -1207,15 +1207,7 @@ class _HomeContentState extends State<HomeContent>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      final auth = context.read<AuthProvider>();
-      if (auth.requiresProfileSetup) {
-        _promptProfileSetup();
-      }
-    });
+
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) {
         return;
@@ -1457,7 +1449,7 @@ class _HomeContentState extends State<HomeContent>
               onLocationTap: () => showLocationBottomSheet(context),
             ),
             body: provider.isLoading && products.isEmpty
-                ? const _HomeSkeleton()
+                ? const GlobalHomeSkeleton()
                 : RefreshIndicator(
                     onRefresh: () => provider.fetchHomeData(
                       forceLocationRefresh: true,
@@ -1599,85 +1591,7 @@ class _HomeContentState extends State<HomeContent>
     );
   }
 
-  Future<void> _promptProfileSetup() async {
-    if (_profileModalShown) {
-      return;
-    }
-    _profileModalShown = true;
-    final auth = context.read<AuthProvider>();
-    final nameController = TextEditingController(text: auth.user?.name ?? '');
-    final addressController = TextEditingController(
-      text: auth.user?.address ?? '',
-    );
-    await showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      barrierLabel: 'Profile setup',
-      barrierColor: Colors.black.withValues(alpha: 0.2),
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (dialogContext, animation, secondaryAnimation) {
-        final navigator = Navigator.of(dialogContext);
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
-        return _ProfileSetupSheet(
-          auth: auth,
-          nameController: nameController,
-          addressController: addressController,
-          onUseCurrentLocation: () async {
-            final productProvider = context.read<ProductProvider>();
-            try {
-              await auth.fillAddressFromGps(
-                fallbackName: nameController.text.trim(),
-              );
-              if (!mounted) {
-                return;
-              }
-              navigator.pop();
-              await productProvider.requestLocationAccess();
-            } catch (_) {
-              if (!mounted) {
-                return;
-              }
-              scaffoldMessenger.showSnackBar(
-                const SnackBar(content: Text(AbianzoText.locationDetectError)),
-              );
-            }
-          },
-          onSave: () async {
-            final productProvider = context.read<ProductProvider>();
-            await auth.saveProfile(
-              name: nameController.text.trim().isEmpty
-                  ? 'Abianzo Member'
-                  : nameController.text.trim(),
-              address: addressController.text.trim(),
-            );
-            if (!mounted) {
-              return;
-            }
-            navigator.pop();
-            await productProvider.applySavedUserLocation(auth.user);
-          },
-        );
-      },
-      transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-        );
-        return FadeTransition(
-          opacity: curved,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.08),
-              end: Offset.zero,
-            ).animate(curved),
-            child: child,
-          ),
-        );
-      },
-    );
-    nameController.dispose();
-    addressController.dispose();
-  }
+
 
   void _handleBannerTap(
     BannerModel banner, {
@@ -1791,36 +1705,6 @@ class _HomeContentState extends State<HomeContent>
   }
 }
 
-class _HomeSkeleton extends StatelessWidget {
-  const _HomeSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          ShimmerCard(height: 68),
-          SizedBox(height: 12),
-          ShimmerCard(height: 56),
-          SizedBox(height: 12),
-          ShimmerBannerBlock(),
-          SizedBox(height: 12),
-          ShimmerCard(height: 108),
-          SizedBox(height: 12),
-          ShimmerCategoryRow(),
-          SizedBox(height: 12),
-          ShimmerBannerBlock(),
-          SizedBox(height: 12),
-          ShimmerProductGrid(),
-        ],
-      ),
-    );
-  }
-}
-
 class _ProfileSetupSheet extends StatefulWidget {
   const _ProfileSetupSheet({
     required this.auth,
@@ -1852,8 +1736,10 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
   @override
   void initState() {
     super.initState();
-    _nameFocusNode = FocusNode()..addListener(_handleFocusChange);
-    _addressFocusNode = FocusNode()..addListener(_handleFocusChange);
+    _nameFocusNode = FocusNode()..addListener(_handleStateChange);
+    _addressFocusNode = FocusNode()..addListener(_handleStateChange);
+    widget.nameController.addListener(_handleStateChange);
+    widget.addressController.addListener(_handleStateChange);
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 380),
@@ -1877,20 +1763,27 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
 
   @override
   void dispose() {
+    widget.nameController.removeListener(_handleStateChange);
+    widget.addressController.removeListener(_handleStateChange);
     _nameFocusNode
-      ..removeListener(_handleFocusChange)
+      ..removeListener(_handleStateChange)
       ..dispose();
     _addressFocusNode
-      ..removeListener(_handleFocusChange)
+      ..removeListener(_handleStateChange)
       ..dispose();
     _controller.dispose();
     super.dispose();
   }
 
-  void _handleFocusChange() {
+  void _handleStateChange() {
     if (mounted) {
       setState(() {});
     }
+  }
+
+  bool get _isFormValid {
+    return widget.nameController.text.trim().isNotEmpty &&
+        widget.addressController.text.trim().isNotEmpty;
   }
 
   @override
@@ -2052,9 +1945,9 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
                                       ],
                                     ),
                                     child: ElevatedButton(
-                                      onPressed: widget.auth.isUpdatingProfile
-                                          ? null
-                                          : widget.onSave,
+                                      onPressed: (!widget.auth.isUpdatingProfile && _isFormValid)
+                                          ? widget.onSave
+                                          : null,
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.transparent,
                                         foregroundColor: Colors.white,
@@ -2224,7 +2117,7 @@ Widget _aiStylistHighlight({required VoidCallback onTap}) {
           children: [
             Container(
               width: 48,
-              height: 48,
+              height: 56,
               decoration: BoxDecoration(
                 color: const Color(0xFFFFF2C7),
                 borderRadius: BorderRadius.circular(16),
@@ -3489,7 +3382,7 @@ Widget _editorialFeatureCard({required VoidCallback onTap}) {
             const SizedBox(width: 16),
             Container(
               width: 48,
-              height: 48,
+              height: 56,
               decoration: BoxDecoration(
                 color: AbzioTheme.accentColor.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(16),

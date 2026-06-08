@@ -10,6 +10,7 @@ class TrialSessionItem {
     this.fitConfidence = 0,
     this.styledForYou = false,
     this.source = 'selected',
+    this.storeId = '',
   });
 
   final String productId;
@@ -20,6 +21,7 @@ class TrialSessionItem {
   final double fitConfidence;
   final bool styledForYou;
   final String source;
+  final String storeId;
 
   factory TrialSessionItem.fromMap(Map<String, dynamic> map) {
     return TrialSessionItem(
@@ -33,6 +35,7 @@ class TrialSessionItem {
           .toDouble(),
       styledForYou: map['styledForYou'] == true,
       source: map['source']?.toString() ?? 'selected',
+      storeId: map['storeId']?.toString() ?? '',
     );
   }
 
@@ -45,6 +48,7 @@ class TrialSessionItem {
         'fitConfidence': fitConfidence,
         'styledForYou': styledForYou,
         'source': source,
+        'storeId': storeId,
       };
 
   factory TrialSessionItem.fromProduct(
@@ -63,6 +67,7 @@ class TrialSessionItem {
       fitConfidence: fitConfidence,
       styledForYou: styledForYou,
       source: source,
+      storeId: product.storeId,
     );
   }
 }
@@ -74,13 +79,7 @@ class TrialSession {
     this.userName = '',
     this.userPhone = '',
     this.userCity = '',
-    this.userTrialScore = 0,
-    this.userRiskScore = 0,
-    this.userFlagged = false,
     required this.status,
-    this.approvalStatus = 'approved',
-    this.approvedBy = '',
-    this.approvalReason = '',
     required this.items,
     this.recommendedItems = const <TrialSessionItem>[],
     this.recommendedSize = '',
@@ -89,10 +88,19 @@ class TrialSession {
     this.returnedItems = const <String>[],
     this.addressLabel = '',
     this.deliverySlot = '',
+    this.bookingPaymentId,
+    this.bookingOrderId,
+    this.bookingFeeAmount = 99.0,
+    this.finalPaymentId,
+    this.finalOrderId,
+    this.finalAmount,
     this.deliveryWindowLabel = '',
-    this.experienceType = 'premium',
     this.trialFee = 99,
     this.subtotal = 0,
+    this.bookingFeePaid = false,
+    this.feeAdjustmentAmount = 0,
+    this.trialDurationMinutes = 30,
+    this.trialStartedAt,
     this.paymentStatus = 'pending',
     this.createdAt,
     this.updatedAt,
@@ -103,13 +111,7 @@ class TrialSession {
   final String userName;
   final String userPhone;
   final String userCity;
-  final double userTrialScore;
-  final double userRiskScore;
-  final bool userFlagged;
   final String status;
-  final String approvalStatus;
-  final String approvedBy;
-  final String approvalReason;
   final List<TrialSessionItem> items;
   final List<TrialSessionItem> recommendedItems;
   final String recommendedSize;
@@ -118,27 +120,36 @@ class TrialSession {
   final List<String> returnedItems;
   final String addressLabel;
   final String deliverySlot;
+  final String? bookingPaymentId;
+  final String? bookingOrderId;
+  final double bookingFeeAmount;
+  final String? finalPaymentId;
+  final String? finalOrderId;
+  final double? finalAmount;
   final String deliveryWindowLabel;
-  final String experienceType;
   final double trialFee;
   final double subtotal;
+  final bool bookingFeePaid;
+  final double feeAdjustmentAmount;
+  final int trialDurationMinutes;
+  final DateTime? trialStartedAt;
   final String paymentStatus;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
   bool get isBooked =>
       status == 'booked' ||
+      status == 'rider_assigned' ||
       status == 'confirmed' ||
       status == 'out_for_trial_delivery';
-  bool get isApprovalPending => approvalStatus == 'pending';
-  bool get isApprovalRejected => approvalStatus == 'rejected';
-  bool get isApprovalApproved => approvalStatus == 'approved';
   bool get isInProgress => status == 'trial_in_progress';
+  bool get isAwaitingPayment => status == 'awaiting_final_payment';
   bool get isCompleted => status == 'completed';
   bool get isResolved =>
       status == 'converted_to_order' ||
       status == 'converted_to_tailoring' ||
-      status == 'cancelled';
+      status == 'cancelled' ||
+      status == 'no_show';
 
   factory TrialSession.fromMap(Map<String, dynamic> map) {
     final itemMaps = (map['items'] as List? ?? const <dynamic>[])
@@ -167,13 +178,7 @@ class TrialSession {
       userName: map['userName']?.toString() ?? '',
       userPhone: map['userPhone']?.toString() ?? '',
       userCity: map['userCity']?.toString() ?? '',
-      userTrialScore: ((map['userTrialScore'] ?? 0) as num).toDouble(),
-      userRiskScore: ((map['userRiskScore'] ?? 0) as num).toDouble(),
-      userFlagged: map['userFlagged'] == true,
       status: map['status']?.toString() ?? 'booked',
-      approvalStatus: map['approvalStatus']?.toString() ?? 'approved',
-      approvedBy: map['approvedBy']?.toString() ?? '',
-      approvalReason: map['approvalReason']?.toString() ?? '',
       items: itemMaps,
       recommendedItems: recommendedItemMaps,
       recommendedSize:
@@ -189,10 +194,19 @@ class TrialSession {
           .toList(),
       addressLabel: map['addressLabel']?.toString() ?? '',
       deliverySlot: map['deliverySlot']?.toString() ?? '',
+      bookingPaymentId: map['bookingPaymentId']?.toString(),
+      bookingOrderId: map['bookingOrderId']?.toString(),
+      bookingFeeAmount: (map['bookingFeeAmount'] as num?)?.toDouble() ?? 99.0,
+      finalPaymentId: map['finalPaymentId']?.toString(),
+      finalOrderId: map['finalOrderId']?.toString(),
+      finalAmount: (map['finalAmount'] as num?)?.toDouble(),
       deliveryWindowLabel: map['deliveryWindowLabel']?.toString() ?? '',
-      experienceType: map['experienceType']?.toString() ?? 'premium',
       trialFee: ((map['trialFee'] ?? 99) as num).toDouble(),
       subtotal: ((map['subtotal'] ?? 0) as num).toDouble(),
+      bookingFeePaid: map['bookingFeePaid'] == true,
+      feeAdjustmentAmount: ((map['feeAdjustmentAmount'] ?? 0) as num).toDouble(),
+      trialDurationMinutes: ((map['trialDurationMinutes'] ?? 30) as num).toInt(),
+      trialStartedAt: DateTime.tryParse(map['trialStartedAt']?.toString() ?? ''),
       paymentStatus: map['paymentStatus']?.toString() ?? 'pending',
       createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? ''),
       updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? ''),

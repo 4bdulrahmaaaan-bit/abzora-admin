@@ -117,7 +117,7 @@ class _VendorProductListScreenState extends State<VendorProductListScreen> {
         ),
         title: Text(product.name, style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
         subtitle: Text(
-          '${product.brand.isNotEmpty ? '${product.brand} | ' : ''}₹${product.price.toInt()} | ${product.category} | Stock ${product.stock} | ${product.isActive ? 'Active' : 'Hidden'}',
+          '${product.brand.isNotEmpty ? '${product.brand} | ' : ''}₹${product.price.toInt()} | ${product.category} | Stock ${product.stock} | ${product.status == ProductStatus.active ? 'Active' : 'Hidden'}',
         ),
         trailing: Wrap(
           spacing: 4,

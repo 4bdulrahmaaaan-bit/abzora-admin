@@ -860,6 +860,14 @@ class UserAddress {
       );
 }
 
+enum ProductStatus {
+  draft,
+  active,
+  inactive,
+  outOfStock,
+  archived
+}
+
 class Product {
   final Store? store;
   final String id;
@@ -889,7 +897,7 @@ class Product {
   final int stock;
   final String category;
   final String subcategory;
-  final bool isActive;
+  final ProductStatus status;
   final String? createdAt;
   final double rating;
   final int reviewCount;
@@ -945,7 +953,7 @@ class Product {
     required this.stock,
     required this.category,
     this.subcategory = '',
-    this.isActive = true,
+    this.status = ProductStatus.active,
     this.createdAt,
     this.rating = 0,
     this.reviewCount = 0,
@@ -1002,7 +1010,7 @@ class Product {
     int? stock,
     String? category,
     String? subcategory,
-    bool? isActive,
+    ProductStatus? status,
     String? createdAt,
     double? rating,
     int? reviewCount,
@@ -1059,7 +1067,7 @@ class Product {
       stock: stock ?? this.stock,
       category: category ?? this.category,
       subcategory: subcategory ?? this.subcategory,
-      isActive: isActive ?? this.isActive,
+      status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       rating: rating ?? this.rating,
       reviewCount: reviewCount ?? this.reviewCount,
@@ -1118,7 +1126,7 @@ class Product {
     'stock': stock,
     'category': category,
     'subcategory': subcategory,
-    'isActive': isActive,
+    'status': status.name,
     'createdAt': createdAt,
     'rating': rating,
     'reviewCount': reviewCount,
@@ -1232,7 +1240,10 @@ class Product {
     stock: map['stock'] ?? 0,
     category: map['category'] ?? '',
     subcategory: map['subcategory'] ?? '',
-    isActive: map['isActive'] ?? true,
+      status: ProductStatus.values.firstWhere(
+        (e) => e.name == map['status'],
+        orElse: () => (map['isActive'] == false) ? ProductStatus.inactive : ProductStatus.active,
+      ),
     createdAt: map['createdAt'],
     rating: (map['rating'] ?? 0.0).toDouble(),
     reviewCount: map['reviewCount'] ?? 0,

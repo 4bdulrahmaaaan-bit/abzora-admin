@@ -583,27 +583,26 @@ class PoseMeasurementService {
       rightAnkle,
       nose,
     ];
-    final allPoints = <PoseLandmark>[
-      leftShoulder,
-      rightShoulder,
-      ...optionalPoints.whereType<PoseLandmark>(),
-    ];
-    final avgVisibility =
-        allPoints.map((point) => point.visibility).reduce((a, b) => a + b) /
-        allPoints.length;
+    // final allPoints = <PoseLandmark>[
+    //   leftShoulder,
+    //   rightShoulder,
+    //   ...optionalPoints.whereType<PoseLandmark>(),
+    // ];
+    // final avgVisibility =
+    //     allPoints.map((point) => point.visibility).reduce((a, b) => a + b) /
+    //     allPoints.length;
     final estimatedHipVisibility =
         math.min(leftShoulder.visibility, rightShoulder.visibility) * 0.72;
     final coreVisibility =
         [
           leftShoulder.visibility,
-          rightShoulder.visibility,
-          leftHip?.visibility ?? estimatedHipVisibility,
           rightHip?.visibility ?? estimatedHipVisibility,
         ].reduce((a, b) => a + b) /
         4;
-    if (avgVisibility < 0.05 || coreVisibility < 0.10) {
-      return null;
-    }
+    // Disabled visibility check to allow tracking even if confidence is low.
+    // if (avgVisibility < 0.05 || coreVisibility < 0.10) {
+    //   return null;
+    // }
     final safeFrameWidth = math.max(1.0, frameWidth.toDouble());
     final safeFrameHeight = math.max(1.0, frameHeight.toDouble());
 

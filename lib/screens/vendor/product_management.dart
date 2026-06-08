@@ -36,8 +36,8 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     final query = _searchController.text.trim().toLowerCase();
     final filtered = _products.where((product) {
       final matchesStatus = _statusFilter == 'All' ||
-          (_statusFilter == 'Active' && product.isActive) ||
-          (_statusFilter == 'Hidden' && !product.isActive) ||
+          (_statusFilter == 'Active' && product.status == ProductStatus.active) ||
+          (_statusFilter == 'Hidden' && product.status != ProductStatus.active) ||
           (_statusFilter == 'Out of Stock' && product.stock <= 0);
       final matchesCategory = _categoryFilter == 'All' || product.category == _categoryFilter;
       final haystack = '${product.name} ${product.brand} ${product.category}'.toLowerCase();
@@ -138,7 +138,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredCount = _filteredProducts.length;
-    final activeCount = _products.where((product) => product.isActive).length;
+    final activeCount = _products.where((product) => product.status == ProductStatus.active).length;
     final hiddenCount = _products.length - activeCount;
     final outOfStockCount = _products.where((product) => product.stock <= 0).length;
 
@@ -339,7 +339,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                     runSpacing: 8,
                     children: [
                       _TagChip(label: product.category),
-                      _TagChip(label: product.isActive ? 'Active' : 'Hidden'),
+                      _TagChip(label: product.status == ProductStatus.active ? 'Active' : 'Hidden'),
                       _TagChip(label: 'Stock ${product.stock}'),
                       if (product.stock <= 0) _TagChip(label: 'Out of Stock', bg: const Color(0xFFFBE8E5), fg: const Color(0xFFC03C2E)),
                       if (product.stock > 0 && product.stock < 5) _TagChip(label: 'Low Stock', bg: const Color(0xFFFFF2DF), fg: const Color(0xFFB27A1D)),

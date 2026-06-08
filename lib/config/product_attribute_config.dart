@@ -57,6 +57,7 @@ class ProductAttributeTemplateConfig {
     required this.label,
     required this.sections,
     required this.fields,
+    this.sizes = const [],
     this.version = 1,
   });
 
@@ -64,6 +65,7 @@ class ProductAttributeTemplateConfig {
   final String label;
   final List<ProductAttributeSectionConfig> sections;
   final Map<String, ProductAttributeFieldConfig> fields;
+  final List<String> sizes;
   final int version;
 }
 
@@ -211,6 +213,7 @@ const productAttributeTemplates = <String, ProductAttributeTemplateConfig>{
   'footwear': ProductAttributeTemplateConfig(
     key: 'footwear',
     label: 'Footwear',
+    sizes: ['UK 3', 'UK 4', 'UK 5', 'UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10', 'UK 11'],
     sections: [
       ProductAttributeSectionConfig(
         title: 'Core Details',
@@ -603,6 +606,7 @@ const productAttributeTemplates = <String, ProductAttributeTemplateConfig>{
   'shirt': ProductAttributeTemplateConfig(
     key: 'shirt',
     label: 'Shirt',
+    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     sections: [
       ProductAttributeSectionConfig(
         title: 'Core Details',
@@ -823,6 +827,7 @@ const productAttributeTemplates = <String, ProductAttributeTemplateConfig>{
   'jeans': ProductAttributeTemplateConfig(
     key: 'jeans',
     label: 'Jeans',
+    sizes: ['28', '30', '32', '34', '36', '38', '40', '42'],
     sections: [
       ProductAttributeSectionConfig(
         title: 'Core Details',
@@ -1027,6 +1032,7 @@ const productAttributeTemplates = <String, ProductAttributeTemplateConfig>{
   'dress': ProductAttributeTemplateConfig(
     key: 'dress',
     label: 'Dress',
+    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     sections: [
       ProductAttributeSectionConfig(
         title: 'Core Details',
@@ -1840,6 +1846,7 @@ const productAttributeTemplates = <String, ProductAttributeTemplateConfig>{
       ),
     },
   ),
+
 };
 
 final productAttributeConfig = <String, ProductAttributeCategoryConfig>{

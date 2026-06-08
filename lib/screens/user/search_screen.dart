@@ -1699,7 +1699,7 @@ class _SizeChip extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 48,
-        height: 48,
+        height: 56,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? const Color(0xFF17130F) : Colors.white,

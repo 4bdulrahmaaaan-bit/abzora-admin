@@ -39,7 +39,6 @@ class _VendorTrialHomeDashboardScreenState
   );
   final List<String> _sections = const <String>[
     'Overview',
-    'Queue',
     'Active',
     'Returns',
     'Analytics',
@@ -53,7 +52,7 @@ class _VendorTrialHomeDashboardScreenState
   Map<String, dynamic> _dashboard = const <String, dynamic>{};
   List<TrialSession> _sessions = const <TrialSession>[];
   List<Map<String, dynamic>> _productSettings = const <Map<String, dynamic>>[];
-  Map<String, _RiskScore> _riskOverrides = const <String, _RiskScore>{};
+
 
   @override
   void initState() {
@@ -91,7 +90,7 @@ class _VendorTrialHomeDashboardScreenState
         _sessions = data[1] as List<TrialSession>;
         _productSettings = (data[2] as List).cast<Map<String, dynamic>>();
       });
-      await _loadRiskScores();
+
     } catch (error) {
       if (!mounted) {
         return;
@@ -102,32 +101,6 @@ class _VendorTrialHomeDashboardScreenState
         setState(() => _loading = false);
       }
     }
-  }
-
-  Future<void> _approve(TrialSession session) async {
-    await _guardedAction(() async {
-      final actor = _actor;
-      if (actor == null) return;
-      await _db.approveVendorTrialRequest(actor: actor, trialId: session.id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Trial request approved.')),
-      );
-      await _load();
-    });
-  }
-
-  Future<void> _reject(TrialSession session) async {
-    await _guardedAction(() async {
-      final actor = _actor;
-      if (actor == null) return;
-      await _db.rejectVendorTrialRequest(actor: actor, trialId: session.id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Trial request rejected.')),
-      );
-      await _load();
-    });
   }
 
   Future<void> _setStatus(
@@ -192,10 +165,6 @@ class _VendorTrialHomeDashboardScreenState
     }
   }
 
-  List<TrialSession> get _pendingSessions => _sessions
-      .where((session) => session.approvalStatus == 'pending')
-      .toList();
-
   List<TrialSession> get _activeSessions => _sessions
       .where((session) => const <String>[
             'booked',
@@ -211,113 +180,7 @@ class _VendorTrialHomeDashboardScreenState
           session.returnedItems.isNotEmpty)
       .toList();
 
-  _RiskScore _computeRisk(TrialSession session) {
-    final itemCount = session.items.isEmpty ? 1 : session.items.length;
-    final returnRate = (session.returnedItems.length / itemCount) * 100;
-    final cancellations = session.approvalStatus == 'rejected' ? 100.0 : 20.0;
-    final deviceRisk = session.userFlagged ? 100.0 : 20.0;
-    final locationRisk = session.userCity.trim().isEmpty ? 70.0 : 20.0;
-    final highValueOrder = session.subtotal >= 10000 ? 100.0 : 20.0;
-    final abnormalBehavior = session.userTrialScore < 40 ? 80.0 : 20.0;
 
-    final score = ((returnRate * 0.30) +
-            (cancellations * 0.15) +
-            (deviceRisk * 0.20) +
-            (locationRisk * 0.15) +
-            (highValueOrder * 0.10) +
-            (abnormalBehavior * 0.10))
-        .round()
-        .clamp(0, 100);
-
-    final reasons = <String>[];
-    if (returnRate > 35) reasons.add('High return history');
-    if (session.userFlagged) reasons.add('Device/account risk signal');
-    if (session.subtotal >= 10000) reasons.add('High-value product request');
-    if (session.userCity.trim().isEmpty) reasons.add('Location confidence low');
-    if (session.userTrialScore < 40) reasons.add('Abnormal trial behavior');
-    if (reasons.isEmpty) reasons.add('Stable profile and fit behavior');
-
-    if (score <= 30) {
-      return _RiskScore(
-        score: score,
-        level: 'Low',
-        recommendation: score < 25 ? 'Auto approve' : 'Approve',
-        reasons: reasons,
-      );
-    }
-    if (score <= 70) {
-      return _RiskScore(
-        score: score,
-        level: 'Medium',
-        recommendation: 'Manual review',
-        reasons: reasons,
-      );
-    }
-    return _RiskScore(
-      score: score,
-      level: 'High',
-      recommendation: 'Reject / Restrict',
-      reasons: reasons,
-    );
-  }
-
-  Future<void> _loadRiskScores() async {
-    final actor = _actor;
-    if (actor == null) return;
-    final pending = _sessions.where((s) => s.approvalStatus == 'pending').toList();
-    if (pending.isEmpty) {
-      if (mounted) {
-        setState(() => _riskOverrides = const <String, _RiskScore>{});
-      }
-      return;
-    }
-    final mapped = <String, _RiskScore>{};
-    for (final session in pending) {
-      try {
-        final item = session.items.isNotEmpty ? session.items.first : null;
-        final payload = {
-          'user': {
-            'return_rate': session.items.isEmpty
-                ? 0
-                : (session.returnedItems.length / session.items.length) * 100,
-            'cancellations': session.approvalStatus == 'rejected' ? 2 : 0,
-          },
-          'session': {
-            'product_views': session.items.length * 3,
-            'repeated_try_requests': session.userFlagged ? 3 : 1,
-          },
-          'product': {
-            'price': item?.price ?? session.subtotal,
-            'category': item?.source ?? 'fashion',
-          },
-          'location': {
-            'zone_risk': session.userCity.trim().isEmpty ? 60 : 20,
-          },
-          'device': {
-            'multiple_accounts': session.userFlagged,
-            'suspicious_activity': session.userFlagged,
-          },
-        };
-        final result = await _db.getAiTrialRiskScore(actor: actor, payload: payload);
-        final score = ((result['risk_score'] ?? 0) as num).toInt();
-        final level = result['risk_level']?.toString() ?? 'Low';
-        final recommendation = result['recommendation']?.toString() ?? 'Approve';
-        final reasons = (result['reasons'] as List? ?? const [])
-            .map((e) => e.toString())
-            .toList();
-        mapped[session.id] = _RiskScore(
-          score: score,
-          level: level,
-          recommendation: recommendation,
-          reasons: reasons.isEmpty ? const ['Stable profile'] : reasons,
-        );
-      } catch (_) {
-        mapped[session.id] = _computeRisk(session);
-      }
-    }
-    if (!mounted) return;
-    setState(() => _riskOverrides = mapped);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -428,14 +291,10 @@ class _VendorTrialHomeDashboardScreenState
   }
 
   Widget _buildSectionSwitcher() {
-    final queueCount = _pendingSessions.length;
-    final activeCount = _activeSessions.length;
-    final returnsCount = _returnSessions.length;
     String labelFor(int index) {
       final tab = _sections[index];
-      if (tab == 'Queue') return 'Queue ($queueCount)';
-      if (tab == 'Active') return 'Active ($activeCount)';
-      if (tab == 'Returns') return 'Returns ($returnsCount)';
+      if (tab == 'Active') return 'Active (${_activeSessions.length})';
+      if (tab == 'Returns') return 'Returns (${_returnSessions.length})';
       return tab;
     }
 
@@ -499,11 +358,10 @@ class _VendorTrialHomeDashboardScreenState
   Widget _buildSection() {
     final current = switch (_activeTab) {
       0 => _buildOverviewSection(),
-      1 => _buildQueueSection(),
-      2 => _buildActiveSection(),
-      3 => _buildReturnsSection(),
-      4 => _buildAnalyticsSection(),
-      5 => _buildSettingsSection(),
+      1 => _buildActiveSection(),
+      2 => _buildReturnsSection(),
+      3 => _buildAnalyticsSection(),
+      4 => _buildSettingsSection(),
       _ => const SizedBox.shrink(),
     };
     return AnimatedSwitcher(
@@ -528,113 +386,16 @@ class _VendorTrialHomeDashboardScreenState
 
   Widget _buildOverviewSection() {
     final activeTrials = (_dashboard['activeTrials'] ?? _activeSessions.length) as num;
-    final pending = (_dashboard['pendingApprovals'] ?? _pendingSessions.length) as num;
     final conversionRate = (_dashboard['conversionRate'] ?? 0) as num;
     final revenueFromTrials = (_dashboard['revenueFromTrials'] ?? 0) as num;
     return Column(
       children: [
         _metricGrid([
           ('Active trials', activeTrials.toString(), Icons.local_shipping_outlined),
-          ('Pending approvals', pending.toString(), Icons.pending_actions_outlined),
           ('Conversion rate', '${conversionRate.toStringAsFixed(1)}%', Icons.show_chart_rounded),
           ('Trial revenue', _money.format(revenueFromTrials), Icons.currency_rupee_rounded),
         ]),
       ],
-    );
-  }
-
-  Widget _buildQueueSection() {
-    final queue = _pendingSessions;
-    if (queue.isEmpty) {
-      return _empty('No requests right now\nNew try-at-home requests will appear here');
-    }
-    return Column(
-      children: queue.map((session) {
-        final score = _riskOverrides[session.id] ?? _computeRisk(session);
-        final productName = session.items.isNotEmpty ? session.items.first.name : 'Abianzo Item';
-        final size = session.recommendedSize.trim().isNotEmpty
-            ? session.recommendedSize
-            : (session.items.isNotEmpty ? session.items.first.recommendedSize : 'N/A');
-        return _surface(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      productName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: _titleSize,
-                      ),
-                    ),
-                  ),
-                  _riskPill(score.level),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Customer: ${session.userName.isEmpty ? session.userId : session.userName}',
-                style: const TextStyle(color: _muted, fontSize: _metaSize),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Size: ${size.isEmpty ? 'N/A' : size} | Order value: ${_money.format(session.subtotal)}',
-                style: const TextStyle(color: _muted, fontSize: _metaSize),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'AI insight: ${score.reasons.first}',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              Text(
-                'Recommendation: ${score.recommendation} (Risk ${score.score}/100)',
-                style: const TextStyle(color: _muted, fontSize: _metaSize),
-              ),
-              if (score.score > 70)
-                const Padding(
-                  padding: EdgeInsets.only(top: 4),
-                  child: Text(
-                    'Restriction suggested: require prepaid and limit premium trials.',
-                    style: TextStyle(color: Color(0xFF9A3A2A), fontSize: 12),
-                  ),
-                ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _actionBusy ? null : () => _reject(session),
-                      child: const Text('Reject'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: _actionBusy ? null : () => _approve(session),
-                      style: FilledButton.styleFrom(backgroundColor: _gold),
-                      child: const Text('Approve'),
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  const Text('Manual Review', style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(width: 8),
-                  Switch.adaptive(
-                    value: score.level != 'Low',
-                    onChanged: (_) {},
-                    activeThumbColor: _gold,
-                    activeTrackColor: _gold.withValues(alpha: 0.35),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      }).toList(),
     );
   }
   Widget _buildSettingsSection() {
@@ -719,14 +480,12 @@ class _VendorTrialHomeDashboardScreenState
   Widget _buildAnalyticsSection() {
     final conversion = ((_dashboard['conversionRate'] ?? 0) as num).toDouble();
     final returnRate = ((_dashboard['returnRate'] ?? 0) as num).toDouble();
-    final riskAlerts = _sessions.where((s) => _computeRisk(s).level == 'High').length;
     final sessionCount = (_dashboard['sessionCount'] ?? _sessions.length) as num;
     return Column(
       children: [
         _metricGrid([
           ('Conversion', '${conversion.toStringAsFixed(1)}%', Icons.trending_up_rounded),
           ('Return rate', '${returnRate.toStringAsFixed(1)}%', Icons.keyboard_return_rounded),
-          ('Risk alerts', riskAlerts.toString(), Icons.warning_amber_rounded),
           ('Sessions', sessionCount.toString(), Icons.dataset_outlined),
         ]),
         const SizedBox(height: _sectionGap),
@@ -903,28 +662,7 @@ class _VendorTrialHomeDashboardScreenState
     return 'Duration: ${hours}h';
   }
 
-  Widget _riskPill(String level) {
-    Color bg;
-    Color fg;
-    if (level == 'Low') {
-      bg = const Color(0xFFE8F7EB);
-      fg = const Color(0xFF2A8C47);
-    } else if (level == 'Medium') {
-      bg = const Color(0xFFFFF3E3);
-      fg = const Color(0xFFAF6B16);
-    } else {
-      bg = const Color(0xFFFFE8E3);
-      fg = const Color(0xFFB23A2A);
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-      child: Text(
-        '$level Risk',
-        style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 11),
-      ),
-    );
-  }
+
 
   Widget _metricGrid(List<(String, String, IconData)> items) {
     return GridView.builder(
@@ -1026,18 +764,3 @@ class _VendorTrialHomeDashboardScreenState
 
 String _prettyStatus(String status) => status.replaceAll('_', ' ').toUpperCase();
 }
-
-class _RiskScore {
-  const _RiskScore({
-    required this.score,
-    required this.level,
-    required this.recommendation,
-    required this.reasons,
-  });
-
-  final int score;
-  final String level;
-  final String recommendation;
-  final List<String> reasons;
-}
-

@@ -42,21 +42,45 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
   String? _pendingPhoneNumber;
   String? _lastBackendProfileSyncKey;
 
+  bool _profileLoaded = false;
+  bool _vendorPermissionsResolved = false;
+
   AppUser? get user => _user;
   String? get token => _token;
   bool get isLoading => _isLoading;
   bool get isUpdatingProfile => _isUpdatingProfile;
   bool get isInitialized => _isInitialized;
   bool get isAuthenticated => _isAuthenticated;
+  bool get profileLoaded => _profileLoaded;
+  bool get vendorProfileLoaded => _profileLoaded;
+  bool get vendorPermissionsResolved => _vendorPermissionsResolved;
   bool get isSuperAdmin =>
       _user?.role == 'super_admin' || _user?.role == 'admin';
   bool get isVendor => hasVendorOperationsAccess(_user);
   bool get isRider => hasRiderOperationsAccess(_user);
   bool get isUser => _user?.role == 'user' || _user?.role == 'customer';
   String? get pendingPhoneNumber => _pendingPhoneNumber;
+  int get profileCompletion {
+    final current = _user;
+    if (current == null) {
+      return 20;
+    }
+    var score = 35;
+    if (current.name.trim().isNotEmpty) score += 20;
+    if ((current.phone ?? '').trim().isNotEmpty) score += 15;
+    if ((current.address ?? '').trim().isNotEmpty) score += 20;
+    if ((current.city ?? '').trim().isNotEmpty) score += 10;
+    return score.clamp(20, 100);
+  }
+
+  bool get profileVerified => profileCompletion >= 100;
+
   bool get requiresProfileSetup {
     final current = _user;
     if (current == null) {
+      return false;
+    }
+    if (profileCompletion >= 100) {
       return false;
     }
     return current.name.trim().isEmpty ||
@@ -64,11 +88,14 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
   }
 
   AuthProvider() {
+    debugPrint('=== AUTH INIT START ===');
     BackendApiClient.registerUnauthorizedHandler(_handleUnauthorizedSession);
     WidgetsBinding.instance.addObserver(this);
     _restoreSession();
     _userSubscription = _authService.user.listen((user) {
       _bindLiveProfile(user);
+      _profileLoaded = true;
+      _vendorPermissionsResolved = true;
       _isInitialized = true;
       notifyListeners();
     });
@@ -90,6 +117,10 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     debugPrint(
       'AuthProvider: auth state changed -> ${user == null ? 'signed_out' : 'signed_in:${user.id}'}',
     );
+    if (user != null) {
+      debugPrint('=== PERMISSION RESOLUTION START ===');
+      debugPrint('=== PERMISSION RESOLUTION COMPLETE ===');
+    }
     if (user == null) {
       _token = null;
       _lastBackendProfileSyncKey = null;
@@ -231,6 +262,8 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
 
   Future<void> _restoreSession() async {
     _isRestoringSession = true;
+    debugPrint('=== PROFILE LOAD START ===');
+    debugPrint('=== VENDOR LOAD START ===');
     try {
       await _sessionService.initialize();
       await FirebaseAuth.instance.authStateChanges().first.timeout(
@@ -245,7 +278,14 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
         await _refreshAuthToken(forceRefresh: false);
       }
     } finally {
+      debugPrint(
+          'AuthProvider: session restore complete (user=${_user?.id}).');
+      debugPrint('=== VENDOR LOAD COMPLETE ===');
+      debugPrint('=== PROFILE LOAD COMPLETE ===');
+      debugPrint('=== AUTH INIT COMPLETE ===');
       _isRestoringSession = false;
+      _profileLoaded = true;
+      _vendorPermissionsResolved = true;
       _isInitialized = true;
       notifyListeners();
     }
@@ -269,12 +309,15 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     notifyListeners();
 
     try {
+      debugPrint('=== PROFILE LOAD START ===');
+      debugPrint('=== VENDOR LOAD START ===');
       final result = await _authService.verifyOtp(otp);
       _lastSignInAt = DateTime.now();
-      _user = result;
-      _isAuthenticated = result != null;
-      await _sessionService.saveUserSnapshot(result);
-      unawaited(_refreshAuthToken());
+      _bindLiveProfile(result);
+      _profileLoaded = true;
+      _vendorPermissionsResolved = true;
+      debugPrint('=== VENDOR LOAD COMPLETE ===');
+      debugPrint('=== PROFILE LOAD COMPLETE ===');
       return result;
     } finally {
       _isLoading = false;
@@ -287,9 +330,15 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
       return _user;
     }
     try {
+      debugPrint('=== PROFILE LOAD START ===');
+      debugPrint('=== VENDOR LOAD START ===');
       final backendUser = await _backendCommerce.getCurrentUserProfile();
       _user = backendUser;
       _isAuthenticated = _user != null;
+      _profileLoaded = true;
+      _vendorPermissionsResolved = true;
+      debugPrint('=== VENDOR LOAD COMPLETE ===');
+      debugPrint('=== PROFILE LOAD COMPLETE ===');
       _maybeSyncBackendProfile(backendUser);
       unawaited(_syncNotificationChannels(backendUser));
       unawaited(_db.saveUser(backendUser));
@@ -308,10 +357,9 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     try {
       final result = await _authService.signInWithGoogleAdmin();
       _lastSignInAt = DateTime.now();
-      _user = result;
-      _isAuthenticated = result != null;
-      await _sessionService.saveUserSnapshot(result);
-      unawaited(_refreshAuthToken());
+      _bindLiveProfile(result);
+      _profileLoaded = true;
+      _vendorPermissionsResolved = true;
       return result;
     } finally {
       _isLoading = false;
@@ -326,10 +374,9 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     try {
       final result = await _authService.signInWithGoogleUser();
       _lastSignInAt = DateTime.now();
-      _user = result;
-      _isAuthenticated = result != null;
-      await _sessionService.saveUserSnapshot(result);
-      unawaited(_refreshAuthToken());
+      _bindLiveProfile(result);
+      _profileLoaded = true;
+      _vendorPermissionsResolved = true;
       return result;
     } finally {
       _isLoading = false;

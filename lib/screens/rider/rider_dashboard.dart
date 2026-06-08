@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -15,6 +15,7 @@ import 'rider_earnings_screen.dart';
 import 'rider_onboarding_screen.dart';
 import 'rider_route_screen.dart';
 import 'rider_tasks_screen.dart';
+import 'rider_trials_screen.dart';
 
 class _RiderUi {
   static const Color ivory = Color(0xFFF8F5EF);
@@ -262,6 +263,8 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                   activeCount: data.activeCount,
                   completedCount: data.completedCount,
                 ),
+                const SizedBox(height: 14),
+                const _RiderTbybCard(),
                 const SizedBox(height: 14),
                 _RouteLaunchCard(taskCount: data.tasks.length),
                 const SizedBox(height: 24),
@@ -1245,4 +1248,81 @@ class _DeliveryStatusPill extends StatelessWidget {
   }
 }
 
+class _RiderTbybCard extends StatelessWidget {
+  const _RiderTbybCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AbzioTheme.eliteShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.shopping_bag_outlined, color: AbzioTheme.accentColor, size: 20),
+              const SizedBox(width: 8),
+              Text('Try Before You Buy', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _TbybStat(label: 'Active Trials', value: '1', color: Colors.green),
+              ),
+              Expanded(
+                child: _TbybStat(label: 'Upcoming', value: '3', color: Colors.orange),
+              ),
+              Expanded(
+                child: _TbybStat(label: 'Avg. Duration', value: '25m', color: Colors.blue),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const RiderTrialsScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.timer),
+            label: const Text('View Assigned Trials'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+              backgroundColor: AbzioTheme.accentColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TbybStat extends StatelessWidget {
+  const _TbybStat({required this.label, required this.value, required this.color});
+  
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 10, color: AbzioTheme.grey600), textAlign: TextAlign.center),
+      ],
+    );
+  }
+}
 
