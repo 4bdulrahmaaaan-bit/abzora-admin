@@ -172,6 +172,7 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
       if (canAccessOperationsMode(user)) {
         return '/ops';
       }
+      if (kIsWeb) return '/admin';
       return normalizedUserRole(user) == 'user' ||
               normalizedUserRole(user) == 'customer'
           ? '/shop'

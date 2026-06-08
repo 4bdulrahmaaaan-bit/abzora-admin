@@ -358,13 +358,8 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
   }
 
   bool get _wantsAdminEntryFromUrl {
-    if (!kIsWeb) {
-      return false;
-    }
-    final path = Uri.base.path.toLowerCase();
-    return path == '/admin' ||
-        path == '/admin-login' ||
-        path.startsWith('/admin/');
+    if (!kIsWeb) return false;
+    return true;
   }
 
   PageRouteBuilder<void> _launchRoute(Widget page) {
@@ -444,6 +439,13 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     debugPrint('hasVendorAccess=${hasVendorOperationsAccess(user)}');
 
     if (user != null) {
+      if (widget.mode == AbzioAppMode.unified && kIsWeb) {
+        Navigator.of(context).pushAndRemoveUntil(
+          _launchRoute(_launchDestinationForRoute('/admin', user)),
+          (route) => false,
+        );
+        return;
+      }
       if (widget.mode == AbzioAppMode.vendor) {
         final route = routeForUserInMode(user, widget.mode);
         debugPrint('route=$route');
