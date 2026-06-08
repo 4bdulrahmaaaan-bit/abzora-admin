@@ -18,7 +18,7 @@ class ProductBasicInfoSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.borderColor),
+        border: Border.all(color: AbzioTheme.lightBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,16 +115,16 @@ class ProductBasicInfoSection extends StatelessWidget {
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withOpacity(0.5)),
+            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withValues(alpha: 0.5), fontSize: 14),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -165,7 +165,7 @@ class ProductBasicInfoSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: items.contains(value) ? value : (items.isNotEmpty ? items.first : null),
+          initialValue: items.contains(value) ? value : null,
           onChanged: onChanged,
           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AbzioTheme.textSecondary),
           decoration: InputDecoration(
@@ -173,11 +173,11 @@ class ProductBasicInfoSection extends StatelessWidget {
             fillColor: const Color(0xFFF9FAFB),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),

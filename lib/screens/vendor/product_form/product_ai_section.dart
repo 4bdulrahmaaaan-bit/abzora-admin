@@ -22,7 +22,7 @@ class _ProductAiSectionState extends State<ProductAiSection> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.borderColor),
+        border: Border.all(color: AbzioTheme.lightBorder),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -160,16 +160,16 @@ class _ProductAiSectionState extends State<ProductAiSection> {
           style: GoogleFonts.jetBrainsMono(fontSize: 13, color: AbzioTheme.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withOpacity(0.5)),
+            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withValues(alpha: 0.5)),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),

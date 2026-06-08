@@ -23,7 +23,7 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.borderColor),
+        border: Border.all(color: AbzioTheme.lightBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,12 +81,12 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
                 'Estimated Delivery Time (Standard)',
                 style: GoogleFonts.inter(
                   fontWeight: FontWeight.w600,
-                  color: AbzioTheme.textPrimary,
+                  color: AbzioTheme.textSecondary.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: controller.etaDropdown,
+                initialValue: controller.etaDropdown,
                 onChanged: (val) {
                   if (val != null) {
                     setState(() => controller.etaDropdown = val);
@@ -98,11 +98,11 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
                   fillColor: const Color(0xFFF9FAFB),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AbzioTheme.borderColor),
+                    borderSide: BorderSide(color: AbzioTheme.lightBorder),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AbzioTheme.borderColor),
+                    borderSide: BorderSide(color: AbzioTheme.lightBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -142,11 +142,11 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
           color: isActive ? const Color(0xFFF0FDF4) : Colors.white,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: isActive ? const Color(0xFF16A34A) : AbzioTheme.borderColor,
+            color: isActive ? const Color(0xFF16A34A) : AbzioTheme.lightBorder,
             width: isActive ? 1.5 : 1,
           ),
           boxShadow: isActive
-              ? [BoxShadow(color: const Color(0xFF16A34A).withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))]
+              ? [BoxShadow(color: const Color(0xFF16A34A).withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2))]
               : [],
         ),
         child: Row(

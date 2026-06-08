@@ -18,7 +18,7 @@ class ProductDetailsSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.borderColor),
+        border: Border.all(color: AbzioTheme.lightBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,16 +120,16 @@ class ProductDetailsSection extends StatelessWidget {
           maxLines: maxLines,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withOpacity(0.5)),
+            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withValues(alpha: 0.5), fontSize: 14),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -160,20 +160,20 @@ class ProductDetailsSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: items.contains(value) ? value : null,
+          initialValue: items.contains(value) ? value : null,
           onChanged: onChanged,
-          hint: Text('Select $label', style: GoogleFonts.inter(color: AbzioTheme.textSecondary.withOpacity(0.5))),
+          hint: Text('Select $label', style: GoogleFonts.inter(color: AbzioTheme.textSecondary.withValues(alpha: 0.5))),
           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AbzioTheme.textSecondary),
           decoration: InputDecoration(
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),

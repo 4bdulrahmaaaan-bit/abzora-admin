@@ -12,8 +12,6 @@ class ProductInventorySection extends StatefulWidget {
 }
 
 class _ProductInventorySectionState extends State<ProductInventorySection> {
-  bool _advancedExpanded = false;
-
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ProductFormController>();
@@ -41,7 +39,7 @@ class _ProductInventorySectionState extends State<ProductInventorySection> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.borderColor),
+        border: Border.all(color: AbzioTheme.lightBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,7 +91,7 @@ class _ProductInventorySectionState extends State<ProductInventorySection> {
                   onPressed: controller.generateSku,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: BorderSide(color: AbzioTheme.borderColor),
+                    side: BorderSide(color: AbzioTheme.lightBorder),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: Text(
@@ -144,7 +142,6 @@ class _ProductInventorySectionState extends State<ProductInventorySection> {
                   color: AbzioTheme.textSecondary,
                 ),
               ),
-              onExpansionChanged: (expanded) => setState(() => _advancedExpanded = expanded),
               children: [
                 const SizedBox(height: 8),
                 _buildTextField(
@@ -184,16 +181,16 @@ class _ProductInventorySectionState extends State<ProductInventorySection> {
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withOpacity(0.5)),
+            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withValues(alpha: 0.5)),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),

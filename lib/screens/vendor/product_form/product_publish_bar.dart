@@ -26,12 +26,12 @@ class ProductPublishBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: AbzioTheme.borderColor)),
+        border: Border(top: BorderSide(color: AbzioTheme.lightBorder)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             offset: const Offset(0, -4),
-            blurRadius: 12,
+            blurRadius: 10,
           ),
         ],
       ),
@@ -44,7 +44,7 @@ class ProductPublishBar extends StatelessWidget {
                 onPressed: onSaveDraft,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: AbzioTheme.borderColor),
+                  side: BorderSide(color: AbzioTheme.lightBorder),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: Text(
@@ -63,7 +63,7 @@ class ProductPublishBar extends StatelessWidget {
                 icon: const Icon(Icons.remove_red_eye_outlined, size: 18),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: AbzioTheme.accentColor.withOpacity(0.5)),
+                  side: BorderSide(color: AbzioTheme.accentColor.withValues(alpha: 0.5)),
                   backgroundColor: const Color(0xFFF9FAFB),
                   foregroundColor: AbzioTheme.accentColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

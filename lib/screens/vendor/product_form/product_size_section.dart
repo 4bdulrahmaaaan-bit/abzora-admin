@@ -22,7 +22,7 @@ class ProductSizeSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.borderColor),
+        border: Border.all(color: AbzioTheme.lightBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,7 +60,7 @@ class ProductSizeSection extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: sizes.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final size = sizes[index];
               return Row(
@@ -72,7 +72,7 @@ class ProductSizeSection extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: const Color(0xFFF9FAFB),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AbzioTheme.borderColor),
+                      border: Border.all(color: AbzioTheme.lightBorder),
                     ),
                     child: Text(
                       size,
@@ -94,7 +94,7 @@ class ProductSizeSection extends StatelessWidget {
                         // To update total stock UI, force notify
                         // We could use a specific method in controller
                         // Hacky fix for stateless widget to notify Provider:
-                        Future.microtask(() => controller.notifyListeners());
+                        controller.forceNotify();
                       },
                       decoration: InputDecoration(
                         hintText: 'Qty',
@@ -103,11 +103,11 @@ class ProductSizeSection extends StatelessWidget {
                         prefixIcon: const Icon(Icons.inventory_2_outlined, size: 18, color: AbzioTheme.textSecondary),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: AbzioTheme.borderColor),
+                          borderSide: BorderSide(color: AbzioTheme.lightBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: AbzioTheme.borderColor),
+                          borderSide: BorderSide(color: AbzioTheme.lightBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),

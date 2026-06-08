@@ -17,7 +17,7 @@ class ProductVariantsSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.borderColor),
+        border: Border.all(color: AbzioTheme.lightBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,17 +64,17 @@ class ProductVariantsSection extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: controller.colorVariants.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final variant = controller.colorVariants[index];
-                int vStock = variant.sizes.fold(0, (sum, s) => sum + s.stock);
+                int vStock = variant.sizeStocks.fold(0, (sum, s) => sum + s.stockQuantity);
 
                 return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF9FAFB),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AbzioTheme.borderColor),
+                    border: Border.all(color: AbzioTheme.lightBorder),
                   ),
                   child: Row(
                     children: [
@@ -104,7 +104,7 @@ class ProductVariantsSection extends StatelessWidget {
                                   width: 12,
                                   height: 12,
                                   decoration: BoxDecoration(
-                                    color: _parseHex(variant.hexCode),
+                                    color: _parseHex(variant.hex),
                                     shape: BoxShape.circle,
                                     border: Border.all(color: Colors.black12),
                                   ),
@@ -121,7 +121,7 @@ class ProductVariantsSection extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Images: ${variant.images.length} • Sizes: ${variant.sizes.map((s) => s.size).join(', ')} • Stock: $vStock',
+                              'Images: ${variant.images.length} • Sizes: ${variant.sizes.join(', ')} • Stock: $vStock',
                               style: GoogleFonts.inter(
                                 fontSize: 13,
                                 color: AbzioTheme.textSecondary,
@@ -144,7 +144,7 @@ class ProductVariantsSection extends StatelessWidget {
                         },
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          side: BorderSide(color: AbzioTheme.borderColor),
+                          side: BorderSide(color: AbzioTheme.lightBorder),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         child: Text(

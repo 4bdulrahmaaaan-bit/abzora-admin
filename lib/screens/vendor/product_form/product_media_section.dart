@@ -29,7 +29,7 @@ class ProductMediaSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.borderColor),
+        border: Border.all(color: AbzioTheme.lightBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,9 +69,9 @@ class ProductMediaSection extends StatelessWidget {
                 width: double.infinity,
                 height: 200,
                 decoration: BoxDecoration(
-                  color: AbzioTheme.bgSurface,
+                  color: AbzioTheme.lightMuted,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AbzioTheme.borderColor, style: BorderStyle.solid),
+                  border: Border.all(color: AbzioTheme.lightBorder, style: BorderStyle.solid),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -97,7 +97,7 @@ class ProductMediaSection extends StatelessWidget {
               child: ReorderableListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: controller.imageUrls.length,
-                onReorder: controller.reorderImages,
+                onReorderItem: (oldIndex, newIndex) => controller.reorderImages(oldIndex, newIndex),
                 buildDefaultDragHandles: false,
                 itemBuilder: (context, index) {
                   final url = controller.imageUrls[index];
@@ -106,14 +106,13 @@ class ProductMediaSection extends StatelessWidget {
                     key: ValueKey(url),
                     index: index,
                     child: Container(
-                      width: 224, // 4:5 aspect ratio (224x280)
+                      width: 224,
                       margin: const EdgeInsets.only(right: 16),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
                         image: DecorationImage(
                           image: NetworkImage(url),
                           fit: BoxFit.cover,
-                          onError: (_, __) => const NetworkImage('https://placehold.co/400x500/png'),
                         ),
                       ),
                       child: Stack(
@@ -146,13 +145,13 @@ class ProductMediaSection extends StatelessWidget {
                               children: [
                                 if (!isCover)
                                   IconButton(
-                                    style: IconButton.styleFrom(backgroundColor: Colors.white.withOpacity(0.9)),
+                                    style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.9)),
                                     icon: const Icon(Icons.star_rounded, size: 18, color: AbzioTheme.accentColor),
                                     onPressed: () => controller.markAsCover(index),
                                   ),
                                 const SizedBox(width: 4),
                                 IconButton(
-                                  style: IconButton.styleFrom(backgroundColor: Colors.white.withOpacity(0.9)),
+                                  style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.9)),
                                   icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFC03C2E)),
                                   onPressed: () => controller.removeImage(index),
                                 ),

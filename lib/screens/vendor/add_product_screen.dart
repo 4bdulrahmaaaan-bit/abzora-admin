@@ -14,7 +14,7 @@ import 'product_form/product_details_section.dart';
 import 'product_form/product_delivery_section.dart';
 import 'product_form/product_ai_section.dart';
 import 'product_form/product_publish_bar.dart';
-import '../../providers/product_provider.dart';
+import '../../services/database_service.dart';
 
 class AddProductScreen extends StatelessWidget {
   final String storeId;
@@ -100,8 +100,7 @@ class _AddProductScreenContentState extends State<_AddProductScreenContent> {
     setState(() => _isSubmitting = true);
 
     try {
-      final productProvider = context.read<ProductProvider>();
-      controller.status = newStatus;
+      final db = DatabaseService();
       
       // Basic translation to Product model (In real implementation, connect to API)
       final p = Product(
@@ -137,14 +136,16 @@ class _AddProductScreenContentState extends State<_AddProductScreenContent> {
       );
 
       if (controller.existingProduct != null) {
-        await productProvider.updateProduct(p.id, p.toMap());
+        await db.updateProduct(p);
+        if (!context.mounted) return;
         _showSuccess('Product updated successfully!');
       } else {
-        await productProvider.addProduct(p);
+        await db.addProduct(p);
+        if (!context.mounted) return;
         _showSuccess('Product created successfully!');
       }
       
-      if (mounted) Navigator.pop(context);
+      if (context.mounted) Navigator.pop(context);
     } catch (e) {
       _showError('Error saving product: $e');
     } finally {

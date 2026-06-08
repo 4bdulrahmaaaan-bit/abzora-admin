@@ -30,9 +30,9 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
     if (widget.variantIndex != null) {
       final variant = widget.controller.colorVariants[widget.variantIndex!];
       _nameController.text = variant.name;
-      _hexController.text = variant.hexCode;
-      _skuController.text = variant.id;
-      _priceOverrideController.text = variant.priceOverride?.toStringAsFixed(0) ?? '';
+      _hexController.text = variant.hex;
+      _skuController.text = variant.variantId;
+      _priceOverrideController.text = variant.price?.toStringAsFixed(0) ?? '';
     } else {
       _hexController.text = '#000000';
     }
@@ -40,13 +40,13 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
 
   void _saveVariant() {
     final newVariant = ProductColorVariant(
-      id: _skuController.text.isEmpty ? 'VAR-${DateTime.now().millisecondsSinceEpoch}' : _skuController.text,
+      variantId: _skuController.text.isEmpty ? 'VAR-${DateTime.now().millisecondsSinceEpoch}' : _skuController.text,
       name: _nameController.text,
-      hexCode: _hexController.text,
+      hex: _hexController.text,
       images: [], // To be implemented with media section later
       sizes: [],  // Simplified for now
-      priceOverride: double.tryParse(_priceOverrideController.text),
-      isActive: true,
+      price: double.tryParse(_priceOverrideController.text),
+      status: 'active',
     );
 
     if (widget.variantIndex != null) {
@@ -87,7 +87,7 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AbzioTheme.borderColor),
+                border: Border.all(color: AbzioTheme.lightBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

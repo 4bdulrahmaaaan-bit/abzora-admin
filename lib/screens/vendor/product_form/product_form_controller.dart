@@ -203,6 +203,10 @@ class ProductFormController extends ChangeNotifier {
     return sizeQuantities.values.fold(0, (sum, q) => sum + q);
   }
 
+  void forceNotify() {
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     nameController.dispose();

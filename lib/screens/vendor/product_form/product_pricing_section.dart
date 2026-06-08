@@ -17,7 +17,7 @@ class ProductPricingSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.borderColor),
+        border: Border.all(color: AbzioTheme.lightBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,17 +134,17 @@ class ProductPricingSection extends StatelessWidget {
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withOpacity(0.5)),
+            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withValues(alpha: 0.5)),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
             prefixIcon: const Icon(Icons.currency_rupee_rounded, size: 18, color: AbzioTheme.textSecondary),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AbzioTheme.borderColor),
+              borderSide: BorderSide(color: AbzioTheme.lightBorder),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
