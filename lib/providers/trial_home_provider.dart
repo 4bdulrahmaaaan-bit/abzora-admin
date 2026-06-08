@@ -133,6 +133,20 @@ class TrialHomeProvider with ChangeNotifier {
     }, actionKey: 'cancel:$trialId');
   }
 
+  Future<TrialSession> submitFeedback({
+    required String trialId,
+    required String fit,
+    required String note,
+    required String tailoringRecommendation,
+    String? status,
+  }) async {
+    return _runGuarded(() async {
+      final session = await _api.modifyTrial(trialId, note: '$note\nFit: $fit\nRecommendation: $tailoringRecommendation');
+      _currentTrial = session;
+      return session;
+    }, actionKey: 'feedback:$trialId');
+  }
+
   Future<TrialSession> awaitFinalPayment({
     required String trialId,
     required List<String> keptItems,

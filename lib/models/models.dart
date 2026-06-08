@@ -981,6 +981,8 @@ class Product {
     this.tailoringExtraCost = 0,
   });
 
+  bool get isActive => status == ProductStatus.active;
+
   Product copyWith({
     Store? store,
     String? id,

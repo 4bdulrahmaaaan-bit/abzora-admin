@@ -1197,7 +1197,6 @@ class HomeContent extends StatefulWidget {
 class _HomeContentState extends State<HomeContent>
     with AutomaticKeepAliveClientMixin {
   final _scrollController = ScrollController();
-  bool _profileModalShown = false;
   bool _isHeaderScrolled = false;
   Timer? _loadMoreThrottle;
   String? _lastHydratedUserId;

@@ -97,6 +97,10 @@ class TrialHomeApi {
     String? addressLabel,
     String? deliverySlot,
     String? paymentStatus,
+    String? note,
+    String? fit,
+    String? tailoringRecommendation,
+    String? status,
   }) async {
     final currentSession = await getTrialById(id);
     TrialStatusGuard.validateModifiable(currentSession.status);
@@ -114,6 +118,10 @@ class TrialHomeApi {
     if (paymentStatus != null) {
       body['paymentStatus'] = paymentStatus;
     }
+    if (note != null) body['note'] = note;
+    if (fit != null) body['fit'] = fit;
+    if (tailoringRecommendation != null) body['tailoringRecommendation'] = tailoringRecommendation;
+    if (status != null) body['status'] = status;
     final payload = await _client.patch(
       '/trial-home/$id/modify',
       authenticated: true,

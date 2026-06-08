@@ -570,19 +570,6 @@ class PoseMeasurementService {
       return null;
     }
 
-    final optionalPoints = <PoseLandmark?>[
-      leftHip,
-      rightHip,
-      leftElbow,
-      rightElbow,
-      leftWrist,
-      rightWrist,
-      leftKnee,
-      rightKnee,
-      leftAnkle,
-      rightAnkle,
-      nose,
-    ];
     // final allPoints = <PoseLandmark>[
     //   leftShoulder,
     //   rightShoulder,

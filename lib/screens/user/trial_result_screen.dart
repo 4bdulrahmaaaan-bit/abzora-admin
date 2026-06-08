@@ -74,7 +74,6 @@ class _TrialResultScreenState extends State<TrialResultScreen> {
         trialId: session.id,
         keptItems: keptItems,
         returnedItems: returnedItems,
-        useTailoring: false,
       );
       if (!mounted) {
         return;

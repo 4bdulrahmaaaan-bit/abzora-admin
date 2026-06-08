@@ -36,11 +36,6 @@ class _TrialTailoringConversionScreenState
         trialId: widget.trialId,
         keptItems: const <String>[],
         returnedItems: const <String>[],
-        useTailoring: true,
-        tailoringRequest: _notesController.text.trim().isEmpty
-            ? 'Please refine this fit for my body profile.'
-            : _notesController.text.trim(),
-        adjustmentOptions: _adjustments.toList(),
       );
       if (!mounted) {
         return;
