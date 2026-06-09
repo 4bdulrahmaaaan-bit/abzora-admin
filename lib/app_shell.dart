@@ -96,7 +96,7 @@ Future<void> bootstrapAndRunWithInitialRoute(
 
       await SentryFlutter.init(
         (options) {
-          options.dsn = 'https://example@sentry.io/example';
+          options.dsn = '';
           options.tracesSampleRate = 1.0;
         },
         appRunner: () => runApp(AbzioBootstrapApp(mode: mode, initialRoute: initialRoute)),

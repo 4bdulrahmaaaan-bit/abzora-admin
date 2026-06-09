@@ -39,7 +39,7 @@ class AppBootstrapService {
       debugPrint('Abianzo Firebase project: ${Firebase.app().options.projectId}');
       if (AppConfig.hasBackendBaseUrl) {
         try {
-          FirebaseDatabase.instance.goOffline();
+          // FirebaseDatabase.instance.goOffline();
           debugPrint('Firebase Realtime Database disabled in backend mode.');
         } catch (error) {
           debugPrint('Firebase RTDB bootstrap fallback: $error');

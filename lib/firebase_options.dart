@@ -45,6 +45,7 @@ class DefaultFirebaseOptions {
     appId: '1:473004460649:web:688a272c89d6e8e902b0f8',
     messagingSenderId: '473004460649',
     projectId: 'abzora-bbed7',
+    databaseURL: 'https://abzora-bbed7-default-rtdb.firebaseio.com',
     authDomain: 'abzora-bbed7.firebaseapp.com',
     storageBucket: 'abzora-bbed7.firebasestorage.app',
     measurementId: 'G-NYSLMQY368',
@@ -55,6 +56,7 @@ class DefaultFirebaseOptions {
     appId: '1:473004460649:android:d296d2172af8c78702b0f8',
     messagingSenderId: '473004460649',
     projectId: 'abzora-bbed7',
+    databaseURL: 'https://abzora-bbed7-default-rtdb.firebaseio.com',
     storageBucket: 'abzora-bbed7.firebasestorage.app',
   );
 
@@ -63,6 +65,7 @@ class DefaultFirebaseOptions {
     appId: '1:473004460649:ios:006db616363149f102b0f8',
     messagingSenderId: '473004460649',
     projectId: 'abzora-bbed7',
+    databaseURL: 'https://abzora-bbed7-default-rtdb.firebaseio.com',
     storageBucket: 'abzora-bbed7.firebasestorage.app',
     iosBundleId: 'com.abdz.fashion.abzio',
   );
@@ -72,6 +75,7 @@ class DefaultFirebaseOptions {
     appId: '1:473004460649:ios:006db616363149f102b0f8',
     messagingSenderId: '473004460649',
     projectId: 'abzora-bbed7',
+    databaseURL: 'https://abzora-bbed7-default-rtdb.firebaseio.com',
     storageBucket: 'abzora-bbed7.firebasestorage.app',
     iosBundleId: 'com.abdz.fashion.abzio',
   );
@@ -81,6 +85,7 @@ class DefaultFirebaseOptions {
     appId: '1:473004460649:web:688a272c89d6e8e902b0f8',
     messagingSenderId: '473004460649',
     projectId: 'abzora-bbed7',
+    databaseURL: 'https://abzora-bbed7-default-rtdb.firebaseio.com',
     authDomain: 'abzora-bbed7.firebaseapp.com',
     storageBucket: 'abzora-bbed7.firebasestorage.app',
     measurementId: 'G-NYSLMQY368',

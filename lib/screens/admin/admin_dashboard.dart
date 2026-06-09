@@ -90,13 +90,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
       _users = users;
       _orders = orders;
       _pendingKyc = pendingVendorKyc + pendingRiderKyc;
-      _loading = false;
+      
     });
     _resetIdleTimer();
       _refreshFailureStreak = 0;
     } catch (_) {
       _refreshFailureStreak += 1;
     } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
       _refreshInFlight = false;
     }
   }
