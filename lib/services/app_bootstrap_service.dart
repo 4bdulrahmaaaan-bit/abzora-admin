@@ -22,13 +22,9 @@ class AppBootstrapService {
     var notificationsReady = false;
 
     try {
-      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-        await Firebase.initializeApp();
-      } else {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-      }
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
       firebaseReady = true;
     } catch (error) {
       debugPrint('Firebase bootstrap fallback: $error');
