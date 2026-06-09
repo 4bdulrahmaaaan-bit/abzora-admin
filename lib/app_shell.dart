@@ -388,6 +388,8 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     }
   }
 
+  String? _routingError;
+
   Future<void> _navigateToResolvedRoute(AuthProvider auth) async {
     if (!mounted || _didRoute) {
       return;
@@ -401,11 +403,12 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     final user = auth.user;
     _didRoute = true;
     
-    debugPrint('=== ROUTE DECISION ===');
-    debugPrint('uid=${user?.id ?? "null"}');
-    debugPrint('role=${user?.role ?? "null"}');
-    debugPrint('vendorId=${user?.storeId ?? "null"}');
-    debugPrint('hasVendorAccess=${hasVendorOperationsAccess(user)}');
+    try {
+      debugPrint('=== ROUTE DECISION ===');
+      debugPrint('uid=${user?.id ?? "null"}');
+      debugPrint('role=${user?.role ?? "null"}');
+      debugPrint('vendorId=${user?.storeId ?? "null"}');
+      debugPrint('hasVendorAccess=${hasVendorOperationsAccess(user)}');
 
     if (user != null) {
       if (widget.mode == AbzioAppMode.unified && kIsWeb) {
@@ -490,6 +493,13 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       _launchRoute(_launchDestinationForRoute('/home', null)),
       (route) => false,
     );
+    } catch (e, st) {
+      if (mounted) {
+        setState(() {
+          _routingError = '$e\n$st';
+        });
+      }
+    }
   }
 
   @override
@@ -503,6 +513,23 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         unawaited(_navigateToResolvedRoute(auth));
       });
+    }
+
+    if (_routingError != null || auth.restoreError != null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text(
+                'Launch Error:\n${_routingError ?? auth.restoreError}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     return const Scaffold(
@@ -1037,7 +1064,16 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
     final startTime = DateTime.now();
     debugPrint('Startup Performance: App Launch at $startTime');
 
-    await AppBootstrapService().initialize();
+    try {
+      await AppBootstrapService().initialize();
+    } catch (e, st) {
+      debugPrint('Bootstrap Error: $e');
+      if (mounted) {
+        setState(() {
+          _bootstrapError = '$e\n$st';
+        });
+      }
+    }
 
     final imageCache = PaintingBinding.instance.imageCache;
     imageCache.maximumSizeBytes = 200 << 20;
@@ -1047,11 +1083,32 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
     debugPrint('Startup Performance: API Complete at $endTime. Duration: ${endTime.difference(startTime).inMilliseconds}ms');
   }
 
+  String? _bootstrapError;
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<void>(
       future: _initFuture,
       builder: (context, snapshot) {
+        if (_bootstrapError != null || snapshot.hasError) {
+          return MaterialApp(
+            home: Scaffold(
+              backgroundColor: Colors.white,
+              body: Center(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Text(
+                      'Initialization Error:\n${_bootstrapError ?? snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+        
         if (snapshot.connectionState != ConnectionState.done) {
           debugPrint('Startup Performance: Skeleton Rendered at ');
           return MaterialApp(

@@ -260,6 +260,9 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
+  String? _restoreError;
+  String? get restoreError => _restoreError;
+
   Future<void> _restoreSession() async {
     _isRestoringSession = true;
     debugPrint('=== PROFILE LOAD START ===');
@@ -277,6 +280,9 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
         await _sessionService.saveUserSnapshot(existingUser);
         await _refreshAuthToken(forceRefresh: false);
       }
+    } catch (e, st) {
+      _restoreError = '$e\n$st';
+      debugPrint('Restore Error: $_restoreError');
     } finally {
       debugPrint(
           'AuthProvider: session restore complete (user=${_user?.id}).');
