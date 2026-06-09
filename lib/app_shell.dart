@@ -1065,7 +1065,10 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
     debugPrint('Startup Performance: App Launch at $startTime');
 
     try {
-      await AppBootstrapService().initialize();
+      await AppBootstrapService().initialize().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw Exception('AppBootstrapService.initialize() timed out after 10 seconds'),
+      );
     } catch (e, st) {
       debugPrint('Bootstrap Error: $e');
       if (mounted) {

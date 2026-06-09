@@ -268,13 +268,22 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     debugPrint('=== PROFILE LOAD START ===');
     debugPrint('=== VENDOR LOAD START ===');
     try {
-      await _sessionService.initialize();
-      await FirebaseAuth.instance.authStateChanges().first.timeout(
-        const Duration(seconds: 2),
-        onTimeout: () => FirebaseAuth.instance.currentUser,
+      await _sessionService.initialize().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw Exception('sessionService.initialize() timed out'),
       );
-      await _sessionService.refreshIfNeeded();
-      final existingUser = await _authService.getCurrentAppUser();
+      await FirebaseAuth.instance.authStateChanges().first.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw Exception('authStateChanges().first timed out'),
+      );
+      await _sessionService.refreshIfNeeded().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw Exception('sessionService.refreshIfNeeded() timed out'),
+      );
+      final existingUser = await _authService.getCurrentAppUser().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw Exception('getCurrentAppUser() timed out'),
+      );
       if (existingUser != null) {
         _bindLiveProfile(existingUser);
         await _sessionService.saveUserSnapshot(existingUser);
