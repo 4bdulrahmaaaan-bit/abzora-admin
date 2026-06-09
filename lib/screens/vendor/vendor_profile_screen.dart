@@ -7,6 +7,7 @@ import '../../services/auth_session_service.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_error_text.dart';
 import '../../widgets/state_views.dart';
+import '../../core/vendor/vendor_status_helper.dart';
 import 'store_settings_screen.dart';
 
 class VendorProfileScreen extends StatefulWidget {
@@ -25,6 +26,9 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
   Future<Store?> _loadStoreForUser(AppUser user) async {
     try {
       await AuthSessionService.instance.refreshIfNeeded();
+      if (user.storeId != null && user.storeId!.isNotEmpty) {
+        return await _db.getStore(user.storeId!);
+      }
       return await _db.getStoreByOwner(user.id);
     } catch (error) {
       debugPrint('VendorProfileScreen: store load failed for ${user.id}: $error');
@@ -132,9 +136,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                   _ProfileTile(
                     icon: Icons.verified_rounded,
                     title: 'KYC status',
-                    subtitle:
-                        store?.approvalStatus.toUpperCase() ??
-                        'Registration pending',
+                    subtitle: VendorStatusHelper.getVendorStatus(user: user, store: store).name.toUpperCase(),
                   ),
                 ],
               ),
@@ -189,9 +191,7 @@ class _VendorProfileHeader extends StatelessWidget {
     final displayName = store?.name.isNotEmpty == true
         ? store!.name
         : user.name;
-    final status = store?.approvalStatus.trim().isNotEmpty == true
-        ? store!.approvalStatus
-        : 'pending';
+    final status = VendorStatusHelper.getVendorStatus(user: user, store: store).name;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(

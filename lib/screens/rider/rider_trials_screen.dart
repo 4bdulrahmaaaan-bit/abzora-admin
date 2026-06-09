@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/trial_session.dart';
 import '../../theme.dart';
+import '../../services/rider_trials_api.dart';
 import 'rider_trial_flow_screen.dart';
 
 class RiderTrialsScreen extends StatefulWidget {
@@ -11,53 +12,99 @@ class RiderTrialsScreen extends StatefulWidget {
 }
 
 class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
-  // In a real implementation, fetch this from an API endpoint for Rider Assigned Trials
-  final List<TrialSession> _mockTrials = [
-    TrialSession(
-      id: 'tbyb-active-001',
-      userId: 'user_mock',
-      items: const [], // Mock items
-      status: 'in_transit',
-      addressLabel: '123 Fashion Street, Mumbai',
-      deliverySlot: 'Today | 4 PM - 6 PM',
-      deliveryWindowLabel: '15 Minutes',
-      trialFee: 99,
-      subtotal: 0,
-      bookingFeePaid: true,
-      trialDurationMinutes: 15,
-    ),
-    TrialSession(
-      id: 'tbyb-upcoming-002',
-      userId: 'user_mock2',
-      items: const [],
-      status: 'assigned',
-      addressLabel: '456 Trend Ave, Delhi',
-      deliverySlot: 'Tomorrow | 10 AM - 12 PM',
-      deliveryWindowLabel: '15 Minutes',
-      trialFee: 99,
-      subtotal: 0,
-      bookingFeePaid: true,
-      trialDurationMinutes: 15,
-    ),
-  ];
+  List<TrialSession> _activeTrials = [];
+  List<TrialSession> _assignedTrials = [];
+  List<TrialSession> _completedTrials = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTrials();
+  }
+
+  Future<void> _fetchTrials() async {
+    setState(() => _isLoading = true);
+    try {
+      final active = await RiderTrialsApi.getActiveTrials();
+      final assigned = await RiderTrialsApi.getAssignedTrials();
+      final completed = await RiderTrialsApi.getCompletedTrials();
+      
+      if (mounted) {
+        setState(() {
+          _activeTrials = active;
+          _assignedTrials = assigned;
+          _completedTrials = completed;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load trials: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F4EE),
-      appBar: AppBar(
-        title: const Text('TBYB Trial Trips'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F4EE),
+        appBar: AppBar(
+          title: const Text('TBYB Trial Trips'),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          bottom: const TabBar(
+            labelColor: AbzioTheme.accentColor,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: AbzioTheme.accentColor,
+            tabs: [
+              Tab(text: 'Active'),
+              Tab(text: 'Upcoming'),
+              Tab(text: 'Completed'),
+            ],
+          ),
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : TabBarView(
+                children: [
+                  _buildTrialList(_activeTrials, 'No active trials.'),
+                  _buildTrialList(_assignedTrials, 'No upcoming trials assigned to you.'),
+                  _buildTrialList(_completedTrials, 'No completed trials yet.'),
+                ],
+              ),
       ),
-      body: ListView.builder(
+    );
+  }
+
+  Widget _buildTrialList(List<TrialSession> trials, String emptyMessage) {
+    if (trials.isEmpty) {
+      return Center(
+        child: Text(
+          emptyMessage,
+          style: const TextStyle(color: Colors.grey, fontSize: 16),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _fetchTrials,
+      child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: _mockTrials.length,
+        itemCount: trials.length,
         itemBuilder: (context, index) {
-          final trial = _mockTrials[index];
-          final isActive = trial.status == 'in_transit' || trial.status == 'in_progress';
-          
+          final trial = trials[index];
+          final isActive = trial.status != 'assigned' && trial.status != 'completed' && trial.status != 'cancelled' && trial.status != 'no_show';
+          final isCompleted = trial.status == 'completed' || trial.status == 'cancelled' || trial.status == 'no_show';
+
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(16),
@@ -77,10 +124,10 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      isActive ? 'Active Trial' : 'Upcoming Trial',
+                      isActive ? 'Active Trial' : (isCompleted ? 'Completed' : 'Upcoming Trial'),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: isActive ? AbzioTheme.accentColor : AbzioTheme.grey600,
+                        color: isActive ? AbzioTheme.accentColor : (isCompleted ? Colors.green : AbzioTheme.grey600),
                       ),
                     ),
                     Text(
@@ -112,12 +159,12 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
                         MaterialPageRoute(
                           builder: (_) => RiderTrialFlowScreen(session: trial),
                         ),
-                      );
+                      ).then((_) => _fetchTrials());
                     },
                     style: FilledButton.styleFrom(
                       backgroundColor: isActive ? AbzioTheme.accentColor : Colors.grey[800],
                     ),
-                    child: Text(isActive ? 'Manage Trial' : 'View Details'),
+                    child: Text(isCompleted ? 'View Details' : (isActive ? 'Manage Trial' : 'Start Trip')),
                   ),
                 ),
               ],

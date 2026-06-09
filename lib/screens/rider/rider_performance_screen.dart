@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../services/rider_earnings_api.dart';
+import '../../services/rider_performance_api.dart';
 import '../../widgets/state_views.dart';
 
-class RiderEarningsScreen extends StatefulWidget {
-  const RiderEarningsScreen({super.key});
+class RiderPerformanceScreen extends StatefulWidget {
+  const RiderPerformanceScreen({super.key});
 
   @override
-  State<RiderEarningsScreen> createState() => _RiderEarningsScreenState();
+  State<RiderPerformanceScreen> createState() => _RiderPerformanceScreenState();
 }
 
-class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
-  Future<Map<String, dynamic>>? _summaryFuture;
-  Future<List<dynamic>>? _earningsFuture;
+class _RiderPerformanceScreenState extends State<RiderPerformanceScreen> {
+  Future<Map<String, dynamic>>? _performanceFuture;
+  Future<List<dynamic>>? _incentivesFuture;
 
   @override
   void initState() {
@@ -21,29 +21,29 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
 
   Future<void> _refresh() async {
     setState(() {
-      _summaryFuture = RiderEarningsApi.getEarningsSummary();
-      _earningsFuture = RiderEarningsApi.getEarnings();
+      _performanceFuture = RiderPerformanceApi.getPerformance();
+      _incentivesFuture = RiderPerformanceApi.getIncentives();
     });
-    await Future.wait([_summaryFuture!, _earningsFuture!]);
+    await Future.wait([_performanceFuture!, _incentivesFuture!]);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Earnings')),
+      appBar: AppBar(title: const Text('Performance')),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             FutureBuilder<Map<String, dynamic>>(
-              future: _summaryFuture,
+              future: _performanceFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const AbzioLoadingView(title: 'Loading earnings summary');
+                  return const AbzioLoadingView(title: 'Loading stats');
                 }
                 if (snapshot.hasError || !snapshot.hasData) {
-                  return const Text('Failed to load summary.');
+                  return const Text('Failed to load performance metrics.');
                 }
                 final data = snapshot.data!;
                 return Card(
@@ -52,14 +52,14 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
                     child: Column(
                       children: [
                         Text(
-                          'Today: ₹${data['today']}',
+                          'Rider Score: ${data['riderScore']}',
                           style: Theme.of(context).textTheme.headlineMedium,
                         ),
                         const SizedBox(height: 16),
-                        _buildStat('Weekly', '₹${data['weekly']}'),
-                        _buildStat('Monthly', '₹${data['monthly']}'),
-                        _buildStat('Pending', '₹${data['pending']}'),
-                        _buildStat('TBYB Earnings', '₹${data['tbyb']}'),
+                        _buildStat('Acceptance Rate', '${data['acceptanceRate']}%'),
+                        _buildStat('Completion Rate', '${data['completionRate']}%'),
+                        _buildStat('Customer Rating', '${data['customerRating']}'),
+                        _buildStat('No Show Rate', '${data['noShowRate']}%'),
                       ],
                     ),
                   ),
@@ -67,22 +67,22 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
               },
             ),
             const SizedBox(height: 24),
-            Text('Recent Earnings', style: Theme.of(context).textTheme.titleLarge),
+            Text('Active Incentives', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             FutureBuilder<List<dynamic>>(
-              future: _earningsFuture,
+              future: _incentivesFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const CircularProgressIndicator();
                 }
                 final list = snapshot.data ?? [];
-                if (list.isEmpty) return const Text('No recent earnings.');
+                if (list.isEmpty) return const Text('No active incentives.');
                 return Column(
-                  children: list.map((e) => Card(
+                  children: list.map((inc) => Card(
                     child: ListTile(
-                      title: Text(e['earningType'].toString().replaceAll('_', ' ').toUpperCase()),
-                      subtitle: Text(e['status'].toString().toUpperCase()),
-                      trailing: Text('₹${e['amount']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      title: Text(inc['title']),
+                      subtitle: Text('Progress: ${inc['currentProgress']} / ${inc['target']}'),
+                      trailing: Text('₹${inc['rewardAmount']}'),
                     ),
                   )).toList(),
                 );

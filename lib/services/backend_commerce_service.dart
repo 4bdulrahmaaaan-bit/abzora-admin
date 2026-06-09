@@ -3760,6 +3760,22 @@ class BackendCommerceService {
         .toList();
   }
 
+  Future<List<Map<String, dynamic>>> getOptimizedRiderRoute({
+    double? lat,
+    double? lng,
+  }) async {
+    final payload = await _client.get(
+      '/rider/route',
+      authenticated: true,
+      queryParameters: {
+        if (lat != null) 'lat': lat.toString(),
+        if (lng != null) 'lng': lng.toString(),
+      },
+    );
+    final items = payload is List ? payload : const [];
+    return items.whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList();
+  }
+
   Future<UnifiedRiderTask> updateRiderLogisticsTaskStatus({
     required String taskId,
     required String status,
@@ -4678,6 +4694,10 @@ class BackendCommerceService {
       createdAt: map['createdAt']?.toString() ?? '',
       updatedAt:
           map['updatedAt']?.toString() ?? map['createdAt']?.toString() ?? '',
+      pickupLat: map['pickupLat'] == null ? null : (map['pickupLat'] as num).toDouble(),
+      pickupLng: map['pickupLng'] == null ? null : (map['pickupLng'] as num).toDouble(),
+      dropLat: map['dropLat'] == null ? null : (map['dropLat'] as num).toDouble(),
+      dropLng: map['dropLng'] == null ? null : (map['dropLng'] as num).toDouble(),
     );
   }
 

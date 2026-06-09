@@ -6,6 +6,7 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../routes/rider_routes.dart';
 import '../../services/onboarding_service.dart';
+import '../../utils/app_mode_routes.dart';
 import '../../widgets/state_views.dart';
 import '../../features/onboarding/rider_onboarding_screens.dart';
 
@@ -133,7 +134,7 @@ class _RiderOnboardingScreenState extends State<RiderOnboardingScreen> {
 
         final request = snapshot.data;
         final requestStatus = request?.status.toLowerCase().trim() ?? '';
-        final isApproved = user.role == 'rider' && user.riderApprovalStatus == 'approved';
+        final isApproved = hasRiderOperationsAccess(user);
         final hasExistingRequest = request != null;
         final showDashboard = isApproved || requestStatus == 'approved';
         final isNewUser = !hasExistingRequest && !isApproved;

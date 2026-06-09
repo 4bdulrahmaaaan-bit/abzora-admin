@@ -8,6 +8,7 @@ import '../../services/onboarding_service.dart';
 import '../../utils/app_error_text.dart';
 import '../../widgets/state_views.dart';
 import '../../features/onboarding/vendor_onboarding_flow_screen.dart';
+import '../../core/vendor/vendor_status_helper.dart';
 
 class VendorRegistrationScreen extends StatefulWidget {
   const VendorRegistrationScreen({super.key});
@@ -34,7 +35,9 @@ class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
 
   Future<_VendorRegistrationState> _loadState(AppUser user) async {
     final results = await Future.wait<dynamic>([
-      _db.getStoreByOwner(user.id),
+      user.storeId != null && user.storeId!.isNotEmpty
+          ? _db.getStore(user.storeId!)
+          : _db.getStoreByOwner(user.id),
       _onboardingService.getVendorRequestForUser(user.id),
     ]);
 
@@ -100,32 +103,21 @@ class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
         }
 
         final state = snapshot.data!;
-        final requestStatus = state.request?.status.toLowerCase().trim();
-        final hasStore = state.store != null;
-        final isApprovedVendor =
-            state.user.role == 'vendor' ||
-            requestStatus == 'approved' ||
-            hasStore;
+        final vendorStatus = VendorStatusHelper.getVendorStatus(user: state.user, store: state.store);
 
-        if (hasStore || isApprovedVendor) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Vendor Setup')),
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: AbzioEmptyCard(
-                  title: 'Store already active',
-                  subtitle:
-                      'This account already has approved vendor access${hasStore ? ' and an active store' : ''}. Open your operations workspace instead of registering again.',
-                  ctaLabel: 'OPEN VENDOR DASHBOARD',
-                  onTap: _openOpsWorkspace,
-                ),
-              ),
+        if (vendorStatus == VendorAccountStatus.approved) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _openOpsWorkspace();
+          });
+          return const Scaffold(
+            body: AbzioLoadingView(
+              title: 'Store active',
+              subtitle: 'Opening vendor dashboard...',
             ),
           );
         }
 
-        if (requestStatus == 'pending') {
+        if (vendorStatus == VendorAccountStatus.pending) {
           return Scaffold(
             appBar: AppBar(title: const Text('Vendor Setup')),
             body: Center(

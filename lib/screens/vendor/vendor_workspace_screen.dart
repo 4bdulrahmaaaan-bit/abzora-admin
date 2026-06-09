@@ -71,24 +71,31 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
       _error = null;
     });
     try {
-      final store = await _db.getStoreByOwner(safeActor.id);
+      final linkedStoreId = safeActor.storeId?.trim() ?? '';
+      Store? store;
+      if (linkedStoreId.isNotEmpty) {
+        store = await _db.getStore(linkedStoreId);
+      }
+      store ??= await _db.getStoreByOwner(safeActor.id);
+      
       if (store == null) throw Exception('Store not found.');
+      final validStore = store;
       final futures = <Future<dynamic>>[
-        _db.getVendorOrders(store.id, actor: safeActor).first,
-        _db.getVendorAnalytics(store.id, actor: safeActor),
+        _db.getVendorOrders(validStore.id, actor: safeActor).first,
+        _db.getVendorAnalytics(validStore.id, actor: safeActor),
         _db.getVendorWallet(actor: safeActor),
         _db.getVendorGrowthSummary(actor: safeActor, range: _growthRange),
         _db.getVendorGrowthRecommendations(actor: safeActor),
         _db.getVendorGrowthProductPerformance(actor: safeActor),
         _db.getVendorGrowthCharts(actor: safeActor),
       ];
-      if (store.vendorType == 'custom_vendor') {
+      if (validStore.vendorType == 'custom_vendor') {
         futures.add(_db.getCustomVendorQuality(actor: safeActor));
       }
       final data = await Future.wait<dynamic>(futures);
       if (!mounted) return;
       setState(() {
-        _store = store;
+        _store = validStore;
         _orders = data[0] as List<OrderModel>;
         _analytics = data[1] as VendorAnalytics;
         _wallet = data[2] as WalletSummary;
@@ -96,10 +103,10 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
         _growthRecommendations = (data[4] as List).cast<Map<String, dynamic>>();
         _growthPerformance = (data[5] as List).cast<Map<String, dynamic>>();
         _growthCharts = Map<String, dynamic>.from(data[6] as Map? ?? const {});
-        _qualityState = store.vendorType == 'custom_vendor'
+        _qualityState = validStore.vendorType == 'custom_vendor'
             ? data.last as CustomVendorQualityState
             : null;
-        _acceptingOrders = store.isActive;
+        _acceptingOrders = validStore.isActive;
         _loading = false;
       });
     } catch (e) {

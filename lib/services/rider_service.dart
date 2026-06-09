@@ -1,6 +1,7 @@
 import 'dart:math';
-
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/models.dart';
+import 'offline_action_queue.dart';
 import 'database_service.dart';
 
 class RiderRouteStop {
@@ -9,12 +10,14 @@ class RiderRouteStop {
     required this.customer,
     required this.order,
     required this.distanceKm,
+    this.etaMins,
   });
 
   final UnifiedRiderTask task;
   final AppUser? customer;
   final OrderModel? order;
   final double? distanceKm;
+  final num? etaMins;
 
   bool get isReturn => task.type == 'return';
 
@@ -56,7 +59,6 @@ class RiderDashboardSnapshot {
     required this.analytics,
     required this.wallet,
     required this.availableDeliveries,
-    required this.assignedOrders,
     required this.tasks,
     required this.fetchedAt,
   });
@@ -64,7 +66,6 @@ class RiderDashboardSnapshot {
   final RiderAnalytics analytics;
   final WalletSummary wallet;
   final List<OrderModel> availableDeliveries;
-  final List<OrderModel> assignedOrders;
   final List<UnifiedRiderTask> tasks;
   final DateTime fetchedAt;
 
@@ -102,22 +103,19 @@ class RiderService {
     final analyticsFuture = safe(() => _db.getRiderAnalytics(actor: rider));
     final walletFuture = safe(() => _db.getRiderWallet(actor: rider));
     final availableFuture = safe(() => _db.getAvailableDeliveryOrders());
-    final assignedFuture = safe(() => _db.getRiderOrders(rider).first);
     final tasksFuture = safe(() => _db.getRiderTasks(rider));
 
     final results = await Future.wait<Object?>([
       analyticsFuture as Future<Object?>,
       walletFuture as Future<Object?>,
       availableFuture as Future<Object?>,
-      assignedFuture as Future<Object?>,
       tasksFuture as Future<Object?>,
     ]);
 
     final analytics = results[0] as RiderAnalytics?;
     final wallet = results[1] as WalletSummary?;
     final availableDeliveries = (results[2] as List<OrderModel>?) ?? const [];
-    final assignedOrders = (results[3] as List<OrderModel>?) ?? const [];
-    final tasks = (results[4] as List<UnifiedRiderTask>?) ?? const [];
+    final tasks = (results[3] as List<UnifiedRiderTask>?) ?? const [];
 
     return RiderDashboardSnapshot(
       analytics: analytics ??
@@ -142,13 +140,46 @@ class RiderService {
             lastSettlementDate: '',
           ),
       availableDeliveries: availableDeliveries,
-      assignedOrders: assignedOrders,
       tasks: tasks,
       fetchedAt: DateTime.now(),
     );
   }
 
   Future<List<RiderRouteStop>> getOptimizedRoute(AppUser rider) async {
+    final routeData = await _db.getOptimizedRiderRoute(
+      lat: rider.latitude,
+      lng: rider.longitude,
+    );
+
+    if (routeData.isNotEmpty) {
+      final stops = <RiderRouteStop>[];
+      final tasks = await _db.getRiderTasks(rider);
+      
+      for (final map in routeData) {
+        final taskMap = map['task'] as Map<String, dynamic>? ?? {};
+        final taskId = taskMap['id']?.toString() ?? '';
+        final distanceKm = map['distanceKm'] as num?;
+        
+        final taskIdx = tasks.indexWhere((t) => t.id == taskId);
+        if (taskIdx == -1) continue;
+        final task = tasks[taskIdx];
+        
+        final customer = await _db.getUser(task.userId);
+        final order = task.orderId == null ? null : await _db.getOrderById(task.orderId!);
+        
+        stops.add(
+          RiderRouteStop(
+            task: task,
+            customer: customer,
+            order: order,
+            distanceKm: distanceKm?.toDouble(),
+            etaMins: map['etaMins'] as num?,
+          ),
+        );
+      }
+      return stops;
+    }
+
     final tasks = await _db.getRiderTasks(rider);
     final stops = <RiderRouteStop>[];
 
@@ -220,7 +251,16 @@ class RiderService {
     required String orderId,
     required String deliveryStatus,
     required AppUser rider,
-  }) {
+  }) async {
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity.contains(ConnectivityResult.none)) {
+      await OfflineActionQueue.enqueue(
+        endpoint: '/api/orders/$orderId/delivery-status',
+        method: 'PATCH',
+        payload: {'status': deliveryStatus},
+      );
+      return;
+    }
     return _db.updateDeliveryStatus(orderId, deliveryStatus, actor: rider);
   }
 
@@ -229,7 +269,16 @@ class RiderService {
     required double latitude,
     required double longitude,
     required AppUser rider,
-  }) {
+  }) async {
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity.contains(ConnectivityResult.none)) {
+      await OfflineActionQueue.enqueue(
+        endpoint: '/api/orders/$orderId/location',
+        method: 'PATCH',
+        payload: {'latitude': latitude, 'longitude': longitude},
+      );
+      return;
+    }
     return _db.updateRiderLocation(
       orderId: orderId,
       latitude: latitude,

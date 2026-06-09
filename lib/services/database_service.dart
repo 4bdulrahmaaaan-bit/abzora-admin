@@ -1703,24 +1703,7 @@ class DatabaseService {
     }
   }
 
-  String _validatedRiderDeliveryStatus(OrderModel order, String next) {
-    final from = _normalizeRiderDeliveryStatus(order.deliveryStatus);
-    final to = _normalizeRiderDeliveryStatus(next);
-    if (from == to) {
-      throw StateError('Delivery status is already $to.');
-    }
-    const allowed = <String, Set<String>>{
-      'Assigned': {'Picked up'},
-      'Ready for pickup': {'Picked up'},
-      'Picked up': {'Out for delivery'},
-      'Out for delivery': {'Delivered'},
-    };
-    final expected = allowed[from];
-    if (expected == null || !expected.contains(to)) {
-      throw StateError('Rider delivery transition is not allowed.');
-    }
-    return to;
-  }
+
 
   void _requireSuperAdmin(AppUser? actor) {
     if (!isSuperAdmin(actor)) {
@@ -1734,11 +1717,7 @@ class DatabaseService {
     }
   }
 
-  void _requireRiderAccess(AppUser? actor, OrderModel order) {
-    if (!canAccessAssignedOrder(actor, order)) {
-      throw StateError('Rider access denied.');
-    }
-  }
+
 
   void _requireRiderOrAdmin(AppUser? actor) {
     if (actor == null) {
@@ -2856,6 +2835,23 @@ class DatabaseService {
       if (store.ownerId == ownerId) {
         return store;
       }
+    }
+    return null;
+  }
+
+  Future<Store?> getStore(String storeId) async {
+    if (_backendCommerce.isConfigured) {
+      final stores = await _backendCommerce.getStores();
+      for (final s in stores) {
+        if (s.id == storeId) {
+          return _decorateStore(s);
+        }
+      }
+      return null;
+    }
+    final store = await _fetchDocument('stores/$storeId', (map, id) => Store.fromMap(map, id));
+    if (store != null) {
+      return _decorateStore(store);
     }
     return null;
   }
@@ -6986,280 +6982,97 @@ class DatabaseService {
   }
 
   Stream<List<UnifiedRiderTask>> watchRiderTasks(AppUser actor) {
-    if (_backendCommerce.isConfigured) {
-      return (() async* {
+    return (() async* {
+      yield await getRiderTasks(actor);
+      while (true) {
+        await Future<void>.delayed(const Duration(seconds: 15));
         yield await getRiderTasks(actor);
-        while (true) {
-          await Future<void>.delayed(const Duration(seconds: 15));
-          yield await getRiderTasks(actor);
-        }
-      })();
+      }
+    })();
+  }
+
+  Future<List<Map<String, dynamic>>> getOptimizedRiderRoute({
+    double? lat,
+    double? lng,
+  }) async {
+    try {
+      return await _backendCommerce.getOptimizedRiderRoute(lat: lat, lng: lng);
+    } catch (_) {
+      return [];
     }
-    if (!isRider(actor) && !isSuperAdmin(actor)) {
-      throw StateError('Rider access denied.');
-    }
-    return _watchQueryCollection(
-      _ref('tasks').orderByChild('riderId').equalTo(actor.id),
-      (map, id) => UnifiedRiderTask.fromMap(map, id),
-    ).map((tasks) {
+  }
+
+  Future<List<UnifiedRiderTask>> getRiderTasks(AppUser actor) async {
+    try {
+      final tasks = await _backendCommerce.getRiderLogisticsTasks();
       tasks.sort(
         (a, b) => a.status == b.status
             ? b.updatedAt.compareTo(a.updatedAt)
             : a.status.compareTo(b.status),
       );
       return tasks;
-    });
-  }
-
-  Future<List<UnifiedRiderTask>> getRiderTasks(AppUser actor) async {
-    if (_backendCommerce.isConfigured) {
-      try {
-        final tasks = await _backendCommerce.getRiderLogisticsTasks();
-        tasks.sort(
-          (a, b) => a.status == b.status
-              ? b.updatedAt.compareTo(a.updatedAt)
-              : a.status.compareTo(b.status),
-        );
-        return tasks;
-      } catch (_) {
-        final orders = await _backendCommerce.getAssignedDeliveries();
-        final tasks =
-            orders
-                .map(
-                  (order) => UnifiedRiderTask(
-                    id: 'delivery-${order.id}',
-                    type: 'delivery',
-                    orderId: order.id,
-                    userId: order.userId,
-                    address: order.shippingAddress,
-                    status: order.deliveryStatus == 'Delivered'
-                        ? 'completed'
-                        : (order.deliveryStatus == 'Picked up' ||
-                                  order.deliveryStatus == 'Out for delivery'
-                              ? 'in_progress'
-                              : 'assigned'),
-                    riderId: actor.id,
-                    createdAt:
-                        order.createdAt ?? order.timestamp.toIso8601String(),
-                    updatedAt:
-                        order.updatedAt ?? order.timestamp.toIso8601String(),
-                  ),
-                )
-                .toList()
-              ..sort(
-                (a, b) => a.status == b.status
-                    ? b.updatedAt.compareTo(a.updatedAt)
-                    : a.status.compareTo(b.status),
-              );
-        return tasks;
-      }
+    } catch (_) {
+      return [];
     }
-    if (!isRider(actor) && !isSuperAdmin(actor)) {
-      throw StateError('Rider access denied.');
-    }
-    final tasks = await _fetchQueryCollection(
-      _ref('tasks').orderByChild('riderId').equalTo(actor.id),
-      (map, id) => UnifiedRiderTask.fromMap(map, id),
-    );
-    tasks.sort(
-      (a, b) => a.status == b.status
-          ? b.updatedAt.compareTo(a.updatedAt)
-          : a.status.compareTo(b.status),
-    );
-    return tasks;
   }
 
   Stream<List<OrderModel>> getRiderOrders(AppUser actor) {
-    if (_backendCommerce.isConfigured) {
-      return _backendPollingStream<List<OrderModel>>(
-        loader: () async {
-          final orders = await _backendCommerce.getAssignedDeliveries();
-          orders.sort(
-            (a, b) =>
-                _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
-          );
-          return orders;
-        },
-        interval: const Duration(seconds: 15),
-        backgroundInterval: const Duration(seconds: 35),
-      );
-    }
-    if (!isRider(actor) && !isSuperAdmin(actor)) {
-      throw StateError('Rider access denied.');
-    }
-    return _watchQueryCollection(
-      _ref('orders').orderByChild('riderId').equalTo(actor.id),
-      (map, id) => OrderModel.fromMap(map, id),
-    ).map((orders) {
-      orders.sort(
-        (a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
-      );
-      return orders;
-    });
+    return _backendPollingStream<List<OrderModel>>(
+      loader: () async {
+        final orders = await _backendCommerce.getAssignedDeliveries();
+        orders.sort(
+          (a, b) =>
+              _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+        );
+        return orders;
+      },
+      interval: const Duration(seconds: 15),
+      backgroundInterval: const Duration(seconds: 35),
+    );
   }
 
   Stream<List<OrderModel>> watchAvailableDeliveryOrders() {
-    if (_backendCommerce.isConfigured) {
-      return _backendPollingStream<List<OrderModel>>(
-        loader: () async {
-          final orders = await _backendCommerce.getAvailableDeliveries();
-          orders.sort(
-            (a, b) =>
-                _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
-          );
-          return orders;
-        },
-        interval: const Duration(seconds: 15),
-        backgroundInterval: const Duration(seconds: 35),
-      );
-    }
-    return _watchCollection(
-      'orders',
-      (map, id) => OrderModel.fromMap(map, id),
-    ).map((orders) {
-      final filtered = orders.where(_isOrderAvailableForRider).toList()
-        ..sort(
-          (a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+    return _backendPollingStream<List<OrderModel>>(
+      loader: () async {
+        final orders = await _backendCommerce.getAvailableDeliveries();
+        orders.sort(
+          (a, b) =>
+              _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
         );
-      return filtered;
-    });
+        return orders;
+      },
+      interval: const Duration(seconds: 15),
+      backgroundInterval: const Duration(seconds: 35),
+    );
   }
 
   Future<List<OrderModel>> getAvailableDeliveryOrders() async {
-    if (_backendCommerce.isConfigured) {
-      final orders = await _backendCommerce.getAvailableDeliveries();
-      orders.sort(
-        (a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
-      );
-      return orders;
-    }
-    final orders = await _fetchCollection(
-      'orders',
-      (map, id) => OrderModel.fromMap(map, id),
-    );
-    final filtered = orders.where(_isOrderAvailableForRider).toList();
-    filtered.sort(
+    final orders = await _backendCommerce.getAvailableDeliveries();
+    orders.sort(
       (a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
     );
-    return filtered;
+    return orders;
   }
 
-  bool _isOrderAvailableForRider(OrderModel order) {
-    final status = order.status.trim().toLowerCase();
-    final delivery = order.deliveryStatus.trim().toLowerCase();
-    final readyForPickup =
-        status == 'packed' ||
-        status == 'confirmed' ||
-        delivery == 'ready for pickup';
-    final closed =
-        status == 'delivered' ||
-        status == 'cancelled' ||
-        delivery == 'delivered';
-    return order.riderId == null && readyForPickup && !closed;
-  }
+
 
   Future<void> acceptDeliveryRequest(String orderId, AppUser actor) async {
-    if (_backendCommerce.isConfigured) {
-      final tasks = await _backendCommerce.getRiderLogisticsTasks(
-        status: 'assigned',
-      );
-      final matched = tasks.where((task) => task.orderId == orderId).toList()
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      if (matched.isEmpty) {
-        throw StateError('No assigned logistics task found for this order.');
-      }
-      await _backendCommerce.updateRiderLogisticsTaskStatus(
-        taskId: matched.first.id,
-        status: 'accepted',
-      );
-      await _backendCommerce.postTrackingOrderStatus(
-        orderId: orderId,
-        status: 'Assigned',
-      );
-      return;
-    }
-    if (!isRider(actor) && !isSuperAdmin(actor)) {
-      throw StateError('Only riders can accept delivery requests.');
-    }
-    if (!isSuperAdmin(actor) && actor.riderApprovalStatus != 'approved') {
-      throw StateError(
-        'Rider approval is required before accepting deliveries.',
-      );
-    }
-    final existing = await _fetchDocument(
-      'orders/$orderId',
-      (map, id) => OrderModel.fromMap(map, id),
+    final tasks = await _backendCommerce.getRiderLogisticsTasks(
+      status: 'assigned',
     );
-    if (existing == null) {
-      throw StateError('Order not found.');
+    final matched = tasks.where((task) => task.orderId == orderId).toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    if (matched.isEmpty) {
+      throw StateError('No assigned logistics task found for this order.');
     }
-    if (!_isOrderAvailableForRider(existing) &&
-        existing.riderId != actor.id &&
-        !isSuperAdmin(actor)) {
-      throw StateError('This delivery is not available for pickup.');
-    }
-    if (existing.riderId != null &&
-        existing.riderId != actor.id &&
-        !isSuperAdmin(actor)) {
-      throw StateError('Delivery already accepted by another rider.');
-    }
-    final now = DateTime.now();
-    final nowIso = now.toIso8601String();
-    final riderNotifId = 'n-rider-${now.millisecondsSinceEpoch}';
-    final customerNotifId = 'n-customer-${now.millisecondsSinceEpoch}';
-    final updates = <String, dynamic>{
-      'orders/$orderId/riderId': actor.id,
-      'orders/$orderId/assignedDeliveryPartner': actor.name,
-      'orders/$orderId/deliveryStatus': 'Assigned',
-      'orders/$orderId/updatedAt': nowIso,
-      'orders/$orderId/trackingTimestamps': _trackingTimestampsForStatus(
-        existing,
-        'Assigned',
-        nowIso,
-      ),
-      'tasks/${_taskIdForDelivery(orderId)}': UnifiedRiderTask(
-        id: _taskIdForDelivery(orderId),
-        type: 'delivery',
-        orderId: existing.id,
-        userId: existing.userId,
-        address: existing.shippingAddress,
-        status: 'assigned',
-        riderId: actor.id,
-        createdAt: existing.createdAt ?? nowIso,
-        updatedAt: nowIso,
-      ).toMap(),
-      'notifications/$riderNotifId': AppNotification(
-        id: riderNotifId,
-        title: 'Delivery accepted',
-        body: 'You accepted delivery for order $orderId.',
-        type: 'delivery',
-        isRead: false,
-        timestamp: now,
-        audienceRole: 'rider',
-        userId: actor.id,
-      ).toMap(),
-      'notifications/$customerNotifId': AppNotification(
-        id: customerNotifId,
-        title: 'Delivery partner assigned',
-        body: '${actor.name} is now assigned to deliver your order.',
-        type: 'order',
-        isRead: false,
-        timestamp: now,
-        audienceRole: 'user',
-        userId: existing.userId,
-        storeId: existing.storeId,
-      ).toMap(),
-    };
-    await _queueActivityLogWrite(
-      updates,
-      action: 'accept_delivery',
-      targetType: 'order',
-      targetId: orderId,
-      message: 'Accepted delivery for order $orderId.',
-      actor: actor,
-      timestamp: nowIso,
+    await _backendCommerce.updateRiderLogisticsTaskStatus(
+      taskId: matched.first.id,
+      status: 'accepted',
     );
-    await _ref('').update(updates);
+    await _backendCommerce.postTrackingOrderStatus(
+      orderId: orderId,
+      status: 'Assigned',
+    );
   }
 
   Future<void> updateDeliveryStatus(
@@ -7267,135 +7080,32 @@ class DatabaseService {
     String deliveryStatus, {
     required AppUser actor,
   }) async {
-    if (_backendCommerce.isConfigured) {
-      final taskStatus = switch (_normalizeRiderDeliveryStatus(
-        deliveryStatus,
-      )) {
-        'Assigned' => 'accepted',
-        'Picked up' => 'picked_up',
-        'Out for delivery' => 'out_for_delivery',
-        'Delivered' => 'delivered',
-        _ => '',
-      };
-      if (taskStatus.isEmpty) {
-        throw StateError('Unsupported delivery status transition.');
-      }
-      final tasks = await _backendCommerce.getRiderLogisticsTasks();
-      final matched = tasks.where((task) => task.orderId == orderId).toList()
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      if (matched.isEmpty) {
-        throw StateError('No logistics task found for this order.');
-      }
-      await _backendCommerce.updateRiderLogisticsTaskStatus(
-        taskId: matched.first.id,
-        status: taskStatus,
-      );
-      await _backendCommerce.postTrackingOrderStatus(
-        orderId: orderId,
-        status: _normalizeRiderDeliveryStatus(deliveryStatus),
-      );
-      return;
-    }
-    final existing = await _fetchDocument(
-      'orders/$orderId',
-      (map, id) => OrderModel.fromMap(map, id),
-    );
-    if (existing == null) {
-      throw StateError('Order not found.');
-    }
-    if (!isSuperAdmin(actor)) {
-      _requireRiderAccess(actor, existing);
-    }
-    if (!isSuperAdmin(actor) && actor.riderApprovalStatus != 'approved') {
-      throw StateError(
-        'Rider approval is required before updating delivery status.',
-      );
-    }
-    final normalizedDeliveryStatus = _normalizeRiderDeliveryStatus(
+    final taskStatus = switch (_normalizeRiderDeliveryStatus(
       deliveryStatus,
-    );
-    if (existing.deliveryStatus == normalizedDeliveryStatus) {
-      return;
-    }
-    final validatedDeliveryStatus = _validatedRiderDeliveryStatus(
-      existing,
-      deliveryStatus,
-    );
-    final nowIso = _nowIso();
-
-    final updates = <String, dynamic>{
-      'orders/$orderId/deliveryStatus': validatedDeliveryStatus,
-      'orders/$orderId/updatedAt': nowIso,
-      'orders/$orderId/trackingTimestamps': _trackingTimestampsForStatus(
-        existing,
-        validatedDeliveryStatus,
-        nowIso,
-      ),
-      'tasks/${_taskIdForDelivery(orderId)}/status':
-          validatedDeliveryStatus == 'Delivered'
-          ? 'completed'
-          : (validatedDeliveryStatus == 'Picked up' ||
-                    validatedDeliveryStatus == 'Out for delivery'
-                ? 'in_progress'
-                : 'assigned'),
-      'tasks/${_taskIdForDelivery(orderId)}/updatedAt': nowIso,
+    )) {
+      'Assigned' => 'accepted',
+      'Picked up' => 'picked_up',
+      'Out for delivery' => 'out_for_delivery',
+      'Delivered' => 'delivered',
+      _ => '',
     };
-
-    if (validatedDeliveryStatus == 'Picked up') {
-      updates['orders/$orderId/status'] = 'Picked up';
-    } else if (validatedDeliveryStatus == 'Out for delivery') {
-      updates['orders/$orderId/status'] = 'Out for delivery';
+    if (taskStatus.isEmpty) {
+      throw StateError('Unsupported delivery status transition.');
     }
-
-    if (validatedDeliveryStatus == 'Delivered') {
-      if (existing.isDelivered) {
-        throw StateError('This order is already marked as delivered.');
-      }
-      updates['orders/$orderId/status'] = 'Delivered';
-      updates['orders/$orderId/isDelivered'] = true;
-      updates['orders/$orderId/deliveredAt'] = nowIso;
-      if (existing.payoutStatus != 'Paid') {
-        updates['orders/$orderId/payoutStatus'] = 'Ready';
-      }
-
-      if (existing.payoutStatus != 'Ready' && existing.payoutStatus != 'Paid') {
-        final store = await _fetchDocument(
-          'stores/${existing.storeId}',
-          (map, id) => Store.fromMap(map, id),
-        );
-        if (store != null) {
-          updates['stores/${store.id}/walletBalance'] =
-              store.walletBalance + existing.vendorEarnings;
-        }
-      }
-
-      final notifId = 'n-${DateTime.now().millisecondsSinceEpoch}-delivered';
-      final notification = AppNotification(
-        id: notifId,
-        title: 'Order Delivered',
-        body:
-            'Order ${existing.invoiceNumber.isEmpty ? '#$orderId' : existing.invoiceNumber} has been delivered.',
-        type: 'order',
-        isRead: false,
-        timestamp: DateTime.now(),
-        audienceRole: 'user',
-        userId: existing.userId,
-        storeId: existing.storeId,
-      );
-      updates['notifications/$notifId'] = notification.toMap();
+    final tasks = await _backendCommerce.getRiderLogisticsTasks();
+    final matched = tasks.where((task) => task.orderId == orderId).toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    if (matched.isEmpty) {
+      throw StateError('No logistics task found for this order.');
     }
-
-    await _queueActivityLogWrite(
-      updates,
-      action: 'update_delivery_status',
-      targetType: 'order',
-      targetId: orderId,
-      message: 'Updated delivery status to $validatedDeliveryStatus.',
-      actor: actor,
-      timestamp: nowIso,
+    await _backendCommerce.updateRiderLogisticsTaskStatus(
+      taskId: matched.first.id,
+      status: taskStatus,
     );
-
-    await _ref('').update(updates);
+    await _backendCommerce.postTrackingOrderStatus(
+      orderId: orderId,
+      status: _normalizeRiderDeliveryStatus(deliveryStatus),
+    );
   }
 
   Future<void> updateRiderLocation({
@@ -7404,36 +7114,12 @@ class DatabaseService {
     required double longitude,
     required AppUser actor,
   }) async {
-    if (_backendCommerce.isConfigured) {
-      await _backendCommerce.updateRiderLocation(
-        orderId: orderId,
-        latitude: latitude,
-        longitude: longitude,
-        riderId: actor.id,
-      );
-      return;
-    }
-    final existing = await _fetchDocument(
-      'orders/$orderId',
-      (map, id) => OrderModel.fromMap(map, id),
+    await _backendCommerce.updateRiderLocation(
+      orderId: orderId,
+      latitude: latitude,
+      longitude: longitude,
+      riderId: actor.id,
     );
-    if (existing == null) {
-      throw StateError('Order not found.');
-    }
-    if (!isSuperAdmin(actor)) {
-      _requireRiderAccess(actor, existing);
-    }
-    if (!isSuperAdmin(actor) && actor.riderApprovalStatus != 'approved') {
-      throw StateError(
-        'Rider approval is required before sharing live location.',
-      );
-    }
-    await _ref('orders/$orderId').update({
-      'riderLatitude': latitude,
-      'riderLongitude': longitude,
-      'riderLocationUpdatedAt': DateTime.now().toIso8601String(),
-      'updatedAt': DateTime.now().toIso8601String(),
-    });
   }
 
   Future<int> getUsersCount() async {
@@ -8894,93 +8580,91 @@ class DatabaseService {
       ..['customer'] = true
       ..['vendor'] = true;
 
-    await saveStore(
-      Store(
-        id: storeId,
-        ownerId: request.userId,
-        name: request.storeName,
-        description:
-            existingStore?.description ??
-            'Approved vendor storefront on Abianzo.',
-        imageUrl: request.kyc.storeImageUrl.isNotEmpty
-            ? request.kyc.storeImageUrl
-            : (existingStore?.imageUrl ??
-                  'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=400'),
-        rating: existingStore?.rating ?? 0,
-        reviewCount: existingStore?.reviewCount ?? 0,
-        address: request.address,
-        city: request.city,
-        isApproved: true,
-        isActive: true,
-        isFeatured: existingStore?.isFeatured ?? false,
-        approvalStatus: 'approved',
-        vendorType: request.vendorType == 'custom_vendor'
-            ? 'custom_vendor'
-            : (existingStore?.vendorType ?? 'standard_vendor'),
-        logoUrl: existingStore?.logoUrl ?? request.kyc.ownerPhotoUrl,
-        bannerImageUrl:
-            existingStore?.bannerImageUrl ?? request.kyc.storeImageUrl,
-        tagline:
-            existingStore?.tagline ??
-            (request.vendorType == 'custom_vendor'
-                ? 'Made-to-measure designer studio on Abianzo.'
-                : ''),
-        commissionRate: existingStore?.commissionRate ?? 0.12,
-        walletBalance: existingStore?.walletBalance ?? 0,
-        latitude: request.latitude,
-        longitude: request.longitude,
-        category: request.specializations.isNotEmpty
-            ? request.specializations.first
-            : (existingStore?.category ?? 'Fashion'),
-        customVendorProfile: request.vendorType == 'custom_vendor'
-            ? CustomVendorProfile(
-                experienceYears: request.experienceYears,
-                specializations: request.specializations,
-                portfolioImages: request.portfolioImageUrls,
-                priceRangeMin: request.startingPrice,
-                priceRangeMax: request.typicalPriceUpper,
-                productionTimeDays: request.productionTimeDays,
-                qualityApprovalRequired: true,
-                supportsAlterations: true,
-                alterationPolicy: 'Easy alteration policy',
-                metrics:
-                    existingStore?.customVendorProfile.metrics ??
-                    const CustomVendorMetrics(),
-              )
-            : (existingStore?.customVendorProfile ??
-                  const CustomVendorProfile()),
-        vendorScore: existingStore?.vendorScore ?? 0,
-        vendorRank: existingStore?.vendorRank ?? 0,
-        vendorVisibility: existingStore?.vendorVisibility ?? 'normal',
-        performanceMetrics:
-            existingStore?.performanceMetrics ??
-            const VendorPerformanceMetrics(),
-      ),
-      actor: actor,
+    final store = Store(
+      id: storeId,
+      ownerId: request.userId,
+      name: request.storeName,
+      description:
+          existingStore?.description ??
+          'Approved vendor storefront on Abianzo.',
+      imageUrl: request.kyc.storeImageUrl.isNotEmpty
+          ? request.kyc.storeImageUrl
+          : (existingStore?.imageUrl ??
+                'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=400'),
+      rating: existingStore?.rating ?? 0,
+      reviewCount: existingStore?.reviewCount ?? 0,
+      address: request.address,
+      city: request.city,
+      isApproved: true,
+      isActive: true,
+      isFeatured: existingStore?.isFeatured ?? false,
+      approvalStatus: 'approved',
+      vendorType: request.vendorType == 'custom_vendor'
+          ? 'custom_vendor'
+          : (existingStore?.vendorType ?? 'standard_vendor'),
+      logoUrl: existingStore?.logoUrl ?? request.kyc.ownerPhotoUrl,
+      bannerImageUrl:
+          existingStore?.bannerImageUrl ?? request.kyc.storeImageUrl,
+      tagline:
+          existingStore?.tagline ??
+          (request.vendorType == 'custom_vendor'
+              ? 'Made-to-measure designer studio on Abianzo.'
+              : ''),
+      commissionRate: existingStore?.commissionRate ?? 0.12,
+      walletBalance: existingStore?.walletBalance ?? 0,
+      latitude: request.latitude,
+      longitude: request.longitude,
+      category: request.specializations.isNotEmpty
+          ? request.specializations.first
+          : (existingStore?.category ?? 'Fashion'),
+      customVendorProfile: request.vendorType == 'custom_vendor'
+          ? CustomVendorProfile(
+              experienceYears: request.experienceYears,
+              specializations: request.specializations,
+              portfolioImages: request.portfolioImageUrls,
+              priceRangeMin: request.startingPrice,
+              priceRangeMax: request.typicalPriceUpper,
+              productionTimeDays: request.productionTimeDays,
+              qualityApprovalRequired: true,
+              supportsAlterations: true,
+              alterationPolicy: 'Easy alteration policy',
+              metrics:
+                  existingStore?.customVendorProfile.metrics ??
+                  const CustomVendorMetrics(),
+            )
+          : (existingStore?.customVendorProfile ??
+                const CustomVendorProfile()),
+      vendorScore: existingStore?.vendorScore ?? 0,
+      vendorRank: existingStore?.vendorRank ?? 0,
+      vendorVisibility: existingStore?.vendorVisibility ?? 'normal',
+      performanceMetrics:
+          existingStore?.performanceMetrics ??
+          const VendorPerformanceMetrics(),
     );
-    await updateUser(
-      user.copyWith(
-        name: request.ownerName,
-        phone: request.phone,
-        address: request.address,
-        city: request.city,
-        latitude: request.latitude,
-        longitude: request.longitude,
-        role: 'vendor',
-        storeId: storeId,
-        roles: roles,
-        isActive: true,
-      ),
-      actor: actor,
+
+    final updatedUser = user.copyWith(
+      name: request.ownerName,
+      phone: request.phone,
+      address: request.address,
+      city: request.city,
+      latitude: request.latitude,
+      longitude: request.longitude,
+      role: 'vendor',
+      storeId: storeId,
+      roles: roles,
+      isActive: true,
     );
-    await _ref('vendorRequests/$requestId').update({
-      'status': 'approved',
-      'updatedAt': nowIso,
-      'rejectionReason': '',
-      'reviewedBy': actor.id,
-      'reviewedByName': actor.name,
-      'reviewedAt': nowIso,
-      'actionHistory': [
+
+    final updates = <String, dynamic>{
+      'stores/$storeId': store.toMap(),
+      'users/${user.id}': updatedUser.toMap(),
+      'vendorRequests/$requestId/status': 'approved',
+      'vendorRequests/$requestId/updatedAt': nowIso,
+      'vendorRequests/$requestId/rejectionReason': '',
+      'vendorRequests/$requestId/reviewedBy': actor.id,
+      'vendorRequests/$requestId/reviewedByName': actor.name,
+      'vendorRequests/$requestId/reviewedAt': nowIso,
+      'vendorRequests/$requestId/actionHistory': [
         ...request.actionHistory.map((entry) => entry.toMap()),
         KycActionEntry(
           action: 'approved',
@@ -8990,7 +8674,8 @@ class DatabaseService {
           note: 'Vendor KYC approved and store activated.',
         ).toMap(),
       ],
-    });
+    };
+    await _rtdb.ref().update(updates);
     _addNotification(
       AppNotification(
         id: 'vendor-kyc-approved-${DateTime.now().millisecondsSinceEpoch}',
@@ -11806,6 +11491,59 @@ class DatabaseService {
       targetId: user.id,
       message: message,
       actor: user,
+    );
+  }
+  Future<void> runVendorMigration({required AppUser actor}) async {
+    _requireSuperAdmin(actor);
+
+    final users = await getUsers(actor: actor);
+    final stores = await getAdminStores();
+    final updates = <String, dynamic>{};
+    int migratedCount = 0;
+
+    for (final store in stores) {
+      if (store.ownerId.isEmpty) continue;
+
+      final owner = users.cast<AppUser?>().firstWhere(
+            (u) => u?.id == store.ownerId,
+            orElse: () => null,
+          );
+
+      if (owner == null) continue;
+
+      bool needsUpdate = false;
+      final updatedUser = owner.copyWith();
+
+      if (updatedUser.storeId != store.id) {
+        updates['users/${owner.id}/storeId'] = store.id;
+        needsUpdate = true;
+      }
+
+      if (store.approvalStatus == 'approved' && !owner.roles.containsKey('vendor')) {
+        updates['users/${owner.id}/roles/vendor'] = true;
+        needsUpdate = true;
+      }
+      
+      if (store.approvalStatus == 'approved' && owner.role != 'vendor') {
+        updates['users/${owner.id}/role'] = 'vendor';
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        migratedCount++;
+      }
+    }
+
+    if (updates.isNotEmpty) {
+      await _rtdb.ref().update(updates);
+    }
+
+    await logActivity(
+      action: 'vendor_migration_run',
+      targetType: 'system',
+      targetId: 'admin',
+      message: 'Ran vendor migration script. Affected $migratedCount records.',
+      actor: actor,
     );
   }
 }

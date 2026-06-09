@@ -2274,6 +2274,10 @@ class UnifiedRiderTask {
   final String riderId;
   final String createdAt;
   final String updatedAt;
+  final double? pickupLat;
+  final double? pickupLng;
+  final double? dropLat;
+  final double? dropLng;
 
   const UnifiedRiderTask({
     required this.id,
@@ -2286,6 +2290,10 @@ class UnifiedRiderTask {
     required this.riderId,
     required this.createdAt,
     required this.updatedAt,
+    this.pickupLat,
+    this.pickupLng,
+    this.dropLat,
+    this.dropLng,
   });
 
   Map<String, dynamic> toMap() => {
@@ -2299,6 +2307,10 @@ class UnifiedRiderTask {
     'riderId': riderId,
     'createdAt': createdAt,
     'updatedAt': updatedAt,
+    'pickupLat': pickupLat,
+    'pickupLng': pickupLng,
+    'dropLat': dropLat,
+    'dropLng': dropLng,
   };
 
   factory UnifiedRiderTask.fromMap(Map<String, dynamic> map, String id) =>
@@ -2313,6 +2325,10 @@ class UnifiedRiderTask {
         riderId: map['riderId'] ?? '',
         createdAt: map['createdAt'] ?? '',
         updatedAt: map['updatedAt'] ?? map['createdAt'] ?? '',
+        pickupLat: map['pickupLat'] == null ? null : (map['pickupLat'] as num).toDouble(),
+        pickupLng: map['pickupLng'] == null ? null : (map['pickupLng'] as num).toDouble(),
+        dropLat: map['dropLat'] == null ? null : (map['dropLat'] as num).toDouble(),
+        dropLng: map['dropLng'] == null ? null : (map['dropLng'] as num).toDouble(),
       );
 }
 

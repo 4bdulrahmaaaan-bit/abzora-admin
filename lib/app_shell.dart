@@ -70,6 +70,8 @@ import 'theme.dart';
 import 'widgets/offline_widgets.dart';
 import 'widgets/safe_widget.dart';
 import 'widgets/global_skeletons.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'services/network_sync_service.dart';
 
 enum AbzioAppMode { unified, customer, operations, vendor, rider }
 
@@ -88,57 +90,22 @@ Future<void> bootstrapAndRunWithInitialRoute(
         DeviceOrientation.portraitUp,
       ]);
       _installGlobalErrorHandling();
-      await AppBootstrapService().initialize();
-      final imageCache = PaintingBinding.instance.imageCache;
-      imageCache.maximumSizeBytes = 200 << 20;
-      imageCache.maximumSize = 1000;
+      
+      // Initialize NetworkSyncService for Phase 1 Offline Resilience
+      NetworkSyncService.instance;
 
-      runApp(
-        ProviderScope(
-          child: MultiProvider(
-            providers: [
-              ChangeNotifierProvider(create: (_) => AuthProvider()),
-              ChangeNotifierProvider(create: (_) => BannerProvider()),
-              ChangeNotifierProxyProvider<AuthProvider, CartProvider>(
-                create: (_) => CartProvider(),
-                update: (_, authProvider, cartProvider) {
-                  final provider = cartProvider ?? CartProvider();
-                  unawaited(provider.syncUser(authProvider.user));
-                  return provider;
-                },
-              ),
-              ChangeNotifierProvider(create: (_) => LocationProvider()),
-              ChangeNotifierProvider(
-                create: (_) => NetworkProvider()..initialize(),
-              ),
-              ChangeNotifierProxyProvider<LocationProvider, ProductProvider>(
-                create: (_) => ProductProvider(),
-                update: (_, locationProvider, productProvider) {
-                  final provider = productProvider ?? ProductProvider();
-                  provider.attachLocationProvider(locationProvider);
-                  return provider;
-                },
-              ),
-              ChangeNotifierProxyProvider<AuthProvider, WishlistProvider>(
-                create: (_) => WishlistProvider(),
-                update: (_, authProvider, wishlistProvider) {
-                  final provider = wishlistProvider ?? WishlistProvider();
-                  provider.syncUser(authProvider.user);
-                  return provider;
-                },
-              ),
-              ChangeNotifierProvider(create: (_) => TrialHomeProvider()),
-              ChangeNotifierProvider(create: (_) => TrialCartProvider()),
-              ChangeNotifierProvider(create: (_) => ThemeProvider()),
-            ],
-            child: AbzioApp(mode: mode, initialRoute: initialRoute),
-          ),
-        ),
+      await SentryFlutter.init(
+        (options) {
+          options.dsn = 'https://example@sentry.io/example';
+          options.tracesSampleRate = 1.0;
+        },
+        appRunner: () => runApp(AbzioBootstrapApp(mode: mode, initialRoute: initialRoute)),
       );
     },
-    (error, stackTrace) {
+    (error, stackTrace) async {
       debugPrint('Abianzo zoned error: $error');
       debugPrintStack(stackTrace: stackTrace);
+      await Sentry.captureException(error, stackTrace: stackTrace);
     },
   );
 }
@@ -146,6 +113,7 @@ Future<void> bootstrapAndRunWithInitialRoute(
 void _installGlobalErrorHandling() {
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
+    Sentry.captureException(details.exception, stackTrace: details.stack);
     debugPrint('Abianzo Flutter error: ${details.exception}');
     if (details.stack != null) {
       debugPrintStack(stackTrace: details.stack);
@@ -166,6 +134,7 @@ void _installGlobalErrorHandling() {
   PlatformDispatcher.instance.onError = (error, stackTrace) {
     debugPrint('Abianzo platform error: $error');
     debugPrintStack(stackTrace: stackTrace);
+    Sentry.captureException(error, stackTrace: stackTrace);
     return true;
   };
 }
@@ -1037,5 +1006,112 @@ class _AuthGuardState extends State<AuthGuard> {
     }
 
     return widget.child;
+  }
+}
+
+
+class AbzioBootstrapApp extends StatefulWidget {
+  final AbzioAppMode mode;
+  final String initialRoute;
+
+  const AbzioBootstrapApp({
+    super.key,
+    required this.mode,
+    required this.initialRoute,
+  });
+
+  @override
+  State<AbzioBootstrapApp> createState() => _AbzioBootstrapAppState();
+}
+
+class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
+  Future<void>? _initFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFuture = _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    final startTime = DateTime.now();
+    debugPrint('Startup Performance: App Launch at $startTime');
+
+    await AppBootstrapService().initialize();
+
+    final imageCache = PaintingBinding.instance.imageCache;
+    imageCache.maximumSizeBytes = 200 << 20;
+    imageCache.maximumSize = 1000;
+
+    final endTime = DateTime.now();
+    debugPrint('Startup Performance: API Complete at $endTime. Duration: ${endTime.difference(startTime).inMilliseconds}ms');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _initFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          debugPrint('Startup Performance: Skeleton Rendered at ');
+          return MaterialApp(
+            navigatorKey: AppNavigationService.navigatorKey,
+            scaffoldMessengerKey: AppNavigationService.messengerKey,
+            title: appTitleForMode(widget.mode),
+            debugShowCheckedModeBanner: false,
+            theme: AbzioTheme.lightTheme,
+            darkTheme: AbzioTheme.darkTheme,
+            home: const Scaffold(
+              backgroundColor: Color(0xFFF9F7F2),
+              body: SafeArea(
+                child: GlobalHomeSkeleton(),
+              ),
+            ),
+          );
+        }
+
+        debugPrint('Startup Performance: Home Render Start at ');
+        return ProviderScope(
+          child: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => AuthProvider()),
+              ChangeNotifierProvider(create: (_) => BannerProvider()),
+              ChangeNotifierProxyProvider<AuthProvider, CartProvider>(
+                create: (_) => CartProvider(),
+                update: (_, authProvider, cartProvider) {
+                  final provider = cartProvider ?? CartProvider();
+                  unawaited(provider.syncUser(authProvider.user));
+                  return provider;
+                },
+              ),
+              ChangeNotifierProvider(create: (_) => LocationProvider()),
+              ChangeNotifierProvider(
+                create: (_) => NetworkProvider()..initialize(),
+              ),
+              ChangeNotifierProxyProvider<LocationProvider, ProductProvider>(
+                create: (_) => ProductProvider(),
+                update: (_, locationProvider, productProvider) {
+                  final provider = productProvider ?? ProductProvider();
+                  provider.attachLocationProvider(locationProvider);
+                  return provider;
+                },
+              ),
+              ChangeNotifierProxyProvider<AuthProvider, WishlistProvider>(
+                create: (_) => WishlistProvider(),
+                update: (_, authProvider, wishlistProvider) {
+                  final provider = wishlistProvider ?? WishlistProvider();
+                  provider.syncUser(authProvider.user);
+                  return provider;
+                },
+              ),
+              ChangeNotifierProvider(create: (_) => TrialHomeProvider()),
+              ChangeNotifierProvider(create: (_) => TrialCartProvider()),
+              ChangeNotifierProvider(create: (_) => ThemeProvider()),
+            ],
+            child: AbzioApp(mode: widget.mode, initialRoute: widget.initialRoute),
+          ),
+        );
+      },
+    );
   }
 }

@@ -152,10 +152,6 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
       }
       return '/vendor-profile';
     case AbzioAppMode.rider:
-      if (normalizedUserRole(user) == 'rider' &&
-          user.riderApprovalStatus.trim().toLowerCase() != 'approved') {
-        return '/profile-setup';
-      }
       if (hasRiderOperationsAccess(user)) {
         return '/rider-dashboard';
       }
@@ -196,15 +192,15 @@ String? accessRestrictionMessage(AppUser? user, AbzioAppMode mode) {
   }
   if (mode == AbzioAppMode.rider && !hasRiderOperationsAccess(user)) {
     final riderStatus = user.riderApprovalStatus.trim().toLowerCase();
-    if (normalizedUserRole(user) == 'rider' && riderStatus != 'approved') {
-      // Allow rider-authenticated users to continue into rider setup/onboarding
+    if (riderStatus != 'approved') {
+      // Allow users to continue into rider setup/onboarding
       // flows instead of forcing a logout loop.
       return null;
     }
     return 'This build is for rider operations only. Please use the vendor or customer app for other accounts.';
   }
   if (mode == AbzioAppMode.operations && !canAccessOperationsMode(user)) {
-    if (normalizedUserRole(user) == 'rider') {
+    if (!hasRiderOperationsAccess(user)) {
       final riderStatus = user.riderApprovalStatus.trim().toLowerCase();
       if (riderStatus != 'approved') {
         return 'Your rider profile is not approved yet. Please complete onboarding or wait for approval.';

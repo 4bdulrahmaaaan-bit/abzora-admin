@@ -100,8 +100,19 @@ class TrialSession {
     this.bookingFeePaid = false,
     this.feeAdjustmentAmount = 0,
     this.trialDurationMinutes = 30,
-    this.trialStartedAt,
+    this.trialStartedAt, // deprecated, use startedAt
+    this.scheduledAt,
+    this.arrivedAt,
+    this.startedAt,
+    this.completedAt,
     this.paymentStatus = 'pending',
+    this.paymentCollected = false,
+    this.paymentMethod = '',
+    this.paymentAmount = 0,
+    this.trialOutcome = '',
+    this.notes = '',
+    this.proofPhotos = const <String>[],
+    this.customerAcknowledged = false,
     this.createdAt,
     this.updatedAt,
   });
@@ -132,17 +143,29 @@ class TrialSession {
   final bool bookingFeePaid;
   final double feeAdjustmentAmount;
   final int trialDurationMinutes;
-  final DateTime? trialStartedAt;
+  final DateTime? trialStartedAt; // deprecated
+  final DateTime? scheduledAt;
+  final DateTime? arrivedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
   final String paymentStatus;
+  final bool paymentCollected;
+  final String paymentMethod;
+  final double paymentAmount;
+  final String trialOutcome;
+  final String notes;
+  final List<String> proofPhotos;
+  final bool customerAcknowledged;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
   bool get isBooked =>
       status == 'booked' ||
-      status == 'rider_assigned' ||
       status == 'confirmed' ||
-      status == 'out_for_trial_delivery';
-  bool get isInProgress => status == 'trial_in_progress';
+      status == 'assigned';
+  bool get isEnRoute => status == 'en_route' || status == 'out_for_trial_delivery';
+  bool get hasArrived => status == 'arrived';
+  bool get isInProgress => status == 'trial_started' || status == 'trial_active' || status == 'trial_in_progress';
   bool get isAwaitingPayment => status == 'awaiting_final_payment';
   bool get isCompleted => status == 'completed';
   bool get isResolved =>
@@ -206,10 +229,111 @@ class TrialSession {
       bookingFeePaid: map['bookingFeePaid'] == true,
       feeAdjustmentAmount: ((map['feeAdjustmentAmount'] ?? 0) as num).toDouble(),
       trialDurationMinutes: ((map['trialDurationMinutes'] ?? 30) as num).toInt(),
-      trialStartedAt: DateTime.tryParse(map['trialStartedAt']?.toString() ?? ''),
+      trialStartedAt: DateTime.tryParse(map['trialStartedAt']?.toString() ?? map['startedAt']?.toString() ?? ''),
+      scheduledAt: DateTime.tryParse(map['scheduledAt']?.toString() ?? ''),
+      arrivedAt: DateTime.tryParse(map['arrivedAt']?.toString() ?? ''),
+      startedAt: DateTime.tryParse(map['startedAt']?.toString() ?? ''),
+      completedAt: DateTime.tryParse(map['completedAt']?.toString() ?? ''),
       paymentStatus: map['paymentStatus']?.toString() ?? 'pending',
+      paymentCollected: map['paymentCollected'] == true,
+      paymentMethod: map['paymentMethod']?.toString() ?? '',
+      paymentAmount: ((map['paymentAmount'] ?? 0) as num).toDouble(),
+      trialOutcome: map['trialOutcome']?.toString() ?? '',
+      notes: map['notes']?.toString() ?? '',
+      proofPhotos: (map['proofPhotos'] as List? ?? const <dynamic>[])
+          .map((item) => item.toString())
+          .toList(),
+      customerAcknowledged: map['customerAcknowledged'] == true,
       createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? ''),
       updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? ''),
+    );
+  }
+
+  TrialSession copyWith({
+    String? id,
+    String? userId,
+    String? userName,
+    String? userPhone,
+    String? userCity,
+    String? status,
+    List<TrialSessionItem>? items,
+    List<TrialSessionItem>? recommendedItems,
+    String? recommendedSize,
+    double? fitConfidence,
+    List<String>? keptItems,
+    List<String>? returnedItems,
+    String? addressLabel,
+    String? deliverySlot,
+    String? bookingPaymentId,
+    String? bookingOrderId,
+    double? bookingFeeAmount,
+    String? finalPaymentId,
+    String? finalOrderId,
+    double? finalAmount,
+    String? deliveryWindowLabel,
+    double? trialFee,
+    double? subtotal,
+    bool? bookingFeePaid,
+    double? feeAdjustmentAmount,
+    int? trialDurationMinutes,
+    DateTime? trialStartedAt,
+    DateTime? scheduledAt,
+    DateTime? arrivedAt,
+    DateTime? startedAt,
+    DateTime? completedAt,
+    String? paymentStatus,
+    bool? paymentCollected,
+    String? paymentMethod,
+    double? paymentAmount,
+    String? trialOutcome,
+    String? notes,
+    List<String>? proofPhotos,
+    bool? customerAcknowledged,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return TrialSession(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      userName: userName ?? this.userName,
+      userPhone: userPhone ?? this.userPhone,
+      userCity: userCity ?? this.userCity,
+      status: status ?? this.status,
+      items: items ?? this.items,
+      recommendedItems: recommendedItems ?? this.recommendedItems,
+      recommendedSize: recommendedSize ?? this.recommendedSize,
+      fitConfidence: fitConfidence ?? this.fitConfidence,
+      keptItems: keptItems ?? this.keptItems,
+      returnedItems: returnedItems ?? this.returnedItems,
+      addressLabel: addressLabel ?? this.addressLabel,
+      deliverySlot: deliverySlot ?? this.deliverySlot,
+      bookingPaymentId: bookingPaymentId ?? this.bookingPaymentId,
+      bookingOrderId: bookingOrderId ?? this.bookingOrderId,
+      bookingFeeAmount: bookingFeeAmount ?? this.bookingFeeAmount,
+      finalPaymentId: finalPaymentId ?? this.finalPaymentId,
+      finalOrderId: finalOrderId ?? this.finalOrderId,
+      finalAmount: finalAmount ?? this.finalAmount,
+      deliveryWindowLabel: deliveryWindowLabel ?? this.deliveryWindowLabel,
+      trialFee: trialFee ?? this.trialFee,
+      subtotal: subtotal ?? this.subtotal,
+      bookingFeePaid: bookingFeePaid ?? this.bookingFeePaid,
+      feeAdjustmentAmount: feeAdjustmentAmount ?? this.feeAdjustmentAmount,
+      trialDurationMinutes: trialDurationMinutes ?? this.trialDurationMinutes,
+      trialStartedAt: trialStartedAt ?? this.trialStartedAt,
+      scheduledAt: scheduledAt ?? this.scheduledAt,
+      arrivedAt: arrivedAt ?? this.arrivedAt,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      paymentCollected: paymentCollected ?? this.paymentCollected,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      paymentAmount: paymentAmount ?? this.paymentAmount,
+      trialOutcome: trialOutcome ?? this.trialOutcome,
+      notes: notes ?? this.notes,
+      proofPhotos: proofPhotos ?? this.proofPhotos,
+      customerAcknowledged: customerAcknowledged ?? this.customerAcknowledged,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

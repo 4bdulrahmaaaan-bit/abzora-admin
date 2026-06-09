@@ -13,6 +13,7 @@ import '../../utils/app_mode_routes.dart';
 import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
 import '../../services/onboarding_service.dart';
+import 'vendor_migration_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -767,6 +768,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     icon: Icons.receipt_long_outlined,
                     color: const Color(0xFF5B53E6),
                     onTap: () => Navigator.pushNamed(context, '/invoice/hub'),
+                  ),
+                  _AdminAction(
+                    title: 'Data Migration Tools',
+                    subtitle: 'Run background legacy data cleanup scripts',
+                    icon: Icons.data_usage_rounded,
+                    color: Colors.brown,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const VendorMigrationScreen(),
+                        ),
+                      );
+                    },
                   ),
                   if (_analytics?.topStores.isNotEmpty == true) ...[
                     const SizedBox(height: 16),

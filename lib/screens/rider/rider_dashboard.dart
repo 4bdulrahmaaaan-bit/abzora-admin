@@ -10,13 +10,15 @@ import '../../theme.dart';
 import '../../utils/app_error_text.dart';
 import '../../widgets/payout_account_dialog.dart';
 import '../../widgets/state_views.dart';
-import 'delivery_screen.dart';
-import 'rider_earnings_screen.dart';
+
 import 'rider_onboarding_screen.dart';
 import 'rider_route_screen.dart';
 import 'rider_tasks_screen.dart';
 import 'rider_trials_screen.dart';
 
+import 'rider_performance_screen.dart';
+import 'rider_earnings_screen.dart';
+import 'rider_payouts_screen.dart';
 class _RiderUi {
   static const Color ivory = Color(0xFFF8F5EF);
   static const Color gold = Color(0xFFC8A86B);
@@ -268,6 +270,69 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                 const SizedBox(height: 14),
                 _RouteLaunchCard(taskCount: data.tasks.length),
                 const SizedBox(height: 24),
+                
+                // PHASE 3 DASHBOARD INTEGRATION
+                Text('WORKFORCE PLATFORM', style: Theme.of(context).textTheme.labelMedium),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RiderEarningsScreen())),
+                        child: const Card(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Column(
+                              children: [
+                                Icon(Icons.account_balance_wallet, color: _RiderUi.gold),
+                                SizedBox(height: 8),
+                                Text('Earnings', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RiderPerformanceScreen())),
+                        child: const Card(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Column(
+                              children: [
+                                Icon(Icons.star, color: _RiderUi.gold),
+                                SizedBox(height: 8),
+                                Text('Performance', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RiderPayoutsScreen())),
+                        child: const Card(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Column(
+                              children: [
+                                Icon(Icons.payments, color: _RiderUi.gold),
+                                SizedBox(height: 8),
+                                Text('Payouts', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
                 Text('AVAILABLE DELIVERIES', style: Theme.of(context).textTheme.labelMedium),
                 const SizedBox(height: 12),
                 if (data.availableDeliveries.isEmpty)
@@ -287,7 +352,7 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                 const SizedBox(height: 24),
                 Text('UNIFIED TASK QUEUE', style: Theme.of(context).textTheme.labelMedium),
                 const SizedBox(height: 12),
-                if (data.tasks.isEmpty && data.assignedOrders.isEmpty)
+                if (data.tasks.isEmpty)
                   const AbzioEmptyCard(
                     title: 'No active tasks yet',
                     subtitle:
@@ -300,9 +365,6 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                       service: _service,
                       rider: actor,
                     ),
-                  ),
-                  ...data.assignedOrders.map(
-                    (order) => _AssignedOrderCard(order: order),
                   ),
                 ],
               ],
@@ -1018,64 +1080,6 @@ class _AvailableDeliveryCardState extends State<_AvailableDeliveryCard> {
   }
 }
 
-class _AssignedOrderCard extends StatelessWidget {
-  const _AssignedOrderCard({required this.order});
-
-  final OrderModel order;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFEFB),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE8DCC2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.025),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber,
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w800, color: const Color(0xFF111111)),
-                ),
-              ),
-              _DeliveryStatusPill(status: order.deliveryStatus),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(order.shippingAddress, style: GoogleFonts.inter(color: AbzioTheme.grey600, height: 1.45)),
-          const SizedBox(height: 8),
-          Text('${order.items.length} item(s)', style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666))),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => DeliveryScreen(order: order)),
-                );
-              },
-              child: const Text('Open Delivery'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _UnifiedTaskCard extends StatefulWidget {
   const _UnifiedTaskCard({

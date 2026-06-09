@@ -6,6 +6,12 @@ import '../../services/backend_commerce_service.dart';
 import '../../widgets/premium_price_row.dart';
 import '../../widgets/state_views.dart';
 
+import '../../core/vendor/theme/vendor_theme.dart';
+import '../../core/vendor/widgets/premium_vendor_card.dart';
+import '../../core/vendor/widgets/vendor_metric_card.dart';
+import '../../core/vendor/widgets/vendor_status_badge.dart';
+import '../../core/vendor/widgets/vendor_empty_state.dart';
+
 class PricingManagementScreen extends StatefulWidget {
   const PricingManagementScreen({super.key, required this.storeId});
 
@@ -374,42 +380,18 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
   }
 
   Widget _buildKpiCard(String label, String value) {
+    IconData icon = Icons.analytics_outlined;
+    if (label.toLowerCase().contains('view')) icon = Icons.visibility_outlined;
+    if (label.toLowerCase().contains('cart')) icon = Icons.shopping_cart_outlined;
+    if (label.toLowerCase().contains('conversion')) icon = Icons.swap_calls_outlined;
+    if (label.toLowerCase().contains('revenue')) icon = Icons.payments_outlined;
+    if (label.toLowerCase().contains('purchase')) icon = Icons.shopping_bag_outlined;
+    
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              value,
-              style: GoogleFonts.poppins(
-                fontSize: 21,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF1A1A1A),
-              ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: const Color(0xFF7F7A70),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
+      child: VendorMetricCard(
+        title: label,
+        value: value,
+        icon: icon,
       ),
     );
   }
@@ -422,29 +404,14 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
     final safe = values.map((value) => value < 0 ? 0 : value).toList();
     final max = safe.isEmpty ? 1.0 : safe.reduce((a, b) => a > b ? a : b);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+    return PremiumVendorCard(
+      padding: const EdgeInsets.all(VendorTheme.spacing16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
             title,
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF1A1A1A),
-            ),
+            style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 10),
           SizedBox(
@@ -608,26 +575,16 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
         ? const <String, dynamic>{'suggested': 25}
         : _discountSuggestionFor(focused);
 
-    return Container(
-      margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: <Color>[Color(0xFFF7F0E1), Color(0xFFFDF9F2)],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8D9BC)),
-      ),
+    return PremiumVendorCard(
+      margin: const EdgeInsets.only(top: VendorTheme.spacing16),
+      padding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing16, vertical: VendorTheme.spacing12),
+      backgroundColor: VendorTheme.secondary.withValues(alpha: 0.1),
       child: Row(
         children: <Widget>[
           Expanded(
             child: Text(
               '${_selected.length} products selected',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF2B251A),
-              ),
+              style: Theme.of(context).textTheme.titleSmall,
             ),
           ),
           Wrap(
@@ -639,6 +596,10 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                   unit: 'amount',
                   removeDiscount: false,
                 ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: VendorTheme.primary,
+                  side: const BorderSide(color: VendorTheme.primary),
+                ),
                 child: const Text('Edit Price'),
               ),
               OutlinedButton(
@@ -648,11 +609,19 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                   removeDiscount: false,
                   suggestedDiscount: _asInt(suggestion['suggested']),
                 ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: VendorTheme.primary,
+                  side: const BorderSide(color: VendorTheme.primary),
+                ),
                 child: const Text('Apply Discount'),
               ),
               OutlinedButton(
                 onPressed: () => _configureBulkAction(
                   removeDiscount: true,
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: VendorTheme.primary,
+                  side: const BorderSide(color: VendorTheme.primary),
                 ),
                 child: const Text('Remove Discount'),
               ),
@@ -679,20 +648,9 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
         ? null
         : Map<String, dynamic>.from(sample['after'] as Map);
 
-    return Container(
-      margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+    return PremiumVendorCard(
+      margin: const EdgeInsets.only(top: VendorTheme.spacing16),
+      padding: const EdgeInsets.all(VendorTheme.spacing16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -914,19 +872,8 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
               ))
             .first;
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+    return PremiumVendorCard(
+      padding: const EdgeInsets.all(VendorTheme.spacing16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -1065,7 +1012,7 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF8F3),
+      backgroundColor: VendorTheme.background,
       appBar: AppBar(
         title: Text(
           'Pricing Management',
@@ -1336,11 +1283,10 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                 if (_selected.isNotEmpty) _buildSelectedActionBar(),
                 const SizedBox(height: 14),
                 if (_rows.isEmpty)
-                  AbzioEmptyCard(
+                  VendorEmptyState(
                     title: 'Add products to start optimizing pricing',
                     subtitle: 'Start selling to unlock demand and purchase insights.',
-                    ctaLabel: 'ADD PRODUCT',
-                    onTap: () => Navigator.pop(context),
+                    icon: Icons.price_change_outlined,
                   )
                 else
                   Container(
@@ -1463,20 +1409,9 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                             ),
                             DataCell(Text('$discount%')),
                             DataCell(
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: status == 'active'
-                                      ? const Color(0xFFF2F8EE)
-                                      : status == 'scheduled'
-                                          ? const Color(0xFFF7F1E3)
-                                          : const Color(0xFFF3F1EE),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(status),
+                              VendorStatusBadge(
+                                label: status,
+                                type: status == 'active' ? VendorBadgeType.success : status == 'scheduled' ? VendorBadgeType.warning : VendorBadgeType.neutral,
                               ),
                             ),
                             DataCell(

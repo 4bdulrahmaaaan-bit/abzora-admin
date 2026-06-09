@@ -1,12 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../services/rider_service.dart';
 import '../../theme.dart';
 import '../../widgets/state_views.dart';
 import 'delivery_screen.dart';
+
+LatLngBounds _boundsFromLatLngList(List<LatLng> list) {
+  assert(list.isNotEmpty);
+  double? x0, x1, y0, y1;
+  for (LatLng latLng in list) {
+    if (x0 == null) {
+      x0 = x1 = latLng.latitude;
+      y0 = y1 = latLng.longitude;
+    } else {
+      if (latLng.latitude > x1!) x1 = latLng.latitude;
+      if (latLng.latitude < x0) x0 = latLng.latitude;
+      if (latLng.longitude > y1!) y1 = latLng.longitude;
+      if (latLng.longitude < y0!) y0 = latLng.longitude;
+    }
+  }
+  return LatLngBounds(
+    northeast: LatLng(x1!, y1!),
+    southwest: LatLng(x0!, y0!),
+  );
+}
 
 class RiderRouteScreen extends StatefulWidget {
   const RiderRouteScreen({super.key});
@@ -78,95 +101,171 @@ class _RiderRouteScreenState extends State<RiderRouteScreen> {
             final deliveries = stops.where((stop) => !stop.isReturn).toList();
             final returns = stops.where((stop) => stop.isReturn).toList();
 
-            return ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              children: [
-                _RouteHeroCard(
-                  riderName: rider.name.trim().isEmpty ? 'Abianzo Rider' : rider.name.trim(),
-                  totalStops: stops.length,
-                  deliveryCount: deliveries.length,
-                  returnCount: returns.length,
+            final markers = <Marker>{};
+            final polylines = <Polyline>{};
+            final points = <LatLng>[];
+
+            if (rider.latitude != null && rider.longitude != null) {
+              points.add(LatLng(rider.latitude!, rider.longitude!));
+              markers.add(
+                Marker(
+                  markerId: const MarkerId('rider'),
+                  position: LatLng(rider.latitude!, rider.longitude!),
+                  icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+                  infoWindow: const InfoWindow(title: 'You'),
                 ),
-                const SizedBox(height: 20),
-                if (stops.isEmpty)
-                  const AbzioEmptyCard(
-                    title: 'No active route yet',
-                    subtitle: 'Accepted deliveries and nearby return pickups will appear here automatically.',
-                  )
-                else ...[
-                  if (deliveries.isNotEmpty) ...[
-                    _RouteSectionHeader(
-                      title: 'Deliveries First',
-                      subtitle: 'Orders closest to you and ready to complete.',
+              );
+            }
+
+            for (int i = 0; i < stops.length; i++) {
+              final stop = stops[i];
+              final lat = stop.task.type == 'return' ? stop.task.pickupLat : stop.task.dropLat;
+              final lng = stop.task.type == 'return' ? stop.task.pickupLng : stop.task.dropLng;
+              
+              if (lat != null && lng != null) {
+                final pos = LatLng(lat, lng);
+                points.add(pos);
+                markers.add(
+                  Marker(
+                    markerId: MarkerId(stop.task.id),
+                    position: pos,
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                      stop.task.type == 'return' ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueGreen,
                     ),
-                    const SizedBox(height: 12),
-                    ...List.generate(
-                      deliveries.length,
-                      (index) => _RouteStopCard(
-                        stop: deliveries[index],
-                        index: index + 1,
-                        onAction: () {
-                          final order = deliveries[index].order;
-                          if (order == null) {
-                            return;
-                          }
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => DeliveryScreen(order: order)),
-                          );
-                        },
+                    infoWindow: InfoWindow(title: 'Stop ${i + 1} - ${stop.routeLabel}'),
+                  ),
+                );
+              }
+            }
+
+            if (points.isNotEmpty) {
+               polylines.add(
+                 Polyline(
+                   polylineId: const PolylineId('route'),
+                   points: points,
+                   color: AbzioTheme.accentColor,
+                   width: 4,
+                 )
+               );
+            }
+
+            final initialCameraPosition = points.isNotEmpty 
+                ? CameraPosition(target: points.first, zoom: 14)
+                : const CameraPosition(target: LatLng(0, 0), zoom: 2);
+
+            return Column(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: GoogleMap(
+                    initialCameraPosition: initialCameraPosition,
+                    markers: markers,
+                    polylines: polylines,
+                    onMapCreated: (controller) {
+                       if (points.isNotEmpty) {
+                          Future.delayed(const Duration(milliseconds: 300), () {
+                            controller.animateCamera(CameraUpdate.newLatLngBounds(_boundsFromLatLngList(points), 50));
+                          });
+                       }
+                    },
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: true,
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                    children: [
+                      _RouteHeroCard(
+                        riderName: rider.name.trim().isEmpty ? 'Abianzo Rider' : rider.name.trim(),
+                        totalStops: stops.length,
+                        deliveryCount: deliveries.length,
+                        returnCount: returns.length,
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                  if (returns.isNotEmpty) ...[
-                    _RouteSectionHeader(
-                      title: 'Nearby Return Pickups',
-                      subtitle: 'Bundle these stops while you are already in the area.',
-                    ),
-                    const SizedBox(height: 12),
-                    ...List.generate(
-                      returns.length,
-                      (index) => _RouteStopCard(
-                        stop: returns[index],
-                        index: deliveries.length + index + 1,
-                        onAction: () async {
-                          final stop = returns[index];
-                          final messenger = ScaffoldMessenger.of(context);
-                          if (stop.task.returnId == null) {
-                            return;
-                          }
-                          if (stop.task.status == 'assigned') {
-                            await _service.markReturnPicked(
-                              returnId: stop.task.returnId!,
-                              rider: rider,
-                            );
-                          } else if (stop.task.status == 'in_progress') {
-                            await _service.completeReturn(
-                              returnId: stop.task.returnId!,
-                              rider: rider,
-                            );
-                          }
-                          if (!mounted) {
-                            return;
-                          }
-                          messenger.showSnackBar(
-                            SnackBar(
-                              behavior: SnackBarBehavior.floating,
-                              content: Text(
-                                stop.task.status == 'assigned'
-                                    ? 'Return pickup marked as picked.'
-                                    : 'Return completed successfully.',
-                              ),
+                      const SizedBox(height: 20),
+                      if (stops.isEmpty)
+                        const AbzioEmptyCard(
+                          title: 'No active route yet',
+                          subtitle: 'Accepted deliveries and nearby return pickups will appear here automatically.',
+                        )
+                      else ...[
+                        if (deliveries.isNotEmpty) ...[
+                          _RouteSectionHeader(
+                            title: 'Deliveries First',
+                            subtitle: 'Orders closest to you and ready to complete.',
+                          ),
+                          const SizedBox(height: 12),
+                          ...List.generate(
+                            deliveries.length,
+                            (index) => _RouteStopCard(
+                              stop: deliveries[index],
+                              index: index + 1,
+                              onAction: () {
+                                final order = deliveries[index].order;
+                                if (order == null) {
+                                  return;
+                                }
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => DeliveryScreen(order: order)),
+                                );
+                              },
                             ),
-                          );
-                          await _refresh();
-                        },
-                      ),
-                    ),
-                  ],
-                ],
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                        if (returns.isNotEmpty) ...[
+                          _RouteSectionHeader(
+                            title: 'Nearby Return Pickups',
+                            subtitle: 'Bundle these stops while you are already in the area.',
+                          ),
+                          const SizedBox(height: 12),
+                          ...List.generate(
+                            returns.length,
+                            (index) => _RouteStopCard(
+                              stop: returns[index],
+                              index: deliveries.length + index + 1,
+                              onAction: () async {
+                                final stop = returns[index];
+                                final messenger = ScaffoldMessenger.of(context);
+                                if (stop.task.returnId == null) {
+                                  return;
+                                }
+                                if (stop.task.status == 'assigned') {
+                                  await _service.markReturnPicked(
+                                    returnId: stop.task.returnId!,
+                                    rider: rider,
+                                  );
+                                } else if (stop.task.status == 'in_progress') {
+                                  await _service.completeReturn(
+                                    returnId: stop.task.returnId!,
+                                    rider: rider,
+                                  );
+                                }
+                                if (!mounted) {
+                                  return;
+                                }
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    behavior: SnackBarBehavior.floating,
+                                    content: Text(
+                                      stop.task.status == 'assigned'
+                                          ? 'Return pickup marked as picked.'
+                                          : 'Return completed successfully.',
+                                    ),
+                                  ),
+                                );
+                                await _refresh();
+                              },
+                            ),
+                          ),
+                        ],
+                      ],
+                    ],
+                  ),
+                ),
               ],
             );
           },
@@ -435,6 +534,11 @@ class _RouteStopCard extends StatelessWidget {
                     ? 'Distance unavailable'
                     : '${stop.distanceKm!.toStringAsFixed(1)} km away',
               ),
+              if (stop.etaMins != null)
+                _MiniInfoChip(
+                  icon: Icons.timer_outlined,
+                  label: '${stop.etaMins} mins',
+                ),
               _MiniInfoChip(
                 icon: Icons.phone_outlined,
                 label: stop.customerPhone,
@@ -449,18 +553,38 @@ class _RouteStopCard extends StatelessWidget {
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            child: stop.task.status == 'completed'
-                ? OutlinedButton(
-                    onPressed: null,
-                    child: const Text('Completed'),
-                  )
-                : ElevatedButton(
-                    onPressed: onAction,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: stop.isReturn ? accent : const Color(0xFF111111),
-                    ),
-                    child: Text(buttonLabel),
+            child: Row(
+              children: [
+                Expanded(
+                  child: stop.task.status == 'completed'
+                      ? OutlinedButton(
+                          onPressed: null,
+                          child: const Text('Completed'),
+                        )
+                      : ElevatedButton(
+                          onPressed: onAction,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: stop.isReturn ? accent : const Color(0xFF111111),
+                          ),
+                          child: Text(buttonLabel),
+                        ),
+                ),
+                if (stop.task.status != 'completed') ...[
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      final lat = stop.task.type == 'return' ? stop.task.pickupLat : stop.task.dropLat;
+                      final lng = stop.task.type == 'return' ? stop.task.pickupLng : stop.task.dropLng;
+                      if (lat != null && lng != null) {
+                        launchUrl(Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng'));
+                      }
+                    },
+                    icon: const Icon(Icons.navigation_outlined, size: 16),
+                    label: const Text('Navigate'),
                   ),
+                ],
+              ],
+            ),
           ),
         ],
       ),

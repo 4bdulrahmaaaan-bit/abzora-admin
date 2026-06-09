@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+
 
 import '../../models/models.dart';
-import '../../providers/auth_provider.dart';
+
 import '../../services/database_service.dart';
 import '../../widgets/state_views.dart';
+
+// V2 Design System Imports
+import '../../core/vendor/theme/vendor_theme.dart';
+import '../../core/vendor/widgets/premium_vendor_card.dart';
+import '../../core/vendor/widgets/vendor_metric_card.dart';
+import '../../core/vendor/widgets/vendor_status_badge.dart';
+import '../../core/vendor/widgets/vendor_empty_state.dart';
+import '../../core/vendor/widgets/vendor_buttons.dart';
+
 import 'add_product_screen.dart';
 import 'pricing_management_screen.dart';
 
 class ProductManagementScreen extends StatefulWidget {
-  const ProductManagementScreen({
-    super.key,
-    required this.storeId,
-  });
-
+  const ProductManagementScreen({super.key, required this.storeId});
   final String storeId;
 
   @override
@@ -23,56 +27,42 @@ class ProductManagementScreen extends StatefulWidget {
 
 class _ProductManagementScreenState extends State<ProductManagementScreen> {
   static const int _pageSize = 8;
-
   final _db = DatabaseService();
   final _searchController = TextEditingController();
+  
   List<Product> _products = [];
   bool _loading = true;
   String _statusFilter = 'All';
   String _categoryFilter = 'All';
   int _page = 0;
+  Set<String> _selectedProducts = {};
 
   List<Product> get _filteredProducts {
     final query = _searchController.text.trim().toLowerCase();
-    final filtered = _products.where((product) {
+    return _products.where((product) {
       final matchesStatus = _statusFilter == 'All' ||
           (_statusFilter == 'Active' && product.status == ProductStatus.active) ||
+          (_statusFilter == 'Draft' && product.status == ProductStatus.draft) ||
           (_statusFilter == 'Hidden' && product.status != ProductStatus.active) ||
           (_statusFilter == 'Out of Stock' && product.stock <= 0);
       final matchesCategory = _categoryFilter == 'All' || product.category == _categoryFilter;
       final haystack = '${product.name} ${product.brand} ${product.category}'.toLowerCase();
       final matchesQuery = query.isEmpty || haystack.contains(query);
       return matchesStatus && matchesCategory && matchesQuery;
-    }).toList()
-      ..sort((a, b) {
-        final left = a.createdAt ?? '';
-        final right = b.createdAt ?? '';
-        return right.compareTo(left);
-      });
-    return filtered;
+    }).toList()..sort((a, b) => (b.createdAt ?? '').compareTo(a.createdAt ?? ''));
   }
 
   List<Product> get _visibleProducts {
     final start = _page * _pageSize;
     final filtered = _filteredProducts;
-    if (start >= filtered.length) {
-      return const [];
-    }
-    final end = (start + _pageSize).clamp(0, filtered.length);
-    return filtered.sublist(start, end);
+    if (start >= filtered.length) return const [];
+    return filtered.sublist(start, (start + _pageSize).clamp(0, filtered.length));
   }
 
-  int get _pageCount {
-    final count = _filteredProducts.length;
-    if (count == 0) {
-      return 1;
-    }
-    return (count / _pageSize).ceil();
-  }
+  int get _pageCount => _filteredProducts.isEmpty ? 1 : (_filteredProducts.length / _pageSize).ceil();
 
   List<String> get _categories {
-    final values = _products.map((product) => product.category).where((value) => value.trim().isNotEmpty).toSet().toList()
-      ..sort();
+    final values = _products.map((p) => p.category).where((c) => c.trim().isNotEmpty).toSet().toList()..sort();
     return ['All', ...values];
   }
 
@@ -85,448 +75,351 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
 
   @override
   void dispose() {
-    _searchController
-      ..removeListener(_handleSearchChanged)
-      ..dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   void _handleSearchChanged() {
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     setState(() => _page = 0);
   }
 
   Future<void> _loadProducts() async {
-    final actor = context.read<AuthProvider>().user;
-    final products = await _db.getProductsByStore(
-      widget.storeId,
-      includeInactive: true,
-    );
-    if (!mounted) {
-      return;
-    }
+    final products = await _db.getProductsByStore(widget.storeId, includeInactive: true);
+    if (!mounted) return;
     setState(() {
       _products = products;
       _loading = false;
       _page = 0;
+      _selectedProducts.clear();
     });
-    if (actor == null) {
-      return;
-    }
-  }
-
-  Future<void> _deleteProduct(Product product) async {
-    await _db.deleteProduct(product.id, actor: context.read<AuthProvider>().user);
-    await _loadProducts();
   }
 
   Future<void> _openProductEditor({Product? product}) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddProductScreen(
-          storeId: widget.storeId,
-          existingProduct: product,
-        ),
+        builder: (_) => AddProductScreen(storeId: widget.storeId, existingProduct: product),
       ),
     );
     await _loadProducts();
   }
 
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedProducts.contains(id)) {
+        _selectedProducts.remove(id);
+      } else {
+        _selectedProducts.add(id);
+      }
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      if (_selectedProducts.length == _filteredProducts.length) {
+        _selectedProducts.clear();
+      } else {
+        _selectedProducts = _filteredProducts.map((p) => p.id).toSet();
+      }
+    });
+  }
+
+  int _calculateQualityScore(Product p) {
+    int score = 40; // Base score
+    if (p.images.length > 2) {
+      score += 20;
+    } else if (p.images.isNotEmpty) {
+      score += 10;
+    }
+    if (p.description.length > 50) score += 15;
+    if (p.brand.isNotEmpty) score += 10;
+    if (p.specifications.isNotEmpty) score += 15;
+    return score.clamp(0, 100);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final filteredCount = _filteredProducts.length;
-    final activeCount = _products.where((product) => product.status == ProductStatus.active).length;
-    final hiddenCount = _products.length - activeCount;
-    final outOfStockCount = _products.where((product) => product.stock <= 0).length;
+    final activeCount = _products.where((p) => p.status == ProductStatus.active).length;
+    final outOfStockCount = _products.where((p) => p.stock <= 0).length;
+    final draftCount = _products.where((p) => p.status == ProductStatus.draft).length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6EE),
+      backgroundColor: VendorTheme.background,
       appBar: AppBar(
-        title: Text('Product Management', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        title: const Text('Catalog Pro'),
         actions: [
+          if (_selectedProducts.isNotEmpty)
+            TextButton.icon(
+              onPressed: () {}, // Bulk operations hook
+              icon: const Icon(Icons.flash_on),
+              label: Text('Bulk Actions (${_selectedProducts.length})'),
+              style: TextButton.styleFrom(foregroundColor: VendorTheme.info),
+            ),
           IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.checklist_rounded),
-            tooltip: 'Bulk actions',
-          ),
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PricingManagementScreen(storeId: widget.storeId),
-                ),
-              );
-            },
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingManagementScreen(storeId: widget.storeId))),
             icon: const Icon(Icons.price_change_outlined),
-            tooltip: 'Pricing Management',
+            tooltip: 'Pricing Intelligence',
           ),
           IconButton(
-            onPressed: () => _openProductEditor(),
+            onPressed: _openProductEditor,
             icon: const Icon(Icons.add_rounded),
-            tooltip: 'Add product',
+            tooltip: 'Add Product',
           ),
         ],
       ),
       body: _loading
-          ? const AbzioLoadingView(
-              title: 'Loading catalog',
-              subtitle: 'Preparing inventory controls, product status, and pricing.',
-            )
+          ? const AbzioLoadingView(title: 'Loading Catalog', subtitle: 'Fetching products and performance metrics.')
           : RefreshIndicator(
+              color: VendorTheme.primary,
               onRefresh: _loadProducts,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing16, vertical: VendorTheme.spacing24),
                 children: [
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      _SummaryMetric(
-                        label: 'Total products',
-                        value: '${_products.length}',
-                      ),
-                      _SummaryMetric(
-                        label: 'Active',
-                        value: '$activeCount',
-                      ),
-                      _SummaryMetric(
-                        label: 'Out of stock',
-                        value: '$outOfStockCount',
-                      ),
-                      _SummaryMetric(
-                        label: 'Hidden',
-                        value: '$hiddenCount',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _InsightsCard(products: _products),
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Catalog filters',
-                            style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _searchController,
-                            decoration: const InputDecoration(
-                              hintText: 'Search products, brand, category',
-                              prefixIcon: Icon(Icons.search_rounded),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: [
-                              SizedBox(
-                                width: 180,
-                                child: DropdownButtonFormField<String>(
-                                  initialValue: _statusFilter,
-                                  decoration: const InputDecoration(labelText: 'Status'),
-                                  items: const ['All', 'Active', 'Hidden', 'Out of Stock']
-                                      .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-                                      .toList(),
-                                  onChanged: (value) => setState(() {
-                                    _statusFilter = value ?? 'All';
-                                    _page = 0;
-                                  }),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 220,
-                                child: DropdownButtonFormField<String>(
-                                  initialValue: _categoryFilter,
-                                  decoration: const InputDecoration(labelText: 'Category'),
-                                  items: _categories
-                                      .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-                                      .toList(),
-                                  onChanged: (value) => setState(() {
-                                    _categoryFilter = value ?? 'All';
-                                    _page = 0;
-                                  }),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  _buildCatalogOverview(activeCount, draftCount, outOfStockCount),
+                  const SizedBox(height: VendorTheme.spacing24),
+                  _buildSmartFilters(),
+                  const SizedBox(height: VendorTheme.spacing24),
                   if (_filteredProducts.isEmpty)
-                    AbzioEmptyCard(
-                      title: _products.isEmpty ? 'No products yet' : 'No products match the current filters',
-                      subtitle: _products.isEmpty
-                          ? 'Start building your premium catalog and the first collection will appear here.'
-                          : 'Adjust the filters or add a new product to expand the catalog.',
-                      ctaLabel: 'ADD PRODUCT',
-                      onTap: () => _openProductEditor(),
+                    VendorEmptyState(
+                      title: _products.isEmpty ? 'Empty Catalog' : 'No matches found',
+                      subtitle: _products.isEmpty ? 'List your first premium product.' : 'Try adjusting your smart filters.',
+                      icon: Icons.inventory_2_outlined,
+                      primaryActionLabel: _products.isEmpty ? 'Add Product' : null,
+                      onPrimaryAction: _products.isEmpty ? _openProductEditor : null,
                     )
                   else ...[
+                    _buildListHeader(),
                     ..._visibleProducts.map(_buildProductCard),
-                    const SizedBox(height: 16),
-                    _PaginationBar(
-                      currentPage: _page,
-                      pageCount: _pageCount,
-                      pageSize: _pageSize,
-                      totalItems: filteredCount,
-                      onPrevious: _page > 0 ? () => setState(() => _page -= 1) : null,
-                      onNext: _page + 1 < _pageCount ? () => setState(() => _page += 1) : null,
-                    ),
+                    const SizedBox(height: VendorTheme.spacing16),
+                    _buildPagination(),
                   ],
                 ],
               ),
             ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openProductEditor(),
+        onPressed: _openProductEditor,
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add Product'),
       ),
     );
   }
 
-  Widget _buildProductCard(Product product) {
-    final originalPrice = product.originalPrice;
-    final hasDiscount = originalPrice != null && originalPrice > product.price;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildCatalogOverview(int active, int draft, int oos) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('CATALOG OVERVIEW', style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: VendorTheme.spacing12),
+        Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: SizedBox(
-                width: 84,
-                height: 84,
-                child: AbzioNetworkImage(
-                  imageUrl: product.images.isNotEmpty ? product.images.first : 'https://via.placeholder.com/200',
-                  fallbackLabel: product.name,
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-                  ),
-                  if (product.brand.trim().isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      product.brand,
-                      style: GoogleFonts.inter(fontSize: 13, color: Theme.of(context).hintColor),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _TagChip(label: product.category),
-                      _TagChip(label: product.status == ProductStatus.active ? 'Active' : 'Hidden'),
-                      _TagChip(label: 'Stock ${product.stock}'),
-                      if (product.stock <= 0) _TagChip(label: 'Out of Stock', bg: const Color(0xFFFBE8E5), fg: const Color(0xFFC03C2E)),
-                      if (product.stock > 0 && product.stock < 5) _TagChip(label: 'Low Stock', bg: const Color(0xFFFFF2DF), fg: const Color(0xFFB27A1D)),
-                      if (product.stock >= 10) _TagChip(label: 'High Demand', bg: const Color(0xFFFFF7E2), fg: const Color(0xFFAA7F14)),
-                      if (product.stock > 20) _TagChip(label: 'Low Conversion', bg: const Color(0xFFFBE8E5), fg: const Color(0xFFC03C2E)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  RichText(
-                    text: TextSpan(
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      children: [
-                        TextSpan(
-                          text: '₹${product.price.toInt()}',
-                          style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
-                        ),
-                        if (hasDiscount) ...[
-                          TextSpan(
-                            text: '   ₹${originalPrice.toInt()}',
-                            style: GoogleFonts.inter(
-                              color: Theme.of(context).hintColor,
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              children: [
-                IconButton(
-                  onPressed: () => _openProductEditor(product: product),
-                  icon: const Icon(Icons.edit_outlined),
-                  tooltip: 'Edit product',
-                ),
-                IconButton(
-                  onPressed: () => _deleteProduct(product),
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  tooltip: 'Delete product',
-                ),
-              ],
-            ),
+            Expanded(child: VendorMetricCard(title: 'Total', value: '${_products.length}')),
+            const SizedBox(width: VendorTheme.spacing12),
+            Expanded(child: VendorMetricCard(title: 'Active', value: '$active')),
           ],
         ),
-      ),
+        const SizedBox(height: VendorTheme.spacing12),
+        Row(
+          children: [
+            Expanded(child: VendorMetricCard(title: 'Draft', value: '$draft')),
+            const SizedBox(width: VendorTheme.spacing12),
+            Expanded(child: VendorMetricCard(title: 'Out of Stock', value: '$oos')),
+          ],
+        ),
+      ],
     );
   }
-}
 
-class _SummaryMetric extends StatelessWidget {
-  const _SummaryMetric({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 164,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildSmartFilters() {
+    return PremiumVendorCard(
+      padding: const EdgeInsets.all(VendorTheme.spacing16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search by Name, SKU, Brand',
+              prefixIcon: const Icon(Icons.search_rounded),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(VendorTheme.radiusSmall), borderSide: BorderSide(color: VendorTheme.grey200)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(VendorTheme.radiusSmall), borderSide: BorderSide(color: VendorTheme.grey200)),
+            ),
+          ),
+          const SizedBox(height: VendorTheme.spacing16),
+          Row(
             children: [
-              Text(
-                value,
-                style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w800),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _statusFilter,
+                  decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
+                  items: const ['All', 'Active', 'Hidden', 'Draft', 'Out of Stock']
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (v) => setState(() { _statusFilter = v ?? 'All'; _page = 0; }),
+                ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: GoogleFonts.inter(color: Theme.of(context).hintColor),
+              const SizedBox(width: VendorTheme.spacing12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _categoryFilter,
+                  decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                  items: _categories.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                  onChanged: (v) => setState(() { _categoryFilter = v ?? 'All'; _page = 0; }),
+                ),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
-}
 
-class _TagChip extends StatelessWidget {
-  const _TagChip({required this.label, this.bg, this.fg});
-
-  final String label;
-  final Color? bg;
-  final Color? fg;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg ?? Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: fg),
-      ),
-    );
-  }
-}
-
-class _InsightsCard extends StatelessWidget {
-  const _InsightsCard({required this.products});
-
-  final List<Product> products;
-
-  @override
-  Widget build(BuildContext context) {
-    final lowStock = products.where((p) => p.stock > 0 && p.stock < 5).length;
-    final outOfStock = products.where((p) => p.stock <= 0).length;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Product Insights', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
-            Text('Running Sneakers -> High demand', style: GoogleFonts.inter()),
-            Text('Denim Jacket -> Reduce price by ?200', style: GoogleFonts.inter()),
-            Text('Out-of-stock products: $outOfStock | Low-stock products: $lowStock', style: GoogleFonts.inter()),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: OutlinedButton(onPressed: () {}, child: const Text('Fix Now')),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PaginationBar extends StatelessWidget {
-  const _PaginationBar({
-    required this.currentPage,
-    required this.pageCount,
-    required this.pageSize,
-    required this.totalItems,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final int currentPage;
-  final int pageCount;
-  final int pageSize;
-  final int totalItems;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    final start = totalItems == 0 ? 0 : (currentPage * pageSize) + 1;
-    final end = ((currentPage + 1) * pageSize).clamp(0, totalItems);
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Showing $start-$end of $totalItems',
-            style: GoogleFonts.inter(color: Theme.of(context).hintColor),
+  Widget _buildListHeader() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: VendorTheme.spacing12, left: VendorTheme.spacing8),
+      child: Row(
+        children: [
+          Checkbox(
+            value: _selectedProducts.length == _filteredProducts.length && _filteredProducts.isNotEmpty,
+            onChanged: (v) => _selectAll(),
+            activeColor: VendorTheme.primary,
           ),
+          Text('${_filteredProducts.length} Products Found', style: Theme.of(context).textTheme.labelLarge),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCard(Product p) {
+    final qualityScore = _calculateQualityScore(p);
+    final isSelected = _selectedProducts.contains(p.id);
+    final conversionRate = p.viewCount > 0 ? (p.purchaseCount / p.viewCount * 100).toStringAsFixed(1) : '0.0';
+
+    return PremiumVendorCard(
+      margin: const EdgeInsets.only(bottom: VendorTheme.spacing16),
+      padding: const EdgeInsets.all(VendorTheme.spacing16),
+      hasBorder: isSelected,
+      backgroundColor: isSelected ? VendorTheme.secondary.withValues(alpha: 0.05) : null,
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: isSelected,
+                onChanged: (_) => _toggleSelection(p.id),
+                activeColor: VendorTheme.primary,
+              ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+                child: SizedBox(
+                  width: 72,
+                  height: 72,
+                  child: AbzioNetworkImage(
+                    imageUrl: p.images.isNotEmpty ? p.images.first : 'https://via.placeholder.com/150',
+                    fallbackLabel: p.name,
+                  ),
+                ),
+              ),
+              const SizedBox(width: VendorTheme.spacing16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(p.name, style: Theme.of(context).textTheme.titleLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    if (p.brand.isNotEmpty) Text(p.brand, style: Theme.of(context).textTheme.bodyMedium),
+                    const SizedBox(height: VendorTheme.spacing8),
+                    Row(
+                      children: [
+                        Text('₹${p.price.toInt()}', style: Theme.of(context).textTheme.titleLarge),
+                        if (p.originalPrice != null && p.originalPrice! > p.price) ...[
+                          const SizedBox(width: VendorTheme.spacing8),
+                          Text('₹${p.originalPrice!.toInt()}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(decoration: TextDecoration.lineThrough)),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: () => _openProductEditor(product: p),
+                    tooltip: 'Edit',
+                  ),
+                  VendorStatusBadge(
+                    label: p.status == ProductStatus.active ? 'Active' : 'Hidden',
+                    type: p.status == ProductStatus.active ? VendorBadgeType.success : VendorBadgeType.neutral,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: VendorTheme.spacing16),
+          const Divider(height: 1),
+          const SizedBox(height: VendorTheme.spacing16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _StatItem(label: 'Views', value: '${p.viewCount}'),
+              _StatItem(label: 'Cart Adds', value: '${p.cartCount}'),
+              _StatItem(label: 'Purchases', value: '${p.purchaseCount}'),
+              _StatItem(label: 'Conv. Rate', value: '$conversionRate%'),
+              _StatItem(label: 'Quality', value: '$qualityScore/100', highlight: qualityScore < 50),
+            ],
+          ),
+          const SizedBox(height: VendorTheme.spacing16),
+          Wrap(
+            spacing: VendorTheme.spacing8,
+            runSpacing: VendorTheme.spacing8,
+            children: [
+              if (p.stock <= 0) const VendorStatusBadge(label: 'Out of Stock', type: VendorBadgeType.error),
+              if (p.stock > 0 && p.stock <= 5) const VendorStatusBadge(label: 'Low Stock', type: VendorBadgeType.warning),
+              if (p.purchaseCount > 50) const VendorStatusBadge(label: 'Best Seller', type: VendorBadgeType.info),
+              if (conversionRate == '0.0' && p.viewCount > 100) const VendorStatusBadge(label: 'Slow Moving', type: VendorBadgeType.error),
+              VendorStatusBadge(label: 'Stock: ${p.stock}', type: VendorBadgeType.neutral),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPagination() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        VendorSecondaryButton(
+          label: 'Prev',
+          icon: Icons.chevron_left,
+          onTap: _page > 0 ? () => setState(() => _page--) : null,
         ),
-        TextButton.icon(
-          onPressed: onPrevious,
-          icon: const Icon(Icons.chevron_left_rounded),
-          label: const Text('Previous'),
+        Text('Page ${_page + 1} of $_pageCount', style: Theme.of(context).textTheme.labelLarge),
+        VendorSecondaryButton(
+          label: 'Next',
+          icon: Icons.chevron_right,
+          onTap: _page + 1 < _pageCount ? () => setState(() => _page++) : null,
         ),
-        Text(
-          '${currentPage + 1} / $pageCount',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-        ),
-        TextButton.icon(
-          onPressed: onNext,
-          icon: const Icon(Icons.chevron_right_rounded),
-          label: const Text('Next'),
-        ),
+      ],
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  const _StatItem({required this.label, required this.value, this.highlight = false});
+  final String label;
+  final String value;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: highlight ? VendorTheme.error : VendorTheme.primary)),
+        const SizedBox(height: VendorTheme.spacing4),
+        Text(label, style: Theme.of(context).textTheme.labelMedium),
       ],
     );
   }
