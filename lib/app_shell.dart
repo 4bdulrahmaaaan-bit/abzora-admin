@@ -83,34 +83,22 @@ Future<void> bootstrapAndRunWithInitialRoute(
   AbzioAppMode mode, {
   String initialRoute = '/',
 }) async {
-  await runZonedGuarded(
-    () async {
-      WidgetsFlutterBinding.ensureInitialized();
-      await SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-      ]);
-      _installGlobalErrorHandling();
-      
-      // DIAGNOSTICS: Offline Queue bypassed to isolate Hive/IndexedDB deadlock
-      // NetworkSyncService.instance;
-      debugPrint('[QUEUE] SKIPPED FOR DIAGNOSTICS');
-
-      // DIAGNOSTICS: Sentry bypassed to isolate startup deadlock
-      // await SentryFlutter.init(
-      //   (options) {
-      //     options.dsn = '';
-      //     options.tracesSampleRate = 1.0;
-      //   },
-      //   appRunner: () => runApp(AbzioBootstrapApp(mode: mode, initialRoute: initialRoute)),
-      // );
-      debugPrint('[SENTRY] SKIPPED FOR DIAGNOSTICS');
-      runApp(AbzioBootstrapApp(mode: mode, initialRoute: initialRoute));
-    },
-    (error, stackTrace) async {
-      debugPrint('Abianzo zoned error: $error');
-      debugPrintStack(stackTrace: stackTrace);
-      await Sentry.captureException(error, stackTrace: stackTrace);
-    },
+  WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('[DIAG] Minimal bootstrap: skipping ALL async init');
+  runApp(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Text(
+            '[DIAG] Flutter is rendering!\nMode: $mode\nRoute: $initialRoute',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 24, color: Colors.black),
+          ),
+        ),
+      ),
+    ),
   );
 }
 
