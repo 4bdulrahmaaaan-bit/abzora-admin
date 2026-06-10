@@ -114,9 +114,24 @@ class LocationService {
       );
     }
 
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+    LocationPermission permission;
+    try {
+      permission = await Geolocator.checkPermission().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw TimeoutException('checkPermission timed out'),
+      );
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission().timeout(
+          const Duration(seconds: 15),
+          onTimeout: () => throw TimeoutException('requestPermission timed out'),
+        );
+      }
+    } catch (e) {
+      return LocationPermissionResult(
+        status: LocationStatus.timeout,
+        permission: LocationPermission.denied,
+        message: 'Location request timed out or was ignored.',
+      );
     }
 
     if (permission == LocationPermission.denied) {

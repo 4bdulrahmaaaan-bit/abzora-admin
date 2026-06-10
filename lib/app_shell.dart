@@ -149,6 +149,8 @@ class AbzioApp extends StatelessWidget {
   final AbzioAppMode mode;
   final String initialRoute;
 
+  static bool isAdminApp = false;
+
   static final GlobalKey<NavigatorState> navigatorKey =
       AppNavigationService.navigatorKey;
 
@@ -327,8 +329,10 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
   }
 
   bool get _wantsAdminEntryFromUrl {
+    if (AbzioApp.isAdminApp) return true;
     if (!kIsWeb) return false;
-    return true;
+    final url = Uri.base.toString();
+    return url.contains('/admin-login') || url.contains('/admin');
   }
 
   PageRouteBuilder<void> _launchRoute(Widget page) {
