@@ -140,6 +140,7 @@ class AbzioApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('=== ABZIO APP BUILD START ===');
     final themeProvider = context.watch<ThemeProvider>();
 
     return MaterialApp(
@@ -1121,8 +1122,6 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
         if (snapshot.connectionState != ConnectionState.done) {
           debugPrint('Startup Performance: Skeleton Rendered at ');
           return MaterialApp(
-            navigatorKey: AppNavigationService.navigatorKey,
-            scaffoldMessengerKey: AppNavigationService.messengerKey,
             title: appTitleForMode(widget.mode),
             debugShowCheckedModeBanner: false,
             theme: AbzioTheme.lightTheme,
