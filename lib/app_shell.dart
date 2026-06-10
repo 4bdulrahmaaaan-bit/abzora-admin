@@ -91,8 +91,9 @@ Future<void> bootstrapAndRunWithInitialRoute(
       ]);
       _installGlobalErrorHandling();
       
-      // Initialize NetworkSyncService for Phase 1 Offline Resilience
-      NetworkSyncService.instance;
+      // DIAGNOSTICS: Offline Queue bypassed to isolate Hive/IndexedDB deadlock
+      // NetworkSyncService.instance;
+      debugPrint('[QUEUE] SKIPPED FOR DIAGNOSTICS');
 
       await SentryFlutter.init(
         (options) {
