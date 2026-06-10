@@ -331,8 +331,8 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
   bool get _wantsAdminEntryFromUrl {
     if (AbzioApp.isAdminApp) return true;
     if (!kIsWeb) return false;
-    final url = Uri.base.toString();
-    return url.contains('/admin-login') || url.contains('/admin');
+    final url = Uri.base.toString().toLowerCase();
+    return url.contains('/admin-login') || url.contains('/admin') || url.contains('-admin') || url.contains('admin.vercel');
   }
 
   PageRouteBuilder<void> _launchRoute(Widget page) {
@@ -481,7 +481,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       return;
     }
 
-    if (widget.mode == AbzioAppMode.unified && _wantsAdminEntryFromUrl) {
+    if ((widget.mode == AbzioAppMode.unified || _wantsAdminEntryFromUrl) && _wantsAdminEntryFromUrl) {
       debugPrint('route=/admin-login');
       debugPrint('======================');
       Navigator.of(context).pushAndRemoveUntil(
