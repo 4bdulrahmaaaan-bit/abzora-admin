@@ -265,33 +265,44 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
 
   Future<void> _restoreSession() async {
     _isRestoringSession = true;
+    debugPrint('[BOOT] 4 Auth restore start');
     debugPrint('=== PROFILE LOAD START ===');
     debugPrint('=== VENDOR LOAD START ===');
     try {
+      debugPrint('[BOOT] 4.1 sessionService.initialize');
       await _sessionService.initialize().timeout(
         const Duration(seconds: 5),
-        onTimeout: () => throw Exception('sessionService.initialize() timed out'),
+        onTimeout: () => throw Exception('[BOOT ERROR] sessionService.initialize timeout'),
       );
+      
+      debugPrint('[BOOT] 4.2 authStateChanges().first');
       await FirebaseAuth.instance.authStateChanges().first.timeout(
         const Duration(seconds: 5),
-        onTimeout: () => throw Exception('authStateChanges().first timed out'),
+        onTimeout: () => throw Exception('[BOOT ERROR] authStateChanges().first timeout'),
       );
+      
+      debugPrint('[BOOT] 4.3 sessionService.refreshIfNeeded');
       await _sessionService.refreshIfNeeded().timeout(
         const Duration(seconds: 5),
-        onTimeout: () => throw Exception('sessionService.refreshIfNeeded() timed out'),
+        onTimeout: () => throw Exception('[BOOT ERROR] sessionService.refreshIfNeeded timeout'),
       );
+      
+      debugPrint('[BOOT] 4.4 getCurrentAppUser');
       final existingUser = await _authService.getCurrentAppUser().timeout(
         const Duration(seconds: 10),
-        onTimeout: () => throw Exception('getCurrentAppUser() timed out'),
+        onTimeout: () => throw Exception('[BOOT ERROR] getCurrentAppUser timeout'),
       );
+      
       if (existingUser != null) {
         _bindLiveProfile(existingUser);
         await _sessionService.saveUserSnapshot(existingUser);
         await _refreshAuthToken(forceRefresh: false);
       }
+      debugPrint('[BOOT] 4 Auth restore done');
     } catch (e, st) {
       _restoreError = '$e\n$st';
-      debugPrint('Restore Error: $_restoreError');
+      debugPrint('[BOOT ERROR] Auth restore: $_restoreError');
+      debugPrint('$st');
     } finally {
       debugPrint(
           'AuthProvider: session restore complete (user=${_user?.id}).');

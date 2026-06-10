@@ -513,6 +513,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     final isLaunchReady = auth.isInitialized && auth.profileLoaded && auth.vendorPermissionsResolved;
 
     if (isLaunchReady && !_didScheduleRoute) {
+      debugPrint('[BOOT] 6 Launch ready');
       _didScheduleRoute = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         unawaited(_navigateToResolvedRoute(auth));

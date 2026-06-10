@@ -7,8 +7,25 @@ class OfflineActionQueue {
   static Box? _box;
 
   static Future<void> init() async {
-    await Hive.initFlutter();
-    _box = await Hive.openBox(_boxName);
+    try {
+      debugPrint('[BOOT] 2 Hive initialize start');
+      await Hive.initFlutter().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw Exception('[BOOT ERROR] Hive.initFlutter timeout'),
+      );
+      debugPrint('[BOOT] 2 Hive initialize done');
+
+      debugPrint('[BOOT] 3 Open offline queue start');
+      _box = await Hive.openBox(_boxName).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw Exception('[BOOT ERROR] Hive.openBox timeout'),
+      );
+      debugPrint('[BOOT] 3 Open offline queue done');
+    } catch (e, st) {
+      debugPrint('[BOOT ERROR] $e');
+      debugPrint('$st');
+      rethrow;
+    }
   }
 
   static Future<String> enqueue({

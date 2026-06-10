@@ -22,12 +22,18 @@ class AppBootstrapService {
     var notificationsReady = false;
 
     try {
+      debugPrint('[BOOT] 1 Firebase initialize start');
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw Exception('[BOOT ERROR] Firebase.initializeApp timeout'),
       );
+      debugPrint('[BOOT] 1 Firebase initialize done');
       firebaseReady = true;
-    } catch (error) {
-      debugPrint('Firebase bootstrap fallback: $error');
+    } catch (error, st) {
+      debugPrint('[BOOT ERROR] Firebase fallback: $error');
+      debugPrint('$st');
       firebaseReady = Firebase.apps.isNotEmpty;
     }
 
@@ -35,7 +41,6 @@ class AppBootstrapService {
       debugPrint('Abianzo Firebase project: ${Firebase.app().options.projectId}');
       if (AppConfig.hasBackendBaseUrl) {
         try {
-          // FirebaseDatabase.instance.goOffline();
           debugPrint('Firebase Realtime Database disabled in backend mode.');
         } catch (error) {
           debugPrint('Firebase RTDB bootstrap fallback: $error');
@@ -46,19 +51,19 @@ class AppBootstrapService {
           await FirebaseAuth.instance.useAuthEmulator(
             AppConfig.firebaseEmulatorHost,
             AppConfig.firebaseAuthEmulatorPort,
+          ).timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => throw Exception('[BOOT ERROR] FirebaseAuth emulator timeout'),
           );
           debugPrint(
             'Firebase auth emulator enabled at ${AppConfig.firebaseEmulatorHost} '
             '(auth:${AppConfig.firebaseAuthEmulatorPort})',
           );
         }
-      } catch (error) {
-        debugPrint('Firebase auth bootstrap fallback: $error');
+      } catch (error, st) {
+        debugPrint('[BOOT ERROR] Firebase auth fallback: $error');
+        debugPrint('$st');
       }
-    }
-
-    if (firebaseReady) {
-      debugPrint('Notification bootstrap deferred until an authenticated session is available.');
     }
 
     if (!AppConfig.hasFirebaseConfig) {
