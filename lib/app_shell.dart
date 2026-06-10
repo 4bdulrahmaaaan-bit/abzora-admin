@@ -510,6 +510,23 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
 
+    if (auth.restoreError != null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text(
+                'Auth Restore Error:\n${auth.restoreError}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final isLaunchReady = auth.isInitialized && auth.profileLoaded && auth.vendorPermissionsResolved;
 
     if (isLaunchReady && !_didScheduleRoute) {
@@ -520,22 +537,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       });
     }
 
-    if (_routingError != null || auth.restoreError != null) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Text(
-                'Launch Error:\n${_routingError ?? auth.restoreError}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+
 
     return const Scaffold(
       backgroundColor: Color(0xFFF9F7F2),
