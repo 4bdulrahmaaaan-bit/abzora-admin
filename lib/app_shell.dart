@@ -83,22 +83,30 @@ Future<void> bootstrapAndRunWithInitialRoute(
   AbzioAppMode mode, {
   String initialRoute = '/',
 }) async {
-  WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('[DIAG] Minimal bootstrap: skipping ALL async init');
-  runApp(
-    MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: Text(
-            '[DIAG] Flutter is rendering!\nMode: $mode\nRoute: $initialRoute',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 24, color: Colors.black),
-          ),
-        ),
-      ),
-    ),
+  await runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
+      _installGlobalErrorHandling();
+
+      // NetworkSyncService removed: Hive/IndexedDB deadlocks on Flutter Web.
+      // TODO: replace offline queue with a web-safe storage solution.
+
+      await SentryFlutter.init(
+        (options) {
+          options.dsn = '';
+          options.tracesSampleRate = 1.0;
+        },
+        appRunner: () => runApp(AbzioBootstrapApp(mode: mode, initialRoute: initialRoute)),
+      );
+    },
+    (error, stackTrace) async {
+      debugPrint('Abianzo zoned error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      await Sentry.captureException(error, stackTrace: stackTrace);
+    },
   );
 }
 
@@ -502,20 +510,6 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
 
-    // DIAGNOSTICS: Force immediate navigation to /admin-login, bypassing all auth checks
-    if (!_didScheduleRoute) {
-      debugPrint('[BOOT] FORCE NAVIGATE TO /admin-login FOR DIAGNOSTICS');
-      _didScheduleRoute = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const AdminWebPanel()),
-            (route) => false,
-          );
-        }
-      });
-    }
-
     if (auth.restoreError != null) {
       return Scaffold(
         backgroundColor: Colors.white,
@@ -525,6 +519,23 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
               padding: const EdgeInsets.all(24.0),
               child: Text(
                 'Auth Restore Error:\n${auth.restoreError}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_routingError != null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text(
+                'Launch Error:\n$_routingError',
                 style: const TextStyle(color: Colors.red),
               ),
             ),
@@ -1076,12 +1087,10 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
     debugPrint('Startup Performance: App Launch at $startTime');
 
     try {
-      debugPrint('[BOOT] ALL BOOTSTRAP SKIPPED FOR DIAGNOSTICS');
-      // DIAGNOSTICS: bypassing entire bootstrap to isolate deadlock
-      // await AppBootstrapService().initialize().timeout(
-      //   const Duration(seconds: 30),
-      //   onTimeout: () => throw Exception('AppBootstrapService.initialize() timed out after 30 seconds'),
-      // );
+      await AppBootstrapService().initialize().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('AppBootstrapService.initialize() timed out after 30 seconds'),
+      );
     } catch (e, st) {
       debugPrint('Bootstrap Error: $e');
       if (mounted) {
