@@ -1070,8 +1070,8 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
 
     try {
       await AppBootstrapService().initialize().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () => throw Exception('AppBootstrapService.initialize() timed out after 10 seconds'),
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('AppBootstrapService.initialize() timed out after 30 seconds'),
       );
     } catch (e, st) {
       debugPrint('Bootstrap Error: $e');
