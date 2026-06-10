@@ -95,13 +95,16 @@ Future<void> bootstrapAndRunWithInitialRoute(
       // NetworkSyncService.instance;
       debugPrint('[QUEUE] SKIPPED FOR DIAGNOSTICS');
 
-      await SentryFlutter.init(
-        (options) {
-          options.dsn = '';
-          options.tracesSampleRate = 1.0;
-        },
-        appRunner: () => runApp(AbzioBootstrapApp(mode: mode, initialRoute: initialRoute)),
-      );
+      // DIAGNOSTICS: Sentry bypassed to isolate startup deadlock
+      // await SentryFlutter.init(
+      //   (options) {
+      //     options.dsn = '';
+      //     options.tracesSampleRate = 1.0;
+      //   },
+      //   appRunner: () => runApp(AbzioBootstrapApp(mode: mode, initialRoute: initialRoute)),
+      // );
+      debugPrint('[SENTRY] SKIPPED FOR DIAGNOSTICS');
+      runApp(AbzioBootstrapApp(mode: mode, initialRoute: initialRoute));
     },
     (error, stackTrace) async {
       debugPrint('Abianzo zoned error: $error');
@@ -511,6 +514,20 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
 
+    // DIAGNOSTICS: Force immediate navigation to /admin-login, bypassing all auth checks
+    if (!_didScheduleRoute) {
+      debugPrint('[BOOT] FORCE NAVIGATE TO /admin-login FOR DIAGNOSTICS');
+      _didScheduleRoute = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const AdminWebPanel()),
+            (route) => false,
+          );
+        }
+      });
+    }
+
     if (auth.restoreError != null) {
       return Scaffold(
         backgroundColor: Colors.white,
@@ -537,8 +554,6 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
         unawaited(_navigateToResolvedRoute(auth));
       });
     }
-
-
 
     return const Scaffold(
       backgroundColor: Color(0xFFF9F7F2),
@@ -1073,10 +1088,12 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
     debugPrint('Startup Performance: App Launch at $startTime');
 
     try {
-      await AppBootstrapService().initialize().timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => throw Exception('AppBootstrapService.initialize() timed out after 30 seconds'),
-      );
+      debugPrint('[BOOT] ALL BOOTSTRAP SKIPPED FOR DIAGNOSTICS');
+      // DIAGNOSTICS: bypassing entire bootstrap to isolate deadlock
+      // await AppBootstrapService().initialize().timeout(
+      //   const Duration(seconds: 30),
+      //   onTimeout: () => throw Exception('AppBootstrapService.initialize() timed out after 30 seconds'),
+      // );
     } catch (e, st) {
       debugPrint('Bootstrap Error: $e');
       if (mounted) {
