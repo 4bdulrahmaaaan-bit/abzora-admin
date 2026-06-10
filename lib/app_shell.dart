@@ -71,7 +71,6 @@ import 'widgets/offline_widgets.dart';
 import 'widgets/safe_widget.dart';
 import 'widgets/global_skeletons.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'services/network_sync_service.dart';
 
 enum AbzioAppMode { unified, customer, operations, vendor, rider }
 
@@ -83,37 +82,22 @@ Future<void> bootstrapAndRunWithInitialRoute(
   AbzioAppMode mode, {
   String initialRoute = '/',
 }) async {
-  await runZonedGuarded(
-    () async {
-      WidgetsFlutterBinding.ensureInitialized();
-      await SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-      ]);
-      _installGlobalErrorHandling();
+  WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
+  _installGlobalErrorHandling();
 
-      // NetworkSyncService removed: Hive/IndexedDB deadlocks on Flutter Web.
-      // TODO: replace offline queue with a web-safe storage solution.
+  // NetworkSyncService removed: Hive/IndexedDB deadlocks on Flutter Web.
+  // SentryFlutter.init removed: empty DSN blocks appRunner on Flutter Web.
 
-      await SentryFlutter.init(
-        (options) {
-          options.dsn = '';
-          options.tracesSampleRate = 1.0;
-        },
-        appRunner: () => runApp(AbzioBootstrapApp(mode: mode, initialRoute: initialRoute)),
-      );
-    },
-    (error, stackTrace) async {
-      debugPrint('Abianzo zoned error: $error');
-      debugPrintStack(stackTrace: stackTrace);
-      await Sentry.captureException(error, stackTrace: stackTrace);
-    },
-  );
+  runApp(AbzioBootstrapApp(mode: mode, initialRoute: initialRoute));
 }
 
 void _installGlobalErrorHandling() {
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
-    Sentry.captureException(details.exception, stackTrace: details.stack);
+    try { Sentry.captureException(details.exception, stackTrace: details.stack); } catch (_) {}
     debugPrint('Abianzo Flutter error: ${details.exception}');
     if (details.stack != null) {
       debugPrintStack(stackTrace: details.stack);
@@ -134,7 +118,7 @@ void _installGlobalErrorHandling() {
   PlatformDispatcher.instance.onError = (error, stackTrace) {
     debugPrint('Abianzo platform error: $error');
     debugPrintStack(stackTrace: stackTrace);
-    Sentry.captureException(error, stackTrace: stackTrace);
+    try { Sentry.captureException(error, stackTrace: stackTrace); } catch (_) {}
     return true;
   };
 }
