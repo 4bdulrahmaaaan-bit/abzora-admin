@@ -636,9 +636,10 @@ class BackendCommerceService {
         if (includeDeleted) 'includeDeleted': 'true',
       },
     );
-    return CategoryManagementPage.fromMap(
-      Map<String, dynamic>.from(payload as Map),
-    );
+    final map = payload is Map
+        ? Map<String, dynamic>.from(payload)
+        : {'data': payload is List ? payload : []};
+    return CategoryManagementPage.fromMap(map);
   }
 
   Future<CategoryManagementModel> createCategory(
@@ -728,9 +729,9 @@ class BackendCommerceService {
           'tabType': tabType.trim(),
       },
     );
-    final map = payload is Map<String, dynamic>
-        ? payload
-        : Map<String, dynamic>.from(payload as Map);
+    final map = payload is Map
+        ? Map<String, dynamic>.from(payload)
+        : {'data': payload is List ? payload : []};
     final items = (map['data'] as List? ?? const []);
     return items
         .whereType<Map>()
@@ -771,7 +772,10 @@ class BackendCommerceService {
           'published': published.trim(),
       },
     );
-    return CmsEntryPage.fromMap(Map<String, dynamic>.from(payload as Map));
+    final map = payload is Map
+        ? Map<String, dynamic>.from(payload)
+        : {'data': payload is List ? payload : []};
+    return CmsEntryPage.fromMap(map);
   }
 
   Future<List<CmsEntryModel>> getCmsEntriesList({
@@ -787,7 +791,9 @@ class BackendCommerceService {
           'status': status.trim(),
       },
     );
-    final map = Map<String, dynamic>.from(payload as Map);
+    final map = payload is Map
+        ? Map<String, dynamic>.from(payload)
+        : {'data': payload is List ? payload : []};
     final items = (map['data'] as List? ?? const []);
     return items
         .whereType<Map>()
@@ -844,7 +850,9 @@ class BackendCommerceService {
 
   Future<List<FaqItem>> getCmsFaqItems() async {
     final payload = await _client.get('/cms/faqs');
-    final map = Map<String, dynamic>.from(payload as Map);
+    final map = payload is Map
+        ? Map<String, dynamic>.from(payload)
+        : {'data': payload is List ? payload : []};
     final items = (map['data'] as List? ?? const []);
     return items
         .whereType<Map>()
