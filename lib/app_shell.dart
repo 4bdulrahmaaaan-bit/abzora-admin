@@ -960,6 +960,18 @@ class _AdminRoute extends StatelessWidget {
       );
     }
 
+    // CRITICAL: Do not make any redirect decision until session restoration
+    // is fully complete. During a browser refresh, _isRestoringSession is
+    // true while tokens are being read from LocalStorage and /auth/me is
+    // called. Checking `user == null` at this moment always returns true
+    // and causes an incorrect redirect to /admin-login.
+    if (!auth.isInitialized || auth.isSessionRestoring) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF9F7F2),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     if (user == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {

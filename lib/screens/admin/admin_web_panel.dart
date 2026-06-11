@@ -101,6 +101,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   bool _loading = true;
   bool _runningSearch = false;
   bool _pinVerified = !kIsWeb;
+  // True if initState ran _load() but _actor was null (auth not yet restored).
+  // didChangeDependencies will retry once auth finishes.
+  bool _pendingLoadAfterAuth = false;
   String? _loadError;
   final Set<String> _dataWarnings = <String>{};
 
@@ -158,11 +161,39 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     _orderSearchController.addListener(() => _resetPage('orders'));
     _productSearchController.addListener(() => _resetPage('products'));
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final actor = _actor;
+      if (actor == null) {
+        // Auth session not restored yet. Set a pending flag so that
+        // didChangeDependencies retries once AuthProvider signals ready.
+        if (mounted) setState(() { _pendingLoadAfterAuth = true; _loading = false; });
+        return;
+      }
       await _ensurePinIfNeeded();
       if (mounted && _pinVerified) {
         await _load();
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Retry the load if auth completed after initState's postFrameCallback
+    // returned a null actor. This covers the browser-refresh race condition
+    // where the panel is mounted before _restoreSession() finishes.
+    if (_pendingLoadAfterAuth) {
+      final actor = _actor;
+      if (actor != null) {
+        _pendingLoadAfterAuth = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+          await _ensurePinIfNeeded();
+          if (mounted && _pinVerified) {
+            await _load();
+          }
+        });
+      }
+    }
   }
 
   @override
