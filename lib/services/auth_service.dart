@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/models.dart';
 import 'auth_session_service.dart';
+import 'backend_api_client.dart';
 import 'backend_commerce_service.dart';
 import 'database_service.dart';
 
@@ -146,6 +147,12 @@ class AuthService {
         );
         unawaited(_db.saveUser(normalized));
         return normalized;
+      } on BackendApiException catch (e) {
+        if (e.statusCode == 401) {
+          await AuthSessionService.instance.clearSession(reason: '401_from_me');
+          rethrow;
+        }
+        // Fall back to local/Firebase-backed profile creation if backend handshake fails.
       } catch (_) {
         // Fall back to local/Firebase-backed profile creation if backend handshake fails.
       }

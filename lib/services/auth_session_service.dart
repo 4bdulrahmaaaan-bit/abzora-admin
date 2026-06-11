@@ -783,7 +783,7 @@ class AuthSessionService {
   }
 
   bool _isTransientNetworkResponse(http.Response response) {
-    return response.statusCode >= 500;
+    return response.statusCode >= 500 || response.statusCode == 429;
   }
 
   bool _isTransientNetworkError(Object error) {

@@ -36,12 +36,53 @@ class BackendCommerceService {
     return <String, dynamic>{key: value};
   }
 
+  Future<AppUser>? _meRequestFuture;
+
   Future<AppUser> getCurrentUserProfile() async {
-    final payload = await _client.get('/auth/me', authenticated: true);
-    final map = payload is Map<String, dynamic>
-        ? payload
-        : Map<String, dynamic>.from(payload as Map);
-    return _appUserFromBackend(map);
+    if (_meRequestFuture != null) {
+      debugPrint('[AUTH] Using existing in-flight /me request');
+      return await _meRequestFuture!;
+    }
+    _meRequestFuture = _executeMeRequestWithRetries();
+    try {
+      return await _meRequestFuture!;
+    } finally {
+      _meRequestFuture = null;
+    }
+  }
+
+  Future<AppUser> _executeMeRequestWithRetries() async {
+    const retryDelays = [
+      Duration(seconds: 1),
+      Duration(seconds: 2),
+      Duration(seconds: 4),
+    ];
+    int attempt = 0;
+
+    while (true) {
+      try {
+        final payload = await _client.get('/auth/me', authenticated: true);
+        debugPrint('[AUTH] /me status=200');
+        final map = payload is Map<String, dynamic>
+            ? payload
+            : Map<String, dynamic>.from(payload as Map);
+        return _appUserFromBackend(map);
+      } on BackendApiException catch (e) {
+        if (e.statusCode == 401) {
+          debugPrint('[AUTH] /me status=401 (logout)');
+          rethrow;
+        }
+        if (e.statusCode == 429) {
+          if (attempt < retryDelays.length) {
+            debugPrint('[AUTH] /me status=429 (retrying)');
+            await Future<void>.delayed(retryDelays[attempt]);
+            attempt++;
+            continue;
+          }
+        }
+        rethrow;
+      }
+    }
   }
 
   Future<AppUser?> getUserById(String id) async {

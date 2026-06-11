@@ -263,17 +263,36 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
   String? _restoreError;
   String? get restoreError => _restoreError;
 
+  Future<void>? _sessionRestoreFuture;
+
   Future<void> _restoreSession() async {
+    if (_sessionRestoreFuture != null) {
+      debugPrint('[AUTH] Session restore already in progress');
+      return await _sessionRestoreFuture!;
+    }
+    _sessionRestoreFuture = _executeRestoreSession();
+    try {
+      await _sessionRestoreFuture!;
+    } finally {
+      _sessionRestoreFuture = null;
+    }
+  }
+
+  Future<void> _executeRestoreSession() async {
     _isRestoringSession = true;
     debugPrint('[BOOT] 4 Auth restore start');
     debugPrint('=== PROFILE LOAD START ===');
     debugPrint('=== VENDOR LOAD START ===');
     try {
+      debugPrint('[AUTH] Session validation started');
       debugPrint('[BOOT] 4.1 sessionService.initialize');
       await _sessionService.initialize().timeout(
         const Duration(seconds: 5),
         onTimeout: () => throw Exception('[BOOT ERROR] sessionService.initialize timeout'),
       );
+      if (_sessionService.hasBackendSession || _sessionService.sessionId != null) {
+        debugPrint('[AUTH] Token restored');
+      }
       
       debugPrint('[BOOT] 4.2 authStateChanges().first');
       await FirebaseAuth.instance.authStateChanges().first.timeout(
@@ -299,6 +318,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
         await _refreshAuthToken(forceRefresh: false);
       }
       debugPrint('[BOOT] 4 Auth restore done');
+      debugPrint('[AUTH] Session restored successfully');
     } catch (e, st) {
       _restoreError = '$e\n$st';
       debugPrint('[BOOT ERROR] Auth restore: $_restoreError');
