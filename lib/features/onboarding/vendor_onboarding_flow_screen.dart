@@ -4,8 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/widgets/rider_glass_card.dart';
-import '../../core/widgets/rider_glow_button.dart';
 import '../../core/utils/vendor_kyc_policy.dart';
 import '../../core/services/vendor_telemetry.dart';
 import '../../models/models.dart';
@@ -16,7 +14,8 @@ import '../../services/onboarding_service.dart';
 import '../../widgets/state_views.dart';
 
 class VendorOnboardingFlowScreen extends StatefulWidget {
-  const VendorOnboardingFlowScreen({super.key});
+  final int initialStep;
+  const VendorOnboardingFlowScreen({super.key, this.initialStep = 0});
 
   @override
   State<VendorOnboardingFlowScreen> createState() =>
@@ -25,12 +24,12 @@ class VendorOnboardingFlowScreen extends StatefulWidget {
 
 class _VendorOnboardingFlowScreenState
     extends State<VendorOnboardingFlowScreen> {
-  final _pageController = PageController();
+  late final PageController _pageController;
   final _onboarding = OnboardingService();
   final _db = DatabaseService();
   final _location = LocationService();
   final _picker = ImagePicker();
-  int _step = 0;
+  late int _step;
   bool _submitting = false;
   bool _autoValidate = false;
   int _invalidSubmitTick = 0;
@@ -45,7 +44,11 @@ class _VendorOnboardingFlowScreenState
   final _startingPrice = TextEditingController();
   final _upperPrice = TextEditingController();
   final _productionDays = TextEditingController(text: '7');
-  final _payout = TextEditingController();
+  
+  final _monthlyCapacity = TextEditingController();
+  final _bankAccount = TextEditingController();
+  final _ifsc = TextEditingController();
+  final _upi = TextEditingController();
 
   final Set<String> _specializations = <String>{};
   XFile? _ownerPhoto;
@@ -54,13 +57,38 @@ class _VendorOnboardingFlowScreenState
   XFile? _panPhoto;
   final List<String> _portfolioPaths = <String>[];
 
-  static const _goldPrimary = Color(0xFFD4AF37);
-  static const _goldAccent = Color(0xFFF5D76E);
+  bool _isProcessingKyc = false;
+  bool _kycProcessed = false;
+  Map<String, dynamic> _aadhaarOcr = {};
+  Map<String, dynamic> _panOcr = {};
+  Map<String, dynamic> _vendorVerification = {};
+  double _kycConfidence = 0.0;
+  String? _aadhaarUrl;
+  String? _panUrl;
+  String? _ownerPhotoUrl;
+  String? _storePhotoUrl;
+
+  final List<String> _specializationOptions = [
+    'Shirts', 'T-Shirts', 'Jeans', 'Blazers', 'Ethnic', 
+    "Women's Fashion", 'Kids Wear', 'Custom Tailoring'
+  ];
+
+  static const _bgDark = Color(0xFF0A0A0A);
+  static const _cardDark = Color(0xFF141414);
 
   @override
   void initState() {
     super.initState();
     final user = context.read<AuthProvider>().user;
+    int initial = widget.initialStep;
+    if (user != null && user.vendorOnboarding != null) {
+      final lastStep = user.vendorOnboarding!['lastCompletedStep'];
+      if (lastStep != null && lastStep is num) {
+        initial = lastStep.toInt();
+      }
+    }
+    _step = initial;
+    _pageController = PageController(initialPage: _step);
     if (user != null) {
       _ownerName.text = user.name;
       _phone.text = user.phone ?? '';
@@ -83,7 +111,10 @@ class _VendorOnboardingFlowScreenState
     _startingPrice.dispose();
     _upperPrice.dispose();
     _productionDays.dispose();
-    _payout.dispose();
+    _monthlyCapacity.dispose();
+    _bankAccount.dispose();
+    _ifsc.dispose();
+    _upi.dispose();
     super.dispose();
   }
 
@@ -94,7 +125,10 @@ class _VendorOnboardingFlowScreenState
       maxWidth: 1600,
     );
     if (file == null || !mounted) return;
-    setState(() => onPicked(file));
+    setState(() {
+      onPicked(file);
+      _kycProcessed = false;
+    });
   }
 
   Future<void> _pickPortfolio() async {
@@ -107,6 +141,12 @@ class _VendorOnboardingFlowScreenState
           _portfolioPaths.add(path);
         }
       }
+    });
+  }
+
+  void _removePortfolio(int index) {
+    setState(() {
+      _portfolioPaths.removeAt(index);
     });
   }
 
@@ -125,31 +165,107 @@ class _VendorOnboardingFlowScreenState
     if (_step == 1 && _specializations.isEmpty) {
       return 'Choose at least one specialization';
     }
-    if (_step == 2 && _portfolioPaths.length < 5) {
-      return 'Upload at least 5 portfolio samples';
+    if (_step == 2 && (_portfolioPaths.length < 5 || _portfolioPaths.length > 10)) {
+      return 'Upload between 5 and 10 portfolio samples';
     }
     if (_step == 3) {
       final start = double.tryParse(_startingPrice.text.trim()) ?? 0;
       final upper = double.tryParse(_upperPrice.text.trim()) ?? 0;
       final days = int.tryParse(_productionDays.text.trim()) ?? 0;
-      if (start <= 0) {
-        return 'Starting price must be greater than zero';
+      final capacity = int.tryParse(_monthlyCapacity.text.trim()) ?? 0;
+      if (start <= 0) return 'Starting price must be greater than zero';
+      if (upper < start) return 'Upper range must be greater than starting price';
+      if (days <= 0 || days > 60) return 'Production days must be between 1 and 60';
+      if (capacity <= 0) return 'Monthly capacity must be greater than zero';
+      
+      if (_bankAccount.text.trim().isEmpty && _upi.text.trim().isEmpty) {
+        return 'Provide at least a Bank Account or UPI ID';
       }
-      if (upper < start) {
-        return 'Upper range must be greater than starting price';
-      }
-      if (days <= 0 || days > 60) {
-        return 'Production days must be between 1 and 60';
+      if (_bankAccount.text.trim().isNotEmpty && _ifsc.text.trim().isEmpty) {
+        return 'IFSC is required for Bank Account';
       }
     }
-    if (_step == 4 &&
-        (_ownerPhoto == null ||
-            _storePhoto == null ||
-            _aadhaarPhoto == null ||
-            _panPhoto == null)) {
-      return 'Owner, store, Aadhaar and PAN images are required';
+    if (_step == 4) {
+      if (_ownerPhoto == null ||
+          _storePhoto == null ||
+          _aadhaarPhoto == null ||
+          _panPhoto == null) {
+        return 'Owner, store, Aadhaar and PAN images are required';
+      }
     }
     return null;
+  }
+
+  Future<void> _processKycDocs() async {
+    final user = context.read<AuthProvider>().user;
+    if (user == null) return;
+    setState(() {
+      _isProcessingKyc = true;
+    });
+
+    try {
+      _ownerPhotoUrl = await _onboarding.uploadVendorOwnerPhoto(
+        file: _ownerPhoto!,
+        ownerId: user.id,
+      );
+      _storePhotoUrl = await _onboarding.uploadVendorStoreImage(
+        file: _storePhoto!,
+        ownerId: user.id,
+      );
+      _aadhaarUrl = await _onboarding.uploadVendorDocument(
+        file: _aadhaarPhoto!,
+        ownerId: user.id,
+        label: 'aadhaar',
+      );
+      _panUrl = await _onboarding.uploadVendorDocument(
+        file: _panPhoto!,
+        ownerId: user.id,
+        label: 'pan',
+      );
+
+      try {
+        _aadhaarOcr = await _onboarding.extractKycFields(
+          documentType: 'aadhaar',
+          text: '${_ownerName.text.trim()} ${_phone.text.trim()} ${_address.text.trim()}',
+          documentUrl: _aadhaarUrl!,
+        );
+        _panOcr = await _onboarding.extractKycFields(
+          documentType: 'pan',
+          text: '${_ownerName.text.trim()} ${_email.text.trim()}',
+          documentUrl: _panUrl!,
+        );
+        _vendorVerification = await _onboarding.verifyVendorKyc(
+          ownerName: _ownerName.text.trim(),
+          aadhaarNumber: (_aadhaarOcr['aadhaarNumber'] ?? '').toString(),
+          panNumber: (_panOcr['panNumber'] ?? '').toString(),
+          ownerPhotoUrl: _ownerPhotoUrl!,
+          storePhotoUrl: _storePhotoUrl!,
+        );
+
+        _kycConfidence = VendorKycPolicy.confidenceFromVerification(_vendorVerification);
+      } catch (e) {
+        VendorTelemetry.event('vendor_ocr_extract_failed', data: {'error': e.toString()});
+        _kycConfidence = 0.0;
+      }
+      
+      _kycProcessed = true;
+
+      if (!mounted) return;
+      setState(() => _step++);
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('KYC Processing Failed: $e')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingKyc = false;
+        });
+      }
+    }
   }
 
   void _next() {
@@ -160,17 +276,25 @@ class _VendorOnboardingFlowScreenState
         _autoValidate = true;
         _invalidSubmitTick++;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
       return;
     }
+
+    if (_step == 4 && !_kycProcessed) {
+      _processKycDocs();
+      return;
+    }
+
     if (_step < 5) {
       setState(() => _step++);
       _pageController.nextPage(
         duration: const Duration(milliseconds: 260),
         curve: Curves.easeOutCubic,
       );
+      final user = context.read<AuthProvider>().user;
+      if (user != null) {
+        _db.saveVendorOnboardingStep(user.id, _step);
+      }
     } else {
       _submit();
     }
@@ -192,78 +316,33 @@ class _VendorOnboardingFlowScreenState
     );
   }
 
+  void _jumpToStep(int step) {
+    setState(() => _step = step);
+    _pageController.jumpToPage(step);
+  }
+
   Future<void> _submit() async {
     final auth = context.read<AuthProvider>();
     final user = auth.user;
     if (user == null) return;
 
+    if (VendorKycPolicy.requiresManualReview(_vendorVerification)) {
+      if (mounted) {
+        HapticFeedback.heavyImpact();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'KYC confidence is low (${_kycConfidence.toStringAsFixed(0)}%). Please re-upload clearer documents.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _submitting = true);
     try {
       VendorTelemetry.event('submit_started', data: {'userId': user.id});
-      final ownerPhotoUrl = await _onboarding.uploadVendorOwnerPhoto(
-        file: _ownerPhoto!,
-        ownerId: user.id,
-      );
-      final storePhotoUrl = await _onboarding.uploadVendorStoreImage(
-        file: _storePhoto!,
-        ownerId: user.id,
-      );
-      final aadhaarUrl = await _onboarding.uploadVendorDocument(
-        file: _aadhaarPhoto!,
-        ownerId: user.id,
-        label: 'aadhaar',
-      );
-      final panUrl = await _onboarding.uploadVendorDocument(
-        file: _panPhoto!,
-        ownerId: user.id,
-        label: 'pan',
-      );
-
-      Map<String, dynamic> aadhaarOcr = const <String, dynamic>{};
-      Map<String, dynamic> panOcr = const <String, dynamic>{};
-      Map<String, dynamic> vendorVerification = const <String, dynamic>{};
-      try {
-        aadhaarOcr = await _onboarding.extractKycFields(
-          documentType: 'aadhaar',
-          text:
-              '${_ownerName.text.trim()} ${_phone.text.trim()} ${_address.text.trim()}',
-          documentUrl: aadhaarUrl,
-        );
-        panOcr = await _onboarding.extractKycFields(
-          documentType: 'pan',
-          text: '${_ownerName.text.trim()} ${_email.text.trim()}',
-          documentUrl: panUrl,
-        );
-        vendorVerification = await _onboarding.verifyVendorKyc(
-          ownerName: _ownerName.text.trim(),
-          aadhaarNumber: (aadhaarOcr['aadhaarNumber'] ?? '').toString(),
-          panNumber: (panOcr['panNumber'] ?? '').toString(),
-          ownerPhotoUrl: ownerPhotoUrl,
-          storePhotoUrl: storePhotoUrl,
-        );
-      } catch (error) {
-        VendorTelemetry.event(
-          'vendor_ocr_extract_failed',
-          data: {'error': error.toString()},
-        );
-      }
-
-      if (VendorKycPolicy.requiresManualReview(vendorVerification)) {
-        final confidence = VendorKycPolicy.confidenceFromVerification(
-          vendorVerification,
-        );
-        if (mounted) {
-          HapticFeedback.heavyImpact();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'KYC confidence is low (${confidence.toStringAsFixed(0)}%). Please re-upload clearer Aadhaar and PAN documents.',
-              ),
-            ),
-          );
-        }
-        return;
-      }
 
       final portfolioUrls = <String>[];
       for (var i = 0; i < _portfolioPaths.length; i++) {
@@ -308,25 +387,30 @@ class _VendorOnboardingFlowScreenState
           startingPrice: double.tryParse(_startingPrice.text.trim()) ?? 0,
           typicalPriceUpper: double.tryParse(_upperPrice.text.trim()) ?? 0,
           productionTimeDays: int.tryParse(_productionDays.text.trim()) ?? 7,
-          payoutSetupLabel: _payout.text.trim(),
+          payoutSetupLabel: _upi.text.trim().isNotEmpty ? _upi.text.trim() : _bankAccount.text.trim(),
           kyc: KycDocuments(
-            ownerPhotoUrl: ownerPhotoUrl,
-            storeImageUrl: storePhotoUrl,
-            aadhaarUrl: aadhaarUrl,
-            panUrl: panUrl,
+            ownerPhotoUrl: _ownerPhotoUrl ?? '',
+            storeImageUrl: _storePhotoUrl ?? '',
+            aadhaarUrl: _aadhaarUrl ?? '',
+            panUrl: _panUrl ?? '',
           ),
           metadata: {
             'submittedAt': nowIso,
-            'source': 'vendor_flow_v2',
+            'source': 'vendor_flow_v3',
             'experienceYears': int.tryParse(_experienceYears.text.trim()) ?? 0,
             'specializations': _specializations.toList(),
             'startingPrice': double.tryParse(_startingPrice.text.trim()) ?? 0,
             'typicalPriceUpper': double.tryParse(_upperPrice.text.trim()) ?? 0,
-            'productionTimeDays':
-                int.tryParse(_productionDays.text.trim()) ?? 7,
-            'ocrAadhaar': aadhaarOcr,
-            'ocrPan': panOcr,
-            'verification': vendorVerification,
+            'productionTimeDays': int.tryParse(_productionDays.text.trim()) ?? 7,
+            'monthlyCapacity': int.tryParse(_monthlyCapacity.text.trim()) ?? 0,
+            'payoutDetails': {
+              'bankAccount': _bankAccount.text.trim(),
+              'ifsc': _ifsc.text.trim(),
+              'upi': _upi.text.trim(),
+            },
+            'ocrAadhaar': _aadhaarOcr,
+            'ocrPan': _panOcr,
+            'verification': _vendorVerification,
             'ocrCapturedAt': nowIso,
           },
           createdAt: nowIso,
@@ -334,42 +418,32 @@ class _VendorOnboardingFlowScreenState
         ),
       );
 
-      if (_payout.text.trim().isNotEmpty) {
-        final value = _payout.text.trim();
-        if (!value.contains('@') && value.length < 8) {
-          throw StateError('Enter a valid UPI ID or bank account number');
-        }
+      if (_bankAccount.text.isNotEmpty || _upi.text.isNotEmpty) {
         try {
           await _db.saveVendorPayoutProfile(
             actor: user,
-            methodType: value.contains('@') ? 'upi' : 'bank',
+            methodType: _upi.text.trim().isNotEmpty ? 'upi' : 'bank',
             accountHolderName: _ownerName.text.trim(),
-            upiId: value.contains('@') ? value : '',
-            bankAccountNumber: value.contains('@') ? '' : value,
-            bankIfsc: '',
+            upiId: _upi.text.trim(),
+            bankAccountNumber: _bankAccount.text.trim(),
+            bankIfsc: _ifsc.text.trim(),
             bankName: '',
           );
         } catch (error) {
-          VendorTelemetry.event(
-            'payout_save_failed_post_submit',
-            data: {'error': error.toString()},
-          );
+          VendorTelemetry.event('payout_save_failed_post_submit', data: {'error': error.toString()});
         }
       }
+
       await auth.refreshCurrentUser();
       VendorTelemetry.event('submit_success', data: {'userId': user.id});
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const _VendorOnboardingSuccessScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const _VendorOnboardingSuccessScreen()),
       );
     } catch (error) {
       VendorTelemetry.event('submit_failed', data: {'error': error.toString()});
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -380,281 +454,359 @@ class _VendorOnboardingFlowScreenState
     final user = context.watch<AuthProvider>().user;
     if (user == null) {
       return const Scaffold(
+        backgroundColor: _bgDark,
         body: AbzioLoadingView(
           title: 'Opening vendor onboarding',
           subtitle: 'Preparing your partner application.',
         ),
       );
     }
-    final canContinue = _validateStep() == null;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF050505),
+      backgroundColor: _bgDark,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: _bgDark,
+        elevation: 0,
         leading: IconButton(
-          onPressed: _back,
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: _submitting || _isProcessingKyc ? null : _back,
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           tooltip: 'Back',
         ),
-        title: Text('Vendor Onboarding ${_step + 1}/6'),
+        title: Text('Step ${_step + 1} of 6', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+        centerTitle: true,
       ),
-      body: Stack(
-        children: [
-          const DecoratedBox(
-            decoration: BoxDecoration(color: Color(0xFF050505)),
-          ),
-          Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-                child: RiderGlassCard(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Step ${_step + 1} of 6',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            '${(((_step + 1) / 6) * 100).round()}%',
-                            style: const TextStyle(
-                              color: _goldAccent,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(99),
-                        child: LinearProgressIndicator(
-                          minHeight: 8,
-                          value: (_step + 1) / 6,
-                          backgroundColor: Colors.white10,
-                          valueColor: const AlwaysStoppedAnimation(
-                            _goldPrimary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Progress Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  minHeight: 4,
+                  value: (_step + 1) / 6,
+                  backgroundColor: Colors.white10,
+                  valueColor: const AlwaysStoppedAnimation(Colors.white),
                 ),
               ),
-              Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    _card('Business Basics', [
-                      _field(_storeName, 'Store Name', hint: 'Abianzo Tailors'),
-                      _field(_ownerName, 'Owner Name', hint: 'A. Rahman'),
-                      _field(
-                        _phone,
-                        'Phone',
-                        hint: '9876543210',
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(10),
-                        ],
-                      ),
-                      _field(
-                        _email,
-                        'Email',
-                        hint: 'owner@store.com',
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      _field(
-                        _address,
-                        'Address',
-                        hint: 'Street, area, landmark',
-                        maxLines: 2,
-                      ),
-                      _field(
-                        _city,
-                        'City',
-                        hint: 'Chennai',
-                        readOnly: true,
-                      ),
-                    ]),
-                    _card('Craft & Expertise', [
-                      _field(
-                        _experienceYears,
-                        'Experience (years)',
-                        hint: '5',
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: ['Shirts', 'Blazers', 'Dresses', 'Ethnic']
-                            .map(
-                              (item) => FilterChip(
-                                label: Text(item),
-                                selected: _specializations.contains(item),
-                                selectedColor: _goldPrimary.withValues(
-                                  alpha: 0.24,
-                                ),
-                                checkmarkColor: _goldAccent,
-                                onSelected: (selected) {
-                                  setState(() {
-                                    if (selected) {
-                                      _specializations.add(item);
-                                    } else {
-                                      _specializations.remove(item);
-                                    }
-                                  });
-                                },
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ]),
-                    _card('Portfolio Uploads', [
-                      Text(
-                        'Uploaded: ${_portfolioPaths.length}/10',
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                      const SizedBox(height: 10),
-                      OutlinedButton(
-                        onPressed: _pickPortfolio,
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: _goldPrimary.withValues(alpha: 0.45),
-                          ),
-                        ),
-                        child: const Text('Add Portfolio Files'),
-                      ),
-                    ]),
-                    _card('Pricing & Capacity', [
-                      _field(
-                        _startingPrice,
-                        'Starting Price (Rs)',
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                      ),
-                      _field(
-                        _upperPrice,
-                        'Typical Upper Range (Rs)',
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                      ),
-                      _field(
-                        _productionDays,
-                        'Production Days',
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                      ),
-                      _field(
-                        _payout,
-                        'UPI or Bank Account Number',
-                        hint: 'rahman@upi',
-                      ),
-                    ]),
-                    _card('KYC Documents', [
-                      _uploadTile(
-                        'Owner Photo',
-                        _ownerPhoto != null,
-                        () => _pickImage((x) => _ownerPhoto = x),
-                      ),
-                      _uploadTile(
-                        'Store Photo',
-                        _storePhoto != null,
-                        () => _pickImage((x) => _storePhoto = x),
-                      ),
-                      _uploadTile(
-                        'Aadhaar',
-                        _aadhaarPhoto != null,
-                        () => _pickImage((x) => _aadhaarPhoto = x),
-                      ),
-                      _uploadTile(
-                        'PAN',
-                        _panPhoto != null,
-                        () => _pickImage((x) => _panPhoto = x),
-                      ),
-                    ]),
-                    _card('Review & Submit', [
-                      Text('Store: ${_storeName.text.trim()}'),
-                      Text('City: ${_city.text.trim()}'),
-                      Text('Specializations: ${_specializations.join(', ')}'),
-                      Text('Portfolio: ${_portfolioPaths.length} files'),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Your application will be reviewed after document checks.',
-                      ),
-                    ]),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  transform: Matrix4.translationValues(
-                    _invalidSubmitTick.isOdd ? 6 : 0,
-                    0,
-                    0,
-                  ),
-                  child: AnimatedOpacity(
-                    opacity: (_submitting || canContinue) ? 1 : 0.7,
-                    duration: const Duration(milliseconds: 180),
-                    child: RiderGlowButton(
-                      label: _step == 5
-                          ? (_submitting
-                                ? 'Submitting...'
-                                : 'Submit Application')
-                          : 'Continue',
-                      onPressed: _submitting
-                          ? null
-                          : (canContinue ? _next : null),
+            ),
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  _card('Business Basics', [
+                    _field(_storeName, 'Store Name', hint: 'Abianzo Tailors'),
+                    _field(_ownerName, 'Owner Name', hint: 'A. Rahman', readOnly: true),
+                    _field(
+                      _phone,
+                      'Phone',
+                      hint: '9876543210',
+                      readOnly: true,
                     ),
+                    _field(
+                      _email,
+                      'Email',
+                      hint: 'owner@store.com',
+                      readOnly: true,
+                    ),
+                    _field(
+                      _address,
+                      'Address',
+                      hint: 'Street, area, landmark',
+                      maxLines: 2,
+                    ),
+                    _field(
+                      _city,
+                      'City',
+                      hint: 'Chennai',
+                      readOnly: true,
+                    ),
+                  ]),
+                  _card('Craft & Expertise', [
+                    _field(
+                      _experienceYears,
+                      'Experience (years)',
+                      hint: '5',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Specializations', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _specializationOptions.map((item) {
+                        final selected = _specializations.contains(item);
+                        return ChoiceChip(
+                          label: Text(item),
+                          selected: selected,
+                          selectedColor: Colors.white,
+                          backgroundColor: Colors.transparent,
+                          labelStyle: TextStyle(
+                            color: selected ? Colors.black : Colors.white70,
+                            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: selected ? Colors.white : Colors.white24),
+                          ),
+                          onSelected: (val) {
+                            setState(() {
+                              if (val) {
+                                _specializations.add(item);
+                              } else {
+                                _specializations.remove(item);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ]),
+                  _card('Portfolio Uploads', [
+                    Text(
+                      'Uploaded: ${_portfolioPaths.length}/10 (Min 5 required)',
+                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_portfolioPaths.isNotEmpty)
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.white12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          children: _portfolioPaths.asMap().entries.map((e) {
+                            final index = e.key;
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                              title: Text('Sample Image ${index + 1}', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (index > 0)
+                                    IconButton(
+                                      icon: const Icon(Icons.keyboard_arrow_up, color: Colors.white70),
+                                      onPressed: () {
+                                        setState(() {
+                                          final item = _portfolioPaths.removeAt(index);
+                                          _portfolioPaths.insert(index - 1, item);
+                                        });
+                                      },
+                                    ),
+                                  if (index < _portfolioPaths.length - 1)
+                                    IconButton(
+                                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white70),
+                                      onPressed: () {
+                                        setState(() {
+                                          final item = _portfolioPaths.removeAt(index);
+                                          _portfolioPaths.insert(index + 1, item);
+                                        });
+                                      },
+                                    ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close, color: Colors.redAccent),
+                                    onPressed: () => _removePortfolio(index),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                    if (_portfolioPaths.length < 10)
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _pickPortfolio,
+                          icon: const Icon(Icons.add_photo_alternate_outlined, color: Colors.white),
+                          label: const Text('Add Portfolio Files', style: TextStyle(color: Colors.white)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white24),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                  ]),
+                  _card('Pricing & Capacity', [
+                    _field(
+                      _startingPrice,
+                      'Starting Price (Rs)',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                    _field(
+                      _upperPrice,
+                      'Typical Upper Range (Rs)',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                    _field(
+                      _productionDays,
+                      'Production Days',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                    _field(
+                      _monthlyCapacity,
+                      'Monthly Capacity',
+                      hint: 'Number of items per month',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Payout Details', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 16),
+                    _field(_bankAccount, 'Bank Account Number', hint: '1234567890'),
+                    _field(_ifsc, 'IFSC Code', hint: 'HDFC0001234'),
+                    _field(_upi, 'UPI ID', hint: 'user@upi'),
+                  ]),
+                  _card('KYC Documents', [
+                    const Text(
+                      'Please upload clear photos. These will be verified instantly using our OCR system.',
+                      style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                    ),
+                    const SizedBox(height: 20),
+                    _uploadTile('Owner Photo', _ownerPhoto != null, () => _pickImage((x) => _ownerPhoto = x)),
+                    _uploadTile('Store Photo', _storePhoto != null, () => _pickImage((x) => _storePhoto = x)),
+                    _uploadTile('Aadhaar Card', _aadhaarPhoto != null, () => _pickImage((x) => _aadhaarPhoto = x)),
+                    _uploadTile('PAN Card', _panPhoto != null, () => _pickImage((x) => _panPhoto = x)),
+                  ]),
+                  _card('Review & Submit', [
+                    _reviewRow('Store Name', _storeName.text.trim(), () => _jumpToStep(0)),
+                    _reviewRow('Owner Name', _ownerName.text.trim(), () => _jumpToStep(0)),
+                    _reviewRow('Specializations', _specializations.join(', '), () => _jumpToStep(1)),
+                    _reviewRow('Portfolio', '${_portfolioPaths.length} files', () => _jumpToStep(2)),
+                    _reviewRow('Capacity', '${_monthlyCapacity.text.trim()} items/mo', () => _jumpToStep(3)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Divider(color: Colors.white12),
+                    ),
+                    const Text('KYC Verification Summary', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 16),
+                    _reviewRow('Confidence Score', '${_kycConfidence.toStringAsFixed(1)}%', () => _jumpToStep(4)),
+                    _reviewRow('Aadhaar', _aadhaarOcr['aadhaarNumber']?.toString() ?? 'Failed', () => _jumpToStep(4)),
+                    _reviewRow('PAN', _panOcr['panNumber']?.toString() ?? 'Failed', () => _jumpToStep(4)),
+                    if (_kycConfidence < VendorKycPolicy.minConfidenceForAutoSubmit)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Low confidence score. Please retry document upload for faster approval.',
+                                      style: TextStyle(color: Colors.redAccent.shade100, fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton(
+                                onPressed: () => _jumpToStep(4),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.white24),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                child: const Text('Retry Document Upload', style: TextStyle(color: Colors.white)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ]),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                transform: Matrix4.translationValues(_invalidSubmitTick.isOdd ? 6 : 0, 0, 0),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      disabledBackgroundColor: Colors.white30,
+                      disabledForegroundColor: Colors.black54,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
+                    onPressed: _submitting || _isProcessingKyc ? null : _next,
+                    child: _isProcessingKyc
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                          )
+                        : Text(
+                            _step == 5
+                                ? (_submitting ? 'Submitting...' : 'Submit Application')
+                                : (_step == 4 ? 'Verify Documents' : 'Continue'),
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
                   ),
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _card(String title, List<Widget> children) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       children: [
-        RiderGlassCard(
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: _cardDark,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 23,
-                  height: 1.1,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 24),
               ...children,
             ],
           ),
@@ -673,51 +825,112 @@ class _VendorOnboardingFlowScreenState
     bool readOnly = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 16),
       child: TextField(
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         readOnly: readOnly,
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(color: readOnly ? Colors.white54 : Colors.white, fontSize: 15),
         decoration: InputDecoration(
           labelText: label,
+          labelStyle: const TextStyle(color: Colors.white60),
           hintText: hint.isEmpty ? null : hint,
+          hintStyle: const TextStyle(color: Colors.white24),
           filled: true,
-          fillColor: const Color(0xFF101010),
+          fillColor: readOnly ? Colors.white.withValues(alpha: 0.02) : Colors.black26,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: _goldPrimary, width: 1.4),
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Colors.white, width: 1.5),
           ),
         ),
         onChanged: (_) {
-          if (_autoValidate) {
-            setState(() {});
-          }
+          if (_autoValidate) setState(() {});
         },
       ),
     );
   }
 
   Widget _uploadTile(String label, bool done, VoidCallback onTap) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(
-        done ? Icons.check_circle_rounded : Icons.upload_file_rounded,
-        color: done ? const Color(0xFF30D158) : _goldAccent,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: done ? Colors.green.withValues(alpha: 0.4) : Colors.white12),
+              borderRadius: BorderRadius.circular(8),
+              color: done ? Colors.green.withValues(alpha: 0.05) : Colors.transparent,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  done ? Icons.check_circle_rounded : Icons.upload_file_rounded,
+                  color: done ? Colors.green : Colors.white54,
+                  size: 24,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 2),
+                      Text(done ? 'Uploaded successfully' : 'Tap to upload', style: TextStyle(color: done ? Colors.green : Colors.white54, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                if (!done)
+                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
+              ],
+            ),
+          ),
+        ),
       ),
-      title: Text(label),
-      subtitle: Text(done ? 'Uploaded' : 'Not uploaded'),
-      trailing: TextButton(onPressed: onTap, child: const Text('Upload')),
+    );
+  }
+
+  Widget _reviewRow(String label, String value, VoidCallback onEdit) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(label, style: const TextStyle(color: Colors.white54, fontSize: 14)),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+          ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onEdit,
+              borderRadius: BorderRadius.circular(4),
+              child: const Padding(
+                padding: EdgeInsets.all(4.0),
+                child: Icon(Icons.edit_outlined, size: 18, color: Colors.white54),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -728,30 +941,47 @@ class _VendorOnboardingSuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.verified, color: Colors.green, size: 64),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.verified_rounded, color: Colors.green, size: 64),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Application Submitted',
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 12),
               const Text(
-                'Vendor Application Submitted',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                'We are reviewing your details. You will be notified once the process is complete.',
                 textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.5),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'We will notify you after KYC and quality review.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 18),
-              ElevatedButton(
-                onPressed: () => Navigator.of(
-                  context,
-                ).pushNamedAndRemoveUntil('/ops', (route) => false),
-                child: const Text('Go to Vendor Workspace'),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/ops', (route) => false),
+                  child: const Text('Go to Dashboard', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                ),
               ),
             ],
           ),
@@ -760,4 +990,5 @@ class _VendorOnboardingSuccessScreen extends StatelessWidget {
     );
   }
 }
+
 

@@ -58,6 +58,11 @@ import 'screens/admin/admin_riders_screen.dart';
 import 'screens/admin/admin_vendors_screen.dart';
 import 'screens/vendor/vendor_dashboard.dart';
 import 'screens/vendor/vendor_profile_screen.dart';
+import 'features/onboarding/vendor_onboarding_flow_screen.dart';
+import 'features/onboarding/rider_onboarding_screens.dart';
+import 'screens/onboarding/vendor_onboarding_status_screen.dart';
+import 'screens/onboarding/rider_onboarding_status_screen.dart';
+import 'screens/onboarding/application_rejected_screen.dart';
 import 'features/legal/legal_consent_screen.dart';
 import 'features/legal/legal_consent_service.dart';
 import 'features/legal/legal_document_registry.dart';
@@ -222,7 +227,13 @@ class AbzioApp extends StatelessWidget {
         '/video-feed': (context) => const VideoFeedScreen(),
         '/vendor-dashboard': (context) => const VendorDashboard(),
         '/vendor-profile': (context) => const VendorProfileScreen(),
+        '/vendor-onboarding': (context) => const VendorOnboardingFlowScreen(),
+        '/vendor-status': (context) => const VendorOnboardingStatusScreen(),
+        '/vendor-rejected': (context) => const ApplicationRejectedScreen(),
         '/rider-dashboard': (context) => const RiderDashboard(),
+        '/rider-onboarding': (context) => const RiderOnboardingFlowScreen(),
+        '/rider-status': (context) => const RiderOnboardingStatusScreen(),
+        '/rider-rejected': (context) => const ApplicationRejectedScreen(),
         '/invoice/hub': (context) => const InvoiceHubScreen(),
         '/invoice/history': (context) => const InvoiceHistoryScreen(),
       },

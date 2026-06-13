@@ -20,9 +20,37 @@ import 'admin_ar_moderation_section.dart';
 import 'admin_banners_section.dart';
 import 'admin_cms_section.dart';
 import 'admin_categories_section.dart';
+import 'admin_dashboard_v2_section.dart';
+import 'admin_onboarding_analytics_section.dart';
+import 'admin_trials_section.dart';
+import 'admin_finance_section.dart';
+import 'admin_inventory_section.dart';
+import 'admin_fraud_section.dart';
+import 'admin_notifications_section.dart';
+import 'admin_coupons_section.dart';
+import 'admin_disputes_section.dart';
+import 'admin_activity_log_section.dart';
+import 'admin_analytics_section.dart';
+import 'admin_configuration_section.dart';
+import 'admin_kyc_section.dart';
+import 'admin_rider_intelligence_section.dart';
+import 'admin_system_health_section.dart';
+import 'admin_automation_section.dart';
+import 'admin_backup_section.dart';
+import 'admin_compliance_section.dart';
+import 'admin_security_section.dart';
+import 'admin_vendor_onboarding_section.dart';
+import 'admin_rider_onboarding_section.dart';
 
 enum AdminWebSection {
   dashboard,
+  trials,
+  finance,
+  inventory,
+  fraud,
+  notifications,
+  coupons,
+  disputes,
   operations,
   banners,
   cms,
@@ -39,6 +67,16 @@ enum AdminWebSection {
   analytics,
   pricing,
   settings,
+  activityLogs,
+  configuration,
+  systemHealth,
+  automations,
+  backups,
+  compliance,
+  security,
+  vendorOnboarding,
+  riderOnboarding,
+  onboardingAnalytics,
 }
 
 class AdminWebPanel extends StatefulWidget {
@@ -2335,6 +2373,13 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   Widget _buildSidebar(BuildContext context) {
     final items = <(AdminWebSection, IconData, String)>[
       (AdminWebSection.dashboard, Icons.dashboard_outlined, 'Dashboard'),
+      (AdminWebSection.trials, Icons.dry_cleaning_outlined, 'Trials'),
+      (AdminWebSection.finance, Icons.account_balance_wallet_outlined, 'Finance'),
+      (AdminWebSection.inventory, Icons.inventory_2_outlined, 'Inventory'),
+      (AdminWebSection.fraud, Icons.security_rounded, 'Fraud'),
+      (AdminWebSection.notifications, Icons.campaign_rounded, 'Notifications'),
+      (AdminWebSection.coupons, Icons.local_offer_rounded, 'Coupons'),
+      (AdminWebSection.disputes, Icons.gavel_rounded, 'Disputes'),
       (AdminWebSection.operations, Icons.emergency_outlined, 'Operations'),
       (AdminWebSection.banners, Icons.view_carousel_outlined, 'Banners'),
       (AdminWebSection.cms, Icons.edit_note_outlined, 'CMS'),
@@ -2343,7 +2388,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       (AdminWebSection.support, Icons.support_agent_rounded, 'Support'),
       (AdminWebSection.orders, Icons.receipt_long_outlined, 'Orders'),
       (AdminWebSection.vendors, Icons.storefront_outlined, 'Vendors'),
+      (AdminWebSection.vendorOnboarding, Icons.storefront, 'Vendor Onboarding'),
       (AdminWebSection.riders, Icons.delivery_dining_outlined, 'Riders'),
+      (AdminWebSection.riderOnboarding, Icons.two_wheeler, 'Rider Onboarding'),
+      (AdminWebSection.onboardingAnalytics, Icons.analytics_outlined, 'Onboarding Analytics'),
       (AdminWebSection.users, Icons.people_alt_outlined, 'Users'),
       (AdminWebSection.products, Icons.inventory_2_outlined, 'Products'),
       (AdminWebSection.arModeration, Icons.view_in_ar_rounded, 'AR Moderation'),
@@ -2352,7 +2400,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       if (!_usesBackendCommerce)
         (AdminWebSection.payouts, Icons.payments_outlined, 'Payouts'),
       if (!_usesBackendCommerce)
-        (AdminWebSection.settings, Icons.tune_rounded, 'Settings'),
+        (AdminWebSection.settings, Icons.settings_outlined, 'Settings'),
+      (AdminWebSection.configuration, Icons.tune, 'Platform Config'),
+      (AdminWebSection.activityLogs, Icons.history, 'Activity Logs'),
+      (AdminWebSection.systemHealth, Icons.monitor_heart_outlined, 'System Health'),
+      (AdminWebSection.automations, Icons.smart_toy_outlined, 'Automations'),
+      (AdminWebSection.backups, Icons.backup_outlined, 'Backups'),
+      (AdminWebSection.compliance, Icons.verified_user_outlined, 'Compliance'),
+      (AdminWebSection.security, Icons.security_outlined, 'Security'),
     ];
 
     return Container(
@@ -2551,7 +2606,40 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   Widget _buildTabContent(BuildContext context) {
     switch (_tab) {
       case AdminWebSection.dashboard:
-        return _buildDashboard();
+        return AdminDashboardV2Section(
+          analytics: _analytics,
+          orders: _orders,
+          users: _users,
+          stores: _stores,
+          revenueToday: _revenueToday,
+          pendingKycCount: _pendingKycCount,
+          activeRiderCount: _activeRiderCount,
+          onSearchGlobal: (query) {
+            _globalSearchController.text = query;
+            _runGlobalSearch();
+          },
+          onNavigate: (sectionStr) {
+            final target = AdminWebSection.values.firstWhere(
+              (s) => s.name == sectionStr,
+              orElse: () => AdminWebSection.dashboard,
+            );
+            setState(() => _tab = target);
+          },
+        );
+      case AdminWebSection.trials:
+        return const AdminTrialsSection();
+      case AdminWebSection.finance:
+        return const AdminFinanceSection();
+      case AdminWebSection.inventory:
+        return const AdminInventorySection();
+      case AdminWebSection.fraud:
+        return const AdminFraudSection();
+      case AdminWebSection.notifications:
+        return const AdminNotificationsSection();
+      case AdminWebSection.coupons:
+        return const AdminCouponsSection();
+      case AdminWebSection.disputes:
+        return const AdminDisputesSection();
       case AdminWebSection.operations:
         return _buildOperations();
       case AdminWebSection.banners:
@@ -2578,8 +2666,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 subtitle:
                     'Category and subcategory management is available only when the admin panel is connected to the backend API.',
               );
+      case AdminWebSection.vendorOnboarding:
+        return const AdminVendorOnboardingSection();
+      case AdminWebSection.riderOnboarding:
+        return const AdminRiderOnboardingSection();
+      case AdminWebSection.onboardingAnalytics:
+        return const AdminOnboardingAnalyticsSection();
       case AdminWebSection.kyc:
-        return _buildKycHub(context);
+        return const AdminKycSection();
       case AdminWebSection.support:
         return _buildSupport();
       case AdminWebSection.orders:
@@ -2587,7 +2681,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       case AdminWebSection.vendors:
         return _buildVendors();
       case AdminWebSection.riders:
-        return _buildRiders();
+        return const AdminRiderIntelligenceSection();
       case AdminWebSection.users:
         return _buildUsers();
       case AdminWebSection.products:
@@ -2597,11 +2691,25 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       case AdminWebSection.payouts:
         return _buildPayouts();
       case AdminWebSection.analytics:
-        return _buildAnalytics();
+        return const AdminAnalyticsSection();
       case AdminWebSection.pricing:
         return _buildPricingControlPanel();
       case AdminWebSection.settings:
         return _buildSettings();
+      case AdminWebSection.activityLogs:
+        return const AdminActivityLogSection();
+      case AdminWebSection.configuration:
+        return const AdminConfigurationSection();
+      case AdminWebSection.systemHealth:
+        return const AdminSystemHealthSection();
+      case AdminWebSection.automations:
+        return const AdminAutomationSection();
+      case AdminWebSection.backups:
+        return const AdminBackupSection();
+      case AdminWebSection.compliance:
+        return const AdminComplianceSection();
+      case AdminWebSection.security:
+        return const AdminSecuritySection();
     }
   }
 
@@ -3007,6 +3115,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     );
   }
 
+  // ignore: unused_element — Superseded by AdminDashboardV2Section; retained for reference.
   Widget _buildDashboard() {
     final analytics = _analytics;
     final vendorCount = _users.where(_isVendorUser).length;
@@ -4028,6 +4137,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildKycHub(BuildContext context) {
     final allRequests = <_KycQueueItem>[
       ..._vendorRequests.map(
@@ -4905,6 +5015,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildRiders() {
     final base = _filteredRiders;
     final filtered = base.where((rider) {
@@ -7656,6 +7767,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     }
   }
 
+  // ignore: unused_element
   Widget _buildAnalytics() {
     final analytics = _analytics;
     final topProducts = <String, int>{};

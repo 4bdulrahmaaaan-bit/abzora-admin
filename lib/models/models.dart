@@ -28,6 +28,8 @@ class AppUser {
   final String? riderCity;
   final String? referralCode;
   final String? referredBy;
+  final Map<String, dynamic>? vendorOnboarding;
+  final Map<String, dynamic>? riderOnboarding;
 
   AppUser({
     required this.id,
@@ -54,6 +56,8 @@ class AppUser {
     this.riderCity,
     this.referralCode,
     this.referredBy,
+    this.vendorOnboarding,
+    this.riderOnboarding,
   });
 
   Map<String, dynamic> toMap() => {
@@ -82,6 +86,8 @@ class AppUser {
     'riderCity': riderCity,
     'referralCode': referralCode,
     'referredBy': referredBy,
+    'vendorOnboarding': vendorOnboarding,
+    'riderOnboarding': riderOnboarding,
   };
 
   factory AppUser.fromMap(Map<String, dynamic> map) => AppUser(
@@ -115,6 +121,8 @@ class AppUser {
         map['referralCode'] ??
         (map['growth'] is Map ? (map['growth']['referralCode']) : null),
     referredBy: map['referredBy'],
+    vendorOnboarding: map['vendorOnboarding'] != null ? Map<String, dynamic>.from(map['vendorOnboarding']) : null,
+    riderOnboarding: map['riderOnboarding'] != null ? Map<String, dynamic>.from(map['riderOnboarding']) : null,
   );
 
   AppUser copyWith({
@@ -142,6 +150,8 @@ class AppUser {
     String? riderCity,
     String? referralCode,
     String? referredBy,
+    Map<String, dynamic>? vendorOnboarding,
+    Map<String, dynamic>? riderOnboarding,
   }) {
     return AppUser(
       id: id ?? this.id,
@@ -168,6 +178,8 @@ class AppUser {
       riderCity: riderCity ?? this.riderCity,
       referralCode: referralCode ?? this.referralCode,
       referredBy: referredBy ?? this.referredBy,
+      vendorOnboarding: vendorOnboarding ?? this.vendorOnboarding,
+      riderOnboarding: riderOnboarding ?? this.riderOnboarding,
     );
   }
 }
@@ -4709,6 +4721,16 @@ class AdminAnalytics {
   final List<Store> topStores;
   final List<AnalyticsPoint> dailySales;
   final List<AnalyticsPoint> weeklySales;
+  final int ordersRequiringAttention;
+  final int trialsRequiringAttention;
+  final int vendorsRequiringAttention;
+  final int fraudAlerts;
+  final int pendingRefunds;
+  final int pendingKyc;
+  final int pendingVendorSettlements;
+  final int pendingRiderSettlements;
+  final int lowStockAlertsCount;
+  final int systemReadinessScore;
 
   AdminAnalytics({
     required this.totalRevenue,
@@ -4720,6 +4742,16 @@ class AdminAnalytics {
     required this.topStores,
     required this.dailySales,
     required this.weeklySales,
+    this.ordersRequiringAttention = 0,
+    this.trialsRequiringAttention = 0,
+    this.vendorsRequiringAttention = 0,
+    this.fraudAlerts = 0,
+    this.pendingRefunds = 0,
+    this.pendingKyc = 0,
+    this.pendingVendorSettlements = 0,
+    this.pendingRiderSettlements = 0,
+    this.lowStockAlertsCount = 0,
+    this.systemReadinessScore = 100,
   });
 }
 
@@ -5017,6 +5049,8 @@ class ActivityLogEntry {
   final String targetId;
   final String message;
   final DateTime timestamp;
+  final Map<String, dynamic>? previousState;
+  final Map<String, dynamic>? newState;
 
   ActivityLogEntry({
     required this.id,
@@ -5027,6 +5061,8 @@ class ActivityLogEntry {
     required this.targetId,
     required this.message,
     required this.timestamp,
+    this.previousState,
+    this.newState,
   });
 
   Map<String, dynamic> toMap() => {
@@ -5038,6 +5074,8 @@ class ActivityLogEntry {
     'targetId': targetId,
     'message': message,
     'timestamp': timestamp.toIso8601String(),
+    if (previousState != null) 'previousState': previousState,
+    if (newState != null) 'newState': newState,
   };
 
   factory ActivityLogEntry.fromMap(Map<String, dynamic> map, String docId) =>
@@ -5049,8 +5087,104 @@ class ActivityLogEntry {
         targetType: map['targetType'] ?? '',
         targetId: map['targetId'] ?? '',
         message: map['message'] ?? '',
+        previousState: map['previousState'] is Map ? Map<String, dynamic>.from(map['previousState']) : null,
+        newState: map['newState'] is Map ? Map<String, dynamic>.from(map['newState']) : null,
         timestamp: DateTime.tryParse(map['timestamp'] ?? '') ?? DateTime.now(),
       );
+}
+
+class AdminDispute {
+  final String id;
+  final String orderId;
+  final String userId;
+  final String storeId;
+  final String riderId;
+  final String type;
+  final String priority;
+  final String status;
+  final double amount;
+  final String reason;
+  final DateTime createdAt;
+  final List<dynamic> timeline;
+  final List<dynamic> notes;
+  final List<String> evidence;
+  final List<String> attachments;
+  final List<dynamic> resolutionHistory;
+
+  AdminDispute({
+    required this.id,
+    required this.orderId,
+    required this.userId,
+    required this.storeId,
+    required this.riderId,
+    required this.type,
+    required this.priority,
+    required this.status,
+    required this.amount,
+    required this.reason,
+    required this.createdAt,
+    this.timeline = const [],
+    this.notes = const [],
+    this.evidence = const [],
+    this.attachments = const [],
+    this.resolutionHistory = const [],
+  });
+
+  factory AdminDispute.fromMap(Map<String, dynamic> map) {
+    return AdminDispute(
+      id: map['disputeId'] ?? map['id'] ?? '',
+      orderId: map['orderId'] ?? '',
+      userId: map['userId'] ?? '',
+      storeId: map['storeId'] ?? '',
+      riderId: map['riderId'] ?? '',
+      type: map['type'] ?? 'Dispute',
+      priority: map['priority'] ?? 'Medium',
+      status: map['status'] ?? 'Open',
+      amount: ((map['amount'] ?? 0) as num).toDouble(),
+      reason: map['reason'] ?? '',
+      createdAt: DateTime.tryParse(map['createdAtIso'] ?? map['createdAt'] ?? '') ?? DateTime.now(),
+      timeline: map['timeline'] is List ? List<dynamic>.from(map['timeline']) : [],
+      notes: map['notes'] is List ? List<dynamic>.from(map['notes']) : [],
+      evidence: map['evidence'] is List ? List<String>.from(map['evidence'].map((x) => x.toString())) : [],
+      attachments: map['attachments'] is List ? List<String>.from(map['attachments'].map((x) => x.toString())) : [],
+      resolutionHistory: map['resolutionHistory'] is List ? List<dynamic>.from(map['resolutionHistory']) : [],
+    );
+  }
+}
+
+class AdminNotification {
+  final String id;
+  final String title;
+  final String body;
+  final String audienceRole;
+  final String campaignType;
+  final List<String> channels;
+  final Map<String, dynamic> analytics;
+  final DateTime timestamp;
+
+  AdminNotification({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.audienceRole,
+    required this.campaignType,
+    this.channels = const ['Push'],
+    this.analytics = const {'sent': 0, 'delivered': 0, 'failed': 0, 'openRate': 0},
+    required this.timestamp,
+  });
+
+  factory AdminNotification.fromMap(Map<String, dynamic> map) {
+    return AdminNotification(
+      id: map['notificationId'] ?? map['id'] ?? '',
+      title: map['title'] ?? '',
+      body: map['body'] ?? '',
+      audienceRole: map['audienceRole'] ?? 'user',
+      campaignType: map['campaignType'] ?? 'Instant',
+      channels: map['channels'] is List ? List<String>.from(map['channels'].map((x) => x.toString())) : ['Push'],
+      analytics: map['analytics'] is Map ? Map<String, dynamic>.from(map['analytics']) : {'sent': 0, 'delivered': 0, 'failed': 0, 'openRate': 0},
+      timestamp: DateTime.tryParse(map['timestamp'] ?? '') ?? DateTime.now(),
+    );
+  }
 }
 
 class PlatformSettings {

@@ -150,12 +150,38 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
       if (hasVendorOperationsAccess(user)) {
         return '/vendor-dashboard';
       }
-      return '/vendor-profile';
+      final vendorOnboarding = user.vendorOnboarding;
+      if (vendorOnboarding != null) {
+        final status = vendorOnboarding['status'];
+        if (status == 'active') {
+          return '/vendor-dashboard';
+        } else if (status == 'pending' || status == 'review') {
+          return '/vendor-status';
+        } else if (status == 'rejected') {
+          return '/vendor-rejected';
+        } else if (vendorOnboarding['resubmissionRequired'] == true) {
+          return '/vendor-onboarding';
+        }
+      }
+      return '/vendor-onboarding';
     case AbzioAppMode.rider:
       if (hasRiderOperationsAccess(user)) {
         return '/rider-dashboard';
       }
-      return '/profile-setup';
+      final riderOnboarding = user.riderOnboarding;
+      if (riderOnboarding != null) {
+        final status = riderOnboarding['status'];
+        if (status == 'active') {
+          return '/rider-dashboard';
+        } else if (status == 'pending' || status == 'review') {
+          return '/rider-status';
+        } else if (status == 'rejected') {
+          return '/rider-rejected';
+        } else if (riderOnboarding['resubmissionRequired'] == true) {
+          return '/rider-onboarding';
+        }
+      }
+      return '/rider-onboarding';
     case AbzioAppMode.operations:
       if (canAccessOperationsMode(user)) {
         return '/ops';

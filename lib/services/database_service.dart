@@ -143,6 +143,16 @@ class DatabaseService {
         .toList();
   }
 
+  Future<void> saveVendorOnboardingStep(String userId, int step) async {
+    if (_backendCommerce.isConfigured) return;
+    await _ref('users/$userId/vendorOnboarding/lastCompletedStep').set(step);
+  }
+
+  Future<void> saveRiderOnboardingStep(String userId, int step) async {
+    if (_backendCommerce.isConfigured) return;
+    await _ref('users/$userId/riderOnboarding/lastCompletedStep').set(step);
+  }
+
   _SupportActionType _toPrivateActionType(SupportActionType action) {
     return switch (action) {
       SupportActionType.trackOrder => _SupportActionType.trackOrder,
@@ -7352,6 +7362,15 @@ class DatabaseService {
       topStores: topStores.take(3).toList(),
       dailySales: dailySales,
       weeklySales: weeklySales,
+      ordersRequiringAttention: 0,
+      trialsRequiringAttention: 0,
+      vendorsRequiringAttention: 0,
+      fraudAlerts: 0,
+      pendingRefunds: 0,
+      pendingKyc: 0,
+      pendingVendorSettlements: 0,
+      pendingRiderSettlements: 0,
+      lowStockAlertsCount: 0,
     );
   }
 

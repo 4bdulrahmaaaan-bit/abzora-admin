@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'package:flutter/material.dart';
 import 'package:abzio/services/app_bootstrap_service.dart';
 import 'package:abzio/providers/auth_provider.dart';

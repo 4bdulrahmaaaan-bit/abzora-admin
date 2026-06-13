@@ -1902,6 +1902,16 @@ class BackendCommerceService {
             );
           })
           .toList(),
+      ordersRequiringAttention: ((map['ordersRequiringAttention'] ?? 0) as num).toInt(),
+      trialsRequiringAttention: ((map['trialsRequiringAttention'] ?? 0) as num).toInt(),
+      vendorsRequiringAttention: ((map['vendorsRequiringAttention'] ?? 0) as num).toInt(),
+      fraudAlerts: ((map['fraudAlerts'] ?? 0) as num).toInt(),
+      pendingRefunds: ((map['pendingRefunds'] ?? 0) as num).toInt(),
+      pendingKyc: ((map['pendingKyc'] ?? 0) as num).toInt(),
+      pendingVendorSettlements: ((map['pendingVendorSettlements'] ?? 0) as num).toInt(),
+      pendingRiderSettlements: ((map['pendingRiderSettlements'] ?? 0) as num).toInt(),
+      lowStockAlertsCount: ((map['lowStockAlertsCount'] ?? 0) as num).toInt(),
+      systemReadinessScore: ((map['systemReadinessScore'] ?? 100) as num).toInt(),
     );
   }
 

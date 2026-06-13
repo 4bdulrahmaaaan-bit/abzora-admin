@@ -9,13 +9,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/utils/rider_validators.dart';
-import '../../../core/widgets/rider_glass_card.dart';
 import '../../../core/widgets/rider_glow_button.dart';
 import '../../../core/widgets/rider_validated_text_field.dart';
 import '../../../models/rider_signup_model.dart';
@@ -531,7 +529,8 @@ class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
 }
 
 class RiderOnboardingFlowScreen extends ConsumerStatefulWidget {
-  const RiderOnboardingFlowScreen({super.key});
+  final int initialStep;
+  const RiderOnboardingFlowScreen({super.key, this.initialStep = 0});
 
   @override
   ConsumerState<RiderOnboardingFlowScreen> createState() =>
@@ -541,12 +540,11 @@ class RiderOnboardingFlowScreen extends ConsumerStatefulWidget {
 class _RiderOnboardingFlowScreenState
     extends ConsumerState<RiderOnboardingFlowScreen> {
   static const double _kycMinimumConfidence = 75;
-  final _pageController = PageController();
+  late final PageController _pageController;
   final _otpController = TextEditingController();
   final _onboardingService = OnboardingService();
   final _db = DatabaseService();
-  int _step = 0;
-  bool _verifying = false;
+  late int _step;
   bool _submitting = false;
   int _invalidSubmitTick = 0;
   bool _ifscLookupLoading = false;
@@ -554,8 +552,6 @@ class _RiderOnboardingFlowScreenState
   String _detectedBankName = '';
   static const _draftKey = 'rider_onboarding_draft_v1';
   static const List<String> _stepTitles = <String>[
-    'Phone Authentication',
-    'OTP Verification',
     'Personal Details',
     'Vehicle Details',
     'KYC Verification',
@@ -565,8 +561,6 @@ class _RiderOnboardingFlowScreenState
     'Application Review',
   ];
   static const List<String> _stepSubtitles = <String>[
-    'Verify your phone to start secure onboarding.',
-    'Enter the 6-digit code to continue.',
     'Share your basic identity and profile photo.',
     'Add your vehicle and mandatory transport docs.',
     'Complete rider identity checks with confidence.',
@@ -579,28 +573,30 @@ class _RiderOnboardingFlowScreenState
   @override
   void initState() {
     super.initState();
+    _step = widget.initialStep;
+    _pageController = PageController(initialPage: _step);
     _restoreDraft();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
       final auth = context.read<AuthProvider>();
-      final pendingPhone = (auth.pendingPhoneNumber ?? '').replaceAll(
-        RegExp(r'[^0-9]'),
-        '',
-      );
-      if (pendingPhone.length == 10 || pendingPhone.length == 12) {
-        final normalized = pendingPhone.length == 12
-            ? pendingPhone.substring(2)
-            : pendingPhone;
+      int initial = widget.initialStep;
+      if (auth.user != null && auth.user!.riderOnboarding != null) {
+        final lastStep = auth.user!.riderOnboarding!['lastCompletedStep'];
+        if (lastStep != null && lastStep is num) {
+          initial = lastStep.toInt();
+        }
+      }
+      setState(() {
+        _step = initial;
+        _pageController.jumpToPage(_step);
+      });
+      if (auth.user != null) {
         final model = ref.read(riderSignupProvider);
         ref
             .read(riderSignupProvider.notifier)
-            .update(model.copyWith(phone: normalized));
-        if (_step == 0) {
-          setState(() => _step = 1);
-          _pageController.jumpToPage(1);
-        }
+            .update(model.copyWith(phone: auth.user!.phone));
       }
     });
   }
@@ -642,12 +638,16 @@ class _RiderOnboardingFlowScreenState
       context.showRiderSnack(error);
       return;
     }
-    if (_step < 8) {
+    if (_step < 6) {
       setState(() => _step++);
       _pageController.nextPage(
         duration: const Duration(milliseconds: 260),
         curve: Curves.easeOutCubic,
       );
+      final auth = context.read<AuthProvider>();
+      if (auth.user != null) {
+        _db.saveRiderOnboardingStep(auth.user!.id, _step);
+      }
       return;
     }
     context.replace(RiderRoutes.success);
@@ -672,22 +672,16 @@ class _RiderOnboardingFlowScreenState
   String? _validateStep(RiderSignupModel model, int step) {
     switch (step) {
       case 0:
-        return AppValidators.phone(model.phone);
-      case 1:
-        return _otpController.text.trim().length == 6
-            ? null
-            : 'Verify OTP to continue';
-      case 2:
         return AppValidators.requiredField(model.fullName, 'Full name') ??
             AppValidators.email(model.email) ??
             AppValidators.requiredField(model.city, 'City');
-      case 3:
+      case 1:
         return AppValidators.vehicleNumber(model.vehicleNumber) ??
             AppValidators.requiredField(model.licenseNumber, 'License number');
-      case 4:
+      case 2:
         return AppValidators.aadhaar(model.aadhaar) ??
             AppValidators.pan(model.pan);
-      case 5:
+      case 3:
         return AppValidators.requiredField(
               model.accountHolder,
               'Account holder',
@@ -696,7 +690,7 @@ class _RiderOnboardingFlowScreenState
             AppValidators.bankAccount(model.accountNumber) ??
             AppValidators.ifsc(model.ifsc) ??
             AppValidators.upi(model.upi);
-      case 7:
+      case 5:
         return model.acceptedTerms
             ? null
             : 'Accept terms and provide signature';
@@ -722,52 +716,7 @@ class _RiderOnboardingFlowScreenState
     } catch (_) {}
   }
 
-  Future<void> _requestOtp(RiderSignupModel model) async {
-    final phoneError = AppValidators.phone(model.phone);
-    if (phoneError != null) {
-      context.showRiderSnack(phoneError);
-      return;
-    }
-    final auth = context.read<AuthProvider>();
-    try {
-      RiderTelemetry.event('otp_request_started', data: {'step': _step});
-      await auth.requestOtp(model.phone);
-      if (!mounted) return;
-      RiderTelemetry.event('otp_request_success', data: {'step': _step});
-      context.showRiderSnack('OTP sent successfully');
-    } catch (e) {
-      if (!mounted) return;
-      RiderTelemetry.event('otp_request_failed', data: {'error': e.toString()});
-      context.showRiderSnack(e.toString());
-    }
-  }
 
-  Future<void> _verifyOtp() async {
-    if (_otpController.text.trim().length != 6) {
-      context.showRiderSnack('Enter the 6-digit OTP');
-      return;
-    }
-    setState(() => _verifying = true);
-    final auth = context.read<AuthProvider>();
-    try {
-      RiderTelemetry.event('otp_verify_started', data: {'step': _step});
-      final user = await auth.verifyOtp(_otpController.text.trim());
-      if (!mounted) return;
-      if (user == null) {
-        RiderTelemetry.event('otp_verify_failed_null_user');
-        context.showRiderSnack('OTP verification failed');
-      } else {
-        RiderTelemetry.event('otp_verify_success', data: {'userId': user.id});
-        context.showRiderSnack('Phone verified successfully');
-      }
-    } catch (e) {
-      if (!mounted) return;
-      RiderTelemetry.event('otp_verify_failed', data: {'error': e.toString()});
-      context.showRiderSnack(e.toString());
-    } finally {
-      if (mounted) setState(() => _verifying = false);
-    }
-  }
 
   Future<T> _withRetry<T>(
     Future<T> Function() action, {
@@ -998,7 +947,7 @@ class _RiderOnboardingFlowScreenState
     final stepError = _validateStep(model, _step);
     final canContinue = stepError == null;
 
-    final progress = (_step + 1) / 9;
+    final progress = (_step + 1) / 7;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -1012,7 +961,7 @@ class _RiderOnboardingFlowScreenState
         fit: StackFit.expand,
         children: [
           const DecoratedBox(
-            decoration: BoxDecoration(color: Color(0xFF080808)),
+            decoration: BoxDecoration(color: Color(0xFF0A0A0A)),
           ),
           Column(
             children: [
@@ -1031,7 +980,7 @@ class _RiderOnboardingFlowScreenState
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: Color(0xFFD0D0D0),
+                              color: Color(0xFF6B7280),
                               fontWeight: FontWeight.w500,
                               fontSize: 12,
                             ),
@@ -1041,7 +990,7 @@ class _RiderOnboardingFlowScreenState
                         Text(
                           '${(progress * 100).round()}%',
                           style: const TextStyle(
-                            color: Color(0xFFFFB300),
+                            color: Color(0xFF4F46E5),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -1053,29 +1002,29 @@ class _RiderOnboardingFlowScreenState
                       child: LinearProgressIndicator(
                         minHeight: 8,
                         value: progress,
-                        backgroundColor: Color(0x33FFFFFF),
+                        backgroundColor: const Color(0xFFE5E7EB),
                         valueColor: const AlwaysStoppedAnimation(
-                          Color(0xFFF5D76E),
+                          Color(0xFF4F46E5),
                         ),
                       ),
                     ),
                     const SizedBox(height: 10),
                     Row(
-                      children: List<Widget>.generate(9, (index) {
+                      children: List<Widget>.generate(7, (index) {
                         final active = index == _step;
                         final complete = index < _step;
                         return Expanded(
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 220),
-                            margin: EdgeInsets.only(right: index == 8 ? 0 : 4),
+                            margin: EdgeInsets.only(right: index == 6 ? 0 : 4),
                             height: 4,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(99),
                               color: complete
-                                  ? const Color(0xFFD4AF37)
+                                  ? const Color(0xFF4338CA)
                                   : active
-                                  ? const Color(0xFFF5D76E)
-                                  : Color(0x33FFFFFF),
+                                  ? const Color(0xFF6366F1)
+                                  : const Color(0xFFE5E7EB),
                             ),
                           ),
                         );
@@ -1090,8 +1039,6 @@ class _RiderOnboardingFlowScreenState
                   controller: _pageController,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
-                    _phoneStep(model),
-                    _otpStep(),
                     _personalStep(model),
                     _vehicleStep(model),
                     _kycStep(model),
@@ -1112,10 +1059,10 @@ class _RiderOnboardingFlowScreenState
                     0,
                   ),
                   child: RiderGlowButton(
-                    label: _step == 8
+                    label: _step == 6
                         ? (_submitting ? 'Submitting...' : 'Submit Application')
                         : 'Save & Continue',
-                    onPressed: _step == 8
+                    onPressed: _step == 6
                         ? (_submitting ? null : () => _submitApplication(model))
                         : (canContinue ? _next : null),
                   ),
@@ -1128,71 +1075,18 @@ class _RiderOnboardingFlowScreenState
     );
   }
 
-  Widget _phoneStep(RiderSignupModel model) {
-    return _formCard(
-      title: 'Phone Authentication',
-      child: Column(
-        children: [
-          RiderValidatedTextField(
-            initialValue: model.phone,
-            label: 'Phone Number (+91)',
-            keyboardType: TextInputType.phone,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            maxLength: 10,
-            helperText: '10 digits starting with 6, 7, 8, or 9',
-            exampleText: 'Example: 9876543210',
-            validator: AppValidators.phone,
-            onChanged: (v) => ref
-                .read(riderSignupProvider.notifier)
-                .update(model.copyWith(phone: v)),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () => _requestOtp(model),
-              child: const Text('Send OTP'),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const LinearProgressIndicator(value: 0.4, color: Color(0xFFD4AF37)),
-        ],
-      ),
-    );
-  }
-
-  Widget _otpStep() {
-    return _formCard(
-      title: 'OTP Verification',
-      child: Column(
-        children: [
-          PinCodeTextField(
-            appContext: context,
-            length: 6,
-            controller: _otpController,
-            keyboardType: TextInputType.number,
-            pinTheme: PinTheme(
-              shape: PinCodeFieldShape.box,
-              borderRadius: BorderRadius.circular(14),
-              fieldWidth: 44,
-              activeColor: const Color(0xFFD4AF37),
-              inactiveColor: Color(0x55FFFFFF),
-              selectedColor: const Color(0xFFD4AF37),
-            ),
-            onChanged: (_) {},
-          ),
-          const SizedBox(height: 8),
-          if (_verifying)
-            const CircularProgressIndicator(color: Color(0xFFD4AF37)),
-          if (!_verifying)
-            TextButton(onPressed: _verifyOtp, child: const Text('Verify OTP')),
-        ],
-      ),
-    );
-  }
-
   Widget _personalStep(RiderSignupModel model) {
+    final user = context.watch<AuthProvider>().user;
     final content = <Widget>[
+      TextFormField(
+        initialValue: user?.phone ?? model.phone,
+        readOnly: true,
+        decoration: _onboardingInputDecoration('Phone Number').copyWith(
+          fillColor: const Color(0xFF1A1A1A),
+          filled: true,
+        ),
+      ),
+      const SizedBox(height: 10),
       TextFormField(
         initialValue: model.fullName,
         decoration: _onboardingInputDecoration('Full Name'),
@@ -1701,7 +1595,20 @@ class _RiderOnboardingFlowScreenState
   Widget _formCard({required String title, required Widget child}) {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: RiderGlassCard(
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF222222)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(20),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1709,24 +1616,25 @@ class _RiderOnboardingFlowScreenState
               Text(
                 title,
                 style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 21,
-                  letterSpacing: 0.2,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  letterSpacing: -0.2,
+                  color: Color(0xFFF5E7C1),
                 ),
               ),
               const SizedBox(height: 6),
               const Text(
                 'All details are encrypted and reviewed for rider safety and payout accuracy.',
                 style: TextStyle(
-                  color: Color.fromRGBO(255, 255, 255, 0.76),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  height: 1.35,
+                  color: Color(0xFFA1A1AA),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  height: 1.4,
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 20),
               _stepVisualBanner(),
-              const SizedBox(height: 14),
+              const SizedBox(height: 24),
               child,
             ],
           ),
@@ -1878,7 +1786,7 @@ class _RiderOnboardingFlowScreenState
         ),
       ),
       child: Text(
-        'Step ${_step + 1}/9',
+        'Step ${_step + 1}/7',
         style: const TextStyle(
           color: Color(0xFFF5D76E),
           fontWeight: FontWeight.w700,
@@ -2002,7 +1910,20 @@ class _RiderSuccessScreenState extends State<RiderSuccessScreen> {
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: RiderGlassCard(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF141414),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF222222)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1A000000),
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -2017,6 +1938,7 @@ class _RiderSuccessScreenState extends State<RiderSuccessScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 24,
+                          color: Color(0xFFF5E7C1),
                         ),
                       ),
                       const SizedBox(height: 8),
