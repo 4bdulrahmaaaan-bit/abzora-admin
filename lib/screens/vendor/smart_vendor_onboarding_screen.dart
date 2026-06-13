@@ -5,10 +5,12 @@ class SmartVendorOnboardingScreen extends StatefulWidget {
   const SmartVendorOnboardingScreen({super.key});
 
   @override
-  State<SmartVendorOnboardingScreen> createState() => _SmartVendorOnboardingScreenState();
+  State<SmartVendorOnboardingScreen> createState() =>
+      _SmartVendorOnboardingScreenState();
 }
 
-class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScreen> {
+class _SmartVendorOnboardingScreenState
+    extends State<SmartVendorOnboardingScreen> {
   final PageController _controller = PageController();
   final TextEditingController _storeNameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -17,10 +19,12 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
   final TextEditingController _ifscController = TextEditingController();
   final TextEditingController _productPriceController = TextEditingController();
   final TextEditingController _productStockController = TextEditingController();
-  final TextEditingController _productCategoryController = TextEditingController();
+  final TextEditingController _productCategoryController =
+      TextEditingController();
   final TextEditingController _productImageController = TextEditingController();
   final TextEditingController _deliveryZoneController = TextEditingController();
-  final TextEditingController _deliveryRadiusController = TextEditingController();
+  final TextEditingController _deliveryRadiusController =
+      TextEditingController();
   int _step = 0;
   bool _sameDay = false;
 
@@ -71,9 +75,9 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
     }
 
     setState(() => _step = 4);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('You are live on Abianzo')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('You are live on Abianzo')));
   }
 
   @override
@@ -136,11 +140,17 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
                   final done = i < _step;
                   final active = i == _step;
                   final chipIcon = done
-                      ? const Icon(Icons.check_circle, size: 16, color: Color(0xFF1C8C4E))
+                      ? const Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: Color(0xFF1C8C4E),
+                        )
                       : Icon(
                           _stepIcon(i),
                           size: 16,
-                          color: active ? const Color(0xFF7A5A00) : const Color(0xFF8A8376),
+                          color: active
+                              ? const Color(0xFF7A5A00)
+                              : const Color(0xFF8A8376),
                         );
                   return Chip(
                     avatar: chipIcon,
@@ -148,14 +158,16 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
                       _steps[i],
                       style: GoogleFonts.inter(
                         fontWeight: FontWeight.w600,
-                        color: active ? const Color(0xFF5E4800) : const Color(0xFF4B463E),
+                        color: active
+                            ? const Color(0xFF5E4800)
+                            : const Color(0xFF4B463E),
                       ),
                     ),
                     backgroundColor: done
                         ? const Color(0xFFEAF5EC)
                         : active
-                            ? const Color(0xFFFFF7E5)
-                            : Colors.white,
+                        ? const Color(0xFFFFF7E5)
+                        : Colors.white,
                   );
                 }),
               ),
@@ -171,13 +183,19 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
                         _stepCard(
                           title: 'Store Info',
                           subtitle: 'Auto-fill where possible',
-                          fields: const ['Store Name', 'Address (auto-detect GPS)', 'Category'],
+                          fields: const [
+                            'Store Name',
+                            'Address (auto-detect GPS)',
+                            'Category',
+                          ],
                           controllers: [
                             _storeNameController,
                             _addressController,
                             _categoryController,
                           ],
-                          tips: const ['Stores with complete profiles are approved faster.'],
+                          tips: const [
+                            'Stores with complete profiles are approved faster.',
+                          ],
                         ),
                         _stepCard(
                           title: 'Payout Setup',
@@ -187,19 +205,28 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
                             _bankAccountController,
                             _ifscController,
                           ],
-                          tips: const ['Trusted payout rails increase vendor confidence.'],
+                          tips: const [
+                            'Trusted payout rails increase vendor confidence.',
+                          ],
                         ),
                         _stepCard(
                           title: 'Add First Product',
                           subtitle: 'Add your first product to go live',
-                          fields: const ['Image Upload (camera shortcut)', 'Price', 'Stock', 'Category'],
+                          fields: const [
+                            'Image Upload (camera shortcut)',
+                            'Price',
+                            'Stock',
+                            'Category',
+                          ],
                           controllers: [
                             _productImageController,
                             _productPriceController,
                             _productStockController,
                             _productCategoryController,
                           ],
-                          tips: const ['Stores with 5+ products get 3x more orders.'],
+                          tips: const [
+                            'Stores with 5+ products get 3x more orders.',
+                          ],
                         ),
                         _deliveryStep(),
                       ],
@@ -214,7 +241,9 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
                   style: ElevatedButton.styleFrom(
                     backgroundColor: gold,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: Text(_step == 3 ? 'Go Live' : 'Save & Continue'),
                 ),
@@ -248,9 +277,18 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
       ),
       child: ListView(
         children: [
-          Text(title, style: GoogleFonts.poppins(fontSize: 19, fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 19,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(subtitle, style: GoogleFonts.inter(color: const Color(0xFF6D6659))),
+          Text(
+            subtitle,
+            style: GoogleFonts.inter(color: const Color(0xFF6D6659)),
+          ),
           const SizedBox(height: 14),
           for (int idx = 0; idx < fields.length; idx++) ...[
             TextField(
@@ -258,7 +296,9 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
               textInputAction: TextInputAction.next,
               decoration: InputDecoration(
                 labelText: fields[idx],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -283,7 +323,10 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
           ],
           Text(
             'Step completion auto-saves instantly',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFF1C8C4E)),
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1C8C4E),
+            ),
           ),
         ],
       ),
@@ -307,16 +350,27 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
       ),
       child: ListView(
         children: [
-          Text('Enable Delivery', style: GoogleFonts.poppins(fontSize: 19, fontWeight: FontWeight.w700)),
+          Text(
+            'Enable Delivery',
+            style: GoogleFonts.poppins(
+              fontSize: 19,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('Auto-detect zone and suggest radius', style: GoogleFonts.inter(color: const Color(0xFF6D6659))),
+          Text(
+            'Auto-detect zone and suggest radius',
+            style: GoogleFonts.inter(color: const Color(0xFF6D6659)),
+          ),
           const SizedBox(height: 14),
           TextField(
             controller: _deliveryZoneController,
             textInputAction: TextInputAction.next,
             decoration: InputDecoration(
               labelText: 'Delivery Zone',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -325,7 +379,9 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
             textInputAction: TextInputAction.done,
             decoration: InputDecoration(
               labelText: 'Delivery Radius (km)',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -333,7 +389,10 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
             value: _sameDay,
             onChanged: (value) => setState(() => _sameDay = value),
             contentPadding: EdgeInsets.zero,
-            title: Text('Enable same-day delivery', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            title: Text(
+              'Enable same-day delivery',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
           ),
           const SizedBox(height: 8),
           Container(
@@ -345,13 +404,19 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
             ),
             child: Text(
               'Enable same-day delivery to increase conversions.',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFF7A5A00)),
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF7A5A00),
+              ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Step completion auto-saves instantly',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFF1C8C4E)),
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1C8C4E),
+            ),
           ),
         ],
       ),
@@ -384,7 +449,10 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
           const SizedBox(height: 10),
           Text(
             "You're live on Abianzo",
-            style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w800),
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -403,4 +471,3 @@ class _SmartVendorOnboardingScreenState extends State<SmartVendorOnboardingScree
     );
   }
 }
-

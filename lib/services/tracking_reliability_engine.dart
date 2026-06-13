@@ -10,12 +10,14 @@ class TrackingReliabilityEngine {
     required double motionQuality,
   }) {
     final coverage = frame.feedback.progress.clamp(0.0, 1.0);
-    final rotationStability =
-        (1.0 - (frame.rotationRadians.abs() / 1.2)).clamp(0.0, 1.0);
-    final widthStability =
-        (1.0 - ((frame.shoulderWidth - 0.2).abs() * 2.8)).clamp(0.0, 1.0);
-    final torsoStability =
-        (1.0 - ((frame.torsoHeight - 0.34).abs() * 2.0)).clamp(0.0, 1.0);
+    final rotationStability = (1.0 - (frame.rotationRadians.abs() / 1.2)).clamp(
+      0.0,
+      1.0,
+    );
+    final widthStability = (1.0 - ((frame.shoulderWidth - 0.2).abs() * 2.8))
+        .clamp(0.0, 1.0);
+    final torsoStability = (1.0 - ((frame.torsoHeight - 0.34).abs() * 2.0))
+        .clamp(0.0, 1.0);
     final geometricCoherence = _coherence(frame);
     final centerBias = _centerBias(frame);
     final stability =
@@ -52,10 +54,16 @@ class TrackingReliabilityEngine {
   double _coherence(TryOnPoseFrame frame) {
     final leftTorsoDx = (frame.leftShoulder.x - frame.leftHip.x).abs();
     final rightTorsoDx = (frame.rightShoulder.x - frame.rightHip.x).abs();
-    final symmetry = (1.0 - (leftTorsoDx - rightTorsoDx).abs() * 3.2).clamp(0.0, 1.0);
+    final symmetry = (1.0 - (leftTorsoDx - rightTorsoDx).abs() * 3.2).clamp(
+      0.0,
+      1.0,
+    );
     final shoulderYDiff = (frame.leftShoulder.y - frame.rightShoulder.y).abs();
     final hipYDiff = (frame.leftHip.y - frame.rightHip.y).abs();
-    final lineLevel = (1.0 - ((shoulderYDiff + hipYDiff) * 2.4)).clamp(0.0, 1.0);
+    final lineLevel = (1.0 - ((shoulderYDiff + hipYDiff) * 2.4)).clamp(
+      0.0,
+      1.0,
+    );
     return (symmetry * 0.55) + (lineLevel * 0.45);
   }
 

@@ -26,7 +26,7 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
     super.didChangeDependencies();
     final auth = context.watch<AuthProvider>();
     if (!auth.isInitialized) return;
-    
+
     final user = auth.user;
     if (user == null) {
       _future = null;
@@ -55,9 +55,10 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
     if (confidence <= 0) {
       return 88;
     }
-    return (confidence <= 1 ? confidence * 100 : confidence)
-        .round()
-        .clamp(0, 100);
+    return (confidence <= 1 ? confidence * 100 : confidence).round().clamp(
+      0,
+      100,
+    );
   }
 
   String _relativeTime(String value) {
@@ -85,7 +86,8 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
           future: _future,
           builder: (context, snapshot) {
             final auth = context.read<AuthProvider>();
-            if (!auth.isInitialized || snapshot.connectionState == ConnectionState.waiting) {
+            if (!auth.isInitialized ||
+                snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: CircularProgressIndicator(color: Color(0xFFC9A55A)),
               );
@@ -99,7 +101,8 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
             final bodyProfile = data?.bodyProfile;
             final measurementProfiles =
                 data?.measurementProfiles ?? const <MeasurementProfile>[];
-            final hasSavedProfile = bodyProfile != null || measurementProfiles.isNotEmpty;
+            final hasSavedProfile =
+                bodyProfile != null || measurementProfiles.isNotEmpty;
             final displaySize = (bodyProfile?.recommendedSize ?? '').trim();
             return SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -128,40 +131,68 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
                                 displaySize.isNotEmpty
                                     ? displaySize.toUpperCase()
                                     : 'M',
-                                style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF111111),
-                                  height: 1,
-                                ),
+                                style: Theme.of(context).textTheme.displayMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF111111),
+                                      height: 1,
+                                    ),
                               ),
                               const SizedBox(height: 10),
                               Text(
                                 '${_confidencePercentFor(bodyProfile)}% Confidence',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF111111),
-                                ),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF111111),
+                                    ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 bodyProfile == null
                                     ? 'Saved fit details are ready'
                                     : '${bodyProfile.fitPreference.isNotEmpty ? bodyProfile.fitPreference : 'Regular'} Fit Recommended',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: const Color(0xFF666666),
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: const Color(0xFF666666),
+                                      fontWeight: FontWeight.w600,
+                                    ),
                               ),
                               const SizedBox(height: 18),
-                              _row('Height', bodyProfile == null ? '—' : '${bodyProfile.heightCm.toStringAsFixed(0)} cm'),
+                              _row(
+                                'Height',
+                                bodyProfile == null
+                                    ? '—'
+                                    : '${bodyProfile.heightCm.toStringAsFixed(0)} cm',
+                              ),
                               const SizedBox(height: 10),
-                              _row('Weight', bodyProfile == null ? '—' : '${bodyProfile.weightKg.toStringAsFixed(0)} kg'),
+                              _row(
+                                'Weight',
+                                bodyProfile == null
+                                    ? '—'
+                                    : '${bodyProfile.weightKg.toStringAsFixed(0)} kg',
+                              ),
                               const SizedBox(height: 10),
-                              _row('Body Type', bodyProfile == null ? '—' : _beautify(bodyProfile.bodyType)),
+                              _row(
+                                'Body Type',
+                                bodyProfile == null
+                                    ? '—'
+                                    : _beautify(bodyProfile.bodyType),
+                              ),
                               const SizedBox(height: 10),
-                              _row('Fit Preference', bodyProfile == null ? '—' : _beautify(bodyProfile.fitPreference)),
+                              _row(
+                                'Fit Preference',
+                                bodyProfile == null
+                                    ? '—'
+                                    : _beautify(bodyProfile.fitPreference),
+                              ),
                               const SizedBox(height: 10),
-                              _row('Last Updated', bodyProfile == null ? 'Today' : _relativeTime(bodyProfile.updatedAt)),
+                              _row(
+                                'Last Updated',
+                                bodyProfile == null
+                                    ? 'Today'
+                                    : _relativeTime(bodyProfile.updatedAt),
+                              ),
                               if (measurementProfiles.isNotEmpty) ...[
                                 const SizedBox(height: 10),
                                 _row('Scan Status', 'Smart Scan Completed'),
@@ -173,18 +204,20 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
                             children: [
                               Text(
                                 'Find My Perfect Fit',
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF111111),
-                                ),
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF111111),
+                                    ),
                               ),
                               const SizedBox(height: 10),
                               Text(
                                 'Get personalized sizing recommendations using your body profile and optional AI scan.',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: const Color(0xFF666666),
-                                  height: 1.45,
-                                ),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: const Color(0xFF666666),
+                                      height: 1.45,
+                                    ),
                               ),
                             ],
                           ),
@@ -197,7 +230,8 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const ProfileCompletionFlowScreen(initialStep: 1),
+                          builder: (_) =>
+                              const ProfileCompletionFlowScreen(initialStep: 1),
                         ),
                       ),
                     ),
@@ -207,13 +241,21 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
                       filled: true,
                       onTap: () {
                         if (context.read<AuthProvider>().requiresProfileSetup) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please complete your profile first.')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Please complete your profile first.',
+                              ),
+                            ),
+                          );
                           Navigator.pushNamed(context, '/profile-completion');
                           return;
                         }
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const SizeRecommendationScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const SizeRecommendationScreen(),
+                          ),
                         );
                       },
                     ),
@@ -223,13 +265,21 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
                       filled: false,
                       onTap: () {
                         if (context.read<AuthProvider>().requiresProfileSetup) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please complete your profile first.')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Please complete your profile first.',
+                              ),
+                            ),
+                          );
                           Navigator.pushNamed(context, '/profile-completion');
                           return;
                         }
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const BodyScanScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const BodyScanScreen(),
+                          ),
                         );
                       },
                     ),
@@ -240,7 +290,8 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const ProfileCompletionFlowScreen(initialStep: 1),
+                          builder: (_) =>
+                              const ProfileCompletionFlowScreen(initialStep: 1),
                         ),
                       ),
                     ),
@@ -289,7 +340,6 @@ class _SavedFitProfileScreenState extends State<SavedFitProfileScreen> {
         .map((part) => part[0].toUpperCase() + part.substring(1).toLowerCase())
         .join(' ');
   }
-
 }
 
 class _SavedFitData {

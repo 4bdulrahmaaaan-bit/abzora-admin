@@ -1,9 +1,4 @@
-enum BodyShapeClass {
-  balanced,
-  athletic,
-  curved,
-  straight,
-}
+enum BodyShapeClass { balanced, athletic, curved, straight }
 
 enum PostureTendency {
   neutral,
@@ -12,12 +7,7 @@ enum PostureTendency {
   forwardShoulders,
 }
 
-enum FitPreferenceType {
-  trueToSize,
-  relaxed,
-  oversized,
-  slim,
-}
+enum FitPreferenceType { trueToSize, relaxed, oversized, slim }
 
 class BodyConfidence {
   const BodyConfidence({
@@ -46,10 +36,7 @@ class ProportionAnalysis {
 }
 
 class PostureAnalysis {
-  const PostureAnalysis({
-    required this.tendency,
-    required this.tiltRadians,
-  });
+  const PostureAnalysis({required this.tendency, required this.tiltRadians});
 
   final PostureTendency tendency;
   final double tiltRadians;

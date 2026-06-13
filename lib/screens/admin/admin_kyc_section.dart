@@ -15,9 +15,10 @@ class AdminKycSection extends StatefulWidget {
   State<AdminKycSection> createState() => _AdminKycSectionState();
 }
 
-class _AdminKycSectionState extends State<AdminKycSection> with SingleTickerProviderStateMixin {
+class _AdminKycSectionState extends State<AdminKycSection>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   bool _isLoadingDashboard = true;
   String _dashboardError = '';
   Map<String, dynamic> _kpis = {};
@@ -108,7 +109,12 @@ class _AdminKycSectionState extends State<AdminKycSection> with SingleTickerProv
     for (final row in _apps) {
       final name = row['storeName'] ?? row['name'] ?? 'N/A';
       final line = [
-        row['_id'], name, row['email'], row['phone'], row['kycStatus'], row['kycSubmittedAt']
+        row['_id'],
+        name,
+        row['email'],
+        row['phone'],
+        row['kycStatus'],
+        row['kycSubmittedAt'],
       ].map((e) => '"${e.toString().replaceAll('"', '""')}"').join(',');
       csv += '$line\n';
     }
@@ -119,21 +125,25 @@ class _AdminKycSectionState extends State<AdminKycSection> with SingleTickerProv
       final file = File('${dir.path}/KYC_${_appTypeFilter}_Applications.csv');
       await file.writeAsBytes(bytes);
       if (mounted) {
-        await Share.shareXFiles([XFile(file.path, mimeType: 'text/csv')], text: 'Exported KYC_${_appTypeFilter}_Applications.csv');
+        await Share.shareXFiles([
+          XFile(file.path, mimeType: 'text/csv'),
+        ], text: 'Exported KYC_${_appTypeFilter}_Applications.csv');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save file: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save file: $e')));
       }
     }
   }
 
   void _openReviewDialog(Map<String, dynamic> app) {
-    final statusCtrl = TextEditingController(text: app['kycStatus'] ?? 'Pending');
+    final statusCtrl = TextEditingController(
+      text: app['kycStatus'] ?? 'Pending',
+    );
     final notesCtrl = TextEditingController(text: app['kycNotes'] ?? '');
-    
+
     // Attempt to extract docs
     final docs = app['kycDocuments'] as Map? ?? {};
 
@@ -141,7 +151,9 @@ class _AdminKycSectionState extends State<AdminKycSection> with SingleTickerProv
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Review KYC: ${app['storeName'] ?? app['name'] ?? 'Unknown'}'),
+          title: Text(
+            'Review KYC: ${app['storeName'] ?? app['name'] ?? 'Unknown'}',
+          ),
           content: SizedBox(
             width: 800,
             child: Row(
@@ -153,30 +165,41 @@ class _AdminKycSectionState extends State<AdminKycSection> with SingleTickerProv
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Uploaded Documents', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Uploaded Documents',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(height: 16),
-                      if (docs.isEmpty) const Text('No documents uploaded.')
-                      else ...docs.entries.map((e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: InkWell(
-                          onTap: () {
-                            // html.window.open(e.value.toString(), '_blank');
-                            // In a real app with cross platform support, you'd use url_launcher here
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.file_present),
-                                const SizedBox(width: 8),
-                                Expanded(child: Text('${e.key}: ${e.value}')),
-                                const Icon(Icons.open_in_new, size: 16),
-                              ],
+                      if (docs.isEmpty)
+                        const Text('No documents uploaded.')
+                      else
+                        ...docs.entries.map(
+                          (e) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: InkWell(
+                              onTap: () {
+                                // html.window.open(e.value.toString(), '_blank');
+                                // In a real app with cross platform support, you'd use url_launcher here
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.file_present),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text('${e.key}: ${e.value}'),
+                                    ),
+                                    const Icon(Icons.open_in_new, size: 16),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      )),
                     ],
                   ),
                 ),
@@ -187,19 +210,41 @@ class _AdminKycSectionState extends State<AdminKycSection> with SingleTickerProv
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       DropdownButtonFormField<String>(
-                        initialValue: ['Pending', 'Approved', 'Rejected'].contains(statusCtrl.text) ? statusCtrl.text : 'Pending',
-                        decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
+                        initialValue:
+                            [
+                              'Pending',
+                              'Approved',
+                              'Rejected',
+                            ].contains(statusCtrl.text)
+                            ? statusCtrl.text
+                            : 'Pending',
+                        decoration: const InputDecoration(
+                          labelText: 'Status',
+                          border: OutlineInputBorder(),
+                        ),
                         items: const [
-                          DropdownMenuItem(value: 'Pending', child: Text('Pending')),
-                          DropdownMenuItem(value: 'Approved', child: Text('Approved')),
-                          DropdownMenuItem(value: 'Rejected', child: Text('Rejected')),
+                          DropdownMenuItem(
+                            value: 'Pending',
+                            child: Text('Pending'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Approved',
+                            child: Text('Approved'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Rejected',
+                            child: Text('Rejected'),
+                          ),
                         ],
                         onChanged: (v) => statusCtrl.text = v ?? 'Pending',
                       ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: notesCtrl,
-                        decoration: const InputDecoration(labelText: 'Review Notes', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                          labelText: 'Review Notes',
+                          border: OutlineInputBorder(),
+                        ),
                         maxLines: 4,
                       ),
                     ],
@@ -209,20 +254,30 @@ class _AdminKycSectionState extends State<AdminKycSection> with SingleTickerProv
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 final scaffoldMessenger = ScaffoldMessenger.of(context);
                 final navigator = Navigator.of(context);
                 try {
-                  await AdminKycApi.reviewApplication(app['_id'], _appTypeFilter, statusCtrl.text, notesCtrl.text);
+                  await AdminKycApi.reviewApplication(
+                    app['_id'],
+                    _appTypeFilter,
+                    statusCtrl.text,
+                    notesCtrl.text,
+                  );
                   if (mounted) {
                     navigator.pop();
                   }
                   _fetchApps();
                   _fetchDashboard();
                 } catch (e) {
-                  scaffoldMessenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(content: Text('Failed: $e')),
+                  );
                 }
               },
               child: const Text('Submit Review'),
@@ -293,8 +348,10 @@ class _AdminKycSectionState extends State<AdminKycSection> with SingleTickerProv
   }
 
   Widget _buildDashboardTab() {
-    if (_isLoadingDashboard) return const Center(child: CircularProgressIndicator());
-    if (_dashboardError.isNotEmpty) return Center(child: Text('Error: $_dashboardError'));
+    if (_isLoadingDashboard)
+      return const Center(child: CircularProgressIndicator());
+    if (_dashboardError.isNotEmpty)
+      return Center(child: Text('Error: $_dashboardError'));
 
     return SingleChildScrollView(
       child: Column(
@@ -302,21 +359,45 @@ class _AdminKycSectionState extends State<AdminKycSection> with SingleTickerProv
         children: [
           Row(
             children: [
-              _buildMetricCard('Pending Requests', '${_kpis['pendingRequests'] ?? 0}', Colors.orange.shade50),
+              _buildMetricCard(
+                'Pending Requests',
+                '${_kpis['pendingRequests'] ?? 0}',
+                Colors.orange.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Approved Requests', '${_kpis['approvedRequests'] ?? 0}', Colors.green.shade50),
+              _buildMetricCard(
+                'Approved Requests',
+                '${_kpis['approvedRequests'] ?? 0}',
+                Colors.green.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Rejected Requests', '${_kpis['rejectedRequests'] ?? 0}', Colors.red.shade50),
+              _buildMetricCard(
+                'Rejected Requests',
+                '${_kpis['rejectedRequests'] ?? 0}',
+                Colors.red.shade50,
+              ),
             ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildMetricCard('Avg Approval Time', '${_kpis['averageApprovalTimeHours'] ?? 0} hrs', Colors.blue.shade50),
+              _buildMetricCard(
+                'Avg Approval Time',
+                '${_kpis['averageApprovalTimeHours'] ?? 0} hrs',
+                Colors.blue.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Success Rate', '${_kpis['verificationSuccessRate']?.toStringAsFixed(1) ?? 0}%', Colors.teal.shade50),
+              _buildMetricCard(
+                'Success Rate',
+                '${_kpis['verificationSuccessRate']?.toStringAsFixed(1) ?? 0}%',
+                Colors.teal.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Expired Documents', '${_kpis['expiredDocuments'] ?? 0}', Colors.grey.shade200),
+              _buildMetricCard(
+                'Expired Documents',
+                '${_kpis['expiredDocuments'] ?? 0}',
+                Colors.grey.shade200,
+              ),
             ],
           ),
         ],
@@ -335,9 +416,22 @@ class _AdminKycSectionState extends State<AdminKycSection> with SingleTickerProv
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: GoogleFonts.inter(color: Colors.black54, fontWeight: FontWeight.w500)),
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(value, style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
           ],
         ),
       ),
@@ -354,7 +448,10 @@ class _AdminKycSectionState extends State<AdminKycSection> with SingleTickerProv
               width: 200,
               child: DropdownButtonFormField<String>(
                 initialValue: _appStatusFilter,
-                decoration: const InputDecoration(labelText: 'Status Filter', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Status Filter',
+                  border: OutlineInputBorder(),
+                ),
                 items: const [
                   DropdownMenuItem(value: null, child: Text('All')),
                   DropdownMenuItem(value: 'Pending', child: Text('Pending')),
@@ -382,77 +479,96 @@ class _AdminKycSectionState extends State<AdminKycSection> with SingleTickerProv
           child: _isLoadingApps
               ? const Center(child: CircularProgressIndicator())
               : _apps.isEmpty
-                  ? Center(child: Text('No $type applications found.'))
-                  : Card(
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: SingleChildScrollView(
-                                child: DataTable(
-                                  columns: [
-                                    DataColumn(label: Text(type == 'Vendor' ? 'Store Name' : 'Name')),
-                                    const DataColumn(label: Text('Email')),
-                                    const DataColumn(label: Text('Phone')),
-                                    const DataColumn(label: Text('Status')),
-                                    const DataColumn(label: Text('Submitted')),
-                                    const DataColumn(label: Text('Actions')),
-                                  ],
-                                  rows: _apps.map((p) {
-                                    return DataRow(cells: [
-                                      DataCell(Text(p['storeName'] ?? p['name'] ?? 'N/A')),
-                                      DataCell(Text(p['email'] ?? '')),
-                                      DataCell(Text(p['phone'] ?? '')),
-                                      DataCell(Chip(label: Text(p['kycStatus'] ?? ''))),
-                                      DataCell(Text(p['kycSubmittedAt']?.toString().split('T')[0] ?? '')),
-                                      DataCell(
-                                        TextButton(
-                                          onPressed: () => _openReviewDialog(p),
-                                          child: const Text('Review Docs'),
-                                        ),
-                                      ),
-                                    ]);
-                                  }).toList(),
+              ? Center(child: Text('No $type applications found.'))
+              : Card(
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SingleChildScrollView(
+                            child: DataTable(
+                              columns: [
+                                DataColumn(
+                                  label: Text(
+                                    type == 'Vendor' ? 'Store Name' : 'Name',
+                                  ),
                                 ),
-                              ),
+                                const DataColumn(label: Text('Email')),
+                                const DataColumn(label: Text('Phone')),
+                                const DataColumn(label: Text('Status')),
+                                const DataColumn(label: Text('Submitted')),
+                                const DataColumn(label: Text('Actions')),
+                              ],
+                              rows: _apps.map((p) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(
+                                      Text(
+                                        p['storeName'] ?? p['name'] ?? 'N/A',
+                                      ),
+                                    ),
+                                    DataCell(Text(p['email'] ?? '')),
+                                    DataCell(Text(p['phone'] ?? '')),
+                                    DataCell(
+                                      Chip(label: Text(p['kycStatus'] ?? '')),
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        p['kycSubmittedAt']?.toString().split(
+                                              'T',
+                                            )[0] ??
+                                            '',
+                                      ),
+                                    ),
+                                    DataCell(
+                                      TextButton(
+                                        onPressed: () => _openReviewDialog(p),
+                                        child: const Text('Review Docs'),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }).toList(),
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Page $_appsPage of $_appsTotalPages'),
+                            Row(
                               children: [
-                                Text('Page $_appsPage of $_appsTotalPages'),
-                                Row(
-                                  children: [
-                                    OutlinedButton(
-                                      onPressed: _appsPage > 1
-                                          ? () {
-                                              setState(() => _appsPage--);
-                                              _fetchApps();
-                                            }
-                                          : null,
-                                      child: const Text('Previous'),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    OutlinedButton(
-                                      onPressed: _appsPage < _appsTotalPages
-                                          ? () {
-                                              setState(() => _appsPage++);
-                                              _fetchApps();
-                                            }
-                                          : null,
-                                      child: const Text('Next'),
-                                    ),
-                                  ],
+                                OutlinedButton(
+                                  onPressed: _appsPage > 1
+                                      ? () {
+                                          setState(() => _appsPage--);
+                                          _fetchApps();
+                                        }
+                                      : null,
+                                  child: const Text('Previous'),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton(
+                                  onPressed: _appsPage < _appsTotalPages
+                                      ? () {
+                                          setState(() => _appsPage++);
+                                          _fetchApps();
+                                        }
+                                      : null,
+                                  child: const Text('Next'),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );

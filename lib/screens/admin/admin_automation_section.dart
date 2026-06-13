@@ -21,7 +21,11 @@ class _AdminAutomationSectionState extends State<AdminAutomationSection> {
   }
 
   Future<void> _loadData() async {
-    if (mounted) setState(() { _isLoading = true; _error = null; });
+    if (mounted)
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
     try {
       final data = await AdminAutomationApi.getAutomations();
       if (mounted) {
@@ -41,9 +45,15 @@ class _AdminAutomationSectionState extends State<AdminAutomationSection> {
     }
   }
 
-  Future<void> _toggleAutomation(AdminAutomationModel automation, bool enabled) async {
+  Future<void> _toggleAutomation(
+    AdminAutomationModel automation,
+    bool enabled,
+  ) async {
     try {
-      final updated = await AdminAutomationApi.toggleAutomation(automation.id, enabled);
+      final updated = await AdminAutomationApi.toggleAutomation(
+        automation.id,
+        enabled,
+      );
       setState(() {
         final index = _automations.indexWhere((a) => a.id == automation.id);
         if (index != -1) {
@@ -52,14 +62,16 @@ class _AdminAutomationSectionState extends State<AdminAutomationSection> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Automation ${enabled ? 'enabled' : 'disabled'}')),
+          SnackBar(
+            content: Text('Automation ${enabled ? 'enabled' : 'disabled'}'),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
       }
     }
   }
@@ -84,7 +96,10 @@ class _AdminAutomationSectionState extends State<AdminAutomationSection> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text('Format: min hour dom month dow', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              const Text(
+                'Format: min hour dom month dow',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
             ],
           ),
           actions: [
@@ -98,9 +113,14 @@ class _AdminAutomationSectionState extends State<AdminAutomationSection> {
                 final scaffoldMessenger = ScaffoldMessenger.of(context);
                 Navigator.pop(context);
                 try {
-                  final updated = await AdminAutomationApi.updateSchedule(automation.id, newCron);
+                  final updated = await AdminAutomationApi.updateSchedule(
+                    automation.id,
+                    newCron,
+                  );
                   setState(() {
-                    final index = _automations.indexWhere((a) => a.id == automation.id);
+                    final index = _automations.indexWhere(
+                      (a) => a.id == automation.id,
+                    );
                     if (index != -1) _automations[index] = updated;
                   });
                   scaffoldMessenger.showSnackBar(
@@ -134,14 +154,23 @@ class _AdminAutomationSectionState extends State<AdminAutomationSection> {
                 : ListView.builder(
                     itemCount: automation.executionHistory.length,
                     itemBuilder: (context, index) {
-                      final h = automation.executionHistory.reversed.toList()[index];
+                      final h = automation.executionHistory.reversed
+                          .toList()[index];
                       return ListTile(
                         leading: Icon(
-                          h.status == 'success' ? Icons.check_circle : Icons.error,
-                          color: h.status == 'success' ? Colors.green : Colors.red,
+                          h.status == 'success'
+                              ? Icons.check_circle
+                              : Icons.error,
+                          color: h.status == 'success'
+                              ? Colors.green
+                              : Colors.red,
                         ),
                         title: Text(h.details),
-                        subtitle: Text(DateFormat('yyyy-MM-dd HH:mm:ss').format(h.executedAt.toLocal())),
+                        subtitle: Text(
+                          DateFormat(
+                            'yyyy-MM-dd HH:mm:ss',
+                          ).format(h.executedAt.toLocal()),
+                        ),
                       );
                     },
                   ),
@@ -179,10 +208,7 @@ class _AdminAutomationSectionState extends State<AdminAutomationSection> {
       appBar: AppBar(
         title: const Text('Operational Automation Engine'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],
       ),
       body: SingleChildScrollView(
@@ -204,7 +230,9 @@ class _AdminAutomationSectionState extends State<AdminAutomationSection> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -217,15 +245,25 @@ class _AdminAutomationSectionState extends State<AdminAutomationSection> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(automation.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                                  Text(
+                                    automation.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
                                   const SizedBox(height: 4),
-                                  Text(automation.description, style: const TextStyle(color: Colors.grey)),
+                                  Text(
+                                    automation.description,
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
                                 ],
                               ),
                             ),
                             Switch(
                               value: automation.enabled,
-                              onChanged: (val) => _toggleAutomation(automation, val),
+                              onChanged: (val) =>
+                                  _toggleAutomation(automation, val),
                             ),
                           ],
                         ),
@@ -236,13 +274,25 @@ class _AdminAutomationSectionState extends State<AdminAutomationSection> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Schedule (CRON)', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                const Text(
+                                  'Schedule (CRON)',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
                                 Row(
                                   children: [
-                                    Text(automation.cronExpression, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    Text(
+                                      automation.cronExpression,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                     IconButton(
                                       icon: const Icon(Icons.edit, size: 16),
-                                      onPressed: () => _showScheduleDialog(automation),
+                                      onPressed: () =>
+                                          _showScheduleDialog(automation),
                                       tooltip: 'Edit Schedule',
                                     ),
                                   ],
@@ -252,22 +302,42 @@ class _AdminAutomationSectionState extends State<AdminAutomationSection> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Last Run', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                const Text(
+                                  'Last Run',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
                                 Text(
-                                  automation.lastRunAt != null ? DateFormat('MMM dd, HH:mm').format(automation.lastRunAt!.toLocal()) : 'Never',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  automation.lastRunAt != null
+                                      ? DateFormat('MMM dd, HH:mm').format(
+                                          automation.lastRunAt!.toLocal(),
+                                        )
+                                      : 'Never',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ],
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Success Rate', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                const Text(
+                                  'Success Rate',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
                                 Text(
                                   '${automation.successCount} / ${automation.successCount + automation.failureCount}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: automation.failureCount > 0 ? Colors.orange : Colors.green,
+                                    color: automation.failureCount > 0
+                                        ? Colors.orange
+                                        : Colors.green,
                                   ),
                                 ),
                               ],

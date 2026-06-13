@@ -24,10 +24,7 @@ class AdminFraudApi {
     final payload = await _client.post(
       '/admin/fraud/$type/$id/action',
       authenticated: true,
-      body: {
-        'action': action,
-        'reason': reason,
-      },
+      body: {'action': action, 'reason': reason},
     );
     return Map<String, dynamic>.from(payload as Map);
   }

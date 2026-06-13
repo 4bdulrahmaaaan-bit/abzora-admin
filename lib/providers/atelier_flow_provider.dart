@@ -4,14 +4,7 @@ import '../models/atelier_models.dart';
 import '../models/banner_model.dart';
 import '../services/database_service.dart';
 
-enum AtelierStep {
-  product,
-  fabric,
-  style,
-  fit,
-  measurement,
-  review,
-}
+enum AtelierStep { product, fabric, style, fit, measurement, review }
 
 class AtelierFlowProvider extends ChangeNotifier {
   AtelierFlowProvider() {
@@ -48,10 +41,13 @@ class AtelierFlowProvider extends ChangeNotifier {
   AtelierCategory? get selectedCategory => _selectedCategory;
   FabricOption? get selectedFabric => _selectedFabric;
   FitOption? get selectedFit => _selectedFit;
-  MeasurementOption? get selectedMeasurementOption => _selectedMeasurementOption;
-  Map<String, StyleOption> get styleSelections => Map.unmodifiable(_styleSelections);
+  MeasurementOption? get selectedMeasurementOption =>
+      _selectedMeasurementOption;
+  Map<String, StyleOption> get styleSelections =>
+      Map.unmodifiable(_styleSelections);
 
-  String get productName => selectedCategory?.title ?? 'Tailored Signature Shirt';
+  String get productName =>
+      selectedCategory?.title ?? 'Tailored Signature Shirt';
   String get storeName => selectedDesigner?.name ?? 'Atelier Noir';
   String get productImageUrl {
     if (selectedCategory?.imageUrl.trim().isNotEmpty == true) {
@@ -139,7 +135,8 @@ class AtelierFlowProvider extends ChangeNotifier {
         id: 'linen-signature',
         name: 'Signature Linen',
         tags: ['Airy', 'Tailored'],
-        description: 'Lightweight texture that keeps the silhouette relaxed and premium.',
+        description:
+            'Lightweight texture that keeps the silhouette relaxed and premium.',
         priceDelta: 650,
         imageUrl:
             'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80',
@@ -148,7 +145,8 @@ class AtelierFlowProvider extends ChangeNotifier {
         id: 'satin-stretch',
         name: 'Satin Stretch',
         tags: ['Sculpted', 'Comfort'],
-        description: 'Soft stretch with a polished finish for a more evening-led look.',
+        description:
+            'Soft stretch with a polished finish for a more evening-led look.',
         priceDelta: 950,
         imageUrl:
             'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=900&q=80',

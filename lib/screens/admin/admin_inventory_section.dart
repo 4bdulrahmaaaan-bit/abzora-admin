@@ -15,9 +15,10 @@ class AdminInventorySection extends StatefulWidget {
   State<AdminInventorySection> createState() => _AdminInventorySectionState();
 }
 
-class _AdminInventorySectionState extends State<AdminInventorySection> with SingleTickerProviderStateMixin {
+class _AdminInventorySectionState extends State<AdminInventorySection>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   bool _isLoadingDashboard = true;
   String _dashboardError = '';
   Map<String, dynamic> _kpis = {};
@@ -57,7 +58,9 @@ class _AdminInventorySectionState extends State<AdminInventorySection> with Sing
       if (mounted) {
         setState(() {
           _kpis = res['kpis'] ?? {};
-          _alerts = (res['alerts'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          _alerts = (res['alerts'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
           _isLoadingDashboard = false;
         });
       }
@@ -74,7 +77,10 @@ class _AdminInventorySectionState extends State<AdminInventorySection> with Sing
   Future<void> _fetchProducts() async {
     setState(() => _isLoadingProducts = true);
     try {
-      final res = await AdminInventoryApi.fetchProducts(page: _productsPage, limit: 50);
+      final res = await AdminInventoryApi.fetchProducts(
+        page: _productsPage,
+        limit: 50,
+      );
       if (mounted) {
         setState(() {
           _products = res['products'] as List<Map<String, dynamic>>;
@@ -89,9 +95,15 @@ class _AdminInventorySectionState extends State<AdminInventorySection> with Sing
   }
 
   void _openAdjustDialog(Map<String, dynamic> product) {
-    final availableCtrl = TextEditingController(text: product['inventory']?['available']?.toString() ?? '0');
-    final reservedCtrl = TextEditingController(text: product['inventory']?['reserved']?.toString() ?? '0');
-    final trialReservedCtrl = TextEditingController(text: product['inventory']?['trialReserved']?.toString() ?? '0');
+    final availableCtrl = TextEditingController(
+      text: product['inventory']?['available']?.toString() ?? '0',
+    );
+    final reservedCtrl = TextEditingController(
+      text: product['inventory']?['reserved']?.toString() ?? '0',
+    );
+    final trialReservedCtrl = TextEditingController(
+      text: product['inventory']?['trialReserved']?.toString() ?? '0',
+    );
 
     showDialog(
       context: context,
@@ -101,15 +113,30 @@ class _AdminInventorySectionState extends State<AdminInventorySection> with Sing
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: availableCtrl, decoration: const InputDecoration(labelText: 'Available Stock'), keyboardType: TextInputType.number),
+              TextField(
+                controller: availableCtrl,
+                decoration: const InputDecoration(labelText: 'Available Stock'),
+                keyboardType: TextInputType.number,
+              ),
               const SizedBox(height: 16),
-              TextField(controller: reservedCtrl, decoration: const InputDecoration(labelText: 'Reserved Stock'), keyboardType: TextInputType.number),
+              TextField(
+                controller: reservedCtrl,
+                decoration: const InputDecoration(labelText: 'Reserved Stock'),
+                keyboardType: TextInputType.number,
+              ),
               const SizedBox(height: 16),
-              TextField(controller: trialReservedCtrl, decoration: const InputDecoration(labelText: 'Trial Reserved'), keyboardType: TextInputType.number),
+              TextField(
+                controller: trialReservedCtrl,
+                decoration: const InputDecoration(labelText: 'Trial Reserved'),
+                keyboardType: TextInputType.number,
+              ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 final navigator = Navigator.of(context);
@@ -126,7 +153,10 @@ class _AdminInventorySectionState extends State<AdminInventorySection> with Sing
                   _fetchProducts();
                   _fetchDashboard();
                 } catch (e) {
-                  if (mounted) scaffoldMessenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                  if (mounted)
+                    scaffoldMessenger.showSnackBar(
+                      SnackBar(content: Text('Failed: $e')),
+                    );
                 }
               },
               child: const Text('Save Changes'),
@@ -138,14 +168,24 @@ class _AdminInventorySectionState extends State<AdminInventorySection> with Sing
   }
 
   Future<void> _exportCSV() async {
-    String csv = 'ID,Name,SKU,Vendor,Price,Available,Reserved,Trial Reserved,Status\n';
+    String csv =
+        'ID,Name,SKU,Vendor,Price,Available,Reserved,Trial Reserved,Status\n';
     for (final row in _products) {
       final inv = row['inventory'] ?? {};
       final data = [
-        row['_id'], row['name'], row['sku'], row['vendorId'], row['price'],
-        inv['available'] ?? 0, inv['reserved'] ?? 0, inv['trialReserved'] ?? 0, row['status']
+        row['_id'],
+        row['name'],
+        row['sku'],
+        row['vendorId'],
+        row['price'],
+        inv['available'] ?? 0,
+        inv['reserved'] ?? 0,
+        inv['trialReserved'] ?? 0,
+        row['status'],
       ];
-      final line = data.map((e) => '"${e.toString().replaceAll('"', '""')}"').join(',');
+      final line = data
+          .map((e) => '"${e.toString().replaceAll('"', '""')}"')
+          .join(',');
       csv += '$line\n';
     }
 
@@ -155,13 +195,15 @@ class _AdminInventorySectionState extends State<AdminInventorySection> with Sing
       final file = File('${dir.path}/Inventory_Products.csv');
       await file.writeAsBytes(bytes);
       if (mounted) {
-        await Share.shareXFiles([XFile(file.path, mimeType: 'text/csv')], text: 'Exported Inventory_Products.csv');
+        await Share.shareXFiles([
+          XFile(file.path, mimeType: 'text/csv'),
+        ], text: 'Exported Inventory_Products.csv');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save file: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save file: $e')));
       }
     }
   }
@@ -213,10 +255,7 @@ class _AdminInventorySectionState extends State<AdminInventorySection> with Sing
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: [
-              _buildDashboardTab(),
-              _buildProductsTab(),
-            ],
+            children: [_buildDashboardTab(), _buildProductsTab()],
           ),
         ),
       ],
@@ -224,8 +263,10 @@ class _AdminInventorySectionState extends State<AdminInventorySection> with Sing
   }
 
   Widget _buildDashboardTab() {
-    if (_isLoadingDashboard) return const Center(child: CircularProgressIndicator());
-    if (_dashboardError.isNotEmpty) return Center(child: Text('Error: $_dashboardError'));
+    if (_isLoadingDashboard)
+      return const Center(child: CircularProgressIndicator());
+    if (_dashboardError.isNotEmpty)
+      return Center(child: Text('Error: $_dashboardError'));
 
     return SingleChildScrollView(
       child: Column(
@@ -233,50 +274,91 @@ class _AdminInventorySectionState extends State<AdminInventorySection> with Sing
         children: [
           Row(
             children: [
-              _buildMetricCard('Total Inventory', '${_kpis['totalInventory'] ?? 0}', Colors.blue.shade50),
+              _buildMetricCard(
+                'Total Inventory',
+                '${_kpis['totalInventory'] ?? 0}',
+                Colors.blue.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Available', '${_kpis['availableInventory'] ?? 0}', Colors.green.shade50),
+              _buildMetricCard(
+                'Available',
+                '${_kpis['availableInventory'] ?? 0}',
+                Colors.green.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Reserved', '${_kpis['reservedInventory'] ?? 0}', Colors.orange.shade50),
+              _buildMetricCard(
+                'Reserved',
+                '${_kpis['reservedInventory'] ?? 0}',
+                Colors.orange.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Trial Reserved', '${_kpis['trialReservedInventory'] ?? 0}', Colors.purple.shade50),
+              _buildMetricCard(
+                'Trial Reserved',
+                '${_kpis['trialReservedInventory'] ?? 0}',
+                Colors.purple.shade50,
+              ),
             ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildMetricCard('Low Stock Products', '${_kpis['lowStockProducts'] ?? 0}', Colors.amber.shade50),
+              _buildMetricCard(
+                'Low Stock Products',
+                '${_kpis['lowStockProducts'] ?? 0}',
+                Colors.amber.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Out Of Stock', '${_kpis['outOfStockProducts'] ?? 0}', Colors.red.shade50),
+              _buildMetricCard(
+                'Out Of Stock',
+                '${_kpis['outOfStockProducts'] ?? 0}',
+                Colors.red.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Dead Stock', '${_kpis['deadStockProducts'] ?? 0}', Colors.grey.shade200),
+              _buildMetricCard(
+                'Dead Stock',
+                '${_kpis['deadStockProducts'] ?? 0}',
+                Colors.grey.shade200,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Inventory Value', '₹${_kpis['inventoryValue'] ?? 0}', Colors.teal.shade50),
+              _buildMetricCard(
+                'Inventory Value',
+                '₹${_kpis['inventoryValue'] ?? 0}',
+                Colors.teal.shade50,
+              ),
             ],
           ),
           const SizedBox(height: 32),
           Text('Inventory Alerts', style: context.abzioText.titleMedium),
           const SizedBox(height: 16),
-          if (_alerts.isEmpty) const Text('No active inventory alerts.') else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _alerts.length,
-            itemBuilder: (context, index) {
-              final alert = _alerts[index];
-              return Card(
-                child: ListTile(
-                  leading: Icon(
-                    Icons.warning,
-                    color: alert['severity'] == 'Critical' ? Colors.red : Colors.orange,
+          if (_alerts.isEmpty)
+            const Text('No active inventory alerts.')
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _alerts.length,
+              itemBuilder: (context, index) {
+                final alert = _alerts[index];
+                return Card(
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.warning,
+                      color: alert['severity'] == 'Critical'
+                          ? Colors.red
+                          : Colors.orange,
+                    ),
+                    title: Text(
+                      alert['type'] ?? 'Alert',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(alert['message'] ?? ''),
+                    trailing: Text(
+                      alert['createdAt']?.toString().split('T')[0] ?? '',
+                    ),
                   ),
-                  title: Text(alert['type'] ?? 'Alert', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(alert['message'] ?? ''),
-                  trailing: Text(alert['createdAt']?.toString().split('T')[0] ?? ''),
-                ),
-              );
-            },
-          ),
+                );
+              },
+            ),
         ],
       ),
     );
@@ -293,9 +375,22 @@ class _AdminInventorySectionState extends State<AdminInventorySection> with Sing
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: GoogleFonts.inter(color: Colors.black54, fontWeight: FontWeight.w500)),
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(value, style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
           ],
         ),
       ),
@@ -320,82 +415,95 @@ class _AdminInventorySectionState extends State<AdminInventorySection> with Sing
           child: _isLoadingProducts
               ? const Center(child: CircularProgressIndicator())
               : _products.isEmpty
-                  ? const Center(child: Text('No products found.'))
-                  : Card(
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: SingleChildScrollView(
-                                child: DataTable(
-                                  columns: const [
-                                    DataColumn(label: Text('SKU')),
-                                    DataColumn(label: Text('Name')),
-                                    DataColumn(label: Text('Vendor')),
-                                    DataColumn(label: Text('Available')),
-                                    DataColumn(label: Text('Reserved')),
-                                    DataColumn(label: Text('Trial Rsvd')),
-                                    DataColumn(label: Text('Status')),
-                                    DataColumn(label: Text('Actions')),
-                                  ],
-                                  rows: _products.map((p) {
-                                    final inv = p['inventory'] ?? {};
-                                    return DataRow(cells: [
-                                      DataCell(Text(p['sku'] ?? 'N/A')),
-                                      DataCell(Text(p['name'] ?? '')),
-                                      DataCell(Text(p['vendorId'] ?? '')),
-                                      DataCell(Text('${inv['available'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                      DataCell(Text('${inv['reserved'] ?? 0}')),
-                                      DataCell(Text('${inv['trialReserved'] ?? 0}')),
-                                      DataCell(Chip(label: Text(p['status'] ?? ''))),
-                                      DataCell(
-                                        TextButton(
-                                          onPressed: () => _openAdjustDialog(p),
-                                          child: const Text('Adjust'),
+              ? const Center(child: Text('No products found.'))
+              : Card(
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SingleChildScrollView(
+                            child: DataTable(
+                              columns: const [
+                                DataColumn(label: Text('SKU')),
+                                DataColumn(label: Text('Name')),
+                                DataColumn(label: Text('Vendor')),
+                                DataColumn(label: Text('Available')),
+                                DataColumn(label: Text('Reserved')),
+                                DataColumn(label: Text('Trial Rsvd')),
+                                DataColumn(label: Text('Status')),
+                                DataColumn(label: Text('Actions')),
+                              ],
+                              rows: _products.map((p) {
+                                final inv = p['inventory'] ?? {};
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(p['sku'] ?? 'N/A')),
+                                    DataCell(Text(p['name'] ?? '')),
+                                    DataCell(Text(p['vendorId'] ?? '')),
+                                    DataCell(
+                                      Text(
+                                        '${inv['available'] ?? 0}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                    ]);
-                                  }).toList(),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Page $_productsPage of $_productsTotalPages'),
-                                Row(
-                                  children: [
-                                    OutlinedButton(
-                                      onPressed: _productsPage > 1
-                                          ? () {
-                                              setState(() => _productsPage--);
-                                              _fetchProducts();
-                                            }
-                                          : null,
-                                      child: const Text('Previous'),
                                     ),
-                                    const SizedBox(width: 8),
-                                    OutlinedButton(
-                                      onPressed: _productsPage < _productsTotalPages
-                                          ? () {
-                                              setState(() => _productsPage++);
-                                              _fetchProducts();
-                                            }
-                                          : null,
-                                      child: const Text('Next'),
+                                    DataCell(Text('${inv['reserved'] ?? 0}')),
+                                    DataCell(
+                                      Text('${inv['trialReserved'] ?? 0}'),
+                                    ),
+                                    DataCell(
+                                      Chip(label: Text(p['status'] ?? '')),
+                                    ),
+                                    DataCell(
+                                      TextButton(
+                                        onPressed: () => _openAdjustDialog(p),
+                                        child: const Text('Adjust'),
+                                      ),
                                     ),
                                   ],
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Page $_productsPage of $_productsTotalPages'),
+                            Row(
+                              children: [
+                                OutlinedButton(
+                                  onPressed: _productsPage > 1
+                                      ? () {
+                                          setState(() => _productsPage--);
+                                          _fetchProducts();
+                                        }
+                                      : null,
+                                  child: const Text('Previous'),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton(
+                                  onPressed: _productsPage < _productsTotalPages
+                                      ? () {
+                                          setState(() => _productsPage++);
+                                          _fetchProducts();
+                                        }
+                                      : null,
+                                  child: const Text('Next'),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );

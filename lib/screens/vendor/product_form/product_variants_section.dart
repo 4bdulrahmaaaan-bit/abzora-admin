@@ -46,7 +46,10 @@ class ProductVariantsSection extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
-                label: Text('Add Variant', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                label: Text(
+                  'Add Variant',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                ),
               ),
             ],
           ),
@@ -67,7 +70,10 @@ class ProductVariantsSection extends StatelessWidget {
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final variant = controller.colorVariants[index];
-                int vStock = variant.sizeStocks.fold(0, (sum, s) => sum + s.stockQuantity);
+                int vStock = variant.sizeStocks.fold(
+                  0,
+                  (sum, s) => sum + s.stockQuantity,
+                );
 
                 return Container(
                   padding: const EdgeInsets.all(16),
@@ -85,8 +91,8 @@ class ProductVariantsSection extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                           image: DecorationImage(
                             image: NetworkImage(
-                              variant.images.isNotEmpty 
-                                  ? variant.images.first 
+                              variant.images.isNotEmpty
+                                  ? variant.images.first
                                   : 'https://placehold.co/400x500/png',
                             ),
                             fit: BoxFit.cover,
@@ -143,9 +149,14 @@ class ProductVariantsSection extends StatelessWidget {
                           );
                         },
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           side: BorderSide(color: AbzioTheme.lightBorder),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                         child: Text(
                           'EDIT',

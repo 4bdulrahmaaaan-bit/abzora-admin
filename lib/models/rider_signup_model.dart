@@ -182,7 +182,9 @@ class RiderSignupModel {
       phone: (json['phone'] ?? '') as String,
       fullName: (json['fullName'] ?? '') as String,
       email: (json['email'] ?? '') as String,
-      dob: json['dob'] == null ? null : DateTime.tryParse(json['dob'] as String),
+      dob: json['dob'] == null
+          ? null
+          : DateTime.tryParse(json['dob'] as String),
       gender: (json['gender'] ?? 'Male') as String,
       city: (json['city'] ?? '') as String,
       profilePhotoPath: json['profilePhotoPath'] as String?,

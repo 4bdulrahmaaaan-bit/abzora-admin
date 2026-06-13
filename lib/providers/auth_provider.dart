@@ -302,35 +302,42 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
       debugPrint('[BOOT] 4.1 sessionService.initialize');
       await _sessionService.initialize().timeout(
         const Duration(seconds: 5),
-        onTimeout: () => throw Exception('[BOOT ERROR] sessionService.initialize timeout'),
+        onTimeout: () =>
+            throw Exception('[BOOT ERROR] sessionService.initialize timeout'),
       );
-      if (_sessionService.hasBackendSession || _sessionService.sessionId != null) {
+      if (_sessionService.hasBackendSession ||
+          _sessionService.sessionId != null) {
         debugPrint('[AUTH] Token restored');
       }
-      
+
       debugPrint('[BOOT] 4.2 authStateChanges().first');
       await FirebaseAuth.instance.authStateChanges().first.timeout(
         const Duration(seconds: 5),
-        onTimeout: () => throw Exception('[BOOT ERROR] authStateChanges().first timeout'),
+        onTimeout: () =>
+            throw Exception('[BOOT ERROR] authStateChanges().first timeout'),
       );
-      
+
       debugPrint('[BOOT] 4.3 sessionService.refreshIfNeeded');
       await _sessionService.refreshIfNeeded().timeout(
         const Duration(seconds: 8),
         onTimeout: () {
           // Timeout during refresh is transient — do not throw, just continue.
-          debugPrint('[AUTH] sessionService.refreshIfNeeded timeout – continuing with cached token.');
+          debugPrint(
+            '[AUTH] sessionService.refreshIfNeeded timeout – continuing with cached token.',
+          );
           return true;
         },
       );
-      
+
       debugPrint('[BOOT] 4.4 getCurrentAppUser');
       AppUser? existingUser;
       try {
         existingUser = await _authService.getCurrentAppUser().timeout(
           const Duration(seconds: 12),
           onTimeout: () {
-            debugPrint('[AUTH] getCurrentAppUser timeout – falling back to snapshot.');
+            debugPrint(
+              '[AUTH] getCurrentAppUser timeout – falling back to snapshot.',
+            );
             return null;
           },
         );
@@ -338,20 +345,26 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
         // 5xx and 429 are transient: fall back to snapshot.
         // 401 means tokens are genuinely invalid: existingUser stays null.
         if (e.statusCode != 401) {
-          debugPrint('[AUTH] getCurrentAppUser transient error (${e.statusCode}) – falling back to snapshot.');
+          debugPrint(
+            '[AUTH] getCurrentAppUser transient error (${e.statusCode}) – falling back to snapshot.',
+          );
         } else {
           debugPrint('[AUTH] getCurrentAppUser 401 – session is invalid.');
         }
       } catch (e) {
         // Network error, timeout, etc. – fall back to snapshot.
-        debugPrint('[AUTH] getCurrentAppUser failed with non-api error – falling back to snapshot: $e');
+        debugPrint(
+          '[AUTH] getCurrentAppUser failed with non-api error – falling back to snapshot: $e',
+        );
       }
 
       if (existingUser == null && _sessionService.userSnapshot != null) {
         // Restore the last-known user from the persisted snapshot so the
         // admin stays on the dashboard even if /me is temporarily unavailable.
         final snapshot = _sessionService.userSnapshot!;
-        debugPrint('[AUTH] Using persisted userSnapshot as fallback (role=${snapshot['role']}).');
+        debugPrint(
+          '[AUTH] Using persisted userSnapshot as fallback (role=${snapshot['role']}).',
+        );
         existingUser = AppUser.fromMap({
           ...snapshot,
           'name': snapshot['name'] ?? '',
@@ -365,22 +378,23 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
           'riderApprovalStatus': '',
         });
       }
-      
+
       if (existingUser != null) {
         _bindLiveProfile(existingUser);
         await _sessionService.saveUserSnapshot(existingUser);
         await _refreshAuthToken(forceRefresh: false);
       }
       debugPrint('[BOOT] 4 Auth restore done');
-      debugPrint('[AUTH] Session restored successfully (user=${existingUser?.id ?? "none"})');
+      debugPrint(
+        '[AUTH] Session restored successfully (user=${existingUser?.id ?? "none"})',
+      );
     } catch (e, st) {
       // Only set _restoreError for genuine, unexpected programming errors.
       // Transient network/API errors are handled inside the try block above.
       _restoreError = '$e\n$st';
       debugPrint('[BOOT ERROR] Auth restore (unexpected): $_restoreError');
     } finally {
-      debugPrint(
-          'AuthProvider: session restore complete (user=${_user?.id}).');
+      debugPrint('AuthProvider: session restore complete (user=${_user?.id}).');
       debugPrint('=== VENDOR LOAD COMPLETE ===');
       debugPrint('=== PROFILE LOAD COMPLETE ===');
       debugPrint('=== AUTH INIT COMPLETE ===');

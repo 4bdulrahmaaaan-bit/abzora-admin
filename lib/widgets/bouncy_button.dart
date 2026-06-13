@@ -18,7 +18,8 @@ class BouncyButton extends StatefulWidget {
   State<BouncyButton> createState() => _BouncyButtonState();
 }
 
-class _BouncyButtonState extends State<BouncyButton> with SingleTickerProviderStateMixin {
+class _BouncyButtonState extends State<BouncyButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -30,9 +31,10 @@ class _BouncyButtonState extends State<BouncyButton> with SingleTickerProviderSt
       duration: AbzioMotion.fast,
       reverseDuration: AbzioMotion.fast,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: widget.scaleLowerBound).animate(
-      CurvedAnimation(parent: _controller, curve: AbzioMotion.curve),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: widget.scaleLowerBound,
+    ).animate(CurvedAnimation(parent: _controller, curve: AbzioMotion.curve));
   }
 
   @override
@@ -68,10 +70,7 @@ class _BouncyButtonState extends State<BouncyButton> with SingleTickerProviderSt
       onTapDown: widget.onPressed == null ? null : _onTapDown,
       onTapUp: widget.onPressed == null ? null : _onTapUp,
       onTapCancel: widget.onPressed == null ? null : _onTapCancel,
-      child: ScaleTransition(
-        scale: _scaleAnimation,
-        child: widget.child,
-      ),
+      child: ScaleTransition(scale: _scaleAnimation, child: widget.child),
     );
   }
 }

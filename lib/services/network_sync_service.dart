@@ -18,7 +18,9 @@ class NetworkSyncService {
 
   void _init() {
     OfflineActionQueue.init();
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((results) {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      results,
+    ) {
       final hasConnection = !results.contains(ConnectivityResult.none);
       if (hasConnection) {
         syncNow();
@@ -49,9 +51,11 @@ class NetworkSyncService {
 
   Future<bool> _processAction(Map<String, dynamic> action) async {
     try {
-      final headers = await AuthSessionService.instance.requiredAuthorizationHeaders();
+      final headers = await AuthSessionService.instance
+          .requiredAuthorizationHeaders();
       headers['Content-Type'] = 'application/json';
-      headers['x-idempotency-key'] = action['idempotencyKey']; // Critical requirement
+      headers['x-idempotency-key'] =
+          action['idempotencyKey']; // Critical requirement
 
       final uri = Uri.parse('${AppConfig.backendBaseUrl}${action['endpoint']}');
       final bodyStr = action['payload'];

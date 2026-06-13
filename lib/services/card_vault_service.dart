@@ -22,7 +22,7 @@ class SavedCardSummary {
 
 class CardVaultService {
   CardVaultService({BackendApiClient? backendApiClient})
-      : _backendApiClient = backendApiClient ?? const BackendApiClient();
+    : _backendApiClient = backendApiClient ?? const BackendApiClient();
 
   final BackendApiClient _backendApiClient;
 
@@ -54,14 +54,16 @@ class CardVaultService {
     final items = payload is List ? payload : const [];
     return items
         .whereType<Map>()
-        .map((item) => SavedCardSummary(
-              id: item['id']?.toString() ?? '',
-              userId: item['userId']?.toString() ?? '',
-              last4: item['last4']?.toString() ?? '0000',
-              cardType: item['cardType']?.toString() ?? 'Card',
-              gatewayCustomerId: item['gatewayCustomerId']?.toString(),
-              createdAt: DateTime.tryParse(item['createdAt']?.toString() ?? ''),
-            ))
+        .map(
+          (item) => SavedCardSummary(
+            id: item['id']?.toString() ?? '',
+            userId: item['userId']?.toString() ?? '',
+            last4: item['last4']?.toString() ?? '0000',
+            cardType: item['cardType']?.toString() ?? 'Card',
+            gatewayCustomerId: item['gatewayCustomerId']?.toString(),
+            createdAt: DateTime.tryParse(item['createdAt']?.toString() ?? ''),
+          ),
+        )
         .toList();
   }
 }

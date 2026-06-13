@@ -48,7 +48,8 @@ class RiderTasksScreen extends StatelessWidget {
                     padding: EdgeInsets.all(20),
                     child: AbzioEmptyCard(
                       title: 'No active tasks',
-                      subtitle: 'Accepted deliveries and return pickups will appear here.',
+                      subtitle:
+                          'Accepted deliveries and return pickups will appear here.',
                     ),
                   ),
                 );
@@ -56,12 +57,11 @@ class RiderTasksScreen extends StatelessWidget {
               return ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                 children: [
-                  ...tasks.map((task) => _TaskTile(task: task, rider: rider, service: service)),
-                  ...assigned.map(
-                    (order) => _AssignedTile(
-                      order: order,
-                    ),
+                  ...tasks.map(
+                    (task) =>
+                        _TaskTile(task: task, rider: rider, service: service),
                   ),
+                  ...assigned.map((order) => _AssignedTile(order: order)),
                 ],
               );
             },
@@ -117,8 +117,8 @@ class _TaskTileState extends State<_TaskTile> {
     final buttonLabel = widget.task.status == 'assigned'
         ? 'Mark Picked'
         : widget.task.status == 'in_progress'
-            ? 'Complete Return'
-            : 'Completed';
+        ? 'Complete Return'
+        : 'Completed';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -148,7 +148,13 @@ class _TaskTileState extends State<_TaskTile> {
                 ),
               ),
               const Spacer(),
-              Text(status, style: GoogleFonts.inter(color: AbzioTheme.grey600, fontWeight: FontWeight.w700)),
+              Text(
+                status,
+                style: GoogleFonts.inter(
+                  color: AbzioTheme.grey600,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -158,7 +164,9 @@ class _TaskTileState extends State<_TaskTile> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: (_busy || widget.task.status == 'completed') ? null : _runAction,
+                onPressed: (_busy || widget.task.status == 'completed')
+                    ? null
+                    : _runAction,
                 child: Text(buttonLabel),
               ),
             ),
@@ -193,15 +201,26 @@ class _AssignedTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber, style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+          Text(
+            order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber,
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 8),
-          Text(order.shippingAddress, style: GoogleFonts.inter(color: AbzioTheme.grey600)),
+          Text(
+            order.shippingAddress,
+            style: GoogleFonts.inter(color: AbzioTheme.grey600),
+          ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => DeliveryScreen(order: order)));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DeliveryScreen(order: order),
+                  ),
+                );
               },
               child: const Text('Open Delivery'),
             ),
@@ -211,4 +230,3 @@ class _AssignedTile extends StatelessWidget {
     );
   }
 }
-

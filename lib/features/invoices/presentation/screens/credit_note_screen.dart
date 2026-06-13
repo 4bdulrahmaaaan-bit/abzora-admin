@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 class CreditNoteScreen extends StatelessWidget {
-  const CreditNoteScreen({super.key, required this.creditNoteNumber, required this.amount});
+  const CreditNoteScreen({
+    super.key,
+    required this.creditNoteNumber,
+    required this.amount,
+  });
 
   final String creditNoteNumber;
   final double amount;
@@ -15,11 +19,18 @@ class CreditNoteScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(creditNoteNumber, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+            Text(
+              creditNoteNumber,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
             const SizedBox(height: 8),
             Text('Refund Amount: INR ${amount.toStringAsFixed(2)}'),
             const SizedBox(height: 8),
-            const Text('GST reversal and refund details are available in this credit note.'),
+            const Text(
+              'GST reversal and refund details are available in this credit note.',
+            ),
           ],
         ),
       ),

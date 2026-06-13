@@ -10,7 +10,10 @@ class LocalCacheService {
     await prefs.setString('$_prefix$key', jsonEncode(value));
   }
 
-  Future<void> saveJsonList(String key, List<Map<String, dynamic>> value) async {
+  Future<void> saveJsonList(
+    String key,
+    List<Map<String, dynamic>> value,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('$_prefix$key', jsonEncode(value));
   }

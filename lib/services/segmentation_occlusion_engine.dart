@@ -123,8 +123,8 @@ class SegmentationOcclusionEngine {
     required String tierName,
     required double thermalLoad,
   }) {
-    final confRaw =
-        ((trackingReliability * 0.74) + (motionQuality * 0.26)).clamp(0.0, 1.0);
+    final confRaw = ((trackingReliability * 0.74) + (motionQuality * 0.26))
+        .clamp(0.0, 1.0);
     final conf = (_lastConfidence * 0.56) + (confRaw * 0.44);
     _lastConfidence = conf;
     final profile = _qualityManager.profile(
@@ -133,17 +133,21 @@ class SegmentationOcclusionEngine {
       thermalLoad: thermalLoad,
     );
     final qualityInstant = (conf * segmentationBudget).clamp(0.0, 1.0);
-    final quality = ((_lastMaskQuality * 0.66) + (qualityInstant * 0.34))
-        .clamp(0.0, 1.0);
+    final quality = ((_lastMaskQuality * 0.66) + (qualityInstant * 0.34)).clamp(
+      0.0,
+      1.0,
+    );
     _lastMaskQuality = quality;
     final coverage = (0.36 + (quality * 0.54)).clamp(0.0, 1.0);
-    final torsoMaskConfidence =
-        ((coverage * 0.6) + (trackingReliability * 0.4)).clamp(0.0, 1.0);
-    final armOverlapConfidence =
-        ((motionQuality * 0.45) + (quality * 0.55)).clamp(0.0, 1.0);
-    final reliability = ((torsoMaskConfidence * 0.55) +
-            (armOverlapConfidence * 0.45))
+    final torsoMaskConfidence = ((coverage * 0.6) + (trackingReliability * 0.4))
         .clamp(0.0, 1.0);
+    final armOverlapConfidence = ((motionQuality * 0.45) + (quality * 0.55))
+        .clamp(0.0, 1.0);
+    final reliability =
+        ((torsoMaskConfidence * 0.55) + (armOverlapConfidence * 0.45)).clamp(
+          0.0,
+          1.0,
+        );
     final occConfidence = _occlusionConfidenceSystem.score(
       trackingReliability: trackingReliability,
       motionQuality: motionQuality,
@@ -158,22 +162,27 @@ class SegmentationOcclusionEngine {
     } else if (release) {
       _occlusionLatched = false;
     }
-    final edgeStabilityInstant = ((quality * 0.62) +
-            (torsoMaskConfidence * 0.18) +
-            (armOverlapConfidence * 0.2))
-        .clamp(0.0, 1.0);
-    final edgeStability =
-        ((_lastEdgeStability * 0.74) + (edgeStabilityInstant * 0.26))
+    final edgeStabilityInstant =
+        ((quality * 0.62) +
+                (torsoMaskConfidence * 0.18) +
+                (armOverlapConfidence * 0.2))
             .clamp(0.0, 1.0);
+    final edgeStability =
+        ((_lastEdgeStability * 0.74) + (edgeStabilityInstant * 0.26)).clamp(
+          0.0,
+          1.0,
+        );
     _lastEdgeStability = edgeStability;
-    final maskAlpha = ((quality * 0.48) +
-            (profile.maskFeather * 0.30) +
-            (edgeStability * 0.22))
-        .clamp(0.34, 0.88);
-    final occlusionBlend = ((occConfidence * 0.48) +
-            (profile.occlusionDetail * 0.28) +
-            (edgeStability * 0.24))
-        .clamp(0.28, 0.9);
+    final maskAlpha =
+        ((quality * 0.48) +
+                (profile.maskFeather * 0.30) +
+                (edgeStability * 0.22))
+            .clamp(0.34, 0.88);
+    final occlusionBlend =
+        ((occConfidence * 0.48) +
+                (profile.occlusionDetail * 0.28) +
+                (edgeStability * 0.24))
+            .clamp(0.28, 0.9);
     final fallbackRecommended = reliability < 0.42 || quality < 0.35;
 
     return SegmentationSnapshot(

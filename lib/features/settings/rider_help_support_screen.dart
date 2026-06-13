@@ -13,7 +13,9 @@ class RiderHelpSupportScreen extends StatelessWidget {
         child: RiderGlassCard(
           child: ListTile(
             title: Text('Help & Support'),
-            subtitle: Text('For urgent delivery issues contact support from dashboard help actions.'),
+            subtitle: Text(
+              'For urgent delivery issues contact support from dashboard help actions.',
+            ),
           ),
         ),
       ),

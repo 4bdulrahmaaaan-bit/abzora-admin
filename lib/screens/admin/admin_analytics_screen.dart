@@ -33,9 +33,11 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
     try {
       final payload = await _backend.getArEnterpriseSummary(days: _days);
       if (!mounted) return;
-      setState(() => _summary = payload['data'] is Map<String, dynamic>
-          ? payload['data'] as Map<String, dynamic>
-          : Map<String, dynamic>.from(payload['data'] as Map? ?? const {}));
+      setState(
+        () => _summary = payload['data'] is Map<String, dynamic>
+            ? payload['data'] as Map<String, dynamic>
+            : Map<String, dynamic>.from(payload['data'] as Map? ?? const {}),
+      );
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = error.toString());
@@ -69,9 +71,27 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
       name: 'nightly-soak-${DateTime.now().millisecondsSinceEpoch}',
       scenario: 'soak_45m',
       deviceMatrix: const [
-        {'model': 'Pixel 7', 'tier': 'FLAGSHIP', 'targetFps': 55, 'thermalLoad': 0.52, 'sessionMinutes': 45},
-        {'model': 'Galaxy A34', 'tier': 'MID', 'targetFps': 36, 'thermalLoad': 0.68, 'sessionMinutes': 45},
-        {'model': 'iPhone 15 Pro', 'tier': 'PREMIUM_LIDAR', 'targetFps': 60, 'thermalLoad': 0.47, 'sessionMinutes': 45},
+        {
+          'model': 'Pixel 7',
+          'tier': 'FLAGSHIP',
+          'targetFps': 55,
+          'thermalLoad': 0.52,
+          'sessionMinutes': 45,
+        },
+        {
+          'model': 'Galaxy A34',
+          'tier': 'MID',
+          'targetFps': 36,
+          'thermalLoad': 0.68,
+          'sessionMinutes': 45,
+        },
+        {
+          'model': 'iPhone 15 Pro',
+          'tier': 'PREMIUM_LIDAR',
+          'targetFps': 60,
+          'thermalLoad': 0.47,
+          'sessionMinutes': 45,
+        },
       ],
     );
     await _refresh();
@@ -81,10 +101,18 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final arSessions = Map<String, dynamic>.from(_summary['arSessions'] as Map? ?? const {});
-    final fitOps = Map<String, dynamic>.from(_summary['fitOps'] as Map? ?? const {});
-    final garmentOps = Map<String, dynamic>.from(_summary['garmentOps'] as Map? ?? const {});
-    final deviceLab = Map<String, dynamic>.from(_summary['deviceLab'] as Map? ?? const {});
+    final arSessions = Map<String, dynamic>.from(
+      _summary['arSessions'] as Map? ?? const {},
+    );
+    final fitOps = Map<String, dynamic>.from(
+      _summary['fitOps'] as Map? ?? const {},
+    );
+    final garmentOps = Map<String, dynamic>.from(
+      _summary['garmentOps'] as Map? ?? const {},
+    );
+    final deviceLab = Map<String, dynamic>.from(
+      _summary['deviceLab'] as Map? ?? const {},
+    );
     return Scaffold(
       appBar: AppBar(
         title: const Text('Enterprise AR Analytics'),
@@ -102,7 +130,10 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
             },
           ),
           const SizedBox(width: 12),
-          IconButton(onPressed: _loading ? null : _refresh, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: _loading ? null : _refresh,
+            icon: const Icon(Icons.refresh),
+          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -113,31 +144,76 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              _ActionCard(title: 'AI Fit Training', cta: 'Start Run', onTap: _createFitRun),
-              _ActionCard(title: 'Garment Certification', cta: 'Run Pipeline', onTap: _runGarmentCertification),
-              _ActionCard(title: 'Device Lab Soak', cta: 'Launch Soak', onTap: _runDeviceLab),
+              _ActionCard(
+                title: 'AI Fit Training',
+                cta: 'Start Run',
+                onTap: _createFitRun,
+              ),
+              _ActionCard(
+                title: 'Garment Certification',
+                cta: 'Run Pipeline',
+                onTap: _runGarmentCertification,
+              ),
+              _ActionCard(
+                title: 'Device Lab Soak',
+                cta: 'Launch Soak',
+                onTap: _runDeviceLab,
+              ),
             ],
           ),
           const SizedBox(height: 16),
           if (_error.isNotEmpty)
             Text(
               _error,
-              style: GoogleFonts.inter(color: Colors.redAccent, fontWeight: FontWeight.w600),
+              style: GoogleFonts.inter(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
-              _MetricCard(title: 'AR Sessions', value: '${arSessions['total'] ?? 0}'),
-              _MetricCard(title: 'Avg Session Quality', value: _percent((arSessions['avgSessionQuality'] ?? 0) as num)),
-              _MetricCard(title: 'Tracking Risk Rate', value: _percent((arSessions['trackingRiskRate'] ?? 0) as num)),
-              _MetricCard(title: 'Avg FPS', value: '${arSessions['avgFps'] ?? 0}'),
-              _MetricCard(title: 'Fit Model Runs', value: '${fitOps['totalRuns'] ?? 0}'),
-              _MetricCard(title: 'Rollout Runs', value: '${fitOps['rolloutRuns'] ?? 0}'),
-              _MetricCard(title: 'Certified Garments', value: '${garmentOps['certified'] ?? 0}'),
-              _MetricCard(title: 'Rejected Garments', value: '${garmentOps['rejected'] ?? 0}'),
-              _MetricCard(title: 'Tested Devices', value: '${deviceLab['testedDevices'] ?? 0}'),
-              _MetricCard(title: 'Device Failures', value: '${deviceLab['totalFailures'] ?? 0}'),
+              _MetricCard(
+                title: 'AR Sessions',
+                value: '${arSessions['total'] ?? 0}',
+              ),
+              _MetricCard(
+                title: 'Avg Session Quality',
+                value: _percent((arSessions['avgSessionQuality'] ?? 0) as num),
+              ),
+              _MetricCard(
+                title: 'Tracking Risk Rate',
+                value: _percent((arSessions['trackingRiskRate'] ?? 0) as num),
+              ),
+              _MetricCard(
+                title: 'Avg FPS',
+                value: '${arSessions['avgFps'] ?? 0}',
+              ),
+              _MetricCard(
+                title: 'Fit Model Runs',
+                value: '${fitOps['totalRuns'] ?? 0}',
+              ),
+              _MetricCard(
+                title: 'Rollout Runs',
+                value: '${fitOps['rolloutRuns'] ?? 0}',
+              ),
+              _MetricCard(
+                title: 'Certified Garments',
+                value: '${garmentOps['certified'] ?? 0}',
+              ),
+              _MetricCard(
+                title: 'Rejected Garments',
+                value: '${garmentOps['rejected'] ?? 0}',
+              ),
+              _MetricCard(
+                title: 'Tested Devices',
+                value: '${deviceLab['testedDevices'] ?? 0}',
+              ),
+              _MetricCard(
+                title: 'Device Failures',
+                value: '${deviceLab['totalFailures'] ?? 0}',
+              ),
             ],
           ),
         ],
@@ -162,9 +238,21 @@ class _MetricCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: GoogleFonts.inter(color: AbzioTheme.textSecondary, fontSize: 12)),
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  color: AbzioTheme.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
               const SizedBox(height: 8),
-              Text(value, style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 22)),
+              Text(
+                value,
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
+                ),
+              ),
             ],
           ),
         ),
@@ -174,7 +262,11 @@ class _MetricCard extends StatelessWidget {
 }
 
 class _ActionCard extends StatelessWidget {
-  const _ActionCard({required this.title, required this.cta, required this.onTap});
+  const _ActionCard({
+    required this.title,
+    required this.cta,
+    required this.onTap,
+  });
 
   final String title;
   final String cta;
@@ -190,7 +282,10 @@ class _ActionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+              Text(
+                title,
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+              ),
               const SizedBox(height: 12),
               FilledButton(onPressed: onTap, child: Text(cta)),
             ],

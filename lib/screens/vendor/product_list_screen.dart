@@ -11,13 +11,11 @@ import 'add_product_screen.dart';
 class VendorProductListScreen extends StatefulWidget {
   final String storeId;
 
-  const VendorProductListScreen({
-    super.key,
-    required this.storeId,
-  });
+  const VendorProductListScreen({super.key, required this.storeId});
 
   @override
-  State<VendorProductListScreen> createState() => _VendorProductListScreenState();
+  State<VendorProductListScreen> createState() =>
+      _VendorProductListScreenState();
 }
 
 class _VendorProductListScreenState extends State<VendorProductListScreen> {
@@ -46,14 +44,19 @@ class _VendorProductListScreenState extends State<VendorProductListScreen> {
   }
 
   Future<void> _deleteProduct(String productId) async {
-    await _db.deleteProduct(productId, actor: context.read<AuthProvider>().user);
+    await _db.deleteProduct(
+      productId,
+      actor: context.read<AuthProvider>().user,
+    );
     await _fetchProducts();
   }
 
   void _openAddProduct() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => AddProductScreen(storeId: widget.storeId)),
+      MaterialPageRoute(
+        builder: (_) => AddProductScreen(storeId: widget.storeId),
+      ),
     ).then((_) => _fetchProducts());
   }
 
@@ -61,10 +64,8 @@ class _VendorProductListScreenState extends State<VendorProductListScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddProductScreen(
-          storeId: widget.storeId,
-          existingProduct: product,
-        ),
+        builder: (_) =>
+            AddProductScreen(storeId: widget.storeId, existingProduct: product),
       ),
     ).then((_) => _fetchProducts());
   }
@@ -84,19 +85,22 @@ class _VendorProductListScreenState extends State<VendorProductListScreen> {
       body: _isLoading
           ? const AbzioLoadingView(
               title: 'Loading products',
-              subtitle: 'Gathering your latest catalog, inventory, and pricing.',
+              subtitle:
+                  'Gathering your latest catalog, inventory, and pricing.',
             )
           : _products.isEmpty
-              ? _buildEmptyState()
-              : RefreshIndicator(
-                  onRefresh: _fetchProducts,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _products.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) => _buildProductCard(_products[index]),
-                  ),
-                ),
+          ? _buildEmptyState()
+          : RefreshIndicator(
+              onRefresh: _fetchProducts,
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: _products.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
+                itemBuilder: (context, index) =>
+                    _buildProductCard(_products[index]),
+              ),
+            ),
     );
   }
 
@@ -110,12 +114,17 @@ class _VendorProductListScreenState extends State<VendorProductListScreen> {
             width: 64,
             height: 64,
             child: AbzioNetworkImage(
-              imageUrl: product.images.isNotEmpty ? product.images.first : 'https://via.placeholder.com/200',
+              imageUrl: product.images.isNotEmpty
+                  ? product.images.first
+                  : 'https://via.placeholder.com/200',
               fallbackLabel: product.name,
             ),
           ),
         ),
-        title: Text(product.name, style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        title: Text(
+          product.name,
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+        ),
         subtitle: Text(
           '${product.brand.isNotEmpty ? '${product.brand} | ' : ''}₹${product.price.toInt()} | ${product.category} | Stock ${product.stock} | ${product.status == ProductStatus.active ? 'Active' : 'Hidden'}',
         ),
@@ -142,7 +151,8 @@ class _VendorProductListScreenState extends State<VendorProductListScreen> {
         padding: const EdgeInsets.all(24),
         child: AbzioEmptyCard(
           title: 'No products yet',
-          subtitle: 'Start building your premium catalog and the first collection will appear here.',
+          subtitle:
+              'Start building your premium catalog and the first collection will appear here.',
           ctaLabel: 'ADD FIRST PRODUCT',
           onTap: _openAddProduct,
         ),

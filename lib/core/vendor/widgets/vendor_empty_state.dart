@@ -40,29 +40,27 @@ class VendorEmptyState extends StatelessWidget {
               color: VendorTheme.grey100,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              size: 48,
-              color: VendorTheme.grey400,
-            ),
+            child: Icon(icon, size: 48, color: VendorTheme.grey400),
           ),
           const SizedBox(height: VendorTheme.spacing24),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: VendorTheme.spacing8),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing24),
+            padding: const EdgeInsets.symmetric(
+              horizontal: VendorTheme.spacing24,
+            ),
             child: Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: VendorTheme.grey500,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: VendorTheme.grey500),
             ),
           ),
           if (primaryActionLabel != null || secondaryActionLabel != null) ...[

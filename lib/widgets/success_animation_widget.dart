@@ -129,7 +129,10 @@ class _SuccessAnimationWidgetState extends State<SuccessAnimationWidget>
             child: Opacity(
               opacity: _fade.value,
               child: Transform.translate(
-                offset: Offset(spec.dx * (1 - _fade.value), spec.dy * (1 - _fade.value)),
+                offset: Offset(
+                  spec.dx * (1 - _fade.value),
+                  spec.dy * (1 - _fade.value),
+                ),
                 child: Container(
                   height: spec.size,
                   width: spec.size,

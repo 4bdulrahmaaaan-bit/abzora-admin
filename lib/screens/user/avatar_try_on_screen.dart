@@ -389,4 +389,3 @@ class _AvatarTryOnScreenState extends State<AvatarTryOnScreen> {
     );
   }
 }
-

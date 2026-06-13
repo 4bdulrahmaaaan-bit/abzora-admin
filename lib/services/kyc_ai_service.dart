@@ -38,10 +38,7 @@ class KycAiService {
                 {
                   'role': 'system',
                   'content': [
-                    {
-                      'type': 'input_text',
-                      'text': _systemPrompt,
-                    },
+                    {'type': 'input_text', 'text': _systemPrompt},
                   ],
                 },
                 {
@@ -60,10 +57,7 @@ class KycAiService {
                         'image_url': aadhaarImageUrl.trim(),
                       },
                     if (panImageUrl.trim().isNotEmpty)
-                      {
-                        'type': 'input_image',
-                        'image_url': panImageUrl.trim(),
-                      },
+                      {'type': 'input_image', 'image_url': panImageUrl.trim()},
                   ],
                 },
               ],
@@ -87,11 +81,15 @@ class KycAiService {
       }
 
       final extractedName = _normalizedName(
-        payload['name']?.toString() ?? payload['extractedName']?.toString() ?? '',
+        payload['name']?.toString() ??
+            payload['extractedName']?.toString() ??
+            '',
         fallback: ownerName,
       );
       final aadhaarNumber = _normalizeAadhaar(
-        payload['aadhaarNumber']?.toString() ?? payload['aadhaar']?.toString() ?? '',
+        payload['aadhaarNumber']?.toString() ??
+            payload['aadhaar']?.toString() ??
+            '',
       );
       final panNumber = _normalizePan(
         payload['panNumber']?.toString() ?? payload['pan']?.toString() ?? '',
@@ -106,8 +104,9 @@ class KycAiService {
         if (!panValid) 'PAN number could not be verified clearly.',
       ];
 
-      final autoReviewStatus =
-          confidenceScore >= 85 && aadhaarValid && panValid ? 'auto_verified' : 'pending_review';
+      final autoReviewStatus = confidenceScore >= 85 && aadhaarValid && panValid
+          ? 'auto_verified'
+          : 'pending_review';
 
       return KycVerificationSummary(
         extractedName: extractedName,
@@ -128,12 +127,15 @@ class KycAiService {
       );
     } catch (_) {
       return fallback.copyWith(
-        flags: const ['AI OCR timed out, so this request was routed for review.'],
+        flags: const [
+          'AI OCR timed out, so this request was routed for review.',
+        ],
       );
     }
   }
 
-  bool isValidAadhaar(String value) => RegExp(r'^\d{12}$').hasMatch(value.trim());
+  bool isValidAadhaar(String value) =>
+      RegExp(r'^\d{12}$').hasMatch(value.trim());
 
   bool isValidPan(String value) =>
       RegExp(r'^[A-Z]{5}\d{4}[A-Z]$').hasMatch(value.trim().toUpperCase());
@@ -202,7 +204,10 @@ class KycAiService {
 
   List<String> _coerceFlags(Object? raw) {
     if (raw is List) {
-      return raw.map((item) => item.toString().trim()).where((item) => item.isNotEmpty).toList();
+      return raw
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
     }
     return const [];
   }

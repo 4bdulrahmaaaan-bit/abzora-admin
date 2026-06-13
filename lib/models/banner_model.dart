@@ -240,16 +240,26 @@ class HomeVisualConfigModel {
 
   factory HomeVisualConfigModel.fromMap(Map<String, dynamic> map) {
     return HomeVisualConfigModel(
-      categoryVisuals: (map['categoryVisuals'] as List? ?? const [])
-          .whereType<Map>()
-          .map((item) => HomeCategoryVisualModel.fromMap(Map<String, dynamic>.from(item)))
-          .toList()
-        ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder)),
-      promoBlocks: (map['promoBlocks'] as List? ?? const [])
-          .whereType<Map>()
-          .map((item) => HomePromoBlockModel.fromMap(Map<String, dynamic>.from(item)))
-          .toList()
-        ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder)),
+      categoryVisuals:
+          (map['categoryVisuals'] as List? ?? const [])
+              .whereType<Map>()
+              .map(
+                (item) => HomeCategoryVisualModel.fromMap(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList()
+            ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder)),
+      promoBlocks:
+          (map['promoBlocks'] as List? ?? const [])
+              .whereType<Map>()
+              .map(
+                (item) => HomePromoBlockModel.fromMap(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList()
+            ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder)),
       updatedAt: map['updatedAt']?.toString() ?? '',
     );
   }

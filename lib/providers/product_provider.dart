@@ -294,9 +294,13 @@ class ProductProvider with ChangeNotifier {
     _hasMoreProducts = hasMore;
     final merged = _mergeUniqueProducts(_locationProducts, newlyMatched);
     _locationProducts = _withDistanceLabels(await _safePersonalize(merged));
-    _trendingProducts = _withDistanceLabels(_locationProducts.take(10).toList());
+    _trendingProducts = _withDistanceLabels(
+      _locationProducts.take(10).toList(),
+    );
     if (resetSearch) {
-      _searchResults = _withDistanceLabels(_applyFilter(_locationProducts, _searchFilter));
+      _searchResults = _withDistanceLabels(
+        _applyFilter(_locationProducts, _searchFilter),
+      );
     }
     debugPrint(
       'Products page merged: incoming=${newlyMatched.length}, total=${_locationProducts.length}, hasMore=$_hasMoreProducts',
@@ -314,9 +318,13 @@ class ProductProvider with ChangeNotifier {
       final base = page.items;
       if (base.isNotEmpty) {
         _locationProducts = _withDistanceLabels(await _safePersonalize(base));
-        _trendingProducts = _withDistanceLabels(_locationProducts.take(10).toList());
+        _trendingProducts = _withDistanceLabels(
+          _locationProducts.take(10).toList(),
+        );
         if (resetSearch) {
-          _searchResults = _withDistanceLabels(_applyFilter(_locationProducts, _searchFilter));
+          _searchResults = _withDistanceLabels(
+            _applyFilter(_locationProducts, _searchFilter),
+          );
         }
         _hasMoreProducts = page.hasMore;
         _lastProductKey = page.lastKey;
@@ -331,10 +339,16 @@ class ProductProvider with ChangeNotifier {
         const Duration(seconds: 6),
       );
       if (streamProducts.isNotEmpty) {
-        _locationProducts = _withDistanceLabels(await _safePersonalize(streamProducts));
-        _trendingProducts = _withDistanceLabels(_locationProducts.take(10).toList());
+        _locationProducts = _withDistanceLabels(
+          await _safePersonalize(streamProducts),
+        );
+        _trendingProducts = _withDistanceLabels(
+          _locationProducts.take(10).toList(),
+        );
         if (resetSearch) {
-          _searchResults = _withDistanceLabels(_applyFilter(_locationProducts, _searchFilter));
+          _searchResults = _withDistanceLabels(
+            _applyFilter(_locationProducts, _searchFilter),
+          );
         }
         _hasMoreProducts = false;
       }
@@ -370,38 +384,41 @@ class ProductProvider with ChangeNotifier {
       return const <Product>[];
     }
     final position = userPosition;
-    return products.map((product) {
-      final store = product.store;
-      final backendDistance = product.distanceKm;
-      final backendLabel = product.distanceLabel?.trim() ?? '';
-      double? distanceKm = backendDistance;
-      String? distanceLabel = backendLabel.isNotEmpty ? backendLabel : null;
+    return products
+        .map((product) {
+          final store = product.store;
+          final backendDistance = product.distanceKm;
+          final backendLabel = product.distanceLabel?.trim() ?? '';
+          double? distanceKm = backendDistance;
+          String? distanceLabel = backendLabel.isNotEmpty ? backendLabel : null;
 
-      if (distanceKm == null &&
-          position != null &&
-          store?.latitude != null &&
-          store?.longitude != null) {
-        distanceKm = LocationService().distanceInKm(
-          startLatitude: position.latitude,
-          startLongitude: position.longitude,
-          endLatitude: store!.latitude!,
-          endLongitude: store.longitude!,
-        );
-      }
+          if (distanceKm == null &&
+              position != null &&
+              store?.latitude != null &&
+              store?.longitude != null) {
+            distanceKm = LocationService().distanceInKm(
+              startLatitude: position.latitude,
+              startLongitude: position.longitude,
+              endLatitude: store!.latitude!,
+              endLongitude: store.longitude!,
+            );
+          }
 
-      if (distanceLabel == null && distanceKm != null) {
-        distanceLabel = _formatDistanceLabel(distanceKm);
-      }
+          if (distanceLabel == null && distanceKm != null) {
+            distanceLabel = _formatDistanceLabel(distanceKm);
+          }
 
-      if (distanceKm == product.distanceKm && distanceLabel == product.distanceLabel) {
-        return product;
-      }
+          if (distanceKm == product.distanceKm &&
+              distanceLabel == product.distanceLabel) {
+            return product;
+          }
 
-      return product.copyWith(
-        distanceKm: distanceKm,
-        distanceLabel: distanceLabel,
-      );
-    }).toList(growable: false);
+          return product.copyWith(
+            distanceKm: distanceKm,
+            distanceLabel: distanceLabel,
+          );
+        })
+        .toList(growable: false);
   }
 
   String _formatDistanceLabel(double distanceKm) {

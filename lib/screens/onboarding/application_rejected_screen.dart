@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
+
 class ApplicationRejectedScreen extends StatelessWidget {
   const ApplicationRejectedScreen({super.key});
 
@@ -22,8 +23,9 @@ class ApplicationRejectedScreen extends StatelessWidget {
 
     final isVendorRejected = vendorOnboarding['status'] == 'rejected';
     final isRiderRejected = riderOnboarding['status'] == 'rejected';
-    
-    String reason = 'Unfortunately, your application did not meet our requirements at this time.';
+
+    String reason =
+        'Unfortunately, your application did not meet our requirements at this time.';
     if (isVendorRejected && vendorOnboarding['adminNotes'] != null) {
       reason = vendorOnboarding['adminNotes'];
     } else if (isRiderRejected && riderOnboarding['adminNotes'] != null) {
@@ -46,11 +48,7 @@ class ApplicationRejectedScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.cancel,
-                size: 80,
-                color: Colors.red,
-              ),
+              const Icon(Icons.cancel, size: 80, color: Colors.red),
               const SizedBox(height: 24),
               Text(
                 'Application Rejected',

@@ -32,7 +32,10 @@ class _InventoryCenterScreenState extends State<InventoryCenterScreen> {
   }
 
   Future<void> _loadInventory() async {
-    final products = await _db.getProductsByStore(widget.storeId, includeInactive: true);
+    final products = await _db.getProductsByStore(
+      widget.storeId,
+      includeInactive: true,
+    );
     if (!mounted) return;
     setState(() {
       _products = products;
@@ -61,7 +64,8 @@ class _InventoryCenterScreenState extends State<InventoryCenterScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddProductScreen(storeId: widget.storeId, existingProduct: p),
+        builder: (_) =>
+            AddProductScreen(storeId: widget.storeId, existingProduct: p),
       ),
     );
     await _loadInventory();
@@ -72,7 +76,10 @@ class _InventoryCenterScreenState extends State<InventoryCenterScreen> {
     if (_loading) {
       return const Scaffold(
         backgroundColor: VendorTheme.background,
-        body: AbzioLoadingView(title: 'Loading Inventory', subtitle: 'Analyzing stock levels...'),
+        body: AbzioLoadingView(
+          title: 'Loading Inventory',
+          subtitle: 'Analyzing stock levels...',
+        ),
       );
     }
 
@@ -105,7 +112,8 @@ class _InventoryCenterScreenState extends State<InventoryCenterScreen> {
             if (_filteredProducts.isEmpty)
               const VendorEmptyState(
                 title: 'No inventory to show',
-                subtitle: 'Adjust your filters or add products to your catalog.',
+                subtitle:
+                    'Adjust your filters or add products to your catalog.',
                 icon: Icons.inventory_2_outlined,
               )
             else
@@ -131,29 +139,69 @@ class _InventoryCenterScreenState extends State<InventoryCenterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Inventory Health Score', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white70)),
-                    const SizedBox(height: VendorTheme.spacing8),
-                    Text('$score / 100', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Inventory Health Score',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelMedium?.copyWith(color: Colors.white70),
+                    ),
                     const SizedBox(height: VendorTheme.spacing8),
                     Text(
-                      score >= 80 ? 'Excellent Stock Management' : score >= 50 ? 'Needs Attention' : 'Critical Action Required',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
+                      '$score / 100',
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: VendorTheme.spacing8),
+                    Text(
+                      score >= 80
+                          ? 'Excellent Stock Management'
+                          : score >= 50
+                          ? 'Needs Attention'
+                          : 'Critical Action Required',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.white),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.analytics_outlined, size: 64, color: Colors.white24),
+              const Icon(
+                Icons.analytics_outlined,
+                size: 64,
+                color: Colors.white24,
+              ),
             ],
           ),
         ),
         const SizedBox(height: VendorTheme.spacing16),
         Row(
           children: [
-            Expanded(child: VendorMetricCard(title: 'Total Units', value: '$totalStock', icon: Icons.inventory_2_outlined)),
+            Expanded(
+              child: VendorMetricCard(
+                title: 'Total Units',
+                value: '$totalStock',
+                icon: Icons.inventory_2_outlined,
+              ),
+            ),
             const SizedBox(width: VendorTheme.spacing12),
-            Expanded(child: VendorMetricCard(title: 'Low Stock', value: '$lowStock', icon: Icons.warning_amber_rounded)),
+            Expanded(
+              child: VendorMetricCard(
+                title: 'Low Stock',
+                value: '$lowStock',
+                icon: Icons.warning_amber_rounded,
+              ),
+            ),
             const SizedBox(width: VendorTheme.spacing12),
-            Expanded(child: VendorMetricCard(title: 'Out of Stock', value: '$outOfStock', icon: Icons.error_outline)),
+            Expanded(
+              child: VendorMetricCard(
+                title: 'Out of Stock',
+                value: '$outOfStock',
+                icon: Icons.error_outline,
+              ),
+            ),
           ],
         ),
       ],
@@ -173,7 +221,9 @@ class _InventoryCenterScreenState extends State<InventoryCenterScreen> {
               selected: isSelected,
               onSelected: (_) => setState(() => _filter = f),
               selectedColor: VendorTheme.primary,
-              labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87),
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+              ),
             ),
           );
         }).toList(),
@@ -207,7 +257,9 @@ class _InventoryCenterScreenState extends State<InventoryCenterScreen> {
               width: 64,
               height: 64,
               child: AbzioNetworkImage(
-                imageUrl: p.images.isNotEmpty ? p.images.first : 'https://via.placeholder.com/150',
+                imageUrl: p.images.isNotEmpty
+                    ? p.images.first
+                    : 'https://via.placeholder.com/150',
                 fallbackLabel: p.name,
               ),
             ),
@@ -217,15 +269,28 @@ class _InventoryCenterScreenState extends State<InventoryCenterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(p.name, style: Theme.of(context).textTheme.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  p.name,
+                  style: Theme.of(context).textTheme.titleMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: VendorTheme.spacing4),
-                Text('SKU: ${p.id.substring(0, 8)}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: VendorTheme.grey500)),
+                Text(
+                  'SKU: ${p.id.substring(0, 8)}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: VendorTheme.grey500),
+                ),
                 const SizedBox(height: VendorTheme.spacing8),
                 Row(
                   children: [
                     VendorStatusBadge(label: badgeLabel, type: badgeType),
                     const SizedBox(width: VendorTheme.spacing8),
-                    Text('${p.stock} in stock', style: Theme.of(context).textTheme.labelMedium),
+                    Text(
+                      '${p.stock} in stock',
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
                   ],
                 ),
               ],

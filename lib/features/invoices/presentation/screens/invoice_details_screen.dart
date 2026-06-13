@@ -39,8 +39,8 @@ class InvoiceDetailsScreen extends ConsumerWidget {
                   child: Text(
                     item.invoiceNumber,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
                 Chip(label: Text(item.versionLabel)),
@@ -55,21 +55,29 @@ class InvoiceDetailsScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Grand Total: INR ${item.grandTotal.toStringAsFixed(2)}'),
+                    Text(
+                      'Grand Total: INR ${item.grandTotal.toStringAsFixed(2)}',
+                    ),
                     Text('Tax: INR ${item.tax.toStringAsFixed(2)}'),
                     Text('CGST: INR ${item.cgst.toStringAsFixed(2)}'),
                     Text('SGST: INR ${item.sgst.toStringAsFixed(2)}'),
                     Text('IGST: INR ${item.igst.toStringAsFixed(2)}'),
                     Text('Payment: ${item.paymentStatus}'),
                     Text('Refund Status: ${item.refundStatus}'),
-                    Text('Verification Hash: ${item.verificationHash.isEmpty ? 'N/A' : item.verificationHash.substring(0, item.verificationHash.length > 14 ? 14 : item.verificationHash.length)}'),
+                    Text(
+                      'Verification Hash: ${item.verificationHash.isEmpty ? 'N/A' : item.verificationHash.substring(0, item.verificationHash.length > 14 ? 14 : item.verificationHash.length)}',
+                    ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 14),
             FilledButton.icon(
-              onPressed: () => Navigator.pushNamed(context, '/invoice/pdf', arguments: invoiceId),
+              onPressed: () => Navigator.pushNamed(
+                context,
+                '/invoice/pdf',
+                arguments: invoiceId,
+              ),
               icon: const Icon(Icons.picture_as_pdf_outlined),
               label: const Text('Preview PDF'),
             ),
@@ -77,12 +85,16 @@ class InvoiceDetailsScreen extends ConsumerWidget {
             FilledButton.tonalIcon(
               onPressed: () async {
                 final repo = ref.read(invoiceRepositoryProvider);
-                final manager = InvoiceDownloadManager(ref.read(invoiceDioProvider));
+                final manager = InvoiceDownloadManager(
+                  ref.read(invoiceDioProvider),
+                );
                 final url = await repo.getDownloadUrl(invoiceId);
                 await manager.downloadToAppStorage(id: invoiceId, url: url);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Invoice cached for offline use.')),
+                    const SnackBar(
+                      content: Text('Invoice cached for offline use.'),
+                    ),
                   );
                 }
               },
@@ -92,7 +104,9 @@ class InvoiceDetailsScreen extends ConsumerWidget {
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () async {
-                await ref.read(invoiceRepositoryProvider).emailInvoice(invoiceId);
+                await ref
+                    .read(invoiceRepositoryProvider)
+                    .emailInvoice(invoiceId);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Invoice email queued.')),
@@ -125,4 +139,3 @@ class InvoiceDetailsScreen extends ConsumerWidget {
     );
   }
 }
-

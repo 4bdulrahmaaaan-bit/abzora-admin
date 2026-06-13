@@ -45,31 +45,44 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
                 label: 'Same Day',
                 icon: Icons.bolt_rounded,
                 isActive: controller.sameDayDelivery,
-                onToggle: () => setState(() => controller.sameDayDelivery = !controller.sameDayDelivery),
+                onToggle: () => setState(
+                  () =>
+                      controller.sameDayDelivery = !controller.sameDayDelivery,
+                ),
               ),
               _buildToggleChip(
                 label: 'COD',
                 icon: Icons.payments_outlined,
                 isActive: controller.cashOnDelivery,
-                onToggle: () => setState(() => controller.cashOnDelivery = !controller.cashOnDelivery),
+                onToggle: () => setState(
+                  () => controller.cashOnDelivery = !controller.cashOnDelivery,
+                ),
               ),
               _buildToggleChip(
                 label: 'Free Returns',
                 icon: Icons.assignment_return_outlined,
                 isActive: controller.freeReturns,
-                onToggle: () => setState(() => controller.freeReturns = !controller.freeReturns),
+                onToggle: () => setState(
+                  () => controller.freeReturns = !controller.freeReturns,
+                ),
               ),
               _buildToggleChip(
                 label: 'Try Before You Buy',
                 icon: Icons.checkroom_outlined,
                 isActive: controller.tryBeforeYouBuy,
-                onToggle: () => setState(() => controller.tryBeforeYouBuy = !controller.tryBeforeYouBuy),
+                onToggle: () => setState(
+                  () =>
+                      controller.tryBeforeYouBuy = !controller.tryBeforeYouBuy,
+                ),
               ),
               _buildToggleChip(
                 label: 'Express Delivery',
                 icon: Icons.rocket_launch_outlined,
                 isActive: controller.expressDelivery,
-                onToggle: () => setState(() => controller.expressDelivery = !controller.expressDelivery),
+                onToggle: () => setState(
+                  () =>
+                      controller.expressDelivery = !controller.expressDelivery,
+                ),
               ),
             ],
           ),
@@ -92,7 +105,10 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
                     setState(() => controller.etaDropdown = val);
                   }
                 },
-                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AbzioTheme.textSecondary),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: AbzioTheme.textSecondary,
+                ),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: const Color(0xFFF9FAFB),
@@ -108,7 +124,10 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: AbzioTheme.accentColor),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                 ),
                 items: _etaOptions.map((item) {
                   return DropdownMenuItem(
@@ -146,7 +165,13 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
             width: isActive ? 1.5 : 1,
           ),
           boxShadow: isActive
-              ? [BoxShadow(color: const Color(0xFF16A34A).withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2))]
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF16A34A).withValues(alpha: 0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
               : [],
         ),
         child: Row(
@@ -155,7 +180,9 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
             Icon(
               isActive ? Icons.check_circle_rounded : icon,
               size: 16,
-              color: isActive ? const Color(0xFF16A34A) : AbzioTheme.textSecondary,
+              color: isActive
+                  ? const Color(0xFF16A34A)
+                  : AbzioTheme.textSecondary,
             ),
             const SizedBox(width: 8),
             Text(
@@ -163,7 +190,9 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
               style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? const Color(0xFF16A34A) : AbzioTheme.textPrimary,
+                color: isActive
+                    ? const Color(0xFF16A34A)
+                    : AbzioTheme.textPrimary,
               ),
             ),
           ],

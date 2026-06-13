@@ -716,8 +716,6 @@ class _RiderOnboardingFlowScreenState
     } catch (_) {}
   }
 
-
-
   Future<T> _withRetry<T>(
     Future<T> Function() action, {
     int attempts = 2,
@@ -1081,10 +1079,9 @@ class _RiderOnboardingFlowScreenState
       TextFormField(
         initialValue: user?.phone ?? model.phone,
         readOnly: true,
-        decoration: _onboardingInputDecoration('Phone Number').copyWith(
-          fillColor: const Color(0xFF1A1A1A),
-          filled: true,
-        ),
+        decoration: _onboardingInputDecoration(
+          'Phone Number',
+        ).copyWith(fillColor: const Color(0xFF1A1A1A), filled: true),
       ),
       const SizedBox(height: 10),
       TextFormField(

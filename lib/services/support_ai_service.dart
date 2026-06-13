@@ -47,7 +47,10 @@ class SupportAiService {
     return value
         .trim()
         .replaceAll(RegExp(r'\s+'), ' ')
-        .replaceAll(RegExp(r'^(please|hi|hello|hey)\s+', caseSensitive: false), '')
+        .replaceAll(
+          RegExp(r'^(please|hi|hello|hey)\s+', caseSensitive: false),
+          '',
+        )
         .trim();
   }
 
@@ -69,10 +72,9 @@ class SupportAiService {
   }
 
   Set<String> _wordSet(String value) {
-    return normalizePromptFingerprint(value)
-        .split(' ')
-        .where((item) => item.trim().length > 2)
-        .toSet();
+    return normalizePromptFingerprint(
+      value,
+    ).split(' ').where((item) => item.trim().length > 2).toSet();
   }
 
   bool _isNearDuplicatePrompt(String current, String previous) {
@@ -148,9 +150,11 @@ class SupportAiService {
     String? extra,
   }) {
     return [
-      if (_memorySummary(memory).isNotEmpty) 'memory: ${_memorySummary(memory)}',
+      if (_memorySummary(memory).isNotEmpty)
+        'memory: ${_memorySummary(memory)}',
       if (_orderSummary(order).isNotEmpty) 'order: ${_orderSummary(order)}',
-      if (_historySummary(recentHistory).isNotEmpty) 'recent:\n${_historySummary(recentHistory)}',
+      if (_historySummary(recentHistory).isNotEmpty)
+        'recent:\n${_historySummary(recentHistory)}',
       if ((extra ?? '').trim().isNotEmpty) extra!.trim(),
       'message: ${_truncate(_cleanPrompt(prompt), maxChars: 180)}',
     ].join('\n');
@@ -167,13 +171,12 @@ class SupportAiService {
         (toolName ?? '').trim().isNotEmpty ||
         measurement != null ||
         bodyProfile != null;
-    return needsRicherReasoning ? AppConfig.openAiModel : AppConfig.openAiCheapModel;
+    return needsRicherReasoning
+        ? AppConfig.openAiModel
+        : AppConfig.openAiCheapModel;
   }
 
-  int _replyTokenBudgetFor({
-    required SupportChat chat,
-    String? toolName,
-  }) {
+  int _replyTokenBudgetFor({required SupportChat chat, String? toolName}) {
     return chat.type == 'custom' || (toolName ?? '').trim().isNotEmpty
         ? _maxDetailedReplyTokens
         : _maxReplyTokens;
@@ -245,7 +248,8 @@ class SupportAiService {
               {
                 'type': 'function',
                 'name': 'requestReturn',
-                'description': 'Create a return request for a delivered non-custom order.',
+                'description':
+                    'Create a return request for a delivered non-custom order.',
                 'parameters': {
                   'type': 'object',
                   'properties': {
@@ -399,29 +403,29 @@ class SupportAiService {
 
     return switch (name) {
       'cancelOrder' => SupportActionPlan(
-          action: SupportActionType.cancelOrder,
-          orderId: orderId.isEmpty ? null : orderId,
-          reason: reason.isEmpty ? null : reason,
-        ),
+        action: SupportActionType.cancelOrder,
+        orderId: orderId.isEmpty ? null : orderId,
+        reason: reason.isEmpty ? null : reason,
+      ),
       'trackOrder' => SupportActionPlan(
-          action: SupportActionType.trackOrder,
-          orderId: orderId.isEmpty ? null : orderId,
-        ),
+        action: SupportActionType.trackOrder,
+        orderId: orderId.isEmpty ? null : orderId,
+      ),
       'requestRefund' => SupportActionPlan(
-          action: SupportActionType.requestRefund,
-          orderId: orderId.isEmpty ? null : orderId,
-          reason: reason.isEmpty ? null : reason,
-        ),
+        action: SupportActionType.requestRefund,
+        orderId: orderId.isEmpty ? null : orderId,
+        reason: reason.isEmpty ? null : reason,
+      ),
       'requestReturn' => SupportActionPlan(
-          action: SupportActionType.requestReturn,
-          orderId: orderId.isEmpty ? null : orderId,
-          reason: reason.isEmpty ? null : reason,
-        ),
+        action: SupportActionType.requestReturn,
+        orderId: orderId.isEmpty ? null : orderId,
+        reason: reason.isEmpty ? null : reason,
+      ),
       'updateAddress' => SupportActionPlan(
-          action: SupportActionType.updateAddress,
-          address: newAddress.isEmpty ? null : newAddress,
-          reason: reason.isEmpty ? null : reason,
-        ),
+        action: SupportActionType.updateAddress,
+        address: newAddress.isEmpty ? null : newAddress,
+        reason: reason.isEmpty ? null : reason,
+      ),
       _ => const SupportActionPlan(action: SupportActionType.generalReply),
     };
   }
@@ -488,7 +492,8 @@ class SupportAiService {
                           'fit: ${measurement.label}, chest ${measurement.chest.toStringAsFixed(0)}, waist ${measurement.waist.toStringAsFixed(0)}',
                         if (bodyProfile != null)
                           'body: ${bodyProfile.bodyType}, top ${bodyProfile.recommendedSize}, pant ${bodyProfile.pantSize}',
-                        if ((toolName ?? '').trim().isNotEmpty) 'tool: ${toolName!.trim()}',
+                        if ((toolName ?? '').trim().isNotEmpty)
+                          'tool: ${toolName!.trim()}',
                         if ((actionSummary ?? '').trim().isNotEmpty)
                           'result: ${_truncate(actionSummary!, maxChars: 120)}',
                       ].join('\n'),
@@ -574,7 +579,8 @@ class SupportAiService {
                     'type': 'input_text',
                     'text': [
                       'user: ${_truncate(actor.name, maxChars: 24)}',
-                      if (currentMemory != null) 'memory: ${_memorySummary(currentMemory)}',
+                      if (currentMemory != null)
+                        'memory: ${_memorySummary(currentMemory)}',
                       if (order != null) 'order: ${_orderSummary(order)}',
                       'u: ${_truncate(_cleanPrompt(userMessage), maxChars: 120)}',
                       'a: ${_truncate(assistantReply, maxChars: 120)}',
@@ -637,11 +643,14 @@ class SupportAiService {
                     'text': [
                       'user: ${_truncate(actor.name, maxChars: 24)}',
                       if (currentMemory != null &&
-                          currentMemory.lastConversationSummary.trim().isNotEmpty)
+                          currentMemory.lastConversationSummary
+                              .trim()
+                              .isNotEmpty)
                         'current: ${_truncate(currentMemory.lastConversationSummary, maxChars: 90)}',
                       if (order != null) 'order: ${_orderSummary(order)}',
                       ..._recentMessages(recentHistory).map(
-                        (entry) => '${entry.role}: ${_truncate(entry.text, maxChars: 80)}',
+                        (entry) =>
+                            '${entry.role}: ${_truncate(entry.text, maxChars: 80)}',
                       ),
                     ].join('\n'),
                   },
@@ -691,4 +700,3 @@ class SupportAiService {
     return '';
   }
 }
-

@@ -160,9 +160,18 @@ class CmsEntryPage {
           .map((item) => CmsEntryModel.fromMap(Map<String, dynamic>.from(item)))
           .toList(),
       page: int.tryParse((meta['page'] ?? map['page'])?.toString() ?? '') ?? 1,
-      limit: int.tryParse((meta['limit'] ?? map['limit'])?.toString() ?? '') ?? 20,
-      totalCount: int.tryParse((meta['totalCount'] ?? map['totalCount'])?.toString() ?? '') ?? rawItems.length,
-      totalPages: int.tryParse((meta['totalPages'] ?? map['totalPages'])?.toString() ?? '') ?? 1,
+      limit:
+          int.tryParse((meta['limit'] ?? map['limit'])?.toString() ?? '') ?? 20,
+      totalCount:
+          int.tryParse(
+            (meta['totalCount'] ?? map['totalCount'])?.toString() ?? '',
+          ) ??
+          rawItems.length,
+      totalPages:
+          int.tryParse(
+            (meta['totalPages'] ?? map['totalPages'])?.toString() ?? '',
+          ) ??
+          1,
     );
   }
 }

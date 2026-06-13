@@ -10,18 +10,10 @@ import '../../services/avatar_voice_service.dart';
 import '../../services/database_service.dart';
 import '../../widgets/assistant_avatar_view.dart';
 
-enum _VoiceAssistantState {
-  listening,
-  thinking,
-  speaking,
-  idle,
-}
+enum _VoiceAssistantState { listening, thinking, speaking, idle }
 
 class VoiceAssistantScreen extends StatefulWidget {
-  const VoiceAssistantScreen({
-    super.key,
-    required this.chat,
-  });
+  const VoiceAssistantScreen({super.key, required this.chat});
 
   final SupportChat chat;
 
@@ -42,7 +34,8 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   bool _activeMode = true;
   bool _sending = false;
   String _heardText = '';
-  String _assistantText = 'Hey, I am your Abianzo stylist and assistant. Ask me about orders, fits, or what to wear next.';
+  String _assistantText =
+      'Hey, I am your Abianzo stylist and assistant. Ask me about orders, fits, or what to wear next.';
   String _statusText = 'Starting voice assistant...';
   String? _lastSpokenAssistantMessageId;
   _VoiceAssistantState _state = _VoiceAssistantState.idle;
@@ -75,28 +68,28 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
     _messageSubscription = _database
         .watchSupportMessages(chatId: widget.chat.id, actor: actor)
         .listen((messages) {
-      if (messages.isEmpty) {
-        return;
-      }
-      final assistantMessages = messages
-          .where((message) => message.senderRole == 'assistant')
-          .toList();
-      if (assistantMessages.isEmpty) {
-        return;
-      }
-      final latest = assistantMessages.last;
-      if (latest.id == _lastSpokenAssistantMessageId ||
-          latest.text.trim().isEmpty) {
-        return;
-      }
-      _lastSpokenAssistantMessageId = latest.id;
-      if (mounted) {
-        setState(() {
-          _assistantText = latest.text.trim();
+          if (messages.isEmpty) {
+            return;
+          }
+          final assistantMessages = messages
+              .where((message) => message.senderRole == 'assistant')
+              .toList();
+          if (assistantMessages.isEmpty) {
+            return;
+          }
+          final latest = assistantMessages.last;
+          if (latest.id == _lastSpokenAssistantMessageId ||
+              latest.text.trim().isEmpty) {
+            return;
+          }
+          _lastSpokenAssistantMessageId = latest.id;
+          if (mounted) {
+            setState(() {
+              _assistantText = latest.text.trim();
+            });
+          }
+          unawaited(_speak(latest.text.trim()));
         });
-      }
-      unawaited(_speak(latest.text.trim()));
-    });
 
     try {
       final available = await _speech.initialize(
@@ -420,7 +413,8 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                       Text(
                         'Talk to Abianzo AI',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
                             ),
@@ -505,8 +499,8 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                             _state == _VoiceAssistantState.speaking
                                 ? Icons.hearing_rounded
                                 : _state == _VoiceAssistantState.listening
-                                    ? Icons.pause_rounded
-                                    : Icons.mic_rounded,
+                                ? Icons.pause_rounded
+                                : Icons.mic_rounded,
                             color: Colors.black,
                             size: 34,
                           ),
@@ -555,9 +549,7 @@ class _SubtitleCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.08),
-          ),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -587,4 +579,3 @@ class _SubtitleCard extends StatelessWidget {
     );
   }
 }
-

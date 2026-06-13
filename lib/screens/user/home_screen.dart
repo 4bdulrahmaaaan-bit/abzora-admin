@@ -1488,12 +1488,7 @@ class _HomeContentState extends State<HomeContent>
                           ),
                           SliverToBoxAdapter(
                             child: Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                2,
-                                16,
-                                14,
-                              ),
+                              padding: const EdgeInsets.fromLTRB(16, 2, 16, 14),
                               child: CategorySection(
                                 selectedCategory: _selectedCategory,
                                 onCategorySelected: (category) {
@@ -1589,8 +1584,6 @@ class _HomeContentState extends State<HomeContent>
       },
     );
   }
-
-
 
   void _handleBannerTap(
     BannerModel banner, {
@@ -1944,7 +1937,9 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
                                       ],
                                     ),
                                     child: ElevatedButton(
-                                      onPressed: (!widget.auth.isUpdatingProfile && _isFormValid)
+                                      onPressed:
+                                          (!widget.auth.isUpdatingProfile &&
+                                              _isFormValid)
                                           ? widget.onSave
                                           : null,
                                       style: ElevatedButton.styleFrom(
@@ -2410,10 +2405,9 @@ class _CategorySectionState extends State<CategorySection> {
             category.showOnHome &&
             (category.image.trim().isNotEmpty ||
                 category.bannerImage.trim().isNotEmpty))
-          category.name.trim().toLowerCase():
-              category.image.trim().isNotEmpty
-                  ? category.image.trim()
-                  : category.bannerImage.trim(),
+          category.name.trim().toLowerCase(): category.image.trim().isNotEmpty
+              ? category.image.trim()
+              : category.bannerImage.trim(),
     };
 
     final fallbacks = <String, List<String>>{
@@ -2475,7 +2469,8 @@ class _CategorySectionState extends State<CategorySection> {
         .map(
           (label) => _CategoryStripItem(
             label: label,
-            imageUrl: remoteImagesByLabel[label.toLowerCase()] ??
+            imageUrl:
+                remoteImagesByLabel[label.toLowerCase()] ??
                 defaultImages[label] ??
                 defaultImages['Shirts']!,
           ),
@@ -2747,8 +2742,9 @@ class _CategoryStripTile extends StatelessWidget {
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFFC8A86B)
-                                      .withValues(alpha: 0.16),
+                                  color: const Color(
+                                    0xFFC8A86B,
+                                  ).withValues(alpha: 0.16),
                                   blurRadius: 18,
                                   offset: const Offset(0, 6),
                                 ),
@@ -2775,10 +2771,10 @@ class _CategoryStripTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1B1B1B),
-                    ),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1B1B1B),
+                ),
               ),
             ),
           ],
@@ -2885,10 +2881,10 @@ class _CategoryCollectionStrip extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF111111),
-              ),
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF111111),
+          ),
         ),
         const SizedBox(height: 3),
         Text(
@@ -2896,10 +2892,10 @@ class _CategoryCollectionStrip extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontSize: 12,
-                color: const Color(0xFF6D6254),
-                height: 1.2,
-              ),
+            fontSize: 12,
+            color: const Color(0xFF6D6254),
+            height: 1.2,
+          ),
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -2960,7 +2956,10 @@ class _CategoryCollectionCard extends StatelessWidget {
                 right: 10,
                 bottom: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.28),
                     borderRadius: BorderRadius.circular(999),
@@ -2974,10 +2973,10 @@ class _CategoryCollectionCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -4886,4 +4885,3 @@ class _StoreSkeletonList extends StatelessWidget {
     );
   }
 }
-

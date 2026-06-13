@@ -47,30 +47,40 @@ class _AnimatedWishlistButtonState extends State<AnimatedWishlistButton>
     _scale = widget.usePremiumIntentAnimation
         ? TweenSequence<double>([
             TweenSequenceItem(
-              tween: Tween<double>(begin: 1, end: 1.2)
-                  .chain(CurveTween(curve: Curves.easeOutCubic)),
+              tween: Tween<double>(
+                begin: 1,
+                end: 1.2,
+              ).chain(CurveTween(curve: Curves.easeOutCubic)),
               weight: 58,
             ),
             TweenSequenceItem(
-              tween: Tween<double>(begin: 1.2, end: 1)
-                  .chain(CurveTween(curve: Curves.easeInOut)),
+              tween: Tween<double>(
+                begin: 1.2,
+                end: 1,
+              ).chain(CurveTween(curve: Curves.easeInOut)),
               weight: 42,
             ),
           ]).animate(_controller)
         : TweenSequence<double>([
             TweenSequenceItem(
-              tween: Tween<double>(begin: 1, end: 1.3)
-                  .chain(CurveTween(curve: Curves.easeOutCubic)),
+              tween: Tween<double>(
+                begin: 1,
+                end: 1.3,
+              ).chain(CurveTween(curve: Curves.easeOutCubic)),
               weight: 45,
             ),
             TweenSequenceItem(
-              tween: Tween<double>(begin: 1.3, end: 0.98)
-                  .chain(CurveTween(curve: Curves.easeInOut)),
+              tween: Tween<double>(
+                begin: 1.3,
+                end: 0.98,
+              ).chain(CurveTween(curve: Curves.easeInOut)),
               weight: 20,
             ),
             TweenSequenceItem(
-              tween: Tween<double>(begin: 0.98, end: 1)
-                  .chain(CurveTween(curve: Curves.easeOutBack)),
+              tween: Tween<double>(
+                begin: 0.98,
+                end: 1,
+              ).chain(CurveTween(curve: Curves.easeOutBack)),
               weight: 35,
             ),
           ]).animate(_controller);
@@ -107,12 +117,12 @@ class _AnimatedWishlistButtonState extends State<AnimatedWishlistButton>
     final iconColor = widget.isSelected
         ? widget.selectedColor
         : showIntentGold
-            ? Color.lerp(
-                widget.unselectedColor,
-                const Color(0xFFC6A769),
-                Curves.easeOut.transform(intentProgress),
-              )
-            : widget.unselectedColor;
+        ? Color.lerp(
+            widget.unselectedColor,
+            const Color(0xFFC6A769),
+            Curves.easeOut.transform(intentProgress),
+          )
+        : widget.unselectedColor;
 
     return Material(
       color: Colors.transparent,
@@ -122,10 +132,7 @@ class _AnimatedWishlistButtonState extends State<AnimatedWishlistButton>
         child: AnimatedBuilder(
           animation: _scale,
           builder: (context, child) {
-            return Transform.scale(
-              scale: _scale.value,
-              child: child,
-            );
+            return Transform.scale(scale: _scale.value, child: child);
           },
           child: SizedBox(
             width: widget.size,
@@ -145,7 +152,10 @@ class _AnimatedWishlistButtonState extends State<AnimatedWishlistButton>
                           boxShadow: [
                             BoxShadow(
                               color: const Color(0xFFC6A769).withValues(
-                                alpha: (0.22 * (1 - intentProgress)).clamp(0, 1),
+                                alpha: (0.22 * (1 - intentProgress)).clamp(
+                                  0,
+                                  1,
+                                ),
                               ),
                               blurRadius: 14 + (10 * intentProgress),
                               spreadRadius: 1 + (4 * intentProgress),

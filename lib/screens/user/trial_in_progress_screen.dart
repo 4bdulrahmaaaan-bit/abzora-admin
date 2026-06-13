@@ -7,10 +7,7 @@ import '../../theme.dart';
 import 'trial_result_screen.dart';
 
 class TrialInProgressScreen extends StatefulWidget {
-  const TrialInProgressScreen({
-    super.key,
-    required this.trialId,
-  });
+  const TrialInProgressScreen({super.key, required this.trialId});
 
   final String trialId;
 
@@ -37,8 +34,9 @@ class _TrialInProgressScreenState extends State<TrialInProgressScreen> {
         note: _fit == 'perfect'
             ? 'Fit looked great during home trial.'
             : 'Customer asked for adjustment support.',
-        tailoringRecommendation:
-            _fit == 'perfect' ? '' : 'Adjust with custom tailoring',
+        tailoringRecommendation: _fit == 'perfect'
+            ? ''
+            : 'Adjust with custom tailoring',
         status: 'completed',
       );
       if (!mounted) {
@@ -95,20 +93,22 @@ class _TrialInProgressScreenState extends State<TrialInProgressScreen> {
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
-                  children: const [
-                    ('perfect', 'Perfect'),
-                    ('too_tight', 'Too tight'),
-                    ('too_loose', 'Too loose'),
-                  ].map((entry) {
-                    final selected = _fit == entry.$1;
-                    return ChoiceChip(
-                      label: Text(entry.$2),
-                      selected: selected,
-                      selectedColor:
-                          AbzioTheme.accentColor.withValues(alpha: 0.2),
-                      onSelected: (_) => setState(() => _fit = entry.$1),
-                    );
-                  }).toList(),
+                  children:
+                      const [
+                        ('perfect', 'Perfect'),
+                        ('too_tight', 'Too tight'),
+                        ('too_loose', 'Too loose'),
+                      ].map((entry) {
+                        final selected = _fit == entry.$1;
+                        return ChoiceChip(
+                          label: Text(entry.$2),
+                          selected: selected,
+                          selectedColor: AbzioTheme.accentColor.withValues(
+                            alpha: 0.2,
+                          ),
+                          onSelected: (_) => setState(() => _fit = entry.$1),
+                        );
+                      }).toList(),
                 ),
                 const SizedBox(height: 20),
                 Container(
@@ -141,8 +141,8 @@ class _TrialInProgressScreenState extends State<TrialInProgressScreen> {
                   Text(
                     provider.error!,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFFB94A2D),
-                        ),
+                      color: const Color(0xFFB94A2D),
+                    ),
                   ),
                 ],
               ],
@@ -180,16 +180,16 @@ class _LiveHero extends StatelessWidget {
         children: [
           Text(
             'A personal fitting room came home',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 8),
           Text(
             'Size ${session.recommendedSize.isEmpty ? 'M' : session.recommendedSize} with ${session.fitConfidence.toStringAsFixed(0)}% confidence',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.78),
-                ),
+              color: Colors.white.withValues(alpha: 0.78),
+            ),
           ),
         ],
       ),

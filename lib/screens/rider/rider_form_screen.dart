@@ -51,8 +51,15 @@ class _RiderFormScreenState extends State<RiderFormScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage(ImageSource source, void Function(XFile file) onPicked) async {
-    final file = await _picker.pickImage(source: source, imageQuality: 82, maxWidth: 1800);
+  Future<void> _pickImage(
+    ImageSource source,
+    void Function(XFile file) onPicked,
+  ) async {
+    final file = await _picker.pickImage(
+      source: source,
+      imageQuality: 82,
+      maxWidth: 1800,
+    );
     if (file == null || !mounted) {
       return;
     }
@@ -63,11 +70,15 @@ class _RiderFormScreenState extends State<RiderFormScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    if (_profilePhoto == null || _aadhaarPhoto == null || _licensePhoto == null) {
+    if (_profilePhoto == null ||
+        _aadhaarPhoto == null ||
+        _licensePhoto == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Profile photo, Aadhaar, and driving license are required.'),
+          content: Text(
+            'Profile photo, Aadhaar, and driving license are required.',
+          ),
         ),
       );
       return;
@@ -121,7 +132,9 @@ class _RiderFormScreenState extends State<RiderFormScreen> {
       messenger.showSnackBar(
         const SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Your application is under review. We will notify you after KYC verification.'),
+          content: Text(
+            'Your application is under review. We will notify you after KYC verification.',
+          ),
         ),
       );
       navigator.pop();
@@ -160,7 +173,11 @@ class _RiderFormScreenState extends State<RiderFormScreen> {
           children: [
             const Text(
               'Get delivery-ready with verified KYC.',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, height: 1.2),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                height: 1.2,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -171,14 +188,16 @@ class _RiderFormScreenState extends State<RiderFormScreen> {
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Name'),
-              validator: (value) => (value ?? '').trim().isEmpty ? 'Name is required' : null,
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? 'Name is required' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(labelText: 'Phone'),
-              validator: (value) => RegExp(r'^\+?\d{10,15}$').hasMatch((value ?? '').trim())
+              validator: (value) =>
+                  RegExp(r'^\+?\d{10,15}$').hasMatch((value ?? '').trim())
                   ? null
                   : 'Enter a valid phone number',
             ),
@@ -186,37 +205,59 @@ class _RiderFormScreenState extends State<RiderFormScreen> {
             TextFormField(
               controller: _vehicleController,
               decoration: const InputDecoration(labelText: 'Vehicle type'),
-              validator: (value) => (value ?? '').trim().isEmpty ? 'Vehicle type is required' : null,
+              validator: (value) => (value ?? '').trim().isEmpty
+                  ? 'Vehicle type is required'
+                  : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _cityController,
               decoration: const InputDecoration(labelText: 'City'),
-              validator: (value) => (value ?? '').trim().isEmpty ? 'City is required' : null,
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? 'City is required' : null,
             ),
             const SizedBox(height: 24),
             KycUploadWidget(
               title: 'Profile Photo',
               subtitle: 'Upload a clear rider profile photo.',
               file: _profilePhoto,
-              onPickCamera: () => _pickImage(ImageSource.camera, (file) => _profilePhoto = file),
-              onPickGallery: () => _pickImage(ImageSource.gallery, (file) => _profilePhoto = file),
+              onPickCamera: () => _pickImage(
+                ImageSource.camera,
+                (file) => _profilePhoto = file,
+              ),
+              onPickGallery: () => _pickImage(
+                ImageSource.gallery,
+                (file) => _profilePhoto = file,
+              ),
             ),
             const SizedBox(height: 16),
             KycUploadWidget(
               title: 'Aadhaar',
               subtitle: 'Upload the Aadhaar image for identity verification.',
               file: _aadhaarPhoto,
-              onPickCamera: () => _pickImage(ImageSource.camera, (file) => _aadhaarPhoto = file),
-              onPickGallery: () => _pickImage(ImageSource.gallery, (file) => _aadhaarPhoto = file),
+              onPickCamera: () => _pickImage(
+                ImageSource.camera,
+                (file) => _aadhaarPhoto = file,
+              ),
+              onPickGallery: () => _pickImage(
+                ImageSource.gallery,
+                (file) => _aadhaarPhoto = file,
+              ),
             ),
             const SizedBox(height: 16),
             KycUploadWidget(
               title: 'Driving License',
-              subtitle: 'Upload the driving license image for rider verification.',
+              subtitle:
+                  'Upload the driving license image for rider verification.',
               file: _licensePhoto,
-              onPickCamera: () => _pickImage(ImageSource.camera, (file) => _licensePhoto = file),
-              onPickGallery: () => _pickImage(ImageSource.gallery, (file) => _licensePhoto = file),
+              onPickCamera: () => _pickImage(
+                ImageSource.camera,
+                (file) => _licensePhoto = file,
+              ),
+              onPickGallery: () => _pickImage(
+                ImageSource.gallery,
+                (file) => _licensePhoto = file,
+              ),
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -227,7 +268,10 @@ class _RiderFormScreenState extends State<RiderFormScreen> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text('Submit Rider KYC'),
               ),

@@ -27,7 +27,9 @@ class ProductRealtimeService {
         return;
       }
       final map = Map<String, dynamic>.from(
-        value.map((innerKey, innerValue) => MapEntry(innerKey.toString(), innerValue)),
+        value.map(
+          (innerKey, innerValue) => MapEntry(innerKey.toString(), innerValue),
+        ),
       );
       map['storeId'] ??= map['store_id'];
       final images = map['images'];
@@ -36,7 +38,9 @@ class ProductRealtimeService {
       } else if (images is Map) {
         final orderedEntries = images.entries.toList()
           ..sort((a, b) => a.key.toString().compareTo(b.key.toString()));
-        map['images'] = orderedEntries.map((entry) => entry.value.toString()).toList();
+        map['images'] = orderedEntries
+            .map((entry) => entry.value.toString())
+            .toList();
       } else {
         map['images'] = const <String>[];
       }
@@ -46,7 +50,9 @@ class ProductRealtimeService {
       } else if (sizes is Map) {
         final orderedEntries = sizes.entries.toList()
           ..sort((a, b) => a.key.toString().compareTo(b.key.toString()));
-        map['sizes'] = orderedEntries.map((entry) => entry.value.toString()).toList();
+        map['sizes'] = orderedEntries
+            .map((entry) => entry.value.toString())
+            .toList();
       } else {
         map['sizes'] = const <String>[];
       }
@@ -56,9 +62,10 @@ class ProductRealtimeService {
   }
 
   Future<List<Product>> fetchAll() async {
-    final snapshot = await _productsRef
-        .get()
-        .timeout(const Duration(seconds: 10), onTimeout: () => throw TimeoutException('Products request timed out.'));
+    final snapshot = await _productsRef.get().timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => throw TimeoutException('Products request timed out.'),
+    );
     return productsFromPayload(snapshot.value);
   }
 
@@ -69,14 +76,23 @@ class ProductRealtimeService {
     final effectiveLimit = startAfterKey == null ? limit : limit + 1;
     final query = startAfterKey == null
         ? _basePageQuery(limit: effectiveLimit)
-        : _productsRef.orderByKey().startAt(startAfterKey).limitToFirst(effectiveLimit);
+        : _productsRef
+              .orderByKey()
+              .startAt(startAfterKey)
+              .limitToFirst(effectiveLimit);
 
-    final snapshot = await query
-        .get()
-        .timeout(const Duration(seconds: 10), onTimeout: () => throw TimeoutException('Products page request timed out.'));
+    final snapshot = await query.get().timeout(
+      const Duration(seconds: 10),
+      onTimeout: () =>
+          throw TimeoutException('Products page request timed out.'),
+    );
 
     if (snapshot.value is! Map) {
-      return const ProductPageResult(items: <Product>[], lastKey: null, hasMore: false);
+      return const ProductPageResult(
+        items: <Product>[],
+        lastKey: null,
+        hasMore: false,
+      );
     }
 
     final map = Map<Object?, Object?>.from(snapshot.value as Map);
@@ -93,15 +109,20 @@ class ProductRealtimeService {
         continue;
       }
       final entryMap = Map<String, dynamic>.from(
-        raw.map((innerKey, innerValue) => MapEntry(innerKey.toString(), innerValue)),
+        raw.map(
+          (innerKey, innerValue) => MapEntry(innerKey.toString(), innerValue),
+        ),
       );
       entryMap['storeId'] ??= entryMap['store_id'];
       final images = entryMap['images'];
       if (images is List) {
         entryMap['images'] = images.map((item) => item.toString()).toList();
       } else if (images is Map) {
-        final ordered = images.entries.toList()..sort((a, b) => a.key.toString().compareTo(b.key.toString()));
-        entryMap['images'] = ordered.map((item) => item.value.toString()).toList();
+        final ordered = images.entries.toList()
+          ..sort((a, b) => a.key.toString().compareTo(b.key.toString()));
+        entryMap['images'] = ordered
+            .map((item) => item.value.toString())
+            .toList();
       } else {
         entryMap['images'] = const <String>[];
       }
@@ -109,8 +130,11 @@ class ProductRealtimeService {
       if (sizes is List) {
         entryMap['sizes'] = sizes.map((item) => item.toString()).toList();
       } else if (sizes is Map) {
-        final ordered = sizes.entries.toList()..sort((a, b) => a.key.toString().compareTo(b.key.toString()));
-        entryMap['sizes'] = ordered.map((item) => item.value.toString()).toList();
+        final ordered = sizes.entries.toList()
+          ..sort((a, b) => a.key.toString().compareTo(b.key.toString()));
+        entryMap['sizes'] = ordered
+            .map((item) => item.value.toString())
+            .toList();
       } else {
         entryMap['sizes'] = const <String>[];
       }
@@ -131,7 +155,9 @@ class ProductRealtimeService {
   }
 
   Stream<List<Product>> watchAll() {
-    return _productsRef.onValue.map((event) => productsFromPayload(event.snapshot.value));
+    return _productsRef.onValue.map(
+      (event) => productsFromPayload(event.snapshot.value),
+    );
   }
 
   Future<void> save(Product product) async {

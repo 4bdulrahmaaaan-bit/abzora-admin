@@ -12,8 +12,8 @@ class LocationProvider with ChangeNotifier {
   LocationProvider({
     DatabaseService? databaseService,
     LocationService? locationService,
-  })  : _db = databaseService ?? DatabaseService(),
-        _locationService = locationService ?? LocationService();
+  }) : _db = databaseService ?? DatabaseService(),
+       _locationService = locationService ?? LocationService();
 
   static const double defaultRadiusKm = 10;
   static const List<double> radiusOptionsKm = [10, 25, 50];
@@ -50,15 +50,24 @@ class LocationProvider with ChangeNotifier {
   double get radiusKm => _radiusKm;
   bool get isLocationLoading => _isLoading;
   bool get locationPermissionBlocked =>
-      _status == LocationStatus.permissionDenied || _status == LocationStatus.permissionDeniedForever;
+      _status == LocationStatus.permissionDenied ||
+      _status == LocationStatus.permissionDeniedForever;
   bool get locationServiceDisabled => _status == LocationStatus.serviceDisabled;
   bool get isManualLocation => _isManualLocation;
   bool get isUsingNearestFallback => _isUsingNearestFallback;
-  bool get hasResolvedLocation => _userPosition != null || _resolvedAddress != null;
+  bool get hasResolvedLocation =>
+      _userPosition != null || _resolvedAddress != null;
   List<String> get manualCities => _manualCities.keys.toList(growable: false);
-  String get displayAddress => _resolvedAddress?.address.trim().isNotEmpty == true ? _resolvedAddress!.address : _activeLocation;
-  String get displayArea => _resolvedAddress?.area.trim().isNotEmpty == true ? _resolvedAddress!.area : _activeLocation;
-  String get displayCity => _resolvedAddress?.city.trim().isNotEmpty == true ? _resolvedAddress!.city : _activeLocation;
+  String get displayAddress =>
+      _resolvedAddress?.address.trim().isNotEmpty == true
+      ? _resolvedAddress!.address
+      : _activeLocation;
+  String get displayArea => _resolvedAddress?.area.trim().isNotEmpty == true
+      ? _resolvedAddress!.area
+      : _activeLocation;
+  String get displayCity => _resolvedAddress?.city.trim().isNotEmpty == true
+      ? _resolvedAddress!.city
+      : _activeLocation;
   String get displayPincode {
     final resolved = _resolvedAddress?.postalCode.trim() ?? '';
     if (resolved.isNotEmpty) {
@@ -75,8 +84,8 @@ class LocationProvider with ChangeNotifier {
     final destination = locality.isNotEmpty
         ? locality
         : city.isNotEmpty
-            ? city
-            : _activeLocation;
+        ? city
+        : _activeLocation;
     return 'Delivering to $destination';
   }
 
@@ -93,12 +102,9 @@ class LocationProvider with ChangeNotifier {
     final destination = locality.isNotEmpty
         ? locality
         : city.isNotEmpty
-            ? city
-            : _activeLocation;
-    return DeliveryHeaderCopy(
-      title: destination,
-      subtitle: '',
-    );
+        ? city
+        : _activeLocation;
+    return DeliveryHeaderCopy(title: destination, subtitle: '');
   }
 
   String deliverySubline() {
@@ -117,7 +123,10 @@ class LocationProvider with ChangeNotifier {
     updateStores(stores, notify: false);
 
     if (!forceRefresh && _currentUser != null) {
-      final appliedSaved = _applySavedUserLocation(_currentUser!, notify: false);
+      final appliedSaved = _applySavedUserLocation(
+        _currentUser!,
+        notify: false,
+      );
       if (appliedSaved) {
         _recalculateNearbyStores();
         notifyListeners();
@@ -233,7 +242,11 @@ class LocationProvider with ChangeNotifier {
             : _activeLocation;
         _errorMessage = null;
         _recalculateNearbyStores();
-        await _persistLocation(_activeLocation, _resolvedAddress, _userPosition!);
+        await _persistLocation(
+          _activeLocation,
+          _resolvedAddress,
+          _userPosition!,
+        );
       } else if (_currentUser != null &&
           _applySavedUserLocation(_currentUser!, notify: false)) {
         _errorMessage = result.message ?? 'Using your saved delivery location.';
@@ -268,17 +281,24 @@ class LocationProvider with ChangeNotifier {
   Future<void> startLocationUpdates({AppUser? user}) async {
     _currentUser = user ?? _currentUser;
     await _positionSubscription?.cancel();
-    _positionSubscription = _locationService.watchLocation(distanceFilter: 250).listen((position) async {
-      _userPosition = position;
-      _resolvedAddress = await _locationService.reverseGeocode(position.latitude, position.longitude);
-      _activeLocation = _resolvedAddress?.city.trim().isNotEmpty == true ? _resolvedAddress!.city : _activeLocation;
-      _status = LocationStatus.success;
-      _isManualLocation = false;
-      _errorMessage = null;
-      _recalculateNearbyStores();
-      notifyListeners();
-      await _persistLocation(_activeLocation, _resolvedAddress, position);
-    });
+    _positionSubscription = _locationService
+        .watchLocation(distanceFilter: 250)
+        .listen((position) async {
+          _userPosition = position;
+          _resolvedAddress = await _locationService.reverseGeocode(
+            position.latitude,
+            position.longitude,
+          );
+          _activeLocation = _resolvedAddress?.city.trim().isNotEmpty == true
+              ? _resolvedAddress!.city
+              : _activeLocation;
+          _status = LocationStatus.success;
+          _isManualLocation = false;
+          _errorMessage = null;
+          _recalculateNearbyStores();
+          notifyListeners();
+          await _persistLocation(_activeLocation, _resolvedAddress, position);
+        });
     _isWatchingLocation = true;
   }
 
@@ -288,9 +308,11 @@ class LocationProvider with ChangeNotifier {
     _isWatchingLocation = false;
   }
 
-  Future<bool> openSystemLocationSettings() => _locationService.openSystemLocationSettings();
+  Future<bool> openSystemLocationSettings() =>
+      _locationService.openSystemLocationSettings();
 
-  Future<bool> openSystemAppSettings() => _locationService.openSystemAppSettings();
+  Future<bool> openSystemAppSettings() =>
+      _locationService.openSystemAppSettings();
 
   bool _applySavedUserLocation(AppUser user, {bool notify = true}) {
     final hasCoordinates = user.latitude != null && user.longitude != null;
@@ -302,9 +324,13 @@ class LocationProvider with ChangeNotifier {
     }
 
     _activeLocation = savedCity.isNotEmpty ? savedCity : _activeLocation;
-    _radiusKm = radiusOptionsKm.contains(user.deliveryRadiusKm) ? user.deliveryRadiusKm : defaultRadiusKm;
+    _radiusKm = radiusOptionsKm.contains(user.deliveryRadiusKm)
+        ? user.deliveryRadiusKm
+        : defaultRadiusKm;
     _resolvedAddress = LocationAddress(
-      address: (user.address ?? '').trim().isEmpty ? _activeLocation : user.address!.trim(),
+      address: (user.address ?? '').trim().isEmpty
+          ? _activeLocation
+          : user.address!.trim(),
       area: user.area?.trim() ?? '',
       city: savedCity,
       state: 'Tamil Nadu',
@@ -314,7 +340,8 @@ class LocationProvider with ChangeNotifier {
       _userPosition = Position(
         longitude: user.longitude!,
         latitude: user.latitude!,
-        timestamp: DateTime.tryParse(user.locationUpdatedAt ?? '') ?? DateTime.now(),
+        timestamp:
+            DateTime.tryParse(user.locationUpdatedAt ?? '') ?? DateTime.now(),
         accuracy: 20,
         altitude: 0,
         altitudeAccuracy: 0,
@@ -326,7 +353,8 @@ class LocationProvider with ChangeNotifier {
       _status = LocationStatus.success;
       _isManualLocation = false;
     } else {
-      final manual = _manualCities[_activeLocation] ?? _manualCities.values.first;
+      final manual =
+          _manualCities[_activeLocation] ?? _manualCities.values.first;
       _userPosition = Position(
         longitude: manual.longitude,
         latitude: manual.latitude,
@@ -384,8 +412,11 @@ class LocationProvider with ChangeNotifier {
       deliveryRadiusKm: _radiusKm,
       city: displayCity,
       address: _resolvedAddress?.address ?? currentUser.address,
-      area: _resolvedAddress?.area.isNotEmpty == true ? _resolvedAddress!.area : currentUser.area,
-      locationUpdatedAt: currentUser.locationUpdatedAt ?? DateTime.now().toIso8601String(),
+      area: _resolvedAddress?.area.isNotEmpty == true
+          ? _resolvedAddress!.area
+          : currentUser.area,
+      locationUpdatedAt:
+          currentUser.locationUpdatedAt ?? DateTime.now().toIso8601String(),
     );
     _currentUser = updated;
     try {
@@ -422,7 +453,9 @@ class LocationProvider with ChangeNotifier {
     }
 
     distances.sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
-    final filtered = distances.where((store) => store.distanceKm <= _radiusKm).toList();
+    final filtered = distances
+        .where((store) => store.distanceKm <= _radiusKm)
+        .toList();
     if (filtered.isNotEmpty) {
       _nearbyStores = filtered;
       _isUsingNearestFallback = false;
@@ -476,10 +509,7 @@ class DeliveryHeaderCopy {
   final String title;
   final String subtitle;
 
-  const DeliveryHeaderCopy({
-    required this.title,
-    required this.subtitle,
-  });
+  const DeliveryHeaderCopy({required this.title, required this.subtitle});
 }
 
 class _ManualCity {
@@ -489,5 +519,3 @@ class _ManualCity {
 
   const _ManualCity(this.city, this.latitude, this.longitude);
 }
-
-

@@ -25,7 +25,7 @@ class TbybAddressScreen extends StatefulWidget {
 
 class _TbybAddressScreenState extends State<TbybAddressScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _addressLine1Controller;
@@ -37,18 +37,26 @@ class _TbybAddressScreenState extends State<TbybAddressScreen> {
   void initState() {
     super.initState();
     final auth = context.read<AuthProvider>();
-    
+
     _nameController = TextEditingController(text: auth.user?.name ?? '');
     _phoneController = TextEditingController(text: auth.user?.phone ?? '');
-    
+
     // Split address if exists
     final fullAddress = auth.user?.address ?? '';
     final parts = fullAddress.split(',');
-    
-    _addressLine1Controller = TextEditingController(text: parts.isNotEmpty ? parts[0].trim() : '');
-    _addressLine2Controller = TextEditingController(text: parts.length > 1 ? parts[1].trim() : '');
-    _landmarkController = TextEditingController(text: parts.length > 2 ? parts[2].trim() : '');
-    _pincodeController = TextEditingController(text: parts.length > 3 ? parts[3].trim() : '');
+
+    _addressLine1Controller = TextEditingController(
+      text: parts.isNotEmpty ? parts[0].trim() : '',
+    );
+    _addressLine2Controller = TextEditingController(
+      text: parts.length > 1 ? parts[1].trim() : '',
+    );
+    _landmarkController = TextEditingController(
+      text: parts.length > 2 ? parts[2].trim() : '',
+    );
+    _pincodeController = TextEditingController(
+      text: parts.length > 3 ? parts[3].trim() : '',
+    );
   }
 
   @override
@@ -64,8 +72,10 @@ class _TbybAddressScreenState extends State<TbybAddressScreen> {
 
   void _onContinue() {
     if (_formKey.currentState?.validate() ?? false) {
-      final addressLabel = '${_addressLine1Controller.text}, ${_addressLine2Controller.text}, ${_landmarkController.text}, ${_pincodeController.text}'.replaceAll(', ,', ',');
-      
+      final addressLabel =
+          '${_addressLine1Controller.text}, ${_addressLine2Controller.text}, ${_landmarkController.text}, ${_pincodeController.text}'
+              .replaceAll(', ,', ',');
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -101,20 +111,31 @@ class _TbybAddressScreenState extends State<TbybAddressScreen> {
                 children: [
                   Text(
                     'Contact Details',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  _buildTextField('Full Name', _nameController, TextInputType.name),
+                  _buildTextField(
+                    'Full Name',
+                    _nameController,
+                    TextInputType.name,
+                  ),
                   const SizedBox(height: 16),
-                  _buildTextField('Mobile Number', _phoneController, TextInputType.phone),
-                  
+                  _buildTextField(
+                    'Mobile Number',
+                    _phoneController,
+                    TextInputType.phone,
+                  ),
+
                   const SizedBox(height: 32),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         'Address Details',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       TextButton(
                         onPressed: () {}, // Mock for "Saved Addresses"
@@ -123,19 +144,41 @@ class _TbybAddressScreenState extends State<TbybAddressScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _buildTextField('Address Line 1 (Flat, House no., Building)', _addressLine1Controller, TextInputType.streetAddress),
+                  _buildTextField(
+                    'Address Line 1 (Flat, House no., Building)',
+                    _addressLine1Controller,
+                    TextInputType.streetAddress,
+                  ),
                   const SizedBox(height: 16),
-                  _buildTextField('Address Line 2 (Area, Street, Sector)', _addressLine2Controller, TextInputType.streetAddress),
+                  _buildTextField(
+                    'Address Line 2 (Area, Street, Sector)',
+                    _addressLine2Controller,
+                    TextInputType.streetAddress,
+                  ),
                   const SizedBox(height: 16),
-                  _buildTextField('Landmark (Optional)', _landmarkController, TextInputType.text, isOptional: true),
+                  _buildTextField(
+                    'Landmark (Optional)',
+                    _landmarkController,
+                    TextInputType.text,
+                    isOptional: true,
+                  ),
                   const SizedBox(height: 16),
-                  _buildTextField('Pincode', _pincodeController, TextInputType.number),
+                  _buildTextField(
+                    'Pincode',
+                    _pincodeController,
+                    TextInputType.number,
+                  ),
                 ],
               ),
             ),
           ),
           Container(
-            padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(context).padding.bottom + 16,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -151,11 +194,17 @@ class _TbybAddressScreenState extends State<TbybAddressScreen> {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(56),
                 backgroundColor: AbzioTheme.accentColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: const Text(
                 'Continue',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -164,7 +213,12 @@ class _TbybAddressScreenState extends State<TbybAddressScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, TextInputType type, {bool isOptional = false}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller,
+    TextInputType type, {
+    bool isOptional = false,
+  }) {
     return TextFormField(
       controller: controller,
       keyboardType: type,

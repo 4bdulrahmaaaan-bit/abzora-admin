@@ -544,4 +544,3 @@ class _RazorpayOrderPayload {
   final String currency;
   final int amountInPaise;
 }
-

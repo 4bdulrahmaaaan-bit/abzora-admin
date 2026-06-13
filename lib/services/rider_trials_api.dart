@@ -82,7 +82,10 @@ class RiderTrialsApi {
     throw StateError('Failed to fetch completed trials.');
   }
 
-  static Future<TrialSession> arriveTrial(String id, TrialSession currentSession) async {
+  static Future<TrialSession> arriveTrial(
+    String id,
+    TrialSession currentSession,
+  ) async {
     final connectivity = await Connectivity().checkConnectivity();
     if (connectivity.contains(ConnectivityResult.none)) {
       await OfflineActionQueue.enqueue(
@@ -90,9 +93,7 @@ class RiderTrialsApi {
         method: 'POST',
         payload: {},
       );
-      return currentSession.copyWith(
-        arrivedAt: ServerTimeOffset().now,
-      );
+      return currentSession.copyWith(arrivedAt: ServerTimeOffset().now);
     }
 
     final response = await http.post(
@@ -110,7 +111,10 @@ class RiderTrialsApi {
     throw StateError('Failed to mark arrival.');
   }
 
-  static Future<TrialSession> startTrial(String id, TrialSession currentSession) async {
+  static Future<TrialSession> startTrial(
+    String id,
+    TrialSession currentSession,
+  ) async {
     final connectivity = await Connectivity().checkConnectivity();
     if (connectivity.contains(ConnectivityResult.none)) {
       await OfflineActionQueue.enqueue(
@@ -139,7 +143,11 @@ class RiderTrialsApi {
     throw StateError('Failed to start trial.');
   }
 
-  static Future<Map<String, dynamic>> calculateCheckout(String id, List<String> itemsKept, List<String> itemsReturned) async {
+  static Future<Map<String, dynamic>> calculateCheckout(
+    String id,
+    List<String> itemsKept,
+    List<String> itemsReturned,
+  ) async {
     final headers = await _headers();
     headers['Content-Type'] = 'application/json';
 
@@ -214,17 +222,18 @@ class RiderTrialsApi {
     throw StateError('Failed to complete trial.');
   }
 
-  static Future<TrialSession> noShowTrial(String id, String notes, List<String> proofPhotos) async {
+  static Future<TrialSession> noShowTrial(
+    String id,
+    String notes,
+    List<String> proofPhotos,
+  ) async {
     final headers = await _headers();
     headers['Content-Type'] = 'application/json';
 
     final response = await http.post(
       Uri.parse('${AppConfig.backendBaseUrl}/api/rider/trials/$id/no-show'),
       headers: headers,
-      body: jsonEncode({
-        'notes': notes,
-        'proofPhotos': proofPhotos,
-      }),
+      body: jsonEncode({'notes': notes, 'proofPhotos': proofPhotos}),
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {

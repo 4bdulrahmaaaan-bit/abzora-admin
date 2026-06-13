@@ -135,13 +135,25 @@ class _AdminDisputesSectionState extends State<AdminDisputesSection> {
         const SizedBox(height: 24),
         Row(
           children: [
-            _buildStatCard('Open Disputes', _dashboardStats['openDisputes']?.toString() ?? '-'),
+            _buildStatCard(
+              'Open Disputes',
+              _dashboardStats['openDisputes']?.toString() ?? '-',
+            ),
             const SizedBox(width: 16),
-            _buildStatCard('Escalated Cases', _dashboardStats['escalatedCases']?.toString() ?? '-'),
+            _buildStatCard(
+              'Escalated Cases',
+              _dashboardStats['escalatedCases']?.toString() ?? '-',
+            ),
             const SizedBox(width: 16),
-            _buildStatCard('Resolved Today', _dashboardStats['resolvedToday']?.toString() ?? '-'),
+            _buildStatCard(
+              'Resolved Today',
+              _dashboardStats['resolvedToday']?.toString() ?? '-',
+            ),
             const SizedBox(width: 16),
-            _buildStatCard('Avg Resolution Time', _dashboardStats['avgResolutionTime']?.toString() ?? '-'),
+            _buildStatCard(
+              'Avg Resolution Time',
+              _dashboardStats['avgResolutionTime']?.toString() ?? '-',
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -153,13 +165,28 @@ class _AdminDisputesSectionState extends State<AdminDisputesSection> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: _filterStatus,
-                    decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                      labelText: 'Status',
+                      border: OutlineInputBorder(),
+                    ),
                     items: const [
-                      DropdownMenuItem(value: null, child: Text('All Statuses')),
+                      DropdownMenuItem(
+                        value: null,
+                        child: Text('All Statuses'),
+                      ),
                       DropdownMenuItem(value: 'Open', child: Text('Open')),
-                      DropdownMenuItem(value: 'Investigating', child: Text('Investigating')),
-                      DropdownMenuItem(value: 'Escalated', child: Text('Escalated')),
-                      DropdownMenuItem(value: 'Resolved', child: Text('Resolved')),
+                      DropdownMenuItem(
+                        value: 'Investigating',
+                        child: Text('Investigating'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Escalated',
+                        child: Text('Escalated'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Resolved',
+                        child: Text('Resolved'),
+                      ),
                       DropdownMenuItem(value: 'Closed', child: Text('Closed')),
                     ],
                     onChanged: (v) => setState(() => _filterStatus = v),
@@ -169,13 +196,22 @@ class _AdminDisputesSectionState extends State<AdminDisputesSection> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: _filterPriority,
-                    decoration: const InputDecoration(labelText: 'Priority', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                      labelText: 'Priority',
+                      border: OutlineInputBorder(),
+                    ),
                     items: const [
-                      DropdownMenuItem(value: null, child: Text('All Priorities')),
+                      DropdownMenuItem(
+                        value: null,
+                        child: Text('All Priorities'),
+                      ),
                       DropdownMenuItem(value: 'Low', child: Text('Low')),
                       DropdownMenuItem(value: 'Medium', child: Text('Medium')),
                       DropdownMenuItem(value: 'High', child: Text('High')),
-                      DropdownMenuItem(value: 'Critical', child: Text('Critical')),
+                      DropdownMenuItem(
+                        value: 'Critical',
+                        child: Text('Critical'),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _filterPriority = v),
                   ),
@@ -186,7 +222,10 @@ class _AdminDisputesSectionState extends State<AdminDisputesSection> {
                   icon: const Icon(Icons.search),
                   label: const Text('Filter'),
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
                   ),
                 ),
               ],
@@ -198,107 +237,143 @@ class _AdminDisputesSectionState extends State<AdminDisputesSection> {
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _error.isNotEmpty
-                  ? Center(child: Text('Error: $_error'))
-                  : _disputes.isEmpty
-                      ? const AbzioEmptyCard(
-                          title: 'No disputes found',
-                          subtitle: 'Your queue is empty.',
-                        )
-                      : Card(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Text(
-                                  'Showing ${_disputes.length} of $_totalCount disputes',
-                                  style: context.abzioText.titleMedium,
-                                ),
-                              ),
-                              const Divider(height: 1),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: SingleChildScrollView(
-                                    child: DataTable(
-                                      showCheckboxColumn: false,
-                                      columns: const [
-                                        DataColumn(label: Text('ID')),
-                                        DataColumn(label: Text('Type')),
-                                        DataColumn(label: Text('Priority')),
-                                        DataColumn(label: Text('Status')),
-                                        DataColumn(label: Text('Customer')),
-                                        DataColumn(label: Text('Vendor')),
-                                        DataColumn(label: Text('Rider')),
-                                        DataColumn(label: Text('Created')),
-                                      ],
-                                      rows: _disputes.map((dispute) {
-                                        return DataRow(
-                                          onSelectChanged: (_) => _openDetails(dispute),
-                                          cells: [
-                                            DataCell(Text(dispute.id)),
-                                            DataCell(Text(dispute.type)),
-                                            DataCell(
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                decoration: BoxDecoration(
-                                                  color: _getPriorityColor(dispute.priority).withValues(alpha: 0.1),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                child: Text(
-                                                  dispute.priority,
-                                                  style: TextStyle(color: _getPriorityColor(dispute.priority), fontWeight: FontWeight.bold),
-                                                ),
-                                              ),
+              ? Center(child: Text('Error: $_error'))
+              : _disputes.isEmpty
+              ? const AbzioEmptyCard(
+                  title: 'No disputes found',
+                  subtitle: 'Your queue is empty.',
+                )
+              : Card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'Showing ${_disputes.length} of $_totalCount disputes',
+                          style: context.abzioText.titleMedium,
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SingleChildScrollView(
+                            child: DataTable(
+                              showCheckboxColumn: false,
+                              columns: const [
+                                DataColumn(label: Text('ID')),
+                                DataColumn(label: Text('Type')),
+                                DataColumn(label: Text('Priority')),
+                                DataColumn(label: Text('Status')),
+                                DataColumn(label: Text('Customer')),
+                                DataColumn(label: Text('Vendor')),
+                                DataColumn(label: Text('Rider')),
+                                DataColumn(label: Text('Created')),
+                              ],
+                              rows: _disputes.map((dispute) {
+                                return DataRow(
+                                  onSelectChanged: (_) => _openDetails(dispute),
+                                  cells: [
+                                    DataCell(Text(dispute.id)),
+                                    DataCell(Text(dispute.type)),
+                                    DataCell(
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _getPriorityColor(
+                                            dispute.priority,
+                                          ).withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          dispute.priority,
+                                          style: TextStyle(
+                                            color: _getPriorityColor(
+                                              dispute.priority,
                                             ),
-                                            DataCell(Text(dispute.status)),
-                                            DataCell(Text(dispute.userId.isEmpty ? '-' : dispute.userId)),
-                                            DataCell(Text(dispute.storeId.isEmpty ? '-' : dispute.storeId)),
-                                            DataCell(Text(dispute.riderId.isEmpty ? '-' : dispute.riderId)),
-                                            DataCell(Text(dispute.createdAt.toString().split(' ')[0])),
-                                          ],
-                                        );
-                                      }).toList(),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ),
-                              const Divider(height: 1),
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('Page $_currentPage of $_totalPages'),
-                                    Row(
-                                      children: [
-                                        OutlinedButton(
-                                          onPressed: _currentPage > 1
-                                              ? () {
-                                                  setState(() => _currentPage--);
-                                                  _fetchDisputes();
-                                                }
-                                              : null,
-                                          child: const Text('Previous'),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        OutlinedButton(
-                                          onPressed: _currentPage < _totalPages
-                                              ? () {
-                                                  setState(() => _currentPage++);
-                                                  _fetchDisputes();
-                                                }
-                                              : null,
-                                          child: const Text('Next'),
-                                        ),
-                                      ],
+                                    DataCell(Text(dispute.status)),
+                                    DataCell(
+                                      Text(
+                                        dispute.userId.isEmpty
+                                            ? '-'
+                                            : dispute.userId,
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        dispute.storeId.isEmpty
+                                            ? '-'
+                                            : dispute.storeId,
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        dispute.riderId.isEmpty
+                                            ? '-'
+                                            : dispute.riderId,
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        dispute.createdAt.toString().split(
+                                          ' ',
+                                        )[0],
+                                      ),
                                     ),
                                   ],
-                                ),
-                              ),
-                            ],
+                                );
+                              }).toList(),
+                            ),
                           ),
                         ),
+                      ),
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Page $_currentPage of $_totalPages'),
+                            Row(
+                              children: [
+                                OutlinedButton(
+                                  onPressed: _currentPage > 1
+                                      ? () {
+                                          setState(() => _currentPage--);
+                                          _fetchDisputes();
+                                        }
+                                      : null,
+                                  child: const Text('Previous'),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton(
+                                  onPressed: _currentPage < _totalPages
+                                      ? () {
+                                          setState(() => _currentPage++);
+                                          _fetchDisputes();
+                                        }
+                                      : null,
+                                  child: const Text('Next'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );
@@ -339,7 +414,10 @@ class _DisputeDetailsDialog extends StatefulWidget {
   final AdminDispute dispute;
   final ValueChanged<AdminDispute> onDisputeUpdated;
 
-  const _DisputeDetailsDialog({required this.dispute, required this.onDisputeUpdated});
+  const _DisputeDetailsDialog({
+    required this.dispute,
+    required this.onDisputeUpdated,
+  });
 
   @override
   State<_DisputeDetailsDialog> createState() => _DisputeDetailsDialogState();
@@ -371,7 +449,10 @@ class _DisputeDetailsDialogState extends State<_DisputeDetailsDialog> {
   Future<void> _resolve() async {
     setState(() => _isSaving = true);
     try {
-      final updated = await AdminDisputesApi.resolveDispute(_dispute.id, resolutionDetails: 'Resolved from UI');
+      final updated = await AdminDisputesApi.resolveDispute(
+        _dispute.id,
+        resolutionDetails: 'Resolved from UI',
+      );
       setState(() => _dispute = updated);
       widget.onDisputeUpdated(updated);
     } catch (e) {
@@ -402,38 +483,58 @@ class _DisputeDetailsDialogState extends State<_DisputeDetailsDialog> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text('Type: ${_dispute.type}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      'Type: ${_dispute.type}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     Text('Reason: ${_dispute.reason}'),
                     const SizedBox(height: 16),
-                    const Text('Entities Involved:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Entities Involved:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     Text('Customer: ${_dispute.userId}'),
                     Text('Vendor: ${_dispute.storeId}'),
                     Text('Rider: ${_dispute.riderId}'),
                     Text('Order: ${_dispute.orderId}'),
                     const Divider(),
-                    const Text('Timeline:', style: TextStyle(fontWeight: FontWeight.bold)),
-                    if (_dispute.timeline.isEmpty) const Text('No timeline events yet.'),
-                    ..._dispute.timeline.map((t) => ListTile(
-                          dense: true,
-                          title: Text(t['action'] ?? ''),
-                          subtitle: Text(t['note'] ?? ''),
-                          trailing: Text(t['timestamp'] ?? ''),
-                        )),
+                    const Text(
+                      'Timeline:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    if (_dispute.timeline.isEmpty)
+                      const Text('No timeline events yet.'),
+                    ..._dispute.timeline.map(
+                      (t) => ListTile(
+                        dense: true,
+                        title: Text(t['action'] ?? ''),
+                        subtitle: Text(t['note'] ?? ''),
+                        trailing: Text(t['timestamp'] ?? ''),
+                      ),
+                    ),
                     const Divider(),
-                    const Text('Resolution History:', style: TextStyle(fontWeight: FontWeight.bold)),
-                    if (_dispute.resolutionHistory.isEmpty) const Text('No resolution history.'),
-                    ..._dispute.resolutionHistory.map((h) => ListTile(
-                          dense: true,
-                          title: Text(h['resolutionDetails'] ?? ''),
-                          subtitle: Text('By: ${h['resolvedBy']}'),
-                          trailing: Text(h['timestamp'] ?? ''),
-                        )),
+                    const Text(
+                      'Resolution History:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    if (_dispute.resolutionHistory.isEmpty)
+                      const Text('No resolution history.'),
+                    ..._dispute.resolutionHistory.map(
+                      (h) => ListTile(
+                        dense: true,
+                        title: Text(h['resolutionDetails'] ?? ''),
+                        subtitle: Text('By: ${h['resolvedBy']}'),
+                        trailing: Text(h['timestamp'] ?? ''),
+                      ),
+                    ),
                   ],
                 ),
               ),
       ),
       actions: [
-        if (_dispute.status != 'Escalated' && _dispute.status != 'Resolved' && _dispute.status != 'Closed')
+        if (_dispute.status != 'Escalated' &&
+            _dispute.status != 'Resolved' &&
+            _dispute.status != 'Closed')
           TextButton(
             onPressed: _isSaving ? null : _escalate,
             style: TextButton.styleFrom(foregroundColor: Colors.red),

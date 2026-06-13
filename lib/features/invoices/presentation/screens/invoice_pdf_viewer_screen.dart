@@ -13,10 +13,12 @@ class InvoicePdfViewerScreen extends ConsumerStatefulWidget {
   final String invoiceId;
 
   @override
-  ConsumerState<InvoicePdfViewerScreen> createState() => _InvoicePdfViewerScreenState();
+  ConsumerState<InvoicePdfViewerScreen> createState() =>
+      _InvoicePdfViewerScreenState();
 }
 
-class _InvoicePdfViewerScreenState extends ConsumerState<InvoicePdfViewerScreen> {
+class _InvoicePdfViewerScreenState
+    extends ConsumerState<InvoicePdfViewerScreen> {
   String _url = '';
   File? _localFile;
   bool _loading = true;
@@ -46,7 +48,10 @@ class _InvoicePdfViewerScreenState extends ConsumerState<InvoicePdfViewerScreen>
         });
         return;
       }
-      final file = await manager.downloadToAppStorage(id: widget.invoiceId, url: url);
+      final file = await manager.downloadToAppStorage(
+        id: widget.invoiceId,
+        url: url,
+      );
       setState(() {
         _localFile = file;
         _url = url;
@@ -66,55 +71,55 @@ class _InvoicePdfViewerScreenState extends ConsumerState<InvoicePdfViewerScreen>
       appBar: AppBar(
         title: const Text('Invoice PDF'),
         actions: [
-          IconButton(
-            onPressed: _load,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
+          IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
         ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error.isNotEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Unable to open invoice PDF.\n$_error', textAlign: TextAlign.center),
-                        const SizedBox(height: 12),
-                        FilledButton(
-                          onPressed: _load,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : Stack(
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Positioned.fill(
-                      child: _localFile != null
-                          ? SfPdfViewer.file(_localFile!)
-                          : SfPdfViewer.network(_url),
+                    Text(
+                      'Unable to open invoice PDF.\n$_error',
+                      textAlign: TextAlign.center,
                     ),
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.70),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Text(
-                          'Verified PDF',
-                          style: TextStyle(color: Colors.white, fontSize: 12),
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(onPressed: _load, child: const Text('Retry')),
                   ],
                 ),
+              ),
+            )
+          : Stack(
+              children: [
+                Positioned.fill(
+                  child: _localFile != null
+                      ? SfPdfViewer.file(_localFile!)
+                      : SfPdfViewer.network(_url),
+                ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.70),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Text(
+                      'Verified PDF',
+                      style: TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }

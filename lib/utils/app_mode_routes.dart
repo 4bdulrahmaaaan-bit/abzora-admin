@@ -253,4 +253,3 @@ String? accessRestrictionMessage(AppUser? user, AbzioAppMode mode) {
 bool isBuildScopeRestrictionMessage(String message) {
   return message.startsWith('This build is for ');
 }
-

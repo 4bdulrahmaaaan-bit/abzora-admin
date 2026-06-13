@@ -27,7 +27,7 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
   String _selectedPaymentMethod = 'UPI';
   bool _isProcessing = false;
   bool _isSuccess = false;
-  
+
   double get _subtotal {
     double total = 0;
     for (final id in widget.keptItems) {
@@ -69,9 +69,13 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
         final paymentResult = await PaymentService().processCheckout(
           context: context,
           userId: currentUser.id,
-          name: currentUser.name.trim().isEmpty ? 'Abianzo Member' : currentUser.name.trim(),
+          name: currentUser.name.trim().isEmpty
+              ? 'Abianzo Member'
+              : currentUser.name.trim(),
           amount: amountToPay,
-          email: currentUser.email.isEmpty ? 'guest@abianzo.app' : currentUser.email,
+          email: currentUser.email.isEmpty
+              ? 'guest@abianzo.app'
+              : currentUser.email,
           contact: currentUser.phone ?? '9999999999',
           description: 'Try Before You Buy Final Bill',
         );
@@ -137,7 +141,10 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                const Text('Products Kept', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Text(
+                  'Products Kept',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -151,17 +158,26 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
                       if (widget.keptItems.isEmpty)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text('No items kept. The rider will take all items back.'),
+                          child: Text(
+                            'No items kept. The rider will take all items back.',
+                          ),
                         ),
                       ...widget.keptItems.map((id) {
-                        final item = widget.session.items.firstWhere((i) => i.productId == id);
+                        final item = widget.session.items.firstWhere(
+                          (i) => i.productId == id,
+                        );
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
-                                child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+                                child: Text(
+                                  item.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ),
                               Text('₹${item.price.toStringAsFixed(0)}'),
                             ],
@@ -184,8 +200,14 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('₹99 Trial Booking Fee. Adjusted on purchase.', style: TextStyle(color: Colors.green)),
-                            const Text('-₹99', style: TextStyle(color: Colors.green)),
+                            const Text(
+                              '₹99 Trial Booking Fee. Adjusted on purchase.',
+                              style: TextStyle(color: Colors.green),
+                            ),
+                            const Text(
+                              '-₹99',
+                              style: TextStyle(color: Colors.green),
+                            ),
                           ],
                         ),
                       ],
@@ -196,8 +218,20 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Final Amount', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text('₹${_finalAmount.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                          const Text(
+                            'Final Amount',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            '₹${_finalAmount.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -205,7 +239,10 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
                 ),
                 if (_subtotal > 0) ...[
                   const SizedBox(height: 32),
-                  const Text('Payment Methods', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text(
+                    'Payment Methods',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                   const SizedBox(height: 12),
                   Container(
                     decoration: BoxDecoration(
@@ -219,35 +256,42 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
                           title: 'UPI',
                           icon: Icons.qr_code_scanner,
                           selected: _selectedPaymentMethod == 'UPI',
-                          onTap: () => setState(() => _selectedPaymentMethod = 'UPI'),
+                          onTap: () =>
+                              setState(() => _selectedPaymentMethod = 'UPI'),
                         ),
                         const Divider(height: 1),
                         _PaymentMethodTile(
                           title: 'Credit Card',
                           icon: Icons.credit_card,
                           selected: _selectedPaymentMethod == 'Credit Card',
-                          onTap: () => setState(() => _selectedPaymentMethod = 'Credit Card'),
+                          onTap: () => setState(
+                            () => _selectedPaymentMethod = 'Credit Card',
+                          ),
                         ),
                         const Divider(height: 1),
                         _PaymentMethodTile(
                           title: 'Debit Card',
                           icon: Icons.credit_card,
                           selected: _selectedPaymentMethod == 'Debit Card',
-                          onTap: () => setState(() => _selectedPaymentMethod = 'Debit Card'),
+                          onTap: () => setState(
+                            () => _selectedPaymentMethod = 'Debit Card',
+                          ),
                         ),
                         const Divider(height: 1),
                         _PaymentMethodTile(
                           title: 'Wallet',
                           icon: Icons.account_balance_wallet,
                           selected: _selectedPaymentMethod == 'Wallet',
-                          onTap: () => setState(() => _selectedPaymentMethod = 'Wallet'),
+                          onTap: () =>
+                              setState(() => _selectedPaymentMethod = 'Wallet'),
                         ),
                         const Divider(height: 1),
                         _PaymentMethodTile(
                           title: 'Cash On Delivery',
                           icon: Icons.money,
                           selected: _selectedPaymentMethod == 'COD',
-                          onTap: () => setState(() => _selectedPaymentMethod = 'COD'),
+                          onTap: () =>
+                              setState(() => _selectedPaymentMethod = 'COD'),
                         ),
                       ],
                     ),
@@ -257,7 +301,12 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
             ),
           ),
           Container(
-            padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(context).padding.bottom + 16,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -273,16 +322,28 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(56),
                 backgroundColor: AbzioTheme.accentColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              child: _isProcessing 
+              child: _isProcessing
                   ? const SizedBox(
-                      width: 24, height: 24, 
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     )
                   : Text(
-                      _subtotal > 0 ? 'Pay ₹${_finalAmount.toStringAsFixed(0)}' : 'Confirm Return',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      _subtotal > 0
+                          ? 'Pay ₹${_finalAmount.toStringAsFixed(0)}'
+                          : 'Confirm Return',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
             ),
           ),
@@ -321,13 +382,18 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
               const SizedBox(height: 24),
               Text(
                 'Order Confirmed',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               Text(
                 'Thank you for shopping with ABZORA.\nThe products you selected have been confirmed.\nReturned products have been handed back to the rider.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AbzioTheme.grey600, height: 1.5),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AbzioTheme.grey600,
+                  height: 1.5,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
@@ -344,23 +410,38 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Items Purchased'),
-                        Text('${widget.keptItems.length}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          '${widget.keptItems.length}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(height: 1),
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Items Returned'),
-                        Text('${widget.returnedItems.length}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          '${widget.returnedItems.length}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(height: 1),
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Amount Paid'),
-                        Text('₹${_finalAmount.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          '₹${_finalAmount.toStringAsFixed(0)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
                   ],
@@ -378,11 +459,17 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
                   backgroundColor: AbzioTheme.accentColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: const Text(
                   'Continue Shopping',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -393,11 +480,17 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
                 },
                 style: TextButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: Text(
                   'View Order',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AbzioTheme.grey600),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AbzioTheme.grey600,
+                  ),
                 ),
               ),
             ],
@@ -431,7 +524,12 @@ class _PaymentMethodTile extends StatelessWidget {
           children: [
             Icon(icon, color: AbzioTheme.grey600),
             const SizedBox(width: 16),
-            Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w500))),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_off,
               color: selected ? AbzioTheme.accentColor : AbzioTheme.grey400,

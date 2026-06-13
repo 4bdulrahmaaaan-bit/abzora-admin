@@ -40,7 +40,9 @@ class _RiderPayoutsScreenState extends State<RiderPayoutsScreen> {
               future: _upcomingFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const AbzioLoadingView(title: 'Loading payout details');
+                  return const AbzioLoadingView(
+                    title: 'Loading payout details',
+                  );
                 }
                 final data = snapshot.data;
                 if (data == null) {
@@ -58,13 +60,18 @@ class _RiderPayoutsScreenState extends State<RiderPayoutsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Upcoming Payout', style: Theme.of(context).textTheme.titleMedium),
+                        Text(
+                          'Upcoming Payout',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           '₹${data['netPayout']}',
                           style: Theme.of(context).textTheme.headlineMedium,
                         ),
-                        Text('Status: ${data['status'].toString().toUpperCase()}'),
+                        Text(
+                          'Status: ${data['status'].toString().toUpperCase()}',
+                        ),
                       ],
                     ),
                   ),
@@ -72,7 +79,10 @@ class _RiderPayoutsScreenState extends State<RiderPayoutsScreen> {
               },
             ),
             const SizedBox(height: 24),
-            Text('Payout History', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Payout History',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             FutureBuilder<List<dynamic>>(
               future: _historyFuture,
@@ -83,13 +93,26 @@ class _RiderPayoutsScreenState extends State<RiderPayoutsScreen> {
                 final list = snapshot.data ?? [];
                 if (list.isEmpty) return const Text('No past settlements.');
                 return Column(
-                  children: list.map((s) => Card(
-                    child: ListTile(
-                      title: Text('Settlement ${s['_id'].toString().substring(0, 8)}'),
-                      subtitle: Text(s['status'].toString().toUpperCase()),
-                      trailing: Text('₹${s['netPayout']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  )).toList(),
+                  children: list
+                      .map(
+                        (s) => Card(
+                          child: ListTile(
+                            title: Text(
+                              'Settlement ${s['_id'].toString().substring(0, 8)}',
+                            ),
+                            subtitle: Text(
+                              s['status'].toString().toUpperCase(),
+                            ),
+                            trailing: Text(
+                              '₹${s['netPayout']}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 );
               },
             ),

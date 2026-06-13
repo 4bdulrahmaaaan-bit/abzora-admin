@@ -12,7 +12,8 @@ class NetworkProvider extends ChangeNotifier {
   bool _wasOffline = false;
 
   List<ConnectivityResult> get results => _results;
-  bool get isOffline => _results.every((item) => item == ConnectivityResult.none);
+  bool get isOffline =>
+      _results.every((item) => item == ConnectivityResult.none);
   bool get isOnline => !isOffline;
   bool get showStatusBanner => _showStatusBanner;
   bool get justCameOnline => isOnline && _wasOffline;
@@ -22,7 +23,9 @@ class NetworkProvider extends ChangeNotifier {
     try {
       _results = await _connectivity.checkConnectivity();
       _wasOffline = isOffline;
-      _subscription ??= _connectivity.onConnectivityChanged.listen(_handleConnectivityChanged);
+      _subscription ??= _connectivity.onConnectivityChanged.listen(
+        _handleConnectivityChanged,
+      );
       notifyListeners();
     } catch (error) {
       debugPrint('Network provider init failed: $error');

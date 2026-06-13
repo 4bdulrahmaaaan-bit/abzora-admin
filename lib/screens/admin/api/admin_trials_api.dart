@@ -58,10 +58,7 @@ class AdminTrialsApi {
 
   // ─── Trial Details ──────────────────────────────────────────────
   Future<Map<String, dynamic>> getTrial(String id) async {
-    final payload = await _client.get(
-      '/admin/trials/$id',
-      authenticated: true,
-    );
+    final payload = await _client.get('/admin/trials/$id', authenticated: true);
     return Map<String, dynamic>.from(payload as Map);
   }
 

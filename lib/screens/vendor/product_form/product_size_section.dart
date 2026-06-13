@@ -85,7 +85,8 @@ class ProductSizeSection extends StatelessWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     child: TextFormField(
-                      initialValue: controller.sizeQuantities[size]?.toString() ?? '0',
+                      initialValue:
+                          controller.sizeQuantities[size]?.toString() ?? '0',
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       onChanged: (val) {
@@ -100,7 +101,11 @@ class ProductSizeSection extends StatelessWidget {
                         hintText: 'Qty',
                         filled: true,
                         fillColor: Colors.white,
-                        prefixIcon: const Icon(Icons.inventory_2_outlined, size: 18, color: AbzioTheme.textSecondary),
+                        prefixIcon: const Icon(
+                          Icons.inventory_2_outlined,
+                          size: 18,
+                          color: AbzioTheme.textSecondary,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(color: AbzioTheme.lightBorder),
@@ -113,7 +118,10 @@ class ProductSizeSection extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(color: AbzioTheme.accentColor),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),

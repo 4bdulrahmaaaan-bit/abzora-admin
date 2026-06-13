@@ -69,7 +69,8 @@ class ImageUrlService {
           .replaceAll('"', '')
           .trim();
 
-      if (cleanedPart.startsWith('http://') || cleanedPart.startsWith('https://')) {
+      if (cleanedPart.startsWith('http://') ||
+          cleanedPart.startsWith('https://')) {
         if (current != null && current.isNotEmpty) {
           normalized.add(_sanitizeUrl(current));
         }

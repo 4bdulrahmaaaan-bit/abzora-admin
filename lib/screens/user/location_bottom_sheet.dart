@@ -498,12 +498,11 @@ class _DeliveryCard extends StatelessWidget {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall
-                            ?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF161616),
-                              fontSize: 13.5,
-                            ),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF161616),
+                          fontSize: 13.5,
+                        ),
                       ),
                     ),
                     if (isSelected) ...[
@@ -761,4 +760,3 @@ class _InlinePrompt extends StatelessWidget {
     );
   }
 }
-

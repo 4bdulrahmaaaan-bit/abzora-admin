@@ -65,7 +65,8 @@ class _AddCardScreenState extends State<AddCardScreen> {
     }
   }
 
-  String get _digitsOnlyNumber => _numberController.text.replaceAll(RegExp(r'\D'), '');
+  String get _digitsOnlyNumber =>
+      _numberController.text.replaceAll(RegExp(r'\D'), '');
 
   String get _cardBrand => _detectBrand(_digitsOnlyNumber);
 
@@ -87,7 +88,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
   String _detectBrand(String digits) {
     if (digits.startsWith('4')) return 'Visa';
     if (digits.startsWith('5')) return 'Mastercard';
-    if (digits.startsWith('60') || digits.startsWith('65') || digits.startsWith('81')) {
+    if (digits.startsWith('60') ||
+        digits.startsWith('65') ||
+        digits.startsWith('81')) {
       return 'RuPay';
     }
     if (digits.length >= 2) {
@@ -142,9 +145,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
 
     final user = context.read<AuthProvider>().user;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to save a card.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sign in to save a card.')));
       return;
     }
 
@@ -153,7 +156,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
       final result = await _paymentService.tokenizeCard(
         userId: user.id,
         name: _nameController.text.trim(),
-        email: user.email.trim().isNotEmpty ? user.email.trim() : '${user.id}@abianzo.app',
+        email: user.email.trim().isNotEmpty
+            ? user.email.trim()
+            : '${user.id}@abianzo.app',
         contact: user.phone ?? '',
       );
       if (!result.success || result.card == null) {
@@ -170,9 +175,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
       Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save card: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to save card: $error')));
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
@@ -180,7 +185,12 @@ class _AddCardScreenState extends State<AddCardScreen> {
     }
   }
 
-  InputDecoration _fieldDecoration(BuildContext context, String label, {String? hintText, Widget? suffixIcon}) {
+  InputDecoration _fieldDecoration(
+    BuildContext context,
+    String label, {
+    String? hintText,
+    Widget? suffixIcon,
+  }) {
     return InputDecoration(
       labelText: label,
       hintText: hintText,
@@ -219,8 +229,8 @@ class _AddCardScreenState extends State<AddCardScreen> {
                   Text(
                     'Card details',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -246,7 +256,8 @@ class _AddCardScreenState extends State<AddCardScreen> {
                             child: Text(
                               _cardBrand,
                               key: ValueKey(_cardBrand),
-                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(
                                     fontWeight: FontWeight.w800,
                                     color: AbzioTheme.accentColor,
                                   ),
@@ -264,7 +275,11 @@ class _AddCardScreenState extends State<AddCardScreen> {
                     focusNode: _nameFocus,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
-                    decoration: _fieldDecoration(context, 'Card Holder', hintText: 'Name on card'),
+                    decoration: _fieldDecoration(
+                      context,
+                      'Card Holder',
+                      hintText: 'Name on card',
+                    ),
                     validator: _validateName,
                     onFieldSubmitted: (_) => _expiryFocus.requestFocus(),
                   ),
@@ -282,7 +297,11 @@ class _AddCardScreenState extends State<AddCardScreen> {
                             LengthLimitingTextInputFormatter(4),
                             _ExpiryDateFormatter(),
                           ],
-                          decoration: _fieldDecoration(context, 'Expiry', hintText: 'MM/YY'),
+                          decoration: _fieldDecoration(
+                            context,
+                            'Expiry',
+                            hintText: 'MM/YY',
+                          ),
                           validator: _validateExpiry,
                           onFieldSubmitted: (_) => _cvvFocus.requestFocus(),
                         ),
@@ -299,7 +318,11 @@ class _AddCardScreenState extends State<AddCardScreen> {
                             FilteringTextInputFormatter.digitsOnly,
                             LengthLimitingTextInputFormatter(4),
                           ],
-                          decoration: _fieldDecoration(context, 'CVV', hintText: '•••'),
+                          decoration: _fieldDecoration(
+                            context,
+                            'CVV',
+                            hintText: '•••',
+                          ),
                           validator: _validateCvv,
                           onFieldSubmitted: (_) => _saveCard(),
                         ),
@@ -316,15 +339,21 @@ class _AddCardScreenState extends State<AddCardScreen> {
         bottomNavigationBar: AnimatedPadding(
           duration: AbzioMotion.medium,
           curve: AbzioMotion.curve,
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
           child: SafeArea(
             top: false,
             child: Container(
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
               decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.94),
+                color: Theme.of(
+                  context,
+                ).scaffoldBackgroundColor.withValues(alpha: 0.94),
                 border: Border(
-                  top: BorderSide(color: context.abzioBorder.withValues(alpha: 0.65)),
+                  top: BorderSide(
+                    color: context.abzioBorder.withValues(alpha: 0.65),
+                  ),
                 ),
               ),
               child: SizedBox(
@@ -372,11 +401,7 @@ class _CardPreview extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1F1913),
-            Color(0xFF332817),
-            Color(0xFF5E461D),
-          ],
+          colors: [Color(0xFF1F1913), Color(0xFF332817), Color(0xFF5E461D)],
         ),
         boxShadow: [
           BoxShadow(
@@ -393,7 +418,10 @@ class _CardPreview extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -401,10 +429,10 @@ class _CardPreview extends StatelessWidget {
                 child: Text(
                   brand,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: const Color(0xFFFFE4A3),
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
-                      ),
+                    color: const Color(0xFFFFE4A3),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
                 ),
               ),
               const Spacer(),
@@ -414,10 +442,10 @@ class _CardPreview extends StatelessWidget {
           Text(
             number,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 2,
-                ),
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2,
+            ),
           ),
           Row(
             children: [
@@ -435,10 +463,7 @@ class _CardPreview extends StatelessWidget {
 }
 
 class _PreviewField extends StatelessWidget {
-  const _PreviewField({
-    required this.label,
-    required this.value,
-  });
+  const _PreviewField({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -451,9 +476,9 @@ class _PreviewField extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Colors.white.withValues(alpha: 0.72),
-                letterSpacing: 1.1,
-              ),
+            color: Colors.white.withValues(alpha: 0.72),
+            letterSpacing: 1.1,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
@@ -461,9 +486,9 @@ class _PreviewField extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     );
@@ -479,7 +504,9 @@ class _SecurityBlock extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFBF3),
         borderRadius: BorderRadius.circular(AbzioTheme.cardRadius),
-        border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.12)),
+        border: Border.all(
+          color: AbzioTheme.accentColor.withValues(alpha: 0.12),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -503,17 +530,17 @@ class _SecurityBlock extends StatelessWidget {
               children: [
                 Text(
                   'Secure Card Verification',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Your card details are sent directly to Razorpay.\n\nAbianzo never stores card numbers or CVV data.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: context.abzioSecondaryText,
-                        height: 1.45,
-                      ),
+                    color: context.abzioSecondaryText,
+                    height: 1.45,
+                  ),
                 ),
               ],
             ),
@@ -528,7 +555,10 @@ class _CardNumberFormatter extends TextInputFormatter {
   const _CardNumberFormatter();
 
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
     final buffer = StringBuffer();
     for (var i = 0; i < digits.length && i < 16; i++) {
@@ -547,7 +577,10 @@ class _ExpiryDateFormatter extends TextInputFormatter {
   const _ExpiryDateFormatter();
 
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
     final buffer = StringBuffer();
     for (var i = 0; i < digits.length && i < 4; i++) {

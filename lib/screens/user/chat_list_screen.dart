@@ -39,17 +39,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
               VoiceAssistantScreen(chat: chat),
-          transitionsBuilder:
-              (context, animation, secondaryAnimation, child) {
-            final slide = Tween<Offset>(
-              begin: const Offset(0, 0.03),
-              end: Offset.zero,
-            ).animate(
-              CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-              ),
-            );
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slide =
+                Tween<Offset>(
+                  begin: const Offset(0, 0.03),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
+                );
             return FadeTransition(
               opacity: animation,
               child: SlideTransition(position: slide, child: child),
@@ -62,9 +62,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _creatingChat = false);
@@ -73,32 +73,33 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Future<void> _showStartChatSheet(AppUser actor) async {
-    final options = <(String type, IconData icon, String title, String subtitle)>[
-      (
-        'order',
-        Icons.receipt_long_rounded,
-        'Order Issue',
-        'Help with delivery, return, or order updates',
-      ),
-      (
-        'payment',
-        Icons.payments_outlined,
-        'Payment Issue',
-        'Payment failures, refunds, or charged twice',
-      ),
-      (
-        'custom',
-        Icons.design_services_rounded,
-        'Custom Clothing Help',
-        'Measurements, fittings, and tailoring guidance',
-      ),
-      (
-        'general',
-        Icons.auto_awesome_rounded,
-        'General Help',
-        'Instant answers from Abianzo Assistant',
-      ),
-    ];
+    final options =
+        <(String type, IconData icon, String title, String subtitle)>[
+          (
+            'order',
+            Icons.receipt_long_rounded,
+            'Order Issue',
+            'Help with delivery, return, or order updates',
+          ),
+          (
+            'payment',
+            Icons.payments_outlined,
+            'Payment Issue',
+            'Payment failures, refunds, or charged twice',
+          ),
+          (
+            'custom',
+            Icons.design_services_rounded,
+            'Custom Clothing Help',
+            'Measurements, fittings, and tailoring guidance',
+          ),
+          (
+            'general',
+            Icons.auto_awesome_rounded,
+            'General Help',
+            'Instant answers from Abianzo Assistant',
+          ),
+        ];
 
     final selectedType = await showModalBottomSheet<String>(
       context: context,
@@ -126,9 +127,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 const SizedBox(height: 18),
                 Text(
                   'Talk to Abianzo AI',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -235,17 +236,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
               ChatScreen(chat: chat),
-          transitionsBuilder:
-              (context, animation, secondaryAnimation, child) {
-            final slide = Tween<Offset>(
-              begin: const Offset(0.04, 0),
-              end: Offset.zero,
-            ).animate(
-              CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-              ),
-            );
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slide =
+                Tween<Offset>(
+                  begin: const Offset(0.04, 0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
+                );
             return FadeTransition(
               opacity: animation,
               child: SlideTransition(position: slide, child: child),
@@ -258,9 +259,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _creatingChat = false);
@@ -272,9 +273,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget build(BuildContext context) {
     final actor = context.watch<AuthProvider>().user;
     if (actor == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -299,10 +298,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
             0,
             (sum, chat) => sum + chat.unreadCountUser,
           );
-          final waitingCount =
-              chats.where((chat) => chat.status == 'waiting').length;
-          final openCount =
-              chats.where((chat) => chat.status != 'closed').length;
+          final waitingCount = chats
+              .where((chat) => chat.status == 'waiting')
+              .length;
+          final openCount = chats
+              .where((chat) => chat.status != 'closed')
+              .length;
 
           if (snapshot.connectionState == ConnectionState.waiting &&
               chats.isEmpty) {
@@ -333,8 +334,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     Text(
                       'Abianzo Assistant is still available',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                        fontWeight: FontWeight.w800,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
@@ -350,11 +351,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: TapScale(
-                        onTap: _creatingChat ? null : () => _showStartChatSheet(actor),
+                        onTap: _creatingChat
+                            ? null
+                            : () => _showStartChatSheet(actor),
                         scale: 0.97,
                         child: ElevatedButton(
-                          onPressed: _creatingChat ? null : () => _showStartChatSheet(actor),
-                          child: Text(_creatingChat ? 'Starting...' : 'Start New Chat'),
+                          onPressed: _creatingChat
+                              ? null
+                              : () => _showStartChatSheet(actor),
+                          child: Text(
+                            _creatingChat ? 'Starting...' : 'Start New Chat',
+                          ),
                         ),
                       ),
                     ),
@@ -404,10 +411,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     const SizedBox(height: 20),
                     Text(
                       'Need help? Abianzo Assistant is ready',
-                      style:
-                          Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
@@ -423,15 +429,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: TapScale(
-                        onTap:
-                            _creatingChat ? null : () => _showStartChatSheet(actor),
+                        onTap: _creatingChat
+                            ? null
+                            : () => _showStartChatSheet(actor),
                         scale: 0.97,
                         child: ElevatedButton(
                           onPressed: _creatingChat
                               ? null
                               : () => _showStartChatSheet(actor),
                           child: Text(
-                            _creatingChat ? 'Starting...' : 'Start AI Assistant',
+                            _creatingChat
+                                ? 'Starting...'
+                                : 'Start AI Assistant',
                           ),
                         ),
                       ),
@@ -440,12 +449,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: TapScale(
-                        onTap:
-                            _creatingChat ? null : () => _openVoiceAssistant(actor),
+                        onTap: _creatingChat
+                            ? null
+                            : () => _openVoiceAssistant(actor),
                         scale: 0.97,
                         child: OutlinedButton.icon(
-                          onPressed:
-                              _creatingChat ? null : () => _openVoiceAssistant(actor),
+                          onPressed: _creatingChat
+                              ? null
+                              : () => _openVoiceAssistant(actor),
                           icon: const Icon(Icons.mic_none_rounded),
                           label: const Text('Talk to Abianzo AI'),
                         ),
@@ -504,10 +515,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     Expanded(
                       child: Text(
                         'Open conversations',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                     ),
                     TextButton.icon(
@@ -518,7 +527,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     const SizedBox(width: 6),
                     IconButton(
                       tooltip: 'Talk to Abianzo AI',
-                      onPressed: _creatingChat ? null : () => _openVoiceAssistant(actor),
+                      onPressed: _creatingChat
+                          ? null
+                          : () => _openVoiceAssistant(actor),
                       icon: const Icon(Icons.mic_none_rounded),
                     ),
                   ],
@@ -615,21 +626,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                               ),
                                               padding:
                                                   const EdgeInsets.symmetric(
-                                                horizontal: 8,
-                                                vertical: 5,
-                                              ),
+                                                    horizontal: 8,
+                                                    vertical: 5,
+                                                  ),
                                               decoration: BoxDecoration(
-                                                color: const Color(
-                                                  0xFFFFF3CB,
-                                                ),
+                                                color: const Color(0xFFFFF3CB),
                                                 borderRadius:
                                                     BorderRadius.circular(999),
                                               ),
                                               child: Text(
                                                 '$unread new',
                                                 style: const TextStyle(
-                                                  color:
-                                                      AbzioTheme.accentColor,
+                                                  color: AbzioTheme.accentColor,
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w800,
                                                 ),
@@ -637,8 +645,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                             ),
                                           if (timestamp != null)
                                             Text(
-                                              DateFormat('dd MMM')
-                                                  .format(timestamp),
+                                              DateFormat(
+                                                'dd MMM',
+                                              ).format(timestamp),
                                               style: TextStyle(
                                                 color:
                                                     context.abzioSecondaryText,
@@ -821,14 +830,10 @@ class _SummaryChip extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             label,
-            style: TextStyle(
-              color: tone,
-              fontWeight: FontWeight.w800,
-            ),
+            style: TextStyle(color: tone, fontWeight: FontWeight.w800),
           ),
         ],
       ),
     );
   }
 }
-

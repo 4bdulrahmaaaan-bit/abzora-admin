@@ -70,7 +70,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return;
       }
       final auth = context.read<AuthProvider>();
-      final cached = await _cache.readJsonList('notifications_${auth.user?.id ?? 'guest'}');
+      final cached = await _cache.readJsonList(
+        'notifications_${auth.user?.id ?? 'guest'}',
+      );
       setState(() {
         _notifications = cached
             .map((item) => AppNotification.fromMap(item))
@@ -96,7 +98,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final unreadCount = _notifications.where((notification) => !notification.isRead).length;
+    final unreadCount = _notifications
+        .where((notification) => !notification.isRead)
+        .length;
     final user = context.watch<AuthProvider>().user;
 
     return Scaffold(
@@ -108,7 +112,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               onPressed: _markAllRead,
               child: const Text(
                 'Mark all read',
-                style: TextStyle(color: AbzioTheme.accentColor, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: AbzioTheme.accentColor,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           const SizedBox(width: 8),
@@ -120,105 +127,120 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               subtitle: 'Checking orders, offers, and account updates for you.',
             )
           : _loadFailed && _notifications.isEmpty
-              ? AbzioOfflineView(
-                  onRetry: () {
-                    setState(() {
-                      _loading = true;
-                    });
-                    _loadNotifications();
-                  },
-                )
+          ? AbzioOfflineView(
+              onRetry: () {
+                setState(() {
+                  _loading = true;
+                });
+                _loadNotifications();
+              },
+            )
           : _loadFailed
-              ? _buildLoadError()
+          ? _buildLoadError()
           : _notifications.isEmpty
-              ? _buildEmpty()
-              : Column(
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.22)),
-                        gradient: LinearGradient(
-                          colors: [
-                            AbzioTheme.accentColor.withValues(alpha: 0.12),
-                            Theme.of(context).inputDecorationTheme.fillColor ?? Theme.of(context).cardColor,
+          ? _buildEmpty()
+          : Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: AbzioTheme.accentColor.withValues(alpha: 0.22),
+                    ),
+                    gradient: LinearGradient(
+                      colors: [
+                        AbzioTheme.accentColor.withValues(alpha: 0.12),
+                        Theme.of(context).inputDecorationTheme.fillColor ??
                             Theme.of(context).cardColor,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Icon(Icons.notifications_active_outlined, color: AbzioTheme.accentColor),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Text(
-                              hasVendorOperationsAccess(user)
-                                  ? 'New order alerts, payout updates, and fulfillment changes appear here.'
-                                  : normalizedUserRole(user) == 'super_admin' ||
-                                          normalizedUserRole(user) == 'admin'
-                                      ? 'Platform events, vendor approvals, and payout activity appear here.'
-                                      : hasRiderOperationsAccess(user)
-                                          ? 'Delivery updates, assignment changes, and payout alerts appear here.'
-                                      : 'Order updates, offers, and style reminders appear here.',
-                              style: TextStyle(color: context.abzioSecondaryText, height: 1.45),
-                            ),
-                          ),
-                        ],
-                      ),
+                        Theme.of(context).cardColor,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    if (unreadCount > 0)
+                  ),
+                  child: Row(
+                    children: [
                       Container(
-                        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        width: 44,
+                        height: 44,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: context.abzioBorder),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: AbzioTheme.accentColor,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              '$unreadCount unread notification${unreadCount > 1 ? 's' : ''}',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                        child: const Icon(
+                          Icons.notifications_active_outlined,
+                          color: AbzioTheme.accentColor,
                         ),
                       ),
-                    Expanded(
-                      child: ListView.builder(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                        itemCount: _notifications.length,
-                        itemBuilder: (context, index) => _buildNotificationCard(_notifications[index], index),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          hasVendorOperationsAccess(user)
+                              ? 'New order alerts, payout updates, and fulfillment changes appear here.'
+                              : normalizedUserRole(user) == 'super_admin' ||
+                                    normalizedUserRole(user) == 'admin'
+                              ? 'Platform events, vendor approvals, and payout activity appear here.'
+                              : hasRiderOperationsAccess(user)
+                              ? 'Delivery updates, assignment changes, and payout alerts appear here.'
+                              : 'Order updates, offers, and style reminders appear here.',
+                          style: TextStyle(
+                            color: context.abzioSecondaryText,
+                            height: 1.45,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                if (unreadCount > 0)
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: context.abzioBorder),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AbzioTheme.accentColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '$unreadCount unread notification${unreadCount > 1 ? 's' : ''}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                Expanded(
+                  child: ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    itemCount: _notifications.length,
+                    itemBuilder: (context, index) =>
+                        _buildNotificationCard(_notifications[index], index),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -264,7 +286,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     };
 
     final icon = icons[notification.type] ?? Icons.notifications_outlined;
-    final color = colors[notification.type] ?? Theme.of(context).colorScheme.onSurface;
+    final color =
+        colors[notification.type] ?? Theme.of(context).colorScheme.onSurface;
     final timeAgo = _timeAgo(notification.timestamp);
 
     return GestureDetector(
@@ -286,7 +309,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         decoration: BoxDecoration(
           color: notification.isRead
               ? Theme.of(context).cardColor
-              : (Theme.of(context).inputDecorationTheme.fillColor ?? Theme.of(context).cardColor),
+              : (Theme.of(context).inputDecorationTheme.fillColor ??
+                    Theme.of(context).cardColor),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: notification.isRead
@@ -325,7 +349,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           notification.title,
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: notification.isRead ? FontWeight.w700 : FontWeight.w800,
+                            fontWeight: notification.isRead
+                                ? FontWeight.w700
+                                : FontWeight.w800,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
@@ -344,7 +370,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   const SizedBox(height: 6),
                   Text(
                     notification.body,
-                    style: TextStyle(color: context.abzioSecondaryText, height: 1.45),
+                    style: TextStyle(
+                      color: context.abzioSecondaryText,
+                      height: 1.45,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -370,7 +399,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         padding: EdgeInsets.all(16),
         child: AbzioEmptyCard(
           title: 'All caught up',
-          subtitle: 'No new notifications right now. Fresh order updates, offers, and account alerts will appear here.',
+          subtitle:
+              'No new notifications right now. Fresh order updates, offers, and account alerts will appear here.',
         ),
       ),
     );

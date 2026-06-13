@@ -29,7 +29,7 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
       final active = await RiderTrialsApi.getActiveTrials();
       final assigned = await RiderTrialsApi.getAssignedTrials();
       final completed = await RiderTrialsApi.getCompletedTrials();
-      
+
       if (mounted) {
         setState(() {
           _activeTrials = active;
@@ -39,9 +39,9 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load trials: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load trials: $e')));
       }
     } finally {
       if (mounted) {
@@ -77,7 +77,10 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
             : TabBarView(
                 children: [
                   _buildTrialList(_activeTrials, 'No active trials.'),
-                  _buildTrialList(_assignedTrials, 'No upcoming trials assigned to you.'),
+                  _buildTrialList(
+                    _assignedTrials,
+                    'No upcoming trials assigned to you.',
+                  ),
                   _buildTrialList(_completedTrials, 'No completed trials yet.'),
                 ],
               ),
@@ -102,8 +105,15 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
         itemCount: trials.length,
         itemBuilder: (context, index) {
           final trial = trials[index];
-          final isActive = trial.status != 'assigned' && trial.status != 'completed' && trial.status != 'cancelled' && trial.status != 'no_show';
-          final isCompleted = trial.status == 'completed' || trial.status == 'cancelled' || trial.status == 'no_show';
+          final isActive =
+              trial.status != 'assigned' &&
+              trial.status != 'completed' &&
+              trial.status != 'cancelled' &&
+              trial.status != 'no_show';
+          final isCompleted =
+              trial.status == 'completed' ||
+              trial.status == 'cancelled' ||
+              trial.status == 'no_show';
 
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
@@ -124,10 +134,14 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      isActive ? 'Active Trial' : (isCompleted ? 'Completed' : 'Upcoming Trial'),
+                      isActive
+                          ? 'Active Trial'
+                          : (isCompleted ? 'Completed' : 'Upcoming Trial'),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: isActive ? AbzioTheme.accentColor : (isCompleted ? Colors.green : AbzioTheme.grey600),
+                        color: isActive
+                            ? AbzioTheme.accentColor
+                            : (isCompleted ? Colors.green : AbzioTheme.grey600),
                       ),
                     ),
                     Text(
@@ -144,7 +158,11 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.timer_outlined, size: 16, color: AbzioTheme.accentColor),
+                    const Icon(
+                      Icons.timer_outlined,
+                      size: 16,
+                      color: AbzioTheme.accentColor,
+                    ),
                     const SizedBox(width: 4),
                     Text('Duration: ${trial.trialDurationMinutes} Minutes'),
                   ],
@@ -162,9 +180,15 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
                       ).then((_) => _fetchTrials());
                     },
                     style: FilledButton.styleFrom(
-                      backgroundColor: isActive ? AbzioTheme.accentColor : Colors.grey[800],
+                      backgroundColor: isActive
+                          ? AbzioTheme.accentColor
+                          : Colors.grey[800],
                     ),
-                    child: Text(isCompleted ? 'View Details' : (isActive ? 'Manage Trial' : 'Start Trip')),
+                    child: Text(
+                      isCompleted
+                          ? 'View Details'
+                          : (isActive ? 'Manage Trial' : 'Start Trip'),
+                    ),
                   ),
                 ),
               ],

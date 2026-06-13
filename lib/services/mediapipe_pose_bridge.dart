@@ -82,10 +82,10 @@ class MediaPipePoseBridge {
     if (_initialized) {
       return;
     }
-    final ok = await _channel.invokeMethod<bool>(
-          'initialize',
-          {'modelAssetPath': modelAssetPath},
-        ) ??
+    final ok =
+        await _channel.invokeMethod<bool>('initialize', {
+          'modelAssetPath': modelAssetPath,
+        }) ??
         false;
     if (!ok) {
       throw PlatformException(
@@ -103,10 +103,9 @@ class MediaPipePoseBridge {
 
   Future<void> setPoseCallbackEnabled(bool enabled) async {
     await ensureInitialized();
-    await _channel.invokeMethod<bool>(
-      'setPoseCallbackEnabled',
-      {'enabled': enabled},
-    );
+    await _channel.invokeMethod<bool>('setPoseCallbackEnabled', {
+      'enabled': enabled,
+    });
   }
 
   Future<List<MediaPipePoseLandmark>> processFrame(
@@ -118,7 +117,10 @@ class MediaPipePoseBridge {
       'processFrame',
       frame.toMap(),
     );
-    final latency = DateTime.now().difference(started).inMilliseconds.toDouble();
+    final latency = DateTime.now()
+        .difference(started)
+        .inMilliseconds
+        .toDouble();
     _processedFrames += 1;
     _lastLatencyMs = latency;
     _avgLatencyMs = _processedFrames <= 1
@@ -138,13 +140,10 @@ class MediaPipePoseBridge {
     int rotation = 0,
   }) async {
     await ensureInitialized();
-    final raw = await _channel.invokeMethod<List<dynamic>>(
-      'processImagePath',
-      {
-        'path': imagePath,
-        'rotation': rotation,
-      },
-    );
+    final raw = await _channel.invokeMethod<List<dynamic>>('processImagePath', {
+      'path': imagePath,
+      'rotation': rotation,
+    });
     if (raw == null || raw.isEmpty) {
       return _handlePoseLoss();
     }
@@ -192,7 +191,9 @@ class MediaPipePoseBridge {
         .whereType<Map>()
         .map(MediaPipePoseLandmark.fromMap)
         .toList(growable: false);
-    final optimized = mapped.isEmpty ? _handlePoseLoss() : _optimizeLandmarks(mapped);
+    final optimized = mapped.isEmpty
+        ? _handlePoseLoss()
+        : _optimizeLandmarks(mapped);
     if (!_landmarksController.isClosed) {
       _landmarksController.add(optimized);
     }

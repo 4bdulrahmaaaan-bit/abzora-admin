@@ -135,7 +135,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                   builder: (context, child) {
                     var scale = 1.0;
                     if (_pageController.position.hasContentDimensions) {
-                      final page = _pageController.page ?? _pageController.initialPage.toDouble();
+                      final page =
+                          _pageController.page ??
+                          _pageController.initialPage.toDouble();
                       final distance = (page - index).abs().clamp(0.0, 1.0);
                       scale = 1 - (distance * 0.06);
                     }
@@ -155,7 +157,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                 );
               },
               onPageChanged: (index) {
-                context.read<BannerProvider>().setActiveIndex(index % widget.banners.length);
+                context.read<BannerProvider>().setActiveIndex(
+                  index % widget.banners.length,
+                );
               },
             ),
           ),
@@ -165,23 +169,22 @@ class _BannerCarouselState extends State<BannerCarousel> {
           builder: (context, provider, child) {
             return Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                widget.banners.length,
-                (index) {
-                  final active = provider.activeIndex == index;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 240),
-                    curve: Curves.easeOut,
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: active ? 22 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: active ? AbzioTheme.accentColor : context.abzioBorder,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  );
-                },
-              ),
+              children: List.generate(widget.banners.length, (index) {
+                final active = provider.activeIndex == index;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOut,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: active ? 22 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: active
+                        ? AbzioTheme.accentColor
+                        : context.abzioBorder,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                );
+              }),
             );
           },
         ),
@@ -191,10 +194,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
 }
 
 class _BannerCard extends StatelessWidget {
-  const _BannerCard({
-    required this.banner,
-    required this.onTap,
-  });
+  const _BannerCard({required this.banner, required this.onTap});
 
   final BannerModel banner;
   final VoidCallback onTap;
@@ -245,7 +245,8 @@ class _BannerCard extends StatelessWidget {
                         child: Text(
                           banner.title,
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                       ),
                     );
@@ -283,7 +284,8 @@ class _BannerCard extends StatelessWidget {
                               banner.title,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w800,
                                     height: 1.05,
@@ -294,7 +296,8 @@ class _BannerCard extends StatelessWidget {
                               banner.subtitle,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
                                     color: Colors.white.withValues(alpha: 0.86),
                                   ),
                             ),
@@ -307,8 +310,13 @@ class _BannerCard extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AbzioTheme.accentColor,
                           foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                         child: Text(banner.ctaText),
                       ),

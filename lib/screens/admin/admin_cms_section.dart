@@ -42,8 +42,16 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
   final List<_CmsTab> _tabs = const [
     _CmsTab(type: 'page', label: 'Pages', icon: Icons.article_outlined),
     _CmsTab(type: 'faq', label: 'FAQs', icon: Icons.quiz_outlined),
-    _CmsTab(type: 'announcement', label: 'Announcements', icon: Icons.campaign_outlined),
-    _CmsTab(type: 'navigation', label: 'Navigation', icon: Icons.menu_book_outlined),
+    _CmsTab(
+      type: 'announcement',
+      label: 'Announcements',
+      icon: Icons.campaign_outlined,
+    ),
+    _CmsTab(
+      type: 'navigation',
+      label: 'Navigation',
+      icon: Icons.menu_book_outlined,
+    ),
   ];
 
   String _activeType = 'page';
@@ -124,10 +132,8 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
   Future<void> _showEntryForm([CmsEntryModel? initialEntry]) async {
     final result = await showDialog<_CmsEntryFormResult>(
       context: context,
-      builder: (dialogContext) => CmsEntryFormModal(
-        type: _activeType,
-        initialEntry: initialEntry,
-      ),
+      builder: (dialogContext) =>
+          CmsEntryFormModal(type: _activeType, initialEntry: initialEntry),
     );
     if (result == null || !mounted) {
       return;
@@ -153,7 +159,9 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            initialEntry == null ? 'CMS item created successfully.' : 'CMS item updated successfully.',
+            initialEntry == null
+                ? 'CMS item created successfully.'
+                : 'CMS item updated successfully.',
           ),
         ),
       );
@@ -162,9 +170,9 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -184,7 +192,9 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB42318)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB42318),
+            ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Delete'),
           ),
@@ -209,9 +219,9 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -222,7 +232,10 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
   Future<void> _toggleStatus(CmsEntryModel entry, bool isActive) async {
     setState(() => _saving = true);
     try {
-      await _commerce.toggleCmsEntryStatus(entryId: entry.id, isActive: isActive);
+      await _commerce.toggleCmsEntryStatus(
+        entryId: entry.id,
+        isActive: isActive,
+      );
       if (!mounted) {
         return;
       }
@@ -231,9 +244,9 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -258,9 +271,9 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -430,9 +443,15 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
                               ],
                             ),
                           ),
-                          _CountPill(label: 'Total', value: _totalCount.toString()),
+                          _CountPill(
+                            label: 'Total',
+                            value: _totalCount.toString(),
+                          ),
                           const SizedBox(width: 10),
-                          _CountPill(label: 'Page', value: '$_page/$_totalPages'),
+                          _CountPill(
+                            label: 'Page',
+                            value: '$_page/$_totalPages',
+                          ),
                           if (_saving) ...[
                             const SizedBox(width: 12),
                             Text(
@@ -449,7 +468,8 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
                       if (entries.isEmpty)
                         const AbzioEmptyCard(
                           title: 'No CMS items yet',
-                          subtitle: 'Create a first entry for this CMS section to start publishing editorial content.',
+                          subtitle:
+                              'Create a first entry for this CMS section to start publishing editorial content.',
                         )
                       else
                         ReorderableListView.builder(
@@ -474,10 +494,13 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
                                 saving: _saving,
                                 onEdit: () => _showEntryForm(entry),
                                 onDelete: () => _deleteEntry(entry),
-                                onToggleActive: (value) => _toggleStatus(entry, value),
+                                onToggleActive: (value) =>
+                                    _toggleStatus(entry, value),
                                 dragHandle: ReorderableDragStartListener(
                                   index: index,
-                                  child: const Icon(Icons.drag_indicator_rounded),
+                                  child: const Icon(
+                                    Icons.drag_indicator_rounded,
+                                  ),
                                 ),
                               ),
                             );
@@ -492,8 +515,12 @@ class _AdminCmsSectionState extends State<AdminCmsSection> {
                 page: _page,
                 totalPages: _totalPages,
                 totalCount: _totalCount,
-                onPrevious: _page > 1 && !_loading ? () => _loadEntries(page: _page - 1) : null,
-                onNext: _page < _totalPages && !_loading ? () => _loadEntries(page: _page + 1) : null,
+                onPrevious: _page > 1 && !_loading
+                    ? () => _loadEntries(page: _page - 1)
+                    : null,
+                onNext: _page < _totalPages && !_loading
+                    ? () => _loadEntries(page: _page + 1)
+                    : null,
               ),
             ],
           ),
@@ -595,18 +622,23 @@ class _CmsFiltersCard extends StatelessWidget {
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Refresh'),
             ),
-            TextButton(
-              onPressed: onClear,
-              child: const Text('Clear filters'),
-            ),
+            TextButton(onPressed: onClear, child: const Text('Clear filters')),
             if (activeType == 'faq')
-              const _CmsHintChip(text: 'FAQ answers publish as support content'),
+              const _CmsHintChip(
+                text: 'FAQ answers publish as support content',
+              ),
             if (activeType == 'page')
-              const _CmsHintChip(text: 'Pages power legal and editorial screens'),
+              const _CmsHintChip(
+                text: 'Pages power legal and editorial screens',
+              ),
             if (activeType == 'announcement')
-              const _CmsHintChip(text: 'Announcements are ideal for campaign and promo copy'),
+              const _CmsHintChip(
+                text: 'Announcements are ideal for campaign and promo copy',
+              ),
             if (activeType == 'navigation')
-              const _CmsHintChip(text: 'Navigation items can drive header or footer menus'),
+              const _CmsHintChip(
+                text: 'Navigation items can drive header or footer menus',
+              ),
           ],
         ),
       ),
@@ -713,9 +745,15 @@ class _CmsEntryRow extends StatelessWidget {
                       runSpacing: 8,
                       children: [
                         _MiniChip(label: entry.type.toUpperCase()),
-                        _MiniChip(label: entry.isActive ? 'Active' : 'Inactive'),
-                        _MiniChip(label: entry.isFeatured ? 'Featured' : 'Standard'),
-                        _MiniChip(label: entry.isPublished ? 'Published' : 'Draft'),
+                        _MiniChip(
+                          label: entry.isActive ? 'Active' : 'Inactive',
+                        ),
+                        _MiniChip(
+                          label: entry.isFeatured ? 'Featured' : 'Standard',
+                        ),
+                        _MiniChip(
+                          label: entry.isPublished ? 'Published' : 'Draft',
+                        ),
                         _MiniChip(label: 'Order ${entry.sortOrder}'),
                       ],
                     ),
@@ -725,7 +763,9 @@ class _CmsEntryRow extends StatelessWidget {
                         Switch.adaptive(
                           value: entry.isActive,
                           onChanged: saving ? null : onToggleActive,
-                          activeTrackColor: AbzioTheme.accentColor.withValues(alpha: 0.45),
+                          activeTrackColor: AbzioTheme.accentColor.withValues(
+                            alpha: 0.45,
+                          ),
                           activeThumbColor: AbzioTheme.accentColor,
                         ),
                         const Spacer(),
@@ -785,14 +825,34 @@ class _CmsEntryRow extends StatelessWidget {
                     ),
                     Expanded(
                       child: Text(
-                        entry.category.isEmpty ? _typeLabel(entry.type) : entry.category,
+                        entry.category.isEmpty
+                            ? _typeLabel(entry.type)
+                            : entry.category,
                         style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                       ),
                     ),
-                    SizedBox(width: 100, child: _MiniChip(label: entry.type.toUpperCase())),
-                    SizedBox(width: 100, child: _MiniChip(label: entry.isPublished ? 'Published' : 'Draft')),
-                    SizedBox(width: 92, child: _MiniChip(label: entry.isActive ? 'Active' : 'Inactive')),
-                    SizedBox(width: 100, child: _MiniChip(label: entry.isFeatured ? 'Featured' : 'Standard')),
+                    SizedBox(
+                      width: 100,
+                      child: _MiniChip(label: entry.type.toUpperCase()),
+                    ),
+                    SizedBox(
+                      width: 100,
+                      child: _MiniChip(
+                        label: entry.isPublished ? 'Published' : 'Draft',
+                      ),
+                    ),
+                    SizedBox(
+                      width: 92,
+                      child: _MiniChip(
+                        label: entry.isActive ? 'Active' : 'Inactive',
+                      ),
+                    ),
+                    SizedBox(
+                      width: 100,
+                      child: _MiniChip(
+                        label: entry.isFeatured ? 'Featured' : 'Standard',
+                      ),
+                    ),
                     SizedBox(
                       width: 90,
                       child: Text(
@@ -805,10 +865,16 @@ class _CmsEntryRow extends StatelessWidget {
                       children: [
                         IconButton(
                           tooltip: 'Toggle active',
-                          onPressed: saving ? null : () => onToggleActive(!entry.isActive),
+                          onPressed: saving
+                              ? null
+                              : () => onToggleActive(!entry.isActive),
                           icon: Icon(
-                            entry.isActive ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
-                            color: entry.isActive ? AbzioTheme.accentColor : AbzioTheme.textSecondary,
+                            entry.isActive
+                                ? Icons.toggle_on_rounded
+                                : Icons.toggle_off_rounded,
+                            color: entry.isActive
+                                ? AbzioTheme.accentColor
+                                : AbzioTheme.textSecondary,
                           ),
                         ),
                         IconButton(
@@ -833,11 +899,7 @@ class _CmsEntryRow extends StatelessWidget {
 }
 
 class CmsEntryFormModal extends StatefulWidget {
-  const CmsEntryFormModal({
-    super.key,
-    required this.type,
-    this.initialEntry,
-  });
+  const CmsEntryFormModal({super.key, required this.type, this.initialEntry});
 
   final String type;
   final CmsEntryModel? initialEntry;
@@ -857,7 +919,8 @@ class _CmsEntryFormModalState extends State<CmsEntryFormModal> {
   final TextEditingController _linkLabelController = TextEditingController();
   final TextEditingController _sectionController = TextEditingController();
   final TextEditingController _seoTitleController = TextEditingController();
-  final TextEditingController _seoDescriptionController = TextEditingController();
+  final TextEditingController _seoDescriptionController =
+      TextEditingController();
   final TextEditingController _orderController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
@@ -1003,7 +1066,9 @@ class _CmsEntryFormModalState extends State<CmsEntryFormModal> {
     final text = _contentController.text;
     if (!selection.isValid) {
       _contentController.text = '$prefix$text';
-      _contentController.selection = TextSelection.collapsed(offset: prefix.length);
+      _contentController.selection = TextSelection.collapsed(
+        offset: prefix.length,
+      );
       return;
     }
 
@@ -1075,13 +1140,12 @@ class _CmsEntryFormModalState extends State<CmsEntryFormModal> {
           decoration: InputDecoration(
             hintText: _contentHint(widget.type),
             alignLabelWithHint: true,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
           ),
           onChanged: (_) => setState(() {}),
-          validator: (value) =>
-              value == null || value.trim().isEmpty ? 'Content is required.' : null,
+          validator: (value) => value == null || value.trim().isEmpty
+              ? 'Content is required.'
+              : null,
         ),
         const SizedBox(height: 10),
         Text(
@@ -1108,11 +1172,7 @@ class _CmsEntryFormModalState extends State<CmsEntryFormModal> {
     if (!sideBySide) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          editor,
-          const SizedBox(height: 16),
-          preview,
-        ],
+        children: [editor, const SizedBox(height: 16), preview],
       );
     }
 
@@ -1133,8 +1193,8 @@ class _CmsEntryFormModalState extends State<CmsEntryFormModal> {
 
     final publishedAt = _isPublished
         ? (widget.initialEntry?.publishedAt.isNotEmpty == true
-            ? widget.initialEntry!.publishedAt
-            : DateTime.now().toIso8601String())
+              ? widget.initialEntry!.publishedAt
+              : DateTime.now().toIso8601String())
         : '';
     Navigator.of(context).pop(
       _CmsEntryFormResult(
@@ -1220,7 +1280,9 @@ class _CmsEntryFormModalState extends State<CmsEntryFormModal> {
                               child: Text(
                                 _pickedImage!.name,
                                 overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                                style: GoogleFonts.inter(
+                                  color: AbzioTheme.textSecondary,
+                                ),
                               ),
                             ),
                           ],
@@ -1235,7 +1297,9 @@ class _CmsEntryFormModalState extends State<CmsEntryFormModal> {
                         hintText: _fieldHint(widget.type),
                       ),
                       validator: (value) =>
-                          value == null || value.trim().isEmpty ? 'This field is required.' : null,
+                          value == null || value.trim().isEmpty
+                          ? 'This field is required.'
+                          : null,
                     ),
                     const SizedBox(height: 12),
                     if (widget.type != 'faq')
@@ -1246,7 +1310,9 @@ class _CmsEntryFormModalState extends State<CmsEntryFormModal> {
                           hintText: 'about-us',
                         ),
                         validator: (value) =>
-                            value == null || value.trim().isEmpty ? 'Slug is required.' : null,
+                            value == null || value.trim().isEmpty
+                            ? 'Slug is required.'
+                            : null,
                       ),
                     if (widget.type != 'faq') const SizedBox(height: 12),
                     TextFormField(
@@ -1308,7 +1374,9 @@ class _CmsEntryFormModalState extends State<CmsEntryFormModal> {
                           child: TextFormField(
                             controller: _orderController,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(labelText: 'Sort Order'),
+                            decoration: const InputDecoration(
+                              labelText: 'Sort Order',
+                            ),
                           ),
                         ),
                       ],
@@ -1319,7 +1387,8 @@ class _CmsEntryFormModalState extends State<CmsEntryFormModal> {
                         Expanded(
                           child: SwitchListTile.adaptive(
                             value: _isFeatured,
-                            onChanged: (value) => setState(() => _isFeatured = value),
+                            onChanged: (value) =>
+                                setState(() => _isFeatured = value),
                             title: const Text('Featured'),
                             contentPadding: EdgeInsets.zero,
                           ),
@@ -1328,7 +1397,8 @@ class _CmsEntryFormModalState extends State<CmsEntryFormModal> {
                         Expanded(
                           child: SwitchListTile.adaptive(
                             value: _isPublished,
-                            onChanged: (value) => setState(() => _isPublished = value),
+                            onChanged: (value) =>
+                                setState(() => _isPublished = value),
                             title: const Text('Published'),
                             contentPadding: EdgeInsets.zero,
                           ),
@@ -1337,14 +1407,16 @@ class _CmsEntryFormModalState extends State<CmsEntryFormModal> {
                         Expanded(
                           child: SwitchListTile.adaptive(
                             value: _isActive,
-                            onChanged: (value) => setState(() => _isActive = value),
+                            onChanged: (value) =>
+                                setState(() => _isActive = value),
                             title: const Text('Active'),
                             contentPadding: EdgeInsets.zero,
                           ),
                         ),
                       ],
                     ),
-                    if (widget.type == 'page' || widget.type == 'announcement') ...[
+                    if (widget.type == 'page' ||
+                        widget.type == 'announcement') ...[
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _seoTitleController,
@@ -1414,16 +1486,20 @@ class _ImagePickerPreview extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
           child: previewBytes != null
-              ? Image.memory(previewBytes!, fit: BoxFit.cover, width: double.infinity)
+              ? Image.memory(
+                  previewBytes!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                )
               : imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _UploadPlaceholder(fallbackIcon: fallbackIcon),
-                    )
-                  : _UploadPlaceholder(fallbackIcon: fallbackIcon),
+              ? Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _UploadPlaceholder(fallbackIcon: fallbackIcon),
+                )
+              : _UploadPlaceholder(fallbackIcon: fallbackIcon),
         ),
       ),
     );
@@ -1491,7 +1567,9 @@ class _CmsPreviewPane extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFBF8F1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.14)),
+        border: Border.all(
+          color: AbzioTheme.accentColor.withValues(alpha: 0.14),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -1526,7 +1604,11 @@ class _CmsPreviewPane extends StatelessWidget {
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: Colors.white,
                           alignment: Alignment.center,
-                          child: Icon(_typeIcon(type), size: 34, color: AbzioTheme.textSecondary),
+                          child: Icon(
+                            _typeIcon(type),
+                            size: 34,
+                            color: AbzioTheme.textSecondary,
+                          ),
                         ),
                       ),
               ),
@@ -1558,20 +1640,15 @@ class _CmsPreviewPane extends StatelessWidget {
               ),
             )
           else
-            _MarkdownPreview(
-              content: content,
-              baseStyle: base,
-            ),
+            _MarkdownPreview(content: content, baseStyle: base),
           if (linkUrl.isNotEmpty || linkLabel.isNotEmpty) ...[
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (linkLabel.isNotEmpty)
-                  _MiniChip(label: linkLabel),
-                if (linkUrl.isNotEmpty)
-                  _MiniChip(label: linkUrl),
+                if (linkLabel.isNotEmpty) _MiniChip(label: linkLabel),
+                if (linkUrl.isNotEmpty) _MiniChip(label: linkUrl),
               ],
             ),
           ],
@@ -1582,10 +1659,7 @@ class _CmsPreviewPane extends StatelessWidget {
 }
 
 class _MarkdownPreview extends StatelessWidget {
-  const _MarkdownPreview({
-    required this.content,
-    required this.baseStyle,
-  });
+  const _MarkdownPreview({required this.content, required this.baseStyle});
 
   final String content;
   final TextStyle baseStyle;
@@ -1601,53 +1675,65 @@ class _MarkdownPreview extends StatelessWidget {
         continue;
       }
       if (line.startsWith('### ')) {
-        widgets.add(_markdownLine(
-          line.substring(4),
-          baseStyle.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
-        ));
+        widgets.add(
+          _markdownLine(
+            line.substring(4),
+            baseStyle.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+        );
         widgets.add(const SizedBox(height: 6));
         continue;
       }
       if (line.startsWith('## ')) {
-        widgets.add(_markdownLine(
-          line.substring(3),
-          baseStyle.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
-        ));
+        widgets.add(
+          _markdownLine(
+            line.substring(3),
+            baseStyle.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+        );
         widgets.add(const SizedBox(height: 8));
         continue;
       }
       if (line.startsWith('# ')) {
-        widgets.add(_markdownLine(
-          line.substring(2),
-          baseStyle.copyWith(fontSize: 23, fontWeight: FontWeight.w800),
-        ));
+        widgets.add(
+          _markdownLine(
+            line.substring(2),
+            baseStyle.copyWith(fontSize: 23, fontWeight: FontWeight.w800),
+          ),
+        );
         widgets.add(const SizedBox(height: 10));
         continue;
       }
       if (line.startsWith('> ')) {
-        widgets.add(Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.72),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.12)),
-          ),
-          child: Text.rich(
-            TextSpan(
-              style: baseStyle.copyWith(fontStyle: FontStyle.italic),
-              children: _parseInlineSpans(line.substring(2), baseStyle.copyWith(fontStyle: FontStyle.italic)),
+        widgets.add(
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AbzioTheme.accentColor.withValues(alpha: 0.12),
+              ),
+            ),
+            child: Text.rich(
+              TextSpan(
+                style: baseStyle.copyWith(fontStyle: FontStyle.italic),
+                children: _parseInlineSpans(
+                  line.substring(2),
+                  baseStyle.copyWith(fontStyle: FontStyle.italic),
+                ),
+              ),
             ),
           ),
-        ));
+        );
         widgets.add(const SizedBox(height: 8));
         continue;
       }
       if (line.startsWith('- ') || line.startsWith('* ')) {
-        widgets.add(_MarkdownBullet(
-          text: line.substring(2),
-          baseStyle: baseStyle,
-        ));
+        widgets.add(
+          _MarkdownBullet(text: line.substring(2), baseStyle: baseStyle),
+        );
         continue;
       }
       widgets.add(_markdownLine(line, baseStyle));
@@ -1664,10 +1750,7 @@ class _MarkdownPreview extends StatelessWidget {
 }
 
 class _MarkdownBullet extends StatelessWidget {
-  const _MarkdownBullet({
-    required this.text,
-    required this.baseStyle,
-  });
+  const _MarkdownBullet({required this.text, required this.baseStyle});
 
   final String text;
   final TextStyle baseStyle;
@@ -1709,10 +1792,7 @@ Widget _markdownLine(String text, TextStyle style) {
   return Align(
     alignment: Alignment.centerLeft,
     child: Text.rich(
-      TextSpan(
-        style: style,
-        children: _parseInlineSpans(text, style),
-      ),
+      TextSpan(style: style, children: _parseInlineSpans(text, style)),
     ),
   );
 }
@@ -1726,10 +1806,12 @@ List<InlineSpan> _parseInlineSpans(String text, TextStyle style) {
       final end = text.indexOf('**', index + 2);
       if (end > index + 1) {
         final inner = text.substring(index + 2, end);
-        spans.add(TextSpan(
-          text: inner,
-          style: style.copyWith(fontWeight: FontWeight.w800),
-        ));
+        spans.add(
+          TextSpan(
+            text: inner,
+            style: style.copyWith(fontWeight: FontWeight.w800),
+          ),
+        );
         index = end + 2;
         continue;
       }
@@ -1738,27 +1820,33 @@ List<InlineSpan> _parseInlineSpans(String text, TextStyle style) {
       final end = text.indexOf('*', index + 1);
       if (end > index) {
         final inner = text.substring(index + 1, end);
-        spans.add(TextSpan(
-          text: inner,
-          style: style.copyWith(fontStyle: FontStyle.italic),
-        ));
+        spans.add(
+          TextSpan(
+            text: inner,
+            style: style.copyWith(fontStyle: FontStyle.italic),
+          ),
+        );
         index = end + 1;
         continue;
       }
     }
     if (remaining.startsWith('[')) {
       final closingText = text.indexOf('](', index + 1);
-      final closingParen = closingText == -1 ? -1 : text.indexOf(')', closingText + 2);
+      final closingParen = closingText == -1
+          ? -1
+          : text.indexOf(')', closingText + 2);
       if (closingText != -1 && closingParen != -1) {
         final label = text.substring(index + 1, closingText);
-        spans.add(TextSpan(
-          text: label,
-          style: style.copyWith(
-            color: AbzioTheme.accentColor,
-            decoration: TextDecoration.underline,
-            decorationColor: AbzioTheme.accentColor,
+        spans.add(
+          TextSpan(
+            text: label,
+            style: style.copyWith(
+              color: AbzioTheme.accentColor,
+              decoration: TextDecoration.underline,
+              decorationColor: AbzioTheme.accentColor,
+            ),
           ),
-        ));
+        );
         index = closingParen + 1;
         continue;
       }
@@ -1769,7 +1857,9 @@ List<InlineSpan> _parseInlineSpans(String text, TextStyle style) {
       text.indexOf('*', index + 1),
       text.indexOf('[', index + 1),
     ].where((value) => value != -1).toList();
-    final next = nextBreaks.isEmpty ? text.length : nextBreaks.reduce((a, b) => a < b ? a : b);
+    final next = nextBreaks.isEmpty
+        ? text.length
+        : nextBreaks.reduce((a, b) => a < b ? a : b);
     spans.add(TextSpan(text: text.substring(index, next), style: style));
     index = next;
   }
@@ -1849,12 +1939,36 @@ class _RichToolbar extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        button(icon: Icons.title_rounded, label: 'Heading', onPressed: onHeading),
-        button(icon: Icons.short_text_rounded, label: 'Subheading', onPressed: onSubheading),
-        button(icon: Icons.format_bold_rounded, label: 'Bold', onPressed: onBold),
-        button(icon: Icons.format_italic_rounded, label: 'Italic', onPressed: onItalic),
-        button(icon: Icons.format_list_bulleted_rounded, label: 'Bullet', onPressed: onBullet),
-        button(icon: Icons.format_quote_rounded, label: 'Quote', onPressed: onQuote),
+        button(
+          icon: Icons.title_rounded,
+          label: 'Heading',
+          onPressed: onHeading,
+        ),
+        button(
+          icon: Icons.short_text_rounded,
+          label: 'Subheading',
+          onPressed: onSubheading,
+        ),
+        button(
+          icon: Icons.format_bold_rounded,
+          label: 'Bold',
+          onPressed: onBold,
+        ),
+        button(
+          icon: Icons.format_italic_rounded,
+          label: 'Italic',
+          onPressed: onItalic,
+        ),
+        button(
+          icon: Icons.format_list_bulleted_rounded,
+          label: 'Bullet',
+          onPressed: onBullet,
+        ),
+        button(
+          icon: Icons.format_quote_rounded,
+          label: 'Quote',
+          onPressed: onQuote,
+        ),
         button(icon: Icons.link_rounded, label: 'Link', onPressed: onLink),
       ],
     );
@@ -1874,7 +1988,9 @@ class _CountPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: AbzioTheme.accentColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AbzioTheme.accentColor.withValues(alpha: 0.18),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2007,11 +2123,7 @@ class _CmsThumb extends StatelessWidget {
 }
 
 class _CmsTab {
-  const _CmsTab({
-    required this.type,
-    required this.label,
-    required this.icon,
-  });
+  const _CmsTab({required this.type, required this.label, required this.icon});
 
   final String type;
   final String label;
@@ -2019,10 +2131,7 @@ class _CmsTab {
 }
 
 class _CmsEntryFormResult {
-  const _CmsEntryFormResult({
-    required this.entry,
-    required this.imageFile,
-  });
+  const _CmsEntryFormResult({required this.entry, required this.imageFile});
 
   final CmsEntryModel entry;
   final XFile? imageFile;
@@ -2164,4 +2273,3 @@ String _singularLabel(String label) {
       return label;
   }
 }
-

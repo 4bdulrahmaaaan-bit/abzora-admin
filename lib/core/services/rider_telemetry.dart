@@ -13,10 +13,7 @@ class RiderTelemetry {
     }
     final db = DatabaseService();
     unawaited(
-      db.trackExperienceEvent(
-        eventType: 'rider_$name',
-        metadata: data,
-      ),
+      db.trackExperienceEvent(eventType: 'rider_$name', metadata: data),
     );
   }
 }

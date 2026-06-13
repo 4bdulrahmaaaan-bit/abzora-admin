@@ -18,12 +18,12 @@ class InvoiceRepository {
     String paymentStatus = '',
     String status = '',
   }) => _remote.fetchAdminInvoices(
-        limit: limit,
-        page: page,
-        search: search,
-        paymentStatus: paymentStatus,
-        status: status,
-      );
+    limit: limit,
+    page: page,
+    search: search,
+    paymentStatus: paymentStatus,
+    status: status,
+  );
 
   Future<InvoiceEntity> getInvoice(String id) => _remote.fetchInvoiceById(id);
 
@@ -32,8 +32,10 @@ class InvoiceRepository {
   Future<void> emailInvoice(String id, {String email = ''}) =>
       _remote.queueEmail(id, email: email);
 
-  Future<Map<String, dynamic>> getGstSummary({String? dateFrom, String? dateTo}) =>
-      _remote.fetchGstSummary(dateFrom: dateFrom, dateTo: dateTo);
+  Future<Map<String, dynamic>> getGstSummary({
+    String? dateFrom,
+    String? dateTo,
+  }) => _remote.fetchGstSummary(dateFrom: dateFrom, dateTo: dateTo);
 
   Future<List<Map<String, dynamic>>> getEmailLogs({int limit = 100}) =>
       _remote.fetchEmailLogs(limit: limit);
@@ -49,11 +51,13 @@ class InvoiceRepository {
 
   Future<Map<String, dynamic>> getQueueHealth() => _remote.fetchQueueHealth();
 
-  Future<Map<String, dynamic>> getStorageHealth() => _remote.fetchStorageHealth();
+  Future<Map<String, dynamic>> getStorageHealth() =>
+      _remote.fetchStorageHealth();
 
   Future<Map<String, dynamic>> getEmailHealth() => _remote.fetchEmailHealth();
 
-  Future<Map<String, dynamic>> getInvoiceHealth() => _remote.fetchInvoiceHealth();
+  Future<Map<String, dynamic>> getInvoiceHealth() =>
+      _remote.fetchInvoiceHealth();
 
   Future<List<Map<String, dynamic>>> getReplayAudit({int limit = 200}) =>
       _remote.fetchReplayAudit(limit: limit);
@@ -61,17 +65,30 @@ class InvoiceRepository {
   Future<List<Map<String, dynamic>>> getSuppressions({int limit = 200}) =>
       _remote.fetchSuppressions(limit: limit);
 
-  Future<Map<String, dynamic>> verifyInvoice(String invoiceId, {String hash = ''}) =>
-      _remote.verifyInvoice(invoiceId, hash: hash);
+  Future<Map<String, dynamic>> verifyInvoice(
+    String invoiceId, {
+    String hash = '',
+  }) => _remote.verifyInvoice(invoiceId, hash: hash);
 
-  Future<void> pauseQueue({required String queueName, required String confirmation}) =>
-      _remote.pauseQueue(queueName: queueName, confirmation: confirmation);
+  Future<void> pauseQueue({
+    required String queueName,
+    required String confirmation,
+  }) => _remote.pauseQueue(queueName: queueName, confirmation: confirmation);
 
-  Future<void> resumeQueue({required String queueName, required String confirmation}) =>
-      _remote.resumeQueue(queueName: queueName, confirmation: confirmation);
+  Future<void> resumeQueue({
+    required String queueName,
+    required String confirmation,
+  }) => _remote.resumeQueue(queueName: queueName, confirmation: confirmation);
 
-  Future<void> freezeInvoice(String invoiceId, {required String freezeState, bool legalHold = false}) =>
-      _remote.freezeInvoice(invoiceId, freezeState: freezeState, legalHold: legalHold);
+  Future<void> freezeInvoice(
+    String invoiceId, {
+    required String freezeState,
+    bool legalHold = false,
+  }) => _remote.freezeInvoice(
+    invoiceId,
+    freezeState: freezeState,
+    legalHold: legalHold,
+  );
 
   String exportCsvUrl() => _remote.exportCsvUrl();
 

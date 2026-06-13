@@ -11,7 +11,10 @@ class ProductDetailsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ProductFormController>();
-    final template = getProductAttributeTemplate(controller.selectedCategory, controller.selectedSubcategory);
+    final template = getProductAttributeTemplate(
+      controller.selectedCategory,
+      controller.selectedSubcategory,
+    );
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -48,7 +51,9 @@ class ProductDetailsSection extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           ...template.sections.map((section) {
-            final validFields = section.fields.where((key) => template.fields.containsKey(key)).toList();
+            final validFields = section.fields
+                .where((key) => template.fields.containsKey(key))
+                .toList();
             if (validFields.isEmpty) return const SizedBox.shrink();
 
             return Column(
@@ -72,7 +77,9 @@ class ProductDetailsSection extends StatelessWidget {
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: config.type == ProductAttributeFieldType.dropdown && config.options.isNotEmpty
+                    child:
+                        config.type == ProductAttributeFieldType.dropdown &&
+                            config.options.isNotEmpty
                         ? _buildDropdown(
                             label: config.label,
                             value: textCtrl.text,
@@ -120,7 +127,10 @@ class ProductDetailsSection extends StatelessWidget {
           maxLines: maxLines,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withValues(alpha: 0.5), fontSize: 14),
+            hintStyle: GoogleFonts.inter(
+              color: AbzioTheme.textSecondary.withValues(alpha: 0.5),
+              fontSize: 14,
+            ),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
             border: OutlineInputBorder(
@@ -135,7 +145,10 @@ class ProductDetailsSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: AbzioTheme.accentColor),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
       ],
@@ -162,8 +175,16 @@ class ProductDetailsSection extends StatelessWidget {
         DropdownButtonFormField<String>(
           initialValue: items.contains(value) ? value : null,
           onChanged: onChanged,
-          hint: Text('Select $label', style: GoogleFonts.inter(color: AbzioTheme.textSecondary.withValues(alpha: 0.5))),
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AbzioTheme.textSecondary),
+          hint: Text(
+            'Select $label',
+            style: GoogleFonts.inter(
+              color: AbzioTheme.textSecondary.withValues(alpha: 0.5),
+            ),
+          ),
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: AbzioTheme.textSecondary,
+          ),
           decoration: InputDecoration(
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
@@ -179,7 +200,10 @@ class ProductDetailsSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: AbzioTheme.accentColor),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
           items: items.map((item) {
             return DropdownMenuItem(

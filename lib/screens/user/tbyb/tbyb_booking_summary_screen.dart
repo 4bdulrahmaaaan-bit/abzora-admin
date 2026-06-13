@@ -25,7 +25,8 @@ class TbybBookingSummaryScreen extends StatefulWidget {
   final String addressLabel;
 
   @override
-  State<TbybBookingSummaryScreen> createState() => _TbybBookingSummaryScreenState();
+  State<TbybBookingSummaryScreen> createState() =>
+      _TbybBookingSummaryScreenState();
 }
 
 class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
@@ -47,9 +48,13 @@ class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
       final paymentResult = await PaymentService().processCheckout(
         context: context,
         userId: currentUser.id,
-        name: currentUser.name.trim().isEmpty ? 'Abianzo Member' : currentUser.name.trim(),
+        name: currentUser.name.trim().isEmpty
+            ? 'Abianzo Member'
+            : currentUser.name.trim(),
         amount: 99.0, // Booking Fee
-        email: currentUser.email.isEmpty ? 'guest@abianzo.app' : currentUser.email,
+        email: currentUser.email.isEmpty
+            ? 'guest@abianzo.app'
+            : currentUser.email,
         contact: currentUser.phone ?? '9999999999',
         description: 'Try Before You Buy Booking Fee',
       );
@@ -81,11 +86,7 @@ class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => TbybSuccessScreen(
-            session: session,
-          ),
-        ),
+        MaterialPageRoute(builder: (_) => TbybSuccessScreen(session: session)),
         (route) => route.isFirst,
       );
     } catch (e) {
@@ -113,7 +114,9 @@ class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                _SectionHeader(title: 'Selected Products (${widget.selectedItems.length})'),
+                _SectionHeader(
+                  title: 'Selected Products (${widget.selectedItems.length})',
+                ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -135,7 +138,10 @@ class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
                                 height: 60,
                                 color: AbzioTheme.grey200,
                                 child: product.images.isNotEmpty
-                                    ? Image.network(product.images.first, fit: BoxFit.cover)
+                                    ? Image.network(
+                                        product.images.first,
+                                        fit: BoxFit.cover,
+                                      )
                                     : null,
                               ),
                             ),
@@ -144,14 +150,24 @@ class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(product.name, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
-                                  Text('Size: M', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AbzioTheme.grey500)),
+                                  Text(
+                                    product.name,
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    'Size: M',
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(color: AbzioTheme.grey500),
+                                  ),
                                 ],
                               ),
                             ),
                             Text(
                               '₹${product.effectivePrice.toStringAsFixed(0)}',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -171,13 +187,29 @@ class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
                   ),
                   child: Column(
                     children: [
-                      _DetailRow(icon: Icons.calendar_today, title: 'Date', value: widget.deliveryDate),
+                      _DetailRow(
+                        icon: Icons.calendar_today,
+                        title: 'Date',
+                        value: widget.deliveryDate,
+                      ),
                       const Divider(height: 24),
-                      _DetailRow(icon: Icons.access_time, title: 'Time Window', value: widget.deliveryTime),
+                      _DetailRow(
+                        icon: Icons.access_time,
+                        title: 'Time Window',
+                        value: widget.deliveryTime,
+                      ),
                       const Divider(height: 24),
-                      _DetailRow(icon: Icons.timer_outlined, title: 'Trial Duration', value: '${widget.trialDurationMinutes} Minutes'),
+                      _DetailRow(
+                        icon: Icons.timer_outlined,
+                        title: 'Trial Duration',
+                        value: '${widget.trialDurationMinutes} Minutes',
+                      ),
                       const Divider(height: 24),
-                      _DetailRow(icon: Icons.location_on_outlined, title: 'Address', value: widget.addressLabel),
+                      _DetailRow(
+                        icon: Icons.location_on_outlined,
+                        title: 'Address',
+                        value: widget.addressLabel,
+                      ),
                     ],
                   ),
                 ),
@@ -195,17 +227,20 @@ class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text('Try At Home Fee'),
-                          Text('₹99'),
-                        ],
+                        children: const [Text('Try At Home Fee'), Text('₹99')],
                       ),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Adjusted On Purchase', style: TextStyle(color: Colors.green.shade700)),
-                          Text('-₹99', style: TextStyle(color: Colors.green.shade700)),
+                          Text(
+                            'Adjusted On Purchase',
+                            style: TextStyle(color: Colors.green.shade700),
+                          ),
+                          Text(
+                            '-₹99',
+                            style: TextStyle(color: Colors.green.shade700),
+                          ),
                         ],
                       ),
                       const Padding(
@@ -215,8 +250,16 @@ class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Amount Payable', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                          Text('₹99', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                          Text(
+                            'Amount Payable',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '₹99',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
                     ],
@@ -231,12 +274,20 @@ class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info, color: AbzioTheme.accentColor, size: 20),
+                      const Icon(
+                        Icons.info,
+                        color: AbzioTheme.accentColor,
+                        size: 20,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Pay ₹99 now. If you purchase any item, ₹99 will be deducted from your final bill.',
-                          style: TextStyle(color: AbzioTheme.accentColor, fontSize: 12, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: AbzioTheme.accentColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -246,7 +297,12 @@ class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
             ),
           ),
           Container(
-            padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(context).padding.bottom + 16,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -262,16 +318,26 @@ class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(56),
                 backgroundColor: AbzioTheme.accentColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              child: _isProcessing 
+              child: _isProcessing
                   ? const SizedBox(
-                      width: 24, height: 24, 
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     )
                   : const Text(
                       'Pay ₹99 & Confirm Booking',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
             ),
           ),
@@ -290,13 +356,19 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+      style: Theme.of(
+        context,
+      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
     );
   }
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.icon, required this.title, required this.value});
+  const _DetailRow({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
 
   final IconData icon;
   final String title;
@@ -313,7 +385,12 @@ class _DetailRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AbzioTheme.grey500)),
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AbzioTheme.grey500),
+              ),
               const SizedBox(height: 4),
               Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
             ],

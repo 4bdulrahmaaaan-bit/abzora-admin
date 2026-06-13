@@ -102,10 +102,10 @@ class _ProductCardState extends State<ProductCard> {
                                           milliseconds: 180,
                                         ),
                                         curve: Curves.easeOutCubic,
-                                          child: _ProductFallbackImage(
-                                            label: displayName,
-                                            theme: theme,
-                                          ),
+                                        child: _ProductFallbackImage(
+                                          label: displayName,
+                                          theme: theme,
+                                        ),
                                       )
                                     : AnimatedScale(
                                         scale: _pressed ? 1.03 : 1,
@@ -141,7 +141,9 @@ class _ProductCardState extends State<ProductCard> {
                                           end: Alignment.bottomCenter,
                                           colors: [
                                             Colors.transparent,
-                                            Colors.black.withValues(alpha: 0.16),
+                                            Colors.black.withValues(
+                                              alpha: 0.16,
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -378,7 +380,9 @@ class _ServiceBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFAF7EF),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFFB89A57).withValues(alpha: 0.25)),
+        border: Border.all(
+          color: const Color(0xFFB89A57).withValues(alpha: 0.25),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -415,9 +419,7 @@ class _GlassRatingPill extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.72),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.35),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -431,11 +433,11 @@ class _GlassRatingPill extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: const Color(0xFF111111),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      letterSpacing: 0,
-                    ),
+                  color: const Color(0xFF111111),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  letterSpacing: 0,
+                ),
               ),
             ],
           ),
@@ -462,9 +464,7 @@ class _GlassTryOnPill extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.45),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.14),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -478,11 +478,11 @@ class _GlassTryOnPill extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11,
-                      letterSpacing: 0.3,
-                    ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  letterSpacing: 0.3,
+                ),
               ),
             ],
           ),
@@ -567,19 +567,22 @@ String _ratingLabel(double rating) {
 
 String _deliveryLabel(Product product) {
   final delivery = product.deliveryInfo;
-  final sameDay = _boolFrom(delivery['sameDayAvailable']) ||
+  final sameDay =
+      _boolFrom(delivery['sameDayAvailable']) ||
       _boolFrom(delivery['sameDayEligible']) ||
       _boolFrom(product.sameDayAvailable);
   if (sameDay) {
     return '? Same Day';
   }
-  final tryAtHome = _boolFrom(delivery['tryAtHomeAvailable']) ||
+  final tryAtHome =
+      _boolFrom(delivery['tryAtHomeAvailable']) ||
       _boolFrom(delivery['tryAtHomeEligible']) ||
       _boolFrom(product.tryAtHomeAvailable);
   if (tryAtHome) {
     return '?? Nearby Store';
   }
-  final eta = delivery['etaHours'] ?? delivery['eta'] ?? delivery['deliveryEta'];
+  final eta =
+      delivery['etaHours'] ?? delivery['eta'] ?? delivery['deliveryEta'];
   if (eta is num && eta > 0) {
     final hours = eta.round();
     return hours == 1 ? '? 1-Hour Delivery' : '? $hours-Hour Delivery';
@@ -636,10 +639,11 @@ class _ProductPricing {
 
   const _ProductPricing({this.originalPrice, this.discountPercent = 0});
 }
-  bool _isAuthSessionError(Object error) {
-    final message = error.toString().toLowerCase();
-    return message.contains('unauthorized') ||
-        message.contains('session expired') ||
-        message.contains('sign in again') ||
-        message.contains('too many authentication requests');
-  }
+
+bool _isAuthSessionError(Object error) {
+  final message = error.toString().toLowerCase();
+  return message.contains('unauthorized') ||
+      message.contains('session expired') ||
+      message.contains('sign in again') ||
+      message.contains('too many authentication requests');
+}

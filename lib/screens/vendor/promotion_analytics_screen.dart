@@ -10,12 +10,13 @@ class PromotionAnalyticsScreen extends StatefulWidget {
   const PromotionAnalyticsScreen({super.key});
 
   @override
-  State<PromotionAnalyticsScreen> createState() => _PromotionAnalyticsScreenState();
+  State<PromotionAnalyticsScreen> createState() =>
+      _PromotionAnalyticsScreenState();
 }
 
 class _PromotionAnalyticsScreenState extends State<PromotionAnalyticsScreen> {
   final PromotionAnalyticsApi _api = PromotionAnalyticsApi();
-  
+
   bool _isLoading = true;
   String? _error;
   Map<String, dynamic> _data = {};
@@ -50,7 +51,10 @@ class _PromotionAnalyticsScreenState extends State<PromotionAnalyticsScreen> {
     return Scaffold(
       backgroundColor: VendorTheme.background,
       appBar: AppBar(
-        title: Text('Promotion Analytics', style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          'Promotion Analytics',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         centerTitle: true,
       ),
       body: _buildBody(),
@@ -59,19 +63,21 @@ class _PromotionAnalyticsScreenState extends State<PromotionAnalyticsScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: VendorTheme.primary));
+      return const Center(
+        child: CircularProgressIndicator(color: VendorTheme.primary),
+      );
     }
     if (_error != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Failed to load analytics: $_error', textAlign: TextAlign.center),
+            Text(
+              'Failed to load analytics: $_error',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: VendorTheme.spacing16),
-            ElevatedButton(
-              onPressed: _fetchData,
-              child: const Text('Retry'),
-            )
+            ElevatedButton(onPressed: _fetchData, child: const Text('Retry')),
           ],
         ),
       );
@@ -90,7 +96,10 @@ class _PromotionAnalyticsScreenState extends State<PromotionAnalyticsScreen> {
             const SizedBox(height: VendorTheme.spacing24),
             _buildMetricsGrid(context),
             const SizedBox(height: VendorTheme.spacing24),
-            Text('Top Performing Coupons', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Top Performing Coupons',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: VendorTheme.spacing16),
             _buildTopCoupons(context),
             const SizedBox(height: VendorTheme.spacing32),
@@ -106,10 +115,15 @@ class _PromotionAnalyticsScreenState extends State<PromotionAnalyticsScreen> {
       children: [
         Text(
           'Overview',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing12, vertical: VendorTheme.spacing4),
+          padding: const EdgeInsets.symmetric(
+            horizontal: VendorTheme.spacing12,
+            vertical: VendorTheme.spacing4,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
@@ -117,7 +131,12 @@ class _PromotionAnalyticsScreenState extends State<PromotionAnalyticsScreen> {
           ),
           child: Row(
             children: [
-              Text('Last 30 Days', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'Last 30 Days',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(width: VendorTheme.spacing4),
               const Icon(Icons.arrow_drop_down, color: VendorTheme.grey600),
             ],
@@ -206,14 +225,23 @@ class _PromotionAnalyticsScreenState extends State<PromotionAnalyticsScreen> {
           final rev = coupon['revenue'] ?? 0.0;
 
           return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing16, vertical: VendorTheme.spacing8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: VendorTheme.spacing16,
+              vertical: VendorTheme.spacing8,
+            ),
             leading: CircleAvatar(
               backgroundColor: VendorTheme.primary.withValues(alpha: 0.1),
-              child: const Icon(Icons.local_offer_outlined, color: VendorTheme.primary, size: 20),
+              child: const Icon(
+                Icons.local_offer_outlined,
+                color: VendorTheme.primary,
+                size: 20,
+              ),
             ),
             title: Text(
               code,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             subtitle: Text(
               '$uses uses',
@@ -226,13 +254,15 @@ class _PromotionAnalyticsScreenState extends State<PromotionAnalyticsScreen> {
                 Text(
                   '\u20B9${rev.toStringAsFixed(0)}',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: VendorTheme.success,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: VendorTheme.success,
+                  ),
                 ),
                 Text(
                   'Revenue',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontSize: 10),
                 ),
               ],
             ),
@@ -241,6 +271,4 @@ class _PromotionAnalyticsScreenState extends State<PromotionAnalyticsScreen> {
       ),
     );
   }
-
-
 }

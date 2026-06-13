@@ -2,7 +2,7 @@ import 'backend_api_client.dart';
 
 class InventoryService {
   InventoryService({BackendApiClient? client})
-      : _client = client ?? const BackendApiClient();
+    : _client = client ?? const BackendApiClient();
 
   final BackendApiClient _client;
 
@@ -15,10 +15,7 @@ class InventoryService {
       await _client.post(
         '/inventory/reserve',
         authenticated: true,
-        body: {
-          'productIds': productIds,
-          'purpose': 'trial',
-        },
+        body: {'productIds': productIds, 'purpose': 'trial'},
       );
     } catch (e) {
       // Log or handle reservation failure
@@ -35,10 +32,7 @@ class InventoryService {
       await _client.post(
         '/inventory/release',
         authenticated: true,
-        body: {
-          'productIds': productIds,
-          'purpose': 'trial',
-        },
+        body: {'productIds': productIds, 'purpose': 'trial'},
       );
     } catch (e) {
       // Log or handle release failure

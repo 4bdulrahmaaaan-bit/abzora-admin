@@ -103,7 +103,10 @@ class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
         }
 
         final state = snapshot.data!;
-        final vendorStatus = VendorStatusHelper.getVendorStatus(user: state.user, store: state.store);
+        final vendorStatus = VendorStatusHelper.getVendorStatus(
+          user: state.user,
+          store: state.store,
+        );
 
         if (vendorStatus == VendorAccountStatus.approved) {
           WidgetsBinding.instance.addPostFrameCallback((_) {

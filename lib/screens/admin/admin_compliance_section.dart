@@ -19,27 +19,27 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
     {
       'title': 'Financial Settlements',
       'description': 'Export all vendor and rider settlements',
-      'id': 'settlements'
+      'id': 'settlements',
     },
     {
       'title': 'Inventory Report',
       'description': 'Export current stock levels and low stock alerts',
-      'id': 'inventory'
+      'id': 'inventory',
     },
     {
       'title': 'KYC Compliance Logs',
       'description': 'Export vendor and rider KYC status reports',
-      'id': 'kyc'
+      'id': 'kyc',
     },
     {
       'title': 'Rider Intelligence Data',
       'description': 'Export rider performance and location logs',
-      'id': 'riders'
+      'id': 'riders',
     },
     {
       'title': 'Business Analytics',
       'description': 'Export global platform metrics and growth stats',
-      'id': 'analytics'
+      'id': 'analytics',
     },
   ];
 
@@ -51,13 +51,19 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
       ['1002', 'Pending', '2026-06-12'],
     ];
 
-    final csv = data.map((row) => row.map((cell) {
-      final s = cell.toString();
-      if (s.contains(',') || s.contains('"') || s.contains('\n')) {
-        return '"${s.replaceAll('"', '""')}"';
-      }
-      return s;
-    }).join(',')).join('\n');
+    final csv = data
+        .map(
+          (row) => row
+              .map((cell) {
+                final s = cell.toString();
+                if (s.contains(',') || s.contains('"') || s.contains('\n')) {
+                  return '"${s.replaceAll('"', '""')}"';
+                }
+                return s;
+              })
+              .join(','),
+        )
+        .join('\n');
     await _saveAndShareFile('$moduleId.csv', csv.codeUnits, 'text/csv');
   }
 
@@ -66,13 +72,29 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
     final sheet = excel[excel.getDefaultSheet()!];
 
     // Headers
-    sheet.appendRow([TextCellValue('ID'), TextCellValue('Status'), TextCellValue('Date')]);
+    sheet.appendRow([
+      TextCellValue('ID'),
+      TextCellValue('Status'),
+      TextCellValue('Date'),
+    ]);
     // Data
-    sheet.appendRow([TextCellValue('1001'), TextCellValue('Completed'), TextCellValue('2026-06-12')]);
-    sheet.appendRow([TextCellValue('1002'), TextCellValue('Pending'), TextCellValue('2026-06-12')]);
+    sheet.appendRow([
+      TextCellValue('1001'),
+      TextCellValue('Completed'),
+      TextCellValue('2026-06-12'),
+    ]);
+    sheet.appendRow([
+      TextCellValue('1002'),
+      TextCellValue('Pending'),
+      TextCellValue('2026-06-12'),
+    ]);
 
     final bytes = excel.encode()!;
-    await _saveAndShareFile('$moduleId.xlsx', bytes, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    await _saveAndShareFile(
+      '$moduleId.xlsx',
+      bytes,
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
   }
 
   Future<void> _exportAsPdf(String moduleId) async {
@@ -84,7 +106,13 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('Report: $moduleId', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                'Report: $moduleId',
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
               pw.SizedBox(height: 20),
               pw.TableHelper.fromTextArray(
                 context: context,
@@ -104,20 +132,26 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
     await _saveAndShareFile('$moduleId.pdf', bytes, 'application/pdf');
   }
 
-  Future<void> _saveAndShareFile(String fileName, List<int> bytes, String mimeType) async {
+  Future<void> _saveAndShareFile(
+    String fileName,
+    List<int> bytes,
+    String mimeType,
+  ) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/$fileName');
       await file.writeAsBytes(bytes);
-      
+
       if (mounted) {
-        await Share.shareXFiles([XFile(file.path, mimeType: mimeType)], text: 'Exported $fileName');
+        await Share.shareXFiles([
+          XFile(file.path, mimeType: mimeType),
+        ], text: 'Exported $fileName');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save file: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save file: $e')));
       }
     }
   }
@@ -128,14 +162,20 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
       builder: (context) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(
+              vertical: 24.0,
+              horizontal: 16.0,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Export $title',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 ListTile(
@@ -176,9 +216,9 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
       await exportFunc();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isExporting = false);
@@ -188,9 +228,7 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Data Export & Compliance'),
-      ),
+      appBar: AppBar(title: const Text('Data Export & Compliance')),
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -212,19 +250,32 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _exportModules.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final module = _exportModules[index];
                     return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                      leading: CircleAvatar(
-                        backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                        child: Icon(Icons.file_download, color: Theme.of(context).primaryColor),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 16,
                       ),
-                      title: Text(module['title']!, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      leading: CircleAvatar(
+                        backgroundColor: Theme.of(
+                          context,
+                        ).primaryColor.withValues(alpha: 0.1),
+                        child: Icon(
+                          Icons.file_download,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                      title: Text(
+                        module['title']!,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       subtitle: Text(module['description']!),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _showExportOptions(module['id']!, module['title']!),
+                      onTap: () =>
+                          _showExportOptions(module['id']!, module['title']!),
                     );
                   },
                 ),

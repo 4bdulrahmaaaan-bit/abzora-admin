@@ -6,10 +6,7 @@ import '../../../services/rider_trials_api.dart';
 import '../../../services/payment_service.dart';
 
 class RiderTrialFlowScreen extends StatefulWidget {
-  const RiderTrialFlowScreen({
-    super.key,
-    required this.session,
-  });
+  const RiderTrialFlowScreen({super.key, required this.session});
 
   final TrialSession session;
 
@@ -57,7 +54,10 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
   Future<void> _markArrived() async {
     setState(() => _isLoading = true);
     try {
-      final updatedSession = await RiderTrialsApi.arriveTrial(_session.id, _session);
+      final updatedSession = await RiderTrialsApi.arriveTrial(
+        _session.id,
+        _session,
+      );
       setState(() => _session = updatedSession);
     } catch (e) {
       _showError(e.toString());
@@ -69,7 +69,10 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
   Future<void> _startTrial() async {
     setState(() => _isLoading = true);
     try {
-      final updatedSession = await RiderTrialsApi.startTrial(_session.id, _session);
+      final updatedSession = await RiderTrialsApi.startTrial(
+        _session.id,
+        _session,
+      );
       setState(() => _session = updatedSession);
     } catch (e) {
       _showError(e.toString());
@@ -81,7 +84,11 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
   Future<void> _markNoShow() async {
     setState(() => _isLoading = true);
     try {
-      await RiderTrialsApi.noShowTrial(_session.id, 'Customer unresponsive', _proofPhotos);
+      await RiderTrialsApi.noShowTrial(
+        _session.id,
+        'Customer unresponsive',
+        _proofPhotos,
+      );
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -102,7 +109,9 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
 
   void _addProofPhoto() {
     setState(() {
-      _proofPhotos.add('https://dummyimage.com/600x400/000/fff&text=Proof+Photo+${_proofPhotos.length + 1}');
+      _proofPhotos.add(
+        'https://dummyimage.com/600x400/000/fff&text=Proof+Photo+${_proofPhotos.length + 1}',
+      );
     });
   }
 
@@ -124,12 +133,14 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
         _itemsKept.toList(),
         _itemsReturned.toList(),
       );
-      
-      final finalAmount = (checkoutData['finalAmount'] as num?)?.toDouble() ?? 0.0;
+
+      final finalAmount =
+          (checkoutData['finalAmount'] as num?)?.toDouble() ?? 0.0;
       bool paymentCollected = false;
 
       // 2. Collect Payment if finalAmount > 0
-      if (!mounted) return; if (finalAmount > 0) {
+      if (!mounted) return;
+      if (finalAmount > 0) {
         if (_paymentMethod == 'Online') {
           final paymentService = PaymentService();
           final result = await paymentService.processCheckout(
@@ -138,9 +149,12 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
             name: _session.userName.isEmpty ? 'Customer' : _session.userName,
             amount: finalAmount,
             email: 'customer@abianzo.com',
-            contact: _session.userPhone.isEmpty ? '9999999999' : _session.userPhone,
+            contact: _session.userPhone.isEmpty
+                ? '9999999999'
+                : _session.userPhone,
             description: 'TBYB Checkout',
-            backendOrderId: _session.id, // Will be mapped to TrialSession in backend
+            backendOrderId:
+                _session.id, // Will be mapped to TrialSession in backend
           );
           if (!result.success || !result.isVerified) {
             _showError('Payment failed or unverified. Cannot complete trial.');
@@ -197,18 +211,31 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Finalize Trial', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Finalize Trial',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 24),
                 Expanded(
                   child: ListView(
                     children: [
-                      const Text('Items Audit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Text(
+                        'Items Audit',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       ..._session.items.map((item) {
                         final isKept = _itemsKept.contains(item.productId);
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: CircleAvatar(backgroundImage: item.imageUrl.isNotEmpty ? NetworkImage(item.imageUrl) : null),
+                          leading: CircleAvatar(
+                            backgroundImage: item.imageUrl.isNotEmpty
+                                ? NetworkImage(item.imageUrl)
+                                : null,
+                          ),
                           title: Text(item.name),
                           subtitle: Text('₹${item.price}'),
                           trailing: Row(
@@ -244,47 +271,83 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
                         );
                       }),
                       const Divider(),
-                      const Text('Trial Outcome', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Text(
+                        'Trial Outcome',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
-                        children: ['converted', 'partial_purchase', 'returned', 'damaged'].map((val) {
-                          return ChoiceChip(
-                            label: Text(val.replaceAll('_', ' ').toUpperCase()),
-                            selected: _selectedOutcome == val,
-                            onSelected: (selected) {
-                              if (selected) setSheetState(() => _selectedOutcome = val);
-                            },
-                          );
-                        }).toList(),
+                        children:
+                            [
+                              'converted',
+                              'partial_purchase',
+                              'returned',
+                              'damaged',
+                            ].map((val) {
+                              return ChoiceChip(
+                                label: Text(
+                                  val.replaceAll('_', ' ').toUpperCase(),
+                                ),
+                                selected: _selectedOutcome == val,
+                                onSelected: (selected) {
+                                  if (selected)
+                                    setSheetState(() => _selectedOutcome = val);
+                                },
+                              );
+                            }).toList(),
                       ),
                       const SizedBox(height: 16),
                       if (_itemsKept.isNotEmpty) ...[
-                        const Text('Payment Method', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        const Text(
+                          'Payment Method',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         SegmentedButton<String>(
                           segments: const [
-                            ButtonSegment(value: 'Online', label: Text('Online / UPI')),
+                            ButtonSegment(
+                              value: 'Online',
+                              label: Text('Online / UPI'),
+                            ),
                             ButtonSegment(value: 'Cash', label: Text('Cash')),
                           ],
                           selected: {_paymentMethod},
-                          onSelectionChanged: (set) => setSheetState(() => _paymentMethod = set.first),
+                          onSelectionChanged: (set) =>
+                              setSheetState(() => _paymentMethod = set.first),
                         ),
                         const SizedBox(height: 16),
                       ],
-                      const Text('Proof Photos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Text(
+                        'Proof Photos',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         children: [
-                          ..._proofPhotos.map((url) => Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
+                          ..._proofPhotos.map(
+                            (url) => Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                image: DecorationImage(
+                                  image: NetworkImage(url),
+                                  fit: BoxFit.cover,
                                 ),
-                              )),
+                              ),
+                            ),
+                          ),
                           InkWell(
                             onTap: () {
                               _addProofPhoto();
@@ -304,9 +367,13 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
                       ),
                       const SizedBox(height: 16),
                       CheckboxListTile(
-                        title: const Text('Customer has reviewed the items and agrees to the outcome.'),
+                        title: const Text(
+                          'Customer has reviewed the items and agrees to the outcome.',
+                        ),
                         value: _customerAcknowledged,
-                        onChanged: (val) => setSheetState(() => _customerAcknowledged = val ?? false),
+                        onChanged: (val) => setSheetState(
+                          () => _customerAcknowledged = val ?? false,
+                        ),
                         controlAffinity: ListTileControlAffinity.leading,
                         contentPadding: EdgeInsets.zero,
                       ),
@@ -314,15 +381,19 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
                   ),
                 ),
                 FilledButton(
-                  onPressed: _isLoading ? null : () {
-                    Navigator.pop(context); // close bottom sheet
-                    _processCompletion(); // run async task
-                  },
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          Navigator.pop(context); // close bottom sheet
+                          _processCompletion(); // run async task
+                        },
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(56),
                     backgroundColor: AbzioTheme.accentColor,
                   ),
-                  child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Confirm & Collect Payment'),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Confirm & Collect Payment'),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -335,10 +406,19 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isEnRoute = _session.status == 'assigned' || _session.status == 'en_route' || _session.status == 'out_for_trial_delivery';
+    final bool isEnRoute =
+        _session.status == 'assigned' ||
+        _session.status == 'en_route' ||
+        _session.status == 'out_for_trial_delivery';
     final bool hasArrived = _session.status == 'arrived';
-    final bool isTrialActive = _session.status == 'trial_started' || _session.status == 'trial_active' || _session.status == 'trial_in_progress';
-    final bool isCompleted = _session.status == 'completed' || _session.status == 'cancelled' || _session.status == 'no_show';
+    final bool isTrialActive =
+        _session.status == 'trial_started' ||
+        _session.status == 'trial_active' ||
+        _session.status == 'trial_in_progress';
+    final bool isCompleted =
+        _session.status == 'completed' ||
+        _session.status == 'cancelled' ||
+        _session.status == 'no_show';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F4EE),
@@ -348,53 +428,75 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
         elevation: 0,
         centerTitle: true,
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator()) 
-        : Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(20),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
               children: [
-                _buildCustomerCard(),
-                const SizedBox(height: 24),
-                if (isEnRoute) _buildArrivalSection(),
-                if (hasArrived) _buildWaitTimerSection(),
-                if (isTrialActive) _buildActiveTrialTimerSection(),
-                if (isCompleted) _buildCompletedStatus(),
-                const SizedBox(height: 24),
-                _buildItemsList(),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      _buildCustomerCard(),
+                      const SizedBox(height: 24),
+                      if (isEnRoute) _buildArrivalSection(),
+                      if (hasArrived) _buildWaitTimerSection(),
+                      if (isTrialActive) _buildActiveTrialTimerSection(),
+                      if (isCompleted) _buildCompletedStatus(),
+                      const SizedBox(height: 24),
+                      _buildItemsList(),
+                    ],
+                  ),
+                ),
+                if (isTrialActive)
+                  Container(
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      16,
+                      20,
+                      MediaQuery.of(context).padding.bottom + 16,
+                    ),
+                    color: Colors.white,
+                    child: FilledButton(
+                      onPressed: _showCompletionBottomSheet,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(56),
+                        backgroundColor: AbzioTheme.accentColor,
+                      ),
+                      child: const Text(
+                        'Collect Payment & Complete',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (hasArrived)
+                  Container(
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      16,
+                      20,
+                      MediaQuery.of(context).padding.bottom + 16,
+                    ),
+                    color: Colors.white,
+                    child: FilledButton(
+                      onPressed: _startTrial,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(56),
+                        backgroundColor: Colors.blue.shade600,
+                      ),
+                      child: const Text(
+                        'Start Trial',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
-          ),
-          if (isTrialActive)
-            Container(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
-              color: Colors.white,
-              child: FilledButton(
-                onPressed: _showCompletionBottomSheet,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(56),
-                  backgroundColor: AbzioTheme.accentColor,
-                ),
-                child: const Text('Collect Payment & Complete', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          if (hasArrived)
-            Container(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
-              color: Colors.white,
-              child: FilledButton(
-                onPressed: _startTrial,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(56),
-                  backgroundColor: Colors.blue.shade600,
-                ),
-                child: const Text('Start Trial', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            ),
-        ],
-      ),
     );
   }
 
@@ -409,7 +511,10 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Customer Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text(
+            'Customer Details',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -423,21 +528,41 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_session.userName.isEmpty ? 'Customer' : _session.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    Text(_session.userPhone, style: TextStyle(color: AbzioTheme.grey500, fontSize: 12)),
+                    Text(
+                      _session.userName.isEmpty
+                          ? 'Customer'
+                          : _session.userName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      _session.userPhone,
+                      style: TextStyle(color: AbzioTheme.grey500, fontSize: 12),
+                    ),
                   ],
                 ),
               ),
-              IconButton(icon: const Icon(Icons.phone, color: Colors.green), onPressed: () {}),
+              IconButton(
+                icon: const Icon(Icons.phone, color: Colors.green),
+                onPressed: () {},
+              ),
             ],
           ),
           const Divider(height: 24),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.location_on, color: AbzioTheme.accentColor, size: 20),
+              const Icon(
+                Icons.location_on,
+                color: AbzioTheme.accentColor,
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Expanded(child: Text(_session.addressLabel, style: const TextStyle(fontWeight: FontWeight.w500))),
+              Expanded(
+                child: Text(
+                  _session.addressLabel,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
             ],
           ),
         ],
@@ -460,11 +585,14 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
   Widget _buildWaitTimerSection() {
     int waitedSeconds = 0;
     if (_session.arrivedAt != null) {
-      waitedSeconds = ServerTimeOffset().now.difference(_session.arrivedAt!).inSeconds;
+      waitedSeconds = ServerTimeOffset().now
+          .difference(_session.arrivedAt!)
+          .inSeconds;
     }
     final minutes = (waitedSeconds / 60).floor();
     final seconds = waitedSeconds % 60;
-    final timeString = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    final timeString =
+        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     final canMarkNoShow = waitedSeconds > 600; // 10 minutes
 
     return Container(
@@ -476,9 +604,23 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
       ),
       child: Column(
         children: [
-          const Text('Waiting for Customer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange)),
+          const Text(
+            'Waiting for Customer',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(timeString, style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.orange)),
+          Text(
+            timeString,
+            style: const TextStyle(
+              fontSize: 48,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange,
+            ),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -499,28 +641,51 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
   Widget _buildActiveTrialTimerSection() {
     int elapsedSeconds = 0;
     if (_session.startedAt != null) {
-      elapsedSeconds = ServerTimeOffset().now.difference(_session.startedAt!).inSeconds;
+      elapsedSeconds = ServerTimeOffset().now
+          .difference(_session.startedAt!)
+          .inSeconds;
     }
-    int remainingSeconds = (_session.trialDurationMinutes * 60) - elapsedSeconds;
+    int remainingSeconds =
+        (_session.trialDurationMinutes * 60) - elapsedSeconds;
     if (remainingSeconds < 0) remainingSeconds = 0;
 
     final minutes = (remainingSeconds / 60).floor();
     final seconds = remainingSeconds % 60;
-    final timeString = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    final timeString =
+        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     final isTimeLow = remainingSeconds < 300;
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isTimeLow ? Colors.red.shade50 : AbzioTheme.accentColor.withValues(alpha: 0.1),
+        color: isTimeLow
+            ? Colors.red.shade50
+            : AbzioTheme.accentColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isTimeLow ? Colors.red : AbzioTheme.accentColor, width: 2),
+        border: Border.all(
+          color: isTimeLow ? Colors.red : AbzioTheme.accentColor,
+          width: 2,
+        ),
       ),
       child: Column(
         children: [
-          Text('Trial In Progress', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isTimeLow ? Colors.red.shade700 : AbzioTheme.accentColor)),
+          Text(
+            'Trial In Progress',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isTimeLow ? Colors.red.shade700 : AbzioTheme.accentColor,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(timeString, style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: isTimeLow ? Colors.red : Colors.black87)),
+          Text(
+            timeString,
+            style: TextStyle(
+              fontSize: 48,
+              fontWeight: FontWeight.bold,
+              color: isTimeLow ? Colors.red : Colors.black87,
+            ),
+          ),
         ],
       ),
     );
@@ -538,7 +703,14 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
         children: [
           const Icon(Icons.check_circle, color: Colors.green, size: 48),
           const SizedBox(height: 8),
-          Text('Trial Completed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green.shade700)),
+          Text(
+            'Trial Completed',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.green.shade700,
+            ),
+          ),
         ],
       ),
     );
@@ -547,11 +719,18 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
   Widget _buildItemsList() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AbzioTheme.eliteShadow),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AbzioTheme.eliteShadow,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Items To Try', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text(
+            'Items To Try',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           const SizedBox(height: 12),
           ..._session.items.map((item) {
             return Padding(
@@ -561,8 +740,12 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      width: 50, height: 60, color: AbzioTheme.grey200,
-                      child: item.imageUrl.isNotEmpty ? Image.network(item.imageUrl, fit: BoxFit.cover) : null,
+                      width: 50,
+                      height: 60,
+                      color: AbzioTheme.grey200,
+                      child: item.imageUrl.isNotEmpty
+                          ? Image.network(item.imageUrl, fit: BoxFit.cover)
+                          : null,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -570,8 +753,17 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Text('Size: ${item.recommendedSize}', style: TextStyle(color: AbzioTheme.grey500, fontSize: 12)),
+                        Text(
+                          item.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Size: ${item.recommendedSize}',
+                          style: TextStyle(
+                            color: AbzioTheme.grey500,
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                   ),

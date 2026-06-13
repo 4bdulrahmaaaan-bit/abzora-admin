@@ -86,7 +86,9 @@ class SecurityDashboardData {
   factory SecurityDashboardData.fromMap(Map<String, dynamic> map) {
     return SecurityDashboardData(
       recentActivity: ((map['recentActivity'] ?? []) as List)
-          .map((e) => AdminActivityLogEntry.fromMap(Map<String, dynamic>.from(e)))
+          .map(
+            (e) => AdminActivityLogEntry.fromMap(Map<String, dynamic>.from(e)),
+          )
           .toList(),
       adminActionCounts: ((map['adminActionCounts'] ?? []) as List)
           .map((e) => AdminActionCount.fromMap(Map<String, dynamic>.from(e)))
@@ -100,9 +102,14 @@ class SecurityDashboardData {
 
 class AdminSecurityApi {
   static Future<SecurityDashboardData> getDashboard() async {
-    final response = await const BackendApiClient().get('/admin/security/dashboard', authenticated: true);
+    final response = await const BackendApiClient().get(
+      '/admin/security/dashboard',
+      authenticated: true,
+    );
     if (response != null && response is Map && response['data'] != null) {
-      return SecurityDashboardData.fromMap(Map<String, dynamic>.from(response['data']));
+      return SecurityDashboardData.fromMap(
+        Map<String, dynamic>.from(response['data']),
+      );
     }
     throw Exception('Failed to fetch security dashboard');
   }

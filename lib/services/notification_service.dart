@@ -28,10 +28,13 @@ class NotificationService {
         sound: true,
       );
 
-      final authorized = settings.authorizationStatus == AuthorizationStatus.authorized ||
+      final authorized =
+          settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional;
       if (!authorized) {
-        debugPrint('Notification permission not granted: ${settings.authorizationStatus}');
+        debugPrint(
+          'Notification permission not granted: ${settings.authorizationStatus}',
+        );
         return false;
       }
 
@@ -40,22 +43,32 @@ class NotificationService {
       // Tokens are bearer-like identifiers and should be treated as sensitive.
       await _persistTokenForCurrentUser(token);
 
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
 
-      _foregroundSubscription ??= FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      _foregroundSubscription ??= FirebaseMessaging.onMessage.listen((
+        RemoteMessage message,
+      ) {
         debugPrint('Got a message whilst in the foreground!');
         debugPrint('Message data: ${message.data}');
 
         if (message.notification != null) {
-          debugPrint('Message also contained a notification: ${message.notification}');
+          debugPrint(
+            'Message also contained a notification: ${message.notification}',
+          );
         }
       });
 
-      _openedAppSubscription ??= FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      _openedAppSubscription ??= FirebaseMessaging.onMessageOpenedApp.listen((
+        RemoteMessage message,
+      ) {
         debugPrint('A new onMessageOpenedApp event was published!');
       });
 
-      _tokenRefreshSubscription ??= _fcm.onTokenRefresh.listen((String refreshedToken) async {
+      _tokenRefreshSubscription ??= _fcm.onTokenRefresh.listen((
+        String refreshedToken,
+      ) async {
         await _persistTokenForCurrentUser(refreshedToken);
       });
 
@@ -67,7 +80,9 @@ class NotificationService {
     }
   }
 
-  static Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  static Future<void> _firebaseMessagingBackgroundHandler(
+    RemoteMessage message,
+  ) async {
     debugPrint("Handling a background message: ${message.messageId}");
   }
 
@@ -78,7 +93,7 @@ class NotificationService {
         await DatabaseService().updateFcmToken(userId: user.id, token: token);
         debugPrint('FCM token synced to Realtime Database');
       }
-      
+
       final normalizedRole = user.role.toLowerCase().trim();
       if (normalizedRole == 'super_admin' || normalizedRole == 'admin') {
         await _fcm.subscribeToTopic('admin_alerts');
@@ -104,7 +119,10 @@ class NotificationService {
     }
 
     try {
-      await DatabaseService().updateFcmToken(userId: firebaseUser.uid, token: token);
+      await DatabaseService().updateFcmToken(
+        userId: firebaseUser.uid,
+        token: token,
+      );
       debugPrint('FCM token persisted for ${firebaseUser.uid}');
     } catch (error) {
       debugPrint('FCM token persistence skipped: $error');

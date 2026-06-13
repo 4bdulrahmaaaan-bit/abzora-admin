@@ -10,7 +10,10 @@ import 'rider_app.dart';
 Future<void> main() async {
   await SentryFlutter.init(
     (options) {
-      options.dsn = const String.fromEnvironment('SENTRY_DSN', defaultValue: '');
+      options.dsn = const String.fromEnvironment(
+        'SENTRY_DSN',
+        defaultValue: '',
+      );
       options.environment = const String.fromEnvironment(
         'SENTRY_ENV',
         defaultValue: 'production',
@@ -29,4 +32,3 @@ Future<void> main() async {
     },
   );
 }
-

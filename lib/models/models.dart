@@ -121,8 +121,12 @@ class AppUser {
         map['referralCode'] ??
         (map['growth'] is Map ? (map['growth']['referralCode']) : null),
     referredBy: map['referredBy'],
-    vendorOnboarding: map['vendorOnboarding'] != null ? Map<String, dynamic>.from(map['vendorOnboarding']) : null,
-    riderOnboarding: map['riderOnboarding'] != null ? Map<String, dynamic>.from(map['riderOnboarding']) : null,
+    vendorOnboarding: map['vendorOnboarding'] != null
+        ? Map<String, dynamic>.from(map['vendorOnboarding'])
+        : null,
+    riderOnboarding: map['riderOnboarding'] != null
+        ? Map<String, dynamic>.from(map['riderOnboarding'])
+        : null,
   );
 
   AppUser copyWith({
@@ -872,13 +876,7 @@ class UserAddress {
       );
 }
 
-enum ProductStatus {
-  draft,
-  active,
-  inactive,
-  outOfStock,
-  archived
-}
+enum ProductStatus { draft, active, inactive, outOfStock, archived }
 
 class Product {
   final Store? store;
@@ -1254,10 +1252,12 @@ class Product {
     stock: map['stock'] ?? 0,
     category: map['category'] ?? '',
     subcategory: map['subcategory'] ?? '',
-      status: ProductStatus.values.firstWhere(
-        (e) => e.name == map['status'],
-        orElse: () => (map['isActive'] == false) ? ProductStatus.inactive : ProductStatus.active,
-      ),
+    status: ProductStatus.values.firstWhere(
+      (e) => e.name == map['status'],
+      orElse: () => (map['isActive'] == false)
+          ? ProductStatus.inactive
+          : ProductStatus.active,
+    ),
     createdAt: map['createdAt'],
     rating: (map['rating'] ?? 0.0).toDouble(),
     reviewCount: map['reviewCount'] ?? 0,
@@ -2325,23 +2325,29 @@ class UnifiedRiderTask {
     'dropLng': dropLng,
   };
 
-  factory UnifiedRiderTask.fromMap(Map<String, dynamic> map, String id) =>
-      UnifiedRiderTask(
-        id: id,
-        type: map['type'] ?? 'delivery',
-        orderId: map['orderId'],
-        returnId: map['returnId'],
-        userId: map['userId'] ?? '',
-        address: map['address'] ?? '',
-        status: map['status'] ?? 'assigned',
-        riderId: map['riderId'] ?? '',
-        createdAt: map['createdAt'] ?? '',
-        updatedAt: map['updatedAt'] ?? map['createdAt'] ?? '',
-        pickupLat: map['pickupLat'] == null ? null : (map['pickupLat'] as num).toDouble(),
-        pickupLng: map['pickupLng'] == null ? null : (map['pickupLng'] as num).toDouble(),
-        dropLat: map['dropLat'] == null ? null : (map['dropLat'] as num).toDouble(),
-        dropLng: map['dropLng'] == null ? null : (map['dropLng'] as num).toDouble(),
-      );
+  factory UnifiedRiderTask.fromMap(
+    Map<String, dynamic> map,
+    String id,
+  ) => UnifiedRiderTask(
+    id: id,
+    type: map['type'] ?? 'delivery',
+    orderId: map['orderId'],
+    returnId: map['returnId'],
+    userId: map['userId'] ?? '',
+    address: map['address'] ?? '',
+    status: map['status'] ?? 'assigned',
+    riderId: map['riderId'] ?? '',
+    createdAt: map['createdAt'] ?? '',
+    updatedAt: map['updatedAt'] ?? map['createdAt'] ?? '',
+    pickupLat: map['pickupLat'] == null
+        ? null
+        : (map['pickupLat'] as num).toDouble(),
+    pickupLng: map['pickupLng'] == null
+        ? null
+        : (map['pickupLng'] as num).toDouble(),
+    dropLat: map['dropLat'] == null ? null : (map['dropLat'] as num).toDouble(),
+    dropLng: map['dropLng'] == null ? null : (map['dropLng'] as num).toDouble(),
+  );
 }
 
 class RefundFraudLog {
@@ -5087,8 +5093,12 @@ class ActivityLogEntry {
         targetType: map['targetType'] ?? '',
         targetId: map['targetId'] ?? '',
         message: map['message'] ?? '',
-        previousState: map['previousState'] is Map ? Map<String, dynamic>.from(map['previousState']) : null,
-        newState: map['newState'] is Map ? Map<String, dynamic>.from(map['newState']) : null,
+        previousState: map['previousState'] is Map
+            ? Map<String, dynamic>.from(map['previousState'])
+            : null,
+        newState: map['newState'] is Map
+            ? Map<String, dynamic>.from(map['newState'])
+            : null,
         timestamp: DateTime.tryParse(map['timestamp'] ?? '') ?? DateTime.now(),
       );
 }
@@ -5142,12 +5152,22 @@ class AdminDispute {
       status: map['status'] ?? 'Open',
       amount: ((map['amount'] ?? 0) as num).toDouble(),
       reason: map['reason'] ?? '',
-      createdAt: DateTime.tryParse(map['createdAtIso'] ?? map['createdAt'] ?? '') ?? DateTime.now(),
-      timeline: map['timeline'] is List ? List<dynamic>.from(map['timeline']) : [],
+      createdAt:
+          DateTime.tryParse(map['createdAtIso'] ?? map['createdAt'] ?? '') ??
+          DateTime.now(),
+      timeline: map['timeline'] is List
+          ? List<dynamic>.from(map['timeline'])
+          : [],
       notes: map['notes'] is List ? List<dynamic>.from(map['notes']) : [],
-      evidence: map['evidence'] is List ? List<String>.from(map['evidence'].map((x) => x.toString())) : [],
-      attachments: map['attachments'] is List ? List<String>.from(map['attachments'].map((x) => x.toString())) : [],
-      resolutionHistory: map['resolutionHistory'] is List ? List<dynamic>.from(map['resolutionHistory']) : [],
+      evidence: map['evidence'] is List
+          ? List<String>.from(map['evidence'].map((x) => x.toString()))
+          : [],
+      attachments: map['attachments'] is List
+          ? List<String>.from(map['attachments'].map((x) => x.toString()))
+          : [],
+      resolutionHistory: map['resolutionHistory'] is List
+          ? List<dynamic>.from(map['resolutionHistory'])
+          : [],
     );
   }
 }
@@ -5169,7 +5189,12 @@ class AdminNotification {
     required this.audienceRole,
     required this.campaignType,
     this.channels = const ['Push'],
-    this.analytics = const {'sent': 0, 'delivered': 0, 'failed': 0, 'openRate': 0},
+    this.analytics = const {
+      'sent': 0,
+      'delivered': 0,
+      'failed': 0,
+      'openRate': 0,
+    },
     required this.timestamp,
   });
 
@@ -5180,8 +5205,12 @@ class AdminNotification {
       body: map['body'] ?? '',
       audienceRole: map['audienceRole'] ?? 'user',
       campaignType: map['campaignType'] ?? 'Instant',
-      channels: map['channels'] is List ? List<String>.from(map['channels'].map((x) => x.toString())) : ['Push'],
-      analytics: map['analytics'] is Map ? Map<String, dynamic>.from(map['analytics']) : {'sent': 0, 'delivered': 0, 'failed': 0, 'openRate': 0},
+      channels: map['channels'] is List
+          ? List<String>.from(map['channels'].map((x) => x.toString()))
+          : ['Push'],
+      analytics: map['analytics'] is Map
+          ? Map<String, dynamic>.from(map['analytics'])
+          : {'sent': 0, 'delivered': 0, 'failed': 0, 'openRate': 0},
       timestamp: DateTime.tryParse(map['timestamp'] ?? '') ?? DateTime.now(),
     );
   }

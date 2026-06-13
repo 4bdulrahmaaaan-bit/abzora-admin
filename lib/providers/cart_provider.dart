@@ -16,21 +16,19 @@ class CartItem {
   final String size;
   int quantity;
 
-  CartItem({
-    required this.product,
-    required this.size,
-    this.quantity = 1,
-  });
+  CartItem({required this.product, required this.size, this.quantity = 1});
 
   Map<String, dynamic> toMap() => {
-        'product': product.toMap(),
-        'productId': product.id,
-        'size': size,
-        'quantity': quantity,
-      };
+    'product': product.toMap(),
+    'productId': product.id,
+    'size': size,
+    'quantity': quantity,
+  };
 
   factory CartItem.fromMap(Map<String, dynamic> map) {
-    final productMap = Map<String, dynamic>.from((map['product'] as Map?) ?? const {});
+    final productMap = Map<String, dynamic>.from(
+      (map['product'] as Map?) ?? const {},
+    );
     final productId = (map['productId'] ?? productMap['id'] ?? '').toString();
     if (productId.isNotEmpty) {
       productMap['id'] = productId;
@@ -43,14 +41,11 @@ class CartItem {
   }
 }
 
-enum CartAddResult {
-  added,
-  updated,
-  storeConflict,
-}
+enum CartAddResult { added, updated, storeConflict }
 
 class CartProvider with ChangeNotifier {
-  CartProvider({DatabaseService? databaseService}) : _db = databaseService ?? DatabaseService() {
+  CartProvider({DatabaseService? databaseService})
+    : _db = databaseService ?? DatabaseService() {
     unawaited(_restoreCart());
   }
 
@@ -70,17 +65,26 @@ class CartProvider with ChangeNotifier {
   double get discountPercentage => _discountPercentage;
   double get fixedDiscountAmount => _fixedDiscountAmount;
   DateTime? get lastInteractionAt => _lastInteractionAt;
-  List<CartItem> get customTailoringItems => _items.where((item) => item.product.isCustomTailoring).toList();
+  List<CartItem> get customTailoringItems =>
+      _items.where((item) => item.product.isCustomTailoring).toList();
   bool get hasCustomTailoring => customTailoringItems.isNotEmpty;
-  bool get isAbandonedCandidate => _items.isNotEmpty && _lastInteractionAt != null;
+  bool get isAbandonedCandidate =>
+      _items.isNotEmpty && _lastInteractionAt != null;
 
-  double get subtotal => _items.fold(0, (sum, item) => sum + (item.product.effectivePrice * item.quantity));
-  double get customTailoringCharges =>
-      _items.fold(0, (sum, item) => sum + (item.product.tailoringExtraCost * item.quantity));
-  double get discountAmount => min(subtotal, (subtotal * _discountPercentage) + _fixedDiscountAmount);
+  double get subtotal => _items.fold(
+    0,
+    (sum, item) => sum + (item.product.effectivePrice * item.quantity),
+  );
+  double get customTailoringCharges => _items.fold(
+    0,
+    (sum, item) => sum + (item.product.tailoringExtraCost * item.quantity),
+  );
+  double get discountAmount =>
+      min(subtotal, (subtotal * _discountPercentage) + _fixedDiscountAmount);
   double get totalAmount => subtotal - discountAmount;
 
-  String? get activeStoreId => _items.isEmpty ? null : _items.first.product.storeId;
+  String? get activeStoreId =>
+      _items.isEmpty ? null : _items.first.product.storeId;
 
   Future<void> _restoreCart() async {
     try {
@@ -112,8 +116,12 @@ class CartProvider with ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final payload = jsonEncode(_items.map((item) => item.toMap()).toList());
       await prefs.setString(_cartStorageKey, payload);
-      if (_backendCommerce.isConfigured && _syncedUserId != null && !_syncingRemoteCart) {
-        await _backendCommerce.saveCartItems(_items.map((item) => item.toMap()).toList());
+      if (_backendCommerce.isConfigured &&
+          _syncedUserId != null &&
+          !_syncingRemoteCart) {
+        await _backendCommerce.saveCartItems(
+          _items.map((item) => item.toMap()).toList(),
+        );
       }
     } catch (_) {
       // Keep cart UX responsive even if local persistence fails.
@@ -138,7 +146,9 @@ class CartProvider with ChangeNotifier {
       final remoteItems = await _backendCommerce.getSavedCartItems();
       if (remoteItems.isEmpty) {
         if (_items.isNotEmpty) {
-          await _backendCommerce.saveCartItems(_items.map((item) => item.toMap()).toList());
+          await _backendCommerce.saveCartItems(
+            _items.map((item) => item.toMap()).toList(),
+          );
         }
         return;
       }
@@ -167,14 +177,19 @@ class CartProvider with ChangeNotifier {
             quantity: item.quantity,
             price: item.product.effectivePrice,
             size: item.size,
-            imageUrl: item.product.images.isNotEmpty ? item.product.images.first : '',
+            imageUrl: item.product.images.isNotEmpty
+                ? item.product.images.first
+                : '',
             isCustomTailoring: item.product.isCustomTailoring,
           ),
         )
         .toList();
   }
 
-  Future<void> _recordProductCartIntentSafely(Product product, {int quantity = 1}) async {
+  Future<void> _recordProductCartIntentSafely(
+    Product product, {
+    int quantity = 1,
+  }) async {
     try {
       if (Firebase.apps.isEmpty) {
         return;
@@ -216,7 +231,9 @@ class CartProvider with ChangeNotifier {
       return CartAddResult.storeConflict;
     }
 
-    final existingIndex = _items.indexWhere((item) => item.product.id == product.id && item.size == size);
+    final existingIndex = _items.indexWhere(
+      (item) => item.product.id == product.id && item.size == size,
+    );
     if (existingIndex >= 0) {
       _items[existingIndex].quantity++;
       _lastInteractionAt = DateTime.now();
@@ -237,11 +254,18 @@ class CartProvider with ChangeNotifier {
   }
 
   void updateQuantity(String productId, String size, int delta) {
-    final index = _items.indexWhere((item) => item.product.id == productId && item.size == size);
+    final index = _items.indexWhere(
+      (item) => item.product.id == productId && item.size == size,
+    );
     if (index >= 0) {
       _items[index].quantity += delta;
       if (delta > 0) {
-        unawaited(_recordProductCartIntentSafely(_items[index].product, quantity: delta));
+        unawaited(
+          _recordProductCartIntentSafely(
+            _items[index].product,
+            quantity: delta,
+          ),
+        );
       }
       if (_items[index].quantity <= 0) {
         _items.removeAt(index);
@@ -302,7 +326,9 @@ class CartProvider with ChangeNotifier {
   }
 
   void removeFromCart(String productId, String size) {
-    _items.removeWhere((item) => item.product.id == productId && item.size == size);
+    _items.removeWhere(
+      (item) => item.product.id == productId && item.size == size,
+    );
     _lastInteractionAt = DateTime.now();
     unawaited(_track('removed'));
     unawaited(_persistCart());

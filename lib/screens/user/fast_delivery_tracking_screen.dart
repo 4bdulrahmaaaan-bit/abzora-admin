@@ -10,20 +10,19 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 
 class FastDeliveryTrackingScreen extends StatefulWidget {
-  const FastDeliveryTrackingScreen({
-    super.key,
-    required this.order,
-  });
+  const FastDeliveryTrackingScreen({super.key, required this.order});
 
   final OrderModel order;
 
   @override
-  State<FastDeliveryTrackingScreen> createState() => _FastDeliveryTrackingScreenState();
+  State<FastDeliveryTrackingScreen> createState() =>
+      _FastDeliveryTrackingScreenState();
 }
 
 enum _TrackingStage { confirmed, packed, outForDelivery, delivered }
 
-class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen> {
+class _FastDeliveryTrackingScreenState
+    extends State<FastDeliveryTrackingScreen> {
   static const Color _dark = Color(0xFF0B0B0C);
   static const Color _text = Color(0xFFFFFFFF);
   static const Color _sub = Color(0xFF9A9A9A);
@@ -49,7 +48,10 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
   void initState() {
     super.initState();
     _initScreen();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 12), (_) => _refreshTracking(silent: true));
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 12),
+      (_) => _refreshTracking(silent: true),
+    );
   }
 
   @override
@@ -87,11 +89,12 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
   }
 
   void _syncFromOrder() {
-    final status = (widget.order.deliveryStatus.isNotEmpty
-            ? widget.order.deliveryStatus
-            : widget.order.status)
-        .trim()
-        .toLowerCase();
+    final status =
+        (widget.order.deliveryStatus.isNotEmpty
+                ? widget.order.deliveryStatus
+                : widget.order.status)
+            .trim()
+            .toLowerCase();
     if (status == 'delivered' || widget.order.isDelivered) {
       _stage = _TrackingStage.delivered;
       _statusText = 'Delivered Successfully';
@@ -100,7 +103,9 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
       _markerProgress = 1;
       return;
     }
-    if (status == 'out for delivery' || status == 'shipped' || status == 'assigned') {
+    if (status == 'out for delivery' ||
+        status == 'shipped' ||
+        status == 'assigned') {
       _stage = _TrackingStage.outForDelivery;
       _statusText = 'Out for delivery';
       _etaText = 'Arriving in 2-3 hours';
@@ -165,9 +170,9 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
     }
     final ok = await launchUrlString('tel:$phone');
     if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open dialer.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not open dialer.')));
     }
   }
 
@@ -201,7 +206,9 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _stage == _TrackingStage.delivered ? 'Delivered' : 'Arriving Today',
+                  _stage == _TrackingStage.delivered
+                      ? 'Delivered'
+                      : 'Arriving Today',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(color: _sub, fontSize: 12),
@@ -294,9 +301,7 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
                     },
                     child: const DecoratedBox(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [_accent, _green],
-                        ),
+                        gradient: LinearGradient(colors: [_accent, _green]),
                       ),
                     ),
                   ),
@@ -323,9 +328,14 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _accent,
                   side: const BorderSide(color: _accent),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                child: Text('Return / Exchange', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                child: Text(
+                  'Return / Exchange',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],
@@ -355,7 +365,10 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
                       'Live map unavailable. Tracking visually.',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(color: _text, fontWeight: FontWeight.w600),
+                      style: GoogleFonts.inter(
+                        color: _text,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -373,7 +386,10 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
                     left: 26,
                     right: 26,
                     top: 110,
-                    child: Container(height: 3, color: _accent.withValues(alpha: 0.92)),
+                    child: Container(
+                      height: 3,
+                      color: _accent.withValues(alpha: 0.92),
+                    ),
                   ),
                   const Positioned(
                     left: 16,
@@ -385,7 +401,10 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
                     curve: Curves.easeInOutCubicEmphasized,
                     left: 16 + (260 * _markerProgress),
                     top: 87,
-                    child: const _MapPin(icon: Icons.delivery_dining_rounded, color: _accent),
+                    child: const _MapPin(
+                      icon: Icons.delivery_dining_rounded,
+                      color: _accent,
+                    ),
                   ),
                 ],
               ),
@@ -403,61 +422,63 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
         child: _loading
             ? const _TrackingSkeleton()
             : _error != null
-                ? _ErrorState(
-                    message: _error!,
-                    onRetry: () async {
-                      setState(() {
-                        _error = null;
-                        _loading = true;
-                      });
-                      await _initScreen();
-                    },
-                  )
-                : _showNoTracking
-                    ? const _NoTrackingState()
-                    : Column(
+            ? _ErrorState(
+                message: _error!,
+                onRetry: () async {
+                  setState(() {
+                    _error = null;
+                    _loading = true;
+                  });
+                  await _initScreen();
+                },
+              )
+            : _showNoTracking
+            ? const _NoTrackingState()
+            : Column(
+                children: [
+                  _buildHeader(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: _buildStatusBanner(),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: _buildMapSection(),
+                  ),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _refreshTracking,
+                      color: _green,
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                         children: [
-                          _buildHeader(),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                            child: _buildStatusBanner(),
+                          _PartnerCard(
+                            partnerName: _rider?.name.trim().isNotEmpty == true
+                                ? _rider!.name
+                                : widget.order.assignedDeliveryPartner,
+                            partnerPhone: _rider?.phone,
+                            onCall: _callPartner,
+                            onChat: _openHelp,
                           ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                            child: _buildMapSection(),
-                          ),
-                          Expanded(
-                            child: RefreshIndicator(
-                              onRefresh: _refreshTracking,
-                              color: _green,
-                              child: ListView(
-                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-                                children: [
-                                  _PartnerCard(
-                                    partnerName: _rider?.name.trim().isNotEmpty == true
-                                        ? _rider!.name
-                                        : widget.order.assignedDeliveryPartner,
-                                    partnerPhone: _rider?.phone,
-                                    onCall: _callPartner,
-                                    onChat: _openHelp,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _OrderSummaryCard(order: widget.order),
-                                  const SizedBox(height: 12),
-                                  _ProgressSteps(stage: _stage),
-                                  const SizedBox(height: 12),
-                                  _DetailsCard(
-                                    expanded: _detailsExpanded,
-                                    order: widget.order,
-                                    etaText: _etaText,
-                                    onToggle: () => setState(() => _detailsExpanded = !_detailsExpanded),
-                                  ),
-                                ],
-                              ),
+                          const SizedBox(height: 12),
+                          _OrderSummaryCard(order: widget.order),
+                          const SizedBox(height: 12),
+                          _ProgressSteps(stage: _stage),
+                          const SizedBox(height: 12),
+                          _DetailsCard(
+                            expanded: _detailsExpanded,
+                            order: widget.order,
+                            etaText: _etaText,
+                            onToggle: () => setState(
+                              () => _detailsExpanded = !_detailsExpanded,
                             ),
                           ),
                         ],
                       ),
+                    ),
+                  ),
+                ],
+              ),
       ),
       bottomNavigationBar: SafeArea(
         top: false,
@@ -475,9 +496,14 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _green,
                     foregroundColor: _dark,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
-                  child: Text('Call Delivery Partner', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                  child: Text(
+                    'Call Delivery Partner',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -489,9 +515,14 @@ class _FastDeliveryTrackingScreenState extends State<FastDeliveryTrackingScreen>
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: _accent),
                     foregroundColor: _accent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
-                  child: Text('Need Help?', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                  child: Text(
+                    'Need Help?',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],
@@ -548,19 +579,29 @@ class _PartnerCard extends StatelessWidget {
                   partnerName.trim().isEmpty ? 'Delivery Partner' : partnerName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '4.8 rating | Your delivery partner',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(color: const Color(0xFF9A9A9A), fontSize: 12),
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF9A9A9A),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
           ),
-          _actionCircle(icon: Icons.call_rounded, color: const Color(0xFF00C853), onTap: onCall),
+          _actionCircle(
+            icon: Icons.call_rounded,
+            color: const Color(0xFF00C853),
+            onTap: onCall,
+          ),
           const SizedBox(width: 8),
           _actionCircle(
             icon: Icons.chat_bubble_outline_rounded,
@@ -634,12 +675,12 @@ class _OrderSummaryCard extends StatelessWidget {
               child: imageUrl.isEmpty
                   ? Container(
                       color: const Color(0xFF27272A),
-                      child: const Icon(Icons.checkroom_rounded, color: Colors.white54),
+                      child: const Icon(
+                        Icons.checkroom_rounded,
+                        color: Colors.white54,
+                      ),
                     )
-                  : CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                    ),
+                  : CachedNetworkImage(imageUrl: imageUrl, fit: BoxFit.cover),
             ),
           ),
           const SizedBox(width: 12),
@@ -651,7 +692,10 @@ class _OrderSummaryCard extends StatelessWidget {
                   title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -663,7 +707,10 @@ class _OrderSummaryCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   '₹${order.totalAmount.toStringAsFixed(0)}',
-                  style: const TextStyle(color: Color(0xFFC6A769), fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    color: Color(0xFFC6A769),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -727,7 +774,9 @@ class _ProgressSteps extends StatelessWidget {
                         boxShadow: now
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFFC6A769).withValues(alpha: 0.30),
+                                  color: const Color(
+                                    0xFFC6A769,
+                                  ).withValues(alpha: 0.30),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -737,7 +786,9 @@ class _ProgressSteps extends StatelessWidget {
                       child: Icon(
                         done ? Icons.check_rounded : icons[index],
                         size: 14,
-                        color: now || done ? const Color(0xFF0B0B0C) : const Color(0xFF76767A),
+                        color: now || done
+                            ? const Color(0xFF0B0B0C)
+                            : const Color(0xFF76767A),
                       ),
                     ),
                   ),
@@ -746,7 +797,9 @@ class _ProgressSteps extends StatelessWidget {
                   Container(
                     width: 24,
                     height: 1.5,
-                    color: done ? const Color(0xFF00C853) : const Color(0xFF3A3A3D),
+                    color: done
+                        ? const Color(0xFF00C853)
+                        : const Color(0xFF3A3A3D),
                   ),
               ],
             ),
@@ -791,9 +844,15 @@ class _DetailsCard extends StatelessWidget {
             onTap: onToggle,
             title: Text(
               'Delivery Details',
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700),
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            trailing: Icon(expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: Colors.white70),
+            trailing: Icon(
+              expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+              color: Colors.white70,
+            ),
           ),
           if (expanded)
             Padding(
@@ -819,14 +878,20 @@ class _DetailsCard extends StatelessWidget {
                     etaText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(color: const Color(0xFF9A9A9A), fontSize: 12),
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF9A9A9A),
+                      fontSize: 12,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Payment: ${order.isPaymentVerified || order.paymentMethod.toUpperCase() != 'COD' ? 'Paid' : 'Cash on Delivery'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(color: const Color(0xFF00C853), fontWeight: FontWeight.w700),
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF00C853),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -848,9 +913,17 @@ class _MapPin extends StatelessWidget {
     return Container(
       width: 28,
       height: 28,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle, boxShadow: [
-        BoxShadow(color: color.withValues(alpha: 0.30), blurRadius: 12, offset: const Offset(0, 4)),
-      ]),
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.30),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Icon(icon, size: 15, color: const Color(0xFF0F0F10)),
     );
   }
@@ -869,7 +942,10 @@ class _TrackingSkeleton extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 12),
           child: Container(
             height: index == 1 ? 220 : 88,
-            decoration: BoxDecoration(color: const Color(0xFF18181B), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(
+              color: const Color(0xFF18181B),
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
         );
       },
@@ -909,14 +985,19 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(message, style: const TextStyle(color: Colors.white), textAlign: TextAlign.center),
+            Text(
+              message,
+              style: const TextStyle(color: Colors.white),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 12),
-            ElevatedButton(onPressed: () => unawaited(onRetry()), child: const Text('Retry')),
+            ElevatedButton(
+              onPressed: () => unawaited(onRetry()),
+              child: const Text('Retry'),
+            ),
           ],
         ),
       ),
     );
   }
 }
-
-

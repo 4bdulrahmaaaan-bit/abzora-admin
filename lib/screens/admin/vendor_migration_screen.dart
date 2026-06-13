@@ -35,7 +35,8 @@ class _VendorMigrationScreenState extends State<VendorMigrationScreen> {
       await _db.runVendorMigration(actor: actor);
       if (!mounted) return;
       setState(() {
-        _resultMessage = 'Migration completed successfully. Legacy records synchronized.';
+        _resultMessage =
+            'Migration completed successfully. Legacy records synchronized.';
       });
     } catch (e) {
       if (!mounted) return;
@@ -54,9 +55,7 @@ class _VendorMigrationScreenState extends State<VendorMigrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vendor Data Migration'),
-      ),
+      appBar: AppBar(title: const Text('Vendor Data Migration')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -77,16 +76,24 @@ class _VendorMigrationScreenState extends State<VendorMigrationScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
                   ),
-                  child: const Text('RUN MIGRATION', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'RUN MIGRATION',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               if (_resultMessage != null) ...[
                 const SizedBox(height: 24),
                 Text(
                   _resultMessage!,
                   style: TextStyle(
-                    color: _resultMessage!.startsWith('Migration completed') ? Colors.green : Colors.red,
+                    color: _resultMessage!.startsWith('Migration completed')
+                        ? Colors.green
+                        : Colors.red,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,

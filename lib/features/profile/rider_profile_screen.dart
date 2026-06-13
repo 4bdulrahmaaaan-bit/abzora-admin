@@ -289,7 +289,7 @@ class _RiderProfileScreenState extends State<RiderProfileScreen> {
             title,
             style: const TextStyle(
               fontSize: 12,
-          color: Color(0xFF666666),
+              color: Color(0xFF666666),
               fontWeight: FontWeight.w700,
             ),
           ),

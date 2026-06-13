@@ -48,7 +48,10 @@ class KycUploadWidget extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               if (requiredLabel)
@@ -109,7 +112,9 @@ class KycUploadWidget extends StatelessWidget {
         future: file!.readAsBytes(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+            return const Center(
+              child: CircularProgressIndicator(strokeWidth: 2),
+            );
           }
           return Image.memory(snapshot.data!, fit: BoxFit.cover);
         },

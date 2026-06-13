@@ -115,7 +115,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     final nextFingerprint = _profileFingerprint(nextUser);
     final nextImageUrl = nextUser?.profileImageUrl?.trim() ?? '';
     final shouldBeReady = auth.isInitialized;
-    final userChanged = force ||
+    final userChanged =
+        force ||
         !_profileHydrated ||
         nextFingerprint != _cachedProfileFingerprint ||
         (_cachedProfileUser?.id ?? '') != (nextUser?.id ?? '');
@@ -257,7 +258,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           appBar: AppBar(title: const Text('Profile')),
           body: SafeArea(
             child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
               child: _buildGuestModeProfile(context),
             ),
@@ -271,14 +274,21 @@ class _ProfileScreenState extends State<ProfileScreen>
     final bool hasName = actualName.isNotEmpty;
 
     final hour = DateTime.now().hour;
-    final timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-    
-    final nameParts = actualName.split(' ').where((part) => part.isNotEmpty).toList();
+    final timeGreeting = hour < 12
+        ? 'Good morning'
+        : hour < 17
+        ? 'Good afternoon'
+        : 'Good evening';
+
+    final nameParts = actualName
+        .split(' ')
+        .where((part) => part.isNotEmpty)
+        .toList();
     final firstName = nameParts.isNotEmpty ? nameParts.first : '';
     final greetingText = hasName ? '$timeGreeting, $firstName' : timeGreeting;
 
     final name = hasName ? actualName : 'Complete Your Profile';
-    final phone = hasName 
+    final phone = hasName
         ? (actualPhone.isNotEmpty ? actualPhone : 'No phone linked')
         : 'Add your name and details';
     final address = user.address?.trim().isNotEmpty == true
@@ -300,252 +310,262 @@ class _ProfileScreenState extends State<ProfileScreen>
                 parent: AlwaysScrollableScrollPhysics(),
               ),
               slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    _reveal(
-                      0.00,
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            greetingText,
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Your next outfit is waiting',
-                            style: TextStyle(
-                              color: context.abzioSecondaryText,
-                              fontWeight: FontWeight.w500,
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      _reveal(
+                        0.00,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              greetingText,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w800),
                             ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Your next outfit is waiting',
+                              style: TextStyle(
+                                color: context.abzioSecondaryText,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _reveal(
+                        0.02,
+                        _buildProfileHeaderCard(
+                          context,
+                          auth: auth,
+                          user: user,
+                          name: name,
+                          phone: phone,
+                          city: city,
+                          address: address,
+                          profileImageProvider: _cachedProfileImageProvider,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _reveal(0.03, _buildPremiumEliteCard(context)),
+                      const SizedBox(height: 18),
+                      _reveal(0.04, _buildValueStrip(context, user)),
+                      const SizedBox(height: 24),
+                      _reveal(
+                        0.06,
+                        _sectionTitle(
+                          eyebrow: 'AI Support',
+                          title: 'Instant help for styling and orders',
+                          subtitle:
+                              'A premium assistant for fit questions, order support, and next-look guidance.',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _reveal(
+                        0.08,
+                        StreamBuilder<List<SupportChat>>(
+                          stream: _database.watchSupportChatsForUser(
+                            actor: user,
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _reveal(
-                      0.02,
-                      _buildProfileHeaderCard(
-                        context,
-                        auth: auth,
-                        user: user,
-                        name: name,
-                        phone: phone,
-                        city: city,
-                        address: address,
-                        profileImageProvider: _cachedProfileImageProvider,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _reveal(0.03, _buildPremiumEliteCard(context)),
-                    const SizedBox(height: 18),
-                    _reveal(0.04, _buildValueStrip(context, user)),
-                    const SizedBox(height: 24),
-                    _reveal(
-                      0.06,
-                      _sectionTitle(
-                        eyebrow: 'AI Support',
-                        title: 'Instant help for styling and orders',
-                        subtitle:
-                            'A premium assistant for fit questions, order support, and next-look guidance.',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _reveal(
-                      0.08,
-                      StreamBuilder<List<SupportChat>>(
-                        stream: _database.watchSupportChatsForUser(actor: user),
-                        builder: (context, snapshot) {
-                          if (snapshot.hasError) {
-                            return _buildAiSupportState(
-                              context,
-                              subtitle: 'Instant help for styling and orders',
-                              badgeLabel: 'Live',
-                            );
-                          }
-                          final chats = snapshot.data ?? const <SupportChat>[];
-                          final unreadCount = chats.fold<int>(
-                            0,
-                            (sum, chat) => sum + chat.unreadCountUser,
-                          );
-                          final openChats = chats
-                              .where((chat) => chat.status != 'closed')
-                              .length;
-                          return FutureBuilder<UserMemory?>(
-                            future: _memoryFor(user.id),
-                            builder: (context, memorySnapshot) {
-                              if (memorySnapshot.hasError) {
-                                return _buildAiSupportState(
-                                  context,
-                                  subtitle: unreadCount > 0
-                                      ? '$unreadCount new assistant repl${unreadCount == 1 ? 'y' : 'ies'}'
-                                      : openChats > 0
-                                      ? '$openChats active assistant conversation${openChats == 1 ? '' : 's'}'
-                                      : 'Instant help for styling and orders',
-                                  badgeLabel: unreadCount > 0
-                                      ? '$unreadCount new'
-                                      : 'Live',
-                                );
-                              }
-                              final memory = memorySnapshot.data;
-                              final memorySummary = memory == null
-                                  ? ''
-                                  : [
-                                      if (memory.preferredStyle
-                                          .trim()
-                                          .isNotEmpty)
-                                        'Style: ${memory.preferredStyle.trim()}',
-                                      if (memory.size.trim().isNotEmpty)
-                                        'Size: ${memory.size.trim()}',
-                                      if (memory.lastConversationSummary
-                                          .trim()
-                                          .isNotEmpty)
-                                        memory.lastConversationSummary.trim(),
-                                    ].join(' • ');
-                              final supportSubtitle = unreadCount > 0
-                                  ? '$unreadCount new assistant repl${unreadCount == 1 ? 'y' : 'ies'}'
-                                  : openChats > 0
-                                  ? '$openChats active assistant conversation${openChats == 1 ? '' : 's'}'
-                                  : memorySummary.isNotEmpty
-                                  ? memorySummary
-                                  : 'Instant help for orders, payments, and custom styles';
-
+                          builder: (context, snapshot) {
+                            if (snapshot.hasError) {
                               return _buildAiSupportState(
                                 context,
-                                subtitle: supportSubtitle,
-                                badgeLabel: unreadCount > 0
-                                    ? '$unreadCount new'
-                                    : memorySummary.isNotEmpty
-                                    ? 'Memory On'
-                                    : 'Live',
+                                subtitle: 'Instant help for styling and orders',
+                                badgeLabel: 'Live',
                               );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    _reveal(0.14, _quickActionGrid(context)),
-                    const SizedBox(height: 24),
-                    _reveal(
-                      0.22,
-                      _sectionTitle(
-                        eyebrow: 'Profile • Fit Profile',
-                        title: 'Your Fit Profile',
-                        subtitle:
-                            'Personalized sizing recommendations for better shopping.',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _reveal(0.28, _styleSection(context, user)),
-                    const SizedBox(height: 24),
-                    _reveal(
-                      0.32,
-                      _sectionTitle(
-                        eyebrow: 'Account • Essentials',
-                        title: 'Shopping Essentials',
-                        subtitle: 'Manage delivery locations and payment preferences.',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _reveal(0.34, _buildShoppingEssentials(context, city)),
-                    const SizedBox(height: 24),
-                    _reveal(
-                      0.38,
-                      _sectionTitle(
-                        eyebrow: 'Rewards',
-                        title: 'Referrals & Offers',
-                        subtitle: 'Invite friends, earn style credits, and unlock drops.',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _reveal(0.40, _buildRewardsSection(context)),
-                    const SizedBox(height: 24),
+                            }
+                            final chats =
+                                snapshot.data ?? const <SupportChat>[];
+                            final unreadCount = chats.fold<int>(
+                              0,
+                              (sum, chat) => sum + chat.unreadCountUser,
+                            );
+                            final openChats = chats
+                                .where((chat) => chat.status != 'closed')
+                                .length;
+                            return FutureBuilder<UserMemory?>(
+                              future: _memoryFor(user.id),
+                              builder: (context, memorySnapshot) {
+                                if (memorySnapshot.hasError) {
+                                  return _buildAiSupportState(
+                                    context,
+                                    subtitle: unreadCount > 0
+                                        ? '$unreadCount new assistant repl${unreadCount == 1 ? 'y' : 'ies'}'
+                                        : openChats > 0
+                                        ? '$openChats active assistant conversation${openChats == 1 ? '' : 's'}'
+                                        : 'Instant help for styling and orders',
+                                    badgeLabel: unreadCount > 0
+                                        ? '$unreadCount new'
+                                        : 'Live',
+                                  );
+                                }
+                                final memory = memorySnapshot.data;
+                                final memorySummary = memory == null
+                                    ? ''
+                                    : [
+                                        if (memory.preferredStyle
+                                            .trim()
+                                            .isNotEmpty)
+                                          'Style: ${memory.preferredStyle.trim()}',
+                                        if (memory.size.trim().isNotEmpty)
+                                          'Size: ${memory.size.trim()}',
+                                        if (memory.lastConversationSummary
+                                            .trim()
+                                            .isNotEmpty)
+                                          memory.lastConversationSummary.trim(),
+                                      ].join(' • ');
+                                final supportSubtitle = unreadCount > 0
+                                    ? '$unreadCount new assistant repl${unreadCount == 1 ? 'y' : 'ies'}'
+                                    : openChats > 0
+                                    ? '$openChats active assistant conversation${openChats == 1 ? '' : 's'}'
+                                    : memorySummary.isNotEmpty
+                                    ? memorySummary
+                                    : 'Instant help for orders, payments, and custom styles';
 
-                    _reveal(
-                      0.50,
-                      _sectionTitle(
-                        eyebrow: 'Account',
-                        title: 'Manage your preferences',
-                        subtitle:
-                            'Delivery, payments, and notifications tuned for a seamless shopping flow.',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _reveal(
-                      0.56,
-                      FutureBuilder<_ProfileSetupSnapshot>(
-                        future: _profileSetupFor(user.id),
-                        builder: (context, snapshot) {
-                          final loading =
-                              snapshot.connectionState == ConnectionState.waiting;
-                          final setup = snapshot.data;
-                          return _buildSettingsList(
-                            context,
-                            city,
-                            showCompleteProfileCard: !loading &&
-                                !(setup?.isComplete ?? false),
-                            showCompletionLoading: loading,
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    _reveal(0.60, _buildLegalPolicyEntry(context)),
-                    const SizedBox(height: 24),
-                    _reveal(
-                      0.64,
-                      _sectionTitle(
-                        eyebrow: 'Sell',
-                        title: 'Sell on Abianzo',
-                        subtitle: 'Onboard as a premium fashion vendor.',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _reveal(0.66, _buildSellerEntry(context)),
-                    const SizedBox(height: 28),
-                    _reveal(
-                      0.68,
-                      OutlinedButton.icon(
-                        onPressed: () => _confirmLogout(context),
-                        icon: Icon(
-                          Icons.logout_rounded,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.72),
+                                return _buildAiSupportState(
+                                  context,
+                                  subtitle: supportSubtitle,
+                                  badgeLabel: unreadCount > 0
+                                      ? '$unreadCount new'
+                                      : memorySummary.isNotEmpty
+                                      ? 'Memory On'
+                                      : 'Live',
+                                );
+                              },
+                            );
+                          },
                         ),
-                        label: const Text(
-                          'Logout',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 24),
+                      _reveal(0.14, _quickActionGrid(context)),
+                      const SizedBox(height: 24),
+                      _reveal(
+                        0.22,
+                        _sectionTitle(
+                          eyebrow: 'Profile • Fit Profile',
+                          title: 'Your Fit Profile',
+                          subtitle:
+                              'Personalized sizing recommendations for better shopping.',
                         ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.78),
-                          backgroundColor: Colors.white.withValues(alpha: 0.72),
-                          side: BorderSide(
-                            color: context.abzioBorder.withValues(alpha: 0.70),
+                      ),
+                      const SizedBox(height: 14),
+                      _reveal(0.28, _styleSection(context, user)),
+                      const SizedBox(height: 24),
+                      _reveal(
+                        0.32,
+                        _sectionTitle(
+                          eyebrow: 'Account • Essentials',
+                          title: 'Shopping Essentials',
+                          subtitle:
+                              'Manage delivery locations and payment preferences.',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _reveal(0.34, _buildShoppingEssentials(context, city)),
+                      const SizedBox(height: 24),
+                      _reveal(
+                        0.38,
+                        _sectionTitle(
+                          eyebrow: 'Rewards',
+                          title: 'Referrals & Offers',
+                          subtitle:
+                              'Invite friends, earn style credits, and unlock drops.',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _reveal(0.40, _buildRewardsSection(context)),
+                      const SizedBox(height: 24),
+
+                      _reveal(
+                        0.50,
+                        _sectionTitle(
+                          eyebrow: 'Account',
+                          title: 'Manage your preferences',
+                          subtitle:
+                              'Delivery, payments, and notifications tuned for a seamless shopping flow.',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _reveal(
+                        0.56,
+                        FutureBuilder<_ProfileSetupSnapshot>(
+                          future: _profileSetupFor(user.id),
+                          builder: (context, snapshot) {
+                            final loading =
+                                snapshot.connectionState ==
+                                ConnectionState.waiting;
+                            final setup = snapshot.data;
+                            return _buildSettingsList(
+                              context,
+                              city,
+                              showCompleteProfileCard:
+                                  !loading && !(setup?.isComplete ?? false),
+                              showCompletionLoading: loading,
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _reveal(0.60, _buildLegalPolicyEntry(context)),
+                      const SizedBox(height: 24),
+                      _reveal(
+                        0.64,
+                        _sectionTitle(
+                          eyebrow: 'Sell',
+                          title: 'Sell on Abianzo',
+                          subtitle: 'Onboard as a premium fashion vendor.',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _reveal(0.66, _buildSellerEntry(context)),
+                      const SizedBox(height: 28),
+                      _reveal(
+                        0.68,
+                        OutlinedButton.icon(
+                          onPressed: () => _confirmLogout(context),
+                          icon: Icon(
+                            Icons.logout_rounded,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.72),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
+                          label: const Text(
+                            'Logout',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.78),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.72,
+                            ),
+                            side: BorderSide(
+                              color: context.abzioBorder.withValues(
+                                alpha: 0.70,
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                  ]),
+                      const SizedBox(height: 12),
+                    ]),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   Widget _reveal(double start, Widget child) {
@@ -677,9 +697,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const LoginScreen(
-                          mode: AbzioAppMode.customer,
-                        ),
+                        builder: (_) =>
+                            const LoginScreen(mode: AbzioAppMode.customer),
                       ),
                     );
                   },
@@ -691,9 +710,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const LoginScreen(
-                          mode: AbzioAppMode.customer,
-                        ),
+                        builder: (_) =>
+                            const LoginScreen(mode: AbzioAppMode.customer),
                       ),
                     );
                   },
@@ -705,9 +723,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const LoginScreen(
-                          mode: AbzioAppMode.customer,
-                        ),
+                        builder: (_) =>
+                            const LoginScreen(mode: AbzioAppMode.customer),
                       ),
                     );
                   },
@@ -737,7 +754,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 _GuestFeatureCard(
                   icon: Icons.straighten_rounded,
                   title: 'AI Fit',
-                  subtitle: 'Personalized sizing recommendations powered by AI.',
+                  subtitle:
+                      'Personalized sizing recommendations powered by AI.',
                 ),
                 SizedBox(height: 12),
                 _GuestFeatureCard(
@@ -1063,7 +1081,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                 children: const [
                   Icon(Icons.check_circle, color: Color(0xFFC6A769), size: 18),
                   SizedBox(width: 8),
-                  Text('Profile Verified', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF111111))),
+                  Text(
+                    'Profile Verified',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF111111),
+                    ),
+                  ),
                 ],
               ),
             )
@@ -1297,7 +1321,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
         final styleSnapshot = snapshot.data;
         final bodyProfile = styleSnapshot?.bodyProfile;
-        
+
         final subtitle = bodyProfile != null
             ? '${bodyProfile.recommendedSize.isNotEmpty ? bodyProfile.recommendedSize : 'M'} Fit • Updated ${_relativeScanTime(bodyProfile.updatedAt)}'
             : 'View and manage your saved measurements';
@@ -1660,7 +1684,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             onTap: () => _showComingSoon(
               context,
               title: 'Offers & rewards',
-              message: 'Curated rewards and luxury member offers will be available here.',
+              message:
+                  'Curated rewards and luxury member offers will be available here.',
             ),
             minimal: true,
           ),
@@ -1723,11 +1748,29 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                 ),
                 SizedBox(height: 12),
-                Text('• Priority delivery', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                Text(
+                  '• Priority delivery',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 SizedBox(height: 4),
-                Text('• Exclusive drops', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                Text(
+                  '• Exclusive drops',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 SizedBox(height: 4),
-                Text('• Bonus rewards', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                Text(
+                  '• Bonus rewards',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -2061,7 +2104,8 @@ class _ProfileScreenState extends State<ProfileScreen>
           return _ProfileSetupSnapshot(
             addressDone: addresses.isNotEmpty,
             fitDone: bodyProfile != null,
-            paymentDone: paymentMethod != null && paymentMethod.trim().isNotEmpty,
+            paymentDone:
+                paymentMethod != null && paymentMethod.trim().isNotEmpty,
           );
         } catch (error) {
           debugPrint('Profile setup snapshot fallback for $userId: $error');
@@ -2227,7 +2271,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2245,17 +2291,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                           const SizedBox(height: 18),
                           Text(
                             'Add Payment Method',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Choose how you want to pay',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: context.abzioSecondaryText,
-                              height: 1.45,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: context.abzioSecondaryText,
+                                  height: 1.45,
+                                ),
                           ),
                           const SizedBox(height: 18),
                           _paymentActionTile(
@@ -2310,7 +2356,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                               color: const Color(0xFFFFFCF4),
                               borderRadius: BorderRadius.circular(18),
                               border: Border.all(
-                                color: AbzioTheme.accentColor.withValues(alpha: 0.12),
+                                color: AbzioTheme.accentColor.withValues(
+                                  alpha: 0.12,
+                                ),
                               ),
                             ),
                             child: Row(
@@ -2324,7 +2372,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 Expanded(
                                   child: Text(
                                     '100% secure payments',
-                                    style: Theme.of(context).textTheme.bodyMedium
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
                                         ?.copyWith(fontWeight: FontWeight.w700),
                                   ),
                                 ),
@@ -2340,7 +2390,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 Navigator.pushNamed(context, '/payments');
                               },
                               style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(18),
                                 ),
@@ -2556,10 +2608,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle(
-          eyebrow: 'Legal',
-          title: 'Legal & Policies',
-        ),
+        _sectionTitle(eyebrow: 'Legal', title: 'Legal & Policies'),
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
@@ -2705,11 +2754,7 @@ class _GuestQuickAccessCard extends StatelessWidget {
                     color: const Color(0xFFF7F0E3),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(
-                    icon,
-                    color: const Color(0xFF8D6A28),
-                    size: 20,
-                  ),
+                  child: Icon(icon, color: const Color(0xFF8D6A28), size: 20),
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -2955,5 +3000,3 @@ class _ProfileValueDivider extends StatelessWidget {
     );
   }
 }
-
-

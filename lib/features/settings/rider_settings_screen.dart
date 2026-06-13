@@ -115,103 +115,103 @@ class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
     final content = <Widget>[
-        if (_loading) const LinearProgressIndicator(color: Color(0xFFD4AF37)),
-        RiderGlassCard(
-          child: SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Notifications'),
-            subtitle: const Text('Delivery updates, payout and alerts'),
-            value: _notificationsEnabled,
-            onChanged: _setNotifications,
+      if (_loading) const LinearProgressIndicator(color: Color(0xFFD4AF37)),
+      RiderGlassCard(
+        child: SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Notifications'),
+          subtitle: const Text('Delivery updates, payout and alerts'),
+          value: _notificationsEnabled,
+          onChanged: _setNotifications,
+        ),
+      ),
+      const SizedBox(height: 12),
+      RiderGlassCard(
+        child: ListTile(
+          title: const Text('Payout Account'),
+          subtitle: const Text('Manage bank/UPI for withdrawals'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _loading ? null : _managePayout,
+        ),
+      ),
+      const SizedBox(height: 12),
+      RiderGlassCard(
+        child: ListTile(
+          title: const Text('Help & Support'),
+          subtitle: const Text('Chat / Email / Call support'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _showHelp,
+        ),
+      ),
+      const SizedBox(height: 12),
+      RiderGlassCard(
+        child: ListTile(
+          title: const Text('Referral Program'),
+          subtitle: Text(
+            'Your code: RIDER-${(user?.id ?? '0000').substring(0, (user?.id.length ?? 4) >= 4 ? 4 : (user?.id.length ?? 0))}',
           ),
         ),
-        const SizedBox(height: 12),
-        RiderGlassCard(
-          child: ListTile(
-            title: const Text('Payout Account'),
-            subtitle: const Text('Manage bank/UPI for withdrawals'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _loading ? null : _managePayout,
+      ),
+      const SizedBox(height: 12),
+      RiderGlassCard(
+        child: ListTile(
+          title: const Text('Legal & Policies'),
+          subtitle: const Text(
+            'Terms, privacy, agreements, delivery and refund policies',
           ),
-        ),
-        const SizedBox(height: 12),
-        RiderGlassCard(
-          child: ListTile(
-            title: const Text('Help & Support'),
-            subtitle: const Text('Chat / Email / Call support'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _showHelp,
-          ),
-        ),
-        const SizedBox(height: 12),
-        RiderGlassCard(
-          child: ListTile(
-            title: const Text('Referral Program'),
-            subtitle: Text(
-              'Your code: RIDER-${(user?.id ?? '0000').substring(0, (user?.id.length ?? 4) >= 4 ? 4 : (user?.id.length ?? 0))}',
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        RiderGlassCard(
-          child: ListTile(
-            title: const Text('Legal & Policies'),
-            subtitle: const Text(
-              'Terms, privacy, agreements, delivery and refund policies',
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const LegalPolicyHubScreen(
-                  audience: LegalAudience.rider,
-                  title: 'Rider Legal Center',
-                ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const LegalPolicyHubScreen(
+                audience: LegalAudience.rider,
+                title: 'Rider Legal Center',
               ),
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        RiderGlassCard(
-          child: ListTile(
-            title: const Text('Legal Consent'),
-            subtitle: const Text('Review and accept Terms and Privacy'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    const LegalConsentScreen(audience: LegalAudience.rider),
-              ),
+      ),
+      const SizedBox(height: 12),
+      RiderGlassCard(
+        child: ListTile(
+          title: const Text('Legal Consent'),
+          subtitle: const Text('Review and accept Terms and Privacy'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  const LegalConsentScreen(audience: LegalAudience.rider),
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        RiderGlassCard(
-          child: ListTile(
-            title: const Text('Request Account Deletion'),
-            subtitle: const Text('Send deletion request to support'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    const AccountDeletionRequestScreen(roleLabel: 'Rider'),
-              ),
+      ),
+      const SizedBox(height: 12),
+      RiderGlassCard(
+        child: ListTile(
+          title: const Text('Request Account Deletion'),
+          subtitle: const Text('Send deletion request to support'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  const AccountDeletionRequestScreen(roleLabel: 'Rider'),
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        RiderGlassCard(
-          child: ListTile(
-            title: const Text('Logout'),
-            trailing: const Icon(Icons.logout),
-            onTap: () async {
-              await context.read<AuthProvider>().logout(resetNavigation: true);
-            },
-          ),
+      ),
+      const SizedBox(height: 12),
+      RiderGlassCard(
+        child: ListTile(
+          title: const Text('Logout'),
+          trailing: const Icon(Icons.logout),
+          onTap: () async {
+            await context.read<AuthProvider>().logout(resetNavigation: true);
+          },
         ),
-      ];
+      ),
+    ];
 
     if (widget.embedded) {
       return Padding(
@@ -220,9 +220,6 @@ class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
       );
     }
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: content,
-    );
+    return ListView(padding: const EdgeInsets.all(16), children: content);
   }
 }

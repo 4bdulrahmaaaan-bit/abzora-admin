@@ -12,11 +12,7 @@ import 'product_detail_screen.dart';
 import 'size_recommendation_screen.dart';
 
 class AiStylistScreen extends StatefulWidget {
-  const AiStylistScreen({
-    super.key,
-    this.product,
-    this.initialPrompt,
-  });
+  const AiStylistScreen({super.key, this.product, this.initialPrompt});
 
   final Product? product;
   final String? initialPrompt;
@@ -216,7 +212,9 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
           userMessage: prompt.trim(),
           assistantReply: reply.text,
         );
-        _userMemory = await _database.getUserMemory(user.id).catchError((_) => null);
+        _userMemory = await _database
+            .getUserMemory(user.id)
+            .catchError((_) => null);
         _recentHistory = await _database
             .getChatHistory(user.id, 'stylist')
             .catchError((_) => const <ConversationMemoryMessage>[]);
@@ -229,7 +227,8 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
       setState(() {
         _messages.add(
           _StylistMessage.assistant(
-            text: 'I am having trouble right now, but I can still help with basic styling, size guidance, and product suggestions.',
+            text:
+                'I am having trouble right now, but I can still help with basic styling, size guidance, and product suggestions.',
             quickReplies: _initialQuickReplies(),
           ),
         );
@@ -265,9 +264,7 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
     return AbzioThemeScope.light(
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFDFC),
-        appBar: AppBar(
-          title: const Text('Private Stylist'),
-        ),
+        appBar: AppBar(title: const Text('Private Stylist')),
         body: SafeArea(
           child: Column(
             children: [
@@ -279,7 +276,9 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: context.abzioBorder.withValues(alpha: 0.7)),
+                    border: Border.all(
+                      color: context.abzioBorder.withValues(alpha: 0.7),
+                    ),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,10 +392,7 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                       ),
                     ),
                   ),
-                Text(
-                  message.text,
-                  style: const TextStyle(height: 1.5),
-                ),
+                Text(message.text, style: const TextStyle(height: 1.5)),
                 if (message.highlightedSize != null) ...[
                   const SizedBox(height: 10),
                   Container(
@@ -459,13 +455,16 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                       Text(
                         'Styled for you',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF202020),
-                            ),
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF202020),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFF3D0),
                           borderRadius: BorderRadius.circular(999),
@@ -487,8 +486,10 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: message.products.length,
-                      separatorBuilder: (context, index) => const SizedBox(width: 10),
-                      itemBuilder: (context, index) => _productCard(message.products[index]),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: 10),
+                      itemBuilder: (context, index) =>
+                          _productCard(message.products[index]),
                     ),
                   ),
                 ],
@@ -528,15 +529,20 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                 width: double.infinity,
                 color: const Color(0xFFF6F6F6),
                 child: imageUrl.isEmpty
-                    ? const Icon(Icons.checkroom_rounded, color: AbzioTheme.accentColor, size: 34)
+                    ? const Icon(
+                        Icons.checkroom_rounded,
+                        color: AbzioTheme.accentColor,
+                        size: 34,
+                      )
                     : Image.network(
                         imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Icon(
-                          Icons.checkroom_rounded,
-                          color: AbzioTheme.accentColor,
-                          size: 34,
-                        ),
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                              Icons.checkroom_rounded,
+                              color: AbzioTheme.accentColor,
+                              size: 34,
+                            ),
                       ),
               ),
             ),
@@ -549,34 +555,44 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                     product.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '₹${product.effectivePrice.toStringAsFixed(0)}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AbzioTheme.accentColor,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: AbzioTheme.accentColor,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     card.reason,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: context.abzioSecondaryText),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.abzioSecondaryText,
+                    ),
                   ),
                   if ((card.recommendedSize ?? '').trim().isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFF7DE),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
                         'Best size: ${card.recommendedSize}',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
@@ -623,7 +639,9 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
     }
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ProductDetailScreen(product: card.product)),
+      MaterialPageRoute(
+        builder: (_) => ProductDetailScreen(product: card.product),
+      ),
     );
   }
 
@@ -653,7 +671,9 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Your bag already contains products from another store.'),
+            content: Text(
+              'Your bag already contains products from another store.',
+            ),
           ),
         );
       }
@@ -669,7 +689,8 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
     setState(() {
       _messages.add(
         _StylistMessage.assistant(
-          text: '${card.product.name} is in your bag. Review your cart and complete checkout.',
+          text:
+              '${card.product.name} is in your bag. Review your cart and complete checkout.',
           quickReplies: const [
             'Track my order',
             'Suggest another outfit',
@@ -682,7 +703,8 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
     await _database.saveAiStylistConversationTurn(
       actor: user,
       userMessage: 'Buy ${card.product.name}',
-      assistantReply: '${card.product.name} was added to cart. User redirected to cart for checkout.',
+      assistantReply:
+          '${card.product.name} was added to cart. User redirected to cart for checkout.',
     );
   }
 
@@ -734,7 +756,8 @@ class _AiStylistScreenState extends State<AiStylistScreen> {
                 maxLines: 4,
                 onSubmitted: _sendPrompt,
                 decoration: const InputDecoration(
-                  hintText: 'Ask about outfits, colors, fit, or custom clothing',
+                  hintText:
+                      'Ask about outfits, colors, fit, or custom clothing',
                 ),
               ),
             ),
@@ -805,4 +828,3 @@ class _StylistMessage {
     );
   }
 }
-

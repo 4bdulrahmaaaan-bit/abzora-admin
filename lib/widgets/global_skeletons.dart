@@ -55,7 +55,11 @@ class ShimmerCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ShimmerBox(width: 120, height: 14, borderRadius: BorderRadius.all(Radius.circular(8))),
+          const ShimmerBox(
+            width: 120,
+            height: 14,
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
           const SizedBox(height: 12),
           SizedBox(
             height: height,
@@ -103,11 +107,23 @@ class ShimmerListItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ShimmerBox(width: 150, height: 14, borderRadius: BorderRadius.all(Radius.circular(8))),
+                ShimmerBox(
+                  width: 150,
+                  height: 14,
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
                 SizedBox(height: 10),
-                ShimmerBox(width: 110, height: 12, borderRadius: BorderRadius.all(Radius.circular(8))),
+                ShimmerBox(
+                  width: 110,
+                  height: 12,
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
                 SizedBox(height: 10),
-                ShimmerBox(width: 72, height: 12, borderRadius: BorderRadius.all(Radius.circular(8))),
+                ShimmerBox(
+                  width: 72,
+                  height: 12,
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
               ],
             ),
           ),
@@ -151,18 +167,34 @@ class ShimmerProfileHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ShimmerBox(width: 150, height: 16, borderRadius: BorderRadius.all(Radius.circular(8))),
+                    ShimmerBox(
+                      width: 150,
+                      height: 16,
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                    ),
                     SizedBox(height: 10),
-                    ShimmerBox(width: 110, height: 12, borderRadius: BorderRadius.all(Radius.circular(8))),
+                    ShimmerBox(
+                      width: 110,
+                      height: 12,
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
           SizedBox(height: 18),
-          ShimmerBox(width: double.infinity, height: 14, borderRadius: BorderRadius.all(Radius.circular(8))),
+          ShimmerBox(
+            width: double.infinity,
+            height: 14,
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
           SizedBox(height: 10),
-          ShimmerBox(width: 220, height: 14, borderRadius: BorderRadius.all(Radius.circular(8))),
+          ShimmerBox(
+            width: 220,
+            height: 14,
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
         ],
       ),
     );
@@ -170,10 +202,7 @@ class ShimmerProfileHeader extends StatelessWidget {
 }
 
 class ShimmerProductGrid extends StatelessWidget {
-  const ShimmerProductGrid({
-    super.key,
-    this.itemCount = 4,
-  });
+  const ShimmerProductGrid({super.key, this.itemCount = 4});
 
   final int itemCount;
 
@@ -194,7 +223,9 @@ class ShimmerProductGrid extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFFFFFDF8),
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: context.abzioBorder.withValues(alpha: 0.8)),
+            border: Border.all(
+              color: context.abzioBorder.withValues(alpha: 0.8),
+            ),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFFB8963F).withValues(alpha: 0.04),
@@ -215,9 +246,17 @@ class ShimmerProductGrid extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 12),
-              ShimmerBox(width: 120, height: 14, borderRadius: BorderRadius.all(Radius.circular(8))),
+              ShimmerBox(
+                width: 120,
+                height: 14,
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
               SizedBox(height: 8),
-              ShimmerBox(width: 72, height: 12, borderRadius: BorderRadius.all(Radius.circular(8))),
+              ShimmerBox(
+                width: 72,
+                height: 12,
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
             ],
           ),
         );
@@ -248,7 +287,11 @@ class ShimmerCategoryRow extends StatelessWidget {
                 borderRadius: BorderRadius.all(Radius.circular(28)),
               ),
               SizedBox(height: 8),
-              ShimmerBox(width: 44, height: 10, borderRadius: BorderRadius.all(Radius.circular(8))),
+              ShimmerBox(
+                width: 44,
+                height: 10,
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
             ],
           );
         },

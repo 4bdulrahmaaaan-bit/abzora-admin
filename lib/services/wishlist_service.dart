@@ -3,7 +3,7 @@ import 'backend_api_client.dart';
 
 class WishlistService {
   WishlistService({BackendApiClient? backendApiClient})
-      : _backendApiClient = backendApiClient ?? const BackendApiClient();
+    : _backendApiClient = backendApiClient ?? const BackendApiClient();
 
   final BackendApiClient _backendApiClient;
   static const Duration _cacheTtl = Duration(seconds: 45);
@@ -27,9 +27,7 @@ class WishlistService {
     await _backendApiClient.post(
       '/wishlist',
       authenticated: true,
-      body: {
-        'productId': product.id,
-      },
+      body: {'productId': product.id},
     );
   }
 
@@ -65,7 +63,9 @@ class WishlistService {
             name: item['name']?.toString() ?? '',
             price: (item['price'] as num?)?.toDouble() ?? 0,
             image: item['image']?.toString() ?? '',
-            addedAt: DateTime.tryParse(item['addedAt']?.toString() ?? '') ?? DateTime.now(),
+            addedAt:
+                DateTime.tryParse(item['addedAt']?.toString() ?? '') ??
+                DateTime.now(),
           ),
         )
         .toList();

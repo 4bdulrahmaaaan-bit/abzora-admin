@@ -31,7 +31,9 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
       }
       return await _db.getStoreByOwner(user.id);
     } catch (error) {
-      debugPrint('VendorProfileScreen: store load failed for ${user.id}: $error');
+      debugPrint(
+        'VendorProfileScreen: store load failed for ${user.id}: $error',
+      );
       return null;
     }
   }
@@ -40,7 +42,9 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
     if (user == null) {
       return;
     }
-    if (_boundUserId == user.id && _boundAuthToken == authToken && _storeFuture != null) {
+    if (_boundUserId == user.id &&
+        _boundAuthToken == authToken &&
+        _storeFuture != null) {
       return;
     }
     _boundUserId = user.id;
@@ -136,7 +140,10 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                   _ProfileTile(
                     icon: Icons.verified_rounded,
                     title: 'KYC status',
-                    subtitle: VendorStatusHelper.getVendorStatus(user: user, store: store).name.toUpperCase(),
+                    subtitle: VendorStatusHelper.getVendorStatus(
+                      user: user,
+                      store: store,
+                    ).name.toUpperCase(),
                   ),
                 ],
               ),
@@ -191,7 +198,10 @@ class _VendorProfileHeader extends StatelessWidget {
     final displayName = store?.name.isNotEmpty == true
         ? store!.name
         : user.name;
-    final status = VendorStatusHelper.getVendorStatus(user: user, store: store).name;
+    final status = VendorStatusHelper.getVendorStatus(
+      user: user,
+      store: store,
+    ).name;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(

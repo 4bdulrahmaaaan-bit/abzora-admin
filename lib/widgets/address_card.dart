@@ -4,11 +4,7 @@ import '../models/models.dart';
 import '../theme.dart';
 
 class AddressCard extends StatelessWidget {
-  const AddressCard({
-    super.key,
-    required this.address,
-    required this.onChange,
-  });
+  const AddressCard({super.key, required this.address, required this.onChange});
 
   final UserAddress? address;
   final VoidCallback onChange;
@@ -84,14 +80,21 @@ class AddressCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: context.abzioMuted,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.location_on_outlined, size: 18, color: context.abzioSecondaryText),
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 18,
+                        color: context.abzioSecondaryText,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -126,7 +129,9 @@ class AddressCard extends StatelessWidget {
     if (address.pincode.trim().isEmpty) {
       return line;
     }
-    return line.isEmpty ? address.pincode.trim() : '$line - ${address.pincode.trim()}';
+    return line.isEmpty
+        ? address.pincode.trim()
+        : '$line - ${address.pincode.trim()}';
   }
 
   static String _fullAddress(UserAddress address) {

@@ -36,11 +36,7 @@ class RiderOnboardingStatusScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.motorcycle,
-                size: 80,
-                color: Colors.blue,
-              ),
+              const Icon(Icons.motorcycle, size: 80, color: Colors.blue),
               const SizedBox(height: 24),
               Text(
                 'Your application is ${riderOnboarding['status'] ?? 'pending'}',

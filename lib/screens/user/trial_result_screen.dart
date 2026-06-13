@@ -7,10 +7,7 @@ import '../../theme.dart';
 import 'trial_tailoring_conversion_screen.dart';
 
 class TrialResultScreen extends StatefulWidget {
-  const TrialResultScreen({
-    super.key,
-    required this.trialId,
-  });
+  const TrialResultScreen({super.key, required this.trialId});
 
   final String trialId;
 
@@ -62,7 +59,9 @@ class _TrialResultScreenState extends State<TrialResultScreen> {
     if (keptItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Choose at least one item to keep or convert to tailoring.'),
+          content: Text(
+            'Choose at least one item to keep or convert to tailoring.',
+          ),
         ),
       );
       return;
@@ -161,7 +160,9 @@ class _TrialResultScreenState extends State<TrialResultScreen> {
                               children: [
                                 Text(
                                   item.name,
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
@@ -174,8 +175,9 @@ class _TrialResultScreenState extends State<TrialResultScreen> {
                           Switch.adaptive(
                             value: keep,
                             activeThumbColor: AbzioTheme.accentColor,
-                            activeTrackColor:
-                                AbzioTheme.accentColor.withValues(alpha: 0.45),
+                            activeTrackColor: AbzioTheme.accentColor.withValues(
+                              alpha: 0.45,
+                            ),
                             onChanged: (value) {
                               setState(
                                 () => _keptSelections[item.productId] = value,
@@ -246,16 +248,16 @@ class _ResultHero extends StatelessWidget {
         children: [
           Text(
             'Your Fit Profile Is Ready',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 8),
           Text(
             'Recommended size ${session.recommendedSize.isEmpty ? 'M' : session.recommendedSize} | ${session.fitConfidence.toStringAsFixed(0)}% confidence',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.75),
-                ),
+              color: Colors.white.withValues(alpha: 0.75),
+            ),
           ),
         ],
       ),

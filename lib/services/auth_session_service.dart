@@ -123,9 +123,9 @@ class AuthSessionService {
     }
 
     try {
-      final fallbackToken = await firebaseUser.getIdToken(forceRefresh).timeout(
-        const Duration(seconds: 15),
-      );
+      final fallbackToken = await firebaseUser
+          .getIdToken(forceRefresh)
+          .timeout(const Duration(seconds: 15));
       if (fallbackToken != null && fallbackToken.isNotEmpty) {
         debugPrint('AuthSessionService: falling back to Firebase ID token.');
         return fallbackToken;
@@ -424,11 +424,13 @@ class AuthSessionService {
     final deviceId = await ensureDeviceId();
     String? idToken;
     try {
-      idToken = await firebaseUser.getIdToken(forceRefreshIdToken).timeout(
-        const Duration(seconds: 10),
-      );
+      idToken = await firebaseUser
+          .getIdToken(forceRefreshIdToken)
+          .timeout(const Duration(seconds: 10));
     } catch (e) {
-      debugPrint('AuthSessionService: firebaseUser.getIdToken failed during bootstrap: $e');
+      debugPrint(
+        'AuthSessionService: firebaseUser.getIdToken failed during bootstrap: $e',
+      );
     }
 
     if (idToken == null || idToken.isEmpty) {

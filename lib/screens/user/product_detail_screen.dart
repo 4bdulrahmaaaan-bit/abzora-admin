@@ -1742,7 +1742,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               TextButton(
                 onPressed: () async {
                   if (context.read<AuthProvider>().requiresProfileSetup) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please complete your profile first.')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please complete your profile first.'),
+                      ),
+                    );
                     Navigator.pushNamed(context, '/profile-completion');
                     return;
                   }
@@ -1960,7 +1964,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         ? boutiqueLogo.trim()
         : logoFallback;
     final rating =
-        (boutique['rating'] as num?)?.toDouble() ?? store?.rating ?? product.rating;
+        (boutique['rating'] as num?)?.toDouble() ??
+        store?.rating ??
+        product.rating;
     final distanceLabel = _distanceOverlayLabel(product);
 
     return InkWell(
@@ -2002,7 +2008,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     : const Icon(
                         Icons.storefront_outlined,
                         color: Color(0xFFC8A96A),
-                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 12),
@@ -2030,7 +2036,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           Icons.verified_rounded,
                           size: 16,
                           color: Color(0xFFC8A96A),
-                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -3283,7 +3289,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.baseline,
                                     textBaseline: TextBaseline.alphabetic,
                                     children: [
                                       Text(
@@ -3298,12 +3305,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                       if (hasDiscount)
                                         Expanded(
                                           child: Text(
-                                            formatter.format(item.originalPrice),
+                                            formatter.format(
+                                              item.originalPrice,
+                                            ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
                                               fontSize: 12,
-                                              decoration: TextDecoration.lineThrough,
+                                              decoration:
+                                                  TextDecoration.lineThrough,
                                               color: Color(0xFF9A9A9A),
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -3338,10 +3348,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                         side: const BorderSide(
                                           color: Color(0xFFC9A86A),
                                         ),
-                                        foregroundColor: const Color(0xFF111111),
+                                        foregroundColor: const Color(
+                                          0xFF111111,
+                                        ),
                                         padding: EdgeInsets.zero,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                       ),
                                       child: const Text(
@@ -3364,18 +3378,28 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                           item,
                                           selected,
                                         );
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
                                           SnackBar(
-                                            content: Text('${item.name} added to bag'),
+                                            content: Text(
+                                              '${item.name} added to bag',
+                                            ),
                                           ),
                                         );
                                       },
                                       style: FilledButton.styleFrom(
-                                        backgroundColor: const Color(0xFFC8A96A),
-                                        foregroundColor: const Color(0xFF111111),
+                                        backgroundColor: const Color(
+                                          0xFFC8A96A,
+                                        ),
+                                        foregroundColor: const Color(
+                                          0xFF111111,
+                                        ),
                                         padding: EdgeInsets.zero,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                         elevation: 0,
                                       ),
@@ -3682,7 +3706,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             children: [
               Expanded(
                 child: SizedBox(
-                  height: 56, child: OutlinedButton(
+                  height: 56,
+                  child: OutlinedButton(
                     onPressed: hasSelectedSize
                         ? () {
                             HapticFeedback.lightImpact();
@@ -3714,7 +3739,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               Expanded(
                 flex: 2,
                 child: SizedBox(
-                  height: 56, child: ElevatedButton(
+                  height: 56,
+                  child: ElevatedButton(
                     onPressed: isInCart
                         ? () {
                             HapticFeedback.lightImpact();
@@ -6910,6 +6936,3 @@ class _CtaDecisionSnapshot {
   final String productType;
   final String locationSpeed;
 }
-
-
-

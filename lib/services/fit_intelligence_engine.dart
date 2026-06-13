@@ -37,9 +37,16 @@ class FitIntelligenceEngine {
   }
 
   double _proportionScore(BodyMetricsSnapshot body) {
-    final shoulderBand = (1.0 - (body.shoulderWidthNorm - 0.21).abs() * 2.6).clamp(0.0, 1.0);
-    final torsoBand = (1.0 - (body.torsoRatio - 0.62).abs() * 1.9).clamp(0.0, 1.0);
-    final waistHipBand = (1.0 - (body.waistHipRatio - 0.85).abs() * 1.8).clamp(0.0, 1.0);
+    final shoulderBand = (1.0 - (body.shoulderWidthNorm - 0.21).abs() * 2.6)
+        .clamp(0.0, 1.0);
+    final torsoBand = (1.0 - (body.torsoRatio - 0.62).abs() * 1.9).clamp(
+      0.0,
+      1.0,
+    );
+    final waistHipBand = (1.0 - (body.waistHipRatio - 0.85).abs() * 1.8).clamp(
+      0.0,
+      1.0,
+    );
     return (shoulderBand * 0.34) + (torsoBand * 0.36) + (waistHipBand * 0.3);
   }
 

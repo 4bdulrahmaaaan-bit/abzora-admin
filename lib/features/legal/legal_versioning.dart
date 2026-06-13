@@ -8,7 +8,10 @@ class LegalVersioning {
   static const String vendorVersion = 'v1.0.0';
   static const String riderVersion = 'v1.0.0';
 
-  static LegalAudience audienceFor({required AppUser user, required AbzioAppMode mode}) {
+  static LegalAudience audienceFor({
+    required AppUser user,
+    required AbzioAppMode mode,
+  }) {
     switch (mode) {
       case AbzioAppMode.vendor:
         return LegalAudience.vendor;

@@ -21,10 +21,9 @@ class RiderTheme {
         onPrimary: Colors.white,
         onSurface: riderText,
       ),
-      textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
-        bodyColor: riderText,
-        displayColor: riderText,
-      ),
+      textTheme: GoogleFonts.interTextTheme(
+        base.textTheme,
+      ).apply(bodyColor: riderText, displayColor: riderText),
       cardTheme: CardThemeData(
         color: riderSurface,
         elevation: 0,
@@ -38,7 +37,10 @@ class RiderTheme {
         hintStyle: const TextStyle(color: riderMuted),
         helperStyle: const TextStyle(color: riderMuted),
         errorStyle: const TextStyle(color: Color(0xFFB42318)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: riderBorder),
@@ -102,9 +104,7 @@ class RiderTheme {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: riderAccent,
-        ),
+        style: TextButton.styleFrom(foregroundColor: riderAccent),
       ),
       iconTheme: const IconThemeData(color: riderText),
     );

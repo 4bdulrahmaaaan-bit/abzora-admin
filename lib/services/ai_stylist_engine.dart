@@ -15,9 +15,10 @@ class FashionPreferenceEngine {
         : 'Modern Minimal';
     final occasion = _occasionFromOutfits(outfits);
     final fitPreference = bodyProfile?.fitPreferenceHint.name ?? 'trueToSize';
-    final confidence = (((bodyProfile?.confidence.overall ?? 0.65) * 0.6) +
-            (trackingReliability * 0.4))
-        .clamp(0.0, 1.0);
+    final confidence =
+        (((bodyProfile?.confidence.overall ?? 0.65) * 0.6) +
+                (trackingReliability * 0.4))
+            .clamp(0.0, 1.0);
     return StyleProfile(
       primaryStyle: primaryStyle,
       occasion: occasion,

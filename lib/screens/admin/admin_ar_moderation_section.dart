@@ -11,7 +11,9 @@ typedef ProductAlignmentSaveCallback = Future<void> Function(
   Product product,
   Map<String, dynamic> editorPatch,
 );
-typedef ProductBulkActionCallback = Future<void> Function(List<Product> products);
+typedef ProductBulkActionCallback = Future<void> Function(
+  List<Product> products,
+);
 
 class AdminArModerationSection extends StatefulWidget {
   const AdminArModerationSection({
@@ -34,7 +36,8 @@ class AdminArModerationSection extends StatefulWidget {
   final ProductBulkActionCallback onBulkRegenerate;
 
   @override
-  State<AdminArModerationSection> createState() => _AdminArModerationSectionState();
+  State<AdminArModerationSection> createState() =>
+      _AdminArModerationSectionState();
 }
 
 class _AdminArModerationSectionState extends State<AdminArModerationSection> {
@@ -82,7 +85,8 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
     return widget.products.where((product) {
       final status = _statusOf(product);
       final statusOk = _statusFilter == 'all' || status == _statusFilter;
-      final queryOk = query.isEmpty ||
+      final queryOk =
+          query.isEmpty ||
           product.name.toLowerCase().contains(query) ||
           product.category.toLowerCase().contains(query);
       return statusOk && queryOk;
@@ -90,7 +94,8 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
   }
 
   String _statusOf(Product product) {
-    final raw = product.arAsset['status']?.toString().trim().toLowerCase() ?? '';
+    final raw =
+        product.arAsset['status']?.toString().trim().toLowerCase() ?? '';
     if (raw.isEmpty || raw == 'generated') return 'pending';
     if (raw == 'fallback') return 'failed';
     return raw;
@@ -105,7 +110,8 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
     if (left == null || right == null) {
       warnings.add('Missing anchors');
     }
-    final confidence = ((ar['segmentation'] as Map?)?['confidence'] as num?)?.toDouble() ?? 0;
+    final confidence =
+        ((ar['segmentation'] as Map?)?['confidence'] as num?)?.toDouble() ?? 0;
     if (confidence > 0 && confidence < 0.62) {
       warnings.add('Poor alignment');
     }
@@ -141,7 +147,9 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
   }
 
   Future<void> _runBulk(ProductBulkActionCallback action) async {
-    final targets = _filtered.where((item) => _selected.contains(item.id)).toList();
+    final targets = _filtered
+        .where((item) => _selected.contains(item.id))
+        .toList();
     if (targets.isEmpty) return;
     setState(() => _busy = true);
     try {
@@ -182,18 +190,15 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
     if (!_backendCommerce.isConfigured) {
       return;
     }
-    _telemetryRefreshTimer = Timer.periodic(
-      const Duration(seconds: 45),
-      (_) {
-        if (!mounted) {
-          return;
-        }
-        if (_telemetryLoading) {
-          return;
-        }
-        _loadTelemetrySummary();
-      },
-    );
+    _telemetryRefreshTimer = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (!mounted) {
+        return;
+      }
+      if (_telemetryLoading) {
+        return;
+      }
+      _loadTelemetrySummary();
+    });
   }
 
   @override
@@ -201,10 +206,14 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
     final filtered = _filtered;
     final usageRate = widget.products.isEmpty
         ? 0.0
-        : widget.products.where((p) => (p.arAsset['status'] ?? '') != '').length / widget.products.length;
+        : widget.products
+                  .where((p) => (p.arAsset['status'] ?? '') != '')
+                  .length /
+              widget.products.length;
     final successRate = widget.products.isEmpty
         ? 0.0
-        : widget.products.where((p) => _statusOf(p) == 'approved').length / widget.products.length;
+        : widget.products.where((p) => _statusOf(p) == 'approved').length /
+              widget.products.length;
     final telemetryAverages = _telemetrySummary['averages'] as Map? ?? const {};
     final telemetryRates = _telemetrySummary['rates'] as Map? ?? const {};
     final telemetryBands = _telemetrySummary['bands'] as Map? ?? const {};
@@ -215,20 +224,27 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList();
-    final avgSessionQuality = (telemetryAverages['sessionQuality'] as num?)?.toDouble() ?? 0.0;
-    final thermalRiskRate = (telemetryRates['thermalRiskRate'] as num?)?.toDouble() ?? 0.0;
-    final trackingRiskRate = (telemetryRates['trackingRiskRate'] as num?)?.toDouble() ?? 0.0;
+    final avgSessionQuality =
+        (telemetryAverages['sessionQuality'] as num?)?.toDouble() ?? 0.0;
+    final thermalRiskRate =
+        (telemetryRates['thermalRiskRate'] as num?)?.toDouble() ?? 0.0;
+    final trackingRiskRate =
+        (telemetryRates['trackingRiskRate'] as num?)?.toDouble() ?? 0.0;
     final segmentationRiskRate =
         (telemetryRates['segmentationRiskRate'] as num?)?.toDouble() ?? 0.0;
     final qualityBand = telemetryBands['qualityBand'] as Map? ?? const {};
-    final mostUsed = [...widget.products]..sort((a, b) => b.viewCount.compareTo(a.viewCount));
+    final mostUsed = [...widget.products]
+      ..sort((a, b) => b.viewCount.compareTo(a.viewCount));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text('AR Moderation', style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              'AR Moderation',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const Spacer(),
             SizedBox(
               width: 260,
@@ -251,7 +267,8 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
                 DropdownMenuItem(value: 'failed', child: Text('Failed')),
                 DropdownMenuItem(value: 'rejected', child: Text('Rejected')),
               ],
-              onChanged: (value) => setState(() => _statusFilter = value ?? 'all'),
+              onChanged: (value) =>
+                  setState(() => _statusFilter = value ?? 'all'),
             ),
           ],
         ),
@@ -260,8 +277,14 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
           spacing: 12,
           runSpacing: 12,
           children: [
-            _metricCard('AR usage rate', '${(usageRate * 100).toStringAsFixed(1)}%'),
-            _metricCard('Try-on success rate', '${(successRate * 100).toStringAsFixed(1)}%'),
+            _metricCard(
+              'AR usage rate',
+              '${(usageRate * 100).toStringAsFixed(1)}%',
+            ),
+            _metricCard(
+              'Try-on success rate',
+              '${(successRate * 100).toStringAsFixed(1)}%',
+            ),
             _metricCard(
               'Session quality (${_telemetryDays}d)',
               _telemetryLoading
@@ -286,7 +309,10 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
                   ? 'Loading...'
                   : '${(segmentationRiskRate * 100).toStringAsFixed(1)}%',
             ),
-            _metricCard('Most used', mostUsed.isEmpty ? '-' : mostUsed.first.name),
+            _metricCard(
+              'Most used',
+              mostUsed.isEmpty ? '-' : mostUsed.first.name,
+            ),
           ],
         ),
         const SizedBox(height: 10),
@@ -392,7 +418,8 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
                         )
                       : ListView.separated(
                           itemCount: filtered.length,
-                          separatorBuilder: (context, index) => const Divider(height: 1),
+                          separatorBuilder: (context, index) =>
+                              const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final product = filtered[index];
                             final status = _statusOf(product);
@@ -411,8 +438,16 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
                                   }
                                 }),
                               ),
-                              title: Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                              subtitle: Text(product.category, maxLines: 1, overflow: TextOverflow.ellipsis),
+                              title: Text(
+                                product.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                product.category,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                               trailing: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -422,7 +457,10 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
                                     const SizedBox(height: 4),
                                     Text(
                                       warnings.first,
-                                      style: const TextStyle(color: Colors.deepOrange, fontSize: 10),
+                                      style: const TextStyle(
+                                        color: Colors.deepOrange,
+                                        fontSize: 10,
+                                      ),
                                     ),
                                   ],
                                 ],
@@ -466,9 +504,15 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: AbzioTheme.grey600, fontSize: 12)),
+          Text(
+            label,
+            style: const TextStyle(color: AbzioTheme.grey600, fontSize: 12),
+          ),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+          ),
         ],
       ),
     );
@@ -519,7 +563,8 @@ class _AdminArModerationSectionState extends State<AdminArModerationSection> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: points.map((point) {
-              final value = (point['avgSessionQuality'] as num?)?.toDouble() ?? 0.0;
+              final value =
+                  (point['avgSessionQuality'] as num?)?.toDouble() ?? 0.0;
               final height = (18 + (value.clamp(0.0, 1.0) * 58)).toDouble();
               return Expanded(
                 child: Padding(
@@ -590,14 +635,19 @@ class _ArModerationDetailState extends State<_ArModerationDetail> {
     scale = (editor['scale'] as num?)?.toDouble() ?? 1;
     rotation = (editor['rotation'] as num?)?.toDouble() ?? 0;
     final anchors = (widget.product.arAsset['anchors'] as Map?) ?? const {};
-    leftX = ((anchors['left_shoulder'] as Map?)?['x'] as num?)?.toDouble() ?? 0.33;
-    rightX = ((anchors['right_shoulder'] as Map?)?['x'] as num?)?.toDouble() ?? 0.67;
+    leftX =
+        ((anchors['left_shoulder'] as Map?)?['x'] as num?)?.toDouble() ?? 0.33;
+    rightX =
+        ((anchors['right_shoulder'] as Map?)?['x'] as num?)?.toDouble() ?? 0.67;
   }
 
   @override
   Widget build(BuildContext context) {
-    final original = widget.product.images.isNotEmpty ? widget.product.images.first : '';
-    final processed = widget.product.arAsset['processedImage']?.toString() ?? original;
+    final original = widget.product.images.isNotEmpty
+        ? widget.product.images.first
+        : '';
+    final processed =
+        widget.product.arAsset['processedImage']?.toString() ?? original;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -608,9 +658,7 @@ class _ArModerationDetailState extends State<_ArModerationDetail> {
                 children: [
                   Expanded(child: _imagePanel('Original', original)),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: _previewPanel(processed),
-                  ),
+                  Expanded(child: _previewPanel(processed)),
                 ],
               ),
             ),
@@ -649,12 +697,48 @@ class _ArModerationDetailState extends State<_ArModerationDetail> {
               ],
             ),
             const SizedBox(height: 8),
-            _slider('Offset X', offsetX, -0.25, 0.25, (v) => setState(() => offsetX = v)),
-            _slider('Offset Y', offsetY, -0.25, 0.25, (v) => setState(() => offsetY = v)),
-            _slider('Scale', scale, 0.75, 1.4, (v) => setState(() => scale = v)),
-            _slider('Rotation', rotation, -0.5, 0.5, (v) => setState(() => rotation = v)),
-            _slider('Left anchor X', leftX, 0.15, 0.5, (v) => setState(() => leftX = v)),
-            _slider('Right anchor X', rightX, 0.5, 0.85, (v) => setState(() => rightX = v)),
+            _slider(
+              'Offset X',
+              offsetX,
+              -0.25,
+              0.25,
+              (v) => setState(() => offsetX = v),
+            ),
+            _slider(
+              'Offset Y',
+              offsetY,
+              -0.25,
+              0.25,
+              (v) => setState(() => offsetY = v),
+            ),
+            _slider(
+              'Scale',
+              scale,
+              0.75,
+              1.4,
+              (v) => setState(() => scale = v),
+            ),
+            _slider(
+              'Rotation',
+              rotation,
+              -0.5,
+              0.5,
+              (v) => setState(() => rotation = v),
+            ),
+            _slider(
+              'Left anchor X',
+              leftX,
+              0.15,
+              0.5,
+              (v) => setState(() => leftX = v),
+            ),
+            _slider(
+              'Right anchor X',
+              rightX,
+              0.5,
+              0.85,
+              (v) => setState(() => rightX = v),
+            ),
           ],
         ),
       ),
@@ -675,14 +759,18 @@ class _ArModerationDetailState extends State<_ArModerationDetail> {
             ),
             clipBehavior: Clip.antiAlias,
             child: url.isEmpty
-                ? const AbzioEmptyCard(title: 'No image', subtitle: 'Missing product image')
+                ? const AbzioEmptyCard(
+                    title: 'No image',
+                    subtitle: 'Missing product image',
+                  )
                 : Image.network(
                     url,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const AbzioEmptyCard(
-                      title: 'Image failed',
-                      subtitle: 'Unable to load image',
-                    ),
+                    errorBuilder: (context, error, stackTrace) =>
+                        const AbzioEmptyCard(
+                          title: 'Image failed',
+                          subtitle: 'Unable to load image',
+                        ),
                   ),
           ),
         ),
@@ -694,7 +782,10 @@ class _ArModerationDetailState extends State<_ArModerationDetail> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('AR alignment preview', style: TextStyle(fontWeight: FontWeight.w700)),
+        const Text(
+          'AR alignment preview',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         const SizedBox(height: 8),
         Expanded(
           child: Container(
@@ -716,7 +807,11 @@ class _ArModerationDetailState extends State<_ArModerationDetail> {
                   ),
                 ),
                 const Center(
-                  child: Icon(Icons.accessibility_new_rounded, size: 130, color: Color(0x33000000)),
+                  child: Icon(
+                    Icons.accessibility_new_rounded,
+                    size: 130,
+                    color: Color(0x33000000),
+                  ),
                 ),
                 if (url.isNotEmpty)
                   Center(
@@ -752,7 +847,10 @@ class _ArModerationDetailState extends State<_ArModerationDetail> {
   ) {
     return Row(
       children: [
-        SizedBox(width: 110, child: Text(label, style: const TextStyle(fontSize: 12))),
+        SizedBox(
+          width: 110,
+          child: Text(label, style: const TextStyle(fontSize: 12)),
+        ),
         Expanded(
           child: Slider(
             value: value.clamp(min, max),
@@ -761,7 +859,10 @@ class _ArModerationDetailState extends State<_ArModerationDetail> {
             onChanged: onChanged,
           ),
         ),
-        SizedBox(width: 54, child: Text(value.toStringAsFixed(2), textAlign: TextAlign.right)),
+        SizedBox(
+          width: 54,
+          child: Text(value.toStringAsFixed(2), textAlign: TextAlign.right),
+        ),
       ],
     );
   }

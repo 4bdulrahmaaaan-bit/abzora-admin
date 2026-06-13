@@ -16,22 +16,29 @@ class AdminActivityLogApi {
       'limit': limit.toString(),
     };
     if (actorId != null && actorId.isNotEmpty) queryParams['actorId'] = actorId;
-    if (targetType != null && targetType.isNotEmpty) queryParams['targetType'] = targetType;
+    if (targetType != null && targetType.isNotEmpty)
+      queryParams['targetType'] = targetType;
     if (action != null && action.isNotEmpty) queryParams['action'] = action;
-    if (startDate != null && startDate.isNotEmpty) queryParams['startDate'] = startDate;
+    if (startDate != null && startDate.isNotEmpty)
+      queryParams['startDate'] = startDate;
     if (endDate != null && endDate.isNotEmpty) queryParams['endDate'] = endDate;
 
     final queryStr = Uri(queryParameters: queryParams).query;
-    final payload = await const BackendApiClient().get('/admin/activity-logs?$queryStr', authenticated: true);
+    final payload = await const BackendApiClient().get(
+      '/admin/activity-logs?$queryStr',
+      authenticated: true,
+    );
     final map = Map<String, dynamic>.from(payload as Map);
 
     final logs = (map['data'] as List? ?? [])
-        .map((e) => ActivityLogEntry.fromMap(Map<String, dynamic>.from(e as Map), e['id']?.toString() ?? ''))
+        .map(
+          (e) => ActivityLogEntry.fromMap(
+            Map<String, dynamic>.from(e as Map),
+            e['id']?.toString() ?? '',
+          ),
+        )
         .toList();
 
-    return {
-      'logs': logs,
-      'meta': map['meta'] ?? {},
-    };
+    return {'logs': logs, 'meta': map['meta'] ?? {}};
   }
 }

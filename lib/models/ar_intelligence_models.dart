@@ -1,11 +1,6 @@
 enum ArDeviceTier { low, mid, flagship, premiumLidar }
 
-enum TrackingConfidenceState {
-  locked,
-  stable,
-  recovering,
-  weak,
-}
+enum TrackingConfidenceState { locked, stable, recovering, weak }
 
 class TrackingReliabilityScore {
   const TrackingReliabilityScore({

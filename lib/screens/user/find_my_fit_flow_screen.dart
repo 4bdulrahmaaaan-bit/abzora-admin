@@ -62,15 +62,13 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
       parent: _resultController,
       curve: const Interval(0.18, 0.62, curve: _flowCurve),
     );
-    _resultConfidenceOffset = Tween<Offset>(
-      begin: const Offset(0, 0.18),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _resultController,
-        curve: const Interval(0.18, 0.62, curve: _flowCurve),
-      ),
-    );
+    _resultConfidenceOffset =
+        Tween<Offset>(begin: const Offset(0, 0.18), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _resultController,
+            curve: const Interval(0.18, 0.62, curve: _flowCurve),
+          ),
+        );
     _resultCard1Opacity = CurvedAnimation(
       parent: _resultController,
       curve: const Interval(0.40, 0.72, curve: _flowCurve),
@@ -113,11 +111,17 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
                   switchInCurve: _flowCurve,
                   switchOutCurve: _flowCurve,
                   transitionBuilder: (child, animation) {
-                    final inOffset = Tween<Offset>(
-                      begin: const Offset(0.06, 0),
-                      end: Offset.zero,
-                    ).animate(CurvedAnimation(parent: animation, curve: _flowCurve));
-                    final outOpacity = Tween<double>(begin: 1, end: 0.92).animate(animation);
+                    final inOffset =
+                        Tween<Offset>(
+                          begin: const Offset(0.06, 0),
+                          end: Offset.zero,
+                        ).animate(
+                          CurvedAnimation(parent: animation, curve: _flowCurve),
+                        );
+                    final outOpacity = Tween<double>(
+                      begin: 1,
+                      end: 0.92,
+                    ).animate(animation);
                     return FadeTransition(
                       opacity: outOpacity,
                       child: SlideTransition(position: inOffset, child: child),
@@ -222,7 +226,11 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
                   end: Alignment.bottomRight,
                 ),
               ),
-              child: const Icon(Icons.auto_awesome_outlined, color: Color(0xFF8D744A), size: 34),
+              child: const Icon(
+                Icons.auto_awesome_outlined,
+                color: Color(0xFF8D744A),
+                size: 34,
+              ),
             ),
           ),
           const SizedBox(height: 26),
@@ -233,7 +241,11 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
           const SizedBox(height: 8),
           const Text(
             'Get personalized sizing in one guided flow',
-            style: TextStyle(fontSize: 16, color: Color(0xFF6D6559), height: 1.5),
+            style: TextStyle(
+              fontSize: 16,
+              color: Color(0xFF6D6559),
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 14),
           const Text(
@@ -264,7 +276,10 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-          Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 24),
           Container(
             width: double.infinity,
@@ -273,14 +288,22 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
               boxShadow: const [
-                BoxShadow(color: Color(0x14000000), blurRadius: 16, offset: Offset(0, 8)),
+                BoxShadow(
+                  color: Color(0x14000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 8),
+                ),
               ],
             ),
             child: Column(
               children: [
                 Text(
                   '${value.round()} $unit',
-                  style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w700, color: Color(0xFF8D744A)),
+                  style: const TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF8D744A),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 AnimatedSwitcher(
@@ -300,7 +323,10 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
                   child: Text(
                     'Fine tune: ${value.round()} $unit',
                     key: ValueKey<int>(value.round()),
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF8D836F)),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF8D836F),
+                    ),
                   ),
                 ),
                 Slider(
@@ -327,7 +353,10 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Your Body Type', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+          const Text(
+            'Your Body Type',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 16),
           ..._bodyTypes.map((type) {
             final selected = _bodyType == type;
@@ -340,17 +369,24 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
                   setState(() => _bodyType = type);
                 },
                 child: Ink(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: selected ? const Color(0xFFF6E9CE) : Colors.white,
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(
-                      color: selected ? const Color(0xFFC9A36A) : const Color(0x00FFFFFF),
+                      color: selected
+                          ? const Color(0xFFC9A36A)
+                          : const Color(0x00FFFFFF),
                       width: selected ? 1.1 : 0,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: selected ? const Color(0x26C9A36A) : const Color(0x12000000),
+                        color: selected
+                            ? const Color(0x26C9A36A)
+                            : const Color(0x12000000),
                         blurRadius: selected ? 16 : 12,
                         offset: const Offset(0, 6),
                       ),
@@ -359,16 +395,33 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
                   child: Row(
                     children: [
                       TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: 1, end: selected ? 1.05 : 1),
+                        tween: Tween<double>(
+                          begin: 1,
+                          end: selected ? 1.05 : 1,
+                        ),
                         duration: const Duration(milliseconds: 220),
                         curve: _flowCurve,
                         builder: (context, scale, iconChild) {
-                          return Transform.scale(scale: scale, child: iconChild);
+                          return Transform.scale(
+                            scale: scale,
+                            child: iconChild,
+                          );
                         },
-                        child: Icon(Icons.accessibility_new_outlined, color: selected ? const Color(0xFF8D744A) : const Color(0xFF7D776E)),
+                        child: Icon(
+                          Icons.accessibility_new_outlined,
+                          color: selected
+                              ? const Color(0xFF8D744A)
+                              : const Color(0xFF7D776E),
+                        ),
                       ),
                       const SizedBox(width: 12),
-                      Text(type, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      Text(
+                        type,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -395,7 +448,11 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
           const SizedBox(height: 8),
           const Text(
             'Choose the silhouette you normally prefer.',
-            style: TextStyle(fontSize: 15, color: Color(0xFF6D6559), height: 1.45),
+            style: TextStyle(
+              fontSize: 15,
+              color: Color(0xFF6D6559),
+              height: 1.45,
+            ),
           ),
           const SizedBox(height: 18),
           ..._fitPrefs.map((pref) {
@@ -409,12 +466,17 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
                   setState(() => _fitPreference = pref);
                 },
                 child: Ink(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: selected ? const Color(0xFFF6E9CE) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: selected ? const Color(0xFFC9A55A) : const Color(0xFFF0E7D9),
+                      color: selected
+                          ? const Color(0xFFC9A55A)
+                          : const Color(0xFFF0E7D9),
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -474,7 +536,9 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
                               style: TextStyle(
                                 fontSize: 13,
                                 color: selected
-                                    ? const Color(0xFF7D633A).withValues(alpha: 0.8)
+                                    ? const Color(
+                                        0xFF7D633A,
+                                      ).withValues(alpha: 0.8)
                                     : const Color(0xFF6B6458),
                               ),
                             ),
@@ -507,7 +571,11 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
           const SizedBox(height: 8),
           const Text(
             'Optional AI-powered body analysis for a more accurate fit.',
-            style: TextStyle(fontSize: 15, color: Color(0xFF6D6559), height: 1.45),
+            style: TextStyle(
+              fontSize: 15,
+              color: Color(0xFF6D6559),
+              height: 1.45,
+            ),
           ),
           const SizedBox(height: 18),
           Container(
@@ -627,7 +695,10 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Your Fit Recommendation', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+          const Text(
+            'Your Fit Recommendation',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 18),
           Container(
             width: double.infinity,
@@ -647,7 +718,14 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
                   opacity: _resultSizeOpacity,
                   child: ScaleTransition(
                     scale: _resultSizeScale,
-                    child: Text(recommendation, style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w700, height: 1)),
+                    child: Text(
+                      recommendation,
+                      style: const TextStyle(
+                        fontSize: 52,
+                        fontWeight: FontWeight.w700,
+                        height: 1,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -655,18 +733,33 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
                   opacity: _resultConfidenceOpacity,
                   child: SlideTransition(
                     position: _resultConfidenceOffset,
-                    child: Text(confidence, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    child: Text(
+                      confidence,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 FadeTransition(
                   opacity: _resultCard1Opacity,
-                  child: Text(note, style: const TextStyle(color: Color(0xFF6D6559), height: 1.5)),
+                  child: Text(
+                    note,
+                    style: const TextStyle(
+                      color: Color(0xFF6D6559),
+                      height: 1.5,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 FadeTransition(
                   opacity: _resultCard2Opacity,
-                  child: const Text('Based on similar users', style: TextStyle(fontSize: 13, color: Color(0xFF8D836F))),
+                  child: const Text(
+                    'Based on similar users',
+                    style: TextStyle(fontSize: 13, color: Color(0xFF8D836F)),
+                  ),
                 ),
                 if (_scanUsed) ...[
                   const SizedBox(height: 8),
@@ -794,9 +887,9 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
       _saveDone = true;
       _isSaving = false;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fit profile saved')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Fit profile saved')));
     Navigator.pop(context, true);
   }
 
@@ -809,13 +902,16 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
   }
 
   String _confidenceLabel() {
-    if (_bodyType == 'Regular' && _fitPreference == 'Regular') return 'High confidence';
+    if (_bodyType == 'Regular' && _fitPreference == 'Regular')
+      return 'High confidence';
     return 'Good confidence';
   }
 
   String _fitNote() {
-    if (_fitPreference == 'Tight') return 'A close-cut fit is recommended for your profile.';
-    if (_fitPreference == 'Loose') return 'A relaxed silhouette will feel best on you.';
+    if (_fitPreference == 'Tight')
+      return 'A close-cut fit is recommended for your profile.';
+    if (_fitPreference == 'Loose')
+      return 'A relaxed silhouette will feel best on you.';
     return 'Regular fit recommended';
   }
 }
@@ -894,12 +990,19 @@ class _PressableButtonState extends State<_PressableButton> {
                   child: Text(
                     widget.text,
                     key: ValueKey<String>(widget.text),
-                    style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
                 if (widget.trailingCheck) ...[
                   const SizedBox(width: 8),
-                  const Icon(Icons.check_rounded, color: Colors.white, size: 18),
+                  const Icon(
+                    Icons.check_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ],
               ],
             ),

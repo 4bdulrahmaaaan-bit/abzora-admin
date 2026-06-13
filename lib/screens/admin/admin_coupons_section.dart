@@ -48,7 +48,11 @@ class _AdminCouponsSectionState extends State<AdminCouponsSection> {
       _error = '';
     });
     try {
-      final res = await AdminCouponsApi.fetchCoupons(page: _currentPage, limit: _limit, status: _filterStatus);
+      final res = await AdminCouponsApi.fetchCoupons(
+        page: _currentPage,
+        limit: _limit,
+        status: _filterStatus,
+      );
       if (mounted) {
         setState(() {
           _coupons = res['coupons'] as List<Map<String, dynamic>>;
@@ -133,13 +137,25 @@ class _AdminCouponsSectionState extends State<AdminCouponsSection> {
         const SizedBox(height: 24),
         Row(
           children: [
-            _buildStatCard('Active Coupons', _dashboardStats['activeCoupons']?.toString() ?? '-'),
+            _buildStatCard(
+              'Active Coupons',
+              _dashboardStats['activeCoupons']?.toString() ?? '-',
+            ),
             const SizedBox(width: 16),
-            _buildStatCard('Total Redemptions', _dashboardStats['totalRedemptions']?.toString() ?? '-'),
+            _buildStatCard(
+              'Total Redemptions',
+              _dashboardStats['totalRedemptions']?.toString() ?? '-',
+            ),
             const SizedBox(width: 16),
-            _buildStatCard('Total Discount Provided', '₹${_dashboardStats['totalDiscountProvided']?.toString() ?? '-'}'),
+            _buildStatCard(
+              'Total Discount Provided',
+              '₹${_dashboardStats['totalDiscountProvided']?.toString() ?? '-'}',
+            ),
             const SizedBox(width: 16),
-            _buildStatCard('Estimated ROI', _dashboardStats['roi']?.toString() ?? '-'),
+            _buildStatCard(
+              'Estimated ROI',
+              _dashboardStats['roi']?.toString() ?? '-',
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -151,13 +167,25 @@ class _AdminCouponsSectionState extends State<AdminCouponsSection> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: _filterStatus,
-                    decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                      labelText: 'Status',
+                      border: OutlineInputBorder(),
+                    ),
                     items: const [
-                      DropdownMenuItem(value: null, child: Text('All Statuses')),
+                      DropdownMenuItem(
+                        value: null,
+                        child: Text('All Statuses'),
+                      ),
                       DropdownMenuItem(value: 'draft', child: Text('Draft')),
                       DropdownMenuItem(value: 'active', child: Text('Active')),
-                      DropdownMenuItem(value: 'expired', child: Text('Expired')),
-                      DropdownMenuItem(value: 'disabled', child: Text('Disabled')),
+                      DropdownMenuItem(
+                        value: 'expired',
+                        child: Text('Expired'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'disabled',
+                        child: Text('Disabled'),
+                      ),
                     ],
                     onChanged: (v) {
                       setState(() {
@@ -177,102 +205,123 @@ class _AdminCouponsSectionState extends State<AdminCouponsSection> {
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _error.isNotEmpty
-                  ? Center(child: Text('Error: $_error'))
-                  : _coupons.isEmpty
-                      ? const AbzioEmptyCard(
-                          title: 'No coupons found',
-                          subtitle: 'Create a global coupon to start.',
-                        )
-                      : Card(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Text(
-                                  'Showing ${_coupons.length} of $_totalCount coupons',
-                                  style: context.abzioText.titleMedium,
-                                ),
-                              ),
-                              const Divider(height: 1),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: SingleChildScrollView(
-                                    child: DataTable(
-                                      showCheckboxColumn: false,
-                                      columns: const [
-                                        DataColumn(label: Text('Code')),
-                                        DataColumn(label: Text('Status')),
-                                        DataColumn(label: Text('Discount')),
-                                        DataColumn(label: Text('Usage Limit')),
-                                        DataColumn(label: Text('Redemptions')),
-                                        DataColumn(label: Text('Total Given')),
-                                        DataColumn(label: Text('Valid Until')),
-                                        DataColumn(label: Text('Actions')),
-                                      ],
-                                      rows: _coupons.map((c) {
-                                        final discountStr = c['discountType'] == 'percentage'
-                                            ? '${c['discountValue']}%'
-                                            : '₹${c['discountValue']}';
-                                        return DataRow(
-                                          cells: [
-                                            DataCell(Text(c['couponCode'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                            DataCell(Chip(label: Text(c['status'] ?? ''))),
-                                            DataCell(Text(discountStr)),
-                                            DataCell(Text('${c['usageLimit'] ?? 'Unlimited'}')),
-                                            DataCell(Text('${c['redemptions'] ?? 0}')),
-                                            DataCell(Text('₹${c['totalDiscount'] ?? 0}')),
-                                            DataCell(Text(c['endDate']?.toString().split('T')[0] ?? '')),
-                                            DataCell(
-                                              IconButton(
-                                                icon: const Icon(Icons.edit, size: 18),
-                                                onPressed: () => _openEditDialog(c),
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      }).toList(),
+              ? Center(child: Text('Error: $_error'))
+              : _coupons.isEmpty
+              ? const AbzioEmptyCard(
+                  title: 'No coupons found',
+                  subtitle: 'Create a global coupon to start.',
+                )
+              : Card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'Showing ${_coupons.length} of $_totalCount coupons',
+                          style: context.abzioText.titleMedium,
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SingleChildScrollView(
+                            child: DataTable(
+                              showCheckboxColumn: false,
+                              columns: const [
+                                DataColumn(label: Text('Code')),
+                                DataColumn(label: Text('Status')),
+                                DataColumn(label: Text('Discount')),
+                                DataColumn(label: Text('Usage Limit')),
+                                DataColumn(label: Text('Redemptions')),
+                                DataColumn(label: Text('Total Given')),
+                                DataColumn(label: Text('Valid Until')),
+                                DataColumn(label: Text('Actions')),
+                              ],
+                              rows: _coupons.map((c) {
+                                final discountStr =
+                                    c['discountType'] == 'percentage'
+                                    ? '${c['discountValue']}%'
+                                    : '₹${c['discountValue']}';
+                                return DataRow(
+                                  cells: [
+                                    DataCell(
+                                      Text(
+                                        c['couponCode'] ?? '',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ),
-                              const Divider(height: 1),
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('Page $_currentPage of $_totalPages'),
-                                    Row(
-                                      children: [
-                                        OutlinedButton(
-                                          onPressed: _currentPage > 1
-                                              ? () {
-                                                  setState(() => _currentPage--);
-                                                  _fetchCoupons();
-                                                }
-                                              : null,
-                                          child: const Text('Previous'),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        OutlinedButton(
-                                          onPressed: _currentPage < _totalPages
-                                              ? () {
-                                                  setState(() => _currentPage++);
-                                                  _fetchCoupons();
-                                                }
-                                              : null,
-                                          child: const Text('Next'),
-                                        ),
-                                      ],
+                                    DataCell(
+                                      Chip(label: Text(c['status'] ?? '')),
+                                    ),
+                                    DataCell(Text(discountStr)),
+                                    DataCell(
+                                      Text('${c['usageLimit'] ?? 'Unlimited'}'),
+                                    ),
+                                    DataCell(Text('${c['redemptions'] ?? 0}')),
+                                    DataCell(
+                                      Text('₹${c['totalDiscount'] ?? 0}'),
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        c['endDate']?.toString().split(
+                                              'T',
+                                            )[0] ??
+                                            '',
+                                      ),
+                                    ),
+                                    DataCell(
+                                      IconButton(
+                                        icon: const Icon(Icons.edit, size: 18),
+                                        onPressed: () => _openEditDialog(c),
+                                      ),
                                     ),
                                   ],
-                                ),
-                              ),
-                            ],
+                                );
+                              }).toList(),
+                            ),
                           ),
                         ),
+                      ),
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Page $_currentPage of $_totalPages'),
+                            Row(
+                              children: [
+                                OutlinedButton(
+                                  onPressed: _currentPage > 1
+                                      ? () {
+                                          setState(() => _currentPage--);
+                                          _fetchCoupons();
+                                        }
+                                      : null,
+                                  child: const Text('Previous'),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton(
+                                  onPressed: _currentPage < _totalPages
+                                      ? () {
+                                          setState(() => _currentPage++);
+                                          _fetchCoupons();
+                                        }
+                                      : null,
+                                  child: const Text('Next'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );
@@ -326,7 +375,7 @@ class _CouponDialogState extends State<_CouponDialog> {
   late TextEditingController _minOrderController;
   late TextEditingController _maxDiscountController;
   late TextEditingController _usageLimitController;
-  
+
   String _discountType = 'percentage';
   String _status = 'draft';
   DateTime _startDate = DateTime.now();
@@ -339,23 +388,33 @@ class _CouponDialogState extends State<_CouponDialog> {
     super.initState();
     final c = widget.coupon;
     _codeController = TextEditingController(text: c?['couponCode'] ?? '');
-    _discountValueController = TextEditingController(text: c?['discountValue']?.toString() ?? '');
-    _minOrderController = TextEditingController(text: c?['minimumOrderValue']?.toString() ?? '');
-    _maxDiscountController = TextEditingController(text: c?['maximumDiscount']?.toString() ?? '');
-    _usageLimitController = TextEditingController(text: c?['usageLimit']?.toString() ?? '');
+    _discountValueController = TextEditingController(
+      text: c?['discountValue']?.toString() ?? '',
+    );
+    _minOrderController = TextEditingController(
+      text: c?['minimumOrderValue']?.toString() ?? '',
+    );
+    _maxDiscountController = TextEditingController(
+      text: c?['maximumDiscount']?.toString() ?? '',
+    );
+    _usageLimitController = TextEditingController(
+      text: c?['usageLimit']?.toString() ?? '',
+    );
 
     if (c != null) {
       _discountType = c['discountType'] ?? 'percentage';
       _status = c['status'] ?? 'draft';
       _startDate = DateTime.tryParse(c['startDate'] ?? '') ?? DateTime.now();
-      _endDate = DateTime.tryParse(c['endDate'] ?? '') ?? DateTime.now().add(const Duration(days: 30));
+      _endDate =
+          DateTime.tryParse(c['endDate'] ?? '') ??
+          DateTime.now().add(const Duration(days: 30));
     }
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
-    
+
     try {
       final payload = {
         'couponCode': _codeController.text.trim().toUpperCase(),
@@ -366,10 +425,10 @@ class _CouponDialogState extends State<_CouponDialog> {
         'startDate': _startDate.toIso8601String(),
         'endDate': _endDate.toIso8601String(),
       };
-      
+
       final maxD = double.tryParse(_maxDiscountController.text);
       if (maxD != null) payload['maximumDiscount'] = maxD;
-      
+
       final uLimit = int.tryParse(_usageLimitController.text);
       if (uLimit != null) payload['usageLimit'] = uLimit;
 
@@ -378,11 +437,14 @@ class _CouponDialogState extends State<_CouponDialog> {
       } else {
         await AdminCouponsApi.createCoupon(payload);
       }
-      
+
       widget.onSaved();
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() => _isSaving = false);
     }
@@ -391,7 +453,9 @@ class _CouponDialogState extends State<_CouponDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.coupon == null ? 'Create Global Coupon' : 'Edit Global Coupon'),
+      title: Text(
+        widget.coupon == null ? 'Create Global Coupon' : 'Edit Global Coupon',
+      ),
       content: SizedBox(
         width: 500,
         child: Form(
@@ -402,7 +466,10 @@ class _CouponDialogState extends State<_CouponDialog> {
               children: [
                 TextFormField(
                   controller: _codeController,
-                  decoration: const InputDecoration(labelText: 'Coupon Code (e.g. WELCOME20)', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: 'Coupon Code (e.g. WELCOME20)',
+                    border: OutlineInputBorder(),
+                  ),
                   validator: (v) => v!.isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
@@ -411,10 +478,19 @@ class _CouponDialogState extends State<_CouponDialog> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         initialValue: _discountType,
-                        decoration: const InputDecoration(labelText: 'Discount Type', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                          labelText: 'Discount Type',
+                          border: OutlineInputBorder(),
+                        ),
                         items: const [
-                          DropdownMenuItem(value: 'percentage', child: Text('Percentage %')),
-                          DropdownMenuItem(value: 'fixed', child: Text('Fixed Amount ₹')),
+                          DropdownMenuItem(
+                            value: 'percentage',
+                            child: Text('Percentage %'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'fixed',
+                            child: Text('Fixed Amount ₹'),
+                          ),
                         ],
                         onChanged: (v) => setState(() => _discountType = v!),
                       ),
@@ -423,7 +499,10 @@ class _CouponDialogState extends State<_CouponDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _discountValueController,
-                        decoration: const InputDecoration(labelText: 'Discount Value', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                          labelText: 'Discount Value',
+                          border: OutlineInputBorder(),
+                        ),
                         keyboardType: TextInputType.number,
                         validator: (v) => v!.isEmpty ? 'Required' : null,
                       ),
@@ -436,7 +515,10 @@ class _CouponDialogState extends State<_CouponDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _minOrderController,
-                        decoration: const InputDecoration(labelText: 'Min Order Value (Optional)', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                          labelText: 'Min Order Value (Optional)',
+                          border: OutlineInputBorder(),
+                        ),
                         keyboardType: TextInputType.number,
                       ),
                     ),
@@ -444,7 +526,10 @@ class _CouponDialogState extends State<_CouponDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _maxDiscountController,
-                        decoration: const InputDecoration(labelText: 'Max Discount (Optional)', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                          labelText: 'Max Discount (Optional)',
+                          border: OutlineInputBorder(),
+                        ),
                         keyboardType: TextInputType.number,
                       ),
                     ),
@@ -456,7 +541,10 @@ class _CouponDialogState extends State<_CouponDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _usageLimitController,
-                        decoration: const InputDecoration(labelText: 'Usage Limit (Optional)', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                          labelText: 'Usage Limit (Optional)',
+                          border: OutlineInputBorder(),
+                        ),
                         keyboardType: TextInputType.number,
                       ),
                     ),
@@ -464,12 +552,27 @@ class _CouponDialogState extends State<_CouponDialog> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         initialValue: _status,
-                        decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                          labelText: 'Status',
+                          border: OutlineInputBorder(),
+                        ),
                         items: const [
-                          DropdownMenuItem(value: 'draft', child: Text('Draft')),
-                          DropdownMenuItem(value: 'active', child: Text('Active')),
-                          DropdownMenuItem(value: 'expired', child: Text('Expired')),
-                          DropdownMenuItem(value: 'disabled', child: Text('Disabled')),
+                          DropdownMenuItem(
+                            value: 'draft',
+                            child: Text('Draft'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'active',
+                            child: Text('Active'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'expired',
+                            child: Text('Expired'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'disabled',
+                            child: Text('Disabled'),
+                          ),
                         ],
                         onChanged: (v) => setState(() => _status = v!),
                       ),
@@ -482,7 +585,9 @@ class _CouponDialogState extends State<_CouponDialog> {
                     Expanded(
                       child: ListTile(
                         title: const Text('Start Date'),
-                        subtitle: Text(DateFormat('yyyy-MM-dd').format(_startDate)),
+                        subtitle: Text(
+                          DateFormat('yyyy-MM-dd').format(_startDate),
+                        ),
                         onTap: () async {
                           final picked = await showDatePicker(
                             context: context,
@@ -490,14 +595,17 @@ class _CouponDialogState extends State<_CouponDialog> {
                             firstDate: DateTime(2020),
                             lastDate: DateTime(2100),
                           );
-                          if (picked != null) setState(() => _startDate = picked);
+                          if (picked != null)
+                            setState(() => _startDate = picked);
                         },
                       ),
                     ),
                     Expanded(
                       child: ListTile(
                         title: const Text('End Date'),
-                        subtitle: Text(DateFormat('yyyy-MM-dd').format(_endDate)),
+                        subtitle: Text(
+                          DateFormat('yyyy-MM-dd').format(_endDate),
+                        ),
                         onTap: () async {
                           final picked = await showDatePicker(
                             context: context,
@@ -523,7 +631,13 @@ class _CouponDialogState extends State<_CouponDialog> {
         ),
         ElevatedButton(
           onPressed: _isSaving ? null : _save,
-          child: _isSaving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save'),
+          child: _isSaving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Save'),
         ),
       ],
     );

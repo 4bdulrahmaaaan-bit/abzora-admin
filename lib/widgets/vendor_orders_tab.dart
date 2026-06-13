@@ -44,7 +44,11 @@ class VendorOrdersTab extends StatelessWidget {
         ),
         child: Column(
           children: [
-            const Icon(Icons.inbox_outlined, size: 32, color: Color(0xFF8C8C8C)),
+            const Icon(
+              Icons.inbox_outlined,
+              size: 32,
+              color: Color(0xFF8C8C8C),
+            ),
             const SizedBox(height: 10),
             Text(
               emptyTitle,
@@ -54,7 +58,10 @@ class VendorOrdersTab extends StatelessWidget {
             Text(
               emptySubtitle,
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(color: const Color(0xFF7B7B7B), height: 1.45),
+              style: GoogleFonts.inter(
+                color: const Color(0xFF7B7B7B),
+                height: 1.45,
+              ),
             ),
           ],
         ),
@@ -105,7 +112,8 @@ class _VendorOrderPriorityCard extends StatefulWidget {
   final String Function(double amount) formatCurrency;
 
   @override
-  State<_VendorOrderPriorityCard> createState() => _VendorOrderPriorityCardState();
+  State<_VendorOrderPriorityCard> createState() =>
+      _VendorOrderPriorityCardState();
 }
 
 class _VendorOrderPriorityCardState extends State<_VendorOrderPriorityCard> {
@@ -147,12 +155,21 @@ class _VendorOrderPriorityCardState extends State<_VendorOrderPriorityCard> {
   @override
   Widget build(BuildContext context) {
     final order = widget.order;
-    final invoice = order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
-    final shortId = invoice.length <= 12 ? invoice : invoice.substring(invoice.length - 12);
+    final invoice = order.invoiceNumber.isEmpty
+        ? order.id
+        : order.invoiceNumber;
+    final shortId = invoice.length <= 12
+        ? invoice
+        : invoice.substring(invoice.length - 12);
 
     final normalizedStatus = order.status;
-    final itemCount = order.items.fold<int>(0, (sum, item) => sum + item.quantity);
-    final customerName = order.shippingLabel.isEmpty ? 'Customer' : order.shippingLabel;
+    final itemCount = order.items.fold<int>(
+      0,
+      (sum, item) => sum + item.quantity,
+    );
+    final customerName = order.shippingLabel.isEmpty
+        ? 'Customer'
+        : order.shippingLabel;
 
     String actionLabel = '';
     Future<void> Function()? onAction;
@@ -169,12 +186,15 @@ class _VendorOrderPriorityCardState extends State<_VendorOrderPriorityCard> {
     }
 
     final canSwipeAccept = normalizedStatus == 'Placed';
-    final canSwipeReject = normalizedStatus == 'Placed' && widget.onReject != null;
+    final canSwipeReject =
+        normalizedStatus == 'Placed' && widget.onReject != null;
 
     final card = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: normalizedStatus == 'Placed' ? const Color(0xFFFFFCF6) : Colors.white,
+        color: normalizedStatus == 'Placed'
+            ? const Color(0xFFFFFCF6)
+            : Colors.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -255,7 +275,10 @@ class _VendorOrderPriorityCardState extends State<_VendorOrderPriorityCard> {
                     : const Color(0xFF9B6A2D);
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFF4EA),
                     borderRadius: BorderRadius.circular(999),

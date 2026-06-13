@@ -15,13 +15,14 @@ class AdminFraudSection extends StatefulWidget {
 
 class _AdminFraudSectionState extends State<AdminFraudSection> {
   final AdminFraudApi _api = AdminFraudApi();
-  
+
   bool _loading = true;
   String? _error;
 
   Map<String, dynamic> _dashboard = {};
-  
-  String _activeTab = 'highestRisk'; // highestRisk, customers, vendors, riders, orders
+
+  String _activeTab =
+      'highestRisk'; // highestRisk, customers, vendors, riders, orders
   String _searchQuery = '';
 
   final TextEditingController _searchController = TextEditingController();
@@ -59,18 +60,22 @@ class _AdminFraudSectionState extends State<AdminFraudSection> {
   Future<void> _performAction(String type, String id, String action) async {
     try {
       final res = await _api.actionEntity(
-        type: type.toLowerCase(), 
-        id: id, 
-        action: action, 
-        reason: 'Admin Dashboard Action'
+        type: type.toLowerCase(),
+        id: id,
+        action: action,
+        reason: 'Admin Dashboard Action',
       );
       if (res['success'] == true && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Action successful.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Action successful.')));
         _fetchDashboard();
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Action failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Action failed: $e')));
     }
   }
 
@@ -160,13 +165,25 @@ class _AdminFraudSectionState extends State<AdminFraudSection> {
 
   Widget _buildRiskTable() {
     List<dynamic> data = _dashboard[_activeTab] ?? [];
-    
+
     if (_searchQuery.isNotEmpty) {
-      data = data.where((v) => 
-        (v['name']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-        (v['id']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-        (v['uid']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false)
-      ).toList();
+      data = data
+          .where(
+            (v) =>
+                (v['name']?.toString().toLowerCase().contains(
+                      _searchQuery.toLowerCase(),
+                    ) ??
+                    false) ||
+                (v['id']?.toString().toLowerCase().contains(
+                      _searchQuery.toLowerCase(),
+                    ) ??
+                    false) ||
+                (v['uid']?.toString().toLowerCase().contains(
+                      _searchQuery.toLowerCase(),
+                    ) ??
+                    false),
+          )
+          .toList();
     }
 
     return Card(
@@ -214,7 +231,8 @@ class _AdminFraudSectionState extends State<AdminFraudSection> {
             if (data.isEmpty)
               const AbzioEmptyCard(
                 title: 'No entities found',
-                subtitle: 'There are no flagged entities matching your criteria.',
+                subtitle:
+                    'There are no flagged entities matching your criteria.',
               )
             else
               SingleChildScrollView(
@@ -230,30 +248,71 @@ class _AdminFraudSectionState extends State<AdminFraudSection> {
                   ],
                   rows: data.map((entity) {
                     final rClass = entity['classification'] ?? 'N/A';
-                    final rColor = rClass == 'Critical' ? Colors.red : rClass == 'Warning' ? Colors.orange : Colors.green;
-                    final type = entity['type'] ?? _activeTab.replaceAll('s', ''); // fallback simple un-plural
-                    
+                    final rColor = rClass == 'Critical'
+                        ? Colors.red
+                        : rClass == 'Warning'
+                        ? Colors.orange
+                        : Colors.green;
+                    final type =
+                        entity['type'] ??
+                        _activeTab.replaceAll(
+                          's',
+                          '',
+                        ); // fallback simple un-plural
+
                     return DataRow(
                       cells: [
-                        DataCell(Chip(label: Text(type.toString().toUpperCase()))),
-                        DataCell(Text(entity['uid']?.toString().substring(0, 8) ?? entity['id'].toString().substring(0, 8))),
+                        DataCell(
+                          Chip(label: Text(type.toString().toUpperCase())),
+                        ),
+                        DataCell(
+                          Text(
+                            entity['uid']?.toString().substring(0, 8) ??
+                                entity['id'].toString().substring(0, 8),
+                          ),
+                        ),
                         DataCell(Text(entity['name'] ?? 'N/A')),
-                        DataCell(Row(
-                          children: [
-                            Icon(Icons.warning, size: 16, color: rColor),
-                            const SizedBox(width: 6),
-                            Text('${entity['riskScore'] ?? 0}'),
-                          ],
-                        )),
-                        DataCell(Text((entity['flags'] as List?)?.join(', ') ?? 'None')),
+                        DataCell(
+                          Row(
+                            children: [
+                              Icon(Icons.warning, size: 16, color: rColor),
+                              const SizedBox(width: 6),
+                              Text('${entity['riskScore'] ?? 0}'),
+                            ],
+                          ),
+                        ),
+                        DataCell(
+                          Text(
+                            (entity['flags'] as List?)?.join(', ') ?? 'None',
+                          ),
+                        ),
                         DataCell(
                           PopupMenuButton<String>(
-                            onSelected: (val) => _performAction(type, entity['id'], val),
+                            onSelected: (val) =>
+                                _performAction(type, entity['id'], val),
                             itemBuilder: (context) => const [
-                              PopupMenuItem(value: 'review', child: Text('Mark for Review')),
-                              PopupMenuItem(value: 'suspend', child: Text('Suspend')),
-                              PopupMenuItem(value: 'block', child: Text('Block', style: TextStyle(color: Colors.red))),
-                              PopupMenuItem(value: 'whitelist', child: Text('Whitelist', style: TextStyle(color: Colors.green))),
+                              PopupMenuItem(
+                                value: 'review',
+                                child: Text('Mark for Review'),
+                              ),
+                              PopupMenuItem(
+                                value: 'suspend',
+                                child: Text('Suspend'),
+                              ),
+                              PopupMenuItem(
+                                value: 'block',
+                                child: Text(
+                                  'Block',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'whitelist',
+                                child: Text(
+                                  'Whitelist',
+                                  style: TextStyle(color: Colors.green),
+                                ),
+                              ),
                             ],
                           ),
                         ),

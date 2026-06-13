@@ -40,11 +40,13 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
 
   void _saveVariant() {
     final newVariant = ProductColorVariant(
-      variantId: _skuController.text.isEmpty ? 'VAR-${DateTime.now().millisecondsSinceEpoch}' : _skuController.text,
+      variantId: _skuController.text.isEmpty
+          ? 'VAR-${DateTime.now().millisecondsSinceEpoch}'
+          : _skuController.text,
       name: _nameController.text,
       hex: _hexController.text,
       images: [], // To be implemented with media section later
-      sizes: [],  // Simplified for now
+      sizes: [], // Simplified for now
       price: double.tryParse(_priceOverrideController.text),
       status: 'active',
     );
@@ -54,7 +56,7 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
     } else {
       widget.controller.colorVariants.add(newVariant);
     }
-    
+
     // Future.microtask(() => widget.controller.notifyListeners());
     Navigator.pop(context);
   }
@@ -67,14 +69,24 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
         backgroundColor: Colors.white,
         title: Text(
           widget.variantIndex != null ? 'Edit Variant' : 'Add Variant',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: AbzioTheme.textPrimary, fontSize: 16),
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            color: AbzioTheme.textPrimary,
+            fontSize: 16,
+          ),
         ),
         iconTheme: const IconThemeData(color: AbzioTheme.textPrimary),
         elevation: 0,
         actions: [
           TextButton(
             onPressed: _saveVariant,
-            child: Text('Save', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AbzioTheme.accentColor)),
+            child: Text(
+              'Save',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                color: AbzioTheme.accentColor,
+              ),
+            ),
           ),
         ],
       ),
@@ -92,14 +104,22 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Color Details', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16)),
+                  Text(
+                    'Color Details',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _nameController,
                     decoration: InputDecoration(
                       labelText: 'Color Name',
                       hintText: 'e.g. Midnight Black',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -122,7 +142,9 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
                           decoration: InputDecoration(
                             labelText: 'Hex Code',
                             hintText: '#000000',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ),
@@ -133,7 +155,9 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
                     controller: _skuController,
                     decoration: InputDecoration(
                       labelText: 'Variant SKU (Optional)',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -143,7 +167,9 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
                     decoration: InputDecoration(
                       labelText: 'Price Override (Optional)',
                       hintText: 'Leave empty to use main price',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],

@@ -38,7 +38,10 @@ class PoseStabilizationEngine {
         : now.difference(_lastTimestamp!).inMilliseconds / 1000.0;
     _lastTimestamp = now;
     final confidence = frame.feedback.progress.clamp(0.0, 1.0);
-    final adaptiveSmoothing = _adaptiveSmoothing(confidence: confidence, dt: dt);
+    final adaptiveSmoothing = _adaptiveSmoothing(
+      confidence: confidence,
+      dt: dt,
+    );
 
     NormalizedLandmarkPoint kalman(
       JointKalmanFilter2D filter,
@@ -102,8 +105,10 @@ class PoseStabilizationEngine {
       _outlierStreak = 0;
     }
     final recoveryBlend = _outlierStreak >= 2 ? 0.08 : 1.0;
-    final stabilizedSmoothing =
-        (adaptiveSmoothing * recoveryBlend).clamp(minSmoothing * 0.6, maxSmoothing);
+    final stabilizedSmoothing = (adaptiveSmoothing * recoveryBlend).clamp(
+      minSmoothing * 0.6,
+      maxSmoothing,
+    );
 
     final stabilized = TryOnPoseFrame(
       feedback: preSmoothed.feedback,
@@ -117,24 +122,56 @@ class PoseStabilizationEngine {
         preSmoothed.rightShoulder,
         stabilizedSmoothing,
       ),
-      leftElbow: _stabilizePoint(previous.leftElbow, preSmoothed.leftElbow, stabilizedSmoothing),
-      rightElbow: _stabilizePoint(previous.rightElbow, preSmoothed.rightElbow, stabilizedSmoothing),
-      leftWrist: _stabilizePoint(previous.leftWrist, preSmoothed.leftWrist, stabilizedSmoothing),
-      rightWrist: _stabilizePoint(previous.rightWrist, preSmoothed.rightWrist, stabilizedSmoothing),
-      leftHip: _stabilizePoint(previous.leftHip, preSmoothed.leftHip, stabilizedSmoothing),
-      rightHip: _stabilizePoint(previous.rightHip, preSmoothed.rightHip, stabilizedSmoothing),
+      leftElbow: _stabilizePoint(
+        previous.leftElbow,
+        preSmoothed.leftElbow,
+        stabilizedSmoothing,
+      ),
+      rightElbow: _stabilizePoint(
+        previous.rightElbow,
+        preSmoothed.rightElbow,
+        stabilizedSmoothing,
+      ),
+      leftWrist: _stabilizePoint(
+        previous.leftWrist,
+        preSmoothed.leftWrist,
+        stabilizedSmoothing,
+      ),
+      rightWrist: _stabilizePoint(
+        previous.rightWrist,
+        preSmoothed.rightWrist,
+        stabilizedSmoothing,
+      ),
+      leftHip: _stabilizePoint(
+        previous.leftHip,
+        preSmoothed.leftHip,
+        stabilizedSmoothing,
+      ),
+      rightHip: _stabilizePoint(
+        previous.rightHip,
+        preSmoothed.rightHip,
+        stabilizedSmoothing,
+      ),
       shoulderCenter: _stabilizePoint(
         previous.shoulderCenter,
         preSmoothed.shoulderCenter,
         stabilizedSmoothing,
       ),
-      hipCenter: _stabilizePoint(previous.hipCenter, preSmoothed.hipCenter, stabilizedSmoothing),
+      hipCenter: _stabilizePoint(
+        previous.hipCenter,
+        preSmoothed.hipCenter,
+        stabilizedSmoothing,
+      ),
       shoulderWidth: _smoothValue(
         previous.shoulderWidth,
         preSmoothed.shoulderWidth,
         stabilizedSmoothing,
       ),
-      torsoHeight: _smoothValue(previous.torsoHeight, preSmoothed.torsoHeight, stabilizedSmoothing),
+      torsoHeight: _smoothValue(
+        previous.torsoHeight,
+        preSmoothed.torsoHeight,
+        stabilizedSmoothing,
+      ),
       rotationRadians: _smoothValue(
         previous.rotationRadians,
         preSmoothed.rotationRadians,
@@ -182,7 +219,10 @@ class PoseStabilizationEngine {
     required TryOnPoseFrame previous,
     required TryOnPoseFrame next,
   }) {
-    final shoulderJump = _pointDistance(previous.shoulderCenter, next.shoulderCenter);
+    final shoulderJump = _pointDistance(
+      previous.shoulderCenter,
+      next.shoulderCenter,
+    );
     final hipJump = _pointDistance(previous.hipCenter, next.hipCenter);
     final widthJump = (previous.shoulderWidth - next.shoulderWidth).abs();
     final torsoJump = (previous.torsoHeight - next.torsoHeight).abs();
@@ -192,10 +232,7 @@ class PoseStabilizationEngine {
         torsoJump > 0.13;
   }
 
-  double _pointDistance(
-    NormalizedLandmarkPoint a,
-    NormalizedLandmarkPoint b,
-  ) {
+  double _pointDistance(NormalizedLandmarkPoint a, NormalizedLandmarkPoint b) {
     final dx = a.x - b.x;
     final dy = a.y - b.y;
     return math.sqrt((dx * dx) + (dy * dy));
@@ -209,10 +246,7 @@ class PoseStabilizationEngine {
     return prev + ((next - prev) * t);
   }
 
-  double _adaptiveSmoothing({
-    required double confidence,
-    required double dt,
-  }) {
+  double _adaptiveSmoothing({required double confidence, required double dt}) {
     final confidenceBoost = (0.6 + (confidence * 0.5)).clamp(0.45, 1.05);
     final dtPenalty = dt > 0.04 ? 0.82 : 1.0;
     return (baseSmoothing * confidenceBoost * dtPenalty).clamp(

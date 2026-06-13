@@ -64,7 +64,8 @@ class KycSelfieService {
         selfieRetryCount: retryCount,
         selfieVerifiedAt: DateTime.now().toIso8601String(),
         autoReviewStatus: 'pending_review',
-        reviewSummary: 'Live selfie captured. Face match endpoint is unavailable, so manual review is required.',
+        reviewSummary:
+            'Live selfie captured. Face match endpoint is unavailable, so manual review is required.',
         flags: const ['Face match service is unavailable.'],
         provider: 'fallback',
       );
@@ -94,15 +95,20 @@ class KycSelfieService {
           selfieRetryCount: retryCount,
           selfieVerifiedAt: DateTime.now().toIso8601String(),
           autoReviewStatus: 'pending_review',
-          reviewSummary: 'Live selfie captured, but face matching could not finish.',
+          reviewSummary:
+              'Live selfie captured, but face matching could not finish.',
           flags: const ['Face match request failed.'],
           provider: 'fallback',
         );
       }
 
       final decoded = jsonDecode(response.body);
-      final payload = decoded is Map<String, dynamic> ? decoded : const <String, dynamic>{};
-      final score = ((payload['similarity'] ?? payload['matchScore'] ?? 0) as num).toDouble();
+      final payload = decoded is Map<String, dynamic>
+          ? decoded
+          : const <String, dynamic>{};
+      final score =
+          ((payload['similarity'] ?? payload['matchScore'] ?? 0) as num)
+              .toDouble();
       final verified = (payload['verified'] == true) || score >= 85;
       final flags = List<String>.from((payload['flags'] as List?) ?? const []);
       return KycVerificationSummary(

@@ -17,8 +17,9 @@ class CameraFrameEncoder {
       }
       return Uint8List.fromList(img.encodeJpg(converted, quality: 82));
     }
-    
-    if (image.format.group == ImageFormatGroup.yuv420 || image.planes.length >= 3) {
+
+    if (image.format.group == ImageFormatGroup.yuv420 ||
+        image.planes.length >= 3) {
       final converted = _convertYuv420ToImage(image);
       if (converted == null) {
         return null;
@@ -35,14 +36,14 @@ class CameraFrameEncoder {
         return bytes;
       }
     }
-    
+
     if (image.planes.length >= 3) {
       final converted = _convertYuv420ToImage(image);
       if (converted != null) {
         return Uint8List.fromList(img.encodeJpg(converted, quality: 82));
       }
     }
-    
+
     return null;
   }
 
@@ -61,7 +62,7 @@ class CameraFrameEncoder {
     var uRowStride = uPlane.bytesPerRow;
     var vRowStride = vPlane.bytesPerRow;
 
-    // Detect Motorola/budget device bug where reported rowStride includes alignment padding 
+    // Detect Motorola/budget device bug where reported rowStride includes alignment padding
     // but the actual buffer is tightly packed without padding.
     if (yPlane.bytes.length == width * height) {
       yRowStride = width;
@@ -112,7 +113,7 @@ class CameraFrameEncoder {
     final height = image.height;
     var rowStride = plane.bytesPerRow;
     const bytesPerPixel = 4;
-    
+
     // Detect Motorola/budget device bug for BGRA
     if (plane.bytes.length == width * height * bytesPerPixel) {
       rowStride = width * bytesPerPixel;

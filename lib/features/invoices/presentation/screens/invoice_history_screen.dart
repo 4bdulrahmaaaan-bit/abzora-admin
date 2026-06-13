@@ -8,7 +8,8 @@ class InvoiceHistoryScreen extends ConsumerStatefulWidget {
   const InvoiceHistoryScreen({super.key});
 
   @override
-  ConsumerState<InvoiceHistoryScreen> createState() => _InvoiceHistoryScreenState();
+  ConsumerState<InvoiceHistoryScreen> createState() =>
+      _InvoiceHistoryScreenState();
 }
 
 class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
@@ -22,7 +23,8 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
     super.initState();
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) return;
-      final nearEnd = _scrollController.position.pixels >=
+      final nearEnd =
+          _scrollController.position.pixels >=
           (_scrollController.position.maxScrollExtent - 280);
       if (nearEnd) {
         ref.read(customerInvoicePagerProvider.notifier).nextPage();
@@ -68,13 +70,15 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => ref.read(customerInvoicePagerProvider.notifier).refresh(),
+            onPressed: () =>
+                ref.read(customerInvoicePagerProvider.notifier).refresh(),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(customerInvoicePagerProvider.notifier).refresh(),
+        onRefresh: () =>
+            ref.read(customerInvoicePagerProvider.notifier).refresh(),
         child: Column(
           children: [
             Padding(
@@ -92,11 +96,13 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
               child: Builder(
                 builder: (context) {
                   final rows = state.items
-                      .where((r) => _searchController.text.trim().isEmpty
-                          ? true
-                          : r.invoiceNumber
-                              .toLowerCase()
-                              .contains(_searchController.text.trim().toLowerCase()))
+                      .where(
+                        (r) => _searchController.text.trim().isEmpty
+                            ? true
+                            : r.invoiceNumber.toLowerCase().contains(
+                                _searchController.text.trim().toLowerCase(),
+                              ),
+                      )
                       .toList();
                   if (rows.isEmpty && state.loading) {
                     return const Center(child: CircularProgressIndicator());
@@ -105,21 +111,32 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
                     return FutureBuilder<List<Map<String, dynamic>>>(
                       future: _cache.readRawJson(),
                       builder: (context, snapshot) {
-                        final cached = snapshot.data ?? const <Map<String, dynamic>>[];
+                        final cached =
+                            snapshot.data ?? const <Map<String, dynamic>>[];
                         if (cached.isEmpty) {
-                          return Center(child: Text('No invoices available.\n${state.error}'));
+                          return Center(
+                            child: Text(
+                              'No invoices available.\n${state.error}',
+                            ),
+                          );
                         }
                         _isOfflineSnapshot = true;
                         return ListView(
                           children: [
                             const Padding(
                               padding: EdgeInsets.all(16),
-                              child: Text('Offline snapshot shown. Pull to retry.'),
+                              child: Text(
+                                'Offline snapshot shown. Pull to retry.',
+                              ),
                             ),
                             ...cached.map(
                               (row) => ListTile(
-                                title: Text((row['invoiceNumber'] ?? '').toString()),
-                                subtitle: Text('INR ${(row['grandTotal'] ?? 0).toString()}'),
+                                title: Text(
+                                  (row['invoiceNumber'] ?? '').toString(),
+                                ),
+                                subtitle: Text(
+                                  'INR ${(row['grandTotal'] ?? 0).toString()}',
+                                ),
                               ),
                             ),
                           ],
@@ -165,13 +182,19 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
                                   Expanded(
                                     child: Text(
                                       invoice.invoiceNumber,
-                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
                                             fontWeight: FontWeight.w800,
                                           ),
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFF2EFE9),
                                       borderRadius: BorderRadius.circular(99),
@@ -181,13 +204,14 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
                                 ],
                               ),
                               const SizedBox(height: 6),
-                              Text('Status: ${invoice.paymentStatus} • ${invoice.status}'),
+                              Text(
+                                'Status: ${invoice.paymentStatus} • ${invoice.status}',
+                              ),
                               const SizedBox(height: 6),
                               Text(
                                 'INR ${invoice.grandTotal.toStringAsFixed(2)}',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                             ],
                           ),

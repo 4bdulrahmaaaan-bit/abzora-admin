@@ -54,8 +54,12 @@ class AdminAutomationModel {
       description: map['description'] ?? '',
       cronExpression: map['cronExpression'] ?? '',
       enabled: map['enabled'] ?? false,
-      lastRunAt: map['lastRunAt'] != null ? DateTime.tryParse(map['lastRunAt']) : null,
-      nextRunAt: map['nextRunAt'] != null ? DateTime.tryParse(map['nextRunAt']) : null,
+      lastRunAt: map['lastRunAt'] != null
+          ? DateTime.tryParse(map['lastRunAt'])
+          : null,
+      nextRunAt: map['nextRunAt'] != null
+          ? DateTime.tryParse(map['nextRunAt'])
+          : null,
       successCount: (map['successCount'] ?? 0).toInt(),
       failureCount: (map['failureCount'] ?? 0).toInt(),
       retryCount: (map['retryCount'] ?? 0).toInt(),
@@ -68,35 +72,51 @@ class AdminAutomationModel {
 
 class AdminAutomationApi {
   static Future<List<AdminAutomationModel>> getAutomations() async {
-    final response = await const BackendApiClient().get('/admin/automations', authenticated: true);
+    final response = await const BackendApiClient().get(
+      '/admin/automations',
+      authenticated: true,
+    );
     if (response != null && response is Map && response['data'] is List) {
       return (response['data'] as List)
-          .map((item) => AdminAutomationModel.fromMap(Map<String, dynamic>.from(item)))
+          .map(
+            (item) =>
+                AdminAutomationModel.fromMap(Map<String, dynamic>.from(item)),
+          )
           .toList();
     }
     return [];
   }
 
-  static Future<AdminAutomationModel> toggleAutomation(String id, bool enabled) async {
+  static Future<AdminAutomationModel> toggleAutomation(
+    String id,
+    bool enabled,
+  ) async {
     final response = await const BackendApiClient().patch(
       '/admin/automations/$id/toggle',
       body: {'enabled': enabled},
       authenticated: true,
     );
     if (response != null && response is Map && response['data'] != null) {
-      return AdminAutomationModel.fromMap(Map<String, dynamic>.from(response['data']));
+      return AdminAutomationModel.fromMap(
+        Map<String, dynamic>.from(response['data']),
+      );
     }
     throw Exception('Failed to toggle automation');
   }
 
-  static Future<AdminAutomationModel> updateSchedule(String id, String cronExpression) async {
+  static Future<AdminAutomationModel> updateSchedule(
+    String id,
+    String cronExpression,
+  ) async {
     final response = await const BackendApiClient().patch(
       '/admin/automations/$id/schedule',
       body: {'cronExpression': cronExpression},
       authenticated: true,
     );
     if (response != null && response is Map && response['data'] != null) {
-      return AdminAutomationModel.fromMap(Map<String, dynamic>.from(response['data']));
+      return AdminAutomationModel.fromMap(
+        Map<String, dynamic>.from(response['data']),
+      );
     }
     throw Exception('Failed to update automation schedule');
   }

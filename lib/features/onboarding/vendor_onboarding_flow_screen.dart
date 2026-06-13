@@ -44,7 +44,7 @@ class _VendorOnboardingFlowScreenState
   final _startingPrice = TextEditingController();
   final _upperPrice = TextEditingController();
   final _productionDays = TextEditingController(text: '7');
-  
+
   final _monthlyCapacity = TextEditingController();
   final _bankAccount = TextEditingController();
   final _ifsc = TextEditingController();
@@ -69,8 +69,14 @@ class _VendorOnboardingFlowScreenState
   String? _storePhotoUrl;
 
   final List<String> _specializationOptions = [
-    'Shirts', 'T-Shirts', 'Jeans', 'Blazers', 'Ethnic', 
-    "Women's Fashion", 'Kids Wear', 'Custom Tailoring'
+    'Shirts',
+    'T-Shirts',
+    'Jeans',
+    'Blazers',
+    'Ethnic',
+    "Women's Fashion",
+    'Kids Wear',
+    'Custom Tailoring',
   ];
 
   static const _bgDark = Color(0xFF0A0A0A);
@@ -165,7 +171,8 @@ class _VendorOnboardingFlowScreenState
     if (_step == 1 && _specializations.isEmpty) {
       return 'Choose at least one specialization';
     }
-    if (_step == 2 && (_portfolioPaths.length < 5 || _portfolioPaths.length > 10)) {
+    if (_step == 2 &&
+        (_portfolioPaths.length < 5 || _portfolioPaths.length > 10)) {
       return 'Upload between 5 and 10 portfolio samples';
     }
     if (_step == 3) {
@@ -174,10 +181,12 @@ class _VendorOnboardingFlowScreenState
       final days = int.tryParse(_productionDays.text.trim()) ?? 0;
       final capacity = int.tryParse(_monthlyCapacity.text.trim()) ?? 0;
       if (start <= 0) return 'Starting price must be greater than zero';
-      if (upper < start) return 'Upper range must be greater than starting price';
-      if (days <= 0 || days > 60) return 'Production days must be between 1 and 60';
+      if (upper < start)
+        return 'Upper range must be greater than starting price';
+      if (days <= 0 || days > 60)
+        return 'Production days must be between 1 and 60';
       if (capacity <= 0) return 'Monthly capacity must be greater than zero';
-      
+
       if (_bankAccount.text.trim().isEmpty && _upi.text.trim().isEmpty) {
         return 'Provide at least a Bank Account or UPI ID';
       }
@@ -226,7 +235,8 @@ class _VendorOnboardingFlowScreenState
       try {
         _aadhaarOcr = await _onboarding.extractKycFields(
           documentType: 'aadhaar',
-          text: '${_ownerName.text.trim()} ${_phone.text.trim()} ${_address.text.trim()}',
+          text:
+              '${_ownerName.text.trim()} ${_phone.text.trim()} ${_address.text.trim()}',
           documentUrl: _aadhaarUrl!,
         );
         _panOcr = await _onboarding.extractKycFields(
@@ -242,12 +252,17 @@ class _VendorOnboardingFlowScreenState
           storePhotoUrl: _storePhotoUrl!,
         );
 
-        _kycConfidence = VendorKycPolicy.confidenceFromVerification(_vendorVerification);
+        _kycConfidence = VendorKycPolicy.confidenceFromVerification(
+          _vendorVerification,
+        );
       } catch (e) {
-        VendorTelemetry.event('vendor_ocr_extract_failed', data: {'error': e.toString()});
+        VendorTelemetry.event(
+          'vendor_ocr_extract_failed',
+          data: {'error': e.toString()},
+        );
         _kycConfidence = 0.0;
       }
-      
+
       _kycProcessed = true;
 
       if (!mounted) return;
@@ -258,7 +273,9 @@ class _VendorOnboardingFlowScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('KYC Processing Failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('KYC Processing Failed: $e')));
     } finally {
       if (mounted) {
         setState(() {
@@ -276,7 +293,9 @@ class _VendorOnboardingFlowScreenState
         _autoValidate = true;
         _invalidSubmitTick++;
       });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
       return;
     }
 
@@ -387,7 +406,9 @@ class _VendorOnboardingFlowScreenState
           startingPrice: double.tryParse(_startingPrice.text.trim()) ?? 0,
           typicalPriceUpper: double.tryParse(_upperPrice.text.trim()) ?? 0,
           productionTimeDays: int.tryParse(_productionDays.text.trim()) ?? 7,
-          payoutSetupLabel: _upi.text.trim().isNotEmpty ? _upi.text.trim() : _bankAccount.text.trim(),
+          payoutSetupLabel: _upi.text.trim().isNotEmpty
+              ? _upi.text.trim()
+              : _bankAccount.text.trim(),
           kyc: KycDocuments(
             ownerPhotoUrl: _ownerPhotoUrl ?? '',
             storeImageUrl: _storePhotoUrl ?? '',
@@ -401,7 +422,8 @@ class _VendorOnboardingFlowScreenState
             'specializations': _specializations.toList(),
             'startingPrice': double.tryParse(_startingPrice.text.trim()) ?? 0,
             'typicalPriceUpper': double.tryParse(_upperPrice.text.trim()) ?? 0,
-            'productionTimeDays': int.tryParse(_productionDays.text.trim()) ?? 7,
+            'productionTimeDays':
+                int.tryParse(_productionDays.text.trim()) ?? 7,
             'monthlyCapacity': int.tryParse(_monthlyCapacity.text.trim()) ?? 0,
             'payoutDetails': {
               'bankAccount': _bankAccount.text.trim(),
@@ -430,7 +452,10 @@ class _VendorOnboardingFlowScreenState
             bankName: '',
           );
         } catch (error) {
-          VendorTelemetry.event('payout_save_failed_post_submit', data: {'error': error.toString()});
+          VendorTelemetry.event(
+            'payout_save_failed_post_submit',
+            data: {'error': error.toString()},
+          );
         }
       }
 
@@ -438,12 +463,16 @@ class _VendorOnboardingFlowScreenState
       VendorTelemetry.event('submit_success', data: {'userId': user.id});
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const _VendorOnboardingSuccessScreen()),
+        MaterialPageRoute(
+          builder: (_) => const _VendorOnboardingSuccessScreen(),
+        ),
       );
     } catch (error) {
       VendorTelemetry.event('submit_failed', data: {'error': error.toString()});
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -469,10 +498,20 @@ class _VendorOnboardingFlowScreenState
         elevation: 0,
         leading: IconButton(
           onPressed: _submitting || _isProcessingKyc ? null : _back,
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+          ),
           tooltip: 'Back',
         ),
-        title: Text('Step ${_step + 1} of 6', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+        title: Text(
+          'Step ${_step + 1} of 6',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -498,13 +537,13 @@ class _VendorOnboardingFlowScreenState
                 children: [
                   _card('Business Basics', [
                     _field(_storeName, 'Store Name', hint: 'Abianzo Tailors'),
-                    _field(_ownerName, 'Owner Name', hint: 'A. Rahman', readOnly: true),
                     _field(
-                      _phone,
-                      'Phone',
-                      hint: '9876543210',
+                      _ownerName,
+                      'Owner Name',
+                      hint: 'A. Rahman',
                       readOnly: true,
                     ),
+                    _field(_phone, 'Phone', hint: '9876543210', readOnly: true),
                     _field(
                       _email,
                       'Email',
@@ -517,12 +556,7 @@ class _VendorOnboardingFlowScreenState
                       hint: 'Street, area, landmark',
                       maxLines: 2,
                     ),
-                    _field(
-                      _city,
-                      'City',
-                      hint: 'Chennai',
-                      readOnly: true,
-                    ),
+                    _field(_city, 'City', hint: 'Chennai', readOnly: true),
                   ]),
                   _card('Craft & Expertise', [
                     _field(
@@ -533,7 +567,14 @@ class _VendorOnboardingFlowScreenState
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                     const SizedBox(height: 16),
-                    const Text('Specializations', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Specializations',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
@@ -547,11 +588,15 @@ class _VendorOnboardingFlowScreenState
                           backgroundColor: Colors.transparent,
                           labelStyle: TextStyle(
                             color: selected ? Colors.black : Colors.white70,
-                            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: selected ? Colors.white : Colors.white24),
+                            side: BorderSide(
+                              color: selected ? Colors.white : Colors.white24,
+                            ),
                           ),
                           onSelected: (val) {
                             setState(() {
@@ -569,7 +614,10 @@ class _VendorOnboardingFlowScreenState
                   _card('Portfolio Uploads', [
                     Text(
                       'Uploaded: ${_portfolioPaths.length}/10 (Min 5 required)',
-                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     if (_portfolioPaths.isNotEmpty)
@@ -582,33 +630,60 @@ class _VendorOnboardingFlowScreenState
                           children: _portfolioPaths.asMap().entries.map((e) {
                             final index = e.key;
                             return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                              title: Text('Sample Image ${index + 1}', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              title: Text(
+                                'Sample Image ${index + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                              ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   if (index > 0)
                                     IconButton(
-                                      icon: const Icon(Icons.keyboard_arrow_up, color: Colors.white70),
+                                      icon: const Icon(
+                                        Icons.keyboard_arrow_up,
+                                        color: Colors.white70,
+                                      ),
                                       onPressed: () {
                                         setState(() {
-                                          final item = _portfolioPaths.removeAt(index);
-                                          _portfolioPaths.insert(index - 1, item);
+                                          final item = _portfolioPaths.removeAt(
+                                            index,
+                                          );
+                                          _portfolioPaths.insert(
+                                            index - 1,
+                                            item,
+                                          );
                                         });
                                       },
                                     ),
                                   if (index < _portfolioPaths.length - 1)
                                     IconButton(
-                                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white70),
+                                      icon: const Icon(
+                                        Icons.keyboard_arrow_down,
+                                        color: Colors.white70,
+                                      ),
                                       onPressed: () {
                                         setState(() {
-                                          final item = _portfolioPaths.removeAt(index);
-                                          _portfolioPaths.insert(index + 1, item);
+                                          final item = _portfolioPaths.removeAt(
+                                            index,
+                                          );
+                                          _portfolioPaths.insert(
+                                            index + 1,
+                                            item,
+                                          );
                                         });
                                       },
                                     ),
                                   IconButton(
-                                    icon: const Icon(Icons.close, color: Colors.redAccent),
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.redAccent,
+                                    ),
                                     onPressed: () => _removePortfolio(index),
                                   ),
                                 ],
@@ -623,12 +698,20 @@ class _VendorOnboardingFlowScreenState
                         width: double.infinity,
                         child: OutlinedButton.icon(
                           onPressed: _pickPortfolio,
-                          icon: const Icon(Icons.add_photo_alternate_outlined, color: Colors.white),
-                          label: const Text('Add Portfolio Files', style: TextStyle(color: Colors.white)),
+                          icon: const Icon(
+                            Icons.add_photo_alternate_outlined,
+                            color: Colors.white,
+                          ),
+                          label: const Text(
+                            'Add Portfolio Files',
+                            style: TextStyle(color: Colors.white),
+                          ),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.white24),
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ),
@@ -660,39 +743,110 @@ class _VendorOnboardingFlowScreenState
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                     const SizedBox(height: 24),
-                    const Text('Payout Details', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                    const Text(
+                      'Payout Details',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const SizedBox(height: 16),
-                    _field(_bankAccount, 'Bank Account Number', hint: '1234567890'),
+                    _field(
+                      _bankAccount,
+                      'Bank Account Number',
+                      hint: '1234567890',
+                    ),
                     _field(_ifsc, 'IFSC Code', hint: 'HDFC0001234'),
                     _field(_upi, 'UPI ID', hint: 'user@upi'),
                   ]),
                   _card('KYC Documents', [
                     const Text(
                       'Please upload clear photos. These will be verified instantly using our OCR system.',
-                      style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
                     ),
                     const SizedBox(height: 20),
-                    _uploadTile('Owner Photo', _ownerPhoto != null, () => _pickImage((x) => _ownerPhoto = x)),
-                    _uploadTile('Store Photo', _storePhoto != null, () => _pickImage((x) => _storePhoto = x)),
-                    _uploadTile('Aadhaar Card', _aadhaarPhoto != null, () => _pickImage((x) => _aadhaarPhoto = x)),
-                    _uploadTile('PAN Card', _panPhoto != null, () => _pickImage((x) => _panPhoto = x)),
+                    _uploadTile(
+                      'Owner Photo',
+                      _ownerPhoto != null,
+                      () => _pickImage((x) => _ownerPhoto = x),
+                    ),
+                    _uploadTile(
+                      'Store Photo',
+                      _storePhoto != null,
+                      () => _pickImage((x) => _storePhoto = x),
+                    ),
+                    _uploadTile(
+                      'Aadhaar Card',
+                      _aadhaarPhoto != null,
+                      () => _pickImage((x) => _aadhaarPhoto = x),
+                    ),
+                    _uploadTile(
+                      'PAN Card',
+                      _panPhoto != null,
+                      () => _pickImage((x) => _panPhoto = x),
+                    ),
                   ]),
                   _card('Review & Submit', [
-                    _reviewRow('Store Name', _storeName.text.trim(), () => _jumpToStep(0)),
-                    _reviewRow('Owner Name', _ownerName.text.trim(), () => _jumpToStep(0)),
-                    _reviewRow('Specializations', _specializations.join(', '), () => _jumpToStep(1)),
-                    _reviewRow('Portfolio', '${_portfolioPaths.length} files', () => _jumpToStep(2)),
-                    _reviewRow('Capacity', '${_monthlyCapacity.text.trim()} items/mo', () => _jumpToStep(3)),
+                    _reviewRow(
+                      'Store Name',
+                      _storeName.text.trim(),
+                      () => _jumpToStep(0),
+                    ),
+                    _reviewRow(
+                      'Owner Name',
+                      _ownerName.text.trim(),
+                      () => _jumpToStep(0),
+                    ),
+                    _reviewRow(
+                      'Specializations',
+                      _specializations.join(', '),
+                      () => _jumpToStep(1),
+                    ),
+                    _reviewRow(
+                      'Portfolio',
+                      '${_portfolioPaths.length} files',
+                      () => _jumpToStep(2),
+                    ),
+                    _reviewRow(
+                      'Capacity',
+                      '${_monthlyCapacity.text.trim()} items/mo',
+                      () => _jumpToStep(3),
+                    ),
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 16),
                       child: Divider(color: Colors.white12),
                     ),
-                    const Text('KYC Verification Summary', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                    const Text(
+                      'KYC Verification Summary',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const SizedBox(height: 16),
-                    _reviewRow('Confidence Score', '${_kycConfidence.toStringAsFixed(1)}%', () => _jumpToStep(4)),
-                    _reviewRow('Aadhaar', _aadhaarOcr['aadhaarNumber']?.toString() ?? 'Failed', () => _jumpToStep(4)),
-                    _reviewRow('PAN', _panOcr['panNumber']?.toString() ?? 'Failed', () => _jumpToStep(4)),
-                    if (_kycConfidence < VendorKycPolicy.minConfidenceForAutoSubmit)
+                    _reviewRow(
+                      'Confidence Score',
+                      '${_kycConfidence.toStringAsFixed(1)}%',
+                      () => _jumpToStep(4),
+                    ),
+                    _reviewRow(
+                      'Aadhaar',
+                      _aadhaarOcr['aadhaarNumber']?.toString() ?? 'Failed',
+                      () => _jumpToStep(4),
+                    ),
+                    _reviewRow(
+                      'PAN',
+                      _panOcr['panNumber']?.toString() ?? 'Failed',
+                      () => _jumpToStep(4),
+                    ),
+                    if (_kycConfidence <
+                        VendorKycPolicy.minConfidenceForAutoSubmit)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
                         child: Column(
@@ -702,16 +856,27 @@ class _VendorOnboardingFlowScreenState
                               decoration: BoxDecoration(
                                 color: Colors.redAccent.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+                                border: Border.all(
+                                  color: Colors.redAccent.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                ),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+                                  const Icon(
+                                    Icons.warning_amber_rounded,
+                                    color: Colors.redAccent,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
                                       'Low confidence score. Please retry document upload for faster approval.',
-                                      style: TextStyle(color: Colors.redAccent.shade100, fontSize: 13),
+                                      style: TextStyle(
+                                        color: Colors.redAccent.shade100,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -724,9 +889,14 @@ class _VendorOnboardingFlowScreenState
                                 onPressed: () => _jumpToStep(4),
                                 style: OutlinedButton.styleFrom(
                                   side: const BorderSide(color: Colors.white24),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
-                                child: const Text('Retry Document Upload', style: TextStyle(color: Colors.white)),
+                                child: const Text(
+                                  'Retry Document Upload',
+                                  style: TextStyle(color: Colors.white),
+                                ),
                               ),
                             ),
                           ],
@@ -740,7 +910,11 @@ class _VendorOnboardingFlowScreenState
               padding: const EdgeInsets.all(24),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
-                transform: Matrix4.translationValues(_invalidSubmitTick.isOdd ? 6 : 0, 0, 0),
+                transform: Matrix4.translationValues(
+                  _invalidSubmitTick.isOdd ? 6 : 0,
+                  0,
+                  0,
+                ),
                 child: SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -750,7 +924,9 @@ class _VendorOnboardingFlowScreenState
                       foregroundColor: Colors.black,
                       disabledBackgroundColor: Colors.white30,
                       disabledForegroundColor: Colors.black54,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       elevation: 0,
                     ),
                     onPressed: _submitting || _isProcessingKyc ? null : _next,
@@ -758,13 +934,23 @@ class _VendorOnboardingFlowScreenState
                         ? const SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.black,
+                            ),
                           )
                         : Text(
                             _step == 5
-                                ? (_submitting ? 'Submitting...' : 'Submit Application')
-                                : (_step == 4 ? 'Verify Documents' : 'Continue'),
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                ? (_submitting
+                                      ? 'Submitting...'
+                                      : 'Submit Application')
+                                : (_step == 4
+                                      ? 'Verify Documents'
+                                      : 'Continue'),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                   ),
                 ),
@@ -832,15 +1018,23 @@ class _VendorOnboardingFlowScreenState
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         readOnly: readOnly,
-        style: TextStyle(color: readOnly ? Colors.white54 : Colors.white, fontSize: 15),
+        style: TextStyle(
+          color: readOnly ? Colors.white54 : Colors.white,
+          fontSize: 15,
+        ),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(color: Colors.white60),
           hintText: hint.isEmpty ? null : hint,
           hintStyle: const TextStyle(color: Colors.white24),
           filled: true,
-          fillColor: readOnly ? Colors.white.withValues(alpha: 0.02) : Colors.black26,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          fillColor: readOnly
+              ? Colors.white.withValues(alpha: 0.02)
+              : Colors.black26,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
@@ -872,9 +1066,15 @@ class _VendorOnboardingFlowScreenState
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
-              border: Border.all(color: done ? Colors.green.withValues(alpha: 0.4) : Colors.white12),
+              border: Border.all(
+                color: done
+                    ? Colors.green.withValues(alpha: 0.4)
+                    : Colors.white12,
+              ),
               borderRadius: BorderRadius.circular(8),
-              color: done ? Colors.green.withValues(alpha: 0.05) : Colors.transparent,
+              color: done
+                  ? Colors.green.withValues(alpha: 0.05)
+                  : Colors.transparent,
             ),
             child: Row(
               children: [
@@ -888,14 +1088,31 @@ class _VendorOnboardingFlowScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(label, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text(done ? 'Uploaded successfully' : 'Tap to upload', style: TextStyle(color: done ? Colors.green : Colors.white54, fontSize: 13)),
+                      Text(
+                        done ? 'Uploaded successfully' : 'Tap to upload',
+                        style: TextStyle(
+                          color: done ? Colors.green : Colors.white54,
+                          fontSize: 13,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 if (!done)
-                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: Colors.white24,
+                    size: 16,
+                  ),
               ],
             ),
           ),
@@ -912,11 +1129,21 @@ class _VendorOnboardingFlowScreenState
         children: [
           Expanded(
             flex: 2,
-            child: Text(label, style: const TextStyle(color: Colors.white54, fontSize: 14)),
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white54, fontSize: 14),
+            ),
           ),
           Expanded(
             flex: 3,
-            child: Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
           Material(
             color: Colors.transparent,
@@ -925,7 +1152,11 @@ class _VendorOnboardingFlowScreenState
               borderRadius: BorderRadius.circular(4),
               child: const Padding(
                 padding: EdgeInsets.all(4.0),
-                child: Icon(Icons.edit_outlined, size: 18, color: Colors.white54),
+                child: Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: Colors.white54,
+                ),
               ),
             ),
           ),
@@ -954,19 +1185,32 @@ class _VendorOnboardingSuccessScreen extends StatelessWidget {
                   color: Colors.green.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.verified_rounded, color: Colors.green, size: 64),
+                child: const Icon(
+                  Icons.verified_rounded,
+                  color: Colors.green,
+                  size: 64,
+                ),
               ),
               const SizedBox(height: 24),
               const Text(
                 'Application Submitted',
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               const Text(
                 'We are reviewing your details. You will be notified once the process is complete.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.5),
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 15,
+                  height: 1.5,
+                ),
               ),
               const SizedBox(height: 32),
               SizedBox(
@@ -976,11 +1220,18 @@ class _VendorOnboardingSuccessScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 0,
                   ),
-                  onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/ops', (route) => false),
-                  child: const Text('Go to Dashboard', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/ops', (route) => false),
+                  child: const Text(
+                    'Go to Dashboard',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],
@@ -990,5 +1241,3 @@ class _VendorOnboardingSuccessScreen extends StatelessWidget {
     );
   }
 }
-
-

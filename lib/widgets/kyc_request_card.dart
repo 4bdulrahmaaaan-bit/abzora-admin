@@ -83,19 +83,27 @@ class KycRequestCard extends StatelessWidget {
             children: [
               Checkbox(
                 value: item.selected,
-                onChanged: onSelectedChanged == null ? null : (value) => onSelectedChanged!(value ?? false),
+                onChanged: onSelectedChanged == null
+                    ? null
+                    : (value) => onSelectedChanged!(value ?? false),
                 activeColor: const Color(0xFFD4AF37),
               ),
               Expanded(
                 child: Text(
                   item.name,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: _statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -122,17 +130,22 @@ class KycRequestCard extends StatelessWidget {
                     width: 54,
                     height: 54,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const SizedBox(
-                      width: 54,
-                      height: 54,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(color: Color(0xFFF1F1F1)),
-                        child: Icon(Icons.image_not_supported_outlined, color: Color(0xFF9B9B9B)),
-                      ),
-                    ),
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox(
+                          width: 54,
+                          height: 54,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(color: Color(0xFFF1F1F1)),
+                            child: Icon(
+                              Icons.image_not_supported_outlined,
+                              color: Color(0xFF9B9B9B),
+                            ),
+                          ),
+                        ),
                   ),
                 ),
-              if (item.thumbnailUrl.trim().isNotEmpty) const SizedBox(width: 12),
+              if (item.thumbnailUrl.trim().isNotEmpty)
+                const SizedBox(width: 12),
               Expanded(
                 child: Wrap(
                   spacing: 8,
@@ -190,9 +203,17 @@ class KycRequestCard extends StatelessWidget {
       ),
     );
 
-    final dismissibleEnabled = item.status == 'pending' && (onApprove != null || onReject != null);
+    final dismissibleEnabled =
+        item.status == 'pending' && (onApprove != null || onReject != null);
     if (!dismissibleEnabled) {
-      return Material(color: Colors.transparent, child: InkWell(borderRadius: BorderRadius.circular(20), onTap: onTap, child: card));
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: card,
+        ),
+      );
     }
 
     return Dismissible(
@@ -217,7 +238,14 @@ class KycRequestCard extends StatelessWidget {
         }
         return false;
       },
-      child: Material(color: Colors.transparent, child: InkWell(borderRadius: BorderRadius.circular(20), onTap: onTap, child: card)),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: card,
+        ),
+      ),
     );
   }
 
@@ -280,7 +308,11 @@ class KycRequestCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFB76E00)),
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: 14,
+            color: Color(0xFFB76E00),
+          ),
           const SizedBox(width: 6),
           Text(
             label,
@@ -320,13 +352,29 @@ class _SwipeAction extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       alignment: alignLeft ? Alignment.centerLeft : Alignment.centerRight,
       child: Row(
-        mainAxisAlignment: alignLeft ? MainAxisAlignment.start : MainAxisAlignment.end,
+        mainAxisAlignment: alignLeft
+            ? MainAxisAlignment.start
+            : MainAxisAlignment.end,
         children: [
-          if (!alignLeft) Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          if (!alignLeft)
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           if (!alignLeft) const SizedBox(width: 8),
           Icon(icon, color: Colors.white),
           if (alignLeft) const SizedBox(width: 8),
-          if (alignLeft) Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          if (alignLeft)
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
         ],
       ),
     );

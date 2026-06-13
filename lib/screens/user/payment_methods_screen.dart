@@ -100,17 +100,19 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     return AbzioThemeScope.light(
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          title: const Text('Add Payment Method'),
-        ),
+        appBar: AppBar(title: const Text('Add Payment Method')),
         bottomNavigationBar: SafeArea(
           top: false,
           child: Container(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
             decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.94),
+              color: Theme.of(
+                context,
+              ).scaffoldBackgroundColor.withValues(alpha: 0.94),
               border: Border(
-                top: BorderSide(color: context.abzioBorder.withValues(alpha: 0.65)),
+                top: BorderSide(
+                  color: context.abzioBorder.withValues(alpha: 0.65),
+                ),
               ),
             ),
             child: SizedBox(
@@ -146,9 +148,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                       Text(
                         'Choose your preferred payment option.',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: context.abzioSecondaryText,
-                              height: 1.45,
-                            ),
+                          color: context.abzioSecondaryText,
+                          height: 1.45,
+                        ),
                       ),
                       const SizedBox(height: AbzioTheme.sectionGap),
                       _SummaryCard(),
@@ -180,10 +182,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
 }
 
 class _CardsSection extends StatelessWidget {
-  const _CardsSection({
-    required this.cardsStream,
-    required this.onAddCard,
-  });
+  const _CardsSection({required this.cardsStream, required this.onAddCard});
 
   final Stream<List<SavedCardSummary>> cardsStream;
   final VoidCallback onAddCard;
@@ -206,15 +205,12 @@ class _CardsSection extends StatelessWidget {
             children: [
               Text(
                 'Cards',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const Spacer(),
-              TextButton(
-                onPressed: onAddCard,
-                child: const Text('Add card'),
-              ),
+              TextButton(onPressed: onAddCard, child: const Text('Add card')),
             ],
           ),
           const SizedBox(height: 12),
@@ -236,16 +232,16 @@ class _CardsSection extends StatelessWidget {
                     Text(
                       'No saved cards yet.',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Add a card to enable faster checkout.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: context.abzioSecondaryText,
-                            height: 1.45,
-                          ),
+                        color: context.abzioSecondaryText,
+                        height: 1.45,
+                      ),
                     ),
                   ],
                 );
@@ -289,7 +285,9 @@ class _CardsSection extends StatelessWidget {
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleSmall
-                                          ?.copyWith(fontWeight: FontWeight.w800),
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                          ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
@@ -336,9 +334,9 @@ class _SummaryCard extends StatelessWidget {
         children: [
           Text(
             'Preferred Checkout Benefits',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 16),
           ...const [
@@ -380,9 +378,9 @@ class _BenefitRow extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             text,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -399,7 +397,9 @@ class _SecurityFooter extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFBF3),
         borderRadius: BorderRadius.circular(AbzioTheme.cardRadius),
-        border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.12)),
+        border: Border.all(
+          color: AbzioTheme.accentColor.withValues(alpha: 0.12),
+        ),
       ),
       child: Row(
         children: [
@@ -420,9 +420,9 @@ class _SecurityFooter extends StatelessWidget {
           Expanded(
             child: Text(
               'Payments secured by Razorpay',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
         ],

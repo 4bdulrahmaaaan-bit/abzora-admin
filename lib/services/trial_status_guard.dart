@@ -52,7 +52,9 @@ class TrialStatusGuard {
 
   static void validateModifiable(String current) {
     if (isTerminalStatus(current) || current == 'awaiting_final_payment') {
-      throw StateError('Trial session is locked and cannot be modified in status: $current');
+      throw StateError(
+        'Trial session is locked and cannot be modified in status: $current',
+      );
     }
   }
 }

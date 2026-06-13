@@ -14,10 +14,7 @@ import '../../utils/app_error_text.dart';
 import '../../widgets/tap_scale.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({
-    super.key,
-    required this.chat,
-  });
+  const ChatScreen({super.key, required this.chat});
 
   final SupportChat chat;
 
@@ -131,10 +128,7 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
     _markedRead = true;
-    await _database.markSupportChatRead(
-      chatId: widget.chat.id,
-      actor: actor,
-    );
+    await _database.markSupportChatRead(chatId: widget.chat.id, actor: actor);
   }
 
   Future<void> _sendMessage() async {
@@ -316,9 +310,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     final actor = context.watch<AuthProvider>().user;
     if (actor == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -344,7 +336,8 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Column(
           children: [
             _buildStatusBanner(context),
-            if (_lastFailedMessage != null && _lastFailedMessage!.trim().isNotEmpty)
+            if (_lastFailedMessage != null &&
+                _lastFailedMessage!.trim().isNotEmpty)
               _buildRetryBanner(context),
             _buildQuickPrompts(),
             Expanded(
@@ -354,7 +347,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   actor: actor,
                 ),
                 builder: (context, snapshot) {
-                  final liveMessages = snapshot.data ?? const <SupportMessage>[];
+                  final liveMessages =
+                      snapshot.data ?? const <SupportMessage>[];
                   final messages = [..._olderMessages, ...liveMessages]
                     ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
                   final latestAssistantMessage = messages.isEmpty
@@ -409,7 +403,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
-                                    color: context.abzioBorder.withValues(alpha: 0.65),
+                                    color: context.abzioBorder.withValues(
+                                      alpha: 0.65,
+                                    ),
                                   ),
                                 ),
                                 child: Row(
@@ -419,7 +415,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                       const SizedBox(
                                         width: 14,
                                         height: 14,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
                                       )
                                     else
                                       const Icon(
@@ -429,8 +427,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                       ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      _loadingOlder ? 'Loading earlier messages' : 'Load older messages',
-                                      style: const TextStyle(fontWeight: FontWeight.w700),
+                                      _loadingOlder
+                                          ? 'Loading earlier messages'
+                                          : 'Load older messages',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -442,28 +444,29 @@ class _ChatScreenState extends State<ChatScreen> {
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
                         sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final message = messages[index];
-                              final isMine = message.senderId == actor.id;
-                              final showDate = index == 0 ||
-                                  !_isSameDay(
-                                    messages[index - 1].timestamp,
-                                    message.timestamp,
-                                  );
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final message = messages[index];
+                            final isMine = message.senderId == actor.id;
+                            final showDate =
+                                index == 0 ||
+                                !_isSameDay(
+                                  messages[index - 1].timestamp,
+                                  message.timestamp,
+                                );
 
-                              return Column(
-                                children: [
-                                  if (showDate) _buildDateChip(message.timestamp),
-                                  _MessageBubble(
-                                    message: message,
-                                    isMine: isMine,
-                                  ),
-                                ],
-                              );
-                            },
-                            childCount: messages.length,
-                          ),
+                            return Column(
+                              children: [
+                                if (showDate) _buildDateChip(message.timestamp),
+                                _MessageBubble(
+                                  message: message,
+                                  isMine: isMine,
+                                ),
+                              ],
+                            );
+                          }, childCount: messages.length),
                         ),
                       ),
                     ],
@@ -487,7 +490,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final text = switch (widget.chat.status) {
       'closed' => 'This ticket has been marked as resolved.',
-      'waiting' => 'Abianzo Assistant is preparing the next best answer for you.',
+      'waiting' =>
+        'Abianzo Assistant is preparing the next best answer for you.',
       _ => 'Abianzo Assistant is active on this thread.',
     };
 
@@ -505,19 +509,13 @@ class _ChatScreenState extends State<ChatScreen> {
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(color: color, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -582,18 +580,15 @@ class _ChatScreenState extends State<ChatScreen> {
             const SizedBox(height: 18),
             Text(
               'Ask anything about your order or fit',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(
               'Abianzo Assistant can track orders, explain payments, and guide your custom clothing journey in real time.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: context.abzioSecondaryText,
-                height: 1.45,
-              ),
+              style: TextStyle(color: context.abzioSecondaryText, height: 1.45),
             ),
           ],
         ),
@@ -650,7 +645,10 @@ class _ChatScreenState extends State<ChatScreen> {
               },
               scale: 0.97,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(999),
@@ -720,7 +718,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 maxLines: 4,
                 onSubmitted: (_) => _sendMessage(),
                 decoration: InputDecoration(
-                  hintText: isClosed ? 'This assistant thread is closed' : 'Ask Abianzo Assistant anything',
+                  hintText: isClosed
+                      ? 'This assistant thread is closed'
+                      : 'Ask Abianzo Assistant anything',
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -740,9 +740,7 @@ class _ChatScreenState extends State<ChatScreen> {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: _isListening
-                    ? const Color(0xFFFFF2C4)
-                    : Colors.white,
+                color: _isListening ? const Color(0xFFFFF2C4) : Colors.white,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: _isListening
@@ -751,10 +749,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: (_isListening
-                            ? AbzioTheme.accentColor
-                            : Colors.black)
-                        .withValues(alpha: _isListening ? 0.18 : 0.04),
+                    color:
+                        (_isListening ? AbzioTheme.accentColor : Colors.black)
+                            .withValues(alpha: _isListening ? 0.18 : 0.04),
                     blurRadius: _isListening ? 18 : 10,
                     offset: const Offset(0, 6),
                   ),
@@ -771,7 +768,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     )
                   : Icon(
-                      _isListening ? Icons.graphic_eq_rounded : Icons.mic_none_rounded,
+                      _isListening
+                          ? Icons.graphic_eq_rounded
+                          : Icons.mic_none_rounded,
                       color: _isListening
                           ? AbzioTheme.accentColor
                           : context.abzioSecondaryText,
@@ -790,10 +789,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 height: 52,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFFE0BE54),
-                      AbzioTheme.accentColor,
-                    ],
+                    colors: [Color(0xFFE0BE54), AbzioTheme.accentColor],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -811,7 +807,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         padding: EdgeInsets.all(14),
                         child: CircularProgressIndicator(
                           strokeWidth: 2.4,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Icon(Icons.send_rounded, color: Colors.white),
@@ -857,10 +855,7 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 
 class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({
-    required this.message,
-    required this.isMine,
-  });
+  const _MessageBubble({required this.message, required this.isMine});
 
   final SupportMessage message;
   final bool isMine;
@@ -901,8 +896,9 @@ class _MessageBubble extends StatelessWidget {
               ],
             ),
             child: Column(
-              crossAxisAlignment:
-                  isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isMine
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 if (message.text.trim().isNotEmpty)
                   Text(
@@ -914,7 +910,8 @@ class _MessageBubble extends StatelessWidget {
                     ),
                   ),
                 if (message.imageUrl.trim().isNotEmpty) ...[
-                  if (message.text.trim().isNotEmpty) const SizedBox(height: 10),
+                  if (message.text.trim().isNotEmpty)
+                    const SizedBox(height: 10),
                   Container(
                     width: 180,
                     padding: const EdgeInsets.all(10),
@@ -970,4 +967,3 @@ class _MessageBubble extends StatelessWidget {
     return DateFormat('hh:mm a').format(parsed);
   }
 }
-

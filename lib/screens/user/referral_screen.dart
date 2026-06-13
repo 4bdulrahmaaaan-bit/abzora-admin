@@ -29,9 +29,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
       return;
     }
     setState(() => _codeCopied = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
       setState(() => _codeCopied = false);
@@ -50,7 +50,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('WhatsApp could not be opened right now.')),
+        const SnackBar(
+          content: Text('WhatsApp could not be opened right now.'),
+        ),
       );
     }
   }
@@ -67,16 +69,15 @@ class _ReferralScreenState extends State<ReferralScreen> {
     return AbzioThemeScope.light(
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFBF5),
-        appBar: AppBar(
-          title: const Text('Refer & Earn'),
-        ),
+        appBar: AppBar(title: const Text('Refer & Earn')),
         body: user == null
             ? const Center(child: CircularProgressIndicator())
             : FutureBuilder<ReferralDashboardData>(
                 future: _database.getReferralDashboard(user),
                 builder: (context, snapshot) {
                   final dashboard = snapshot.data;
-                  final code = dashboard?.referralCode ?? (user.referralCode ?? '');
+                  final code =
+                      dashboard?.referralCode ?? (user.referralCode ?? '');
                   return Stack(
                     children: [
                       Positioned.fill(
@@ -120,7 +121,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
                                 context,
                                 invitedCount: dashboard?.invitedCount ?? 0,
                                 earnedCredits: dashboard?.earnedCredits ?? 0,
-                                walletBalance: dashboard?.walletBalance ?? user.walletBalance,
+                                walletBalance:
+                                    dashboard?.walletBalance ??
+                                    user.walletBalance,
                               ),
                             ),
                             const SizedBox(height: 18),
@@ -130,7 +133,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
                                 context,
                                 tier: dashboard?.tier ?? 'Bronze',
                                 progress: dashboard?.nextTierProgress ?? 0,
-                                invitesToNextTier: dashboard?.invitesToNextTier ?? 4,
+                                invitesToNextTier:
+                                    dashboard?.invitesToNextTier ?? 4,
                                 completedCount: dashboard?.completedCount ?? 0,
                               ),
                             ),
@@ -143,7 +147,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
                               const SizedBox(height: 18),
                               AbzioStaggerItem(
                                 index: 6,
-                                child: _historyCard(context, dashboard!.history),
+                                child: _historyCard(
+                                  context,
+                                  dashboard!.history,
+                                ),
                               ),
                             ],
                           ],
@@ -203,7 +210,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
                         ),
                         child: const Text(
                           'Invite & Earn ₹75',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -249,32 +259,39 @@ class _ReferralScreenState extends State<ReferralScreen> {
             child: Text(
               'Limited time',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AbzioTheme.textPrimary,
-                  ),
+                fontWeight: FontWeight.w800,
+                color: AbzioTheme.textPrimary,
+              ),
             ),
           ),
           const SizedBox(height: 18),
           Text(
             'Earn ₹75 for every friend',
-            style: Theme.of(context).textTheme.displayMedium?.copyWith(fontSize: 30),
+            style: Theme.of(
+              context,
+            ).textTheme.displayMedium?.copyWith(fontSize: 30),
           ),
           const SizedBox(height: 8),
           Text(
             'They get ₹75. You get ₹75 when they place their first order of ₹499 or more.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: context.abzioSecondaryText,
-                  height: 1.45,
-                ),
+              color: context.abzioSecondaryText,
+              height: 1.45,
+            ),
           ),
           const SizedBox(height: 18),
           Row(
             children: [
-              const Icon(Icons.card_giftcard_rounded, color: AbzioTheme.accentColor),
+              const Icon(
+                Icons.card_giftcard_rounded,
+                color: AbzioTheme.accentColor,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  code.isEmpty ? 'Generating your invite code...' : 'Share your premium invite and grow Abianzo smarter.',
+                  code.isEmpty
+                      ? 'Generating your invite code...'
+                      : 'Share your premium invite and grow Abianzo smarter.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
@@ -293,12 +310,12 @@ class _ReferralScreenState extends State<ReferralScreen> {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.36), width: 1.4),
+          border: Border.all(
+            color: AbzioTheme.accentColor.withValues(alpha: 0.36),
+            width: 1.4,
+          ),
           gradient: LinearGradient(
-            colors: [
-              Colors.white,
-              const Color(0xFFFFFAEF),
-            ],
+            colors: [Colors.white, const Color(0xFFFFFAEF)],
           ),
         ),
         child: Row(
@@ -307,18 +324,25 @@ class _ReferralScreenState extends State<ReferralScreen> {
               child: Text(
                 code.isEmpty ? 'Loading...' : code,
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      fontSize: 28,
-                      letterSpacing: 2,
-                    ),
+                  fontSize: 28,
+                  letterSpacing: 2,
+                ),
               ),
             ),
             const SizedBox(width: 12),
             TapScale(
-              onTap: code.isEmpty ? null : () => _copyText(code, message: 'Copied ✓'),
+              onTap: code.isEmpty
+                  ? null
+                  : () => _copyText(code, message: 'Copied ✓'),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
-                  color: _codeCopied ? const Color(0xFF2E9E5B) : AbzioTheme.accentColor,
+                  color: _codeCopied
+                      ? const Color(0xFF2E9E5B)
+                      : AbzioTheme.accentColor,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -332,7 +356,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
                     const SizedBox(width: 6),
                     Text(
                       _codeCopied ? 'Copied' : 'Copy',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                 ),
@@ -365,7 +392,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
               context,
               icon: Icons.link_rounded,
               label: 'Copy Link',
-              onTap: () => _copyText(AppConfig.appDownloadLink, message: 'Link copied ✓'),
+              onTap: () => _copyText(
+                AppConfig.appDownloadLink,
+                message: 'Link copied ✓',
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -393,11 +423,26 @@ class _ReferralScreenState extends State<ReferralScreen> {
       title: 'Reward Snapshot',
       child: Row(
         children: [
-          Expanded(child: _statCard(context, 'Friends invited', '$invitedCount')),
+          Expanded(
+            child: _statCard(context, 'Friends invited', '$invitedCount'),
+          ),
           const SizedBox(width: 12),
-          Expanded(child: _statCard(context, 'Credits earned', '₹${earnedCredits.toStringAsFixed(0)}', highlight: true)),
+          Expanded(
+            child: _statCard(
+              context,
+              'Credits earned',
+              '₹${earnedCredits.toStringAsFixed(0)}',
+              highlight: true,
+            ),
+          ),
           const SizedBox(width: 12),
-          Expanded(child: _statCard(context, 'Wallet balance', '₹${walletBalance.toStringAsFixed(0)}')),
+          Expanded(
+            child: _statCard(
+              context,
+              'Wallet balance',
+              '₹${walletBalance.toStringAsFixed(0)}',
+            ),
+          ),
         ],
       ),
     );
@@ -421,11 +466,17 @@ class _ReferralScreenState extends State<ReferralScreen> {
         children: [
           Row(
             children: [
-              Expanded(child: _tierPill(context, 'Bronze', '₹75', tier == 'Bronze')),
+              Expanded(
+                child: _tierPill(context, 'Bronze', '₹75', tier == 'Bronze'),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: _tierPill(context, 'Silver', '₹100', tier == 'Silver')),
+              Expanded(
+                child: _tierPill(context, 'Silver', '₹100', tier == 'Silver'),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: _tierPill(context, 'Gold', '₹150', tier == 'Gold')),
+              Expanded(
+                child: _tierPill(context, 'Gold', '₹150', tier == 'Gold'),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -435,7 +486,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
               value: progress,
               minHeight: 10,
               backgroundColor: context.abzioMuted,
-              valueColor: const AlwaysStoppedAnimation<Color>(AbzioTheme.accentColor),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AbzioTheme.accentColor,
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -446,7 +499,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
           const SizedBox(height: 4),
           Text(
             helper,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: context.abzioSecondaryText),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: context.abzioSecondaryText),
           ),
         ],
       ),
@@ -458,7 +513,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
       ('1', 'Share your code', 'Send your premium invite code to friends.'),
       ('2', 'They sign up', 'Your friend joins Abianzo using your code.'),
       ('3', 'They place an order', 'Their first order must be ₹499 or more.'),
-      ('4', 'Both earn credits', 'You both receive Abianzo Credits automatically.'),
+      (
+        '4',
+        'Both earn credits',
+        'You both receive Abianzo Credits automatically.',
+      ),
     ];
     return _shell(
       context,
@@ -487,7 +546,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: completed ? const Color(0xFFFFFBF0) : Theme.of(context).cardColor,
+                color: completed
+                    ? const Color(0xFFFFFBF0)
+                    : Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: completed
@@ -507,8 +568,12 @@ class _ReferralScreenState extends State<ReferralScreen> {
                           : context.abzioMuted,
                     ),
                     child: Icon(
-                      completed ? Icons.workspace_premium_rounded : Icons.person_add_alt_1_rounded,
-                      color: completed ? AbzioTheme.accentColor : context.abzioSecondaryText,
+                      completed
+                          ? Icons.workspace_premium_rounded
+                          : Icons.person_add_alt_1_rounded,
+                      color: completed
+                          ? AbzioTheme.accentColor
+                          : context.abzioSecondaryText,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -525,9 +590,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
                           completed
                               ? 'You earned ₹${item.referrerReward.toStringAsFixed(0)} from this referral.'
                               : 'Waiting for the friend\'s first qualifying order.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: context.abzioSecondaryText,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: context.abzioSecondaryText),
                         ),
                       ],
                     ),
@@ -569,7 +633,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.abzioSecondaryText),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: context.abzioSecondaryText,
+              ),
             ),
           ],
           const SizedBox(height: 16),
@@ -600,7 +666,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
             const SizedBox(height: 8),
             Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -608,14 +676,23 @@ class _ReferralScreenState extends State<ReferralScreen> {
     );
   }
 
-  Widget _statCard(BuildContext context, String label, String value, {bool highlight = false}) {
+  Widget _statCard(
+    BuildContext context,
+    String label,
+    String value, {
+    bool highlight = false,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: highlight ? const Color(0xFFFFFBF0) : Theme.of(context).cardColor,
+        color: highlight
+            ? const Color(0xFFFFFBF0)
+            : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: highlight ? AbzioTheme.accentColor.withValues(alpha: 0.22) : context.abzioBorder,
+          color: highlight
+              ? AbzioTheme.accentColor.withValues(alpha: 0.22)
+              : context.abzioBorder,
         ),
       ),
       child: Column(
@@ -624,21 +701,30 @@ class _ReferralScreenState extends State<ReferralScreen> {
           Text(
             value,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: highlight ? AbzioTheme.accentColor : AbzioTheme.textPrimary,
-                  fontWeight: FontWeight.w800,
-                ),
+              color: highlight
+                  ? AbzioTheme.accentColor
+                  : AbzioTheme.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: context.abzioSecondaryText),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: context.abzioSecondaryText),
           ),
         ],
       ),
     );
   }
 
-  Widget _tierPill(BuildContext context, String name, String reward, bool active) {
+  Widget _tierPill(
+    BuildContext context,
+    String name,
+    String reward,
+    bool active,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
@@ -654,23 +740,28 @@ class _ReferralScreenState extends State<ReferralScreen> {
           Text(
             name,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: active ? AbzioTheme.accentColor : AbzioTheme.textPrimary,
-                ),
+              color: active ? AbzioTheme.accentColor : AbzioTheme.textPrimary,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             reward,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: context.abzioSecondaryText,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: context.abzioSecondaryText,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _stepRow(BuildContext context, String number, String title, String subtitle) {
+  Widget _stepRow(
+    BuildContext context,
+    String number,
+    String title,
+    String subtitle,
+  ) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -691,7 +782,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
             alignment: Alignment.center,
             child: Text(
               number,
-              style: const TextStyle(color: AbzioTheme.accentColor, fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                color: AbzioTheme.accentColor,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -704,9 +798,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.abzioSecondaryText,
-                        height: 1.35,
-                      ),
+                    color: context.abzioSecondaryText,
+                    height: 1.35,
+                  ),
                 ),
               ],
             ),
@@ -716,4 +810,3 @@ class _ReferralScreenState extends State<ReferralScreen> {
     );
   }
 }
-

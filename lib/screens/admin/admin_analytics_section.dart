@@ -73,19 +73,43 @@ class _AdminAnalyticsSectionState extends State<AdminAnalyticsSection> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           Text('Platform Overview', style: context.abzioText.titleMedium),
           const SizedBox(height: 16),
           Wrap(
             spacing: 16,
             runSpacing: 16,
             children: [
-              _buildMetricCard('Total Revenue', '₹${overview['totalRevenue'] ?? 0}', Colors.blue.shade50),
-              _buildMetricCard('Orders Today', '${overview['todayOrders'] ?? 0}', Colors.green.shade50),
-              _buildMetricCard('Total Orders', '${overview['totalOrders'] ?? 0}', Colors.orange.shade50),
-              _buildMetricCard('Active Trials', '${overview['totalTrials'] ?? 0}', Colors.purple.shade50),
-              _buildMetricCard('Active Vendors', '${overview['activeVendors'] ?? 0}', Colors.teal.shade50),
-              _buildMetricCard('Registered Users', '${overview['totalUsers'] ?? 0}', Colors.indigo.shade50),
+              _buildMetricCard(
+                'Total Revenue',
+                '₹${overview['totalRevenue'] ?? 0}',
+                Colors.blue.shade50,
+              ),
+              _buildMetricCard(
+                'Orders Today',
+                '${overview['todayOrders'] ?? 0}',
+                Colors.green.shade50,
+              ),
+              _buildMetricCard(
+                'Total Orders',
+                '${overview['totalOrders'] ?? 0}',
+                Colors.orange.shade50,
+              ),
+              _buildMetricCard(
+                'Active Trials',
+                '${overview['totalTrials'] ?? 0}',
+                Colors.purple.shade50,
+              ),
+              _buildMetricCard(
+                'Active Vendors',
+                '${overview['activeVendors'] ?? 0}',
+                Colors.teal.shade50,
+              ),
+              _buildMetricCard(
+                'Registered Users',
+                '${overview['totalUsers'] ?? 0}',
+                Colors.indigo.shade50,
+              ),
             ],
           ),
           const SizedBox(height: 32),
@@ -101,12 +125,22 @@ class _AdminAnalyticsSectionState extends State<AdminAnalyticsSection> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Revenue Trends (Last 7 Days)', style: context.abzioText.titleMedium),
+                        Text(
+                          'Revenue Trends (Last 7 Days)',
+                          style: context.abzioText.titleMedium,
+                        ),
                         const SizedBox(height: 16),
-                        ...trends.map((t) => ListTile(
-                              title: Text(t['date']),
-                              trailing: Text('₹${t['revenue']} (${t['orders']} orders)', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            )),
+                        ...trends.map(
+                          (t) => ListTile(
+                            title: Text(t['date']),
+                            trailing: Text(
+                              '₹${t['revenue']} (${t['orders']} orders)',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -123,13 +157,23 @@ class _AdminAnalyticsSectionState extends State<AdminAnalyticsSection> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Geographic Distribution', style: context.abzioText.titleMedium),
+                            Text(
+                              'Geographic Distribution',
+                              style: context.abzioText.titleMedium,
+                            ),
                             const SizedBox(height: 16),
-                            ...geographic.map((g) => ListTile(
-                                  dense: true,
-                                  title: Text(g['city']),
-                                  trailing: Text('${g['percentage']}%', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                )),
+                            ...geographic.map(
+                              (g) => ListTile(
+                                dense: true,
+                                title: Text(g['city']),
+                                trailing: Text(
+                                  '${g['percentage']}%',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -141,15 +185,21 @@ class _AdminAnalyticsSectionState extends State<AdminAnalyticsSection> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Top Performing Vendors', style: context.abzioText.titleMedium),
+                            Text(
+                              'Top Performing Vendors',
+                              style: context.abzioText.titleMedium,
+                            ),
                             const SizedBox(height: 16),
-                            if (topVendors.isEmpty) const Text('No vendor data available yet.'),
-                            ...topVendors.map((v) => ListTile(
-                                  dense: true,
-                                  title: Text(v['storeName'] ?? 'Unknown'),
-                                  subtitle: Text('${v['orderCount']} orders'),
-                                  trailing: Text('₹${v['totalRevenue']}'),
-                                )),
+                            if (topVendors.isEmpty)
+                              const Text('No vendor data available yet.'),
+                            ...topVendors.map(
+                              (v) => ListTile(
+                                dense: true,
+                                title: Text(v['storeName'] ?? 'Unknown'),
+                                subtitle: Text('${v['orderCount']} orders'),
+                                trailing: Text('₹${v['totalRevenue']}'),
+                              ),
+                            ),
                           ],
                         ),
                       ),

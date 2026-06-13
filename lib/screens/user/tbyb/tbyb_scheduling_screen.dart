@@ -4,10 +4,7 @@ import '../../../theme.dart';
 import 'tbyb_address_screen.dart';
 
 class TbybSchedulingScreen extends StatefulWidget {
-  const TbybSchedulingScreen({
-    super.key,
-    required this.selectedItems,
-  });
+  const TbybSchedulingScreen({super.key, required this.selectedItems});
 
   final List<Product> selectedItems;
 
@@ -60,7 +57,10 @@ class _TbybSchedulingScreenState extends State<TbybSchedulingScreen> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                _SectionTitle(title: 'Choose Delivery Date', subtitle: 'When should we deliver?'),
+                _SectionTitle(
+                  title: 'Choose Delivery Date',
+                  subtitle: 'When should we deliver?',
+                ),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 12,
@@ -73,24 +73,35 @@ class _TbybSchedulingScreenState extends State<TbybSchedulingScreen> {
                       onSelected: (_) {
                         setState(() => _selectedDate = date);
                       },
-                      selectedColor: AbzioTheme.accentColor.withValues(alpha: 0.1),
+                      selectedColor: AbzioTheme.accentColor.withValues(
+                        alpha: 0.1,
+                      ),
                       backgroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
-                          color: isSelected ? AbzioTheme.accentColor : AbzioTheme.grey300,
+                          color: isSelected
+                              ? AbzioTheme.accentColor
+                              : AbzioTheme.grey300,
                           width: isSelected ? 1.5 : 1,
                         ),
                       ),
                       labelStyle: TextStyle(
-                        color: isSelected ? AbzioTheme.accentColor : Colors.black87,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected
+                            ? AbzioTheme.accentColor
+                            : Colors.black87,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     );
                   }).toList(),
                 ),
                 const SizedBox(height: 32),
-                _SectionTitle(title: 'Choose Delivery Time', subtitle: 'Select when you\'d like your products delivered.'),
+                _SectionTitle(
+                  title: 'Choose Delivery Time',
+                  subtitle: 'Select when you\'d like your products delivered.',
+                ),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 12,
@@ -103,24 +114,35 @@ class _TbybSchedulingScreenState extends State<TbybSchedulingScreen> {
                       onSelected: (_) {
                         setState(() => _selectedTime = time);
                       },
-                      selectedColor: AbzioTheme.accentColor.withValues(alpha: 0.1),
+                      selectedColor: AbzioTheme.accentColor.withValues(
+                        alpha: 0.1,
+                      ),
                       backgroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
-                          color: isSelected ? AbzioTheme.accentColor : AbzioTheme.grey300,
+                          color: isSelected
+                              ? AbzioTheme.accentColor
+                              : AbzioTheme.grey300,
                           width: isSelected ? 1.5 : 1,
                         ),
                       ),
                       labelStyle: TextStyle(
-                        color: isSelected ? AbzioTheme.accentColor : Colors.black87,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected
+                            ? AbzioTheme.accentColor
+                            : Colors.black87,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     );
                   }).toList(),
                 ),
                 const SizedBox(height: 32),
-                _SectionTitle(title: 'Trial Duration', subtitle: 'Standard Trial Duration is 15 Minutes.'),
+                _SectionTitle(
+                  title: 'Trial Duration',
+                  subtitle: 'Standard Trial Duration is 15 Minutes.',
+                ),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -130,12 +152,19 @@ class _TbybSchedulingScreenState extends State<TbybSchedulingScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, color: Color(0xFF2C74B3), size: 20),
+                      const Icon(
+                        Icons.info_outline,
+                        color: Color(0xFF2C74B3),
+                        size: 20,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'You will have 15 minutes to try your selected products once the rider arrives.',
-                          style: const TextStyle(color: Color(0xFF2C74B3), fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                            color: Color(0xFF2C74B3),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -145,7 +174,12 @@ class _TbybSchedulingScreenState extends State<TbybSchedulingScreen> {
             ),
           ),
           Container(
-            padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(context).padding.bottom + 16,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -161,11 +195,17 @@ class _TbybSchedulingScreenState extends State<TbybSchedulingScreen> {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(56),
                 backgroundColor: AbzioTheme.accentColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: const Text(
                 'Continue',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -188,12 +228,16 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AbzioTheme.grey500),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AbzioTheme.grey500),
         ),
       ],
     );

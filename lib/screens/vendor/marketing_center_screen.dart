@@ -14,7 +14,8 @@ class MarketingCenterScreen extends StatefulWidget {
   State<MarketingCenterScreen> createState() => _MarketingCenterScreenState();
 }
 
-class _MarketingCenterScreenState extends State<MarketingCenterScreen> with SingleTickerProviderStateMixin {
+class _MarketingCenterScreenState extends State<MarketingCenterScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final CampaignApi _campaignApi = CampaignApi();
   final CouponApi _couponApi = CouponApi();
@@ -84,7 +85,10 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen> with Sing
     return Scaffold(
       backgroundColor: VendorTheme.background,
       appBar: AppBar(
-        title: Text('Marketing Center', style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          'Marketing Center',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
@@ -122,24 +126,46 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen> with Sing
           children: [
             _buildHeaderCard(
               title: 'Boost Your Visibility',
-              subtitle: 'Join upcoming platform campaigns to increase your reach and sales.',
+              subtitle:
+                  'Join upcoming platform campaigns to increase your reach and sales.',
               buttonText: 'View All Campaigns',
               icon: Icons.campaign_outlined,
             ),
             const SizedBox(height: VendorTheme.spacing24),
-            Text('Active Campaigns', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Active Campaigns',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: VendorTheme.spacing16),
             if (_isLoadingCampaigns)
-              const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: VendorTheme.primary)))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: CircularProgressIndicator(color: VendorTheme.primary),
+                ),
+              )
             else if (_campaignsError != null)
-              Center(child: Text('Error: $_campaignsError', style: const TextStyle(color: VendorTheme.error)))
+              Center(
+                child: Text(
+                  'Error: $_campaignsError',
+                  style: const TextStyle(color: VendorTheme.error),
+                ),
+              )
             else if (_campaigns.isEmpty)
-              const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No campaigns available')))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Text('No campaigns available'),
+                ),
+              )
             else
               ..._campaigns.map((c) {
                 final status = c['status']?.toString().toUpperCase() ?? 'DRAFT';
-                final badgeType = status == 'ACTIVE' ? VendorBadgeType.success : VendorBadgeType.info;
-                final startDate = c['startDate']?.toString().substring(0, 10) ?? '';
+                final badgeType = status == 'ACTIVE'
+                    ? VendorBadgeType.success
+                    : VendorBadgeType.info;
+                final startDate =
+                    c['startDate']?.toString().substring(0, 10) ?? '';
                 final endDate = c['endDate']?.toString().substring(0, 10) ?? '';
                 return Padding(
                   padding: const EdgeInsets.only(bottom: VendorTheme.spacing12),
@@ -170,26 +196,48 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen> with Sing
           children: [
             _buildHeaderCard(
               title: 'Store Coupons',
-              subtitle: 'Create special discounts to reward loyal customers and drive conversions.',
+              subtitle:
+                  'Create special discounts to reward loyal customers and drive conversions.',
               buttonText: 'Create Coupon',
               icon: Icons.local_activity_outlined,
             ),
             const SizedBox(height: VendorTheme.spacing24),
-            Text('Active Coupons', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Active Coupons',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: VendorTheme.spacing16),
             if (_isLoadingCoupons)
-              const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: VendorTheme.primary)))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: CircularProgressIndicator(color: VendorTheme.primary),
+                ),
+              )
             else if (_couponsError != null)
-              Center(child: Text('Error: $_couponsError', style: const TextStyle(color: VendorTheme.error)))
+              Center(
+                child: Text(
+                  'Error: $_couponsError',
+                  style: const TextStyle(color: VendorTheme.error),
+                ),
+              )
             else if (_coupons.isEmpty)
-              const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No coupons available')))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Text('No coupons available'),
+                ),
+              )
             else
               ..._coupons.map((c) {
-                final discount = c['discountType'] == 'percentage' 
-                  ? '${c['discountValue']}% OFF' 
-                  : '\u20B9${c['discountValue']} OFF';
-                final usage = c['usageLimit'] == null ? '${c['usedCount']} uses' : '${c['usedCount']} / ${c['usageLimit']} uses';
-                final expiry = c['endDate']?.toString().substring(0, 10) ?? 'No expiry';
+                final discount = c['discountType'] == 'percentage'
+                    ? '${c['discountValue']}% OFF'
+                    : '\u20B9${c['discountValue']} OFF';
+                final usage = c['usageLimit'] == null
+                    ? '${c['usedCount']} uses'
+                    : '${c['usedCount']} / ${c['usageLimit']} uses';
+                final expiry =
+                    c['endDate']?.toString().substring(0, 10) ?? 'No expiry';
                 return Padding(
                   padding: const EdgeInsets.only(bottom: VendorTheme.spacing12),
                   child: _buildCouponCard(
@@ -214,19 +262,27 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen> with Sing
         children: [
           _buildHeaderCard(
             title: 'Flash Sales',
-            subtitle: 'Create time-bound deep discounts to clear inventory fast.',
+            subtitle:
+                'Create time-bound deep discounts to clear inventory fast.',
             buttonText: 'Schedule Flash Sale',
             icon: Icons.bolt_outlined,
           ),
           const SizedBox(height: VendorTheme.spacing24),
-          Text('Upcoming Flash Sales', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'Upcoming Flash Sales',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: VendorTheme.spacing16),
           PremiumVendorCard(
             padding: const EdgeInsets.all(VendorTheme.spacing20),
             child: Center(
               child: Column(
                 children: [
-                  Icon(Icons.bolt_outlined, size: 48, color: VendorTheme.grey300),
+                  Icon(
+                    Icons.bolt_outlined,
+                    size: 48,
+                    color: VendorTheme.grey300,
+                  ),
                   const SizedBox(height: VendorTheme.spacing16),
                   Text(
                     'No Flash Sales Scheduled',
@@ -235,7 +291,9 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen> with Sing
                   const SizedBox(height: VendorTheme.spacing8),
                   Text(
                     'Create a flash sale to boost immediate sales.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: VendorTheme.grey500),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: VendorTheme.grey500),
                   ),
                 ],
               ),
@@ -270,16 +328,16 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen> with Sing
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: VendorTheme.spacing8),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: VendorTheme.grey600,
-                        height: 1.4,
-                      ),
+                    color: VendorTheme.grey600,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: VendorTheme.spacing16),
                 VendorPrimaryButton(
@@ -312,9 +370,9 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen> with Sing
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
               VendorStatusBadge(label: status, type: type),
             ],
@@ -322,7 +380,11 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen> with Sing
           const SizedBox(height: VendorTheme.spacing12),
           Row(
             children: [
-              Icon(Icons.calendar_today_outlined, size: 14, color: VendorTheme.grey500),
+              Icon(
+                Icons.calendar_today_outlined,
+                size: 14,
+                color: VendorTheme.grey500,
+              ),
               const SizedBox(width: VendorTheme.spacing4),
               Text(dateRange, style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(width: VendorTheme.spacing16),
@@ -337,10 +399,7 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen> with Sing
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              VendorOutlinedButton(
-                label: 'Manage Nominations',
-                onTap: () {},
-              ),
+              VendorOutlinedButton(label: 'Manage Nominations', onTap: () {}),
             ],
           ),
         ],
@@ -374,17 +433,17 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen> with Sing
                 Text(
                   discount,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: VendorTheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    color: VendorTheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: VendorTheme.spacing4),
                 Text(
                   code,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        letterSpacing: 1.5,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ],
             ),
@@ -396,7 +455,11 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen> with Sing
               children: [
                 Row(
                   children: [
-                    Icon(Icons.local_offer_outlined, size: 14, color: VendorTheme.grey500),
+                    Icon(
+                      Icons.local_offer_outlined,
+                      size: 14,
+                      color: VendorTheme.grey500,
+                    ),
                     const SizedBox(width: VendorTheme.spacing4),
                     Text(usage, style: Theme.of(context).textTheme.bodySmall),
                   ],
@@ -404,23 +467,24 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen> with Sing
                 const SizedBox(height: VendorTheme.spacing8),
                 Row(
                   children: [
-                    Icon(Icons.timer_outlined, size: 14, color: VendorTheme.grey500),
+                    Icon(
+                      Icons.timer_outlined,
+                      size: 14,
+                      color: VendorTheme.grey500,
+                    ),
                     const SizedBox(width: VendorTheme.spacing4),
                     Text(
                       expiry,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: VendorTheme.error,
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: VendorTheme.error),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {},
-          ),
+          IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
         ],
       ),
     );

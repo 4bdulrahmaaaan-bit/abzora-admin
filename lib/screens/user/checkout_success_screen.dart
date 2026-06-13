@@ -16,7 +16,8 @@ class CheckoutSuccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return OrderSuccessScreen(
       orderId: orderId,
-      estimatedDelivery: estimatedDelivery ?? DateTime.now().add(const Duration(days: 3)),
+      estimatedDelivery:
+          estimatedDelivery ?? DateTime.now().add(const Duration(days: 3)),
     );
   }
 }

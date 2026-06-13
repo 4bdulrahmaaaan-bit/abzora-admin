@@ -28,7 +28,11 @@ class _ProductAiSectionState extends State<ProductAiSection> {
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-          childrenPadding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+          childrenPadding: const EdgeInsets.only(
+            left: 24,
+            right: 24,
+            bottom: 24,
+          ),
           onExpansionChanged: (val) => setState(() => _expanded = val),
           title: Text(
             'Advanced Fashion Assets',
@@ -46,7 +50,9 @@ class _ProductAiSectionState extends State<ProductAiSection> {
             ),
           ),
           trailing: Icon(
-            _expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+            _expanded
+                ? Icons.keyboard_arrow_up_rounded
+                : Icons.keyboard_arrow_down_rounded,
             color: AbzioTheme.textSecondary,
           ),
           children: [
@@ -62,7 +68,11 @@ class _ProductAiSectionState extends State<ProductAiSection> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.info_outline_rounded, color: Color(0xFFD97706), size: 20),
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    color: Color(0xFFD97706),
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -157,10 +167,15 @@ class _ProductAiSectionState extends State<ProductAiSection> {
         TextFormField(
           controller: controller,
           maxLines: maxLines,
-          style: GoogleFonts.jetBrainsMono(fontSize: 13, color: AbzioTheme.textPrimary),
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 13,
+            color: AbzioTheme.textPrimary,
+          ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withValues(alpha: 0.5)),
+            hintStyle: GoogleFonts.inter(
+              color: AbzioTheme.textSecondary.withValues(alpha: 0.5),
+            ),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
             border: OutlineInputBorder(
@@ -175,7 +190,10 @@ class _ProductAiSectionState extends State<ProductAiSection> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: AbzioTheme.accentColor),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
       ],

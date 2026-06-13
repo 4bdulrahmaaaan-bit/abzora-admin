@@ -8,7 +8,10 @@ class InvoiceRemoteDataSource {
   final Dio _dio;
 
   Future<List<InvoiceModel>> fetchMyInvoices({int limit = 30}) async {
-    final response = await _dio.get('/api/invoices/my', queryParameters: {'limit': limit});
+    final response = await _dio.get(
+      '/api/invoices/my',
+      queryParameters: {'limit': limit},
+    );
     final data = (response.data['data'] as List? ?? const []);
     return data
         .map((e) => InvoiceModel.fromJson(Map<String, dynamic>.from(e as Map)))
@@ -39,7 +42,10 @@ class InvoiceRemoteDataSource {
   }
 
   Future<List<InvoiceModel>> fetchVendorInvoices({int limit = 100}) async {
-    final response = await _dio.get('/api/invoices/vendor', queryParameters: {'limit': limit});
+    final response = await _dio.get(
+      '/api/invoices/vendor',
+      queryParameters: {'limit': limit},
+    );
     final data = (response.data['data'] as List? ?? const []);
     return data
         .map((e) => InvoiceModel.fromJson(Map<String, dynamic>.from(e as Map)))
@@ -70,20 +76,18 @@ class InvoiceRemoteDataSource {
   }) async {
     final response = await _dio.get(
       '/api/invoices/admin/reports/gst',
-      queryParameters: {
-        'dateFrom': dateFrom,
-        'dateTo': dateTo,
-      },
+      queryParameters: {'dateFrom': dateFrom, 'dateTo': dateTo},
     );
     return Map<String, dynamic>.from(response.data['data'] as Map);
   }
 
   Future<List<Map<String, dynamic>>> fetchEmailLogs({int limit = 100}) async {
-    final response = await _dio.get('/api/invoices/admin/email-logs', queryParameters: {'limit': limit});
+    final response = await _dio.get(
+      '/api/invoices/admin/email-logs',
+      queryParameters: {'limit': limit},
+    );
     final data = (response.data['data'] as List? ?? const []);
-    return data
-        .map((e) => Map<String, dynamic>.from(e as Map))
-        .toList();
+    return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<Map<String, dynamic>> fetchReplayDashboard() async {
@@ -120,7 +124,9 @@ class InvoiceRemoteDataSource {
     return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
-  Future<List<Map<String, dynamic>>> fetchSuppressions({int limit = 200}) async {
+  Future<List<Map<String, dynamic>>> fetchSuppressions({
+    int limit = 200,
+  }) async {
     final response = await _dio.get(
       '/api/invoices/admin/suppressions',
       queryParameters: {'limit': limit},
@@ -129,28 +135,35 @@ class InvoiceRemoteDataSource {
     return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
-  Future<Map<String, dynamic>> verifyInvoice(String invoiceId, {String hash = ''}) async {
+  Future<Map<String, dynamic>> verifyInvoice(
+    String invoiceId, {
+    String hash = '',
+  }) async {
     final response = await _dio.get(
       '/api/invoices/verify/invoice/$invoiceId',
-      queryParameters: {
-        if (hash.isNotEmpty) 'hash': hash,
-      },
+      queryParameters: {if (hash.isNotEmpty) 'hash': hash},
     );
     return Map<String, dynamic>.from(response.data);
   }
 
-  Future<void> pauseQueue({required String queueName, required String confirmation}) async {
-    await _dio.post('/api/invoices/admin/queue/pause', data: {
-      'queueName': queueName,
-      'confirmation': confirmation,
-    });
+  Future<void> pauseQueue({
+    required String queueName,
+    required String confirmation,
+  }) async {
+    await _dio.post(
+      '/api/invoices/admin/queue/pause',
+      data: {'queueName': queueName, 'confirmation': confirmation},
+    );
   }
 
-  Future<void> resumeQueue({required String queueName, required String confirmation}) async {
-    await _dio.post('/api/invoices/admin/queue/resume', data: {
-      'queueName': queueName,
-      'confirmation': confirmation,
-    });
+  Future<void> resumeQueue({
+    required String queueName,
+    required String confirmation,
+  }) async {
+    await _dio.post(
+      '/api/invoices/admin/queue/resume',
+      data: {'queueName': queueName, 'confirmation': confirmation},
+    );
   }
 
   Future<void> freezeInvoice(
@@ -158,17 +171,17 @@ class InvoiceRemoteDataSource {
     required String freezeState,
     bool legalHold = false,
   }) async {
-    await _dio.patch('/api/invoices/admin/$invoiceId/freeze', data: {
-      'freezeState': freezeState,
-      'legalHold': legalHold,
-    });
+    await _dio.patch(
+      '/api/invoices/admin/$invoiceId/freeze',
+      data: {'freezeState': freezeState, 'legalHold': legalHold},
+    );
   }
 
   Future<void> replayDlq({int limit = 25, required String confirmation}) async {
-    await _dio.post('/api/invoices/admin/queue/replay-dlq', data: {
-      'limit': limit,
-      'confirmation': confirmation,
-    });
+    await _dio.post(
+      '/api/invoices/admin/queue/replay-dlq',
+      data: {'limit': limit, 'confirmation': confirmation},
+    );
   }
 
   Future<void> resendEmailLog(String emailLogId) async {

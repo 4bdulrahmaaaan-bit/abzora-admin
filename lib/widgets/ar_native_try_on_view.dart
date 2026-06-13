@@ -5,10 +5,7 @@ import 'package:flutter/services.dart';
 import '../models/ar_try_on_models.dart';
 
 class ArNativeTryOnView extends StatelessWidget {
-  const ArNativeTryOnView({
-    super.key,
-    required this.metadata,
-  });
+  const ArNativeTryOnView({super.key, required this.metadata});
 
   final ArTryOnProductMetadata metadata;
 

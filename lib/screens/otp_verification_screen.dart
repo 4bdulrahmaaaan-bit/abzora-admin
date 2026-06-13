@@ -301,7 +301,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
           : null;
       var combinedRestriction = adminRestriction ?? restriction;
       if (combinedRestriction != null && !widget.adminEntry) {
-        final refreshed = await authProvider.refreshProfileFromBackendIfPossible();
+        final refreshed = await authProvider
+            .refreshProfileFromBackendIfPossible();
         if (refreshed != null) {
           resolvedUser = refreshed;
           if (_needsPartnerProfileResolution) {

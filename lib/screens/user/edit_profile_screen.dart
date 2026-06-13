@@ -56,10 +56,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _nameError = null;
     });
 
-    await auth.saveProfile(
-      name: trimmedName,
-      address: trimmedAddress,
-    );
+    await auth.saveProfile(name: trimmedName, address: trimmedAddress);
 
     if (!mounted) {
       return;
@@ -85,9 +82,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile image updated')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Profile image updated')));
   }
 
   Future<void> _openImageActions() async {
@@ -132,9 +129,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return AbzioThemeScope.light(
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFBF5),
-        appBar: AppBar(
-          title: const Text('Edit Profile'),
-        ),
+        appBar: AppBar(title: const Text('Edit Profile')),
         body: SafeArea(
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: 1),
@@ -178,7 +173,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             height: 120,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AbzioTheme.accentColor.withValues(alpha: 0.08),
+                              color: AbzioTheme.accentColor.withValues(
+                                alpha: 0.08,
+                              ),
                             ),
                           ),
                         ),
@@ -239,13 +236,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   shape: BoxShape.circle,
                                   gradient: LinearGradient(
                                     colors: [
-                                      AbzioTheme.accentColor.withValues(alpha: 0.28),
-                                      AbzioTheme.accentColor.withValues(alpha: 0.08),
+                                      AbzioTheme.accentColor.withValues(
+                                        alpha: 0.28,
+                                      ),
+                                      AbzioTheme.accentColor.withValues(
+                                        alpha: 0.08,
+                                      ),
                                     ],
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AbzioTheme.accentColor.withValues(alpha: 0.16),
+                                      color: AbzioTheme.accentColor.withValues(
+                                        alpha: 0.16,
+                                      ),
                                       blurRadius: 24,
                                       offset: const Offset(0, 10),
                                     ),
@@ -270,7 +273,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 right: 4,
                                 bottom: 4,
                                 child: TapScale(
-                                  onTap: auth.isUpdatingProfile ? null : _openImageActions,
+                                  onTap: auth.isUpdatingProfile
+                                      ? null
+                                      : _openImageActions,
                                   child: Container(
                                     width: 36,
                                     height: 36,
@@ -279,7 +284,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: AbzioTheme.accentColor.withValues(alpha: 0.28),
+                                          color: AbzioTheme.accentColor
+                                              .withValues(alpha: 0.28),
                                           blurRadius: 16,
                                           offset: const Offset(0, 6),
                                         ),
@@ -299,15 +305,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         const SizedBox(height: 18),
                         Text(
                           'Your Abianzo profile',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Refine your details for smoother delivery, better recommendations, and a more personal luxury experience.',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
                                 color: context.abzioSecondaryText,
                                 height: 1.45,
                               ),
@@ -328,7 +334,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               icon: hasLocation
                                   ? Icons.location_on_outlined
                                   : Icons.location_searching_outlined,
-                              label: hasLocation ? 'Location ready' : 'Add location',
+                              label: hasLocation
+                                  ? 'Location ready'
+                                  : 'Add location',
                             ),
                           ],
                         ),
@@ -339,7 +347,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   _sectionCard(
                     context,
                     title: 'Personal Details',
-                    subtitle: 'Your identity and essential account information.',
+                    subtitle:
+                        'Your identity and essential account information.',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -384,9 +393,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         const SizedBox(height: 8),
                         Text(
                           'Phone number is verified through OTP and cannot be edited here.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: context.abzioSecondaryText,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: context.abzioSecondaryText),
                         ),
                       ],
                     ),
@@ -395,7 +403,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   _sectionCard(
                     context,
                     title: 'Delivery Location',
-                    subtitle: 'Use your live location for faster, more accurate delivery.',
+                    subtitle:
+                        'Use your live location for faster, more accurate delivery.',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -419,12 +428,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                         const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF8EB),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: AbzioTheme.accentColor.withValues(alpha: 0.18),
+                              color: AbzioTheme.accentColor.withValues(
+                                alpha: 0.18,
+                              ),
                             ),
                           ),
                           child: Row(
@@ -433,7 +447,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 width: 34,
                                 height: 34,
                                 decoration: BoxDecoration(
-                                  color: AbzioTheme.accentColor.withValues(alpha: 0.14),
+                                  color: AbzioTheme.accentColor.withValues(
+                                    alpha: 0.14,
+                                  ),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
@@ -448,7 +464,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   hasLocation
                                       ? 'Current location captured and ready for premium delivery experiences.'
                                       : 'Use GPS once to auto-fill your address with minimal effort.',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
                                         color: context.abzioSecondaryText,
                                         height: 1.35,
                                       ),
@@ -463,7 +480,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ? null
                               : () async {
                                   await auth.fillAddressFromGps(
-                                    fallbackName: _nameController.text.trim().isEmpty
+                                    fallbackName:
+                                        _nameController.text.trim().isEmpty
                                         ? 'Abianzo Member'
                                         : _nameController.text.trim(),
                                   );
@@ -471,7 +489,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     return;
                                   }
                                   final refreshed = auth.user;
-                                  _addressController.text = refreshed?.address ?? '';
+                                  _addressController.text =
+                                      refreshed?.address ?? '';
                                   _nameController.text =
                                       refreshed?.name ?? _nameController.text;
                                   setState(() {});
@@ -506,10 +525,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           gradient: const LinearGradient(
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
-                            colors: [
-                              Color(0xFFF3D47A),
-                              AbzioTheme.accentColor,
-                            ],
+                            colors: [Color(0xFFF3D47A), AbzioTheme.accentColor],
                           ),
                         ),
                         child: Container(
@@ -521,7 +537,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.black,
+                                    ),
                                   ),
                                 )
                               : const Text('Save Changes'),
@@ -569,17 +587,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: context.abzioSecondaryText,
-                  height: 1.35,
-                ),
+              color: context.abzioSecondaryText,
+              height: 1.35,
+            ),
           ),
           const SizedBox(height: 18),
           child,
@@ -610,10 +628,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Colors.black87,
-                  fontSize: 11.5,
-                  letterSpacing: 0.2,
-                ),
+              color: Colors.black87,
+              fontSize: 11.5,
+              letterSpacing: 0.2,
+            ),
           ),
         ],
       ),
@@ -663,4 +681,3 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 }
-

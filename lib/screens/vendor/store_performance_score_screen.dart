@@ -19,7 +19,10 @@ class StorePerformanceScoreScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFFFAF6EE),
         elevation: 0,
-        title: Text('Store Score', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        title: Text(
+          'Store Score',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -36,11 +39,19 @@ class StorePerformanceScoreScreen extends StatelessWidget {
                       CircularProgressIndicator(
                         value: score / 100,
                         strokeWidth: 11,
-                        valueColor: const AlwaysStoppedAnimation(Color(0xFF2E9C55)),
+                        valueColor: const AlwaysStoppedAnimation(
+                          Color(0xFF2E9C55),
+                        ),
                         backgroundColor: const Color(0xFFE7DECF),
                       ),
                       Center(
-                        child: Text('$score / 100', style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700)),
+                        child: Text(
+                          '$score / 100',
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -55,32 +66,54 @@ class StorePerformanceScoreScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Score Factors', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700)),
+                Text(
+                  'Score Factors',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 12),
-                ...factors.map((f) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(child: Text('${f.name} -> ${f.weight}%', style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
-                              Text('+${f.points}', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: LinearProgressIndicator(
-                              value: f.points / f.weight,
-                              minHeight: 8,
-                              backgroundColor: const Color(0xFFEDE3D4),
-                              valueColor: const AlwaysStoppedAnimation(Color(0xFFD0A84F)),
+                ...factors.map(
+                  (f) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${f.name} -> ${f.weight}%',
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '+${f.points}',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: f.points / f.weight,
+                            minHeight: 8,
+                            backgroundColor: const Color(0xFFEDE3D4),
+                            valueColor: const AlwaysStoppedAnimation(
+                              Color(0xFFD0A84F),
                             ),
                           ),
-                        ],
-                      ),
-                    )),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -89,7 +122,13 @@ class StorePerformanceScoreScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Actionable Insights', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700)),
+                Text(
+                  'Actionable Insights',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 10),
                 _insight('Improve acceptance rate to gain +10 points'),
                 _insight('Low stock is reducing your score'),
@@ -102,9 +141,18 @@ class StorePerformanceScoreScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Rewards', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700)),
+                Text(
+                  'Rewards',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text('High score unlocks better visibility, priority dispatch, and future lower commission tiers.', style: GoogleFonts.inter(height: 1.4)),
+                Text(
+                  'High score unlocks better visibility, priority dispatch, and future lower commission tiers.',
+                  style: GoogleFonts.inter(height: 1.4),
+                ),
               ],
             ),
           ),
@@ -117,7 +165,13 @@ class StorePerformanceScoreScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text('Live updates based on orders, delivery and returns.', style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF6D665A))),
+          Text(
+            'Live updates based on orders, delivery and returns.',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: const Color(0xFF6D665A),
+            ),
+          ),
         ],
       ),
     );
@@ -127,46 +181,68 @@ class StorePerformanceScoreScreen extends StatelessWidget {
     final (label, color) = score >= 90
         ? ('Excellent', const Color(0xFFD0A84F))
         : score >= 70
-            ? ('Good', const Color(0xFF2E9C55))
-            : score >= 50
-                ? ('Needs Improvement', const Color(0xFFC98A1D))
-                : ('Critical', const Color(0xFFC03C2E));
+        ? ('Good', const Color(0xFF2E9C55))
+        : score >= 50
+        ? ('Needs Improvement', const Color(0xFFC98A1D))
+        : ('Critical', const Color(0xFFC03C2E));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(999)),
-      child: Text(label, style: GoogleFonts.inter(color: color, fontWeight: FontWeight.w700)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(color: color, fontWeight: FontWeight.w700),
+      ),
     );
   }
 
   Widget _card({required Widget child}) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE8DECE))),
-        child: child,
-      );
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFFE8DECE)),
+    ),
+    child: child,
+  );
 
   Widget _insight(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(children: [
-          const Icon(Icons.auto_awesome_rounded, size: 16, color: Color(0xFFD0A84F)),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text, style: GoogleFonts.inter())),
-        ]),
-      );
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      children: [
+        const Icon(
+          Icons.auto_awesome_rounded,
+          size: 16,
+          color: Color(0xFFD0A84F),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text, style: GoogleFonts.inter())),
+      ],
+    ),
+  );
 
   Widget _button(String text, {required bool filled}) => SizedBox(
-        height: 44,
-        child: filled
-            ? ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD0A84F), foregroundColor: Colors.white),
-                child: Text(text),
-              )
-            : OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFD0A84F), side: const BorderSide(color: Color(0xFFD0A84F))),
-                child: Text(text),
-              ),
-      );
+    height: 44,
+    child: filled
+        ? ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD0A84F),
+              foregroundColor: Colors.white,
+            ),
+            child: Text(text),
+          )
+        : OutlinedButton(
+            onPressed: () {},
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFD0A84F),
+              side: const BorderSide(color: Color(0xFFD0A84F)),
+            ),
+            child: Text(text),
+          ),
+  );
 }
 
 class _Factor {
@@ -175,4 +251,3 @@ class _Factor {
   final int weight;
   final int points;
 }
-

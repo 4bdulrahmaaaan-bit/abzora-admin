@@ -15,12 +15,12 @@ class AdminVendorsSection extends StatefulWidget {
 
 class _AdminVendorsSectionState extends State<AdminVendorsSection> {
   final AdminVendorsApi _api = AdminVendorsApi();
-  
+
   bool _loading = true;
   String? _error;
 
   Map<String, dynamic> _dashboardMetrics = {};
-  
+
   bool _showDrawer = false;
   Map<String, dynamic>? _activeVendorDetails;
   bool _loadingDetails = false;
@@ -49,7 +49,9 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
     try {
       final res = await _api.getDashboard();
       if (res['success'] == true && mounted) {
-        setState(() => _dashboardMetrics = Map<String, dynamic>.from(res['data']));
+        setState(
+          () => _dashboardMetrics = Map<String, dynamic>.from(res['data']),
+        );
       }
     } catch (e) {
       if (!mounted) return;
@@ -68,9 +70,9 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
       final res = await Future.wait([
         _api.getVendor(id),
         _api.getPayouts(id),
-        _api.getComplaints(id)
+        _api.getComplaints(id),
       ]);
-      
+
       if (res[0]['success'] == true && mounted) {
         setState(() {
           _activeVendorDetails = Map<String, dynamic>.from(res[0]['data']);
@@ -134,12 +136,7 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
           ],
         ),
         if (_showDrawer)
-          Positioned(
-            top: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildDetailsDrawer(),
-          ),
+          Positioned(top: 0, right: 0, bottom: 0, child: _buildDetailsDrawer()),
       ],
     );
   }
@@ -182,16 +179,27 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
 
   Widget _buildVendorTable() {
     List<dynamic> vendors = _dashboardMetrics['vendors'] ?? [];
-    
+
     if (_searchQuery.isNotEmpty) {
-      vendors = vendors.where((v) => 
-        (v['name']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-        (v['_id']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false)
-      ).toList();
+      vendors = vendors
+          .where(
+            (v) =>
+                (v['name']?.toString().toLowerCase().contains(
+                      _searchQuery.toLowerCase(),
+                    ) ??
+                    false) ||
+                (v['_id']?.toString().toLowerCase().contains(
+                      _searchQuery.toLowerCase(),
+                    ) ??
+                    false),
+          )
+          .toList();
     }
-    
+
     if (_healthFilter.isNotEmpty) {
-      vendors = vendors.where((v) => v['healthClassification'] == _healthFilter).toList();
+      vendors = vendors
+          .where((v) => v['healthClassification'] == _healthFilter)
+          .toList();
     }
 
     return Card(
@@ -220,12 +228,18 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
                     ),
                     const SizedBox(width: 12),
                     DropdownButton<String>(
-                      value: _healthFilter.isEmpty ? 'All Health' : _healthFilter,
+                      value: _healthFilter.isEmpty
+                          ? 'All Health'
+                          : _healthFilter,
                       items: ['All Health', 'Healthy', 'Warning', 'Critical']
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                          .map(
+                            (s) => DropdownMenuItem(value: s, child: Text(s)),
+                          )
                           .toList(),
                       onChanged: (val) {
-                        setState(() => _healthFilter = val == 'All Health' ? '' : val!);
+                        setState(
+                          () => _healthFilter = val == 'All Health' ? '' : val!,
+                        );
                       },
                     ),
                     const SizedBox(width: 12),
@@ -263,27 +277,51 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
                       cells: [
                         DataCell(Text(v['_id'].toString().substring(0, 8))),
                         DataCell(Text(v['name'] ?? 'N/A')),
-                        DataCell(Row(
-                          children: [
-                            Icon(Icons.circle, size: 12, color: hClass == 'Healthy' ? Colors.green : hClass == 'Warning' ? Colors.orange : Colors.red),
-                            const SizedBox(width: 6),
-                            Text('${v['healthScore'] ?? 0}'),
-                          ],
-                        )),
-                        DataCell(Row(
-                          children: [
-                            Icon(Icons.warning, size: 16, color: rClass == 'Critical' ? Colors.red : rClass == 'Warning' ? Colors.orange : Colors.grey),
-                            const SizedBox(width: 6),
-                            Text('${v['riskScore'] ?? 0}'),
-                          ],
-                        )),
-                        DataCell(Text('₹${v['analytics']?['totalRevenue'] ?? 0}')),
-                        DataCell(Text('${v['analytics']?['totalTrials'] ?? 0}')),
+                        DataCell(
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.circle,
+                                size: 12,
+                                color: hClass == 'Healthy'
+                                    ? Colors.green
+                                    : hClass == 'Warning'
+                                    ? Colors.orange
+                                    : Colors.red,
+                              ),
+                              const SizedBox(width: 6),
+                              Text('${v['healthScore'] ?? 0}'),
+                            ],
+                          ),
+                        ),
+                        DataCell(
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.warning,
+                                size: 16,
+                                color: rClass == 'Critical'
+                                    ? Colors.red
+                                    : rClass == 'Warning'
+                                    ? Colors.orange
+                                    : Colors.grey,
+                              ),
+                              const SizedBox(width: 6),
+                              Text('${v['riskScore'] ?? 0}'),
+                            ],
+                          ),
+                        ),
+                        DataCell(
+                          Text('₹${v['analytics']?['totalRevenue'] ?? 0}'),
+                        ),
+                        DataCell(
+                          Text('${v['analytics']?['totalTrials'] ?? 0}'),
+                        ),
                         DataCell(
                           IconButton(
                             icon: const Icon(Icons.chevron_right),
                             onPressed: () => _fetchVendorDetails(v['_id']),
-                          )
+                          ),
                         ),
                       ],
                     );
@@ -309,7 +347,10 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Vendor Profile', style: context.abzioText.titleLarge),
-                IconButton(icon: const Icon(Icons.close), onPressed: _closeDrawer),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _closeDrawer,
+                ),
               ],
             ),
           ),
@@ -317,33 +358,33 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
             child: _loadingDetails
                 ? const Center(child: CircularProgressIndicator())
                 : _activeVendorDetails == null
-                    ? const Center(child: Text('Failed to load details.'))
-                    : DefaultTabController(
-                        length: 4,
-                        child: Column(
-                          children: [
-                            const TabBar(
-                              isScrollable: true,
-                              tabs: [
-                                Tab(text: 'Health & Risk'),
-                                Tab(text: 'Analytics'),
-                                Tab(text: 'Payouts'),
-                                Tab(text: 'Complaints'),
-                              ],
-                            ),
-                            Expanded(
-                              child: TabBarView(
-                                children: [
-                                  _buildHealthRiskTab(),
-                                  _buildAnalyticsTab(),
-                                  _buildPayoutsTab(),
-                                  _buildComplaintsTab(),
-                                ],
-                              ),
-                            ),
+                ? const Center(child: Text('Failed to load details.'))
+                : DefaultTabController(
+                    length: 4,
+                    child: Column(
+                      children: [
+                        const TabBar(
+                          isScrollable: true,
+                          tabs: [
+                            Tab(text: 'Health & Risk'),
+                            Tab(text: 'Analytics'),
+                            Tab(text: 'Payouts'),
+                            Tab(text: 'Complaints'),
                           ],
                         ),
-                      ),
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              _buildHealthRiskTab(),
+                              _buildAnalyticsTab(),
+                              _buildPayoutsTab(),
+                              _buildComplaintsTab(),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
@@ -355,19 +396,28 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildScoreCard('Health Score', v['healthScore'], v['healthClassification']),
+        _buildScoreCard(
+          'Health Score',
+          v['healthScore'],
+          v['healthClassification'],
+        ),
         const SizedBox(height: 12),
         _buildScoreCard('Risk Score', v['riskScore'], v['riskClassification']),
         const Divider(height: 32),
         Text('Fraud Flags', style: context.abzioText.titleMedium),
         const SizedBox(height: 12),
         if ((v['fraudFlags'] as List?)?.isEmpty ?? true)
-          const Text('No fraud flags detected.', style: TextStyle(color: Colors.green))
+          const Text(
+            'No fraud flags detected.',
+            style: TextStyle(color: Colors.green),
+          )
         else
-          ...(v['fraudFlags'] as List).map((f) => ListTile(
-                leading: const Icon(Icons.flag, color: Colors.red),
-                title: Text(f),
-              )),
+          ...(v['fraudFlags'] as List).map(
+            (f) => ListTile(
+              leading: const Icon(Icons.flag, color: Colors.red),
+              title: Text(f),
+            ),
+          ),
       ],
     );
   }
@@ -409,7 +459,8 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
 
   Widget _buildPayoutsTab() {
     final payouts = _activeVendorDetails!['payouts'] as List? ?? [];
-    if (payouts.isEmpty) return const Center(child: Text('No payouts recorded.'));
+    if (payouts.isEmpty)
+      return const Center(child: Text('No payouts recorded.'));
 
     return ListView.builder(
       itemCount: payouts.length,
@@ -426,7 +477,13 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
 
   Widget _buildComplaintsTab() {
     final complaints = _activeVendorDetails!['complaints'] as List? ?? [];
-    if (complaints.isEmpty) return const Center(child: Text('No complaints recorded.', style: TextStyle(color: Colors.green)));
+    if (complaints.isEmpty)
+      return const Center(
+        child: Text(
+          'No complaints recorded.',
+          style: TextStyle(color: Colors.green),
+        ),
+      );
 
     return ListView.builder(
       itemCount: complaints.length,
@@ -435,7 +492,9 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
         return ListTile(
           leading: const Icon(Icons.warning, color: Colors.orange),
           title: Text('Order: ${c['_id'].toString().substring(0, 8)}'),
-          subtitle: Text('Refund: ${c['refundStatus']} | Qty Rating: ${c['customerQualityRating'] ?? 'N/A'}'),
+          subtitle: Text(
+            'Refund: ${c['refundStatus']} | Qty Rating: ${c['customerQualityRating'] ?? 'N/A'}',
+          ),
         );
       },
     );
@@ -447,7 +506,13 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
           Text(value?.toString() ?? 'N/A'),
         ],
       ),

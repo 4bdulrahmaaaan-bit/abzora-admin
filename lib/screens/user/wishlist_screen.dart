@@ -1477,7 +1477,6 @@ class _WishlistProductCard extends StatelessWidget {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final displayProduct = _displayProduct();
@@ -1489,8 +1488,10 @@ class _WishlistProductCard extends StatelessWidget {
         : (displayProduct.store?.name.trim().isNotEmpty == true
               ? displayProduct.store!.name.trim()
               : 'Unknown Brand');
-    
-    final selectedSize = displayProduct.sizes.isNotEmpty ? displayProduct.sizes.first : '';
+
+    final selectedSize = displayProduct.sizes.isNotEmpty
+        ? displayProduct.sizes.first
+        : '';
     final stockLabel = displayProduct.stock <= 0
         ? 'Out of stock'
         : displayProduct.isLimitedStock
@@ -1615,36 +1616,40 @@ class _WishlistProductCard extends StatelessWidget {
                           children: [
                             Text(
                               _formatPrice(_effectivePrice),
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: const Color(0xFF17130F),
-                                fontWeight: FontWeight.w900,
-                              ),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: const Color(0xFF17130F),
+                                    fontWeight: FontWeight.w900,
+                                  ),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               _formatPrice(_originalPrice!),
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: const Color(0xFF8B8277),
-                                decoration: TextDecoration.lineThrough,
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: const Color(0xFF8B8277),
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               '$_discountPercent% OFF',
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: const Color(0xFF2F7A3D),
-                                fontWeight: FontWeight.w800,
-                              ),
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: const Color(0xFF2F7A3D),
+                                    fontWeight: FontWeight.w800,
+                                  ),
                             ),
                           ],
                         ),
                       ] else ...[
                         Text(
                           _formatPrice(_effectivePrice),
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: const Color(0xFF17130F),
-                            fontWeight: FontWeight.w900,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: const Color(0xFF17130F),
+                                fontWeight: FontWeight.w900,
+                              ),
                         ),
                       ],
                     ],
@@ -2099,7 +2104,8 @@ class _WishlistTile extends StatelessWidget {
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
-                      height: 56, child: FilledButton(
+                      height: 56,
+                      child: FilledButton(
                         onPressed: () => _addToBag(context, actionProduct),
                         style: FilledButton.styleFrom(
                           backgroundColor: const Color(0xFF111111),
@@ -4447,7 +4453,8 @@ class _LuxuryWishlistEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           SizedBox(
-            height: 56, child: FilledButton(
+            height: 56,
+            child: FilledButton(
               onPressed: () => Navigator.of(context).maybePop(),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF17130F),
@@ -4494,13 +4501,17 @@ class _WishlistBagButtonState extends State<_WishlistBagButton> {
     if (result == CartAddResult.storeConflict && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Your bag already contains products from another store.'),
+          content: Text(
+            'Your bag already contains products from another store.',
+          ),
         ),
       );
-    } else if ((result == CartAddResult.added || result == CartAddResult.updated) && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Added to Bag')),
-      );
+    } else if ((result == CartAddResult.added ||
+            result == CartAddResult.updated) &&
+        mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Added to Bag')));
       setState(() => _justAdded = true);
       Future.delayed(const Duration(milliseconds: 800), () {
         if (mounted) {
@@ -4513,7 +4524,9 @@ class _WishlistBagButtonState extends State<_WishlistBagButton> {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
-    final inBag = cart.items.any((item) => item.product.id == widget.product.id);
+    final inBag = cart.items.any(
+      (item) => item.product.id == widget.product.id,
+    );
     final disabled = widget.product.stock <= 0;
 
     String label = 'Add to Bag';
@@ -4525,7 +4538,8 @@ class _WishlistBagButtonState extends State<_WishlistBagButton> {
 
     return SizedBox(
       width: double.infinity,
-      height: 56, child: FilledButton(
+      height: 56,
+      child: FilledButton(
         onPressed: disabled ? null : () => _handleTap(context, inBag),
         style: FilledButton.styleFrom(
           backgroundColor: const Color(0xFF17130F),

@@ -88,9 +88,7 @@ Future<void> bootstrapAndRunWithInitialRoute(
   String initialRoute = '/',
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   _installGlobalErrorHandling();
 
   // NetworkSyncService removed: Hive/IndexedDB deadlocks on Flutter Web.
@@ -102,7 +100,9 @@ Future<void> bootstrapAndRunWithInitialRoute(
 void _installGlobalErrorHandling() {
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
-    try { Sentry.captureException(details.exception, stackTrace: details.stack); } catch (_) {}
+    try {
+      Sentry.captureException(details.exception, stackTrace: details.stack);
+    } catch (_) {}
     debugPrint('Abianzo Flutter error: ${details.exception}');
     if (details.stack != null) {
       debugPrintStack(stackTrace: details.stack);
@@ -123,7 +123,9 @@ void _installGlobalErrorHandling() {
   PlatformDispatcher.instance.onError = (error, stackTrace) {
     debugPrint('Abianzo platform error: $error');
     debugPrintStack(stackTrace: stackTrace);
-    try { Sentry.captureException(error, stackTrace: stackTrace); } catch (_) {}
+    try {
+      Sentry.captureException(error, stackTrace: stackTrace);
+    } catch (_) {}
     return true;
   };
 }
@@ -328,7 +330,10 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     if (AbzioApp.isAdminApp) return true;
     if (!kIsWeb) return false;
     final url = Uri.base.toString().toLowerCase();
-    return url.contains('/admin-login') || url.contains('/admin') || url.contains('-admin') || url.contains('admin.vercel');
+    return url.contains('/admin-login') ||
+        url.contains('/admin') ||
+        url.contains('-admin') ||
+        url.contains('admin.vercel');
   }
 
   PageRouteBuilder<void> _launchRoute(Widget page) {
@@ -395,14 +400,17 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       return;
     }
 
-    final isLaunchReady = auth.isInitialized && auth.profileLoaded && auth.vendorPermissionsResolved;
+    final isLaunchReady =
+        auth.isInitialized &&
+        auth.profileLoaded &&
+        auth.vendorPermissionsResolved;
     if (!isLaunchReady) {
       return;
     }
 
     final user = auth.user;
     _didRoute = true;
-    
+
     try {
       debugPrint('=== ROUTE DECISION ===');
       debugPrint('uid=${user?.id ?? "null"}');
@@ -410,15 +418,45 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       debugPrint('vendorId=${user?.storeId ?? "null"}');
       debugPrint('hasVendorAccess=${hasVendorOperationsAccess(user)}');
 
-    if (user != null) {
-      if (widget.mode == AbzioAppMode.unified && kIsWeb) {
-        Navigator.of(context).pushAndRemoveUntil(
-          _launchRoute(_launchDestinationForRoute('/admin', user)),
-          (route) => false,
+      if (user != null) {
+        if (widget.mode == AbzioAppMode.unified && kIsWeb) {
+          Navigator.of(context).pushAndRemoveUntil(
+            _launchRoute(_launchDestinationForRoute('/admin', user)),
+            (route) => false,
+          );
+          return;
+        }
+        if (widget.mode == AbzioAppMode.vendor) {
+          final route = routeForUserInMode(user, widget.mode);
+          debugPrint('route=$route');
+          debugPrint('======================');
+          Navigator.of(context).pushAndRemoveUntil(
+            _launchRoute(_launchDestinationForRoute(route, user)),
+            (route) => false,
+          );
+          return;
+        }
+        final consentService = LegalConsentService();
+        final needsConsent = await consentService.requiresConsent(
+          user: user,
+          mode: widget.mode,
         );
-        return;
-      }
-      if (widget.mode == AbzioAppMode.vendor) {
+        if (!mounted) {
+          return;
+        }
+        if (needsConsent) {
+          final audience = LegalVersioning.audienceFor(
+            user: user,
+            mode: widget.mode,
+          );
+          debugPrint('route=/legal-consent');
+          debugPrint('======================');
+          Navigator.of(context).pushAndRemoveUntil(
+            _launchRoute(LegalConsentScreen(audience: audience)),
+            (route) => false,
+          );
+          return;
+        }
         final route = routeForUserInMode(user, widget.mode);
         debugPrint('route=$route');
         debugPrint('======================');
@@ -426,73 +464,44 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
           _launchRoute(_launchDestinationForRoute(route, user)),
           (route) => false,
         );
-        return;
-      }
-      final consentService = LegalConsentService();
-      final needsConsent = await consentService.requiresConsent(
-        user: user,
-        mode: widget.mode,
-      );
-      if (!mounted) {
-        return;
-      }
-      if (needsConsent) {
-        final audience = LegalVersioning.audienceFor(
-          user: user,
-          mode: widget.mode,
+        unawaited(
+          Future<void>.delayed(const Duration(milliseconds: 900), () async {
+            if (!mounted) {
+              return;
+            }
+            await NotificationService().syncToken(user);
+          }),
         );
-        debugPrint('route=/legal-consent');
+        return;
+      }
+
+      if (isPartnerMode(widget.mode)) {
+        debugPrint('route=/login');
         debugPrint('======================');
         Navigator.of(context).pushAndRemoveUntil(
-          _launchRoute(LegalConsentScreen(audience: audience)),
+          _launchRoute(_launchDestinationForRoute('/login', null)),
           (route) => false,
         );
         return;
       }
-      final route = routeForUserInMode(user, widget.mode);
-      debugPrint('route=$route');
+
+      if ((widget.mode == AbzioAppMode.unified || _wantsAdminEntryFromUrl) &&
+          _wantsAdminEntryFromUrl) {
+        debugPrint('route=/admin-login');
+        debugPrint('======================');
+        Navigator.of(context).pushAndRemoveUntil(
+          _launchRoute(_launchDestinationForRoute('/admin-login', null)),
+          (route) => false,
+        );
+        return;
+      }
+
+      debugPrint('route=/home');
       debugPrint('======================');
       Navigator.of(context).pushAndRemoveUntil(
-        _launchRoute(_launchDestinationForRoute(route, user)),
+        _launchRoute(_launchDestinationForRoute('/home', null)),
         (route) => false,
       );
-      unawaited(
-        Future<void>.delayed(const Duration(milliseconds: 900), () async {
-          if (!mounted) {
-            return;
-          }
-          await NotificationService().syncToken(user);
-        }),
-      );
-      return;
-    }
-
-    if (isPartnerMode(widget.mode)) {
-      debugPrint('route=/login');
-      debugPrint('======================');
-      Navigator.of(context).pushAndRemoveUntil(
-        _launchRoute(_launchDestinationForRoute('/login', null)),
-        (route) => false,
-      );
-      return;
-    }
-
-    if ((widget.mode == AbzioAppMode.unified || _wantsAdminEntryFromUrl) && _wantsAdminEntryFromUrl) {
-      debugPrint('route=/admin-login');
-      debugPrint('======================');
-      Navigator.of(context).pushAndRemoveUntil(
-        _launchRoute(_launchDestinationForRoute('/admin-login', null)),
-        (route) => false,
-      );
-      return;
-    }
-
-    debugPrint('route=/home');
-    debugPrint('======================');
-    Navigator.of(context).pushAndRemoveUntil(
-      _launchRoute(_launchDestinationForRoute('/home', null)),
-      (route) => false,
-    );
     } catch (e, st) {
       if (mounted) {
         setState(() {
@@ -540,7 +549,10 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       );
     }
 
-    final isLaunchReady = auth.isInitialized && auth.profileLoaded && auth.vendorPermissionsResolved;
+    final isLaunchReady =
+        auth.isInitialized &&
+        auth.profileLoaded &&
+        auth.vendorPermissionsResolved;
 
     if (isLaunchReady && !_didScheduleRoute) {
       debugPrint('[BOOT] 6 Launch ready');
@@ -552,9 +564,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
 
     return const Scaffold(
       backgroundColor: Color(0xFFF9F7F2),
-      body: SafeArea(
-        child: GlobalHomeSkeleton(),
-      ),
+      body: SafeArea(child: GlobalHomeSkeleton()),
     );
   }
 }
@@ -1066,7 +1076,6 @@ class _AuthGuardState extends State<AuthGuard> {
   }
 }
 
-
 class AbzioBootstrapApp extends StatefulWidget {
   final AbzioAppMode mode;
   final String initialRoute;
@@ -1097,7 +1106,9 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
     try {
       await AppBootstrapService().initialize().timeout(
         const Duration(seconds: 30),
-        onTimeout: () => throw Exception('AppBootstrapService.initialize() timed out after 30 seconds'),
+        onTimeout: () => throw Exception(
+          'AppBootstrapService.initialize() timed out after 30 seconds',
+        ),
       );
     } catch (e, st) {
       debugPrint('Bootstrap Error: $e');
@@ -1113,7 +1124,9 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
     imageCache.maximumSize = 1000;
 
     final endTime = DateTime.now();
-    debugPrint('Startup Performance: API Complete at $endTime. Duration: ${endTime.difference(startTime).inMilliseconds}ms');
+    debugPrint(
+      'Startup Performance: API Complete at $endTime. Duration: ${endTime.difference(startTime).inMilliseconds}ms',
+    );
   }
 
   String? _bootstrapError;
@@ -1141,7 +1154,7 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
             ),
           );
         }
-        
+
         if (snapshot.connectionState != ConnectionState.done) {
           debugPrint('Startup Performance: Skeleton Rendered at ');
           return MaterialApp(
@@ -1151,9 +1164,7 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
             darkTheme: AbzioTheme.darkTheme,
             home: const Scaffold(
               backgroundColor: Color(0xFFF9F7F2),
-              body: SafeArea(
-                child: GlobalHomeSkeleton(),
-              ),
+              body: SafeArea(child: GlobalHomeSkeleton()),
             ),
           );
         }
@@ -1196,7 +1207,10 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
               ChangeNotifierProvider(create: (_) => TrialCartProvider()),
               ChangeNotifierProvider(create: (_) => ThemeProvider()),
             ],
-            child: AbzioApp(mode: widget.mode, initialRoute: widget.initialRoute),
+            child: AbzioApp(
+              mode: widget.mode,
+              initialRoute: widget.initialRoute,
+            ),
           ),
         );
       },

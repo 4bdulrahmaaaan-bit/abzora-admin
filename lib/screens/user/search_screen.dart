@@ -164,8 +164,8 @@ class _SearchScreenState extends State<SearchScreen> {
             ? Text(
                 'Your recent searches will appear here.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: context.abzioSecondaryText,
-                    ),
+                  color: context.abzioSecondaryText,
+                ),
               )
             : Column(
                 children: _recent.take(5).map((item) {
@@ -492,21 +492,22 @@ class _SearchScreenState extends State<SearchScreen> {
       final name = store?.name.trim().isNotEmpty == true
           ? store!.name.trim()
           : (product.boutiqueInfo['name']?.toString().trim().isNotEmpty == true
-              ? product.boutiqueInfo['name'].toString().trim()
-              : (product.brand.trim().isNotEmpty
-                  ? product.brand.trim()
-                  : 'Curated Boutique'));
+                ? product.boutiqueInfo['name'].toString().trim()
+                : (product.brand.trim().isNotEmpty
+                      ? product.brand.trim()
+                      : 'Curated Boutique'));
       final imageUrl = store?.bannerImageUrl.trim().isNotEmpty == true
           ? store!.bannerImageUrl
           : (store?.imageUrl.trim().isNotEmpty == true
-              ? store!.imageUrl
-              : (product.images.isNotEmpty ? product.images.first : ''));
+                ? store!.imageUrl
+                : (product.images.isNotEmpty ? product.images.first : ''));
       final index = products.indexOf(product);
       final distance = product.boutiqueInfo['distanceKm'] is num
           ? (product.boutiqueInfo['distanceKm'] as num).toDouble()
           : 2.4 + (index * 0.7);
-      final rating =
-          store?.rating != null && store!.rating > 0 ? store.rating : product.rating;
+      final rating = store?.rating != null && store!.rating > 0
+          ? store.rating
+          : product.rating;
       return _BoutiqueItem(name, imageUrl, distance, rating);
     }).toList();
   }
@@ -541,10 +542,10 @@ class _SearchHeader extends StatelessWidget {
                 Text(
                   'Search',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF14110D),
-                      ),
+                    fontSize: 32,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF14110D),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -552,9 +553,9 @@ class _SearchHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF6A6257),
-                        fontWeight: FontWeight.w500,
-                      ),
+                    color: const Color(0xFF6A6257),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -684,10 +685,10 @@ class _Section extends StatelessWidget {
         Text(
           title,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF17130F),
-              ),
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF17130F),
+          ),
         ),
         const SizedBox(height: 12),
         child,
@@ -715,7 +716,11 @@ class _RecentSearchRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
-            const Icon(Icons.search_rounded, size: 20, color: Color(0xFF8A6E34)),
+            const Icon(
+              Icons.search_rounded,
+              size: 20,
+              color: Color(0xFF8A6E34),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -723,9 +728,9 @@ class _RecentSearchRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF17130F),
-                    ),
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF17130F),
+                ),
               ),
             ),
             IconButton(
@@ -795,9 +800,9 @@ class _TrendRail extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -855,8 +860,8 @@ class _CategoryRail extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -931,8 +936,8 @@ class _BrandRail extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -955,9 +960,9 @@ class _BoutiqueRail extends StatelessWidget {
     if (items.isEmpty) {
       return Text(
         'Boutiques will appear once products are available nearby.',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: context.abzioSecondaryText,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(color: context.abzioSecondaryText),
       );
     }
     return SizedBox(
@@ -998,9 +1003,8 @@ class _BoutiqueRail extends StatelessWidget {
                         item.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 7),
                       Row(
@@ -1048,16 +1052,16 @@ class _ResultsHeader extends StatelessWidget {
             children: [
               Text(
                 '$count results',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 2),
               Text(
                 'Showing matches for "$query".',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: context.abzioSecondaryText,
-                    ),
+                  color: context.abzioSecondaryText,
+                ),
               ),
             ],
           ),
@@ -1122,10 +1126,10 @@ class _SearchResultCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: const Color(0xFF9A7A34),
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1,
-                          ),
+                        color: const Color(0xFF9A7A34),
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -1133,9 +1137,9 @@ class _SearchResultCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            height: 1.15,
-                          ),
+                        fontWeight: FontWeight.w700,
+                        height: 1.15,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -1211,9 +1215,9 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
           children: [
             Text(
               'Filter',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const Spacer(),
             TextButton(
@@ -1258,61 +1262,97 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
           ),
           _filterSection(
             'Gender',
-            _chipSelector(const ['All', 'Men', 'Women', 'Unisex', 'Kids'],
-                _draft.gender, (value) {
-              _update(_draft.copyWith(gender: value));
-            }),
+            _chipSelector(
+              const ['All', 'Men', 'Women', 'Unisex', 'Kids'],
+              _draft.gender,
+              (value) {
+                _update(_draft.copyWith(gender: value));
+              },
+            ),
           ),
           _filterSection('Brand', _brandSelector()),
           _filterSection('Price', _priceSelector()),
           _filterSection('Size', _sizeSelector()),
           _filterSection('Color', _colorSelector()),
-          _filterSection('Material', _attributeSelector('material', _materials())),
+          _filterSection(
+            'Material',
+            _attributeSelector('material', _materials()),
+          ),
           _filterSection(
             'Fit',
-            _attributeSelector('fit',
-                const ['Slim', 'Regular', 'Relaxed', 'Oversized', 'Tailored']),
+            _attributeSelector('fit', const [
+              'Slim',
+              'Regular',
+              'Relaxed',
+              'Oversized',
+              'Tailored',
+            ]),
           ),
           _filterSection(
             'Occasion',
-            _chipSelector(const ['All', 'Wedding', 'Party', 'Work', 'Casual'],
-                _draft.occasion, (value) {
-              _update(_draft.copyWith(occasion: value));
-            }),
+            _chipSelector(
+              const ['All', 'Wedding', 'Party', 'Work', 'Casual'],
+              _draft.occasion,
+              (value) {
+                _update(_draft.copyWith(occasion: value));
+              },
+            ),
           ),
           _filterSection(
             'Pattern',
-            _attributeSelector('pattern',
-                const ['Solid', 'Printed', 'Striped', 'Embroidered']),
+            _attributeSelector('pattern', const [
+              'Solid',
+              'Printed',
+              'Striped',
+              'Embroidered',
+            ]),
           ),
           _filterSection(
             'Sleeve Type',
-            _attributeSelector('sleeve_type',
-                const ['Sleeveless', 'Short Sleeve', 'Full Sleeve']),
+            _attributeSelector('sleeve_type', const [
+              'Sleeveless',
+              'Short Sleeve',
+              'Full Sleeve',
+            ]),
           ),
           _filterSection(
             'Neck Type',
-            _attributeSelector(
-                'neck_type', const ['Round', 'V Neck', 'Collar', 'Boat']),
+            _attributeSelector('neck_type', const [
+              'Round',
+              'V Neck',
+              'Collar',
+              'Boat',
+            ]),
           ),
           _filterSection(
             'Length',
-            _attributeSelector(
-                'length', const ['Cropped', 'Regular', 'Longline', 'Floor']),
+            _attributeSelector('length', const [
+              'Cropped',
+              'Regular',
+              'Longline',
+              'Floor',
+            ]),
           ),
           _filterSection('Fabric', _attributeSelector('fabric', _materials())),
           _filterSection(
             'Season',
-            _attributeSelector(
-                'season', const ['Summer', 'Monsoon', 'Winter', 'Festive']),
+            _attributeSelector('season', const [
+              'Summer',
+              'Monsoon',
+              'Winter',
+              'Festive',
+            ]),
           ),
           _filterSection('Availability', _availabilitySelector()),
           _filterSection(
             'Delivery Time',
-            _chipSelector(const ['All', 'Today', 'Tomorrow', '2-3 Days'],
-                _draft.deliveryTime, (value) {
-              _update(_draft.copyWith(deliveryTime: value));
-            }),
+            _chipSelector(
+              const ['All', 'Today', 'Tomorrow', '2-3 Days'],
+              _draft.deliveryTime,
+              (value) {
+                _update(_draft.copyWith(deliveryTime: value));
+              },
+            ),
           ),
           _filterSection(
             'AR Try-On Available',
@@ -1332,8 +1372,11 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
           ),
           _filterSection(
             'Store Distance',
-            _attributeSelector('store_distance',
-                const ['Under 2 km', 'Under 5 km', 'Under 10 km']),
+            _attributeSelector('store_distance', const [
+              'Under 2 km',
+              'Under 5 km',
+              'Under 10 km',
+            ]),
           ),
           _filterSection('Rating', _ratingSelector()),
           _filterSection('Sort By', _sortSelector()),
@@ -1357,9 +1400,9 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           title: Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           children: [child],
         ),
@@ -1425,10 +1468,9 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
       children: [
         Text(
           '₹${_draft.priceRange.start.toInt()} - ₹${_draft.priceRange.end.toInt()}',
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
         RangeSlider(
           values: _draft.priceRange,
@@ -1564,10 +1606,9 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
       contentPadding: EdgeInsets.zero,
       title: Text(
         label,
-        style: Theme.of(context)
-            .textTheme
-            .bodyLarge
-            ?.copyWith(fontWeight: FontWeight.w600),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -1577,8 +1618,9 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
       const ['All', '4.0+', '4.5+'],
       _draft.minRating == 0 ? 'All' : '${_draft.minRating.toStringAsFixed(1)}+',
       (value) {
-        final rating =
-            value == 'All' ? 0.0 : double.parse(value.replaceAll('+', ''));
+        final rating = value == 'All'
+            ? 0.0
+            : double.parse(value.replaceAll('+', ''));
         _update(_draft.copyWith(minRating: rating));
       },
     );
@@ -1735,12 +1777,7 @@ class _BrandItem {
 }
 
 class _BoutiqueItem {
-  const _BoutiqueItem(
-    this.name,
-    this.imageUrl,
-    this.distanceKm,
-    this.rating,
-  );
+  const _BoutiqueItem(this.name, this.imageUrl, this.distanceKm, this.rating);
 
   final String name;
   final String imageUrl;

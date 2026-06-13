@@ -50,10 +50,10 @@ class TbybLandingScreen extends StatelessWidget {
                 Text(
                   'Select your favorite styles.\nTry them comfortably at home.\nPay only for what you keep.',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        height: 1.3,
-                      ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 50),
@@ -70,14 +70,26 @@ class TbybLandingScreen extends StatelessWidget {
                       Text(
                         'Benefits',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      _BenefitRow(icon: Icons.local_shipping_outlined, text: 'Home Delivery'),
-                      _BenefitRow(icon: Icons.checkroom_outlined, text: 'Try Before Purchase'),
-                      _BenefitRow(icon: Icons.swap_horiz_outlined, text: 'Easy Returns'),
-                      _BenefitRow(icon: Icons.currency_rupee_outlined, text: '₹99 Adjusted On Purchase'),
+                      _BenefitRow(
+                        icon: Icons.local_shipping_outlined,
+                        text: 'Home Delivery',
+                      ),
+                      _BenefitRow(
+                        icon: Icons.checkroom_outlined,
+                        text: 'Try Before Purchase',
+                      ),
+                      _BenefitRow(
+                        icon: Icons.swap_horiz_outlined,
+                        text: 'Easy Returns',
+                      ),
+                      _BenefitRow(
+                        icon: Icons.currency_rupee_outlined,
+                        text: '₹99 Adjusted On Purchase',
+                      ),
                     ],
                   ),
                 ),
@@ -95,15 +107,36 @@ class TbybLandingScreen extends StatelessWidget {
                       Text(
                         'How It Works',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 20),
-                      _StepRow(step: '1', title: 'Select Products', subtitle: 'Choose up to 5 eligible items'),
-                      _StepRow(step: '2', title: 'Schedule Delivery', subtitle: 'Pick a convenient time'),
-                      _StepRow(step: '3', title: 'Try At Home', subtitle: 'Rider waits while you try'),
-                      _StepRow(step: '4', title: 'Keep What You Love', subtitle: 'Return the rest instantly'),
-                      _StepRow(step: '5', title: 'Pay For Kept Items', subtitle: '₹99 adjusted to your bill', isLast: true),
+                      _StepRow(
+                        step: '1',
+                        title: 'Select Products',
+                        subtitle: 'Choose up to 5 eligible items',
+                      ),
+                      _StepRow(
+                        step: '2',
+                        title: 'Schedule Delivery',
+                        subtitle: 'Pick a convenient time',
+                      ),
+                      _StepRow(
+                        step: '3',
+                        title: 'Try At Home',
+                        subtitle: 'Rider waits while you try',
+                      ),
+                      _StepRow(
+                        step: '4',
+                        title: 'Keep What You Love',
+                        subtitle: 'Return the rest instantly',
+                      ),
+                      _StepRow(
+                        step: '5',
+                        title: 'Pay For Kept Items',
+                        subtitle: '₹99 adjusted to your bill',
+                        isLast: true,
+                      ),
                     ],
                   ),
                 ),
@@ -115,7 +148,12 @@ class TbybLandingScreen extends StatelessWidget {
             left: 0,
             right: 0,
             child: Container(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                16,
+                20,
+                MediaQuery.of(context).padding.bottom + 16,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
@@ -138,11 +176,17 @@ class TbybLandingScreen extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
                   backgroundColor: AbzioTheme.accentColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: const Text(
                   'Start Trial',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -177,7 +221,9 @@ class _BenefitRow extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -217,7 +263,11 @@ class _StepRow extends StatelessWidget {
                 ),
                 child: Text(
                   step,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
               ),
               if (!isLast)
@@ -238,12 +288,16 @@ class _StepRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AbzioTheme.grey500),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: AbzioTheme.grey500),
                   ),
                 ],
               ),

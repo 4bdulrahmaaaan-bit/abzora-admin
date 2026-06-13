@@ -40,16 +40,16 @@ class TrialSessionItem {
   }
 
   Map<String, dynamic> toMap() => {
-        'productId': productId,
-        'name': name,
-        'imageUrl': imageUrl,
-        'price': price,
-        'recommendedSize': recommendedSize,
-        'fitConfidence': fitConfidence,
-        'styledForYou': styledForYou,
-        'source': source,
-        'storeId': storeId,
-      };
+    'productId': productId,
+    'name': name,
+    'imageUrl': imageUrl,
+    'price': price,
+    'recommendedSize': recommendedSize,
+    'fitConfidence': fitConfidence,
+    'styledForYou': styledForYou,
+    'source': source,
+    'storeId': storeId,
+  };
 
   factory TrialSessionItem.fromProduct(
     Product product, {
@@ -160,12 +160,14 @@ class TrialSession {
   final DateTime? updatedAt;
 
   bool get isBooked =>
-      status == 'booked' ||
-      status == 'confirmed' ||
-      status == 'assigned';
-  bool get isEnRoute => status == 'en_route' || status == 'out_for_trial_delivery';
+      status == 'booked' || status == 'confirmed' || status == 'assigned';
+  bool get isEnRoute =>
+      status == 'en_route' || status == 'out_for_trial_delivery';
   bool get hasArrived => status == 'arrived';
-  bool get isInProgress => status == 'trial_started' || status == 'trial_active' || status == 'trial_in_progress';
+  bool get isInProgress =>
+      status == 'trial_started' ||
+      status == 'trial_active' ||
+      status == 'trial_in_progress';
   bool get isAwaitingPayment => status == 'awaiting_final_payment';
   bool get isCompleted => status == 'completed';
   bool get isResolved =>
@@ -177,23 +179,25 @@ class TrialSession {
   factory TrialSession.fromMap(Map<String, dynamic> map) {
     final itemMaps = (map['items'] as List? ?? const <dynamic>[])
         .whereType<Map>()
-        .map((item) => TrialSessionItem.fromMap(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => TrialSessionItem.fromMap(Map<String, dynamic>.from(item)),
+        )
         .toList();
     final recommendedItemMaps =
         (map['recommendedItems'] as List? ?? const <dynamic>[])
             .whereType<Map>()
-            .map((item) =>
-                TrialSessionItem.fromMap(Map<String, dynamic>.from(item)))
+            .map(
+              (item) =>
+                  TrialSessionItem.fromMap(Map<String, dynamic>.from(item)),
+            )
             .toList();
-    final derivedPrimary = [
-      ...itemMaps,
-      ...recommendedItemMaps,
-    ].fold<TrialSessionItem?>(
-      null,
-      (current, item) => item.fitConfidence > (current?.fitConfidence ?? -1)
-          ? item
-          : current,
-    );
+    final derivedPrimary = [...itemMaps, ...recommendedItemMaps]
+        .fold<TrialSessionItem?>(
+          null,
+          (current, item) => item.fitConfidence > (current?.fitConfidence ?? -1)
+              ? item
+              : current,
+        );
 
     return TrialSession(
       id: map['id']?.toString() ?? map['_id']?.toString() ?? '',
@@ -205,7 +209,9 @@ class TrialSession {
       items: itemMaps,
       recommendedItems: recommendedItemMaps,
       recommendedSize:
-          map['recommendedSize']?.toString() ?? derivedPrimary?.recommendedSize ?? '',
+          map['recommendedSize']?.toString() ??
+          derivedPrimary?.recommendedSize ??
+          '',
       fitConfidence:
           ((map['fitConfidence'] ?? derivedPrimary?.fitConfidence ?? 0) as num)
               .toDouble(),
@@ -227,9 +233,13 @@ class TrialSession {
       trialFee: ((map['trialFee'] ?? 99) as num).toDouble(),
       subtotal: ((map['subtotal'] ?? 0) as num).toDouble(),
       bookingFeePaid: map['bookingFeePaid'] == true,
-      feeAdjustmentAmount: ((map['feeAdjustmentAmount'] ?? 0) as num).toDouble(),
-      trialDurationMinutes: ((map['trialDurationMinutes'] ?? 30) as num).toInt(),
-      trialStartedAt: DateTime.tryParse(map['trialStartedAt']?.toString() ?? map['startedAt']?.toString() ?? ''),
+      feeAdjustmentAmount: ((map['feeAdjustmentAmount'] ?? 0) as num)
+          .toDouble(),
+      trialDurationMinutes: ((map['trialDurationMinutes'] ?? 30) as num)
+          .toInt(),
+      trialStartedAt: DateTime.tryParse(
+        map['trialStartedAt']?.toString() ?? map['startedAt']?.toString() ?? '',
+      ),
       scheduledAt: DateTime.tryParse(map['scheduledAt']?.toString() ?? ''),
       arrivedAt: DateTime.tryParse(map['arrivedAt']?.toString() ?? ''),
       startedAt: DateTime.tryParse(map['startedAt']?.toString() ?? ''),
@@ -337,4 +347,3 @@ class TrialSession {
     );
   }
 }
-

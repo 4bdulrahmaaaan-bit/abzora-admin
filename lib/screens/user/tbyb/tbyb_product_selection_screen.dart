@@ -11,41 +11,46 @@ class TbybProductSelectionScreen extends StatefulWidget {
   const TbybProductSelectionScreen({super.key});
 
   @override
-  State<TbybProductSelectionScreen> createState() => _TbybProductSelectionScreenState();
+  State<TbybProductSelectionScreen> createState() =>
+      _TbybProductSelectionScreenState();
 }
 
-class _TbybProductSelectionScreenState extends State<TbybProductSelectionScreen> {
-
+class _TbybProductSelectionScreenState
+    extends State<TbybProductSelectionScreen> {
   void _onContinue() {
     final trialCart = context.read<TrialCartProvider>();
     if (trialCart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your trial cart is empty. Please add items.')),
+        const SnackBar(
+          content: Text('Your trial cart is empty. Please add items.'),
+        ),
       );
       return;
     }
 
-    final selectedProducts = trialCart.items.map((item) => Product(
-      id: item.productId,
-      storeId: item.storeId,
-      name: item.name,
-      description: '',
-      brand: '',
-      category: '',
-      subcategory: '',
-      basePrice: item.price,
-      price: item.price,
-      stock: 1,
-      images: [item.imageUrl],
-      sizes: [item.recommendedSize],
-    )).toList(); // Reconstruct a stub product list for compatibility with downstream screens.
+    final selectedProducts = trialCart.items
+        .map(
+          (item) => Product(
+            id: item.productId,
+            storeId: item.storeId,
+            name: item.name,
+            description: '',
+            brand: '',
+            category: '',
+            subcategory: '',
+            basePrice: item.price,
+            price: item.price,
+            stock: 1,
+            images: [item.imageUrl],
+            sizes: [item.recommendedSize],
+          ),
+        )
+        .toList(); // Reconstruct a stub product list for compatibility with downstream screens.
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => TbybSchedulingScreen(
-          selectedItems: selectedProducts,
-        ),
+        builder: (_) => TbybSchedulingScreen(selectedItems: selectedProducts),
       ),
     );
   }
@@ -74,15 +79,15 @@ class _TbybProductSelectionScreenState extends State<TbybProductSelectionScreen>
                 Text(
                   'Your Try Before You Buy Selection',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Review your selected items and schedule delivery.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AbzioTheme.grey500,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: AbzioTheme.grey500),
                 ),
               ],
             ),
@@ -105,14 +110,22 @@ class _TbybProductSelectionScreenState extends State<TbybProductSelectionScreen>
                         padding: const EdgeInsets.only(bottom: 16),
                         child: _TbybCartCard(
                           item: item,
-                          onRemove: () => trialCart.removeItem(item.productId, item.recommendedSize),
+                          onRemove: () => trialCart.removeItem(
+                            item.productId,
+                            item.recommendedSize,
+                          ),
                         ),
                       );
                     },
                   ),
           ),
           Container(
-            padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(context).padding.bottom + 16,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -128,11 +141,17 @@ class _TbybProductSelectionScreenState extends State<TbybProductSelectionScreen>
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(56),
                 backgroundColor: AbzioTheme.accentColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: const Text(
                 'Schedule Delivery',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -143,10 +162,7 @@ class _TbybProductSelectionScreenState extends State<TbybProductSelectionScreen>
 }
 
 class _TbybCartCard extends StatelessWidget {
-  const _TbybCartCard({
-    required this.item,
-    required this.onRemove,
-  });
+  const _TbybCartCard({required this.item, required this.onRemove});
 
   final TrialSessionItem item;
   final VoidCallback onRemove;
@@ -176,10 +192,7 @@ class _TbybCartCard extends StatelessWidget {
               height: 100,
               color: AbzioTheme.grey200,
               child: item.imageUrl.isNotEmpty
-                  ? Image.network(
-                      item.imageUrl,
-                      fit: BoxFit.cover,
-                    )
+                  ? Image.network(item.imageUrl, fit: BoxFit.cover)
                   : null,
             ),
           ),
@@ -189,7 +202,10 @@ class _TbybCartCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AbzioTheme.accentColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
@@ -207,8 +223,8 @@ class _TbybCartCard extends StatelessWidget {
                 Text(
                   item.name,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -219,8 +235,8 @@ class _TbybCartCard extends StatelessWidget {
                     Text(
                       '₹${item.price.toStringAsFixed(0)}',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       'Size: ${item.recommendedSize}',

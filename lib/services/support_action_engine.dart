@@ -42,7 +42,9 @@ class SupportActionEngine {
     }
     final status = order.status.toLowerCase();
     final eligible =
-        status == 'delivered' || status == 'cancelled' || order.isPaymentVerified;
+        status == 'delivered' ||
+        status == 'cancelled' ||
+        order.isPaymentVerified;
     if (!eligible) {
       return false;
     }
@@ -70,8 +72,11 @@ class SupportActionEngine {
     if (order.userId != actor.id) {
       return false;
     }
-    final delivered = order.isDelivered || order.status.toLowerCase() == 'delivered';
-    final customOrder = order.orderType == 'custom_tailoring' || order.items.any((item) => item.isCustomTailoring);
+    final delivered =
+        order.isDelivered || order.status.toLowerCase() == 'delivered';
+    final customOrder =
+        order.orderType == 'custom_tailoring' ||
+        order.items.any((item) => item.isCustomTailoring);
     if (!delivered || customOrder) {
       return false;
     }
@@ -103,7 +108,9 @@ class SupportActionEngine {
         .map((part) => part.trim())
         .where((part) => part.isNotEmpty)
         .toList();
-    final city = segments.length >= 2 ? segments[segments.length - 2] : actor.city;
+    final city = segments.length >= 2
+        ? segments[segments.length - 2]
+        : actor.city;
     await ref('users/${actor.id}').update({
       'address': trimmed,
       if ((city ?? '').trim().isNotEmpty) 'city': city,

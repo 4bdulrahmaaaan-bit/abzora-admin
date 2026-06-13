@@ -65,7 +65,9 @@ class ProductBasicInfoSection extends StatelessWidget {
               Expanded(
                 child: _buildTextField(
                   label: 'Subcategory',
-                  controller: TextEditingController(text: controller.selectedSubcategory), // Quick fix, usually binds to state better
+                  controller: TextEditingController(
+                    text: controller.selectedSubcategory,
+                  ), // Quick fix, usually binds to state better
                   hint: 'E.g. Party Wear',
                   onChanged: (val) => controller.updateSubcategory(val),
                 ),
@@ -115,7 +117,10 @@ class ProductBasicInfoSection extends StatelessWidget {
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withValues(alpha: 0.5), fontSize: 14),
+            hintStyle: GoogleFonts.inter(
+              color: AbzioTheme.textSecondary.withValues(alpha: 0.5),
+              fontSize: 14,
+            ),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
             border: OutlineInputBorder(
@@ -130,7 +135,10 @@ class ProductBasicInfoSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: AbzioTheme.accentColor),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
       ],
@@ -167,7 +175,10 @@ class ProductBasicInfoSection extends StatelessWidget {
         DropdownButtonFormField<String>(
           initialValue: items.contains(value) ? value : null,
           onChanged: onChanged,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AbzioTheme.textSecondary),
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: AbzioTheme.textSecondary,
+          ),
           decoration: InputDecoration(
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
@@ -183,7 +194,10 @@ class ProductBasicInfoSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: AbzioTheme.accentColor),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
           items: items.map((item) {
             return DropdownMenuItem(

@@ -21,7 +21,9 @@ class TrackingTimeline extends StatelessWidget {
       builder: (context, constraints) {
         const markerHeight = 38.0;
         const rowGap = 34.0;
-        final lineHeight = ((steps.length - 1) * (markerHeight + rowGap)).clamp(0, 10000).toDouble();
+        final lineHeight = ((steps.length - 1) * (markerHeight + rowGap))
+            .clamp(0, 10000)
+            .toDouble();
 
         return AnimatedBuilder(
           animation: progressAnimation,
@@ -53,7 +55,9 @@ class TrackingTimeline extends StatelessWidget {
                 Column(
                   children: List.generate(steps.length, (index) {
                     return Padding(
-                      padding: EdgeInsets.only(bottom: index == steps.length - 1 ? 0 : rowGap),
+                      padding: EdgeInsets.only(
+                        bottom: index == steps.length - 1 ? 0 : rowGap,
+                      ),
                       child: TrackingStepWidget(
                         step: steps[index],
                         pulseAnimation: pulseAnimation,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 import '../../models/models.dart';
 
 import '../../services/database_service.dart';
@@ -22,14 +21,15 @@ class ProductManagementScreen extends StatefulWidget {
   final String storeId;
 
   @override
-  State<ProductManagementScreen> createState() => _ProductManagementScreenState();
+  State<ProductManagementScreen> createState() =>
+      _ProductManagementScreenState();
 }
 
 class _ProductManagementScreenState extends State<ProductManagementScreen> {
   static const int _pageSize = 8;
   final _db = DatabaseService();
   final _searchController = TextEditingController();
-  
+
   List<Product> _products = [];
   bool _loading = true;
   String _statusFilter = 'All';
@@ -40,29 +40,47 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   List<Product> get _filteredProducts {
     final query = _searchController.text.trim().toLowerCase();
     return _products.where((product) {
-      final matchesStatus = _statusFilter == 'All' ||
-          (_statusFilter == 'Active' && product.status == ProductStatus.active) ||
+      final matchesStatus =
+          _statusFilter == 'All' ||
+          (_statusFilter == 'Active' &&
+              product.status == ProductStatus.active) ||
           (_statusFilter == 'Draft' && product.status == ProductStatus.draft) ||
-          (_statusFilter == 'Hidden' && product.status != ProductStatus.active) ||
+          (_statusFilter == 'Hidden' &&
+              product.status != ProductStatus.active) ||
           (_statusFilter == 'Out of Stock' && product.stock <= 0);
-      final matchesCategory = _categoryFilter == 'All' || product.category == _categoryFilter;
-      final haystack = '${product.name} ${product.brand} ${product.category}'.toLowerCase();
+      final matchesCategory =
+          _categoryFilter == 'All' || product.category == _categoryFilter;
+      final haystack = '${product.name} ${product.brand} ${product.category}'
+          .toLowerCase();
       final matchesQuery = query.isEmpty || haystack.contains(query);
       return matchesStatus && matchesCategory && matchesQuery;
-    }).toList()..sort((a, b) => (b.createdAt ?? '').compareTo(a.createdAt ?? ''));
+    }).toList()..sort(
+      (a, b) => (b.createdAt ?? '').compareTo(a.createdAt ?? ''),
+    );
   }
 
   List<Product> get _visibleProducts {
     final start = _page * _pageSize;
     final filtered = _filteredProducts;
     if (start >= filtered.length) return const [];
-    return filtered.sublist(start, (start + _pageSize).clamp(0, filtered.length));
+    return filtered.sublist(
+      start,
+      (start + _pageSize).clamp(0, filtered.length),
+    );
   }
 
-  int get _pageCount => _filteredProducts.isEmpty ? 1 : (_filteredProducts.length / _pageSize).ceil();
+  int get _pageCount => _filteredProducts.isEmpty
+      ? 1
+      : (_filteredProducts.length / _pageSize).ceil();
 
   List<String> get _categories {
-    final values = _products.map((p) => p.category).where((c) => c.trim().isNotEmpty).toSet().toList()..sort();
+    final values =
+        _products
+            .map((p) => p.category)
+            .where((c) => c.trim().isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return ['All', ...values];
   }
 
@@ -85,7 +103,10 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   }
 
   Future<void> _loadProducts() async {
-    final products = await _db.getProductsByStore(widget.storeId, includeInactive: true);
+    final products = await _db.getProductsByStore(
+      widget.storeId,
+      includeInactive: true,
+    );
     if (!mounted) return;
     setState(() {
       _products = products;
@@ -99,7 +120,8 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddProductScreen(storeId: widget.storeId, existingProduct: product),
+        builder: (_) =>
+            AddProductScreen(storeId: widget.storeId, existingProduct: product),
       ),
     );
     await _loadProducts();
@@ -140,9 +162,13 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final activeCount = _products.where((p) => p.status == ProductStatus.active).length;
+    final activeCount = _products
+        .where((p) => p.status == ProductStatus.active)
+        .length;
     final outOfStockCount = _products.where((p) => p.stock <= 0).length;
-    final draftCount = _products.where((p) => p.status == ProductStatus.draft).length;
+    final draftCount = _products
+        .where((p) => p.status == ProductStatus.draft)
+        .length;
 
     return Scaffold(
       backgroundColor: VendorTheme.background,
@@ -157,7 +183,13 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
               style: TextButton.styleFrom(foregroundColor: VendorTheme.info),
             ),
           IconButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingManagementScreen(storeId: widget.storeId))),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    PricingManagementScreen(storeId: widget.storeId),
+              ),
+            ),
             icon: const Icon(Icons.price_change_outlined),
             tooltip: 'Pricing Intelligence',
           ),
@@ -169,24 +201,42 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
         ],
       ),
       body: _loading
-          ? const AbzioLoadingView(title: 'Loading Catalog', subtitle: 'Fetching products and performance metrics.')
+          ? const AbzioLoadingView(
+              title: 'Loading Catalog',
+              subtitle: 'Fetching products and performance metrics.',
+            )
           : RefreshIndicator(
               color: VendorTheme.primary,
               onRefresh: _loadProducts,
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing16, vertical: VendorTheme.spacing24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: VendorTheme.spacing16,
+                  vertical: VendorTheme.spacing24,
+                ),
                 children: [
-                  _buildCatalogOverview(activeCount, draftCount, outOfStockCount),
+                  _buildCatalogOverview(
+                    activeCount,
+                    draftCount,
+                    outOfStockCount,
+                  ),
                   const SizedBox(height: VendorTheme.spacing24),
                   _buildSmartFilters(),
                   const SizedBox(height: VendorTheme.spacing24),
                   if (_filteredProducts.isEmpty)
                     VendorEmptyState(
-                      title: _products.isEmpty ? 'Empty Catalog' : 'No matches found',
-                      subtitle: _products.isEmpty ? 'List your first premium product.' : 'Try adjusting your smart filters.',
+                      title: _products.isEmpty
+                          ? 'Empty Catalog'
+                          : 'No matches found',
+                      subtitle: _products.isEmpty
+                          ? 'List your first premium product.'
+                          : 'Try adjusting your smart filters.',
                       icon: Icons.inventory_2_outlined,
-                      primaryActionLabel: _products.isEmpty ? 'Add Product' : null,
-                      onPrimaryAction: _products.isEmpty ? _openProductEditor : null,
+                      primaryActionLabel: _products.isEmpty
+                          ? 'Add Product'
+                          : null,
+                      onPrimaryAction: _products.isEmpty
+                          ? _openProductEditor
+                          : null,
                     )
                   else ...[
                     _buildListHeader(),
@@ -209,21 +259,35 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('CATALOG OVERVIEW', style: Theme.of(context).textTheme.labelMedium),
+        Text(
+          'CATALOG OVERVIEW',
+          style: Theme.of(context).textTheme.labelMedium,
+        ),
         const SizedBox(height: VendorTheme.spacing12),
         Row(
           children: [
-            Expanded(child: VendorMetricCard(title: 'Total', value: '${_products.length}')),
+            Expanded(
+              child: VendorMetricCard(
+                title: 'Total',
+                value: '${_products.length}',
+              ),
+            ),
             const SizedBox(width: VendorTheme.spacing12),
-            Expanded(child: VendorMetricCard(title: 'Active', value: '$active')),
+            Expanded(
+              child: VendorMetricCard(title: 'Active', value: '$active'),
+            ),
           ],
         ),
         const SizedBox(height: VendorTheme.spacing12),
         Row(
           children: [
-            Expanded(child: VendorMetricCard(title: 'Draft', value: '$draft')),
+            Expanded(
+              child: VendorMetricCard(title: 'Draft', value: '$draft'),
+            ),
             const SizedBox(width: VendorTheme.spacing12),
-            Expanded(child: VendorMetricCard(title: 'Out of Stock', value: '$oos')),
+            Expanded(
+              child: VendorMetricCard(title: 'Out of Stock', value: '$oos'),
+            ),
           ],
         ),
       ],
@@ -241,9 +305,18 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
             decoration: InputDecoration(
               hintText: 'Search by Name, SKU, Brand',
               prefixIcon: const Icon(Icons.search_rounded),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(VendorTheme.radiusSmall), borderSide: BorderSide(color: VendorTheme.grey200)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(VendorTheme.radiusSmall), borderSide: BorderSide(color: VendorTheme.grey200)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+                borderSide: BorderSide(color: VendorTheme.grey200),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+                borderSide: BorderSide(color: VendorTheme.grey200),
+              ),
             ),
           ),
           const SizedBox(height: VendorTheme.spacing16),
@@ -252,20 +325,37 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   initialValue: _statusFilter,
-                  decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
-                  items: const ['All', 'Active', 'Hidden', 'Draft', 'Out of Stock']
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (v) => setState(() { _statusFilter = v ?? 'All'; _page = 0; }),
+                  decoration: const InputDecoration(
+                    labelText: 'Status',
+                    border: OutlineInputBorder(),
+                  ),
+                  items:
+                      const ['All', 'Active', 'Hidden', 'Draft', 'Out of Stock']
+                          .map(
+                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                          )
+                          .toList(),
+                  onChanged: (v) => setState(() {
+                    _statusFilter = v ?? 'All';
+                    _page = 0;
+                  }),
                 ),
               ),
               const SizedBox(width: VendorTheme.spacing12),
               Expanded(
                 child: DropdownButtonFormField<String>(
                   initialValue: _categoryFilter,
-                  decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
-                  items: _categories.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                  onChanged: (v) => setState(() { _categoryFilter = v ?? 'All'; _page = 0; }),
+                  decoration: const InputDecoration(
+                    labelText: 'Category',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _categories
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (v) => setState(() {
+                    _categoryFilter = v ?? 'All';
+                    _page = 0;
+                  }),
                 ),
               ),
             ],
@@ -277,15 +367,23 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
 
   Widget _buildListHeader() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: VendorTheme.spacing12, left: VendorTheme.spacing8),
+      padding: const EdgeInsets.only(
+        bottom: VendorTheme.spacing12,
+        left: VendorTheme.spacing8,
+      ),
       child: Row(
         children: [
           Checkbox(
-            value: _selectedProducts.length == _filteredProducts.length && _filteredProducts.isNotEmpty,
+            value:
+                _selectedProducts.length == _filteredProducts.length &&
+                _filteredProducts.isNotEmpty,
             onChanged: (v) => _selectAll(),
             activeColor: VendorTheme.primary,
           ),
-          Text('${_filteredProducts.length} Products Found', style: Theme.of(context).textTheme.labelLarge),
+          Text(
+            '${_filteredProducts.length} Products Found',
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
         ],
       ),
     );
@@ -294,13 +392,17 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   Widget _buildProductCard(Product p) {
     final qualityScore = _calculateQualityScore(p);
     final isSelected = _selectedProducts.contains(p.id);
-    final conversionRate = p.viewCount > 0 ? (p.purchaseCount / p.viewCount * 100).toStringAsFixed(1) : '0.0';
+    final conversionRate = p.viewCount > 0
+        ? (p.purchaseCount / p.viewCount * 100).toStringAsFixed(1)
+        : '0.0';
 
     return PremiumVendorCard(
       margin: const EdgeInsets.only(bottom: VendorTheme.spacing16),
       padding: const EdgeInsets.all(VendorTheme.spacing16),
       hasBorder: isSelected,
-      backgroundColor: isSelected ? VendorTheme.secondary.withValues(alpha: 0.05) : null,
+      backgroundColor: isSelected
+          ? VendorTheme.secondary.withValues(alpha: 0.05)
+          : null,
       child: Column(
         children: [
           Row(
@@ -317,7 +419,9 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                   width: 72,
                   height: 72,
                   child: AbzioNetworkImage(
-                    imageUrl: p.images.isNotEmpty ? p.images.first : 'https://via.placeholder.com/150',
+                    imageUrl: p.images.isNotEmpty
+                        ? p.images.first
+                        : 'https://via.placeholder.com/150',
                     fallbackLabel: p.name,
                   ),
                 ),
@@ -327,15 +431,34 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(p.name, style: Theme.of(context).textTheme.titleLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    if (p.brand.isNotEmpty) Text(p.brand, style: Theme.of(context).textTheme.bodyMedium),
+                    Text(
+                      p.name,
+                      style: Theme.of(context).textTheme.titleLarge,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (p.brand.isNotEmpty)
+                      Text(
+                        p.brand,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
                     const SizedBox(height: VendorTheme.spacing8),
                     Row(
                       children: [
-                        Text('₹${p.price.toInt()}', style: Theme.of(context).textTheme.titleLarge),
-                        if (p.originalPrice != null && p.originalPrice! > p.price) ...[
+                        Text(
+                          '₹${p.price.toInt()}',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        if (p.originalPrice != null &&
+                            p.originalPrice! > p.price) ...[
                           const SizedBox(width: VendorTheme.spacing8),
-                          Text('₹${p.originalPrice!.toInt()}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(decoration: TextDecoration.lineThrough)),
+                          Text(
+                            '₹${p.originalPrice!.toInt()}',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                          ),
                         ],
                       ],
                     ),
@@ -350,8 +473,12 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                     tooltip: 'Edit',
                   ),
                   VendorStatusBadge(
-                    label: p.status == ProductStatus.active ? 'Active' : 'Hidden',
-                    type: p.status == ProductStatus.active ? VendorBadgeType.success : VendorBadgeType.neutral,
+                    label: p.status == ProductStatus.active
+                        ? 'Active'
+                        : 'Hidden',
+                    type: p.status == ProductStatus.active
+                        ? VendorBadgeType.success
+                        : VendorBadgeType.neutral,
                   ),
                 ],
               ),
@@ -367,7 +494,11 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
               _StatItem(label: 'Cart Adds', value: '${p.cartCount}'),
               _StatItem(label: 'Purchases', value: '${p.purchaseCount}'),
               _StatItem(label: 'Conv. Rate', value: '$conversionRate%'),
-              _StatItem(label: 'Quality', value: '$qualityScore/100', highlight: qualityScore < 50),
+              _StatItem(
+                label: 'Quality',
+                value: '$qualityScore/100',
+                highlight: qualityScore < 50,
+              ),
             ],
           ),
           const SizedBox(height: VendorTheme.spacing16),
@@ -375,11 +506,30 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
             spacing: VendorTheme.spacing8,
             runSpacing: VendorTheme.spacing8,
             children: [
-              if (p.stock <= 0) const VendorStatusBadge(label: 'Out of Stock', type: VendorBadgeType.error),
-              if (p.stock > 0 && p.stock <= 5) const VendorStatusBadge(label: 'Low Stock', type: VendorBadgeType.warning),
-              if (p.purchaseCount > 50) const VendorStatusBadge(label: 'Best Seller', type: VendorBadgeType.info),
-              if (conversionRate == '0.0' && p.viewCount > 100) const VendorStatusBadge(label: 'Slow Moving', type: VendorBadgeType.error),
-              VendorStatusBadge(label: 'Stock: ${p.stock}', type: VendorBadgeType.neutral),
+              if (p.stock <= 0)
+                const VendorStatusBadge(
+                  label: 'Out of Stock',
+                  type: VendorBadgeType.error,
+                ),
+              if (p.stock > 0 && p.stock <= 5)
+                const VendorStatusBadge(
+                  label: 'Low Stock',
+                  type: VendorBadgeType.warning,
+                ),
+              if (p.purchaseCount > 50)
+                const VendorStatusBadge(
+                  label: 'Best Seller',
+                  type: VendorBadgeType.info,
+                ),
+              if (conversionRate == '0.0' && p.viewCount > 100)
+                const VendorStatusBadge(
+                  label: 'Slow Moving',
+                  type: VendorBadgeType.error,
+                ),
+              VendorStatusBadge(
+                label: 'Stock: ${p.stock}',
+                type: VendorBadgeType.neutral,
+              ),
             ],
           ),
         ],
@@ -396,7 +546,10 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
           icon: Icons.chevron_left,
           onTap: _page > 0 ? () => setState(() => _page--) : null,
         ),
-        Text('Page ${_page + 1} of $_pageCount', style: Theme.of(context).textTheme.labelLarge),
+        Text(
+          'Page ${_page + 1} of $_pageCount',
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
         VendorSecondaryButton(
           label: 'Next',
           icon: Icons.chevron_right,
@@ -408,7 +561,11 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
 }
 
 class _StatItem extends StatelessWidget {
-  const _StatItem({required this.label, required this.value, this.highlight = false});
+  const _StatItem({
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
   final String label;
   final String value;
   final bool highlight;
@@ -417,7 +574,12 @@ class _StatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: highlight ? VendorTheme.error : VendorTheme.primary)),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: highlight ? VendorTheme.error : VendorTheme.primary,
+          ),
+        ),
         const SizedBox(height: VendorTheme.spacing4),
         Text(label, style: Theme.of(context).textTheme.labelMedium),
       ],

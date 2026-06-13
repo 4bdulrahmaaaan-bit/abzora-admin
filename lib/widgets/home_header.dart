@@ -36,9 +36,9 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
         color: const Color(0xFFF7F4ED),
         border: Border(
           bottom: BorderSide(
-            color: const Color(0xFFE8DCC2).withValues(
-              alpha: isScrolled ? 0.65 : 0.30,
-            ),
+            color: const Color(
+              0xFFE8DCC2,
+            ).withValues(alpha: isScrolled ? 0.65 : 0.30),
           ),
         ),
         boxShadow: [
@@ -103,7 +103,10 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                 onTap: onWishlistTap,
               ),
               const SizedBox(width: 8),
-              _HeaderIconButton(icon: Icons.shopping_bag_outlined, onTap: onCartTap),
+              _HeaderIconButton(
+                icon: Icons.shopping_bag_outlined,
+                onTap: onCartTap,
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -138,7 +141,9 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                   Icon(
                     Icons.keyboard_arrow_down_rounded,
                     size: 16,
-                    color: const Color(0xFFC2A15E).withValues(alpha: isScrolled ? 0.9 : 0.72),
+                    color: const Color(
+                      0xFFC2A15E,
+                    ).withValues(alpha: isScrolled ? 0.9 : 0.72),
                   ),
                 ],
               ),
@@ -170,11 +175,7 @@ class _HeaderIconButton extends StatelessWidget {
             width: 44,
             height: 44,
             child: Center(
-              child: Icon(
-                icon,
-                color: const Color(0xFF1E1B17),
-                size: 24,
-              ),
+              child: Icon(icon, color: const Color(0xFF1E1B17), size: 24),
             ),
           ),
         ),

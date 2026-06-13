@@ -563,53 +563,59 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
           scale: scale,
           child: Platform.isAndroid
               ? AndroidView(
-              key: ValueKey<String>(
-                'native-ar-${_runtimePayload.productId}-$_cameraSwitchEpoch',
-              ),
-              viewType: 'abzora/native_ar_try_on_view',
-              creationParams: <String, dynamic>{
-                'productId': _runtimePayload.productId,
-                'overlayAssetUrl': _runtimePayload.overlayAssetUrl,
-                'transparentAssetUrl': _runtimePayload.overlayAssetUrl.isNotEmpty
-                    ? _runtimePayload.overlayAssetUrl
-                    : _runtimePayload.model3dUrl,
-                'model3dUrl': _normalizeCloudinaryModelUrl(_runtimePayload.model3dUrl),
-                'preferBackCamera': !_useFrontCamera,
-                'enableOcclusion': _occlusionEnabled,
-                'renderQuality': _qualityProfile.renderQuality,
-                'segmentationQuality': _qualityProfile.segmentationQuality,
-                'segmentationEdgeSmoothing':
-                    _qualityProfile.segmentationEdgeSmoothing,
-                'segmentationInferenceStride':
-                    _qualityProfile.segmentationInferenceStride,
-                'occlusionDetail': _qualityProfile.occlusionDetail,
-              },
-              creationParamsCodec: const StandardMessageCodec(),
-              )
+                  key: ValueKey<String>(
+                    'native-ar-${_runtimePayload.productId}-$_cameraSwitchEpoch',
+                  ),
+                  viewType: 'abzora/native_ar_try_on_view',
+                  creationParams: <String, dynamic>{
+                    'productId': _runtimePayload.productId,
+                    'overlayAssetUrl': _runtimePayload.overlayAssetUrl,
+                    'transparentAssetUrl':
+                        _runtimePayload.overlayAssetUrl.isNotEmpty
+                        ? _runtimePayload.overlayAssetUrl
+                        : _runtimePayload.model3dUrl,
+                    'model3dUrl': _normalizeCloudinaryModelUrl(
+                      _runtimePayload.model3dUrl,
+                    ),
+                    'preferBackCamera': !_useFrontCamera,
+                    'enableOcclusion': _occlusionEnabled,
+                    'renderQuality': _qualityProfile.renderQuality,
+                    'segmentationQuality': _qualityProfile.segmentationQuality,
+                    'segmentationEdgeSmoothing':
+                        _qualityProfile.segmentationEdgeSmoothing,
+                    'segmentationInferenceStride':
+                        _qualityProfile.segmentationInferenceStride,
+                    'occlusionDetail': _qualityProfile.occlusionDetail,
+                  },
+                  creationParamsCodec: const StandardMessageCodec(),
+                )
               : UiKitView(
-              key: ValueKey<String>(
-                'native-ar-${_runtimePayload.productId}-$_cameraSwitchEpoch',
-              ),
-              viewType: 'abzora/native_ar_try_on_view',
-              creationParams: <String, dynamic>{
-                'productId': _runtimePayload.productId,
-                'overlayAssetUrl': _runtimePayload.overlayAssetUrl,
-                'transparentAssetUrl': _runtimePayload.overlayAssetUrl.isNotEmpty
-                    ? _runtimePayload.overlayAssetUrl
-                    : _runtimePayload.model3dUrl,
-                'model3dUrl': _normalizeCloudinaryModelUrl(_runtimePayload.model3dUrl),
-                'preferBackCamera': !_useFrontCamera,
-                'enableOcclusion': _occlusionEnabled,
-                'renderQuality': _qualityProfile.renderQuality,
-                'segmentationQuality': _qualityProfile.segmentationQuality,
-                'segmentationEdgeSmoothing':
-                    _qualityProfile.segmentationEdgeSmoothing,
-                'segmentationInferenceStride':
-                    _qualityProfile.segmentationInferenceStride,
-                'occlusionDetail': _qualityProfile.occlusionDetail,
-              },
-              creationParamsCodec: const StandardMessageCodec(),
-              ),
+                  key: ValueKey<String>(
+                    'native-ar-${_runtimePayload.productId}-$_cameraSwitchEpoch',
+                  ),
+                  viewType: 'abzora/native_ar_try_on_view',
+                  creationParams: <String, dynamic>{
+                    'productId': _runtimePayload.productId,
+                    'overlayAssetUrl': _runtimePayload.overlayAssetUrl,
+                    'transparentAssetUrl':
+                        _runtimePayload.overlayAssetUrl.isNotEmpty
+                        ? _runtimePayload.overlayAssetUrl
+                        : _runtimePayload.model3dUrl,
+                    'model3dUrl': _normalizeCloudinaryModelUrl(
+                      _runtimePayload.model3dUrl,
+                    ),
+                    'preferBackCamera': !_useFrontCamera,
+                    'enableOcclusion': _occlusionEnabled,
+                    'renderQuality': _qualityProfile.renderQuality,
+                    'segmentationQuality': _qualityProfile.segmentationQuality,
+                    'segmentationEdgeSmoothing':
+                        _qualityProfile.segmentationEdgeSmoothing,
+                    'segmentationInferenceStride':
+                        _qualityProfile.segmentationInferenceStride,
+                    'occlusionDetail': _qualityProfile.occlusionDetail,
+                  },
+                  creationParamsCodec: const StandardMessageCodec(),
+                ),
         ),
       ),
     );
@@ -641,7 +647,8 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
         enableOcclusion: _qualityProfile.occlusionEnabled,
         segmentationQuality: _qualityProfile.segmentationQuality,
         segmentationEdgeSmoothing: _qualityProfile.segmentationEdgeSmoothing,
-        segmentationInferenceStride: _qualityProfile.segmentationInferenceStride,
+        segmentationInferenceStride:
+            _qualityProfile.segmentationInferenceStride,
         occlusionDetail: _qualityProfile.occlusionDetail,
       );
       if (_useFlutterPosePipeline) {
@@ -748,7 +755,6 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
     );
   }
 
-
   Future<void> _initializePoseCamera() async {
     if (_posePipelineReady) {
       return;
@@ -775,8 +781,9 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
   }
 
   CameraDescription? _selectPoseCamera(List<CameraDescription> cameras) {
-    final preferred =
-        _useFrontCamera ? CameraLensDirection.front : CameraLensDirection.back;
+    final preferred = _useFrontCamera
+        ? CameraLensDirection.front
+        : CameraLensDirection.back;
     for (final camera in cameras) {
       if (camera.lensDirection == preferred) {
         return camera;
@@ -880,7 +887,7 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
       if (jpegBytes == null) {
         throw Exception('Failed to encode camera frame to JPEG');
       }
-      
+
       if (mounted) {
         setState(() {
           _debugJpegBytes = jpegBytes;
@@ -890,7 +897,9 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
       // CameraX on some devices pre-rotates the image buffer.
       // If width < height, it's already in portrait, so rotation should be 0.
       final isPreRotated = image.width < image.height;
-      final rotation = isPreRotated ? 0 : (_poseCameraController?.description.sensorOrientation ?? 0);
+      final rotation = isPreRotated
+          ? 0
+          : (_poseCameraController?.description.sensorOrientation ?? 0);
 
       final rawPoseFrame = await _poseMeasurementService
           .analyzeTryOnLiveInputImage(
@@ -1068,7 +1077,8 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
       _occlusionBlend = segmentation.occlusionBlend;
       _occlusionEnabled = segmentation.occlusionEnabled;
       if (segmentation.fallbackRecommended && _bodyDetected) {
-        _coachPrompt = 'Segmentation recovering. Hold still for cleaner layering';
+        _coachPrompt =
+            'Segmentation recovering. Hold still for cleaner layering';
       }
       _qualityProfile = _qualityScaler.profileFor(
         tier: _deviceTier,
@@ -1219,7 +1229,8 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
 
   void _evaluateCoachPrompt() {
     final now = DateTime.now();
-    if (now.difference(_lastCoachPromptAt) < const Duration(milliseconds: 900)) {
+    if (now.difference(_lastCoachPromptAt) <
+        const Duration(milliseconds: 900)) {
       return;
     }
     String next = '';
@@ -1253,7 +1264,8 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
     try {
       final diagnostics = await MediaPipePoseBridge.instance.diagnostics();
       _poseAvgLatencyMs =
-          (diagnostics['avgLatencyMs'] as num?)?.toDouble() ?? _poseAvgLatencyMs;
+          (diagnostics['avgLatencyMs'] as num?)?.toDouble() ??
+          _poseAvgLatencyMs;
       _poseErrorRate =
           (diagnostics['errorRate'] as num?)?.toDouble() ?? _poseErrorRate;
     } catch (_) {
@@ -1554,7 +1566,9 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
       if (_lastCapturePath.isEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Capture unavailable right now. Try again in a moment.'),
+            content: Text(
+              'Capture unavailable right now. Try again in a moment.',
+            ),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -1888,7 +1902,10 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
         ),
         child: Text(
           label,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -1903,11 +1920,26 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
     if (currentRatio > targetRatio) {
       final cropWidth = (source.height * targetRatio).round();
       final x = ((source.width - cropWidth) / 2).round().clamp(0, source.width);
-      return img.copyCrop(source, x: x, y: 0, width: cropWidth, height: source.height);
+      return img.copyCrop(
+        source,
+        x: x,
+        y: 0,
+        width: cropWidth,
+        height: source.height,
+      );
     }
     final cropHeight = (source.width / targetRatio).round();
-    final y = ((source.height - cropHeight) / 2).round().clamp(0, source.height);
-    return img.copyCrop(source, x: 0, y: y, width: source.width, height: cropHeight);
+    final y = ((source.height - cropHeight) / 2).round().clamp(
+      0,
+      source.height,
+    );
+    return img.copyCrop(
+      source,
+      x: 0,
+      y: y,
+      width: source.width,
+      height: cropHeight,
+    );
   }
 
   Future<void> _handleExitFlow() async {
@@ -2077,9 +2109,7 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
     final outlineColor = _alignmentReady
         ? const Color(0xFF63E18B)
         : (_bodyDetected ? const Color(0xFFE2C283) : const Color(0xA3FFFFFF));
-    final guideOpacity = _alignmentReady
-        ? 0.02
-        : (_bodyDetected ? 0.10 : 0.38);
+    final guideOpacity = _alignmentReady ? 0.02 : (_bodyDetected ? 0.10 : 0.38);
     return Positioned.fill(
       child: IgnorePointer(
         child: AnimatedOpacity(
@@ -2197,7 +2227,9 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
       (_trackingState == 'tracking' || _trackingState.isEmpty);
 
   bool get _liteUiMode =>
-      _sustainedLiteMode || _trackingState == 'limited' || _bodyConfidence < 0.4;
+      _sustainedLiteMode ||
+      _trackingState == 'limited' ||
+      _bodyConfidence < 0.4;
 
   String get _trackingLabel {
     if (_trackingState == 'unsupported') {
@@ -2632,7 +2664,8 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
         enableOcclusion: _qualityProfile.occlusionEnabled,
         segmentationQuality: _qualityProfile.segmentationQuality,
         segmentationEdgeSmoothing: _qualityProfile.segmentationEdgeSmoothing,
-        segmentationInferenceStride: _qualityProfile.segmentationInferenceStride,
+        segmentationInferenceStride:
+            _qualityProfile.segmentationInferenceStride,
         occlusionDetail: _qualityProfile.occlusionDetail,
       );
       _refreshStylistLayer();
@@ -2760,11 +2793,11 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
           'segmentationReliability': _segmentationReliability,
           'armOverlapConfidence': _armOverlapConfidence,
           'torsoMaskConfidence': _torsoMaskConfidence,
-        'edgeSmoothing': _edgeSmoothing,
-        'edgeStability': _edgeStability,
-        'maskAlpha': _maskAlpha,
-        'occlusionBlend': _occlusionBlend,
-        'thermalLoad': _thermalLoad,
+          'edgeSmoothing': _edgeSmoothing,
+          'edgeStability': _edgeStability,
+          'maskAlpha': _maskAlpha,
+          'occlusionBlend': _occlusionBlend,
+          'thermalLoad': _thermalLoad,
           'sessionQuality': _sessionQuality,
           'deviceTier': _qualityProfile.deviceTier.name,
           'qualityProfile': _qualityProfile.toMap(),
@@ -2781,7 +2814,7 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
                 (_fitTrustAgreeCount + _fitTrustDisagreeCount) == 0
                 ? 0.0
                 : _fitTrustAgreeCount /
-                    (_fitTrustAgreeCount + _fitTrustDisagreeCount),
+                      (_fitTrustAgreeCount + _fitTrustDisagreeCount),
           },
           'bodyProfile': <String, dynamic>{
             'shapeClass': _bodyProfile?.shapeClass.name ?? '',
@@ -2807,7 +2840,8 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
             'trends': <String, dynamic>{
               'reliabilityTrend': runtimeSummary['reliabilityTrend'] ?? 0.0,
               'fpsTrend': runtimeSummary['fpsTrend'] ?? 0.0,
-              'avgThermalLoad': runtimeSummary['avgThermalLoad'] ?? _thermalLoad,
+              'avgThermalLoad':
+                  runtimeSummary['avgThermalLoad'] ?? _thermalLoad,
               'avgSessionQuality':
                   trackingSummary['avgSessionQuality'] ?? _sessionQuality,
             },
@@ -2830,37 +2864,40 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
         opacity: _sustainedLiteMode ? 0.84 : 1.0,
         child: Row(
           children: <Widget>[
-          ArRailButton(
-            icon: Icons.arrow_back_ios_new_rounded,
-            onTap: _handleExitFlow,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                const Text(
-                  'ABZORA Try-On',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  _trackingLabel,
-                  style: TextStyle(
-                    color: _trackingLocked
-                        ? const Color(0xFF7FD69A)
-                        : Colors.white70,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+            ArRailButton(
+              icon: Icons.arrow_back_ios_new_rounded,
+              onTap: _handleExitFlow,
             ),
-          ),
-          ArRailButton(icon: Icons.more_horiz_rounded, onTap: _openActionSheet),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const Text(
+                    'ABZORA Try-On',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    _trackingLabel,
+                    style: TextStyle(
+                      color: _trackingLocked
+                          ? const Color(0xFF7FD69A)
+                          : Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ArRailButton(
+              icon: Icons.more_horiz_rounded,
+              onTap: _openActionSheet,
+            ),
+          ],
         ),
       ),
     );
@@ -2961,15 +2998,21 @@ class _AbianzoArScreenState extends State<AbianzoArScreen>
                   constraints: BoxConstraints(maxWidth: constraints.maxWidth),
                   child: ArStatusChip(label: _fitPerceptionCue),
                 ),
-                if (_stylistSuggestions.isNotEmpty && !_trackingLocked) ...<Widget>[
+                if (_stylistSuggestions.isNotEmpty &&
+                    !_trackingLocked) ...<Widget>[
                   const SizedBox(height: 10),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xB814151A),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.12),
+                      ),
                     ),
                     child: Text(
                       _stylistSuggestions.first.subtitle,
@@ -3290,4 +3333,3 @@ class _BodyOutlinePainter extends CustomPainter {
     return oldDelegate.color != color || oldDelegate.glow != glow;
   }
 }
-

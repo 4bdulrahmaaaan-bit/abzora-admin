@@ -60,8 +60,8 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
               Text(
                 'Available Balance',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: VendorTheme.background.withValues(alpha: 0.8),
-                    ),
+                  color: VendorTheme.background.withValues(alpha: 0.8),
+                ),
               ),
               VendorStatusBadge(
                 label: 'Ready for Payout',
@@ -73,9 +73,9 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
           Text(
             '\u20B91,24,500.00',
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  color: VendorTheme.background,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: VendorTheme.background,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: VendorTheme.spacing24),
           Row(
@@ -109,21 +109,24 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            Text(
-              'Performance',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('Performance', style: Theme.of(context).textTheme.titleLarge),
             DropdownButton<String>(
               value: _selectedPeriod,
               underline: const SizedBox(),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: VendorTheme.primary,
-                  ),
-              icon: const Icon(Icons.arrow_drop_down, color: VendorTheme.primary),
-              items: <String>['Today', 'This Week', 'This Month', 'This Year']
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
+                fontWeight: FontWeight.bold,
+                color: VendorTheme.primary,
+              ),
+              icon: const Icon(
+                Icons.arrow_drop_down,
+                color: VendorTheme.primary,
+              ),
+              items: <String>[
+                'Today',
+                'This Week',
+                'This Month',
+                'This Year',
+              ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
               onChanged: (value) {
                 if (value != null) {
                   setState(() => _selectedPeriod = value);
@@ -185,7 +188,10 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Next Payout Schedule', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Next Payout Schedule',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: VendorTheme.spacing16),
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -193,14 +199,20 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
               backgroundColor: VendorTheme.success.withValues(alpha: 0.1),
               child: const Icon(Icons.check_circle, color: VendorTheme.success),
             ),
-            title: Text('Scheduled for Oct 15, 2026', style: Theme.of(context).textTheme.titleSmall),
-            subtitle: Text('Direct to HDFC Bank **** 1234', style: Theme.of(context).textTheme.bodySmall),
+            title: Text(
+              'Scheduled for Oct 15, 2026',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            subtitle: Text(
+              'Direct to HDFC Bank **** 1234',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             trailing: Text(
               '\u20B945,000.00',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: VendorTheme.primary,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: VendorTheme.primary,
+              ),
             ),
           ),
         ],
@@ -215,11 +227,11 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            Text('Recent Transactions', style: Theme.of(context).textTheme.titleLarge),
-            TextButton(
-              onPressed: () {},
-              child: const Text('View All'),
+            Text(
+              'Recent Transactions',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
+            TextButton(onPressed: () {}, child: const Text('View All')),
           ],
         ),
         const SizedBox(height: VendorTheme.spacing16),
@@ -243,7 +255,9 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
                       : VendorTheme.success.withValues(alpha: 0.1),
                   child: Icon(
                     isSettlement ? Icons.account_balance : Icons.shopping_cart,
-                    color: isSettlement ? VendorTheme.primary : VendorTheme.success,
+                    color: isSettlement
+                        ? VendorTheme.primary
+                        : VendorTheme.success,
                     size: 20,
                   ),
                 ),
@@ -252,15 +266,19 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 subtitle: Text(
-                  isSettlement ? 'Oct 01, 2026 \u2022 Processing' : 'Oct ${10 - index}, 2026 \u2022 Completed',
+                  isSettlement
+                      ? 'Oct 01, 2026 \u2022 Processing'
+                      : 'Oct ${10 - index}, 2026 \u2022 Completed',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 trailing: Text(
                   isSettlement ? '-\u20B950,000.00' : '+\u20B91,240.00',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: isSettlement ? Theme.of(context).colorScheme.onSurface : VendorTheme.success,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: isSettlement
+                        ? Theme.of(context).colorScheme.onSurface
+                        : VendorTheme.success,
+                  ),
                 ),
               );
             },

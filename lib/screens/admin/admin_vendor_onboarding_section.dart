@@ -10,10 +10,12 @@ class AdminVendorOnboardingSection extends StatefulWidget {
   const AdminVendorOnboardingSection({super.key});
 
   @override
-  State<AdminVendorOnboardingSection> createState() => _AdminVendorOnboardingSectionState();
+  State<AdminVendorOnboardingSection> createState() =>
+      _AdminVendorOnboardingSectionState();
 }
 
-class _AdminVendorOnboardingSectionState extends State<AdminVendorOnboardingSection> {
+class _AdminVendorOnboardingSectionState
+    extends State<AdminVendorOnboardingSection> {
   final _onboardingService = OnboardingService();
   bool _loading = true;
   String? _error;
@@ -58,14 +60,27 @@ class _AdminVendorOnboardingSectionState extends State<AdminVendorOnboardingSect
     if (actor == null) return;
     try {
       if (newStatus == 'approved') {
-        await _onboardingService.approveVendorRequest(requestId: requestId, actor: actor);
+        await _onboardingService.approveVendorRequest(
+          requestId: requestId,
+          actor: actor,
+        );
       } else if (newStatus == 'rejected') {
-        await _onboardingService.rejectVendorRequest(requestId: requestId, reason: 'Admin rejected', actor: actor);
+        await _onboardingService.rejectVendorRequest(
+          requestId: requestId,
+          reason: 'Admin rejected',
+          actor: actor,
+        );
       }
       await _loadData();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Status updated to $newStatus')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Status updated to $newStatus')));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppErrorText.from(e))));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppErrorText.from(e))));
     }
   }
 
@@ -74,16 +89,23 @@ class _AdminVendorOnboardingSectionState extends State<AdminVendorOnboardingSect
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return Center(child: Text('Error: $_error'));
 
-    final filtered = _statusFilter == 'All' 
-        ? _requests 
-        : _requests.where((r) => r.status.toLowerCase() == _statusFilter.toLowerCase()).toList();
+    final filtered = _statusFilter == 'All'
+        ? _requests
+        : _requests
+              .where(
+                (r) => r.status.toLowerCase() == _statusFilter.toLowerCase(),
+              )
+              .toList();
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Vendor Onboarding', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold)),
+          Text(
+            'Vendor Onboarding',
+            style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
           _buildKpis(),
           const SizedBox(height: 24),
@@ -98,12 +120,24 @@ class _AdminVendorOnboardingSectionState extends State<AdminVendorOnboardingSect
   }
 
   Widget _buildKpis() {
-    final applicationsToday = _requests.where((r) => r.createdAt.startsWith(DateTime.now().toIso8601String().substring(0, 10))).length;
+    final applicationsToday = _requests
+        .where(
+          (r) => r.createdAt.startsWith(
+            DateTime.now().toIso8601String().substring(0, 10),
+          ),
+        )
+        .length;
     final pendingOcr = _requests.where((r) => r.status == 'pending_ocr').length;
-    final pendingBusiness = _requests.where((r) => r.status == 'pending_business').length;
-    final pendingFinance = _requests.where((r) => r.status == 'pending_finance').length;
+    final pendingBusiness = _requests
+        .where((r) => r.status == 'pending_business')
+        .length;
+    final pendingFinance = _requests
+        .where((r) => r.status == 'pending_finance')
+        .length;
     final activeVendors = _requests.where((r) => r.status == 'approved').length;
-    final rejectedVendors = _requests.where((r) => r.status == 'rejected').length;
+    final rejectedVendors = _requests
+        .where((r) => r.status == 'rejected')
+        .length;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -125,9 +159,18 @@ class _AdminVendorOnboardingSectionState extends State<AdminVendorOnboardingSect
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              Text(title, style: GoogleFonts.inter(fontSize: 12, color: Colors.grey)),
+              Text(
+                title,
+                style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+              ),
               const SizedBox(height: 8),
-              Text('$count', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(
+                '$count',
+                style: GoogleFonts.inter(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
@@ -168,9 +211,15 @@ class _AdminVendorOnboardingSectionState extends State<AdminVendorOnboardingSect
         const SizedBox(width: 8),
         DropdownButton<String>(
           value: _statusFilter,
-          items: ['All', 'Pending', 'Pending_OCR', 'Pending_Business', 'Pending_Finance', 'Approved', 'Rejected']
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-              .toList(),
+          items: [
+            'All',
+            'Pending',
+            'Pending_OCR',
+            'Pending_Business',
+            'Pending_Finance',
+            'Approved',
+            'Rejected',
+          ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
           onChanged: (val) {
             if (val != null) setState(() => _statusFilter = val);
           },
@@ -192,10 +241,19 @@ class _AdminVendorOnboardingSectionState extends State<AdminVendorOnboardingSect
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (req.status != 'approved')
-                  IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: () => _updateStatus(req.id, 'approved')),
+                  IconButton(
+                    icon: const Icon(Icons.check, color: Colors.green),
+                    onPressed: () => _updateStatus(req.id, 'approved'),
+                  ),
                 if (req.status != 'rejected')
-                  IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => _updateStatus(req.id, 'rejected')),
-                IconButton(icon: const Icon(Icons.info), onPressed: () => _showDetailDrawer(req)),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.red),
+                    onPressed: () => _updateStatus(req.id, 'rejected'),
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.info),
+                  onPressed: () => _showDetailDrawer(req),
+                ),
               ],
             ),
           ),
@@ -216,25 +274,41 @@ class _AdminVendorOnboardingSectionState extends State<AdminVendorOnboardingSect
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Details for ${req.storeName}', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(
+                  'Details for ${req.storeName}',
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 _sectionTitle('Business Info'),
-                Text('Owner: ${req.ownerName}\nPhone: ${req.phone}\nAddress: ${req.address}\nCity: ${req.city}\nType: ${req.vendorType}'),
+                Text(
+                  'Owner: ${req.ownerName}\nPhone: ${req.phone}\nAddress: ${req.address}\nCity: ${req.city}\nType: ${req.vendorType}',
+                ),
                 const SizedBox(height: 16),
                 _sectionTitle('Expertise'),
-                Text('Experience: ${req.experienceYears} years\nSpecializations: ${req.specializations.join(", ")}'),
+                Text(
+                  'Experience: ${req.experienceYears} years\nSpecializations: ${req.specializations.join(", ")}',
+                ),
                 const SizedBox(height: 16),
                 _sectionTitle('Portfolio'),
                 Text('Images: ${req.portfolioImageUrls.length}'),
                 const SizedBox(height: 16),
                 _sectionTitle('Pricing'),
-                Text('Starting: ${req.startingPrice}\nUpper: ${req.typicalPriceUpper}'),
+                Text(
+                  'Starting: ${req.startingPrice}\nUpper: ${req.typicalPriceUpper}',
+                ),
                 const SizedBox(height: 16),
                 _sectionTitle('KYC'),
-                Text('Aadhaar: ${req.verification.aadhaarNumber}\nPAN: ${req.verification.panNumber}'),
+                Text(
+                  'Aadhaar: ${req.verification.aadhaarNumber}\nPAN: ${req.verification.panNumber}',
+                ),
                 const SizedBox(height: 16),
                 _sectionTitle('Audit Trail'),
-                ...req.actionHistory.map((h) => Text('${h.timestamp}: ${h.action} by ${h.actorName}')),
+                ...req.actionHistory.map(
+                  (h) => Text('${h.timestamp}: ${h.action} by ${h.actorName}'),
+                ),
               ],
             ),
           ),
@@ -246,7 +320,10 @@ class _AdminVendorOnboardingSectionState extends State<AdminVendorOnboardingSect
   Widget _sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(title, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
+      child: Text(
+        title,
+        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
     );
   }
 }

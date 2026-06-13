@@ -23,11 +23,18 @@ class ShimmerWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
     final resolvedBaseColor =
-        baseColor ?? (brightness == Brightness.dark ? const Color(0xFF222222) : const Color(0xFFE4E4E4));
+        baseColor ??
+        (brightness == Brightness.dark
+            ? const Color(0xFF222222)
+            : const Color(0xFFE4E4E4));
     final resolvedHighlightColor =
-        highlightColor ?? (brightness == Brightness.dark ? const Color(0xFF303030) : const Color(0xFFF5F5F5));
+        highlightColor ??
+        (brightness == Brightness.dark
+            ? const Color(0xFF303030)
+            : const Color(0xFFF5F5F5));
 
-    final content = child ??
+    final content =
+        child ??
         Container(
           width: width,
           height: height,

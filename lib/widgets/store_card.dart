@@ -9,11 +9,7 @@ class StoreCard extends StatelessWidget {
   final Store store;
   final VoidCallback onTap;
 
-  const StoreCard({
-    super.key,
-    required this.store,
-    required this.onTap,
-  });
+  const StoreCard({super.key, required this.store, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +26,10 @@ class StoreCard extends StatelessWidget {
               padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.4), width: 1.5),
+                border: Border.all(
+                  color: AbzioTheme.accentColor.withValues(alpha: 0.4),
+                  width: 1.5,
+                ),
               ),
               child: Container(
                 width: 76,
@@ -47,7 +46,9 @@ class StoreCard extends StatelessWidget {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: AbzioNetworkImage(
-                  imageUrl: store.imageUrl.isNotEmpty ? store.imageUrl : 'https://via.placeholder.com/100?text=Store',
+                  imageUrl: store.imageUrl.isNotEmpty
+                      ? store.imageUrl
+                      : 'https://via.placeholder.com/100?text=Store',
                   fallbackLabel: store.name,
                 ),
               ),

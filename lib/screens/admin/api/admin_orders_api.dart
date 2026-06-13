@@ -41,10 +41,7 @@ class AdminOrdersApi {
   }
 
   Future<Map<String, dynamic>> getOrder(String id) async {
-    final payload = await _client.get(
-      '/admin/orders/$id',
-      authenticated: true,
-    );
+    final payload = await _client.get('/admin/orders/$id', authenticated: true);
     return Map<String, dynamic>.from(payload as Map);
   }
 

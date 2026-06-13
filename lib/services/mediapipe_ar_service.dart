@@ -64,8 +64,10 @@ class MediaPipeArService {
       return;
     }
     final confidence =
-        ((poseFrame['trackingReliability'] as num?)?.toDouble() ?? 0.8)
-            .clamp(0.0, 1.0);
+        ((poseFrame['trackingReliability'] as num?)?.toDouble() ?? 0.8).clamp(
+          0.0,
+          1.0,
+        );
     _eventsController.add(<String, dynamic>{
       'type': 'onBodyDetection',
       'detected': true,
@@ -132,4 +134,3 @@ class MediaPipeArService {
     _sessionActive = false;
   }
 }
-

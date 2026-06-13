@@ -63,7 +63,11 @@ class ProductPricingSection extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.local_offer_rounded, color: Color(0xFF16A34A), size: 18),
+                  const Icon(
+                    Icons.local_offer_rounded,
+                    color: Color(0xFF16A34A),
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     '${controller.discountPercentage.toStringAsFixed(0)}% OFF',
@@ -93,7 +97,10 @@ class ProductPricingSection extends StatelessWidget {
               ),
               Text(
                 'Price includes taxes',
-                style: GoogleFonts.inter(color: AbzioTheme.textPrimary, fontWeight: FontWeight.w500),
+                style: GoogleFonts.inter(
+                  color: AbzioTheme.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
@@ -134,10 +141,16 @@ class ProductPricingSection extends StatelessWidget {
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withValues(alpha: 0.5)),
+            hintStyle: GoogleFonts.inter(
+              color: AbzioTheme.textSecondary.withValues(alpha: 0.5),
+            ),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
-            prefixIcon: const Icon(Icons.currency_rupee_rounded, size: 18, color: AbzioTheme.textSecondary),
+            prefixIcon: const Icon(
+              Icons.currency_rupee_rounded,
+              size: 18,
+              color: AbzioTheme.textSecondary,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: AbzioTheme.lightBorder),
@@ -150,7 +163,10 @@ class ProductPricingSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: AbzioTheme.accentColor),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
       ],

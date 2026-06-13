@@ -33,19 +33,12 @@ class BrandLogo extends StatelessWidget {
         spreadRadius: 1,
         offset: Offset(0, 12),
       ),
-      BoxShadow(
-        color: Color(0x14000000),
-        blurRadius: 18,
-        offset: Offset(0, 6),
-      ),
+      BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, 6)),
     ],
     this.gradient = const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [
-        Color(0xFF0E0E0E),
-        Color(0xFF030303),
-      ],
+      colors: [Color(0xFF0E0E0E), Color(0xFF030303)],
     ),
     this.assetPath = 'assets/branding/abianzo_customer_icon.png',
   });
@@ -64,10 +57,7 @@ class BrandLogo extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
-        child: Image.asset(
-          assetPath,
-          fit: BoxFit.contain,
-        ),
+        child: Image.asset(assetPath, fit: BoxFit.contain),
       ),
     );
   }

@@ -14,10 +14,12 @@ class AdminOnboardingAnalyticsSection extends StatefulWidget {
   const AdminOnboardingAnalyticsSection({super.key});
 
   @override
-  State<AdminOnboardingAnalyticsSection> createState() => _AdminOnboardingAnalyticsSectionState();
+  State<AdminOnboardingAnalyticsSection> createState() =>
+      _AdminOnboardingAnalyticsSectionState();
 }
 
-class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyticsSection> {
+class _AdminOnboardingAnalyticsSectionState
+    extends State<AdminOnboardingAnalyticsSection> {
   bool _isLoading = true;
   String _error = '';
   Map<String, dynamic> _data = {};
@@ -48,13 +50,19 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
     }
   }
 
-  Future<void> _saveAndShareFile(String fileName, List<int> bytes, String mimeType) async {
+  Future<void> _saveAndShareFile(
+    String fileName,
+    List<int> bytes,
+    String mimeType,
+  ) async {
     final dir = await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/$fileName');
     await file.writeAsBytes(bytes);
 
     if (mounted) {
-      await Share.shareXFiles([XFile(file.path, mimeType: mimeType)], text: 'Exported $fileName');
+      await Share.shareXFiles([
+        XFile(file.path, mimeType: mimeType),
+      ], text: 'Exported $fileName');
     }
   }
 
@@ -90,14 +98,24 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
 
   Future<void> _exportAsCsv() async {
     final data = _prepareExportData();
-    final csv = data.map((row) => row.map((cell) {
-      final s = cell;
-      if (s.contains(',') || s.contains('"') || s.contains('\n')) {
-        return '"${s.replaceAll('"', '""')}"';
-      }
-      return s;
-    }).join(',')).join('\n');
-    await _saveAndShareFile('onboarding_analytics.csv', csv.codeUnits, 'text/csv');
+    final csv = data
+        .map(
+          (row) => row
+              .map((cell) {
+                final s = cell;
+                if (s.contains(',') || s.contains('"') || s.contains('\n')) {
+                  return '"${s.replaceAll('"', '""')}"';
+                }
+                return s;
+              })
+              .join(','),
+        )
+        .join('\n');
+    await _saveAndShareFile(
+      'onboarding_analytics.csv',
+      csv.codeUnits,
+      'text/csv',
+    );
   }
 
   Future<void> _exportAsExcel() async {
@@ -110,7 +128,11 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
     }
 
     final bytes = excel.encode()!;
-    await _saveAndShareFile('onboarding_analytics.xlsx', bytes, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    await _saveAndShareFile(
+      'onboarding_analytics.xlsx',
+      bytes,
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
   }
 
   Future<void> _exportAsPdf() async {
@@ -123,12 +145,15 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('Onboarding Analytics Funnel', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 20),
-              pw.TableHelper.fromTextArray(
-                context: context,
-                data: data,
+              pw.Text(
+                'Onboarding Analytics Funnel',
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                ),
               ),
+              pw.SizedBox(height: 20),
+              pw.TableHelper.fromTextArray(context: context, data: data),
             ],
           );
         },
@@ -136,7 +161,11 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
     );
 
     final bytes = await pdf.save();
-    await _saveAndShareFile('onboarding_analytics.pdf', bytes, 'application/pdf');
+    await _saveAndShareFile(
+      'onboarding_analytics.pdf',
+      bytes,
+      'application/pdf',
+    );
   }
 
   void _showExportOptions() {
@@ -145,7 +174,10 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
       builder: (context) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(
+              vertical: 24.0,
+              horizontal: 16.0,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,9 +225,9 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
       await exportFunc();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isExporting = false);
@@ -248,9 +280,15 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
               const SizedBox(height: 32),
               _buildKpisSection(),
               const SizedBox(height: 32),
-              _buildFunnelSection('Vendor Onboarding Funnel', _data['vendorFunnel'] as List? ?? []),
+              _buildFunnelSection(
+                'Vendor Onboarding Funnel',
+                _data['vendorFunnel'] as List? ?? [],
+              ),
               const SizedBox(height: 32),
-              _buildFunnelSection('Rider Onboarding Funnel', _data['riderFunnel'] as List? ?? []),
+              _buildFunnelSection(
+                'Rider Onboarding Funnel',
+                _data['riderFunnel'] as List? ?? [],
+              ),
               const SizedBox(height: 32),
               _buildExecutiveInsights(),
               const SizedBox(height: 48),
@@ -287,31 +325,84 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Key Performance Indicators', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+        Text(
+          'Key Performance Indicators',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _buildKpiCard('Vendor Applications Today', '${vendorKpis['applicationsToday'] ?? 0}', Colors.orange.shade50)),
+            Expanded(
+              child: _buildKpiCard(
+                'Vendor Applications Today',
+                '${vendorKpis['applicationsToday'] ?? 0}',
+                Colors.orange.shade50,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _buildKpiCard('Vendor Conv. Rate', '${vendorKpis['conversionRate'] ?? 0}%', Colors.orange.shade50)),
+            Expanded(
+              child: _buildKpiCard(
+                'Vendor Conv. Rate',
+                '${vendorKpis['conversionRate'] ?? 0}%',
+                Colors.orange.shade50,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _buildKpiCard('Vendor Avg Approval', '${vendorKpis['avgApprovalTimeHours'] ?? 0} hrs', Colors.orange.shade50)),
+            Expanded(
+              child: _buildKpiCard(
+                'Vendor Avg Approval',
+                '${vendorKpis['avgApprovalTimeHours'] ?? 0} hrs',
+                Colors.orange.shade50,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _buildKpiCard('Vendor Avg Activation', '${vendorKpis['avgActivationTimeDays'] ?? 0} days', Colors.orange.shade50)),
+            Expanded(
+              child: _buildKpiCard(
+                'Vendor Avg Activation',
+                '${vendorKpis['avgActivationTimeDays'] ?? 0} days',
+                Colors.orange.shade50,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _buildKpiCard('Rider Applications Today', '${riderKpis['applicationsToday'] ?? 0}', Colors.blue.shade50)),
+            Expanded(
+              child: _buildKpiCard(
+                'Rider Applications Today',
+                '${riderKpis['applicationsToday'] ?? 0}',
+                Colors.blue.shade50,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _buildKpiCard('Rider Conv. Rate', '${riderKpis['conversionRate'] ?? 0}%', Colors.blue.shade50)),
+            Expanded(
+              child: _buildKpiCard(
+                'Rider Conv. Rate',
+                '${riderKpis['conversionRate'] ?? 0}%',
+                Colors.blue.shade50,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _buildKpiCard('Rider Avg Approval', '${riderKpis['avgApprovalTimeHours'] ?? 0} hrs', Colors.blue.shade50)),
+            Expanded(
+              child: _buildKpiCard(
+                'Rider Avg Approval',
+                '${riderKpis['avgApprovalTimeHours'] ?? 0} hrs',
+                Colors.blue.shade50,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _buildKpiCard('Rider Avg Activation', '${riderKpis['avgActivationTimeDays'] ?? 0} days', Colors.blue.shade50)),
+            Expanded(
+              child: _buildKpiCard(
+                'Rider Avg Activation',
+                '${riderKpis['avgActivationTimeDays'] ?? 0} days',
+                Colors.blue.shade50,
+              ),
+            ),
           ],
         ),
       ],
@@ -363,7 +454,12 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 24),
             if (funnelData.isEmpty)
               const Text('No funnel data available.')
@@ -380,7 +476,9 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
                           width: 150,
                           child: Text(
                             stageData['stage'] ?? '',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                         Expanded(
@@ -391,13 +489,18 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
                                 children: [
                                   Text(
                                     '${stageData['count']} users',
-                                    style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   const Spacer(),
                                   if (dropoff > 0)
                                     Text(
                                       '$dropoff% drop-off',
-                                      style: GoogleFonts.inter(color: Colors.red, fontSize: 12),
+                                      style: GoogleFonts.inter(
+                                        color: Colors.red,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                 ],
                               ),
@@ -405,7 +508,11 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
                               LinearProgressIndicator(
                                 value: conversion / 100,
                                 backgroundColor: Colors.grey.shade200,
-                                color: conversion > 80 ? Colors.green : (conversion > 50 ? Colors.orange : Colors.red),
+                                color: conversion > 80
+                                    ? Colors.green
+                                    : (conversion > 50
+                                          ? Colors.orange
+                                          : Colors.red),
                                 minHeight: 8,
                                 borderRadius: BorderRadius.circular(4),
                               ),
@@ -418,7 +525,10 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
                           child: Text(
                             '$conversion%',
                             textAlign: TextAlign.right,
-                            style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black54),
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black54,
+                            ),
                           ),
                         ),
                       ],
@@ -454,13 +564,33 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Executive Insights', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Executive Insights',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 16),
-                  _buildInsightList('Biggest Drop-offs', dropoffs, Icons.trending_down, Colors.red),
+                  _buildInsightList(
+                    'Biggest Drop-offs',
+                    dropoffs,
+                    Icons.trending_down,
+                    Colors.red,
+                  ),
                   const SizedBox(height: 16),
-                  _buildInsightList('Fastest Stages', fast, Icons.speed, Colors.green),
+                  _buildInsightList(
+                    'Fastest Stages',
+                    fast,
+                    Icons.speed,
+                    Colors.green,
+                  ),
                   const SizedBox(height: 16),
-                  _buildInsightList('Slowest Stages', slow, Icons.hourglass_bottom, Colors.orange),
+                  _buildInsightList(
+                    'Slowest Stages',
+                    slow,
+                    Icons.hourglass_bottom,
+                    Colors.orange,
+                  ),
                 ],
               ),
             ),
@@ -482,16 +612,37 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.red,
+                      ),
                       const SizedBox(width: 8),
-                      Text('System Alerts', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.red.shade900)),
+                      Text(
+                        'System Alerts',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red.shade900,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  if (alerts.isEmpty) const Text('No active alerts.') else ...alerts.map((a) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text('â€¢ $a', style: GoogleFonts.inter(fontWeight: FontWeight.w500, color: Colors.red.shade900, height: 1.5)),
-                  )),
+                  if (alerts.isEmpty)
+                    const Text('No active alerts.')
+                  else
+                    ...alerts.map(
+                      (a) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          'â€¢ $a',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.red.shade900,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -501,7 +652,12 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
     );
   }
 
-  Widget _buildInsightList(String title, List<dynamic> items, IconData icon, Color color) {
+  Widget _buildInsightList(
+    String title,
+    List<dynamic> items,
+    IconData icon,
+    Color color,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -509,14 +665,25 @@ class _AdminOnboardingAnalyticsSectionState extends State<AdminOnboardingAnalyti
           children: [
             Icon(icon, size: 16, color: color),
             const SizedBox(width: 8),
-            Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black87)),
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 8),
-        ...items.map((item) => Padding(
-          padding: const EdgeInsets.only(bottom: 4, left: 24),
-          child: Text('â€¢ $item', style: GoogleFonts.inter(color: Colors.black54)),
-        )),
+        ...items.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 4, left: 24),
+            child: Text(
+              'â€¢ $item',
+              style: GoogleFonts.inter(color: Colors.black54),
+            ),
+          ),
+        ),
       ],
     );
   }

@@ -38,33 +38,43 @@ class LightweightArCompositingEngine {
     required GarmentDeformationSnapshot deformation,
   }) {
     final tierFactor = _tierFactor(tier);
-    final confidence = ((trackingReliability * 0.4) +
-            (segmentationReliability * 0.35) +
-            (alignment.attachmentConfidence * 0.15) +
-            (deformation.stability * 0.1))
-        .clamp(0.0, 1.0);
+    final confidence =
+        ((trackingReliability * 0.4) +
+                (segmentationReliability * 0.35) +
+                (alignment.attachmentConfidence * 0.15) +
+                (deformation.stability * 0.1))
+            .clamp(0.0, 1.0);
     final thermalPenalty = (thermalLoad * 0.45).clamp(0.0, 0.45);
-    final qualityBudget = ((tierFactor * 0.45) +
-            (renderQuality.clamp(0.0, 1.0) * 0.35) +
-            (confidence * 0.2) -
-            thermalPenalty)
-        .clamp(0.2, 1.0);
+    final qualityBudget =
+        ((tierFactor * 0.45) +
+                (renderQuality.clamp(0.0, 1.0) * 0.35) +
+                (confidence * 0.2) -
+                thermalPenalty)
+            .clamp(0.2, 1.0);
 
     final target = ArCompositingSnapshot(
       shadowOpacity: (0.1 + (qualityBudget * 0.22)).clamp(0.08, 0.3),
       contactShadowOpacity:
-          (0.12 + (qualityBudget * 0.25) + (confidence * 0.08)).clamp(0.1, 0.36),
+          (0.12 + (qualityBudget * 0.25) + (confidence * 0.08)).clamp(
+            0.1,
+            0.36,
+          ),
       shadowSoftness: (0.50 + (qualityBudget * 0.32)).clamp(0.42, 0.9),
       depthSeparation: (0.2 + (qualityBudget * 0.38)).clamp(0.18, 0.62),
-      torsoDepthLift: ((alignment.torsoScale - 1.0).abs() * 0.35 +
-              (deformation.torsoScaleY - 1.0).abs() * 0.5 +
-              (qualityBudget * 0.08))
-          .clamp(0.02, 0.2),
-      chestDepthLift: ((alignment.chestScale - 1.0).abs() * 0.46 +
-              (deformation.chestInflation - 1.0).abs() * 0.55 +
-              (qualityBudget * 0.1))
-          .clamp(0.03, 0.26),
-      overlapBlend: ((occlusionBlend * 0.58) + (confidence * 0.42)).clamp(0.28, 0.9),
+      torsoDepthLift:
+          ((alignment.torsoScale - 1.0).abs() * 0.35 +
+                  (deformation.torsoScaleY - 1.0).abs() * 0.5 +
+                  (qualityBudget * 0.08))
+              .clamp(0.02, 0.2),
+      chestDepthLift:
+          ((alignment.chestScale - 1.0).abs() * 0.46 +
+                  (deformation.chestInflation - 1.0).abs() * 0.55 +
+                  (qualityBudget * 0.1))
+              .clamp(0.03, 0.26),
+      overlapBlend: ((occlusionBlend * 0.58) + (confidence * 0.42)).clamp(
+        0.28,
+        0.9,
+      ),
       layeringConfidence: confidence,
     );
 
@@ -73,20 +83,27 @@ class LightweightArCompositingEngine {
       _previous = target;
       return target;
     }
-    final smoothing = (0.14 + (confidence * 0.4) - (thermalLoad * 0.12))
-        .clamp(0.12, 0.5);
+    final smoothing = (0.14 + (confidence * 0.4) - (thermalLoad * 0.12)).clamp(
+      0.12,
+      0.5,
+    );
     double lerp(double a, double b) => a + ((b - a) * smoothing);
 
     final stabilized = ArCompositingSnapshot(
       shadowOpacity: lerp(prev.shadowOpacity, target.shadowOpacity),
-      contactShadowOpacity:
-          lerp(prev.contactShadowOpacity, target.contactShadowOpacity),
+      contactShadowOpacity: lerp(
+        prev.contactShadowOpacity,
+        target.contactShadowOpacity,
+      ),
       shadowSoftness: lerp(prev.shadowSoftness, target.shadowSoftness),
       depthSeparation: lerp(prev.depthSeparation, target.depthSeparation),
       torsoDepthLift: lerp(prev.torsoDepthLift, target.torsoDepthLift),
       chestDepthLift: lerp(prev.chestDepthLift, target.chestDepthLift),
       overlapBlend: lerp(prev.overlapBlend, target.overlapBlend),
-      layeringConfidence: lerp(prev.layeringConfidence, target.layeringConfidence),
+      layeringConfidence: lerp(
+        prev.layeringConfidence,
+        target.layeringConfidence,
+      ),
     );
     _previous = stabilized;
     return stabilized;

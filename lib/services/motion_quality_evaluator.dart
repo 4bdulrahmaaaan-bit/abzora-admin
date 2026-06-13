@@ -20,7 +20,8 @@ class MotionQualityEvaluator {
     );
     final hipMotion = _distance(previous.hipCenter, frame.hipCenter);
     final widthVariance = (previous.shoulderWidth - frame.shoulderWidth).abs();
-    final rotationDelta = (previous.rotationRadians - frame.rotationRadians).abs();
+    final rotationDelta = (previous.rotationRadians - frame.rotationRadians)
+        .abs();
     final raw =
         1.0 -
         ((shoulderMotion * 1.6) +

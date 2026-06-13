@@ -12,7 +12,8 @@ class FitConfidenceEngine {
     required String selectedSize,
   }) {
     final fitPreset =
-        (payload.garmentConfig['fitPreset'] ?? payload.garmentConfig['fit'] ??
+        (payload.garmentConfig['fitPreset'] ??
+                payload.garmentConfig['fit'] ??
                 'regular')
             .toString()
             .toLowerCase();
@@ -103,9 +104,12 @@ class FitConfidenceEngine {
     final reasons = <FitRecommendationReason>[];
     final hintText = switch (bodyProfile.fitPreferenceHint) {
       FitPreferenceType.relaxed => 'Relaxed fit is likely to feel most natural',
-      FitPreferenceType.oversized => 'An oversized silhouette should suit your proportions',
-      FitPreferenceType.slim => 'A slim line can work, with attention at the shoulders',
-      FitPreferenceType.trueToSize => 'True-to-size should drape in a balanced way',
+      FitPreferenceType.oversized =>
+        'An oversized silhouette should suit your proportions',
+      FitPreferenceType.slim =>
+        'A slim line can work, with attention at the shoulders',
+      FitPreferenceType.trueToSize =>
+        'True-to-size should drape in a balanced way',
     };
     reasons.add(
       FitRecommendationReason(
@@ -119,7 +123,8 @@ class FitConfidenceEngine {
       reasons.add(
         FitRecommendationReason(
           title: 'Recommendation confidence is currently conservative',
-          detail: 'A steadier frame will improve shoulder and torso precision before final sizing.',
+          detail:
+              'A steadier frame will improve shoulder and torso precision before final sizing.',
           confidence: tracking.overall,
         ),
       );
@@ -127,7 +132,8 @@ class FitConfidenceEngine {
       reasons.add(
         FitRecommendationReason(
           title: 'Body mapping is stable for fit guidance',
-          detail: 'Current tracking quality supports a confident recommendation for $fitPreset styling.',
+          detail:
+              'Current tracking quality supports a confident recommendation for $fitPreset styling.',
           confidence: tracking.overall,
         ),
       );
@@ -135,7 +141,8 @@ class FitConfidenceEngine {
     reasons.add(
       FitRecommendationReason(
         title: 'Recommended size: $recommendedSize',
-        detail: 'Derived from body proportions, posture tendency, and garment ease behavior.',
+        detail:
+            'Derived from body proportions, posture tendency, and garment ease behavior.',
         confidence:
             ((bodyProfile.confidence.proportionReliability * 0.6) +
                     (tracking.coverage * 0.4))

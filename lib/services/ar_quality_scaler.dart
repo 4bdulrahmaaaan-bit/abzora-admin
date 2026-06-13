@@ -63,22 +63,30 @@ class ArQualityScaler {
     final degradeBoost = _isDegraded ? 0.08 : 0.0;
     final effectivePenalty = (totalPenalty + degradeBoost).clamp(0.0, 0.62);
     final confidenceScale = (0.62 + (clampedTracking * 0.38)).clamp(0.52, 1.0);
-    final segQuality = ((base.segmentationQuality - effectivePenalty) * confidenceScale)
-        .clamp(0.24, 1.0);
-    final renderQuality =
-        (base.renderQuality - (effectivePenalty * 0.9)).clamp(0.36, 1.0);
+    final segQuality =
+        ((base.segmentationQuality - effectivePenalty) * confidenceScale).clamp(
+          0.24,
+          1.0,
+        );
+    final renderQuality = (base.renderQuality - (effectivePenalty * 0.9)).clamp(
+      0.36,
+      1.0,
+    );
     final fpsDrop = (effectivePenalty * 12).round();
     final fps = (base.inferenceFps - fpsDrop).clamp(12, base.inferenceFps);
-    final occlusionEnabled = tier != ArDeviceTier.low &&
+    final occlusionEnabled =
+        tier != ArDeviceTier.low &&
         !_isDegraded &&
         segQuality >= 0.45 &&
         base.occlusionEnabled;
     final stride = _isDegraded
         ? (base.segmentationInferenceStride + 1).clamp(1, 4)
         : base.segmentationInferenceStride;
-    final edgeSmoothing = (base.segmentationEdgeSmoothing -
-            (effectivePenalty * 0.28))
-        .clamp(0.24, 0.84);
+    final edgeSmoothing =
+        (base.segmentationEdgeSmoothing - (effectivePenalty * 0.28)).clamp(
+          0.24,
+          0.84,
+        );
     final occlusionDetail = (base.occlusionDetail - (effectivePenalty * 0.35))
         .clamp(0.26, 0.92);
 

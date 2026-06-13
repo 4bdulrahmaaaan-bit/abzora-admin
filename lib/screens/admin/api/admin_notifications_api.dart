@@ -20,7 +20,9 @@ class AdminNotificationsApi {
         'campaignType': campaignType,
       },
     );
-    return AdminNotification.fromMap(Map<String, dynamic>.from(payload['data']));
+    return AdminNotification.fromMap(
+      Map<String, dynamic>.from(payload['data']),
+    );
   }
 
   static Future<AdminNotification> scheduleCampaign({
@@ -41,7 +43,9 @@ class AdminNotificationsApi {
         'scheduledAt': scheduledAt,
       },
     );
-    return AdminNotification.fromMap(Map<String, dynamic>.from(payload['data']));
+    return AdminNotification.fromMap(
+      Map<String, dynamic>.from(payload['data']),
+    );
   }
 
   static Future<Map<String, dynamic>> fetchHistory({
@@ -55,13 +59,12 @@ class AdminNotificationsApi {
     final map = Map<String, dynamic>.from(payload as Map);
 
     final history = (map['data'] as List? ?? [])
-        .map((e) => AdminNotification.fromMap(Map<String, dynamic>.from(e as Map)))
+        .map(
+          (e) => AdminNotification.fromMap(Map<String, dynamic>.from(e as Map)),
+        )
         .toList();
 
-    return {
-      'history': history,
-      'meta': map['meta'] ?? {},
-    };
+    return {'history': history, 'meta': map['meta'] ?? {}};
   }
 
   static Future<List<Map<String, dynamic>>> fetchTemplates() async {
@@ -69,6 +72,8 @@ class AdminNotificationsApi {
       '/admin/notifications/templates',
       authenticated: true,
     );
-    return (payload['data'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    return (payload['data'] as List? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
   }
 }

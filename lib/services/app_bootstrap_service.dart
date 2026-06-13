@@ -26,7 +26,8 @@ class AppBootstrapService {
         options: DefaultFirebaseOptions.currentPlatform,
       ).timeout(
         const Duration(seconds: 10),
-        onTimeout: () => throw Exception('[BOOT ERROR] Firebase.initializeApp timeout'),
+        onTimeout: () =>
+            throw Exception('[BOOT ERROR] Firebase.initializeApp timeout'),
       );
       debugPrint('[BOOT] 1 Firebase initialize done');
       firebaseReady = true;
@@ -37,7 +38,9 @@ class AppBootstrapService {
     }
 
     if (firebaseReady) {
-      debugPrint('Abianzo Firebase project: ${Firebase.app().options.projectId}');
+      debugPrint(
+        'Abianzo Firebase project: ${Firebase.app().options.projectId}',
+      );
       if (AppConfig.hasBackendBaseUrl) {
         try {
           debugPrint('Firebase Realtime Database disabled in backend mode.');
@@ -47,13 +50,17 @@ class AppBootstrapService {
       }
       try {
         if (!AppConfig.hasBackendBaseUrl && AppConfig.useFirebaseEmulators) {
-          await FirebaseAuth.instance.useAuthEmulator(
-            AppConfig.firebaseEmulatorHost,
-            AppConfig.firebaseAuthEmulatorPort,
-          ).timeout(
-            const Duration(seconds: 5),
-            onTimeout: () => throw Exception('[BOOT ERROR] FirebaseAuth emulator timeout'),
-          );
+          await FirebaseAuth.instance
+              .useAuthEmulator(
+                AppConfig.firebaseEmulatorHost,
+                AppConfig.firebaseAuthEmulatorPort,
+              )
+              .timeout(
+                const Duration(seconds: 5),
+                onTimeout: () => throw Exception(
+                  '[BOOT ERROR] FirebaseAuth emulator timeout',
+                ),
+              );
           debugPrint(
             'Firebase auth emulator enabled at ${AppConfig.firebaseEmulatorHost} '
             '(auth:${AppConfig.firebaseAuthEmulatorPort})',
@@ -66,15 +73,21 @@ class AppBootstrapService {
     }
 
     if (!AppConfig.hasFirebaseConfig) {
-      debugPrint('Firebase environment values are not configured. Running in demo-safe mode.');
+      debugPrint(
+        'Firebase environment values are not configured. Running in demo-safe mode.',
+      );
     }
 
     if (!AppConfig.hasRazorpayKey) {
-      debugPrint('Razorpay key is not configured. Online payments will be disabled.');
+      debugPrint(
+        'Razorpay key is not configured. Online payments will be disabled.',
+      );
     }
 
     if (!AppConfig.hasGoogleMapsKey) {
-      debugPrint('Google Maps API key is not configured. Location flow will use address-only fallback.');
+      debugPrint(
+        'Google Maps API key is not configured. Location flow will use address-only fallback.',
+      );
     }
 
     return AppBootstrapResult(
@@ -83,4 +96,3 @@ class AppBootstrapService {
     );
   }
 }
-

@@ -40,7 +40,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               padding: EdgeInsets.all(20),
               child: AbzioEmptyCard(
                 title: 'Sign in to track your orders',
-                subtitle: 'Your order journey will appear here once you place an order.',
+                subtitle:
+                    'Your order journey will appear here once you place an order.',
               ),
             ),
           ),
@@ -61,141 +62,153 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           child: StreamBuilder<List<OrderModel>>(
             stream: _ordersStream,
             builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const AbzioLoadingView(
-                title: 'Loading your orders',
-                subtitle: 'Fetching your latest purchases and delivery updates.',
-              );
-            }
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const AbzioLoadingView(
+                  title: 'Loading your orders',
+                  subtitle:
+                      'Fetching your latest purchases and delivery updates.',
+                );
+              }
 
-            final orders = snapshot.data ?? [];
-            if (orders.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: AbzioEmptyCard(
-                    title: 'No orders yet',
-                    subtitle: 'Once you place an order, it will show up here with delivery updates.',
-                    ctaLabel: 'Continue shopping',
-                    onTap: () => Navigator.popUntil(context, (route) => route.isFirst),
+              final orders = snapshot.data ?? [];
+              if (orders.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: AbzioEmptyCard(
+                      title: 'No orders yet',
+                      subtitle:
+                          'Once you place an order, it will show up here with delivery updates.',
+                      ctaLabel: 'Continue shopping',
+                      onTap: () =>
+                          Navigator.popUntil(context, (route) => route.isFirst),
+                    ),
                   ),
-                ),
-              );
-            }
-            final filteredOrders = orders.where(_matchesFilter).where(_matchesSearch).toList();
+                );
+              }
+              final filteredOrders = orders
+                  .where(_matchesFilter)
+                  .where(_matchesSearch)
+                  .toList();
 
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Your Orders',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Your Orders',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
                       ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => Navigator.pushNamed(context, '/invoice/history'),
-                      icon: const Icon(Icons.receipt_long_outlined, size: 18),
-                      label: const Text('Invoices'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Track purchases and custom creations',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: context.abzioSecondaryText,
-                        fontWeight: FontWeight.w500,
+                      OutlinedButton.icon(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/invoice/history'),
+                        icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                        label: const Text('Invoices'),
                       ),
-                ),
-                const SizedBox(height: 18),
-                TextField(
-                  onChanged: (value) => setState(() => _searchQuery = value.trim()),
-                  decoration: InputDecoration(
-                    hintText: 'Search by product, tailoring, or order ID',
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      size: 20,
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Track purchases and custom creations',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: context.abzioSecondaryText,
-                    ),
-                    isDense: true,
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: const BorderSide(color: Color(0xFFD7BA6A)),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _OrderFilter.values
-                        .map(
-                          (filter) => Padding(
-                            padding: const EdgeInsets.only(right: 10),
-                            child: _OrderFilterChip(
-                              label: filter.label,
-                              selected: filter == _activeFilter,
-                              onTap: () => setState(() => _activeFilter = filter),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  '${filteredOrders.length} ${filteredOrders.length == 1 ? 'piece in progress' : 'pieces in progress'}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  const SizedBox(height: 18),
+                  TextField(
+                    onChanged: (value) =>
+                        setState(() => _searchQuery = value.trim()),
+                    decoration: InputDecoration(
+                      hintText: 'Search by product, tailoring, or order ID',
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        size: 20,
                         color: context.abzioSecondaryText,
-                        fontWeight: FontWeight.w600,
                       ),
-                ),
-                const SizedBox(height: 10),
-                if (filteredOrders.isEmpty)
-                  AbzioEmptyCard(
-                    title: 'No matching orders',
-                    subtitle: 'Try a different search or filter to find your purchase faster.',
-                    ctaLabel: 'Clear filters',
-                    onTap: () {
-                      setState(() {
-                        _searchQuery = '';
-                        _activeFilter = _OrderFilter.all;
-                      });
-                    },
-                  ),
-                if (filteredOrders.isNotEmpty)
-                  ...filteredOrders.map(
-                    (order) => Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: _OrderListCard(
-                        order: order,
-                        statusLabel: _statusLabel(order),
-                        statusColor: _statusColor(order),
-                        statusIcon: _statusIcon(order),
-                        statusMessage: _statusMessage(order),
-                        customerName: user.name,
-                        onTap: () => _openOrderDetails(order, user),
+                      isDense: true,
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: const BorderSide(color: Color(0xFFD7BA6A)),
                       ),
                     ),
                   ),
-              ],
-            );
+                  const SizedBox(height: 14),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _OrderFilter.values
+                          .map(
+                            (filter) => Padding(
+                              padding: const EdgeInsets.only(right: 10),
+                              child: _OrderFilterChip(
+                                label: filter.label,
+                                selected: filter == _activeFilter,
+                                onTap: () =>
+                                    setState(() => _activeFilter = filter),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    '${filteredOrders.length} ${filteredOrders.length == 1 ? 'piece in progress' : 'pieces in progress'}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.abzioSecondaryText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  if (filteredOrders.isEmpty)
+                    AbzioEmptyCard(
+                      title: 'No matching orders',
+                      subtitle:
+                          'Try a different search or filter to find your purchase faster.',
+                      ctaLabel: 'Clear filters',
+                      onTap: () {
+                        setState(() {
+                          _searchQuery = '';
+                          _activeFilter = _OrderFilter.all;
+                        });
+                      },
+                    ),
+                  if (filteredOrders.isNotEmpty)
+                    ...filteredOrders.map(
+                      (order) => Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: _OrderListCard(
+                          order: order,
+                          statusLabel: _statusLabel(order),
+                          statusColor: _statusColor(order),
+                          statusIcon: _statusIcon(order),
+                          statusMessage: _statusMessage(order),
+                          customerName: user.name,
+                          onTap: () => _openOrderDetails(order, user),
+                        ),
+                      ),
+                    ),
+                ],
+              );
             },
           ),
         ),
@@ -208,15 +221,24 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       return true;
     }
     final query = _searchQuery.toLowerCase();
-    final itemText = order.items.map((item) => '${item.productName} ${item.size}').join(' ').toLowerCase();
-    final orderLabel = (order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber).toLowerCase();
-    final tailoringText = [
-      order.selectedDesignerName,
-      order.customizationSummary,
-      order.customDesignOptions['fabric'],
-      order.customDesignOptions['fabricType'],
-      order.customDesignOptions['atelierName'],
-    ].whereType<Object>().map((value) => value.toString().toLowerCase()).join(' ');
+    final itemText = order.items
+        .map((item) => '${item.productName} ${item.size}')
+        .join(' ')
+        .toLowerCase();
+    final orderLabel =
+        (order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber)
+            .toLowerCase();
+    final tailoringText =
+        [
+              order.selectedDesignerName,
+              order.customizationSummary,
+              order.customDesignOptions['fabric'],
+              order.customDesignOptions['fabricType'],
+              order.customDesignOptions['atelierName'],
+            ]
+            .whereType<Object>()
+            .map((value) => value.toString().toLowerCase())
+            .join(' ');
     return itemText.contains(query) ||
         orderLabel.contains(query) ||
         tailoringText.contains(query) ||
@@ -239,7 +261,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   }
 
   String _normalizeStatus(OrderModel order) {
-    final value = (order.deliveryStatus.isNotEmpty ? order.deliveryStatus : order.status).trim().toLowerCase();
+    final value =
+        (order.deliveryStatus.isNotEmpty ? order.deliveryStatus : order.status)
+            .trim()
+            .toLowerCase();
     if (value == 'placed' || value == 'pending') {
       return 'order placed';
     }
@@ -254,7 +279,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         return parsed;
       }
     }
-    return order.timestamp.add(Duration(days: order.orderType == 'custom_tailoring' ? 6 : 3));
+    return order.timestamp.add(
+      Duration(days: order.orderType == 'custom_tailoring' ? 6 : 3),
+    );
   }
 
   bool _canCancel(OrderModel order) {
@@ -407,10 +434,18 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel this order?'),
-        content: const Text('This action cannot be undone once the order starts shipping.'),
+        content: const Text(
+          'This action cannot be undone once the order starts shipping.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Keep order')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Cancel order')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep order'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Cancel order'),
+          ),
         ],
       ),
     );
@@ -434,10 +469,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   Future<void> _openOrderDetails(OrderModel order, AppUser user) async {
     if (_isFastDeliveryEligible(order)) {
-      await Navigator.of(context).pushNamed(
-        '/fast-tracking',
-        arguments: order,
-      );
+      await Navigator.of(context).pushNamed('/fast-tracking', arguments: order);
       return;
     }
     await Navigator.of(context).push(
@@ -448,8 +480,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           database: _database,
           canCancel: _canCancel(order),
           onCancel: () => _cancelOrder(order, user),
-          onSupport: () => _toast('Support is ready to help with delivery and order updates.'),
-          onReorder: () => Navigator.popUntil(context, (route) => route.isFirst),
+          onSupport: () => _toast(
+            'Support is ready to help with delivery and order updates.',
+          ),
+          onReorder: () =>
+              Navigator.popUntil(context, (route) => route.isFirst),
         ),
       ),
     );
@@ -519,7 +554,10 @@ class _OrderDetailsPage extends StatelessWidget {
     if (_isCustomTailoring) {
       return order.customOrderStatus.trim().toLowerCase();
     }
-    final value = (order.deliveryStatus.isNotEmpty ? order.deliveryStatus : order.status).trim().toLowerCase();
+    final value =
+        (order.deliveryStatus.isNotEmpty ? order.deliveryStatus : order.status)
+            .trim()
+            .toLowerCase();
     if (value == 'placed' || value == 'pending') {
       return 'order placed';
     }
@@ -578,7 +616,8 @@ class _OrderDetailsPage extends StatelessWidget {
         return parsed;
       }
     }
-    final customProductionDays = (order.customDesignOptions['productionTimeDays'] as num?)?.toInt();
+    final customProductionDays =
+        (order.customDesignOptions['productionTimeDays'] as num?)?.toInt();
     return order.timestamp.add(
       Duration(days: _isCustomTailoring ? (customProductionDays ?? 6) : 3),
     );
@@ -600,7 +639,9 @@ class _OrderDetailsPage extends StatelessWidget {
       return DateFormat('dd MMM, hh:mm a').format(inferred);
     }
     final totalSteps = _isCustomTailoring ? 7 : 5;
-    final expected = _estimatedDelivery.subtract(Duration(hours: ((totalSteps - 1) - index) * 6));
+    final expected = _estimatedDelivery.subtract(
+      Duration(hours: ((totalSteps - 1) - index) * 6),
+    );
     return 'Expected ${DateFormat('dd MMM, hh:mm a').format(expected)}';
   }
 
@@ -629,8 +670,8 @@ class _OrderDetailsPage extends StatelessWidget {
         final state = index < _currentStepIndex
             ? TrackingStepState.completed
             : index == _currentStepIndex
-                ? TrackingStepState.current
-                : TrackingStepState.upcoming;
+            ? TrackingStepState.current
+            : TrackingStepState.upcoming;
         return TrackingStepData(
           title: labels[index],
           timestampLabel: _timestampLabelFor(labels[index], index),
@@ -658,8 +699,8 @@ class _OrderDetailsPage extends StatelessWidget {
       final state = index < _currentStepIndex
           ? TrackingStepState.completed
           : index == _currentStepIndex
-              ? TrackingStepState.current
-              : TrackingStepState.upcoming;
+          ? TrackingStepState.current
+          : TrackingStepState.upcoming;
       return TrackingStepData(
         title: labels[index],
         timestampLabel: _timestampLabelFor(labels[index], index),
@@ -752,11 +793,14 @@ class _OrderDetailsPage extends StatelessWidget {
   }
 
   String get _customCategoryLabel {
-    final explicitCategory = order.customDesignOptions['category']?.toString().trim() ?? '';
+    final explicitCategory =
+        order.customDesignOptions['category']?.toString().trim() ?? '';
     if (explicitCategory.isNotEmpty) {
       return explicitCategory;
     }
-    final itemLabel = order.items.isNotEmpty ? order.items.first.productName.trim() : '';
+    final itemLabel = order.items.isNotEmpty
+        ? order.items.first.productName.trim()
+        : '';
     return itemLabel.isEmpty ? 'Custom Clothing' : itemLabel;
   }
 
@@ -776,7 +820,9 @@ class _OrderDetailsPage extends StatelessWidget {
       }
     }
     order.customMeasurements.forEach((key, value) {
-      if (orderedLabels.containsKey(key) || value == null || value.toString().trim().isEmpty) {
+      if (orderedLabels.containsKey(key) ||
+          value == null ||
+          value.toString().trim().isEmpty) {
         return;
       }
       entries.add(MapEntry(_humanizeKey(key), value.toString().trim()));
@@ -837,7 +883,8 @@ class _OrderDetailsPage extends StatelessWidget {
       _normalizedStatus != 'cancelled' &&
       _normalizedStatus != 'rejected';
 
-  bool get _canLeaveFitFeedback => _isCustomTailoring && _normalizedStatus == 'delivered';
+  bool get _canLeaveFitFeedback =>
+      _isCustomTailoring && _normalizedStatus == 'delivered';
 
   int get _atelierJourneyIndex {
     switch (_normalizedStatus) {
@@ -875,8 +922,10 @@ class _OrderDetailsPage extends StatelessWidget {
     final notes = await _showNotesPrompt(
       context,
       title: 'Request change',
-      subtitle: 'Share what the tailor should adjust before the outfit is finalized.',
-      hintText: 'Example: Please taper the waist slightly and shorten the sleeve by 1 inch.',
+      subtitle:
+          'Share what the tailor should adjust before the outfit is finalized.',
+      hintText:
+          'Example: Please taper the waist slightly and shorten the sleeve by 1 inch.',
       submitLabel: 'Send request',
     );
     if (notes == null) {
@@ -919,7 +968,9 @@ class _OrderDetailsPage extends StatelessWidget {
       );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thanks for rating your tailoring experience.')),
+          const SnackBar(
+            content: Text('Thanks for rating your tailoring experience.'),
+          ),
         );
       }
     } catch (error) {
@@ -951,8 +1002,8 @@ class _OrderDetailsPage extends StatelessWidget {
               Text(
                 subtitle,
                 style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
-                      color: dialogContext.abzioSecondaryText,
-                    ),
+                  color: dialogContext.abzioSecondaryText,
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -970,7 +1021,8 @@ class _OrderDetailsPage extends StatelessWidget {
               child: const Text('Not now'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()),
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(controller.text.trim()),
               child: Text(submitLabel),
             ),
           ],
@@ -990,9 +1042,17 @@ class _OrderDetailsPage extends StatelessWidget {
         .where((product) => product.id != primaryItem?.productId)
         .take(6)
         .toList();
-    final savedAmount = (order.subtotal > 0 ? (order.subtotal - order.totalAmount) : 0).clamp(0, double.infinity);
-    final orderLabel = order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
-    final contactLabel = (actor.phone ?? '').trim().isEmpty ? 'Not available' : actor.phone!.trim();
+    final savedAmount =
+        (order.subtotal > 0 ? (order.subtotal - order.totalAmount) : 0).clamp(
+          0,
+          double.infinity,
+        );
+    final orderLabel = order.invoiceNumber.isEmpty
+        ? order.id
+        : order.invoiceNumber;
+    final contactLabel = (actor.phone ?? '').trim().isEmpty
+        ? 'Not available'
+        : actor.phone!.trim();
     final progressMedia = _progressMedia;
     final measurements = _measurementEntries;
     final designEntries = _designEntries;
@@ -1034,11 +1094,16 @@ class _OrderDetailsPage extends StatelessWidget {
                           ],
                         )
                       : null,
-                  border: _isCustomTailoring ? null : Border.all(color: const Color(0xFFF0E3C5)),
+                  border: _isCustomTailoring
+                      ? null
+                      : Border.all(color: const Color(0xFFF0E3C5)),
                   boxShadow: [
                     BoxShadow(
-                      color: (_isCustomTailoring ? const Color(0xFF8C6A12) : const Color(0xFFB8963F))
-                          .withValues(alpha: 0.08),
+                      color:
+                          (_isCustomTailoring
+                                  ? const Color(0xFF8C6A12)
+                                  : const Color(0xFFB8963F))
+                              .withValues(alpha: 0.08),
                       blurRadius: 24,
                       offset: const Offset(0, 14),
                     ),
@@ -1053,7 +1118,10 @@ class _OrderDetailsPage extends StatelessWidget {
                               height: 110,
                               width: 110,
                               color: context.abzioMuted,
-                              child: Icon(Icons.checkroom_outlined, color: context.abzioSecondaryText),
+                              child: Icon(
+                                Icons.checkroom_outlined,
+                                color: context.abzioSecondaryText,
+                              ),
                             )
                           : CachedNetworkImage(
                               imageUrl: primaryItem.imageUrl,
@@ -1069,7 +1137,10 @@ class _OrderDetailsPage extends StatelessWidget {
                                 height: 110,
                                 width: 110,
                                 color: context.abzioMuted,
-                                child: Icon(Icons.broken_image_outlined, color: context.abzioSecondaryText),
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  color: context.abzioSecondaryText,
+                                ),
                               ),
                             ),
                     ),
@@ -1081,24 +1152,24 @@ class _OrderDetailsPage extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: context.abzioSecondaryText,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          color: context.abzioSecondaryText,
+                          fontWeight: FontWeight.w700,
+                        ),
                       )
                     else
                       Text(
-                      primaryItem.productName,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
+                        primaryItem.productName,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
                     const SizedBox(height: 6),
                     Text(
                       [
-                        if (primaryItem.size.trim().isNotEmpty) 'Size: ${primaryItem.size}',
+                        if (primaryItem.size.trim().isNotEmpty)
+                          'Size: ${primaryItem.size}',
                         'Quantity: ${primaryItem.quantity}',
                         'Order ID: #$orderLabel',
                       ].join(' • '),
@@ -1106,17 +1177,22 @@ class _OrderDetailsPage extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: context.abzioSecondaryText,
-                          ),
+                        color: context.abzioSecondaryText,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
                         color: _statusColor.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _statusColor.withValues(alpha: 0.18)),
+                        border: Border.all(
+                          color: _statusColor.withValues(alpha: 0.18),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -1128,7 +1204,8 @@ class _OrderDetailsPage extends StatelessWidget {
                               children: [
                                 Text(
                                   _statusTitle,
-                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(
                                         fontWeight: FontWeight.w800,
                                         color: _statusColor,
                                       ),
@@ -1138,8 +1215,11 @@ class _OrderDetailsPage extends StatelessWidget {
                                   _normalizedStatus == 'delivered'
                                       ? 'On ${DateFormat('EEE, dd MMM, hh:mm a').format(_estimatedDelivery)}'
                                       : 'Expected by ${DateFormat('EEE, dd MMM').format(_estimatedDelivery)}',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: _statusColor.withValues(alpha: 0.9),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: _statusColor.withValues(
+                                          alpha: 0.9,
+                                        ),
                                       ),
                                 ),
                               ],
@@ -1161,21 +1241,33 @@ class _OrderDetailsPage extends StatelessWidget {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(child: _miniInfo(context, 'Order ID', '#$orderLabel')),
+                        Expanded(
+                          child: _miniInfo(context, 'Order ID', '#$orderLabel'),
+                        ),
                         const SizedBox(width: 10),
-                        Expanded(child: _miniInfo(context, 'Store', _storeLabel)),
+                        Expanded(
+                          child: _miniInfo(context, 'Store', _storeLabel),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Expanded(child: _miniInfo(context, 'Category', _customCategoryLabel)),
+                        Expanded(
+                          child: _miniInfo(
+                            context,
+                            'Category',
+                            _customCategoryLabel,
+                          ),
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: _miniInfo(
                             context,
                             'Estimated delivery',
-                            DateFormat('dd MMM yyyy').format(_estimatedDelivery),
+                            DateFormat(
+                              'dd MMM yyyy',
+                            ).format(_estimatedDelivery),
                           ),
                         ),
                       ],
@@ -1199,8 +1291,11 @@ class _OrderDetailsPage extends StatelessWidget {
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          actor.name.trim().isEmpty ? 'A' : actor.name.trim().substring(0, 1).toUpperCase(),
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          actor.name.trim().isEmpty
+                              ? 'A'
+                              : actor.name.trim().substring(0, 1).toUpperCase(),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
                                 fontWeight: FontWeight.w800,
                                 color: const Color(0xFF8C6A12),
                               ),
@@ -1217,7 +1312,8 @@ class _OrderDetailsPage extends StatelessWidget {
                               actor.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
                                     color: context.abzioSecondaryText,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -1228,7 +1324,12 @@ class _OrderDetailsPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _detailRow(context, Icons.call_outlined, 'Contact Details', contactLabel),
+                  _detailRow(
+                    context,
+                    Icons.call_outlined,
+                    'Contact Details',
+                    contactLabel,
+                  ),
                   const SizedBox(height: 12),
                   _detailRow(
                     context,
@@ -1253,16 +1354,19 @@ class _OrderDetailsPage extends StatelessWidget {
                         color: const Color(0xFFE8F8EE),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Icon(Icons.savings_outlined, color: Color(0xFF1B8E5A)),
+                      child: const Icon(
+                        Icons.savings_outlined,
+                        color: Color(0xFF1B8E5A),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'On this order you saved a total of ₹${savedAmount.toStringAsFixed(0)}',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF1B8E5A),
-                            ),
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1B8E5A),
+                        ),
                       ),
                     ),
                   ],
@@ -1270,7 +1374,8 @@ class _OrderDetailsPage extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 12),
-            if (_isCustomTailoring && (designEntries.isNotEmpty || measurements.isNotEmpty))
+            if (_isCustomTailoring &&
+                (designEntries.isNotEmpty || measurements.isNotEmpty))
               _SectionCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1282,7 +1387,12 @@ class _OrderDetailsPage extends StatelessWidget {
                         spacing: 10,
                         runSpacing: 10,
                         children: designEntries
-                            .map((entry) => _SummaryChip(label: entry.key, value: entry.value))
+                            .map(
+                              (entry) => _SummaryChip(
+                                label: entry.key,
+                                value: entry.value,
+                              ),
+                            )
                             .toList(),
                       ),
                     if (measurements.isNotEmpty) ...[
@@ -1290,31 +1400,37 @@ class _OrderDetailsPage extends StatelessWidget {
                       Text(
                         'Estimated measurements (editable)',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: context.abzioSecondaryText,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          color: context.abzioSecondaryText,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 10,
                         runSpacing: 10,
                         children: measurements
-                            .map((entry) => _SummaryChip(label: entry.key, value: entry.value))
+                            .map(
+                              (entry) => _SummaryChip(
+                                label: entry.key,
+                                value: entry.value,
+                              ),
+                            )
                             .toList(),
                       ),
                       const SizedBox(height: 10),
                       Text(
                         'Precision fit guaranteed',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF8C6A12),
-                              fontWeight: FontWeight.w700,
-                            ),
+                          color: const Color(0xFF8C6A12),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
-            if (_isCustomTailoring && (designEntries.isNotEmpty || measurements.isNotEmpty))
+            if (_isCustomTailoring &&
+                (designEntries.isNotEmpty || measurements.isNotEmpty))
               const SizedBox(height: 12),
             if (_isCustomTailoring && progressMedia.isNotEmpty)
               _SectionCard(
@@ -1328,40 +1444,58 @@ class _OrderDetailsPage extends StatelessWidget {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: progressMedia.length,
-                        separatorBuilder: (context, index) => const SizedBox(width: 10),
-                        itemBuilder: (context, index) => _ProgressMediaTile(media: progressMedia[index]),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(width: 10),
+                        itemBuilder: (context, index) =>
+                            _ProgressMediaTile(media: progressMedia[index]),
                       ),
                     ),
                   ],
                 ),
               ),
-            if (_isCustomTailoring && progressMedia.isNotEmpty) const SizedBox(height: 12),
+            if (_isCustomTailoring && progressMedia.isNotEmpty)
+              const SizedBox(height: 12),
             _SectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Expanded(child: _sectionTitle(context, 'Total Order Price')),
+                      Expanded(
+                        child: _sectionTitle(context, 'Total Order Price'),
+                      ),
                       Text(
                         '₹${order.totalAmount.toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _detailRow(context, Icons.account_balance_outlined, 'Paid by', order.paymentMethod),
+                  _detailRow(
+                    context,
+                    Icons.account_balance_outlined,
+                    'Paid by',
+                    order.paymentMethod,
+                  ),
                   const SizedBox(height: 12),
-                  _detailRow(context, Icons.receipt_long_outlined, 'Order ID', '#$orderLabel'),
+                  _detailRow(
+                    context,
+                    Icons.receipt_long_outlined,
+                    'Order ID',
+                    '#$orderLabel',
+                  ),
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Invoice download will be available here.')),
+                          const SnackBar(
+                            content: Text(
+                              'Invoice download will be available here.',
+                            ),
+                          ),
                         );
                       },
                       child: const Text('Get Invoice'),
@@ -1375,21 +1509,26 @@ class _OrderDetailsPage extends StatelessWidget {
               _SectionCard(
                 child: Row(
                   children: [
-                    const Text('★★★★★', style: TextStyle(color: Color(0xFFE91E63), fontSize: 18)),
+                    const Text(
+                      '★★★★★',
+                      style: TextStyle(color: Color(0xFFE91E63), fontSize: 18),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Loved this order? Rate and review it to help other shoppers.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: context.abzioSecondaryText,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: context.abzioSecondaryText,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     TextButton(
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Review flow can open from here.')),
+                          const SnackBar(
+                            content: Text('Review flow can open from here.'),
+                          ),
                         );
                       },
                       child: const Text('View Review'),
@@ -1403,16 +1542,24 @@ class _OrderDetailsPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _sectionTitle(context, _isCustomTailoring ? 'Your Outfit Journey' : 'Tracking'),
+                  _sectionTitle(
+                    context,
+                    _isCustomTailoring ? 'Your Outfit Journey' : 'Tracking',
+                  ),
                   const SizedBox(height: 14),
                   _isCustomTailoring
-                      ? _AtelierJourneyTracker(currentStepIndex: _atelierJourneyIndex)
+                      ? _AtelierJourneyTracker(
+                          currentStepIndex: _atelierJourneyIndex,
+                        )
                       : TrackingTimeline(
                           steps: steps,
                           progressAnimation: AlwaysStoppedAnimation<double>(
-                            _currentStepIndex / ((steps.length - 1).clamp(1, 10)),
+                            _currentStepIndex /
+                                ((steps.length - 1).clamp(1, 10)),
                           ),
-                          pulseAnimation: const AlwaysStoppedAnimation<double>(1),
+                          pulseAnimation: const AlwaysStoppedAnimation<double>(
+                            1,
+                          ),
                         ),
                 ],
               ),
@@ -1433,7 +1580,9 @@ class _OrderDetailsPage extends StatelessWidget {
                         backgroundColor: const Color(0xFF1E1813),
                         foregroundColor: const Color(0xFFF4DEAC),
                         minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -1495,7 +1644,13 @@ class _OrderDetailsPage extends StatelessWidget {
                     children: [
                       Expanded(child: _miniInfo(context, 'Call', contactLabel)),
                       const SizedBox(width: 10),
-                      Expanded(child: _miniInfo(context, 'Payment', order.paymentMethod)),
+                      Expanded(
+                        child: _miniInfo(
+                          context,
+                          'Payment',
+                          order.paymentMethod,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -1518,7 +1673,9 @@ class _OrderDetailsPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      Expanded(child: _miniInfo(context, 'Order ID', '#$orderLabel')),
+                      Expanded(
+                        child: _miniInfo(context, 'Order ID', '#$orderLabel'),
+                      ),
                     ],
                   ),
                 ],
@@ -1532,20 +1689,30 @@ class _OrderDetailsPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _sectionTitle(context, _isCustomTailoring ? 'Complete Your Look' : 'Items that go well with this item'),
+                    _sectionTitle(
+                      context,
+                      _isCustomTailoring
+                          ? 'Complete Your Look'
+                          : 'Items that go well with this item',
+                    ),
                     const SizedBox(height: 12),
                     SizedBox(
                       height: 214,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: recommendedProducts.length,
-                        separatorBuilder: (_, index) => const SizedBox(width: 10),
+                        separatorBuilder: (_, index) =>
+                            const SizedBox(width: 10),
                         itemBuilder: (context, index) {
                           final product = recommendedProducts[index];
-                          final previewImage = product.images.isNotEmpty ? product.images.first : '';
+                          final previewImage = product.images.isNotEmpty
+                              ? product.images.first
+                              : '';
                           return InkWell(
                             borderRadius: BorderRadius.circular(18),
-                            onTap: () => Navigator.of(context).pushNamed('/product-detail', arguments: product),
+                            onTap: () => Navigator.of(
+                              context,
+                            ).pushNamed('/product-detail', arguments: product),
                             child: SizedBox(
                               width: 132,
                               child: Column(
@@ -1558,24 +1725,37 @@ class _OrderDetailsPage extends StatelessWidget {
                                             height: 148,
                                             width: 132,
                                             color: context.abzioMuted,
-                                            child: Icon(Icons.broken_image_outlined, color: context.abzioSecondaryText),
+                                            child: Icon(
+                                              Icons.broken_image_outlined,
+                                              color: context.abzioSecondaryText,
+                                            ),
                                           )
                                         : CachedNetworkImage(
                                             imageUrl: previewImage,
                                             height: 148,
                                             width: 132,
                                             fit: BoxFit.cover,
-                                            placeholder: (context, url) => Container(
-                                              height: 148,
-                                              width: 132,
-                                              color: context.abzioMuted,
-                                            ),
-                                            errorWidget: (context, url, error) => Container(
-                                              height: 148,
-                                              width: 132,
-                                              color: context.abzioMuted,
-                                              child: Icon(Icons.broken_image_outlined, color: context.abzioSecondaryText),
-                                            ),
+                                            placeholder: (context, url) =>
+                                                Container(
+                                                  height: 148,
+                                                  width: 132,
+                                                  color: context.abzioMuted,
+                                                ),
+                                            errorWidget:
+                                                (
+                                                  context,
+                                                  url,
+                                                  error,
+                                                ) => Container(
+                                                  height: 148,
+                                                  width: 132,
+                                                  color: context.abzioMuted,
+                                                  child: Icon(
+                                                    Icons.broken_image_outlined,
+                                                    color: context
+                                                        .abzioSecondaryText,
+                                                  ),
+                                                ),
                                           ),
                                   ),
                                   const SizedBox(height: 8),
@@ -1583,16 +1763,18 @@ class _OrderDetailsPage extends StatelessWidget {
                                     product.brand,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                        ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelMedium
+                                        ?.copyWith(fontWeight: FontWeight.w800),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     product.name,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
                                           color: context.abzioSecondaryText,
                                           height: 1.2,
                                         ),
@@ -1600,9 +1782,10 @@ class _OrderDetailsPage extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Text(
                                     '₹${product.effectivePrice.toStringAsFixed(0)}',
-                                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                        ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelLarge
+                                        ?.copyWith(fontWeight: FontWeight.w800),
                                   ),
                                 ],
                               ),
@@ -1621,7 +1804,10 @@ class _OrderDetailsPage extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('★★★★★', style: TextStyle(color: Color(0xFFE0912D), fontSize: 18)),
+                    const Text(
+                      '★★★★★',
+                      style: TextStyle(color: Color(0xFFE0912D), fontSize: 18),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -1629,16 +1815,16 @@ class _OrderDetailsPage extends StatelessWidget {
                         children: [
                           Text(
                             'How was the fit?',
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             order.customerFitFeedbackStatus == 'submitted'
                                 ? 'Thanks for reviewing this made-to-measure order.'
                                 : 'Rate the fit, quality, and delivery so we can keep tailoring standards high.',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
                                   color: context.abzioSecondaryText,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -1651,7 +1837,9 @@ class _OrderDetailsPage extends StatelessWidget {
                           ? null
                           : () => _submitFitFeedback(context),
                       child: Text(
-                        order.customerFitFeedbackStatus == 'submitted' ? 'Submitted' : 'Rate fit',
+                        order.customerFitFeedbackStatus == 'submitted'
+                            ? 'Submitted'
+                            : 'Rate fit',
                       ),
                     ),
                   ],
@@ -1661,8 +1849,14 @@ class _OrderDetailsPage extends StatelessWidget {
               _ActionPanel(
                 actor: actor,
                 order: order,
-                refundRequestFuture: database.getRefundRequestForOrder(order.id, actor: actor),
-                returnRequestFuture: database.getReturnRequestForOrder(order.id, actor: actor),
+                refundRequestFuture: database.getRefundRequestForOrder(
+                  order.id,
+                  actor: actor,
+                ),
+                returnRequestFuture: database.getReturnRequestForOrder(
+                  order.id,
+                  actor: actor,
+                ),
                 canCancel: canCancel,
                 onSupport: onSupport,
                 onCancel: onCancel,
@@ -1681,13 +1875,18 @@ class _OrderDetailsPage extends StatelessWidget {
   Widget _sectionTitle(BuildContext context, String title) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
+      style: Theme.of(
+        context,
+      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
     );
   }
 
-  Widget _detailRow(BuildContext context, IconData icon, String label, String value) {
+  Widget _detailRow(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1708,18 +1907,18 @@ class _OrderDetailsPage extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: context.abzioSecondaryText,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: context.abzioSecondaryText,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 3),
               Text(
                 value,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ],
           ),
@@ -1740,18 +1939,18 @@ class _OrderDetailsPage extends StatelessWidget {
         children: [
           Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: context.abzioSecondaryText,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: context.abzioSecondaryText),
           ),
           const SizedBox(height: 4),
           Text(
             value,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -1807,16 +2006,16 @@ class _SummaryChip extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: context.abzioSecondaryText,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: context.abzioSecondaryText,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 3),
           Text(
             value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -1855,16 +2054,22 @@ class _ProgressMediaTile extends StatelessWidget {
         children: [
           Expanded(
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
               child: CachedNetworkImage(
                 imageUrl: media.imageUrl,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(color: context.abzioMuted),
+                placeholder: (context, url) =>
+                    Container(color: context.abzioMuted),
                 errorWidget: (context, url, error) => Container(
                   color: context.abzioMuted,
                   alignment: Alignment.center,
-                  child: Icon(Icons.image_not_supported_outlined, color: context.abzioSecondaryText),
+                  child: Icon(
+                    Icons.image_not_supported_outlined,
+                    color: context.abzioSecondaryText,
+                  ),
                 ),
               ),
             ),
@@ -1876,16 +2081,16 @@ class _ProgressMediaTile extends StatelessWidget {
               children: [
                 Text(
                   media.label,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   media.subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.abzioSecondaryText,
-                      ),
+                    color: context.abzioSecondaryText,
+                  ),
                 ),
               ],
             ),
@@ -1943,7 +2148,8 @@ class _CustomFitFeedbackSheet extends StatefulWidget {
   final OrderModel order;
 
   @override
-  State<_CustomFitFeedbackSheet> createState() => _CustomFitFeedbackSheetState();
+  State<_CustomFitFeedbackSheet> createState() =>
+      _CustomFitFeedbackSheetState();
 }
 
 class _CustomFitFeedbackSheetState extends State<_CustomFitFeedbackSheet> {
@@ -1956,7 +2162,9 @@ class _CustomFitFeedbackSheetState extends State<_CustomFitFeedbackSheet> {
   @override
   void initState() {
     super.initState();
-    _notesController = TextEditingController(text: widget.order.customerFitFeedbackNotes);
+    _notesController = TextEditingController(
+      text: widget.order.customerFitFeedbackNotes,
+    );
   }
 
   @override
@@ -1968,7 +2176,9 @@ class _CustomFitFeedbackSheetState extends State<_CustomFitFeedbackSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -1992,16 +2202,16 @@ class _CustomFitFeedbackSheetState extends State<_CustomFitFeedbackSheet> {
             const SizedBox(height: 16),
             Text(
               'How was the fit?',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
             Text(
               'Rate this made-to-measure order so your tailor can keep improving.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: context.abzioSecondaryText,
-                  ),
+                color: context.abzioSecondaryText,
+              ),
             ),
             const SizedBox(height: 18),
             _RatingField(
@@ -2025,7 +2235,9 @@ class _CustomFitFeedbackSheetState extends State<_CustomFitFeedbackSheet> {
               activeThumbColor: const Color(0xFFC8A95B),
               activeTrackColor: const Color(0xFFF0DFAE),
               title: const Text('I need an alteration'),
-              subtitle: const Text('The same tailor will be asked to adjust the outfit.'),
+              subtitle: const Text(
+                'The same tailor will be asked to adjust the outfit.',
+              ),
               onChanged: (value) => setState(() => _needsAlteration = value),
             ),
             TextField(
@@ -2035,7 +2247,8 @@ class _CustomFitFeedbackSheetState extends State<_CustomFitFeedbackSheet> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'Notes',
-                hintText: 'Tell us about the fit, finish, or any changes you want.',
+                hintText:
+                    'Tell us about the fit, finish, or any changes you want.',
               ),
             ),
             const SizedBox(height: 16),
@@ -2083,9 +2296,9 @@ class _RatingField extends StatelessWidget {
         children: [
           Text(
             '$label: ${value.toStringAsFixed(0)}/5',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           Slider(
             value: value,
@@ -2110,9 +2323,13 @@ class _OrderHeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final eta = DateFormat('EEE, dd MMM').format(
-      order.timestamp.add(Duration(days: order.orderType == 'custom_tailoring' ? 6 : 3)),
+      order.timestamp.add(
+        Duration(days: order.orderType == 'custom_tailoring' ? 6 : 3),
+      ),
     );
-    final orderLabel = order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
+    final orderLabel = order.invoiceNumber.isEmpty
+        ? order.id
+        : order.invoiceNumber;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -2135,9 +2352,9 @@ class _OrderHeroCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 22,
-                ),
+              fontWeight: FontWeight.w800,
+              fontSize: 22,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -2145,9 +2362,9 @@ class _OrderHeroCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: context.abzioSecondaryText,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: context.abzioSecondaryText,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -2181,9 +2398,9 @@ class _ProductSummaryCard extends StatelessWidget {
         children: [
           Text(
             'Product Summary',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           ...order.items.map(
@@ -2198,17 +2415,24 @@ class _ProductSummaryCard extends StatelessWidget {
                             height: 72,
                             width: 72,
                             color: context.abzioMuted,
-                            child: Icon(Icons.checkroom_outlined, color: context.abzioSecondaryText),
+                            child: Icon(
+                              Icons.checkroom_outlined,
+                              color: context.abzioSecondaryText,
+                            ),
                           )
                         : CachedNetworkImage(
                             imageUrl: item.imageUrl,
                             height: 72,
                             width: 72,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(color: context.abzioMuted),
+                            placeholder: (context, url) =>
+                                Container(color: context.abzioMuted),
                             errorWidget: (context, url, error) => Container(
                               color: context.abzioMuted,
-                              child: Icon(Icons.broken_image_outlined, color: context.abzioSecondaryText),
+                              child: Icon(
+                                Icons.broken_image_outlined,
+                                color: context.abzioSecondaryText,
+                              ),
                             ),
                           ),
                   ),
@@ -2221,18 +2445,16 @@ class _ProductSummaryCard extends StatelessWidget {
                           item.productName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Qty ${item.quantity}${item.size.trim().isNotEmpty ? ' • Size ${item.size}' : ''}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: context.abzioSecondaryText,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: context.abzioSecondaryText),
                         ),
                       ],
                     ),
@@ -2240,7 +2462,9 @@ class _ProductSummaryCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     '₹${(item.price * item.quantity).toStringAsFixed(0)}',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ],
               ),
@@ -2260,7 +2484,9 @@ class _DeliveryDetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final recipient = order.shippingLabel.trim().isEmpty ? 'Abianzo Member' : order.shippingLabel.trim();
+    final recipient = order.shippingLabel.trim().isEmpty
+        ? 'Abianzo Member'
+        : order.shippingLabel.trim();
     final address = order.shippingAddress.trim().isEmpty
         ? 'Delivery address will appear here once available.'
         : order.shippingAddress.trim();
@@ -2281,7 +2507,11 @@ class _DeliveryDetailsCard extends StatelessWidget {
               color: AbzioTheme.accentColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.location_on_outlined, size: 18, color: AbzioTheme.accentColor),
+            child: const Icon(
+              Icons.location_on_outlined,
+              size: 18,
+              color: AbzioTheme.accentColor,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -2292,9 +2522,9 @@ class _DeliveryDetailsCard extends StatelessWidget {
                   recipient,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -2302,9 +2532,9 @@ class _DeliveryDetailsCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.abzioSecondaryText,
-                        height: 1.25,
-                      ),
+                    color: context.abzioSecondaryText,
+                    height: 1.25,
+                  ),
                 ),
               ],
             ),
@@ -2416,7 +2646,9 @@ class _ActionPanelBodyState extends State<_ActionPanelBody> {
 
   bool get _canRequestRefund {
     final paymentMethod = widget.order.paymentMethod.trim().toUpperCase();
-    final refundState = (_refundRequest?.status ?? widget.order.refundStatus).trim().toLowerCase();
+    final refundState = (_refundRequest?.status ?? widget.order.refundStatus)
+        .trim()
+        .toLowerCase();
     return paymentMethod != 'COD' &&
         widget.order.isPaymentVerified &&
         !['requested', 'pending', 'approved', 'refunded'].contains(refundState);
@@ -2424,12 +2656,21 @@ class _ActionPanelBodyState extends State<_ActionPanelBody> {
 
   bool get _canRequestReturn {
     final status = widget.order.status.trim().toLowerCase();
-    final returnState = (_returnRequest?.status ?? widget.order.returnStatus).trim().toLowerCase();
-    final isCustom = widget.order.orderType == 'custom_tailoring' ||
+    final returnState = (_returnRequest?.status ?? widget.order.returnStatus)
+        .trim()
+        .toLowerCase();
+    final isCustom =
+        widget.order.orderType == 'custom_tailoring' ||
         widget.order.items.any((item) => item.isCustomTailoring);
     return status == 'delivered' &&
         !isCustom &&
-        !['requested', 'approved', 'assigned', 'picked', 'completed'].contains(returnState);
+        ![
+          'requested',
+          'approved',
+          'assigned',
+          'picked',
+          'completed',
+        ].contains(returnState);
   }
 
   Future<String?> _askReason({
@@ -2494,9 +2735,9 @@ class _ActionPanelBodyState extends State<_ActionPanelBody> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _submittingRefund = false);
@@ -2531,9 +2772,9 @@ class _ActionPanelBodyState extends State<_ActionPanelBody> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _submittingReturn = false);
@@ -2559,7 +2800,9 @@ class _ActionPanelBodyState extends State<_ActionPanelBody> {
   }
 
   String get _returnLabel {
-    final status = (_returnRequest?.status ?? widget.order.returnStatus).trim().toLowerCase();
+    final status = (_returnRequest?.status ?? widget.order.returnStatus)
+        .trim()
+        .toLowerCase();
     if (status.isEmpty) {
       return 'Returns are available within 3 days of delivery for non-custom items.';
     }
@@ -2598,9 +2841,9 @@ class _ActionPanelBodyState extends State<_ActionPanelBody> {
         children: [
           Text(
             'Actions',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           if (_loading)
@@ -2636,18 +2879,25 @@ class _ActionPanelBodyState extends State<_ActionPanelBody> {
                       label: const Text('Reorder'),
                     ),
                     OutlinedButton.icon(
-                      onPressed: (_canRequestReturn && !_submittingReturn) ? _submitReturn : null,
+                      onPressed: (_canRequestReturn && !_submittingReturn)
+                          ? _submitReturn
+                          : null,
                       icon: _submittingReturn
                           ? const SizedBox(
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(Icons.assignment_return_outlined, size: 18),
+                          : const Icon(
+                              Icons.assignment_return_outlined,
+                              size: 18,
+                            ),
                       label: const Text('Request Return'),
                     ),
                     OutlinedButton.icon(
-                      onPressed: (_canRequestRefund && !_submittingRefund) ? _submitRefund : null,
+                      onPressed: (_canRequestRefund && !_submittingRefund)
+                          ? _submitRefund
+                          : null,
                       icon: _submittingRefund
                           ? const SizedBox(
                               width: 16,
@@ -2663,32 +2913,36 @@ class _ActionPanelBodyState extends State<_ActionPanelBody> {
                 Text(
                   _returnLabel,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.abzioSecondaryText,
-                      ),
+                    color: context.abzioSecondaryText,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   _refundLabel,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.abzioSecondaryText,
-                      ),
+                    color: context.abzioSecondaryText,
+                  ),
                 ),
-                if ((_returnRequest?.rejectionReason ?? '').trim().isNotEmpty) ...[
+                if ((_returnRequest?.rejectionReason ?? '')
+                    .trim()
+                    .isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
                     'Return note: ${_returnRequest!.rejectionReason}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: context.abzioSecondaryText,
-                        ),
+                      color: context.abzioSecondaryText,
+                    ),
                   ),
                 ],
-                if ((_refundRequest?.rejectionReason ?? '').trim().isNotEmpty) ...[
+                if ((_refundRequest?.rejectionReason ?? '')
+                    .trim()
+                    .isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
                     'Reason: ${_refundRequest!.rejectionReason}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: context.abzioSecondaryText,
-                        ),
+                      color: context.abzioSecondaryText,
+                    ),
                   ),
                 ],
               ],
@@ -2758,14 +3012,21 @@ class _AtelierJourneyTracker extends StatelessWidget {
               children: [
                 Container(
                   width: 84,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
-                    color: active ? const Color(0xFF1E1813) : const Color(0xFFF5EFE4),
+                    color: active
+                        ? const Color(0xFF1E1813)
+                        : const Color(0xFFF5EFE4),
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: current
                         ? [
                             BoxShadow(
-                              color: const Color(0xFF8C6A12).withValues(alpha: 0.14),
+                              color: const Color(
+                                0xFF8C6A12,
+                              ).withValues(alpha: 0.14),
                               blurRadius: 14,
                               offset: const Offset(0, 8),
                             ),
@@ -2774,15 +3035,23 @@ class _AtelierJourneyTracker extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      Icon(item.$2, size: 20, color: active ? const Color(0xFFF4DEAC) : const Color(0xFF8E7A58)),
+                      Icon(
+                        item.$2,
+                        size: 20,
+                        color: active
+                            ? const Color(0xFFF4DEAC)
+                            : const Color(0xFF8E7A58),
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         item.$1,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: active ? const Color(0xFFF4DEAC) : context.abzioSecondaryText,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          color: active
+                              ? const Color(0xFFF4DEAC)
+                              : context.abzioSecondaryText,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
@@ -2792,7 +3061,9 @@ class _AtelierJourneyTracker extends StatelessWidget {
                     width: 24,
                     height: 1.5,
                     margin: const EdgeInsets.symmetric(horizontal: 6),
-                    color: index < currentStepIndex ? const Color(0xFFD1AE52) : context.abzioBorder,
+                    color: index < currentStepIndex
+                        ? const Color(0xFFD1AE52)
+                        : context.abzioBorder,
                   ),
               ],
             ),
@@ -2839,9 +3110,11 @@ class _OrderFilterChip extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: selected ? const Color(0xFFF4DEAC) : Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w700,
-              ),
+            color: selected
+                ? const Color(0xFFF4DEAC)
+                : Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );
@@ -2876,7 +3149,9 @@ class _OrderListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final primaryItem = order.items.isEmpty ? null : order.items.first;
     final extraCount = order.items.length > 1 ? order.items.length - 1 : 0;
-    final orderLabel = order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber;
+    final orderLabel = order.invoiceNumber.isEmpty
+        ? order.id
+        : order.invoiceNumber;
     final title = primaryItem?.productName ?? 'Order $orderLabel';
 
     return InkWell(
@@ -2936,7 +3211,8 @@ class _OrderListCard extends StatelessWidget {
                               statusLabel,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
                                     fontWeight: FontWeight.w800,
                                     color: statusColor,
                                   ),
@@ -2945,14 +3221,18 @@ class _OrderListCard extends StatelessWidget {
                           if (_isAtelier) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.74),
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: Text(
                                 'Tailoring',
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(
                                       color: const Color(0xFF8C6A12),
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -2967,8 +3247,8 @@ class _OrderListCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: context.abzioSecondaryText,
-                            ),
+                          color: context.abzioSecondaryText,
+                        ),
                       ),
                     ],
                   ),
@@ -2991,17 +3271,24 @@ class _OrderListCard extends StatelessWidget {
                             height: 72,
                             width: 72,
                             color: context.abzioMuted,
-                            child: Icon(Icons.checkroom_outlined, color: context.abzioSecondaryText),
+                            child: Icon(
+                              Icons.checkroom_outlined,
+                              color: context.abzioSecondaryText,
+                            ),
                           )
                         : CachedNetworkImage(
                             imageUrl: primaryItem.imageUrl,
                             height: 72,
                             width: 72,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(color: context.abzioMuted),
+                            placeholder: (context, url) =>
+                                Container(color: context.abzioMuted),
                             errorWidget: (context, url, error) => Container(
                               color: context.abzioMuted,
-                              child: Icon(Icons.broken_image_outlined, color: context.abzioSecondaryText),
+                              child: Icon(
+                                Icons.broken_image_outlined,
+                                color: context.abzioSecondaryText,
+                              ),
                             ),
                           ),
                   ),
@@ -3015,20 +3302,24 @@ class _OrderListCard extends StatelessWidget {
                           title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           [
-                            if (primaryItem != null && primaryItem.size.trim().isNotEmpty) 'Size: ${primaryItem.size}',
-                            if (primaryItem != null) 'Qty: ${primaryItem.quantity}',
-                            if (extraCount > 0) '+$extraCount more item${extraCount > 1 ? 's' : ''}',
+                            if (primaryItem != null &&
+                                primaryItem.size.trim().isNotEmpty)
+                              'Size: ${primaryItem.size}',
+                            if (primaryItem != null)
+                              'Qty: ${primaryItem.quantity}',
+                            if (extraCount > 0)
+                              '+$extraCount more item${extraCount > 1 ? 's' : ''}',
                           ].join('  •  '),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 color: context.abzioSecondaryText,
                                 height: 1.25,
                               ),
@@ -3036,15 +3327,17 @@ class _OrderListCard extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           '₹${order.totalAmount.toStringAsFixed(0)}',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(Icons.chevron_right_rounded, color: context.abzioSecondaryText),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: context.abzioSecondaryText,
+                  ),
                 ],
               ),
             ),
@@ -3054,4 +3347,3 @@ class _OrderListCard extends StatelessWidget {
     );
   }
 }
-

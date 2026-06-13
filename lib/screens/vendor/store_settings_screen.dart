@@ -48,7 +48,7 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
     _bannerController = TextEditingController(
       text: widget.store.bannerImageUrl,
     );
-    
+
     _nameController.addListener(_updateCompletion);
     _taglineController.addListener(_updateCompletion);
     _addressController.addListener(_updateCompletion);
@@ -192,7 +192,10 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
     return Scaffold(
       backgroundColor: VendorTheme.background,
       appBar: AppBar(
-        title: Text('Store Settings', style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          'Store Settings',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -206,9 +209,18 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
             const SizedBox(height: VendorTheme.spacing16),
             _buildTextField('Store Name', _nameController, 'Required'),
             const SizedBox(height: VendorTheme.spacing16),
-            _buildTextField('Tagline', _taglineController, 'e.g. Wedding edits and elevated essentials'),
+            _buildTextField(
+              'Tagline',
+              _taglineController,
+              'e.g. Wedding edits and elevated essentials',
+            ),
             const SizedBox(height: VendorTheme.spacing16),
-            _buildTextField('Description', _descriptionController, 'Describe your store...', maxLines: 4),
+            _buildTextField(
+              'Description',
+              _descriptionController,
+              'Describe your store...',
+              maxLines: 4,
+            ),
             const SizedBox(height: VendorTheme.spacing32),
             _buildSectionHeader('Location', Icons.location_on_outlined),
             const SizedBox(height: VendorTheme.spacing16),
@@ -242,7 +254,8 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const AccountDeletionRequestScreen(roleLabel: 'Vendor'),
+                  builder: (_) =>
+                      const AccountDeletionRequestScreen(roleLabel: 'Vendor'),
                 ),
               ),
             ),
@@ -279,7 +292,9 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
               ),
               VendorStatusBadge(
                 label: '$score%',
-                type: score == 100 ? VendorBadgeType.success : VendorBadgeType.warning,
+                type: score == 100
+                    ? VendorBadgeType.success
+                    : VendorBadgeType.warning,
               ),
             ],
           ),
@@ -300,9 +315,9 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
             score == 100
                 ? 'Your store is fully optimized and ready to convert.'
                 : 'Complete your store profile to increase buyer trust and conversion.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: VendorTheme.grey600,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: VendorTheme.grey600),
           ),
         ],
       ),
@@ -316,25 +331,30 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
         const SizedBox(width: VendorTheme.spacing8),
         Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
       ],
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, String hint, {int maxLines = 1}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller,
+    String hint, {
+    int maxLines = 1,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-                color: VendorTheme.grey500,
-              ),
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+            color: VendorTheme.grey500,
+          ),
         ),
         const SizedBox(height: VendorTheme.spacing8),
         TextField(
@@ -344,7 +364,10 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
             hintText: hint,
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing16, vertical: VendorTheme.spacing16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: VendorTheme.spacing16,
+              vertical: VendorTheme.spacing16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(VendorTheme.radiusMedium),
               borderSide: const BorderSide(color: VendorTheme.grey300),
@@ -363,7 +386,11 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
     );
   }
 
-  Widget _buildImageField(String label, TextEditingController controller, bool isLogo) {
+  Widget _buildImageField(
+    String label,
+    TextEditingController controller,
+    bool isLogo,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -392,7 +419,10 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
                 height: isLogo ? 80 : 120,
                 width: isLogo ? 80 : double.infinity,
                 color: VendorTheme.grey200,
-                child: const Icon(Icons.broken_image_outlined, color: VendorTheme.grey400),
+                child: const Icon(
+                  Icons.broken_image_outlined,
+                  color: VendorTheme.grey400,
+                ),
               ),
             ),
           ),
@@ -400,12 +430,19 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
     );
   }
 
-  Widget _buildLegalListTile({required String title, required String subtitle, required VoidCallback onTap}) {
+  Widget _buildLegalListTile({
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
     return PremiumVendorCard(
       padding: EdgeInsets.zero,
       onTap: onTap,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing16, vertical: VendorTheme.spacing8),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: VendorTheme.spacing16,
+          vertical: VendorTheme.spacing8,
+        ),
         title: Text(title, style: Theme.of(context).textTheme.titleSmall),
         subtitle: Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
         trailing: const Icon(Icons.chevron_right, color: VendorTheme.grey400),

@@ -12,12 +12,15 @@ class AdminRiderIntelligenceSection extends StatefulWidget {
   const AdminRiderIntelligenceSection({super.key});
 
   @override
-  State<AdminRiderIntelligenceSection> createState() => _AdminRiderIntelligenceSectionState();
+  State<AdminRiderIntelligenceSection> createState() =>
+      _AdminRiderIntelligenceSectionState();
 }
 
-class _AdminRiderIntelligenceSectionState extends State<AdminRiderIntelligenceSection> with SingleTickerProviderStateMixin {
+class _AdminRiderIntelligenceSectionState
+    extends State<AdminRiderIntelligenceSection>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   bool _isLoadingDashboard = true;
   String _dashboardError = '';
   Map<String, dynamic> _kpis = {};
@@ -92,11 +95,17 @@ class _AdminRiderIntelligenceSectionState extends State<AdminRiderIntelligenceSe
   }
 
   Future<void> _exportCSV() async {
-    String csv = 'ID,Name,Phone,Classification,Health Score,Risk Score,Earnings\n';
+    String csv =
+        'ID,Name,Phone,Classification,Health Score,Risk Score,Earnings\n';
     for (final row in _riders) {
       final line = [
-        row['_id'], row['name'], row['phone'], row['classification'],
-        row['healthScore'], row['riskScore'], row['earnings']
+        row['_id'],
+        row['name'],
+        row['phone'],
+        row['classification'],
+        row['healthScore'],
+        row['riskScore'],
+        row['earnings'],
       ].map((e) => '"${e.toString().replaceAll('"', '""')}"').join(',');
       csv += '$line\n';
     }
@@ -107,13 +116,15 @@ class _AdminRiderIntelligenceSectionState extends State<AdminRiderIntelligenceSe
       final file = File('${dir.path}/Rider_Intelligence_List.csv');
       await file.writeAsBytes(bytes);
       if (mounted) {
-        await Share.shareXFiles([XFile(file.path, mimeType: 'text/csv')], text: 'Exported Rider_Intelligence_List.csv');
+        await Share.shareXFiles([
+          XFile(file.path, mimeType: 'text/csv'),
+        ], text: 'Exported Rider_Intelligence_List.csv');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save file: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save file: $e')));
       }
     }
   }
@@ -165,10 +176,7 @@ class _AdminRiderIntelligenceSectionState extends State<AdminRiderIntelligenceSe
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: [
-              _buildDashboardTab(),
-              _buildRidersTab(),
-            ],
+            children: [_buildDashboardTab(), _buildRidersTab()],
           ),
         ),
       ],
@@ -176,11 +184,17 @@ class _AdminRiderIntelligenceSectionState extends State<AdminRiderIntelligenceSe
   }
 
   Widget _buildDashboardTab() {
-    if (_isLoadingDashboard) return const Center(child: CircularProgressIndicator());
-    if (_dashboardError.isNotEmpty) return Center(child: Text('Error: $_dashboardError'));
+    if (_isLoadingDashboard)
+      return const Center(child: CircularProgressIndicator());
+    if (_dashboardError.isNotEmpty)
+      return Center(child: Text('Error: $_dashboardError'));
 
     final classif = _kpis['overallClassification'] ?? 'Healthy';
-    final classifColor = classif == 'Critical' ? Colors.red : classif == 'Warning' ? Colors.orange : Colors.green;
+    final classifColor = classif == 'Critical'
+        ? Colors.red
+        : classif == 'Warning'
+        ? Colors.orange
+        : Colors.green;
 
     return SingleChildScrollView(
       child: Column(
@@ -188,25 +202,57 @@ class _AdminRiderIntelligenceSectionState extends State<AdminRiderIntelligenceSe
         children: [
           Row(
             children: [
-              _buildMetricCard('Total Riders', '${_kpis['totalRiders'] ?? 0}', Colors.blue.shade50),
+              _buildMetricCard(
+                'Total Riders',
+                '${_kpis['totalRiders'] ?? 0}',
+                Colors.blue.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Active Now', '${_kpis['activeRiders'] ?? 0}', Colors.green.shade50),
+              _buildMetricCard(
+                'Active Now',
+                '${_kpis['activeRiders'] ?? 0}',
+                Colors.green.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Fleet Health Score', '${_kpis['riderHealthScore'] ?? 0}/100', Colors.teal.shade50),
+              _buildMetricCard(
+                'Fleet Health Score',
+                '${_kpis['riderHealthScore'] ?? 0}/100',
+                Colors.teal.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Fleet Risk Score', '${_kpis['riderRiskScore'] ?? 0}/100', Colors.red.shade50),
+              _buildMetricCard(
+                'Fleet Risk Score',
+                '${_kpis['riderRiskScore'] ?? 0}/100',
+                Colors.red.shade50,
+              ),
             ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildMetricCard('Avg Earnings', '${_kpis['avgEarningsTrend'] ?? '0'}', Colors.purple.shade50),
+              _buildMetricCard(
+                'Avg Earnings',
+                '${_kpis['avgEarningsTrend'] ?? '0'}',
+                Colors.purple.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Trial Performance', '${_kpis['avgTrialPerformance'] ?? '0%'}', Colors.indigo.shade50),
+              _buildMetricCard(
+                'Trial Performance',
+                '${_kpis['avgTrialPerformance'] ?? '0%'}',
+                Colors.indigo.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('Delivery Performance', '${_kpis['avgDeliveryPerformance'] ?? '0%'}', Colors.amber.shade50),
+              _buildMetricCard(
+                'Delivery Performance',
+                '${_kpis['avgDeliveryPerformance'] ?? '0%'}',
+                Colors.amber.shade50,
+              ),
               const SizedBox(width: 16),
-              _buildMetricCard('SLA Performance', '${_kpis['slaPerformance'] ?? '0%'}', Colors.grey.shade200),
+              _buildMetricCard(
+                'SLA Performance',
+                '${_kpis['slaPerformance'] ?? '0%'}',
+                Colors.grey.shade200,
+              ),
             ],
           ),
           const SizedBox(height: 32),
@@ -219,29 +265,48 @@ class _AdminRiderIntelligenceSectionState extends State<AdminRiderIntelligenceSe
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Overall Fleet Classification', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Overall Fleet Classification',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 16),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: classifColor,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             classif,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Text('Complaint Rate: ${_kpis['complaintRate'] ?? '0%'}', style: const TextStyle(color: Colors.grey)),
+                        Text(
+                          'Complaint Rate: ${_kpis['complaintRate'] ?? '0%'}',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
                       ],
                     ),
                   ),
                 ),
               ),
-              const Expanded(flex: 2, child: SizedBox()), // Placeholder for chart
+              const Expanded(
+                flex: 2,
+                child: SizedBox(),
+              ), // Placeholder for chart
             ],
-          )
+          ),
         ],
       ),
     );
@@ -258,9 +323,22 @@ class _AdminRiderIntelligenceSectionState extends State<AdminRiderIntelligenceSe
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: GoogleFonts.inter(color: Colors.black54, fontWeight: FontWeight.w500)),
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(value, style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
           ],
         ),
       ),
@@ -277,7 +355,10 @@ class _AdminRiderIntelligenceSectionState extends State<AdminRiderIntelligenceSe
               width: 200,
               child: DropdownButtonFormField<String>(
                 initialValue: _classificationFilter,
-                decoration: const InputDecoration(labelText: 'Classification Filter', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Classification Filter',
+                  border: OutlineInputBorder(),
+                ),
                 items: const [
                   DropdownMenuItem(value: null, child: Text('All')),
                   DropdownMenuItem(value: 'Healthy', child: Text('Healthy')),
@@ -305,74 +386,109 @@ class _AdminRiderIntelligenceSectionState extends State<AdminRiderIntelligenceSe
           child: _isLoadingRiders
               ? const Center(child: CircularProgressIndicator())
               : _riders.isEmpty
-                  ? const Center(child: Text('No riders found for this classification.'))
-                  : Card(
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: SingleChildScrollView(
-                                child: DataTable(
-                                  columns: const [
-                                    DataColumn(label: Text('Name')),
-                                    DataColumn(label: Text('Phone')),
-                                    DataColumn(label: Text('Classification')),
-                                    DataColumn(label: Text('Health Score')),
-                                    DataColumn(label: Text('Risk Score')),
-                                    DataColumn(label: Text('Earnings')),
+              ? const Center(
+                  child: Text('No riders found for this classification.'),
+                )
+              : Card(
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SingleChildScrollView(
+                            child: DataTable(
+                              columns: const [
+                                DataColumn(label: Text('Name')),
+                                DataColumn(label: Text('Phone')),
+                                DataColumn(label: Text('Classification')),
+                                DataColumn(label: Text('Health Score')),
+                                DataColumn(label: Text('Risk Score')),
+                                DataColumn(label: Text('Earnings')),
+                              ],
+                              rows: _riders.map((p) {
+                                final classif =
+                                    p['classification'] ?? 'Healthy';
+                                final classifColor = classif == 'Critical'
+                                    ? Colors.red
+                                    : classif == 'Warning'
+                                    ? Colors.orange
+                                    : Colors.green;
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(p['name'] ?? 'N/A')),
+                                    DataCell(Text(p['phone'] ?? '')),
+                                    DataCell(
+                                      Chip(
+                                        label: Text(
+                                          classif,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        backgroundColor: classifColor,
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        '${p['healthScore'] ?? 0}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        '${p['riskScore'] ?? 0}',
+                                        style: TextStyle(
+                                          color: p['riskScore'] > 50
+                                              ? Colors.red
+                                              : Colors.black,
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(Text('₹${p['earnings'] ?? 0}')),
                                   ],
-                                  rows: _riders.map((p) {
-                                    final classif = p['classification'] ?? 'Healthy';
-                                    final classifColor = classif == 'Critical' ? Colors.red : classif == 'Warning' ? Colors.orange : Colors.green;
-                                    return DataRow(cells: [
-                                      DataCell(Text(p['name'] ?? 'N/A')),
-                                      DataCell(Text(p['phone'] ?? '')),
-                                      DataCell(Chip(label: Text(classif, style: const TextStyle(color: Colors.white)), backgroundColor: classifColor)),
-                                      DataCell(Text('${p['healthScore'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                      DataCell(Text('${p['riskScore'] ?? 0}', style: TextStyle(color: p['riskScore'] > 50 ? Colors.red : Colors.black))),
-                                      DataCell(Text('₹${p['earnings'] ?? 0}')),
-                                    ]);
-                                  }).toList(),
-                                ),
-                              ),
+                                );
+                              }).toList(),
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Page $_ridersPage of $_ridersTotalPages'),
+                            Row(
                               children: [
-                                Text('Page $_ridersPage of $_ridersTotalPages'),
-                                Row(
-                                  children: [
-                                    OutlinedButton(
-                                      onPressed: _ridersPage > 1
-                                          ? () {
-                                              setState(() => _ridersPage--);
-                                              _fetchRiders();
-                                            }
-                                          : null,
-                                      child: const Text('Previous'),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    OutlinedButton(
-                                      onPressed: _ridersPage < _ridersTotalPages
-                                          ? () {
-                                              setState(() => _ridersPage++);
-                                              _fetchRiders();
-                                            }
-                                          : null,
-                                      child: const Text('Next'),
-                                    ),
-                                  ],
+                                OutlinedButton(
+                                  onPressed: _ridersPage > 1
+                                      ? () {
+                                          setState(() => _ridersPage--);
+                                          _fetchRiders();
+                                        }
+                                      : null,
+                                  child: const Text('Previous'),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton(
+                                  onPressed: _ridersPage < _ridersTotalPages
+                                      ? () {
+                                          setState(() => _ridersPage++);
+                                          _fetchRiders();
+                                        }
+                                      : null,
+                                  child: const Text('Next'),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );

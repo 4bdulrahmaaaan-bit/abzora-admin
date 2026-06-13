@@ -12,10 +12,7 @@ import '../../theme.dart';
 import '../../widgets/state_views.dart';
 
 class DeliveryScreen extends StatefulWidget {
-  const DeliveryScreen({
-    super.key,
-    required this.order,
-  });
+  const DeliveryScreen({super.key, required this.order});
 
   final OrderModel order;
 
@@ -49,7 +46,10 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
         rider: rider,
       );
       if (status == 'Picked up' || status == 'Out for delivery') {
-        await _tracker.startOrderTracking(orderId: widget.order.id, rider: rider);
+        await _tracker.startOrderTracking(
+          orderId: widget.order.id,
+          rider: rider,
+        );
       } else if (status == 'Delivered') {
         await _tracker.stop();
       }
@@ -77,7 +77,9 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     double? targetLat = customer?.latitude;
     double? targetLng = customer?.longitude;
     if (targetLat == null || targetLng == null) {
-      final geo = await _locationService.geocodeAddress(widget.order.shippingAddress);
+      final geo = await _locationService.geocodeAddress(
+        widget.order.shippingAddress,
+      );
       targetLat = geo.latitude;
       targetLng = geo.longitude;
     }
@@ -160,8 +162,14 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            customer?.name.isNotEmpty == true ? customer!.name : 'Customer delivery',
-            style: GoogleFonts.inter(color: const Color(0xFF111111), fontWeight: FontWeight.w700, fontSize: 22),
+            customer?.name.isNotEmpty == true
+                ? customer!.name
+                : 'Customer delivery',
+            style: GoogleFonts.inter(
+              color: const Color(0xFF111111),
+              fontWeight: FontWeight.w700,
+              fontSize: 22,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -184,12 +192,31 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Customer Details', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: const Color(0xFF111111))),
+          Text(
+            'Customer Details',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF111111),
+            ),
+          ),
           const SizedBox(height: 12),
-          _detailRow(Icons.person_outline_rounded, customer?.name.isNotEmpty == true ? customer!.name : 'Customer'),
+          _detailRow(
+            Icons.person_outline_rounded,
+            customer?.name.isNotEmpty == true ? customer!.name : 'Customer',
+          ),
           _detailRow(Icons.location_on_outlined, widget.order.shippingAddress),
-          _detailRow(Icons.phone_outlined, customer?.phone?.isNotEmpty == true ? customer!.phone! : 'Phone unavailable'),
-          _detailRow(Icons.route_outlined, distanceKm == null ? 'Distance unavailable' : '${distanceKm.toStringAsFixed(1)} km away'),
+          _detailRow(
+            Icons.phone_outlined,
+            customer?.phone?.isNotEmpty == true
+                ? customer!.phone!
+                : 'Phone unavailable',
+          ),
+          _detailRow(
+            Icons.route_outlined,
+            distanceKm == null
+                ? 'Distance unavailable'
+                : '${distanceKm.toStringAsFixed(1)} km away',
+          ),
         ],
       ),
     );
@@ -206,7 +233,13 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Order Items', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: const Color(0xFF111111))),
+          Text(
+            'Order Items',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF111111),
+            ),
+          ),
           const SizedBox(height: 12),
           ...widget.order.items.map((item) {
             return Padding(
@@ -214,9 +247,18 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(item.productName, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFF111111))),
+                    child: Text(
+                      item.productName,
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF111111),
+                      ),
+                    ),
                   ),
-                  Text('x${item.quantity}', style: GoogleFonts.inter(color: const Color(0xFF666666))),
+                  Text(
+                    'x${item.quantity}',
+                    style: GoogleFonts.inter(color: const Color(0xFF666666)),
+                  ),
                 ],
               ),
             );
@@ -238,12 +280,21 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Delivery Actions', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: const Color(0xFF111111))),
+          Text(
+            'Delivery Actions',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF111111),
+            ),
+          ),
           const SizedBox(height: 14),
           if (status == 'Assigned')
             _actionButton('Pick Up Order', () => _setStatus('Picked up')),
           if (status == 'Picked up')
-            _actionButton('Start Delivery', () => _setStatus('Out for delivery')),
+            _actionButton(
+              'Start Delivery',
+              () => _setStatus('Out for delivery'),
+            ),
           if (status == 'Out for delivery')
             _actionButton('Mark as Delivered', () => _setStatus('Delivered')),
           if (status == 'Delivered')
@@ -265,7 +316,10 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               )
             : Text(label),
       ),

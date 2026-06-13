@@ -1902,16 +1902,22 @@ class BackendCommerceService {
             );
           })
           .toList(),
-      ordersRequiringAttention: ((map['ordersRequiringAttention'] ?? 0) as num).toInt(),
-      trialsRequiringAttention: ((map['trialsRequiringAttention'] ?? 0) as num).toInt(),
-      vendorsRequiringAttention: ((map['vendorsRequiringAttention'] ?? 0) as num).toInt(),
+      ordersRequiringAttention: ((map['ordersRequiringAttention'] ?? 0) as num)
+          .toInt(),
+      trialsRequiringAttention: ((map['trialsRequiringAttention'] ?? 0) as num)
+          .toInt(),
+      vendorsRequiringAttention:
+          ((map['vendorsRequiringAttention'] ?? 0) as num).toInt(),
       fraudAlerts: ((map['fraudAlerts'] ?? 0) as num).toInt(),
       pendingRefunds: ((map['pendingRefunds'] ?? 0) as num).toInt(),
       pendingKyc: ((map['pendingKyc'] ?? 0) as num).toInt(),
-      pendingVendorSettlements: ((map['pendingVendorSettlements'] ?? 0) as num).toInt(),
-      pendingRiderSettlements: ((map['pendingRiderSettlements'] ?? 0) as num).toInt(),
+      pendingVendorSettlements: ((map['pendingVendorSettlements'] ?? 0) as num)
+          .toInt(),
+      pendingRiderSettlements: ((map['pendingRiderSettlements'] ?? 0) as num)
+          .toInt(),
       lowStockAlertsCount: ((map['lowStockAlertsCount'] ?? 0) as num).toInt(),
-      systemReadinessScore: ((map['systemReadinessScore'] ?? 100) as num).toInt(),
+      systemReadinessScore: ((map['systemReadinessScore'] ?? 100) as num)
+          .toInt(),
     );
   }
 
@@ -3832,7 +3838,10 @@ class BackendCommerceService {
       },
     );
     final items = payload is List ? payload : const [];
-    return items.whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList();
+    return items
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
   }
 
   Future<UnifiedRiderTask> updateRiderLogisticsTaskStatus({
@@ -4753,10 +4762,18 @@ class BackendCommerceService {
       createdAt: map['createdAt']?.toString() ?? '',
       updatedAt:
           map['updatedAt']?.toString() ?? map['createdAt']?.toString() ?? '',
-      pickupLat: map['pickupLat'] == null ? null : (map['pickupLat'] as num).toDouble(),
-      pickupLng: map['pickupLng'] == null ? null : (map['pickupLng'] as num).toDouble(),
-      dropLat: map['dropLat'] == null ? null : (map['dropLat'] as num).toDouble(),
-      dropLng: map['dropLng'] == null ? null : (map['dropLng'] as num).toDouble(),
+      pickupLat: map['pickupLat'] == null
+          ? null
+          : (map['pickupLat'] as num).toDouble(),
+      pickupLng: map['pickupLng'] == null
+          ? null
+          : (map['pickupLng'] as num).toDouble(),
+      dropLat: map['dropLat'] == null
+          ? null
+          : (map['dropLat'] as num).toDouble(),
+      dropLng: map['dropLng'] == null
+          ? null
+          : (map['dropLng'] as num).toDouble(),
     );
   }
 

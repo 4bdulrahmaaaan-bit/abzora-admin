@@ -13,7 +13,9 @@ class RiderReferralScreen extends StatelessWidget {
         child: RiderGlassCard(
           child: ListTile(
             title: Text('Referral Program'),
-            subtitle: Text('Share code ABZRIDE and earn bonuses on verified rider joins.'),
+            subtitle: Text(
+              'Share code ABZRIDE and earn bonuses on verified rider joins.',
+            ),
           ),
         ),
       ),

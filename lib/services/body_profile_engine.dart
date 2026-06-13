@@ -19,14 +19,17 @@ class BodyProfileEngine {
     final fitHint = _fitHintFromShape(shape, postureTendency);
 
     final proportionReliability =
-        (frame.feedback.progress * 0.7 + tracking.coverage * 0.3)
-            .clamp(0.0, 1.0);
+        (frame.feedback.progress * 0.7 + tracking.coverage * 0.3).clamp(
+          0.0,
+          1.0,
+        );
     final postureReliability =
         (1.0 - tilt.abs()).clamp(0.0, 1.0) * tracking.stability;
-    final overall = ((tracking.overall * 0.5) +
-            (proportionReliability * 0.3) +
-            (postureReliability * 0.2))
-        .clamp(0.0, 1.0);
+    final overall =
+        ((tracking.overall * 0.5) +
+                (proportionReliability * 0.3) +
+                (postureReliability * 0.2))
+            .clamp(0.0, 1.0);
 
     return BodyProfile(
       shapeClass: shape,
@@ -35,10 +38,7 @@ class BodyProfileEngine {
         torsoProportion: torsoProportion,
         silhouetteIndex: silhouetteIndex,
       ),
-      posture: PostureAnalysis(
-        tendency: postureTendency,
-        tiltRadians: tilt,
-      ),
+      posture: PostureAnalysis(tendency: postureTendency, tiltRadians: tilt),
       fitPreferenceHint: fitHint,
       confidence: BodyConfidence(
         overall: overall,

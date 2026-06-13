@@ -2,7 +2,10 @@ import '../../../services/backend_api_client.dart';
 
 class AdminFinanceApi {
   static Future<Map<String, dynamic>> fetchDashboard() async {
-    final payload = await const BackendApiClient().get('/admin/finance/dashboard', authenticated: true);
+    final payload = await const BackendApiClient().get(
+      '/admin/finance/dashboard',
+      authenticated: true,
+    );
     return Map<String, dynamic>.from(payload['data'] ?? {});
   }
 
@@ -20,15 +23,17 @@ class AdminFinanceApi {
     if (status != null && status.isNotEmpty) queryParams['status'] = status;
 
     final queryStr = Uri(queryParameters: queryParams).query;
-    final payload = await const BackendApiClient().get('/admin/finance/settlements?$queryStr', authenticated: true);
+    final payload = await const BackendApiClient().get(
+      '/admin/finance/settlements?$queryStr',
+      authenticated: true,
+    );
     final map = Map<String, dynamic>.from(payload as Map);
 
-    final settlements = (map['data'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final settlements = (map['data'] as List? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
 
-    return {
-      'settlements': settlements,
-      'meta': map['meta'] ?? {},
-    };
+    return {'settlements': settlements, 'meta': map['meta'] ?? {}};
   }
 
   static Future<Map<String, dynamic>> fetchRefunds({
@@ -43,19 +48,26 @@ class AdminFinanceApi {
     if (status != null && status.isNotEmpty) queryParams['status'] = status;
 
     final queryStr = Uri(queryParameters: queryParams).query;
-    final payload = await const BackendApiClient().get('/admin/finance/refunds?$queryStr', authenticated: true);
+    final payload = await const BackendApiClient().get(
+      '/admin/finance/refunds?$queryStr',
+      authenticated: true,
+    );
     final map = Map<String, dynamic>.from(payload as Map);
 
-    final refunds = (map['data'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final refunds = (map['data'] as List? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
 
-    return {
-      'refunds': refunds,
-      'meta': map['meta'] ?? {},
-    };
+    return {'refunds': refunds, 'meta': map['meta'] ?? {}};
   }
 
   static Future<List<Map<String, dynamic>>> fetchReports(String period) async {
-    final payload = await const BackendApiClient().get('/admin/finance/reports?period=$period', authenticated: true);
-    return (payload['data'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final payload = await const BackendApiClient().get(
+      '/admin/finance/reports?period=$period',
+      authenticated: true,
+    );
+    return (payload['data'] as List? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
   }
 }

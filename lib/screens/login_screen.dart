@@ -432,12 +432,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         curve: Curves.easeOutCubic,
                         height: 56,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: hasError
-                                  ? const Color(0xFFD64C4C)
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: hasError
+                                ? const Color(0xFFD64C4C)
                                 : isFocused
                                 ? const Color(0xFFC6A769)
                                 : const Color(0xFFE5E5E5),
@@ -597,8 +597,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ..onTap = () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (_) =>
-                                        const LegalPolicyHubScreen(
+                                    builder: (_) => const LegalPolicyHubScreen(
                                       audience: LegalAudience.customer,
                                       title: 'Privacy Policy',
                                     ),
@@ -661,4 +660,3 @@ class _BenefitRow extends StatelessWidget {
     );
   }
 }
-

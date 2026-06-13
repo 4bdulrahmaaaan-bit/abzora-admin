@@ -42,7 +42,8 @@ class _AddProductScreenContent extends StatefulWidget {
   const _AddProductScreenContent();
 
   @override
-  State<_AddProductScreenContent> createState() => _AddProductScreenContentState();
+  State<_AddProductScreenContent> createState() =>
+      _AddProductScreenContentState();
 }
 
 class _AddProductScreenContentState extends State<_AddProductScreenContent> {
@@ -51,7 +52,10 @@ class _AddProductScreenContentState extends State<_AddProductScreenContent> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+        content: Text(
+          message,
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: const Color(0xFFC03C2E),
         behavior: SnackBarBehavior.floating,
       ),
@@ -61,7 +65,10 @@ class _AddProductScreenContentState extends State<_AddProductScreenContent> {
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+        content: Text(
+          message,
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: const Color(0xFF16A34A),
         behavior: SnackBarBehavior.floating,
       ),
@@ -92,7 +99,11 @@ class _AddProductScreenContentState extends State<_AddProductScreenContent> {
     return true;
   }
 
-  Future<void> _submit(BuildContext context, ProductFormController controller, ProductStatus newStatus) async {
+  Future<void> _submit(
+    BuildContext context,
+    ProductFormController controller,
+    ProductStatus newStatus,
+  ) async {
     if (newStatus == ProductStatus.active && !_validateForm(controller)) {
       return;
     }
@@ -101,10 +112,12 @@ class _AddProductScreenContentState extends State<_AddProductScreenContent> {
 
     try {
       final db = DatabaseService();
-      
+
       // Basic translation to Product model (In real implementation, connect to API)
       final p = Product(
-        id: controller.existingProduct?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        id:
+            controller.existingProduct?.id ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
         storeId: controller.storeId,
         name: controller.nameController.text.trim(),
         brand: controller.brandController.text.trim(),
@@ -144,7 +157,7 @@ class _AddProductScreenContentState extends State<_AddProductScreenContent> {
         if (!context.mounted) return;
         _showSuccess('Product created successfully!');
       }
-      
+
       if (context.mounted) Navigator.pop(context);
     } catch (e) {
       _showError('Error saving product: $e');
@@ -177,7 +190,12 @@ class _AddProductScreenContentState extends State<_AddProductScreenContent> {
           Form(
             key: controller.formKey,
             child: ListView(
-              padding: const EdgeInsets.only(left: 24, right: 24, top: 24, bottom: 120),
+              padding: const EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: 120,
+              ),
               children: const [
                 ProductMediaSection(),
                 SizedBox(height: 16),
@@ -204,11 +222,15 @@ class _AddProductScreenContentState extends State<_AddProductScreenContent> {
             right: 0,
             bottom: 0,
             child: ProductPublishBar(
-              onSaveDraft: () => _submit(context, controller, ProductStatus.draft),
+              onSaveDraft: () =>
+                  _submit(context, controller, ProductStatus.draft),
               onPreview: () {
-                _showSuccess('Live Preview not connected in this simplified build');
+                _showSuccess(
+                  'Live Preview not connected in this simplified build',
+                );
               },
-              onPublish: () => _submit(context, controller, ProductStatus.active),
+              onPublish: () =>
+                  _submit(context, controller, ProductStatus.active),
             ),
           ),
           if (_isSubmitting)

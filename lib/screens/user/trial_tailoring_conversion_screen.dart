@@ -4,10 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/trial_home_provider.dart';
 
 class TrialTailoringConversionScreen extends StatefulWidget {
-  const TrialTailoringConversionScreen({
-    super.key,
-    required this.trialId,
-  });
+  const TrialTailoringConversionScreen({super.key, required this.trialId});
 
   final String trialId;
 
@@ -91,16 +88,16 @@ class _TrialTailoringConversionScreenState
               children: [
                 Text(
                   'Make this perfect for you',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Abianzo will convert your trial into a custom tailoring request.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.78),
-                      ),
+                    color: Colors.white.withValues(alpha: 0.78),
+                  ),
                 ),
               ],
             ),
@@ -151,4 +148,3 @@ class _TrialTailoringConversionScreenState
     );
   }
 }
-

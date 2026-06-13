@@ -69,9 +69,14 @@ class SystemHealthData {
 
 class AdminSystemHealthApi {
   static Future<SystemHealthData> getSystemHealth() async {
-    final response = await const BackendApiClient().get('/admin/system-health', authenticated: true);
+    final response = await const BackendApiClient().get(
+      '/admin/system-health',
+      authenticated: true,
+    );
     if (response != null && response is Map) {
-      return SystemHealthData.fromMap(Map<String, dynamic>.from(response['data'] ?? response));
+      return SystemHealthData.fromMap(
+        Map<String, dynamic>.from(response['data'] ?? response),
+      );
     }
     throw Exception('Failed to fetch system health data.');
   }

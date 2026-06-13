@@ -181,10 +181,7 @@ class _RiderOnboardingScreenState extends State<RiderOnboardingScreen> {
                 statusColor: _statusColor(requestStatus),
               ),
               const SizedBox(height: 16),
-              _RiderOnboardingSummaryCard(
-                actor: user,
-                request: request,
-              ),
+              _RiderOnboardingSummaryCard(actor: user, request: request),
               const SizedBox(height: 16),
               _RiderOnboardingActionCard(
                 hasExistingRequest: hasExistingRequest,
@@ -322,7 +319,10 @@ class _RiderOnboardingSummaryCard extends StatelessWidget {
           const SizedBox(height: 12),
           _SummaryRow(label: 'Phone', value: actor.phone ?? 'Not provided'),
           const SizedBox(height: 12),
-          _SummaryRow(label: 'City', value: request?.city ?? actor.city ?? 'Not provided'),
+          _SummaryRow(
+            label: 'City',
+            value: request?.city ?? actor.city ?? 'Not provided',
+          ),
           const SizedBox(height: 12),
           _SummaryRow(
             label: 'Vehicle',
@@ -333,7 +333,9 @@ class _RiderOnboardingSummaryCard extends StatelessWidget {
           const SizedBox(height: 12),
           _SummaryRow(
             label: 'Application',
-            value: hasRequest ? 'Existing submission detected' : 'No submission yet',
+            value: hasRequest
+                ? 'Existing submission detected'
+                : 'No submission yet',
           ),
         ],
       ),
@@ -395,8 +397,8 @@ class _RiderOnboardingActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final actionLabel = hasExistingRequest
         ? status == 'rejected'
-            ? 'RESUBMIT APPLICATION'
-            : 'REVIEW APPLICATION'
+              ? 'RESUBMIT APPLICATION'
+              : 'REVIEW APPLICATION'
         : 'START APPLICATION';
 
     return Container(
@@ -429,7 +431,8 @@ class _RiderOnboardingActionCard extends StatelessWidget {
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            height: 56, child: ElevatedButton(
+            height: 56,
+            child: ElevatedButton(
               onPressed: onPrimaryAction,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFC8A86B),

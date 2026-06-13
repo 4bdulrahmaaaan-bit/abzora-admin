@@ -40,15 +40,21 @@ class KycDocumentViewer extends StatelessWidget {
             children: [
               Expanded(
                 child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(18),
+                  ),
                   child: SizedBox(
                     width: double.infinity,
                     child: Image.network(
                       url,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Center(
-                        child: Icon(Icons.broken_image_outlined, color: Color(0xFF9B9B9B)),
-                      ),
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Center(
+                            child: Icon(
+                              Icons.broken_image_outlined,
+                              color: Color(0xFF9B9B9B),
+                            ),
+                          ),
                     ),
                   ),
                 ),
@@ -63,7 +69,11 @@ class KycDocumentViewer extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
-                    const Icon(Icons.zoom_in_rounded, size: 18, color: Color(0xFF7A7A7A)),
+                    const Icon(
+                      Icons.zoom_in_rounded,
+                      size: 18,
+                      color: Color(0xFF7A7A7A),
+                    ),
                   ],
                 ),
               ),
@@ -96,7 +106,11 @@ Future<void> showKycDocumentViewer(
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => const Padding(
                   padding: EdgeInsets.all(24),
-                  child: Icon(Icons.broken_image_outlined, color: Colors.white, size: 40),
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    color: Colors.white,
+                    size: 40,
+                  ),
                 ),
               ),
             ),

@@ -34,24 +34,19 @@ class VendorMetricCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.labelMedium,
               ),
               if (icon != null)
-                Icon(
-                  icon,
-                  size: 16,
-                  color: VendorTheme.grey400,
-                ),
+                Icon(icon, size: 16, color: VendorTheme.grey400),
             ],
           ),
           const SizedBox(height: VendorTheme.spacing12),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
+          Text(value, style: Theme.of(context).textTheme.headlineMedium),
           if (trend != null) ...[
             const SizedBox(height: VendorTheme.spacing8),
             Row(
               children: [
                 Icon(
-                  trend! >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                  trend! >= 0
+                      ? Icons.trending_up_rounded
+                      : Icons.trending_down_rounded,
                   size: 14,
                   color: trend! >= 0 ? VendorTheme.success : VendorTheme.error,
                 ),
@@ -59,16 +54,18 @@ class VendorMetricCard extends StatelessWidget {
                 Text(
                   '${trend! > 0 ? '+' : ''}${trend!.toStringAsFixed(1)}%',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: trend! >= 0 ? VendorTheme.success : VendorTheme.error,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: trend! >= 0
+                        ? VendorTheme.success
+                        : VendorTheme.error,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(width: VendorTheme.spacing4),
                 Text(
                   'vs yesterday',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: VendorTheme.grey500,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: VendorTheme.grey500),
                 ),
               ],
             ),

@@ -10,12 +10,14 @@ class AdminNotificationsSection extends StatefulWidget {
   const AdminNotificationsSection({super.key});
 
   @override
-  State<AdminNotificationsSection> createState() => _AdminNotificationsSectionState();
+  State<AdminNotificationsSection> createState() =>
+      _AdminNotificationsSectionState();
 }
 
-class _AdminNotificationsSectionState extends State<AdminNotificationsSection> with SingleTickerProviderStateMixin {
+class _AdminNotificationsSectionState extends State<AdminNotificationsSection>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   bool _isLoading = true;
   String _error = '';
   List<AdminNotification> _history = [];
@@ -72,7 +74,10 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
       _error = '';
     });
     try {
-      final res = await AdminNotificationsApi.fetchHistory(page: _currentPage, limit: _limit);
+      final res = await AdminNotificationsApi.fetchHistory(
+        page: _currentPage,
+        limit: _limit,
+      );
       if (mounted) {
         setState(() {
           _history = res['history'] as List<AdminNotification>;
@@ -93,12 +98,17 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
   }
 
   Future<void> _dispatchCampaign() async {
-    if (_titleController.text.trim().isEmpty || _bodyController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Title and body are required.')));
+    if (_titleController.text.trim().isEmpty ||
+        _bodyController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Title and body are required.')),
+      );
       return;
     }
     if (_channels.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('At least one channel must be selected.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('At least one channel must be selected.')),
+      );
       return;
     }
 
@@ -106,7 +116,9 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
     try {
       if (_campaignType == 'Scheduled') {
         // Mock schedule for 1 hour from now
-        final schDate = DateTime.now().add(const Duration(hours: 1)).toIso8601String();
+        final schDate = DateTime.now()
+            .add(const Duration(hours: 1))
+            .toIso8601String();
         await AdminNotificationsApi.scheduleCampaign(
           title: _titleController.text.trim(),
           body: _bodyController.text.trim(),
@@ -114,7 +126,10 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
           channels: _channels,
           scheduledAt: schDate,
         );
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Campaign scheduled successfully!')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Campaign scheduled successfully!')),
+          );
       } else {
         await AdminNotificationsApi.sendCampaign(
           title: _titleController.text.trim(),
@@ -123,9 +138,12 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
           channels: _channels,
           campaignType: _campaignType,
         );
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Campaign dispatched successfully!')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Campaign dispatched successfully!')),
+          );
       }
-      
+
       _titleController.clear();
       _bodyController.clear();
       setState(() {
@@ -135,7 +153,10 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
       });
       _tabController.animateTo(1);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() => _isSending = false);
     }
@@ -186,10 +207,7 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: [
-              _buildComposeTab(),
-              _buildHistoryTab(),
-            ],
+            children: [_buildComposeTab(), _buildHistoryTab()],
           ),
         ),
       ],
@@ -208,18 +226,27 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Campaign Details', style: context.abzioText.titleMedium),
+                  Text(
+                    'Campaign Details',
+                    style: context.abzioText.titleMedium,
+                  ),
                   const Divider(),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _titleController,
-                    decoration: const InputDecoration(labelText: 'Campaign Title / Subject', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                      labelText: 'Campaign Title / Subject',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _bodyController,
                     maxLines: 5,
-                    decoration: const InputDecoration(labelText: 'Message Body (Supports HTML for email)', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                      labelText: 'Message Body (Supports HTML for email)',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -227,11 +254,23 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: _audienceRole,
-                          decoration: const InputDecoration(labelText: 'Target Audience', border: OutlineInputBorder()),
+                          decoration: const InputDecoration(
+                            labelText: 'Target Audience',
+                            border: OutlineInputBorder(),
+                          ),
                           items: const [
-                            DropdownMenuItem(value: 'user', child: Text('All Customers')),
-                            DropdownMenuItem(value: 'vendor', child: Text('All Vendors')),
-                            DropdownMenuItem(value: 'rider', child: Text('All Riders')),
+                            DropdownMenuItem(
+                              value: 'user',
+                              child: Text('All Customers'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'vendor',
+                              child: Text('All Vendors'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'rider',
+                              child: Text('All Riders'),
+                            ),
                           ],
                           onChanged: (v) => setState(() => _audienceRole = v!),
                         ),
@@ -240,11 +279,23 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: _campaignType,
-                          decoration: const InputDecoration(labelText: 'Campaign Type', border: OutlineInputBorder()),
+                          decoration: const InputDecoration(
+                            labelText: 'Campaign Type',
+                            border: OutlineInputBorder(),
+                          ),
                           items: const [
-                            DropdownMenuItem(value: 'Instant', child: Text('Instant Broadcast')),
-                            DropdownMenuItem(value: 'Scheduled', child: Text('Scheduled (1hr mock)')),
-                            DropdownMenuItem(value: 'Segmented', child: Text('Segmented')),
+                            DropdownMenuItem(
+                              value: 'Instant',
+                              child: Text('Instant Broadcast'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Scheduled',
+                              child: Text('Scheduled (1hr mock)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Segmented',
+                              child: Text('Segmented'),
+                            ),
                           ],
                           onChanged: (v) => setState(() => _campaignType = v!),
                         ),
@@ -267,7 +318,9 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
                     height: 50,
                     child: ElevatedButton(
                       onPressed: _isSending ? null : _dispatchCampaign,
-                      child: _isSending ? const CircularProgressIndicator(color: Colors.white) : const Text('Dispatch Campaign'),
+                      child: _isSending
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Dispatch Campaign'),
                     ),
                   ),
                 ],
@@ -284,15 +337,17 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
               Text('Quick Templates', style: context.abzioText.titleMedium),
               const SizedBox(height: 16),
               if (_templates.isEmpty) const Text('Loading templates...'),
-              ..._templates.map((t) => Card(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    child: ListTile(
-                      title: Text(t['name'] ?? ''),
-                      subtitle: Text('${t['channels']?.join(', ')}'),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () => _useTemplate(t),
-                    ),
-                  )),
+              ..._templates.map(
+                (t) => Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: ListTile(
+                    title: Text(t['name'] ?? ''),
+                    subtitle: Text('${t['channels']?.join(', ')}'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () => _useTemplate(t),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -367,7 +422,15 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection> w
                       cells: [
                         DataCell(Text(h.timestamp.toString().split('.')[0])),
                         DataCell(Chip(label: Text(h.campaignType))),
-                        DataCell(SizedBox(width: 200, child: Text(h.title, overflow: TextOverflow.ellipsis))),
+                        DataCell(
+                          SizedBox(
+                            width: 200,
+                            child: Text(
+                              h.title,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
                         DataCell(Text(h.audienceRole)),
                         DataCell(Text(h.channels.join(', '))),
                         DataCell(Text('${h.analytics['sent'] ?? 0}')),

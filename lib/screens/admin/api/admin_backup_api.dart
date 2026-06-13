@@ -36,32 +36,47 @@ class AdminBackupModel {
       errorMessage: map['errorMessage'] ?? '',
       triggeredBy: map['triggeredBy'] ?? '',
       createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
-      completedAt: map['completedAt'] != null ? DateTime.tryParse(map['completedAt']) : null,
+      completedAt: map['completedAt'] != null
+          ? DateTime.tryParse(map['completedAt'])
+          : null,
     );
   }
 }
 
 class AdminBackupApi {
   static Future<List<AdminBackupModel>> getBackups() async {
-    final response = await const BackendApiClient().get('/admin/backups', authenticated: true);
+    final response = await const BackendApiClient().get(
+      '/admin/backups',
+      authenticated: true,
+    );
     if (response != null && response is Map && response['data'] is List) {
       return (response['data'] as List)
-          .map((item) => AdminBackupModel.fromMap(Map<String, dynamic>.from(item)))
+          .map(
+            (item) => AdminBackupModel.fromMap(Map<String, dynamic>.from(item)),
+          )
           .toList();
     }
     return [];
   }
 
   static Future<AdminBackupModel> triggerBackup() async {
-    final response = await const BackendApiClient().post('/admin/backups/trigger', authenticated: true);
+    final response = await const BackendApiClient().post(
+      '/admin/backups/trigger',
+      authenticated: true,
+    );
     if (response != null && response is Map && response['data'] != null) {
-      return AdminBackupModel.fromMap(Map<String, dynamic>.from(response['data']));
+      return AdminBackupModel.fromMap(
+        Map<String, dynamic>.from(response['data']),
+      );
     }
     throw Exception('Failed to trigger backup');
   }
 
   static Future<void> restoreBackup() async {
-    final response = await const BackendApiClient().post('/admin/backups/restore', authenticated: true);
+    final response = await const BackendApiClient().post(
+      '/admin/backups/restore',
+      authenticated: true,
+    );
     if (response != null && response is Map && response['success'] == false) {
       throw Exception(response['message'] ?? 'Restore failed');
     }

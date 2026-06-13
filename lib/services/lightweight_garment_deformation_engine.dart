@@ -36,10 +36,11 @@ class LightweightGarmentDeformationEngine {
     required double thermalLoad,
   }) {
     final tierBudget = _tierBudget(deviceTier);
-    final confidence = ((alignment.attachmentConfidence * 0.55) +
-            (trackingReliability * 0.3) +
-            ((1 - thermalLoad).clamp(0.0, 1.0) * 0.15))
-        .clamp(0.0, 1.0);
+    final confidence =
+        ((alignment.attachmentConfidence * 0.55) +
+                (trackingReliability * 0.3) +
+                ((1 - thermalLoad).clamp(0.0, 1.0) * 0.15))
+            .clamp(0.0, 1.0);
     final strength = (tierBudget * confidence).clamp(0.22, 1.0);
     final motionPenalty = (1 - motionQuality).clamp(0.0, 1.0);
     final damping = (0.48 + (motionPenalty * 0.36)).clamp(0.45, 0.88);
@@ -50,7 +51,11 @@ class LightweightGarmentDeformationEngine {
       torsoScaleX: _blendToOne(alignment.torsoScale, strength, 0.48),
       torsoScaleY: _blendToOne(alignment.torsoScale, strength, 0.32),
       chestInflation: _blendToOne(alignment.chestScale, strength, 0.62),
-      waistTaper: _blendToOne(alignment.waistScale * alignment.waistTaperFactor, strength, 0.68),
+      waistTaper: _blendToOne(
+        alignment.waistScale * alignment.waistTaperFactor,
+        strength,
+        0.68,
+      ),
       hipEase: _blendToOne(alignment.hipScale, strength, 0.45),
       shoulderTension: _blendToOne(alignment.shoulderScale, strength, 0.58),
       stability: ((alignment.stabilityScore * 0.65) + (motionQuality * 0.35))
@@ -67,8 +72,14 @@ class LightweightGarmentDeformationEngine {
         .clamp(0.12, 0.56);
     double lerp(double a, double b) => a + ((b - a) * smoothing);
     final stabilized = GarmentDeformationSnapshot(
-      deformationStrength: lerp(prev.deformationStrength, target.deformationStrength),
-      secondaryMotionDamping: lerp(prev.secondaryMotionDamping, target.secondaryMotionDamping),
+      deformationStrength: lerp(
+        prev.deformationStrength,
+        target.deformationStrength,
+      ),
+      secondaryMotionDamping: lerp(
+        prev.secondaryMotionDamping,
+        target.secondaryMotionDamping,
+      ),
       torsoScaleX: lerp(prev.torsoScaleX, target.torsoScaleX),
       torsoScaleY: lerp(prev.torsoScaleY, target.torsoScaleY),
       chestInflation: lerp(prev.chestInflation, target.chestInflation),

@@ -57,7 +57,9 @@ class LocationService {
           if (attempt == retryCount) {
             break;
           }
-          await Future<void>.delayed(Duration(milliseconds: 350 * (attempt + 1)));
+          await Future<void>.delayed(
+            Duration(milliseconds: 350 * (attempt + 1)),
+          );
         }
       }
 
@@ -77,13 +79,18 @@ class LocationService {
       position ??= await Geolocator.getLastKnownPosition();
       if (position == null) {
         return LocationFetchResult(
-          status: lastError is TimeoutException ? LocationStatus.timeout : LocationStatus.error,
+          status: lastError is TimeoutException
+              ? LocationStatus.timeout
+              : LocationStatus.error,
           permission: permissionResult.permission,
           message: _failureMessage(lastError),
         );
       }
 
-      final address = await reverseGeocode(position.latitude, position.longitude);
+      final address = await reverseGeocode(
+        position.latitude,
+        position.longitude,
+      );
       _cachedPosition = position;
       _cachedAddress = address;
       _cachedAt = DateTime.now();
@@ -123,7 +130,8 @@ class LocationService {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission().timeout(
           const Duration(seconds: 15),
-          onTimeout: () => throw TimeoutException('requestPermission timed out'),
+          onTimeout: () =>
+              throw TimeoutException('requestPermission timed out'),
         );
       }
     } catch (e) {
@@ -138,7 +146,8 @@ class LocationService {
       return LocationPermissionResult(
         status: LocationStatus.permissionDenied,
         permission: permission,
-        message: 'Allow location access to see nearby stores and delivery details.',
+        message:
+            'Allow location access to see nearby stores and delivery details.',
       );
     }
 
@@ -146,20 +155,26 @@ class LocationService {
       return LocationPermissionResult(
         status: LocationStatus.permissionDeniedForever,
         permission: permission,
-        message: 'Location access is blocked. Open app settings to enable it again.',
+        message:
+            'Location access is blocked. Open app settings to enable it again.',
       );
     }
 
     return LocationPermissionResult(
       status: LocationStatus.success,
       permission: permission,
-      message: permission == LocationPermission.whileInUse || permission == LocationPermission.always
+      message:
+          permission == LocationPermission.whileInUse ||
+              permission == LocationPermission.always
           ? null
           : 'Location permission granted.',
     );
   }
 
-  Future<LocationAddress> reverseGeocode(double latitude, double longitude) async {
+  Future<LocationAddress> reverseGeocode(
+    double latitude,
+    double longitude,
+  ) async {
     try {
       final placemarks = await placemarkFromCoordinates(latitude, longitude);
       if (placemarks.isEmpty) {
@@ -218,7 +233,10 @@ class LocationService {
     }
   }
 
-  Future<String> getAddressFromCoordinates(double latitude, double longitude) async {
+  Future<String> getAddressFromCoordinates(
+    double latitude,
+    double longitude,
+  ) async {
     final address = await reverseGeocode(latitude, longitude);
     return address.address;
   }
@@ -226,7 +244,9 @@ class LocationService {
   Future<AddressLookupResult> geocodeAddress(String address) async {
     final trimmed = address.trim();
     if (trimmed.isEmpty) {
-      return const AddressLookupResult(status: AddressLookupStatus.invalidInput);
+      return const AddressLookupResult(
+        status: AddressLookupStatus.invalidInput,
+      );
     }
     try {
       final locations = await locationFromAddress(trimmed);
@@ -254,7 +274,10 @@ class LocationService {
       if (locations.isEmpty) {
         return null;
       }
-      return reverseGeocode(locations.first.latitude, locations.first.longitude);
+      return reverseGeocode(
+        locations.first.latitude,
+        locations.first.longitude,
+      );
     } catch (_) {
       return null;
     }
@@ -281,7 +304,8 @@ class LocationService {
     const earthRadiusKm = 6371.0;
     final dLat = _degreesToRadians(endLatitude - startLatitude);
     final dLon = _degreesToRadians(endLongitude - startLongitude);
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_degreesToRadians(startLatitude)) *
             math.cos(_degreesToRadians(endLatitude)) *
             math.sin(dLon / 2) *
@@ -328,12 +352,7 @@ enum LocationStatus {
   manual,
 }
 
-enum AddressLookupStatus {
-  success,
-  invalidInput,
-  notFound,
-  error,
-}
+enum AddressLookupStatus { success, invalidInput, notFound, error }
 
 class LocationAddress {
   final String address;

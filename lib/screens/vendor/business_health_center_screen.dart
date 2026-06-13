@@ -9,10 +9,12 @@ class BusinessHealthCenterScreen extends StatefulWidget {
   const BusinessHealthCenterScreen({super.key});
 
   @override
-  State<BusinessHealthCenterScreen> createState() => _BusinessHealthCenterScreenState();
+  State<BusinessHealthCenterScreen> createState() =>
+      _BusinessHealthCenterScreenState();
 }
 
-class _BusinessHealthCenterScreenState extends State<BusinessHealthCenterScreen> {
+class _BusinessHealthCenterScreenState
+    extends State<BusinessHealthCenterScreen> {
   final BusinessHealthApi _api = BusinessHealthApi();
 
   bool _isLoading = true;
@@ -50,7 +52,10 @@ class _BusinessHealthCenterScreenState extends State<BusinessHealthCenterScreen>
     return Scaffold(
       backgroundColor: VendorTheme.background,
       appBar: AppBar(
-        title: Text('Business Health', style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          'Business Health',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         centerTitle: true,
       ),
       body: _buildBody(),
@@ -59,25 +64,28 @@ class _BusinessHealthCenterScreenState extends State<BusinessHealthCenterScreen>
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: VendorTheme.primary));
+      return const Center(
+        child: CircularProgressIndicator(color: VendorTheme.primary),
+      );
     }
     if (_error != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Failed to load business health: $_error', textAlign: TextAlign.center),
+            Text(
+              'Failed to load business health: $_error',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: VendorTheme.spacing16),
-            ElevatedButton(
-              onPressed: _fetchData,
-              child: const Text('Retry'),
-            )
+            ElevatedButton(onPressed: _fetchData, child: const Text('Retry')),
           ],
         ),
       );
     }
 
-    final recommendations = (_healthData['recommendations'] as List?)?.cast<String>() ?? [];
+    final recommendations =
+        (_healthData['recommendations'] as List?)?.cast<String>() ?? [];
 
     return RefreshIndicator(
       onRefresh: _fetchData,
@@ -91,23 +99,39 @@ class _BusinessHealthCenterScreenState extends State<BusinessHealthCenterScreen>
             _buildOverallHealthScore(context),
             if (recommendations.isNotEmpty) ...[
               const SizedBox(height: VendorTheme.spacing24),
-              Text('Actionable Recommendations', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Actionable Recommendations',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: VendorTheme.spacing16),
-              ...recommendations.map((rec) => PremiumVendorCard(
-                    margin: const EdgeInsets.only(bottom: VendorTheme.spacing8),
-                    padding: const EdgeInsets.all(VendorTheme.spacing16),
-                    backgroundColor: VendorTheme.warning.withValues(alpha: 0.1),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.info_outline, color: VendorTheme.warning),
-                        const SizedBox(width: VendorTheme.spacing16),
-                        Expanded(child: Text(rec, style: Theme.of(context).textTheme.bodyMedium)),
-                      ],
-                    ),
-                  )),
+              ...recommendations.map(
+                (rec) => PremiumVendorCard(
+                  margin: const EdgeInsets.only(bottom: VendorTheme.spacing8),
+                  padding: const EdgeInsets.all(VendorTheme.spacing16),
+                  backgroundColor: VendorTheme.warning.withValues(alpha: 0.1),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: VendorTheme.warning,
+                      ),
+                      const SizedBox(width: VendorTheme.spacing16),
+                      Expanded(
+                        child: Text(
+                          rec,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
             const SizedBox(height: VendorTheme.spacing24),
-            Text('Health Breakdown', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Health Breakdown',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: VendorTheme.spacing16),
             _buildHealthMetricCard(
               context,
@@ -166,10 +190,19 @@ class _BusinessHealthCenterScreenState extends State<BusinessHealthCenterScreen>
   Widget _buildOverallHealthScore(BuildContext context) {
     final score = _healthData['businessScore'] ?? 0;
     final statusBadge = score >= 80
-        ? const VendorStatusBadge(label: 'Excellent Standing', type: VendorBadgeType.success)
+        ? const VendorStatusBadge(
+            label: 'Excellent Standing',
+            type: VendorBadgeType.success,
+          )
         : score >= 60
-            ? const VendorStatusBadge(label: 'Good Standing', type: VendorBadgeType.warning)
-            : const VendorStatusBadge(label: 'Needs Attention', type: VendorBadgeType.error);
+        ? const VendorStatusBadge(
+            label: 'Good Standing',
+            type: VendorBadgeType.warning,
+          )
+        : const VendorStatusBadge(
+            label: 'Needs Attention',
+            type: VendorBadgeType.error,
+          );
 
     return PremiumVendorCard(
       padding: const EdgeInsets.all(VendorTheme.spacing24),
@@ -179,10 +212,10 @@ class _BusinessHealthCenterScreenState extends State<BusinessHealthCenterScreen>
           Text(
             'ABIANZO SELLER SCORE',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                  color: VendorTheme.primary,
-                ),
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              color: VendorTheme.primary,
+            ),
           ),
           const SizedBox(height: VendorTheme.spacing16),
           Stack(
@@ -195,7 +228,9 @@ class _BusinessHealthCenterScreenState extends State<BusinessHealthCenterScreen>
                   value: score / 100,
                   strokeWidth: 10,
                   backgroundColor: VendorTheme.grey200,
-                  valueColor: const AlwaysStoppedAnimation<Color>(VendorTheme.primary),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    VendorTheme.primary,
+                  ),
                 ),
               ),
               Column(
@@ -204,13 +239,15 @@ class _BusinessHealthCenterScreenState extends State<BusinessHealthCenterScreen>
                   Text(
                     '$score',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: VendorTheme.primary,
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: VendorTheme.primary,
+                    ),
                   ),
                   Text(
                     '/ 100',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: VendorTheme.grey500),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: VendorTheme.grey500),
                   ),
                 ],
               ),
@@ -233,8 +270,8 @@ class _BusinessHealthCenterScreenState extends State<BusinessHealthCenterScreen>
     final color = score >= 80
         ? VendorTheme.success
         : score >= 60
-            ? VendorTheme.warning
-            : VendorTheme.error;
+        ? VendorTheme.warning
+        : VendorTheme.error;
 
     return PremiumVendorCard(
       padding: const EdgeInsets.all(VendorTheme.spacing16),
@@ -254,7 +291,9 @@ class _BusinessHealthCenterScreenState extends State<BusinessHealthCenterScreen>
                   children: [
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: VendorTheme.spacing4),
                     ClipRRect(
@@ -273,9 +312,9 @@ class _BusinessHealthCenterScreenState extends State<BusinessHealthCenterScreen>
               Text(
                 '$score',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
               ),
             ],
           ),
@@ -283,9 +322,9 @@ class _BusinessHealthCenterScreenState extends State<BusinessHealthCenterScreen>
           Text(
             description,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: VendorTheme.grey600,
-                  height: 1.4,
-                ),
+              color: VendorTheme.grey600,
+              height: 1.4,
+            ),
           ),
         ],
       ),

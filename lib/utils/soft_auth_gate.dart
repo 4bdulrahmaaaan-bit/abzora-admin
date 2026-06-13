@@ -107,10 +107,7 @@ class SoftAuthGate {
 }
 
 class _PendingAuthIntent {
-  const _PendingAuthIntent({
-    required this.type,
-    this.productId,
-  });
+  const _PendingAuthIntent({required this.type, this.productId});
 
   final AuthPromptTrigger type;
   final String? productId;
@@ -155,24 +152,15 @@ class _PremiumLoginBottomSheetState extends State<_PremiumLoginBottomSheet>
       curve: Curves.easeOutCubic,
     );
     _translateY = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 28, end: -4),
-        weight: 70,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: -4, end: 0),
-        weight: 30,
-      ),
+      TweenSequenceItem(tween: Tween<double>(begin: 28, end: -4), weight: 70),
+      TweenSequenceItem(tween: Tween<double>(begin: -4, end: 0), weight: 30),
     ]).animate(curve);
     _scale = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween<double>(begin: 0.985, end: 1.012),
         weight: 65,
       ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.012, end: 1),
-        weight: 35,
-      ),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.012, end: 1), weight: 35),
     ]).animate(curve);
     _entranceController.forward();
   }
@@ -305,7 +293,9 @@ class _PremiumLoginBottomSheetState extends State<_PremiumLoginBottomSheet>
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: _PreviewImage(imageUrl: widget.productPreview?.imageUrl),
+                        child: _PreviewImage(
+                          imageUrl: widget.productPreview?.imageUrl,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(

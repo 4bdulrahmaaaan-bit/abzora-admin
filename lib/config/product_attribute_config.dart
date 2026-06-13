@@ -213,7 +213,17 @@ const productAttributeTemplates = <String, ProductAttributeTemplateConfig>{
   'footwear': ProductAttributeTemplateConfig(
     key: 'footwear',
     label: 'Footwear',
-    sizes: ['UK 3', 'UK 4', 'UK 5', 'UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10', 'UK 11'],
+    sizes: [
+      'UK 3',
+      'UK 4',
+      'UK 5',
+      'UK 6',
+      'UK 7',
+      'UK 8',
+      'UK 9',
+      'UK 10',
+      'UK 11',
+    ],
     sections: [
       ProductAttributeSectionConfig(
         title: 'Core Details',
@@ -1846,7 +1856,6 @@ const productAttributeTemplates = <String, ProductAttributeTemplateConfig>{
       ),
     },
   ),
-
 };
 
 final productAttributeConfig = <String, ProductAttributeCategoryConfig>{
@@ -2008,4 +2017,3 @@ String humanizeAttributeLabel(String key) {
       .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
       .join(' ');
 }
-

@@ -58,10 +58,7 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
       const OpsAccountScreen(),
     ];
 
-    final labels = [
-      isVendor ? 'DASHBOARD' : 'DELIVERIES',
-      'ACCOUNT',
-    ];
+    final labels = [isVendor ? 'DASHBOARD' : 'DELIVERIES', 'ACCOUNT'];
 
     return Scaffold(
       backgroundColor: AbzioTheme.grey50,
@@ -104,10 +101,7 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
           ],
         ),
       ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) => setState(() => _currentIndex = index),
@@ -115,8 +109,17 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
         surfaceTintColor: Colors.white,
         destinations: [
           NavigationDestination(
-            icon: Icon(isVendor ? Icons.storefront_outlined : Icons.delivery_dining_outlined),
-            selectedIcon: Icon(isVendor ? Icons.storefront_rounded : Icons.delivery_dining_rounded, size: 26),
+            icon: Icon(
+              isVendor
+                  ? Icons.storefront_outlined
+                  : Icons.delivery_dining_outlined,
+            ),
+            selectedIcon: Icon(
+              isVendor
+                  ? Icons.storefront_rounded
+                  : Icons.delivery_dining_rounded,
+              size: 26,
+            ),
             label: labels[0],
           ),
           const NavigationDestination(
@@ -129,4 +132,3 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
     );
   }
 }
-

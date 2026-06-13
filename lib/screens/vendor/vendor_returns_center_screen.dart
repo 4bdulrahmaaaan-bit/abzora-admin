@@ -10,17 +10,19 @@ class VendorReturnsCenterScreen extends StatefulWidget {
   const VendorReturnsCenterScreen({super.key});
 
   @override
-  State<VendorReturnsCenterScreen> createState() => _VendorReturnsCenterScreenState();
+  State<VendorReturnsCenterScreen> createState() =>
+      _VendorReturnsCenterScreenState();
 }
 
-class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> with SingleTickerProviderStateMixin {
+class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen>
+    with SingleTickerProviderStateMixin {
   final ReturnsApi _returnsApi = ReturnsApi();
   final ReturnAnalyticsApi _analyticsApi = ReturnAnalyticsApi();
 
   late TabController _tabController;
   bool _isLoading = true;
   String? _error;
-  
+
   Map<String, dynamic> _analytics = {};
   List<Map<String, dynamic>> _returns = [];
   List<Map<String, dynamic>> _refunds = [];
@@ -56,9 +58,12 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> w
 
       setState(() {
         _analytics = futures[0]['data'] ?? {};
-        _returns = (futures[1]['data']['returns'] as List).cast<Map<String, dynamic>>();
-        _refunds = (futures[2]['data']['refunds'] as List).cast<Map<String, dynamic>>();
-        _exchanges = (futures[3]['data']['exchanges'] as List).cast<Map<String, dynamic>>();
+        _returns = (futures[1]['data']['returns'] as List)
+            .cast<Map<String, dynamic>>();
+        _refunds = (futures[2]['data']['refunds'] as List)
+            .cast<Map<String, dynamic>>();
+        _exchanges = (futures[3]['data']['exchanges'] as List)
+            .cast<Map<String, dynamic>>();
         _isLoading = false;
       });
     } catch (e) {
@@ -80,7 +85,10 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> w
     return Scaffold(
       backgroundColor: VendorTheme.background,
       appBar: AppBar(
-        title: Text('Returns Center', style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          'Returns Center',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
@@ -100,7 +108,9 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> w
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: VendorTheme.primary));
+      return const Center(
+        child: CircularProgressIndicator(color: VendorTheme.primary),
+      );
     }
     if (_error != null) {
       return Center(
@@ -109,10 +119,7 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> w
           children: [
             Text('Failed to load data: $_error', textAlign: TextAlign.center),
             const SizedBox(height: VendorTheme.spacing16),
-            ElevatedButton(
-              onPressed: _fetchData,
-              child: const Text('Retry'),
-            )
+            ElevatedButton(onPressed: _fetchData, child: const Text('Retry')),
           ],
         ),
       );
@@ -142,7 +149,12 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> w
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Returns Analytics', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+        Text(
+          'Returns Analytics',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: VendorTheme.spacing16),
         Row(
           children: [
@@ -171,7 +183,8 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> w
             Expanded(
               child: VendorMetricCard(
                 title: 'TBYB Returns',
-                value: '${(tbyb['trialReturnRate']?.toDouble() ?? 0.0).toStringAsFixed(1)}%',
+                value:
+                    '${(tbyb['trialReturnRate']?.toDouble() ?? 0.0).toStringAsFixed(1)}%',
                 icon: Icons.assignment_return_outlined,
                 trend: 0,
               ),
@@ -180,7 +193,8 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> w
             Expanded(
               child: VendorMetricCard(
                 title: 'Avg Trial Days',
-                value: (tbyb['avgTrialDaysUsed']?.toDouble() ?? 0.0).toStringAsFixed(1),
+                value: (tbyb['avgTrialDaysUsed']?.toDouble() ?? 0.0)
+                    .toStringAsFixed(1),
                 icon: Icons.timelapse_outlined,
                 trend: 0,
               ),
@@ -192,24 +206,34 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> w
   }
 
   Widget _buildTabContent() {
-    if (_tabController.index == 0) return _buildList(_returns, 'Returns', _buildReturnCard);
-    if (_tabController.index == 1) return _buildList(_refunds, 'Refunds', _buildRefundCard);
-    if (_tabController.index == 2) return _buildList(_exchanges, 'Exchanges', _buildExchangeCard);
+    if (_tabController.index == 0)
+      return _buildList(_returns, 'Returns', _buildReturnCard);
+    if (_tabController.index == 1)
+      return _buildList(_refunds, 'Refunds', _buildRefundCard);
+    if (_tabController.index == 2)
+      return _buildList(_exchanges, 'Exchanges', _buildExchangeCard);
     return const SizedBox();
   }
 
-  Widget _buildList(List<Map<String, dynamic>> items, String title, Widget Function(Map<String, dynamic>) builder) {
+  Widget _buildList(
+    List<Map<String, dynamic>> items,
+    String title,
+    Widget Function(Map<String, dynamic>) builder,
+  ) {
     if (items.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
-          child: Text('No $title found.', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: VendorTheme.grey500)),
+          child: Text(
+            'No $title found.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: VendorTheme.grey500),
+          ),
         ),
       );
     }
-    return Column(
-      children: items.map((item) => builder(item)).toList(),
-    );
+    return Column(children: items.map((item) => builder(item)).toList());
   }
 
   Widget _buildReturnCard(Map<String, dynamic> req) {
@@ -226,34 +250,56 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> w
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Order: ${req['orderId']?.substring(0, 8) ?? ''}', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'Order: ${req['orderId']?.substring(0, 8) ?? ''}',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
               VendorStatusBadge(
                 label: status.toUpperCase(),
-                type: status == 'requested' ? VendorBadgeType.warning : (status == 'closed' ? VendorBadgeType.success : VendorBadgeType.info),
+                type: status == 'requested'
+                    ? VendorBadgeType.warning
+                    : (status == 'closed'
+                          ? VendorBadgeType.success
+                          : VendorBadgeType.info),
               ),
             ],
           ),
           const SizedBox(height: VendorTheme.spacing8),
-          Text('Type: ${type.toUpperCase()}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: VendorTheme.grey500)),
+          Text(
+            'Type: ${type.toUpperCase()}',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: VendorTheme.grey500),
+          ),
           const SizedBox(height: VendorTheme.spacing4),
-          Text('Reason: $reason', style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            'Reason: $reason',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
           if (status == 'requested') ...[
             const SizedBox(height: VendorTheme.spacing16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () => _updateStatus(req['_id'], 'rejected', 'returns'),
-                  child: const Text('Reject', style: TextStyle(color: VendorTheme.error)),
+                  onPressed: () =>
+                      _updateStatus(req['_id'], 'rejected', 'returns'),
+                  child: const Text(
+                    'Reject',
+                    style: TextStyle(color: VendorTheme.error),
+                  ),
                 ),
                 const SizedBox(width: VendorTheme.spacing8),
                 ElevatedButton(
-                  onPressed: () => _updateStatus(req['_id'], 'approved', 'returns'),
+                  onPressed: () =>
+                      _updateStatus(req['_id'], 'approved', 'returns'),
                   child: const Text('Approve'),
                 ),
               ],
-            )
-          ]
+            ),
+          ],
         ],
       ),
     );
@@ -273,34 +319,57 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> w
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Order: ${req['orderId']?.substring(0, 8) ?? ''}', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'Order: ${req['orderId']?.substring(0, 8) ?? ''}',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
               VendorStatusBadge(
                 label: status.toUpperCase(),
-                type: status == 'requested' ? VendorBadgeType.warning : (status == 'refunded' ? VendorBadgeType.success : VendorBadgeType.info),
+                type: status == 'requested'
+                    ? VendorBadgeType.warning
+                    : (status == 'refunded'
+                          ? VendorBadgeType.success
+                          : VendorBadgeType.info),
               ),
             ],
           ),
           const SizedBox(height: VendorTheme.spacing8),
-          Text('Amount: \u20B9$amount', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: VendorTheme.success)),
+          Text(
+            'Amount: \u20B9$amount',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: VendorTheme.success,
+            ),
+          ),
           const SizedBox(height: VendorTheme.spacing4),
-          Text('Reason: $reason', style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            'Reason: $reason',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
           if (status == 'requested') ...[
             const SizedBox(height: VendorTheme.spacing16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () => _updateStatus(req['_id'], 'rejected', 'refunds'),
-                  child: const Text('Reject', style: TextStyle(color: VendorTheme.error)),
+                  onPressed: () =>
+                      _updateStatus(req['_id'], 'rejected', 'refunds'),
+                  child: const Text(
+                    'Reject',
+                    style: TextStyle(color: VendorTheme.error),
+                  ),
                 ),
                 const SizedBox(width: VendorTheme.spacing8),
                 ElevatedButton(
-                  onPressed: () => _updateStatus(req['_id'], 'approved', 'refunds'),
+                  onPressed: () =>
+                      _updateStatus(req['_id'], 'approved', 'refunds'),
                   child: const Text('Approve'),
                 ),
               ],
-            )
-          ]
+            ),
+          ],
         ],
       ),
     );
@@ -319,32 +388,49 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> w
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Order: ${req['orderId']?.substring(0, 8) ?? ''}', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'Order: ${req['orderId']?.substring(0, 8) ?? ''}',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
               VendorStatusBadge(
                 label: status.toUpperCase(),
-                type: status == 'requested' ? VendorBadgeType.warning : (status == 'closed' ? VendorBadgeType.success : VendorBadgeType.info),
+                type: status == 'requested'
+                    ? VendorBadgeType.warning
+                    : (status == 'closed'
+                          ? VendorBadgeType.success
+                          : VendorBadgeType.info),
               ),
             ],
           ),
           const SizedBox(height: VendorTheme.spacing8),
-          Text('Reason: $reason', style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            'Reason: $reason',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
           if (status == 'requested') ...[
             const SizedBox(height: VendorTheme.spacing16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () => _updateStatus(req['_id'], 'rejected', 'exchanges'),
-                  child: const Text('Reject', style: TextStyle(color: VendorTheme.error)),
+                  onPressed: () =>
+                      _updateStatus(req['_id'], 'rejected', 'exchanges'),
+                  child: const Text(
+                    'Reject',
+                    style: TextStyle(color: VendorTheme.error),
+                  ),
                 ),
                 const SizedBox(width: VendorTheme.spacing8),
                 ElevatedButton(
-                  onPressed: () => _updateStatus(req['_id'], 'approved', 'exchanges'),
+                  onPressed: () =>
+                      _updateStatus(req['_id'], 'approved', 'exchanges'),
                   child: const Text('Approve'),
                 ),
               ],
-            )
-          ]
+            ),
+          ],
         ],
       ),
     );
@@ -362,7 +448,9 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen> w
       _fetchData();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update status: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update status: $e')));
       }
     }
   }

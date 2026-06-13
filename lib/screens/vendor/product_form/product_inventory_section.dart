@@ -8,22 +8,24 @@ class ProductInventorySection extends StatefulWidget {
   const ProductInventorySection({super.key});
 
   @override
-  State<ProductInventorySection> createState() => _ProductInventorySectionState();
+  State<ProductInventorySection> createState() =>
+      _ProductInventorySectionState();
 }
 
 class _ProductInventorySectionState extends State<ProductInventorySection> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ProductFormController>();
-    
+
     // Auto status logic
     final stock = int.tryParse(controller.stockController.text) ?? 0;
-    final lowStock = int.tryParse(controller.lowStockThresholdController.text) ?? 5;
-    
+    final lowStock =
+        int.tryParse(controller.lowStockThresholdController.text) ?? 5;
+
     String statusLabel = 'In Stock';
     Color statusColor = const Color(0xFF16A34A);
     Color statusBg = const Color(0xFFF0FDF4);
-    
+
     if (stock <= 0) {
       statusLabel = 'Out Of Stock';
       statusColor = const Color(0xFFDC2626);
@@ -56,7 +58,10 @@ class _ProductInventorySectionState extends State<ProductInventorySection> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: statusBg,
                   borderRadius: BorderRadius.circular(16),
@@ -92,7 +97,9 @@ class _ProductInventorySectionState extends State<ProductInventorySection> {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     side: BorderSide(color: AbzioTheme.lightBorder),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: Text(
                     'Auto Gen',
@@ -181,7 +188,9 @@ class _ProductInventorySectionState extends State<ProductInventorySection> {
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(color: AbzioTheme.textSecondary.withValues(alpha: 0.5)),
+            hintStyle: GoogleFonts.inter(
+              color: AbzioTheme.textSecondary.withValues(alpha: 0.5),
+            ),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
             border: OutlineInputBorder(
@@ -196,7 +205,10 @@ class _ProductInventorySectionState extends State<ProductInventorySection> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: AbzioTheme.accentColor),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
       ],

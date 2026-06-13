@@ -16,21 +16,22 @@ class Message {
   });
 
   Map<String, dynamic> toMap() => {
-        'senderId': senderId,
-        'text': text,
-        'timestamp': timestamp.toIso8601String(),
-      };
+    'senderId': senderId,
+    'text': text,
+    'timestamp': timestamp.toIso8601String(),
+  };
 
   factory Message.fromMap(Map<String, dynamic> map) => Message(
-        senderId: map['senderId'],
-        text: map['text'],
-        timestamp: DateTime.tryParse(map['timestamp']?.toString() ?? '') ?? DateTime.now(),
-      );
+    senderId: map['senderId'],
+    text: map['text'],
+    timestamp:
+        DateTime.tryParse(map['timestamp']?.toString() ?? '') ?? DateTime.now(),
+  );
 }
 
 class ChatService {
   ChatService({BackendApiClient? backendApiClient})
-      : _backendApiClient = backendApiClient ?? const BackendApiClient();
+    : _backendApiClient = backendApiClient ?? const BackendApiClient();
 
   final BackendApiClient _backendApiClient;
 
@@ -71,7 +72,10 @@ class ChatService {
   }
 
   Future<List<Message>> _fetchBackendMessages(String chatId) async {
-    final payload = await _backendApiClient.get('/chats/$chatId/messages', authenticated: true);
+    final payload = await _backendApiClient.get(
+      '/chats/$chatId/messages',
+      authenticated: true,
+    );
     final items = payload is List ? payload : const [];
     return items
         .whereType<Map>()
@@ -79,7 +83,9 @@ class ChatService {
           (item) => Message(
             senderId: item['senderId']?.toString() ?? '',
             text: item['text']?.toString() ?? '',
-            timestamp: DateTime.tryParse(item['timestamp']?.toString() ?? '') ?? DateTime.now(),
+            timestamp:
+                DateTime.tryParse(item['timestamp']?.toString() ?? '') ??
+                DateTime.now(),
           ),
         )
         .toList();

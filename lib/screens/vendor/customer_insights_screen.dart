@@ -12,7 +12,10 @@ class CustomerInsightsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: VendorTheme.background,
       appBar: AppBar(
-        title: Text('Customer Insights', style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          'Customer Insights',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -28,7 +31,10 @@ class CustomerInsightsScreen extends StatelessWidget {
             const SizedBox(height: VendorTheme.spacing16),
             _buildTopCities(context),
             const SizedBox(height: VendorTheme.spacing24),
-            Text('Top Products by Volume', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Top Products by Volume',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: VendorTheme.spacing16),
             _buildTopProducts(context),
             const SizedBox(height: VendorTheme.spacing32),
@@ -50,11 +56,15 @@ class CustomerInsightsScreen extends StatelessWidget {
             children: [
               Text(
                 'Audience Split',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               Text(
                 'Last 30 Days',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: VendorTheme.grey500),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: VendorTheme.grey500),
               ),
             ],
           ),
@@ -67,7 +77,9 @@ class CustomerInsightsScreen extends StatelessWidget {
                   height: 12,
                   decoration: const BoxDecoration(
                     color: VendorTheme.primary,
-                    borderRadius: BorderRadius.horizontal(left: Radius.circular(6)),
+                    borderRadius: BorderRadius.horizontal(
+                      left: Radius.circular(6),
+                    ),
                   ),
                 ),
               ),
@@ -77,7 +89,9 @@ class CustomerInsightsScreen extends StatelessWidget {
                   height: 12,
                   decoration: BoxDecoration(
                     color: VendorTheme.primary.withValues(alpha: 0.3),
-                    borderRadius: const BorderRadius.horizontal(right: Radius.circular(6)),
+                    borderRadius: const BorderRadius.horizontal(
+                      right: Radius.circular(6),
+                    ),
                   ),
                 ),
               ),
@@ -92,13 +106,28 @@ class CustomerInsightsScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Container(width: 8, height: 8, decoration: const BoxDecoration(color: VendorTheme.primary, shape: BoxShape.circle)),
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: VendorTheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
                       const SizedBox(width: VendorTheme.spacing8),
-                      Text('New Customers', style: Theme.of(context).textTheme.bodySmall),
+                      Text(
+                        'New Customers',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ],
                   ),
                   const SizedBox(height: VendorTheme.spacing4),
-                  Text('65%', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    '65%',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
               Column(
@@ -106,13 +135,28 @@ class CustomerInsightsScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Container(width: 8, height: 8, decoration: BoxDecoration(color: VendorTheme.primary.withValues(alpha: 0.3), shape: BoxShape.circle)),
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: VendorTheme.primary.withValues(alpha: 0.3),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
                       const SizedBox(width: VendorTheme.spacing8),
-                      Text('Returning', style: Theme.of(context).textTheme.bodySmall),
+                      Text(
+                        'Returning',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ],
                   ),
                   const SizedBox(height: VendorTheme.spacing4),
-                  Text('35%', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    '35%',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -169,7 +213,9 @@ class CustomerInsightsScreen extends StatelessWidget {
                   flex: 3,
                   child: Text(
                     cities[index],
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 Expanded(
@@ -179,7 +225,9 @@ class CustomerInsightsScreen extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: percentages[index] / 100,
                       backgroundColor: VendorTheme.grey100,
-                      valueColor: const AlwaysStoppedAnimation<Color>(VendorTheme.primary),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        VendorTheme.primary,
+                      ),
                       minHeight: 8,
                     ),
                   ),
@@ -189,7 +237,9 @@ class CustomerInsightsScreen extends StatelessWidget {
                   child: Text(
                     '${percentages[index]}%',
                     textAlign: TextAlign.right,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -209,29 +259,41 @@ class CustomerInsightsScreen extends StatelessWidget {
         itemCount: 3,
         separatorBuilder: (context, index) => const Divider(height: 1),
         itemBuilder: (context, index) {
-          final products = ['Silk Embroidered Saree', 'Cotton Kurta Set', 'Linen Blend Shirt'];
+          final products = [
+            'Silk Embroidered Saree',
+            'Cotton Kurta Set',
+            'Linen Blend Shirt',
+          ];
           final units = ['145 units', '98 units', '64 units'];
           return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing16, vertical: VendorTheme.spacing8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: VendorTheme.spacing16,
+              vertical: VendorTheme.spacing8,
+            ),
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
               child: Container(
                 width: 48,
                 height: 48,
                 color: VendorTheme.grey200,
-                child: const Icon(Icons.image_outlined, color: VendorTheme.grey400),
+                child: const Icon(
+                  Icons.image_outlined,
+                  color: VendorTheme.grey400,
+                ),
               ),
             ),
             title: Text(
               products[index],
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             trailing: Text(
               units[index],
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: VendorTheme.primary,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: VendorTheme.primary,
+              ),
             ),
           );
         },

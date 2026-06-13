@@ -56,9 +56,18 @@ class _RiderPerformanceScreenState extends State<RiderPerformanceScreen> {
                           style: Theme.of(context).textTheme.headlineMedium,
                         ),
                         const SizedBox(height: 16),
-                        _buildStat('Acceptance Rate', '${data['acceptanceRate']}%'),
-                        _buildStat('Completion Rate', '${data['completionRate']}%'),
-                        _buildStat('Customer Rating', '${data['customerRating']}'),
+                        _buildStat(
+                          'Acceptance Rate',
+                          '${data['acceptanceRate']}%',
+                        ),
+                        _buildStat(
+                          'Completion Rate',
+                          '${data['completionRate']}%',
+                        ),
+                        _buildStat(
+                          'Customer Rating',
+                          '${data['customerRating']}',
+                        ),
                         _buildStat('No Show Rate', '${data['noShowRate']}%'),
                       ],
                     ),
@@ -67,7 +76,10 @@ class _RiderPerformanceScreenState extends State<RiderPerformanceScreen> {
               },
             ),
             const SizedBox(height: 24),
-            Text('Active Incentives', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Active Incentives',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             FutureBuilder<List<dynamic>>(
               future: _incentivesFuture,
@@ -78,13 +90,19 @@ class _RiderPerformanceScreenState extends State<RiderPerformanceScreen> {
                 final list = snapshot.data ?? [];
                 if (list.isEmpty) return const Text('No active incentives.');
                 return Column(
-                  children: list.map((inc) => Card(
-                    child: ListTile(
-                      title: Text(inc['title']),
-                      subtitle: Text('Progress: ${inc['currentProgress']} / ${inc['target']}'),
-                      trailing: Text('₹${inc['rewardAmount']}'),
-                    ),
-                  )).toList(),
+                  children: list
+                      .map(
+                        (inc) => Card(
+                          child: ListTile(
+                            title: Text(inc['title']),
+                            subtitle: Text(
+                              'Progress: ${inc['currentProgress']} / ${inc['target']}',
+                            ),
+                            trailing: Text('₹${inc['rewardAmount']}'),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 );
               },
             ),

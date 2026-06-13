@@ -45,26 +45,23 @@ class AbzioOfflineView extends StatelessWidget {
               const SizedBox(height: 18),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: context.abzioSecondaryText,
-                      height: 1.45,
-                    ),
+                  color: context.abzioSecondaryText,
+                  height: 1.45,
+                ),
                 textAlign: TextAlign.center,
               ),
               if (showRetry) ...[
                 const SizedBox(height: 18),
-                ElevatedButton(
-                  onPressed: onRetry,
-                  child: const Text('Retry'),
-                ),
+                ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
               ],
             ],
           ),
@@ -102,17 +99,17 @@ class AbzioRetryPanel extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(
             subtitle,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: context.abzioSecondaryText,
-                  height: 1.45,
-                ),
+              color: context.abzioSecondaryText,
+              height: 1.45,
+            ),
           ),
           const SizedBox(height: 14),
           ElevatedButton(
@@ -147,8 +144,8 @@ class AbzioNetworkBanner extends StatelessWidget {
                 : (offline ? const Color(0xFFC94D4D) : const Color(0xFF218B5B));
             final message = isBackend
                 ? (backendStatus.message.isEmpty
-                    ? 'Backend unavailable. Pull to retry.'
-                    : backendStatus.message)
+                      ? 'Backend unavailable. Pull to retry.'
+                      : backendStatus.message)
                 : network.statusMessage;
 
             return SafeArea(
@@ -160,14 +157,19 @@ class AbzioNetworkBanner extends StatelessWidget {
                     color: bannerColor,
                     borderRadius: BorderRadius.circular(14),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             isBackend
                                 ? Icons.cloud_off_rounded
-                                : (offline ? Icons.wifi_off_rounded : Icons.wifi_rounded),
+                                : (offline
+                                      ? Icons.wifi_off_rounded
+                                      : Icons.wifi_rounded),
                             color: Colors.white,
                             size: 18,
                           ),
@@ -185,7 +187,11 @@ class AbzioNetworkBanner extends StatelessWidget {
                             const SizedBox(width: 8),
                             InkWell(
                               onTap: BackendApiClient.clearBackendAvailability,
-                              child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                color: Colors.white,
+                                size: 16,
+                              ),
                             ),
                           ],
                         ],

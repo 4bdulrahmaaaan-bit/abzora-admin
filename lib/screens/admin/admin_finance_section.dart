@@ -15,7 +15,8 @@ class AdminFinanceSection extends StatefulWidget {
   State<AdminFinanceSection> createState() => _AdminFinanceSectionState();
 }
 
-class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTickerProviderStateMixin {
+class _AdminFinanceSectionState extends State<AdminFinanceSection>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoadingDashboard = true;
   String _dashboardError = '';
@@ -25,14 +26,14 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
   bool _isLoadingSettlements = false;
   List<Map<String, dynamic>> _settlements = [];
   int _settlementsPage = 1;
-    String _settlementTypeFilter = 'Vendor';
+  String _settlementTypeFilter = 'Vendor';
   String? _settlementStatusFilter;
 
   // Refunds state
   bool _isLoadingRefunds = false;
   List<Map<String, dynamic>> _refunds = [];
   final int _refundsPage = 1;
-  
+
   // Reports state
   bool _isLoadingReports = false;
   List<Map<String, dynamic>> _reports = [];
@@ -100,7 +101,7 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
       if (mounted) {
         setState(() {
           _settlements = res['settlements'] as List<Map<String, dynamic>>;
-          
+
           _isLoadingSettlements = false;
         });
       }
@@ -120,7 +121,7 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
       if (mounted) {
         setState(() {
           _refunds = res['refunds'] as List<Map<String, dynamic>>;
-          
+
           _isLoadingRefunds = false;
         });
       }
@@ -146,10 +147,15 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
     }
   }
 
-  Future<void> _exportCSV(String filename, List<String> headers, List<List<dynamic>> rows) async {
+  Future<void> _exportCSV(
+    String filename,
+    List<String> headers,
+    List<List<dynamic>> rows,
+  ) async {
     String csv = '${headers.join(',')}\n';
     for (final row in rows) {
-      csv += '${row.map((e) => '"${e.toString().replaceAll('"', '""')}"').join(',')}\n';
+      csv +=
+          '${row.map((e) => '"${e.toString().replaceAll('"', '""')}"').join(',')}\n';
     }
 
     final bytes = utf8.encode(csv);
@@ -158,13 +164,15 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
       final file = File('${dir.path}/$filename.csv');
       await file.writeAsBytes(bytes);
       if (mounted) {
-        await Share.shareXFiles([XFile(file.path, mimeType: 'text/csv')], text: 'Exported $filename.csv');
+        await Share.shareXFiles([
+          XFile(file.path, mimeType: 'text/csv'),
+        ], text: 'Exported $filename.csv');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save file: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save file: $e')));
       }
     }
   }
@@ -233,8 +241,10 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
   }
 
   Widget _buildOverviewTab() {
-    if (_isLoadingDashboard) return const Center(child: CircularProgressIndicator());
-    if (_dashboardError.isNotEmpty) return Center(child: Text('Error: $_dashboardError'));
+    if (_isLoadingDashboard)
+      return const Center(child: CircularProgressIndicator());
+    if (_dashboardError.isNotEmpty)
+      return Center(child: Text('Error: $_dashboardError'));
 
     return SingleChildScrollView(
       child: Column(
@@ -244,26 +254,65 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
             spacing: 16,
             runSpacing: 16,
             children: [
-              _buildMetricCard('Gross Merchandise Value (GMV)', '₹${_dashboardStats['gmv'] ?? 0}', Colors.blue.shade50),
-              _buildMetricCard('Net Revenue', '₹${_dashboardStats['netRevenue'] ?? 0}', Colors.green.shade50),
-              _buildMetricCard('Platform Commission', '₹${_dashboardStats['platformCommission'] ?? 0}', Colors.orange.shade50),
-              _buildMetricCard('Trial Revenue', '₹${_dashboardStats['trialRevenue'] ?? 0}', Colors.purple.shade50),
-              _buildMetricCard('Refund Exposure', '₹${_dashboardStats['refundExposure'] ?? 0}', Colors.red.shade50),
-              _buildMetricCard('Settlement Success Rate', '${_dashboardStats['settlementSuccessRate']?.toStringAsFixed(1) ?? 100}%', Colors.teal.shade50),
+              _buildMetricCard(
+                'Gross Merchandise Value (GMV)',
+                '₹${_dashboardStats['gmv'] ?? 0}',
+                Colors.blue.shade50,
+              ),
+              _buildMetricCard(
+                'Net Revenue',
+                '₹${_dashboardStats['netRevenue'] ?? 0}',
+                Colors.green.shade50,
+              ),
+              _buildMetricCard(
+                'Platform Commission',
+                '₹${_dashboardStats['platformCommission'] ?? 0}',
+                Colors.orange.shade50,
+              ),
+              _buildMetricCard(
+                'Trial Revenue',
+                '₹${_dashboardStats['trialRevenue'] ?? 0}',
+                Colors.purple.shade50,
+              ),
+              _buildMetricCard(
+                'Refund Exposure',
+                '₹${_dashboardStats['refundExposure'] ?? 0}',
+                Colors.red.shade50,
+              ),
+              _buildMetricCard(
+                'Settlement Success Rate',
+                '${_dashboardStats['settlementSuccessRate']?.toStringAsFixed(1) ?? 100}%',
+                Colors.teal.shade50,
+              ),
             ],
           ),
           const SizedBox(height: 32),
-          Text('Growth & Health Indicators', style: context.abzioText.titleMedium),
+          Text(
+            'Growth & Health Indicators',
+            style: context.abzioText.titleMedium,
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildSmallCard('Finance Health Score', _dashboardStats['financeHealthScore'] ?? 'Healthy'),
+              _buildSmallCard(
+                'Finance Health Score',
+                _dashboardStats['financeHealthScore'] ?? 'Healthy',
+              ),
               const SizedBox(width: 16),
-              _buildSmallCard('Revenue Growth', _dashboardStats['revenueGrowthPercent'] ?? '0%'),
+              _buildSmallCard(
+                'Revenue Growth',
+                _dashboardStats['revenueGrowthPercent'] ?? '0%',
+              ),
               const SizedBox(width: 16),
-              _buildSmallCard('Commission Growth', _dashboardStats['commissionGrowthPercent'] ?? '0%'),
+              _buildSmallCard(
+                'Commission Growth',
+                _dashboardStats['commissionGrowthPercent'] ?? '0%',
+              ),
               const SizedBox(width: 16),
-              _buildSmallCard('Refund Ratio', _dashboardStats['refundRatio'] ?? '0%'),
+              _buildSmallCard(
+                'Refund Ratio',
+                _dashboardStats['refundRatio'] ?? '0%',
+              ),
             ],
           ),
           const SizedBox(height: 32),
@@ -276,11 +325,27 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Pending Settlements', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Pending Settlements',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 16),
-                        Text('${_dashboardStats['pendingSettlementsCount'] ?? 0} settlements', style: const TextStyle(color: Colors.grey)),
+                        Text(
+                          '${_dashboardStats['pendingSettlementsCount'] ?? 0} settlements',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
                         const SizedBox(height: 8),
-                        Text('₹${_dashboardStats['pendingSettlementsValue'] ?? 0}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.orange)),
+                        Text(
+                          '₹${_dashboardStats['pendingSettlementsValue'] ?? 0}',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -294,16 +359,25 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Completed Settlements', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Completed Settlements',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 16),
-                        Text('${_dashboardStats['completedSettlementsCount'] ?? 0} settlements successfully processed.', style: const TextStyle(color: Colors.grey)),
+                        Text(
+                          '${_dashboardStats['completedSettlementsCount'] ?? 0} settlements successfully processed.',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
                       ],
                     ),
                   ),
                 ),
               ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -320,9 +394,22 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: GoogleFonts.inter(color: Colors.black54, fontWeight: FontWeight.w500)),
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              color: Colors.black54,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(value, style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
         ],
       ),
     );
@@ -336,9 +423,18 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              Text(
+                title,
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
               const SizedBox(height: 4),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
             ],
           ),
         ),
@@ -356,11 +452,17 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
               width: 200,
               child: DropdownButtonFormField<String>(
                 initialValue: _settlementStatusFilter,
-                decoration: const InputDecoration(labelText: 'Status Filter', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Status Filter',
+                  border: OutlineInputBorder(),
+                ),
                 items: const [
                   DropdownMenuItem(value: null, child: Text('All')),
                   DropdownMenuItem(value: 'Pending', child: Text('Pending')),
-                  DropdownMenuItem(value: 'Processing', child: Text('Processing')),
+                  DropdownMenuItem(
+                    value: 'Processing',
+                    child: Text('Processing'),
+                  ),
                   DropdownMenuItem(value: 'Paid', child: Text('Paid')),
                   DropdownMenuItem(value: 'Failed', child: Text('Failed')),
                 ],
@@ -377,10 +479,30 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
               onPressed: () {
                 _exportCSV(
                   '${type}_Settlements',
-                  ['ID', 'Entity ID', 'Gross Amount', 'Platform Fees', 'Taxes', 'Net Amount', 'Status', 'Date'],
-                  _settlements.map((s) => [
-                    s['settlementId'], s['entityId'], s['grossAmount'], s['platformFees'], s['taxes'], s['netAmount'], s['status'], s['createdAt']
-                  ]).toList(),
+                  [
+                    'ID',
+                    'Entity ID',
+                    'Gross Amount',
+                    'Platform Fees',
+                    'Taxes',
+                    'Net Amount',
+                    'Status',
+                    'Date',
+                  ],
+                  _settlements
+                      .map(
+                        (s) => [
+                          s['settlementId'],
+                          s['entityId'],
+                          s['grossAmount'],
+                          s['platformFees'],
+                          s['taxes'],
+                          s['netAmount'],
+                          s['status'],
+                          s['createdAt'],
+                        ],
+                      )
+                      .toList(),
                 );
               },
               icon: const Icon(Icons.download),
@@ -393,35 +515,49 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
           child: _isLoadingSettlements
               ? const Center(child: CircularProgressIndicator())
               : _settlements.isEmpty
-                  ? const Center(child: Text('No settlements found.'))
-                  : Card(
-                      child: ListView(
-                        children: [
-                          DataTable(
-                            columns: const [
-                              DataColumn(label: Text('ID')),
-                              DataColumn(label: Text('Entity')),
-                              DataColumn(label: Text('Gross')),
-                              DataColumn(label: Text('Fees')),
-                              DataColumn(label: Text('Net Amount')),
-                              DataColumn(label: Text('Status')),
-                              DataColumn(label: Text('Created Date')),
-                            ],
-                            rows: _settlements.map((s) {
-                              return DataRow(cells: [
-                                DataCell(Text(s['settlementId'] ?? '')),
-                                DataCell(Text(s['entityId'] ?? '')),
-                                DataCell(Text('₹${s['grossAmount'] ?? 0}')),
-                                DataCell(Text('₹${s['platformFees'] ?? 0}')),
-                                DataCell(Text('₹${s['netAmount'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataCell(Chip(label: Text(s['status'] ?? ''))),
-                                DataCell(Text(s['createdAt']?.toString().split('T')[0] ?? '')),
-                              ]);
-                            }).toList(),
-                          ),
+              ? const Center(child: Text('No settlements found.'))
+              : Card(
+                  child: ListView(
+                    children: [
+                      DataTable(
+                        columns: const [
+                          DataColumn(label: Text('ID')),
+                          DataColumn(label: Text('Entity')),
+                          DataColumn(label: Text('Gross')),
+                          DataColumn(label: Text('Fees')),
+                          DataColumn(label: Text('Net Amount')),
+                          DataColumn(label: Text('Status')),
+                          DataColumn(label: Text('Created Date')),
                         ],
+                        rows: _settlements.map((s) {
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(s['settlementId'] ?? '')),
+                              DataCell(Text(s['entityId'] ?? '')),
+                              DataCell(Text('₹${s['grossAmount'] ?? 0}')),
+                              DataCell(Text('₹${s['platformFees'] ?? 0}')),
+                              DataCell(
+                                Text(
+                                  '₹${s['netAmount'] ?? 0}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              DataCell(Chip(label: Text(s['status'] ?? ''))),
+                              DataCell(
+                                Text(
+                                  s['createdAt']?.toString().split('T')[0] ??
+                                      '',
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
                       ),
-                    ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );
@@ -438,9 +574,17 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
                 _exportCSV(
                   'Refund_Ledger',
                   ['Order ID', 'Amount', 'Reason', 'Status', 'Date'],
-                  _refunds.map((r) => [
-                    r['orderId'], r['amount'], r['reason'], r['status'], r['createdAt']
-                  ]).toList(),
+                  _refunds
+                      .map(
+                        (r) => [
+                          r['orderId'],
+                          r['amount'],
+                          r['reason'],
+                          r['status'],
+                          r['createdAt'],
+                        ],
+                      )
+                      .toList(),
                 );
               },
               icon: const Icon(Icons.download),
@@ -453,31 +597,38 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
           child: _isLoadingRefunds
               ? const Center(child: CircularProgressIndicator())
               : _refunds.isEmpty
-                  ? const Center(child: Text('No refunds found.'))
-                  : Card(
-                      child: ListView(
-                        children: [
-                          DataTable(
-                            columns: const [
-                              DataColumn(label: Text('Order ID')),
-                              DataColumn(label: Text('Amount')),
-                              DataColumn(label: Text('Reason')),
-                              DataColumn(label: Text('Status')),
-                              DataColumn(label: Text('Requested Date')),
-                            ],
-                            rows: _refunds.map((r) {
-                              return DataRow(cells: [
-                                DataCell(Text(r['orderId'] ?? '')),
-                                DataCell(Text('₹${r['amount'] ?? 0}')),
-                                DataCell(Text(r['reason'] ?? '')),
-                                DataCell(Chip(label: Text(r['status'] ?? ''))),
-                                DataCell(Text(r['createdAt']?.toString().split('T')[0] ?? '')),
-                              ]);
-                            }).toList(),
-                          ),
+              ? const Center(child: Text('No refunds found.'))
+              : Card(
+                  child: ListView(
+                    children: [
+                      DataTable(
+                        columns: const [
+                          DataColumn(label: Text('Order ID')),
+                          DataColumn(label: Text('Amount')),
+                          DataColumn(label: Text('Reason')),
+                          DataColumn(label: Text('Status')),
+                          DataColumn(label: Text('Requested Date')),
                         ],
+                        rows: _refunds.map((r) {
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(r['orderId'] ?? '')),
+                              DataCell(Text('₹${r['amount'] ?? 0}')),
+                              DataCell(Text(r['reason'] ?? '')),
+                              DataCell(Chip(label: Text(r['status'] ?? ''))),
+                              DataCell(
+                                Text(
+                                  r['createdAt']?.toString().split('T')[0] ??
+                                      '',
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
                       ),
-                    ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );
@@ -493,12 +644,18 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
               width: 200,
               child: DropdownButtonFormField<String>(
                 initialValue: _reportPeriod,
-                decoration: const InputDecoration(labelText: 'Report Period', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Report Period',
+                  border: OutlineInputBorder(),
+                ),
                 items: const [
                   DropdownMenuItem(value: 'Daily', child: Text('Daily')),
                   DropdownMenuItem(value: 'Weekly', child: Text('Weekly')),
                   DropdownMenuItem(value: 'Monthly', child: Text('Monthly')),
-                  DropdownMenuItem(value: 'Quarterly', child: Text('Quarterly')),
+                  DropdownMenuItem(
+                    value: 'Quarterly',
+                    child: Text('Quarterly'),
+                  ),
                   DropdownMenuItem(value: 'Yearly', child: Text('Yearly')),
                 ],
                 onChanged: (v) {
@@ -512,9 +669,17 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
                 _exportCSV(
                   'Finance_Report_$_reportPeriod',
                   ['Date', 'Revenue', 'Commission', 'Settlements', 'Refunds'],
-                  _reports.map((r) => [
-                    r['date'], r['revenue'], r['commission'], r['settlements'], r['refunds']
-                  ]).toList(),
+                  _reports
+                      .map(
+                        (r) => [
+                          r['date'],
+                          r['revenue'],
+                          r['commission'],
+                          r['settlements'],
+                          r['refunds'],
+                        ],
+                      )
+                      .toList(),
                 );
               },
               icon: const Icon(Icons.download),
@@ -527,31 +692,33 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection> with SingleTi
           child: _isLoadingReports
               ? const Center(child: CircularProgressIndicator())
               : _reports.isEmpty
-                  ? const Center(child: Text('No report data found.'))
-                  : Card(
-                      child: ListView(
-                        children: [
-                          DataTable(
-                            columns: const [
-                              DataColumn(label: Text('Date')),
-                              DataColumn(label: Text('Revenue')),
-                              DataColumn(label: Text('Commission')),
-                              DataColumn(label: Text('Settlements')),
-                              DataColumn(label: Text('Refunds')),
-                            ],
-                            rows: _reports.map((r) {
-                              return DataRow(cells: [
-                                DataCell(Text(r['date'] ?? '')),
-                                DataCell(Text('₹${r['revenue'] ?? 0}')),
-                                DataCell(Text('₹${r['commission'] ?? 0}')),
-                                DataCell(Text('₹${r['settlements'] ?? 0}')),
-                                DataCell(Text('₹${r['refunds'] ?? 0}')),
-                              ]);
-                            }).toList(),
-                          ),
+              ? const Center(child: Text('No report data found.'))
+              : Card(
+                  child: ListView(
+                    children: [
+                      DataTable(
+                        columns: const [
+                          DataColumn(label: Text('Date')),
+                          DataColumn(label: Text('Revenue')),
+                          DataColumn(label: Text('Commission')),
+                          DataColumn(label: Text('Settlements')),
+                          DataColumn(label: Text('Refunds')),
                         ],
+                        rows: _reports.map((r) {
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(r['date'] ?? '')),
+                              DataCell(Text('₹${r['revenue'] ?? 0}')),
+                              DataCell(Text('₹${r['commission'] ?? 0}')),
+                              DataCell(Text('₹${r['settlements'] ?? 0}')),
+                              DataCell(Text('₹${r['refunds'] ?? 0}')),
+                            ],
+                          );
+                        }).toList(),
                       ),
-                    ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );

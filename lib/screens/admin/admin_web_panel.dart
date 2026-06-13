@@ -203,7 +203,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       if (actor == null) {
         // Auth session not restored yet. Set a pending flag so that
         // didChangeDependencies retries once AuthProvider signals ready.
-        if (mounted) setState(() { _pendingLoadAfterAuth = true; _loading = false; });
+        if (mounted)
+          setState(() {
+            _pendingLoadAfterAuth = true;
+            _loading = false;
+          });
         return;
       }
       await _ensurePinIfNeeded();
@@ -397,8 +401,12 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         _stores = results[4] as List<Store>;
         _products = results[5] as List<Product>;
         if (_selectedVariantProductId == null ||
-            !_products.any((product) => product.id == _selectedVariantProductId)) {
-          _selectedVariantProductId = _products.isNotEmpty ? _products.first.id : null;
+            !_products.any(
+              (product) => product.id == _selectedVariantProductId,
+            )) {
+          _selectedVariantProductId = _products.isNotEmpty
+              ? _products.first.id
+              : null;
         }
         _orders = results[6] as List<OrderModel>;
         _payouts = results[7] as List<PayoutModel>;
@@ -1050,7 +1058,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         stock: product.stock,
         category: product.category,
         subcategory: product.subcategory,
-        status: !product.isActive ? ProductStatus.active : ProductStatus.inactive,
+        status: !product.isActive
+            ? ProductStatus.active
+            : ProductStatus.inactive,
         createdAt: product.createdAt,
         rating: product.rating,
         reviewCount: product.reviewCount,
@@ -1085,9 +1095,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       return _products.first;
     }
     return _products.cast<Product?>().firstWhere(
-          (product) => product?.id == _selectedVariantProductId,
-          orElse: () => _products.first,
-        );
+      (product) => product?.id == _selectedVariantProductId,
+      orElse: () => _products.first,
+    );
   }
 
   Future<void> _setProductWorkspaceMode(String mode) async {
@@ -1096,7 +1106,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
 
   Future<void> _bulkUpdateVariantStock(Product product) async {
     final stockMapController = TextEditingController(
-      text: product.colorVariants.map((variant) => '${variant.name}: ${variant.stock}').join('\n'),
+      text: product.colorVariants
+          .map((variant) => '${variant.name}: ${variant.stock}')
+          .join('\n'),
     );
     final result = await showDialog<bool>(
       context: context,
@@ -1114,8 +1126,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Apply')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Apply'),
+          ),
         ],
       ),
     );
@@ -1139,8 +1157,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     }
 
     final updatedVariants = product.colorVariants.map((variant) {
-      final nextStock = stockByName[variant.name.toLowerCase()] ?? variant.stock;
-      final nextSizeStocks = variant.sizeStocks.isEmpty && variant.sizes.isNotEmpty
+      final nextStock =
+          stockByName[variant.name.toLowerCase()] ?? variant.stock;
+      final nextSizeStocks =
+          variant.sizeStocks.isEmpty && variant.sizes.isNotEmpty
           ? [
               for (final size in variant.sizes)
                 ProductVariantSizeStock(
@@ -1149,10 +1169,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 ),
             ]
           : variant.sizeStocks;
-      return variant.copyWith(
-        stock: nextStock,
-        sizeStocks: nextSizeStocks,
-      );
+      return variant.copyWith(stock: nextStock, sizeStocks: nextSizeStocks);
     }).toList();
 
     stockMapController.dispose();
@@ -1192,8 +1209,14 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Apply')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Apply'),
+          ),
         ],
       ),
     );
@@ -1245,7 +1268,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         .map((line) {
           final parts = line.split(':');
           final sizeName = parts.first.trim();
-          final stock = parts.length > 1 ? int.tryParse(parts.sublist(1).join(':').trim()) ?? 0 : 0;
+          final stock = parts.length > 1
+              ? int.tryParse(parts.sublist(1).join(':').trim()) ?? 0
+              : 0;
           return ProductVariantSizeStock(
             sizeName: sizeName,
             stockQuantity: stock,
@@ -1260,15 +1285,37 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     ProductColorVariant? initial,
     bool duplicate = false,
   }) async {
-    final nameController = TextEditingController(text: duplicate ? '' : initial?.colorName.isNotEmpty == true ? initial!.colorName : initial?.name ?? '');
-    final hexController = TextEditingController(text: duplicate ? '#C6A769' : initial?.hex ?? '#C6A769');
-    final skuController = TextEditingController(text: duplicate ? '' : initial?.sku ?? '');
-    final barcodeController = TextEditingController(text: duplicate ? '' : initial?.barcode ?? '');
-    final priceController = TextEditingController(text: duplicate ? '' : (initial?.price?.toStringAsFixed(0) ?? ''));
-    final discountController = TextEditingController(text: duplicate ? '' : (initial?.discountPrice?.toStringAsFixed(0) ?? ''));
-    final stockController = TextEditingController(text: duplicate ? '0' : initial?.stock.toString() ?? '0');
+    final nameController = TextEditingController(
+      text: duplicate
+          ? ''
+          : initial?.colorName.isNotEmpty == true
+          ? initial!.colorName
+          : initial?.name ?? '',
+    );
+    final hexController = TextEditingController(
+      text: duplicate ? '#C6A769' : initial?.hex ?? '#C6A769',
+    );
+    final skuController = TextEditingController(
+      text: duplicate ? '' : initial?.sku ?? '',
+    );
+    final barcodeController = TextEditingController(
+      text: duplicate ? '' : initial?.barcode ?? '',
+    );
+    final priceController = TextEditingController(
+      text: duplicate ? '' : (initial?.price?.toStringAsFixed(0) ?? ''),
+    );
+    final discountController = TextEditingController(
+      text: duplicate ? '' : (initial?.discountPrice?.toStringAsFixed(0) ?? ''),
+    );
+    final stockController = TextEditingController(
+      text: duplicate ? '0' : initial?.stock.toString() ?? '0',
+    );
     final thumbnailController = TextEditingController(
-      text: duplicate ? '' : (initial?.thumbnail.isNotEmpty == true ? initial!.thumbnail : initial?.imageUrl ?? ''),
+      text: duplicate
+          ? ''
+          : (initial?.thumbnail.isNotEmpty == true
+                ? initial!.thumbnail
+                : initial?.imageUrl ?? ''),
     );
     final galleryController = TextEditingController(
       text: duplicate ? '' : (initial?.images.join('\n') ?? ''),
@@ -1277,9 +1324,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       text: duplicate ? '' : (initial?.sizes.join(', ') ?? ''),
     );
     final sizeStocksController = TextEditingController(
-      text: duplicate ? '' : (initial?.sizeStocks.map((item) => '${item.sizeName}:${item.stockQuantity}').join('\n') ?? ''),
+      text: duplicate
+          ? ''
+          : (initial?.sizeStocks
+                    .map((item) => '${item.sizeName}:${item.stockQuantity}')
+                    .join('\n') ??
+                ''),
     );
-    final etaController = TextEditingController(text: duplicate ? '' : (initial?.deliveryInfo['etaLabel']?.toString() ?? ''));
+    final etaController = TextEditingController(
+      text: duplicate
+          ? ''
+          : (initial?.deliveryInfo['etaLabel']?.toString() ?? ''),
+    );
     bool sameDayEligible = initial?.deliveryInfo['sameDayEligible'] != false;
     bool freeReturns = initial?.deliveryInfo['freeReturns'] != false;
     bool cashOnDelivery = initial?.deliveryInfo['cashOnDelivery'] != false;
@@ -1301,7 +1357,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     Expanded(
                       child: TextField(
                         controller: nameController,
-                        decoration: const InputDecoration(labelText: 'Color Name'),
+                        decoration: const InputDecoration(
+                          labelText: 'Color Name',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1340,7 +1398,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                         controller: priceController,
                         keyboardType: TextInputType.number,
                         onChanged: (_) => setDialogState(() {}),
-                        decoration: const InputDecoration(labelText: 'Price Override'),
+                        decoration: const InputDecoration(
+                          labelText: 'Price Override',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1349,7 +1409,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                         controller: discountController,
                         keyboardType: TextInputType.number,
                         onChanged: (_) => setDialogState(() {}),
-                        decoration: const InputDecoration(labelText: 'Discount Price'),
+                        decoration: const InputDecoration(
+                          labelText: 'Discount Price',
+                        ),
                       ),
                     ),
                   ],
@@ -1409,22 +1471,26 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     FilterChip(
                       label: const Text('Active'),
                       selected: active,
-                      onSelected: (value) => setDialogState(() => active = value),
+                      onSelected: (value) =>
+                          setDialogState(() => active = value),
                     ),
                     FilterChip(
                       label: const Text('Same Day'),
                       selected: sameDayEligible,
-                      onSelected: (value) => setDialogState(() => sameDayEligible = value),
+                      onSelected: (value) =>
+                          setDialogState(() => sameDayEligible = value),
                     ),
                     FilterChip(
                       label: const Text('Free Returns'),
                       selected: freeReturns,
-                      onSelected: (value) => setDialogState(() => freeReturns = value),
+                      onSelected: (value) =>
+                          setDialogState(() => freeReturns = value),
                     ),
                     FilterChip(
                       label: const Text('COD'),
                       selected: cashOnDelivery,
-                      onSelected: (value) => setDialogState(() => cashOnDelivery = value),
+                      onSelected: (value) =>
+                          setDialogState(() => cashOnDelivery = value),
                     ),
                   ],
                 ),
@@ -1449,25 +1515,32 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     productId: product.id,
                     name: name,
                     colorName: name,
-                    hex: hexController.text.trim().isEmpty ? '#C6A769' : hexController.text.trim(),
+                    hex: hexController.text.trim().isEmpty
+                        ? '#C6A769'
+                        : hexController.text.trim(),
                     imageUrl: thumbnailController.text.trim(),
                     sku: skuController.text.trim(),
                     barcode: barcodeController.text.trim(),
                     price: double.tryParse(priceController.text.trim()),
-                    discountPrice: double.tryParse(discountController.text.trim()),
+                    discountPrice: double.tryParse(
+                      discountController.text.trim(),
+                    ),
                     stock: int.tryParse(stockController.text.trim()) ?? 0,
                     status: active ? 'active' : 'inactive',
                     thumbnail: thumbnailController.text.trim(),
                     images: _parseCsvList(galleryController.text),
                     sizes: _parseCsvList(sizesController.text),
-                    sizeStocks: _parseVariantSizeStocks(sizeStocksController.text),
+                    sizeStocks: _parseVariantSizeStocks(
+                      sizeStocksController.text,
+                    ),
                     deliveryInfo: {
                       'sameDayEligible': sameDayEligible,
                       'freeReturns': freeReturns,
                       'cashOnDelivery': cashOnDelivery,
                       'etaLabel': etaController.text.trim(),
                     },
-                    createdAt: initial?.createdAt ?? DateTime.now().toIso8601String(),
+                    createdAt:
+                        initial?.createdAt ?? DateTime.now().toIso8601String(),
                     updatedAt: DateTime.now().toIso8601String(),
                   ),
                 );
@@ -1494,15 +1567,23 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     return result;
   }
 
-  Widget _buildLiveDiscountPreview(String sellingPriceText, String originalPriceText) {
+  Widget _buildLiveDiscountPreview(
+    String sellingPriceText,
+    String originalPriceText,
+  ) {
     final sellingPrice = double.tryParse(sellingPriceText.trim());
     final originalPrice = double.tryParse(originalPriceText.trim());
     final hasValidPrices =
-        sellingPrice != null && sellingPrice > 0 && originalPrice != null && originalPrice > 0;
+        sellingPrice != null &&
+        sellingPrice > 0 &&
+        originalPrice != null &&
+        originalPrice > 0;
     final safeSellingPrice = sellingPrice ?? 0;
     final safeOriginalPrice = originalPrice ?? 0;
-    final discountPercent = hasValidPrices && safeOriginalPrice > safeSellingPrice
-        ? (((safeOriginalPrice - safeSellingPrice) / safeOriginalPrice) * 100).round()
+    final discountPercent =
+        hasValidPrices && safeOriginalPrice > safeSellingPrice
+        ? (((safeOriginalPrice - safeSellingPrice) / safeOriginalPrice) * 100)
+              .round()
         : 0;
     final formatter = NumberFormat.currency(
       locale: 'en_IN',
@@ -1536,7 +1617,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: hasValidPrices ? const Color(0xFF111111) : AbzioTheme.grey500,
+              color: hasValidPrices
+                  ? const Color(0xFF111111)
+                  : AbzioTheme.grey500,
             ),
           ),
         ],
@@ -1557,15 +1640,25 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     }
     final updatedVariants = [...product.colorVariants];
     updatedVariants[index] = updatedVariant;
-    await _db.updateProduct(product.copyWith(colorVariants: updatedVariants), actor: _actor);
+    await _db.updateProduct(
+      product.copyWith(colorVariants: updatedVariants),
+      actor: _actor,
+    );
     await _load();
   }
 
-  Future<void> _reorderVariants(Product product, int oldIndex, int newIndex) async {
+  Future<void> _reorderVariants(
+    Product product,
+    int oldIndex,
+    int newIndex,
+  ) async {
     final variants = [...product.colorVariants];
     final item = variants.removeAt(oldIndex);
     variants.insert(newIndex, item);
-    await _db.updateProduct(product.copyWith(colorVariants: variants), actor: _actor);
+    await _db.updateProduct(
+      product.copyWith(colorVariants: variants),
+      actor: _actor,
+    );
     await _load();
   }
 
@@ -2374,7 +2467,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     final items = <(AdminWebSection, IconData, String)>[
       (AdminWebSection.dashboard, Icons.dashboard_outlined, 'Dashboard'),
       (AdminWebSection.trials, Icons.dry_cleaning_outlined, 'Trials'),
-      (AdminWebSection.finance, Icons.account_balance_wallet_outlined, 'Finance'),
+      (
+        AdminWebSection.finance,
+        Icons.account_balance_wallet_outlined,
+        'Finance',
+      ),
       (AdminWebSection.inventory, Icons.inventory_2_outlined, 'Inventory'),
       (AdminWebSection.fraud, Icons.security_rounded, 'Fraud'),
       (AdminWebSection.notifications, Icons.campaign_rounded, 'Notifications'),
@@ -2391,7 +2488,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       (AdminWebSection.vendorOnboarding, Icons.storefront, 'Vendor Onboarding'),
       (AdminWebSection.riders, Icons.delivery_dining_outlined, 'Riders'),
       (AdminWebSection.riderOnboarding, Icons.two_wheeler, 'Rider Onboarding'),
-      (AdminWebSection.onboardingAnalytics, Icons.analytics_outlined, 'Onboarding Analytics'),
+      (
+        AdminWebSection.onboardingAnalytics,
+        Icons.analytics_outlined,
+        'Onboarding Analytics',
+      ),
       (AdminWebSection.users, Icons.people_alt_outlined, 'Users'),
       (AdminWebSection.products, Icons.inventory_2_outlined, 'Products'),
       (AdminWebSection.arModeration, Icons.view_in_ar_rounded, 'AR Moderation'),
@@ -2403,7 +2504,11 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         (AdminWebSection.settings, Icons.settings_outlined, 'Settings'),
       (AdminWebSection.configuration, Icons.tune, 'Platform Config'),
       (AdminWebSection.activityLogs, Icons.history, 'Activity Logs'),
-      (AdminWebSection.systemHealth, Icons.monitor_heart_outlined, 'System Health'),
+      (
+        AdminWebSection.systemHealth,
+        Icons.monitor_heart_outlined,
+        'System Health',
+      ),
       (AdminWebSection.automations, Icons.smart_toy_outlined, 'Automations'),
       (AdminWebSection.backups, Icons.backup_outlined, 'Backups'),
       (AdminWebSection.compliance, Icons.verified_user_outlined, 'Compliance'),
@@ -2578,7 +2683,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                               child: SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
                             )
                           : IconButton(
@@ -4740,7 +4847,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         return false;
       }
       if (_vendorStatusFilter == 'Suspended' && store.isActive) return false;
-      if (_vendorStatusFilter == 'High Risk' && _vendorHealthScore(store) >= 45) {
+      if (_vendorStatusFilter == 'High Risk' &&
+          _vendorHealthScore(store) >= 45) {
         return false;
       }
       if (_vendorCityFilter != 'All' &&
@@ -5613,7 +5721,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       children: [
         _Panel(
           title: 'Products workspace',
-          subtitle: 'Switch between catalog management and color-variant inventory.',
+          subtitle:
+              'Switch between catalog management and color-variant inventory.',
           child: Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -5754,11 +5863,18 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   Widget _buildVariantWorkspace() {
     final product = _selectedVariantProduct;
     final variants = product?.colorVariants ?? const <ProductColorVariant>[];
-    final totalStock = variants.fold<int>(0, (sum, variant) => sum + variant.stock);
-    final outOfStockCount = variants.where((variant) => variant.stock <= 0).length;
+    final totalStock = variants.fold<int>(
+      0,
+      (sum, variant) => sum + variant.stock,
+    );
+    final outOfStockCount = variants
+        .where((variant) => variant.stock <= 0)
+        .length;
     final ProductColorVariant? topVariant = variants.isEmpty
         ? null
-        : variants.reduce((current, next) => next.stock > current.stock ? next : current);
+        : variants.reduce(
+            (current, next) => next.stock > current.stock ? next : current,
+          );
     return _Panel(
       title: 'Variants & inventory',
       subtitle: product == null
@@ -5777,7 +5893,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         initialValue: product.id,
-                        decoration: const InputDecoration(labelText: 'Select Product'),
+                        decoration: const InputDecoration(
+                          labelText: 'Select Product',
+                        ),
                         items: _products
                             .map(
                               (item) => DropdownMenuItem<String>(
@@ -5811,16 +5929,27 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                 const SizedBox(height: 16),
                 _Panel(
                   title: 'Color performance snapshot',
-                  subtitle: 'Estimated signals based on current catalog and inventory mix.',
+                  subtitle:
+                      'Estimated signals based on current catalog and inventory mix.',
                   child: Wrap(
                     spacing: 12,
                     runSpacing: 12,
                     children: [
-                      _MetricCard(title: 'Total stock', value: totalStock.toString()),
-                      _MetricCard(title: 'Out of stock colors', value: outOfStockCount.toString()),
+                      _MetricCard(
+                        title: 'Total stock',
+                        value: totalStock.toString(),
+                      ),
+                      _MetricCard(
+                        title: 'Out of stock colors',
+                        value: outOfStockCount.toString(),
+                      ),
                       _MetricCard(
                         title: 'Top color',
-                        value: topVariant == null ? '-' : (topVariant.colorName.isNotEmpty ? topVariant.colorName : topVariant.name),
+                        value: topVariant == null
+                            ? '-'
+                            : (topVariant.colorName.isNotEmpty
+                                  ? topVariant.colorName
+                                  : topVariant.name),
                       ),
                       _MetricCard(
                         title: 'Estimated sales by color',
@@ -5837,8 +5966,12 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                   runSpacing: 8,
                   children: [
                     _adminChip('${variants.length} variants'),
-                    _adminChip('${variants.where((variant) => variant.stock <= 0).length} out of stock'),
-                    _adminChip('${variants.fold<int>(0, (sum, variant) => sum + variant.images.length)} gallery images'),
+                    _adminChip(
+                      '${variants.where((variant) => variant.stock <= 0).length} out of stock',
+                    ),
+                    _adminChip(
+                      '${variants.fold<int>(0, (sum, variant) => sum + variant.images.length)} gallery images',
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -5854,17 +5987,23 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                     physics: const NeverScrollableScrollPhysics(),
                     buildDefaultDragHandles: false,
                     itemCount: variants.length,
-                    onReorderItem: (oldIndex, newIndex) => _reorderVariants(product, oldIndex, newIndex),
+                    onReorderItem: (oldIndex, newIndex) =>
+                        _reorderVariants(product, oldIndex, newIndex),
                     itemBuilder: (context, index) {
                       final variant = variants[index];
-                      final variantName = variant.colorName.isNotEmpty ? variant.colorName : variant.name;
+                      final variantName = variant.colorName.isNotEmpty
+                          ? variant.colorName
+                          : variant.name;
                       final createdLabel = variant.createdAt == null
                           ? 'Saved'
                           : DateFormat('dd MMM yyyy').format(
-                              DateTime.tryParse(variant.createdAt ?? '') ?? DateTime.now(),
+                              DateTime.tryParse(variant.createdAt ?? '') ??
+                                  DateTime.now(),
                             );
                       return Container(
-                        key: ValueKey('${variant.variantId.isEmpty ? variantName : variant.variantId}-$index'),
+                        key: ValueKey(
+                          '${variant.variantId.isEmpty ? variantName : variant.variantId}-$index',
+                        ),
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
@@ -5891,7 +6030,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                   color: const Color(0xFFF7F1E5),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.drag_indicator_rounded, color: Color(0xFF8B7A5B)),
+                                child: const Icon(
+                                  Icons.drag_indicator_rounded,
+                                  color: Color(0xFF8B7A5B),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -5907,7 +6049,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                       )
                                     : Container(
                                         color: const Color(0xFFF3F3F3),
-                                        child: const Icon(Icons.palette_outlined, size: 18),
+                                        child: const Icon(
+                                          Icons.palette_outlined,
+                                          size: 18,
+                                        ),
                                       ),
                               ),
                             ),
@@ -5918,7 +6063,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                 children: [
                                   Text(
                                     variantName,
-                                    style: GoogleFonts.inter(fontWeight: FontWeight.w800),
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
@@ -5933,8 +6080,12 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                     spacing: 8,
                                     runSpacing: 8,
                                     children: [
-                                      _adminChip('${variant.images.length + (variant.thumbnail.isNotEmpty ? 1 : 0)} images'),
-                                      _adminChip('${variant.sizes.length} sizes'),
+                                      _adminChip(
+                                        '${variant.images.length + (variant.thumbnail.isNotEmpty ? 1 : 0)} images',
+                                      ),
+                                      _adminChip(
+                                        '${variant.sizes.length} sizes',
+                                      ),
                                       _adminChip(createdLabel),
                                     ],
                                   ),
@@ -5944,13 +6095,21 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                     runSpacing: 8,
                                     children: [
                                       OutlinedButton.icon(
-                                        onPressed: () => _editVariant(product, index),
-                                        icon: const Icon(Icons.edit_outlined, size: 18),
+                                        onPressed: () =>
+                                            _editVariant(product, index),
+                                        icon: const Icon(
+                                          Icons.edit_outlined,
+                                          size: 18,
+                                        ),
                                         label: const Text('Edit'),
                                       ),
                                       OutlinedButton.icon(
-                                        onPressed: () => _bulkReplaceVariantImages(product),
-                                        icon: const Icon(Icons.photo_library_outlined, size: 18),
+                                        onPressed: () =>
+                                            _bulkReplaceVariantImages(product),
+                                        icon: const Icon(
+                                          Icons.photo_library_outlined,
+                                          size: 18,
+                                        ),
                                         label: const Text('Bulk Images'),
                                       ),
                                     ],
@@ -5963,7 +6122,9 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  _formatCurrency(variant.price ?? product.price),
+                                  _formatCurrency(
+                                    variant.price ?? product.price,
+                                  ),
                                   style: GoogleFonts.inter(
                                     fontWeight: FontWeight.w800,
                                     color: Colors.black,
@@ -7120,7 +7281,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   String _orderPriorityFor(OrderModel order) {
-    if (_isDelayedOrder(order) || order.status.toLowerCase().contains('cancel')) {
+    if (_isDelayedOrder(order) ||
+        order.status.toLowerCase().contains('cancel')) {
       return 'HIGH';
     }
     if ((order.riderId ?? '').isEmpty ||
@@ -9886,4 +10048,3 @@ class _MiniBarChart extends StatelessWidget {
     );
   }
 }
-

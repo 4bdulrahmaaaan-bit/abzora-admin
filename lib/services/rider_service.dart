@@ -69,15 +69,19 @@ class RiderDashboardSnapshot {
   final List<UnifiedRiderTask> tasks;
   final DateTime fetchedAt;
 
-  int get assignedCount => tasks.where((task) => task.status == 'assigned').length;
-  int get activeCount => tasks.where((task) => task.status == 'in_progress').length;
-  int get completedCount => tasks.where((task) => task.status == 'completed').length;
+  int get assignedCount =>
+      tasks.where((task) => task.status == 'assigned').length;
+  int get activeCount =>
+      tasks.where((task) => task.status == 'in_progress').length;
+  int get completedCount =>
+      tasks.where((task) => task.status == 'completed').length;
 }
 
 class RiderService {
   final DatabaseService _db;
 
-  RiderService({DatabaseService? databaseService}) : _db = databaseService ?? DatabaseService();
+  RiderService({DatabaseService? databaseService})
+    : _db = databaseService ?? DatabaseService();
 
   Stream<List<OrderModel>> watchAvailableDeliveries() {
     return _db.watchAvailableDeliveryOrders();
@@ -118,7 +122,8 @@ class RiderService {
     final tasks = (results[3] as List<UnifiedRiderTask>?) ?? const [];
 
     return RiderDashboardSnapshot(
-      analytics: analytics ??
+      analytics:
+          analytics ??
           RiderAnalytics(
             todayDeliveries: 0,
             earningsToday: 0,
@@ -127,7 +132,8 @@ class RiderService {
             availableBalance: rider.walletBalance,
             reservedAmount: 0,
           ),
-      wallet: wallet ??
+      wallet:
+          wallet ??
           WalletSummary(
             id: rider.id,
             kind: 'rider',
@@ -154,19 +160,21 @@ class RiderService {
     if (routeData.isNotEmpty) {
       final stops = <RiderRouteStop>[];
       final tasks = await _db.getRiderTasks(rider);
-      
+
       for (final map in routeData) {
         final taskMap = map['task'] as Map<String, dynamic>? ?? {};
         final taskId = taskMap['id']?.toString() ?? '';
         final distanceKm = map['distanceKm'] as num?;
-        
+
         final taskIdx = tasks.indexWhere((t) => t.id == taskId);
         if (taskIdx == -1) continue;
         final task = tasks[taskIdx];
-        
+
         final customer = await _db.getUser(task.userId);
-        final order = task.orderId == null ? null : await _db.getOrderById(task.orderId!);
-        
+        final order = task.orderId == null
+            ? null
+            : await _db.getOrderById(task.orderId!);
+
         stops.add(
           RiderRouteStop(
             task: task,
@@ -185,7 +193,9 @@ class RiderService {
 
     for (final task in tasks) {
       final customer = await _db.getUser(task.userId);
-      final order = task.orderId == null ? null : await _db.getOrderById(task.orderId!);
+      final order = task.orderId == null
+          ? null
+          : await _db.getOrderById(task.orderId!);
       final distanceKm = _distanceFromRider(rider, customer);
       stops.add(
         RiderRouteStop(
@@ -198,11 +208,15 @@ class RiderService {
     }
 
     stops.sort((a, b) {
-      final typeCompare = _taskPriority(a.task.type).compareTo(_taskPriority(b.task.type));
+      final typeCompare = _taskPriority(
+        a.task.type,
+      ).compareTo(_taskPriority(b.task.type));
       if (typeCompare != 0) {
         return typeCompare;
       }
-      final statusCompare = _statusPriority(a.task.status).compareTo(_statusPriority(b.task.status));
+      final statusCompare = _statusPriority(
+        a.task.status,
+      ).compareTo(_statusPriority(b.task.status));
       if (statusCompare != 0) {
         return statusCompare;
       }
@@ -233,7 +247,9 @@ class RiderService {
       city: city.trim(),
       riderCity: city.trim(),
       riderVehicleType: vehicleType.trim(),
-      riderLicenseNumber: (licenseNumber ?? '').trim().isEmpty ? null : licenseNumber!.trim(),
+      riderLicenseNumber: (licenseNumber ?? '').trim().isEmpty
+          ? null
+          : licenseNumber!.trim(),
       riderApprovalStatus: 'pending',
       isActive: true,
     );
@@ -317,7 +333,10 @@ class RiderService {
     final riderLng = rider.longitude;
     final customerLat = customer?.latitude;
     final customerLng = customer?.longitude;
-    if (riderLat == null || riderLng == null || customerLat == null || customerLng == null) {
+    if (riderLat == null ||
+        riderLng == null ||
+        customerLat == null ||
+        customerLng == null) {
       return null;
     }
     const earthRadiusKm = 6371.0;
@@ -332,7 +351,8 @@ class RiderService {
     return earthRadiusKm * c;
   }
 
-  double _degreesToRadians(double degrees) => degrees * (3.141592653589793 / 180);
+  double _degreesToRadians(double degrees) =>
+      degrees * (3.141592653589793 / 180);
 
   double _squareSin(double value) {
     final sine = sin(value);

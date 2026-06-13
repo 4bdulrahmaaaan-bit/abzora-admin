@@ -98,7 +98,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final fallbackAddress = _fallbackAddressFromUser(user);
       final allAddresses = [
         ...addresses,
-        if (fallbackAddress != null && !addresses.any((item) => _sameAddress(item, fallbackAddress))) fallbackAddress,
+        if (fallbackAddress != null &&
+            !addresses.any((item) => _sameAddress(item, fallbackAddress)))
+          fallbackAddress,
       ];
 
       setState(() {
@@ -130,7 +132,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final normalized = (saved ?? '').trim().toUpperCase();
     final resolvedMethod = normalized.isEmpty
         ? fallbackMethod
-        : (normalized == 'COD' && !_isCodAvailable(activeCart) ? fallbackMethod : normalized);
+        : (normalized == 'COD' && !_isCodAvailable(activeCart)
+              ? fallbackMethod
+              : normalized);
 
     if (_paymentMethod == resolvedMethod) {
       return;
@@ -166,7 +170,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
       setState(() {
         _creditDecision = decision;
-        _useReferralCredits = decision.autoApplied && decision.appliedCredits > 0;
+        _useReferralCredits =
+            decision.autoApplied && decision.appliedCredits > 0;
         _loadingCredits = false;
       });
       unawaited(_loadMasterPricing());
@@ -209,7 +214,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         _loadingCouponOffer = false;
       });
       unawaited(_loadMasterPricing());
-      if (offer != null && offer.autoApply && context.read<CartProvider>().appliedCoupon == null) {
+      if (offer != null &&
+          offer.autoApply &&
+          context.read<CartProvider>().appliedCoupon == null) {
         _couponController.text = offer.code;
         await _applyCoupon(context.read<CartProvider>());
       }
@@ -234,7 +241,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             quantity: item.quantity,
             price: item.product.price,
             size: item.size,
-            imageUrl: item.product.images.isNotEmpty ? item.product.images.first : '',
+            imageUrl: item.product.images.isNotEmpty
+                ? item.product.images.first
+                : '',
             isCustomTailoring: item.product.isCustomTailoring,
             neededBy: item.product.neededBy,
             tailoringDeliveryMode: item.product.tailoringDeliveryMode,
@@ -265,7 +274,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         items: _currentOrderItems(cart),
         extraCharges: cart.customTailoringCharges,
         couponCode: cart.appliedCoupon,
-        useReferralCredits: _useReferralCredits || (_creditDecision?.autoApplied ?? false),
+        useReferralCredits:
+            _useReferralCredits || (_creditDecision?.autoApplied ?? false),
       );
       if (!mounted) {
         return;
@@ -293,9 +303,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return addresses.first;
     }
     return addresses.cast<UserAddress?>().firstWhere(
-          (item) => item?.id == _selectedAddress?.id,
-          orElse: () => addresses.first,
-        );
+      (item) => item?.id == _selectedAddress?.id,
+      orElse: () => addresses.first,
+    );
   }
 
   bool _sameAddress(UserAddress left, UserAddress right) {
@@ -324,7 +334,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       latitude: user.latitude,
       longitude: user.longitude,
       type: 'home',
-      createdAt: user.locationUpdatedAt ?? user.createdAt ?? DateTime.now().toIso8601String(),
+      createdAt:
+          user.locationUpdatedAt ??
+          user.createdAt ??
+          DateTime.now().toIso8601String(),
     );
   }
 
@@ -360,7 +373,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                Text('Choose delivery address', style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  'Choose delivery address',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 6),
                 Text(
                   'Select the address for this order or add a new one.',
@@ -420,9 +436,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AddressScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AddressScreen()));
     if (!mounted) {
       return;
     }
@@ -453,7 +469,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     messenger.showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text(ok ? 'Coupon applied successfully.' : 'That coupon code is not valid.'),
+        content: Text(
+          ok
+              ? 'Coupon applied successfully.'
+              : 'That coupon code is not valid.',
+        ),
       ),
     );
     unawaited(_loadSmartCredits());
@@ -478,7 +498,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Cash on Delivery is not available for custom-fit orders.'),
+          content: Text(
+            'Cash on Delivery is not available for custom-fit orders.',
+          ),
         ),
       );
       return;
@@ -496,14 +518,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     if (cart.items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your bag is empty. Add a style to continue.')),
+        const SnackBar(
+          content: Text('Your bag is empty. Add a style to continue.'),
+        ),
       );
       return;
     }
 
     if (_selectedAddress == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Choose a delivery address to place your order.')),
+        const SnackBar(
+          content: Text('Choose a delivery address to place your order.'),
+        ),
       );
       return;
     }
@@ -517,7 +543,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
     if (selectedPaymentMethod == 'WALLET') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Abianzo Credit will be available soon. Please choose another method.')),
+        const SnackBar(
+          content: Text(
+            'Abianzo Credit will be available soon. Please choose another method.',
+          ),
+        ),
       );
       return;
     }
@@ -534,37 +564,51 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
     if (auth.requiresProfileSetup) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Please complete your profile before placing an order.')),
+        const SnackBar(
+          content: Text(
+            'Please complete your profile before placing an order.',
+          ),
+        ),
       );
       navigator.pushNamed('/profile-completion');
       return;
     }
-    if (_usesOnlinePayment(selectedPaymentMethod) && !AppConfig.hasRazorpayKey) {
+    if (_usesOnlinePayment(selectedPaymentMethod) &&
+        !AppConfig.hasRazorpayKey) {
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('Online payment is not available right now. Please choose Cash on Delivery.'),
+          content: Text(
+            'Online payment is not available right now. Please choose Cash on Delivery.',
+          ),
         ),
       );
       return;
     }
     if (_usesOnlinePayment(selectedPaymentMethod) &&
         _database.usesBackendCommerce &&
-        (!AppConfig.hasRazorpayOrderEndpoint || !AppConfig.hasRazorpayVerificationEndpoint)) {
+        (!AppConfig.hasRazorpayOrderEndpoint ||
+            !AppConfig.hasRazorpayVerificationEndpoint)) {
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('Secure online payment is not ready right now. Please choose another payment method.'),
+          content: Text(
+            'Secure online payment is not ready right now. Please choose another payment method.',
+          ),
         ),
       );
       return;
     }
 
     setState(() => _processing = true);
-    _logCheckout('Abianzo checkout: processing started with method=$selectedPaymentMethod');
+    _logCheckout(
+      'Abianzo checkout: processing started with method=$selectedPaymentMethod',
+    );
     unawaited(_rememberPaymentMethod(selectedPaymentMethod));
 
     try {
       final payableAmount = _totalAmount(cart);
-      _logCheckout('Abianzo checkout: payable amount=$payableAmount items=${cart.items.length}');
+      _logCheckout(
+        'Abianzo checkout: payable amount=$payableAmount items=${cart.items.length}',
+      );
       final orderItems = cart.items
           .map(
             (item) => OrderItem(
@@ -573,7 +617,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               quantity: item.quantity,
               price: item.product.price,
               size: item.size,
-              imageUrl: item.product.images.isNotEmpty ? item.product.images.first : '',
+              imageUrl: item.product.images.isNotEmpty
+                  ? item.product.images.first
+                  : '',
               isCustomTailoring: item.product.isCustomTailoring,
               neededBy: item.product.neededBy,
               tailoringDeliveryMode: item.product.tailoringDeliveryMode,
@@ -583,12 +629,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           .toList();
       String? paymentReference;
       var paymentVerified = false;
-      final paymentMethodForOrder =
-          _usesOnlinePayment(selectedPaymentMethod) ? 'RAZORPAY' : selectedPaymentMethod;
+      final paymentMethodForOrder = _usesOnlinePayment(selectedPaymentMethod)
+          ? 'RAZORPAY'
+          : selectedPaymentMethod;
       late final OrderModel placedOrder;
 
-      if (_database.usesBackendCommerce && _usesOnlinePayment(selectedPaymentMethod)) {
-        _logCheckout('Abianzo checkout: backend commerce online payment branch');
+      if (_database.usesBackendCommerce &&
+          _usesOnlinePayment(selectedPaymentMethod)) {
+        _logCheckout(
+          'Abianzo checkout: backend commerce online payment branch',
+        );
         final pendingOrder = await _database.placeOrdersForCart(
           actor: currentUser,
           items: orderItems,
@@ -603,7 +653,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           isPaymentVerified: false,
         );
         if (!mounted) {
-          _logCheckout('Abianzo checkout: unmounted after pending order creation');
+          _logCheckout(
+            'Abianzo checkout: unmounted after pending order creation',
+          );
           return;
         }
         _logCheckout('Abianzo checkout: pending order created');
@@ -611,14 +663,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           context: context,
           userId: currentUser.id,
           backendOrderId: pendingOrder.id,
-          name: currentUser.name.trim().isEmpty ? 'Abianzo Member' : currentUser.name.trim(),
+          name: currentUser.name.trim().isEmpty
+              ? 'Abianzo Member'
+              : currentUser.name.trim(),
           amount: payableAmount,
-          email: currentUser.email.isEmpty ? 'guest@abianzo.app' : currentUser.email,
+          email: currentUser.email.isEmpty
+              ? 'guest@abianzo.app'
+              : currentUser.email,
           contact: currentUser.phone ?? _selectedAddress!.phone,
-          description: cart.hasCustomTailoring ? 'Custom clothing checkout' : 'Marketplace checkout',
+          description: cart.hasCustomTailoring
+              ? 'Custom clothing checkout'
+              : 'Marketplace checkout',
         );
         if (!paymentResult.success) {
-      _logCheckout('Abianzo checkout: payment failed or cancelled');
+          _logCheckout('Abianzo checkout: payment failed or cancelled');
           if (mounted) {
             messenger.showSnackBar(
               const SnackBar(content: Text('Payment was not completed.')),
@@ -626,28 +684,45 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           }
           return;
         }
-        paymentReference = paymentResult.paymentId ?? paymentResult.externalWallet ?? paymentResult.orderId;
+        paymentReference =
+            paymentResult.paymentId ??
+            paymentResult.externalWallet ??
+            paymentResult.orderId;
         paymentVerified = paymentResult.isVerified;
-        _logCheckout('Abianzo checkout: payment success verified=$paymentVerified');
-        final refreshedOrders = await _database.getUserOrdersOnce(currentUser.id);
+        _logCheckout(
+          'Abianzo checkout: payment success verified=$paymentVerified',
+        );
+        final refreshedOrders = await _database.getUserOrdersOnce(
+          currentUser.id,
+        );
         placedOrder = refreshedOrders.cast<OrderModel?>().firstWhere(
-              (item) => item?.id == pendingOrder.id,
-              orElse: () => pendingOrder,
-            )!;
+          (item) => item?.id == pendingOrder.id,
+          orElse: () => pendingOrder,
+        )!;
       } else {
-        _logCheckout('Abianzo checkout: direct order branch online=${_usesOnlinePayment(selectedPaymentMethod)}');
+        _logCheckout(
+          'Abianzo checkout: direct order branch online=${_usesOnlinePayment(selectedPaymentMethod)}',
+        );
         if (_usesOnlinePayment(selectedPaymentMethod)) {
           final paymentResult = await PaymentService().processCheckout(
             context: context,
             userId: currentUser.id,
-            name: currentUser.name.trim().isEmpty ? 'Abianzo Member' : currentUser.name.trim(),
+            name: currentUser.name.trim().isEmpty
+                ? 'Abianzo Member'
+                : currentUser.name.trim(),
             amount: payableAmount,
-            email: currentUser.email.isEmpty ? 'guest@abianzo.app' : currentUser.email,
+            email: currentUser.email.isEmpty
+                ? 'guest@abianzo.app'
+                : currentUser.email,
             contact: currentUser.phone ?? _selectedAddress!.phone,
-            description: cart.hasCustomTailoring ? 'Custom clothing checkout' : 'Marketplace checkout',
+            description: cart.hasCustomTailoring
+                ? 'Custom clothing checkout'
+                : 'Marketplace checkout',
           );
           if (!paymentResult.success) {
-            _logCheckout('Abianzo checkout: direct payment failed or cancelled');
+            _logCheckout(
+              'Abianzo checkout: direct payment failed or cancelled',
+            );
             if (mounted) {
               messenger.showSnackBar(
                 const SnackBar(content: Text('Payment was not completed.')),
@@ -655,9 +730,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             }
             return;
           }
-          paymentReference = paymentResult.paymentId ?? paymentResult.externalWallet ?? paymentResult.orderId;
+          paymentReference =
+              paymentResult.paymentId ??
+              paymentResult.externalWallet ??
+              paymentResult.orderId;
           paymentVerified = paymentResult.isVerified;
-          _logCheckout('Abianzo checkout: direct payment success verified=$paymentVerified');
+          _logCheckout(
+            'Abianzo checkout: direct payment success verified=$paymentVerified',
+          );
         }
 
         placedOrder = await _database.placeOrdersForCart(
@@ -686,7 +766,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       navigator.pushReplacement(
         MaterialPageRoute(
           builder: (_) => OrderSuccessScreen(
-            orderId: placedOrder.invoiceNumber.isEmpty ? placedOrder.id : placedOrder.invoiceNumber,
+            orderId: placedOrder.invoiceNumber.isEmpty
+                ? placedOrder.id
+                : placedOrder.invoiceNumber,
             estimatedDelivery: _estimateDeliveryDate(placedOrder),
             paymentMethod: selectedPaymentMethod,
           ),
@@ -701,7 +783,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(message.isEmpty ? 'Order could not be placed right now.' : message),
+          content: Text(
+            message.isEmpty ? 'Order could not be placed right now.' : message,
+          ),
         ),
       );
     } finally {
@@ -734,7 +818,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (decision != null) {
       return decision.discountedSubtotal;
     }
-    return (cart.subtotal - cart.discountAmount).clamp(0.0, double.infinity).toDouble();
+    return (cart.subtotal - cart.discountAmount)
+        .clamp(0.0, double.infinity)
+        .toDouble();
   }
 
   double _taxAmount(CartProvider cart) {
@@ -746,7 +832,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   double _preCreditTotal(CartProvider cart) {
-    return _discountedSubtotal(cart) + _taxAmount(cart) + cart.customTailoringCharges;
+    return _discountedSubtotal(cart) +
+        _taxAmount(cart) +
+        cart.customTailoringCharges;
   }
 
   double get _appliedCredits {
@@ -766,7 +854,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (decision != null) {
       return decision.finalPrice;
     }
-    return (_preCreditTotal(cart) - _appliedCredits).clamp(0.0, double.infinity).toDouble();
+    return (_preCreditTotal(cart) - _appliedCredits)
+        .clamp(0.0, double.infinity)
+        .toDouble();
   }
 
   String _deliveryEta(CartProvider cart) {
@@ -780,7 +870,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (cart.appliedCoupon != null) {
       return;
     }
-    _couponController.text = _bestCouponOffer?.code ?? (cart.hasCustomTailoring ? 'ELITE20' : 'ABZORA10');
+    _couponController.text =
+        _bestCouponOffer?.code ??
+        (cart.hasCustomTailoring ? 'ELITE20' : 'ABZORA10');
     await _applyCoupon(cart);
   }
 
@@ -804,7 +896,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
-    final currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+    final currency = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+      decimalDigits: 0,
+    );
     final total = _totalAmount(cart);
 
     return AbzioThemeScope.light(
@@ -821,17 +917,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               Text(
                 'Checkout',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               Text(
                 'Secure Abianzo finish',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: context.abzioSecondaryText,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
-                    ),
+                  color: context.abzioSecondaryText,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
@@ -861,7 +957,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 12),
               _SectionShell(
                 title: 'Order Summary',
-                subtitle: '${cart.items.length} item${cart.items.length == 1 ? '' : 's'} in your bag',
+                subtitle:
+                    '${cart.items.length} item${cart.items.length == 1 ? '' : 's'} in your bag',
                 child: _CompactOrderSummary(
                   items: cart.items,
                   formatter: currency,
@@ -870,14 +967,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 12),
               _SectionShell(
                 title: 'Offers & Coupons',
-                subtitle: cart.appliedCoupon == null ? 'Best offer ready for this order' : 'Savings applied to your bag',
+                subtitle: cart.appliedCoupon == null
+                    ? 'Best offer ready for this order'
+                    : 'Savings applied to your bag',
                 child: Column(
                   children: [
                     _CouponCard(
                       controller: _couponController,
                       appliedCoupon: cart.appliedCoupon,
                       expanded: _couponExpanded,
-                      onToggle: () => setState(() => _couponExpanded = !_couponExpanded),
+                      onToggle: () =>
+                          setState(() => _couponExpanded = !_couponExpanded),
                       onApply: () => _applyCoupon(cart),
                       onRemove: () {
                         _couponController.clear();
@@ -891,13 +991,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       loading: _loadingCouponOffer,
                       title: _bestCouponOffer?.title ?? 'Private offer for you',
                       subtitle: _bestCouponOffer?.subtitle,
-                      code: _bestCouponOffer?.code ?? (cart.hasCustomTailoring ? 'ELITE20' : 'ABZORA10'),
+                      code:
+                          _bestCouponOffer?.code ??
+                          (cart.hasCustomTailoring ? 'ELITE20' : 'ABZORA10'),
                       discountLabel: _bestCouponOffer == null
-                          ? (cart.hasCustomTailoring ? '20% off tailoring' : '10% off this checkout')
+                          ? (cart.hasCustomTailoring
+                                ? '20% off tailoring'
+                                : '10% off this checkout')
                           : _bestCouponOffer!.discountAmount > 0
-                              ? '₹${_bestCouponOffer!.discountAmount.toStringAsFixed(0)} off for this order'
-                              : '${_bestCouponOffer!.discountPercent.toStringAsFixed(0)}% off for this order',
-                      onApply: cart.appliedCoupon != null ? null : () => _applyBestOffer(cart),
+                          ? '₹${_bestCouponOffer!.discountAmount.toStringAsFixed(0)} off for this order'
+                          : '${_bestCouponOffer!.discountPercent.toStringAsFixed(0)}% off for this order',
+                      onApply: cart.appliedCoupon != null
+                          ? null
+                          : () => _applyBestOffer(cart),
                     ),
                     const SizedBox(height: 10),
                     _ReferralCreditCard(
@@ -913,25 +1019,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-                _SectionShell(
-                  title: 'Payment Method',
-                  subtitle: 'A quiet, secure final review before you pay.',
-                  child: _PremiumPaymentSelector(
-                    selectedMethod: _paymentMethod,
-                    codAvailable: _isCodAvailable(cart),
-                    amountLabel: currency.format(total),
-                    onChanged: (value) => _changePaymentMethod(value, cart),
-                  ),
+              _SectionShell(
+                title: 'Payment Method',
+                subtitle: 'A quiet, secure final review before you pay.',
+                child: _PremiumPaymentSelector(
+                  selectedMethod: _paymentMethod,
+                  codAvailable: _isCodAvailable(cart),
+                  amountLabel: currency.format(total),
+                  onChanged: (value) => _changePaymentMethod(value, cart),
                 ),
+              ),
               const SizedBox(height: 12),
               _SectionShell(
                 title: 'Price Breakdown',
                 child: _loadingPricing
                     ? const _LoadingCard()
                     : _PriceBreakdownCard(
-                        originalSubtotal: _pricingDecision?.originalPrice ?? cart.subtotal,
-                        dynamicSubtotal: _pricingDecision?.dynamicPrice ?? cart.subtotal,
-                        discount: _pricingDecision?.couponAmount ?? cart.discountAmount,
+                        originalSubtotal:
+                            _pricingDecision?.originalPrice ?? cart.subtotal,
+                        dynamicSubtotal:
+                            _pricingDecision?.dynamicPrice ?? cart.subtotal,
+                        discount:
+                            _pricingDecision?.couponAmount ??
+                            cart.discountAmount,
                         tax: _taxAmount(cart),
                         customCharge: cart.customTailoringCharges,
                         walletCredit: _appliedCredits,
@@ -968,51 +1078,54 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF7F1DF),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
                             'Secure total',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
                                   color: const Color(0xFF8D6D20),
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.2,
-                            ),
+                                ),
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Secure total',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                fontSize: 11,
-                              ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(fontSize: 11),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           currency.format(total),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                       ],
                     );
 
                     final actionButton = DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFD9C27A), Color(0xFFC6A769)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                        child: ElevatedButton(
-                          onPressed: _processing ? null : () => _placeOrder(cart),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFD9C27A), Color(0xFFC6A769)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ElevatedButton(
+                        onPressed: _processing ? null : () => _placeOrder(cart),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
                           minimumSize: const Size.fromHeight(48),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -1046,7 +1159,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.lock_rounded, size: 18, color: Colors.white),
+                                  const Icon(
+                                    Icons.lock_rounded,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
                                   const SizedBox(width: 8),
                                   Flexible(
                                     child: Text(
@@ -1078,15 +1195,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                     return Row(
                       children: [
-                        Flexible(
-                          flex: 4,
-                          child: totalBlock,
-                        ),
+                        Flexible(flex: 4, child: totalBlock),
                         const SizedBox(width: 16),
-                        Expanded(
-                          flex: 6,
-                          child: actionButton,
-                        ),
+                        Expanded(flex: 6, child: actionButton),
                       ],
                     );
                   },
@@ -1099,10 +1210,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.abzioSecondaryText,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11,
-                      ),
+                    color: context.abzioSecondaryText,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -1157,28 +1268,25 @@ class _SectionShell extends StatelessWidget {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: context.abzioSecondaryText,
-                              fontSize: 12,
-                            ),
+                          color: context.abzioSecondaryText,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
               if (actionLabel != null && onAction != null)
-                TextButton(
-                  onPressed: onAction,
-                  child: Text(actionLabel!),
-                ),
+                TextButton(onPressed: onAction, child: Text(actionLabel!)),
             ],
           ),
           const SizedBox(height: 10),
@@ -1206,7 +1314,11 @@ class _CompactHeroRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.local_shipping_outlined, size: 18, color: AbzioTheme.accentColor),
+          const Icon(
+            Icons.local_shipping_outlined,
+            size: 18,
+            color: AbzioTheme.accentColor,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -1214,10 +1326,10 @@ class _CompactHeroRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AbzioTheme.textPrimary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
+                color: AbzioTheme.textPrimary,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -1230,16 +1342,20 @@ class _CompactHeroRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.lock_outline_rounded, size: 16, color: AbzioTheme.accentColor),
+          const Icon(
+            Icons.lock_outline_rounded,
+            size: 16,
+            color: AbzioTheme.accentColor,
+          ),
           const SizedBox(width: 6),
           Text(
             '100% secure',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                ),
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+            ),
           ),
         ],
       ),
@@ -1248,10 +1364,7 @@ class _CompactHeroRow extends StatelessWidget {
 }
 
 class _CompactAddressCard extends StatelessWidget {
-  const _CompactAddressCard({
-    required this.address,
-    required this.onChange,
-  });
+  const _CompactAddressCard({required this.address, required this.onChange});
 
   final UserAddress? address;
   final VoidCallback onChange;
@@ -1288,9 +1401,9 @@ class _CompactAddressCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AbzioTheme.textPrimary,
-                    ),
+                  fontWeight: FontWeight.w700,
+                  color: AbzioTheme.textPrimary,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -1298,9 +1411,9 @@ class _CompactAddressCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: context.abzioSecondaryText,
-                      height: 1.25,
-                    ),
+                  color: context.abzioSecondaryText,
+                  height: 1.25,
+                ),
               ),
             ],
           ),
@@ -1321,10 +1434,7 @@ class _CompactAddressCard extends StatelessWidget {
 }
 
 class _CompactOrderSummary extends StatelessWidget {
-  const _CompactOrderSummary({
-    required this.items,
-    required this.formatter,
-  });
+  const _CompactOrderSummary({required this.items, required this.formatter});
 
   final List<CartItem> items;
   final NumberFormat formatter;
@@ -1336,10 +1446,7 @@ class _CompactOrderSummary extends StatelessWidget {
           .map(
             (item) => Padding(
               padding: EdgeInsets.only(bottom: item == items.last ? 0 : 10),
-              child: _CompactOrderRow(
-                item: item,
-                formatter: formatter,
-              ),
+              child: _CompactOrderRow(item: item, formatter: formatter),
             ),
           )
           .toList(),
@@ -1348,10 +1455,7 @@ class _CompactOrderSummary extends StatelessWidget {
 }
 
 class _CompactOrderRow extends StatelessWidget {
-  const _CompactOrderRow({
-    required this.item,
-    required this.formatter,
-  });
+  const _CompactOrderRow({required this.item, required this.formatter});
 
   final CartItem item;
   final NumberFormat formatter;
@@ -1384,9 +1488,9 @@ class _CompactOrderRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AbzioTheme.textPrimary,
-                    ),
+                  fontWeight: FontWeight.w700,
+                  color: AbzioTheme.textPrimary,
+                ),
               ),
               const SizedBox(height: 4),
               Wrap(
@@ -1402,9 +1506,9 @@ class _CompactOrderRow extends StatelessWidget {
                 formatter.format(product.effectivePrice * item.quantity),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -1431,9 +1535,9 @@ class _SummaryChip extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -1468,7 +1572,9 @@ class _BestOfferBanner extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AbzioTheme.accentColor.withValues(alpha: 0.18),
+        ),
       ),
       child: Row(
         children: [
@@ -1479,7 +1585,11 @@ class _BestOfferBanner extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.auto_awesome_rounded, size: 18, color: AbzioTheme.accentColor),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              size: 18,
+              color: AbzioTheme.accentColor,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1490,15 +1600,17 @@ class _BestOfferBanner extends StatelessWidget {
                   loading ? 'Finding your best offer' : title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   loading
                       ? 'Checking your activity, cart value, and recent behavior.'
                       : subtitle == null || subtitle!.trim().isEmpty
-                          ? '$code suggested for you. $discountLabel'
-                          : '$subtitle $discountLabel',
+                      ? '$code suggested for you. $discountLabel'
+                      : '$subtitle $discountLabel',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall,
@@ -1514,7 +1626,13 @@ class _BestOfferBanner extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: Text(loading ? 'Loading' : onApply == null ? 'Applied' : 'Apply'),
+            child: Text(
+              loading
+                  ? 'Loading'
+                  : onApply == null
+                  ? 'Applied'
+                  : 'Apply',
+            ),
           ),
         ],
       ),
@@ -1537,7 +1655,9 @@ class _PremiumPaymentSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeMethod = selectedMethod == null || selectedMethod!.isEmpty ? 'UPI' : selectedMethod!;
+    final activeMethod = selectedMethod == null || selectedMethod!.isEmpty
+        ? 'UPI'
+        : selectedMethod!;
     return InkWell(
       onTap: () => _showPaymentSheet(context, activeMethod),
       borderRadius: BorderRadius.circular(24),
@@ -1563,7 +1683,10 @@ class _PremiumPaymentSelector extends StatelessWidget {
                 color: _methodAccent(activeMethod).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(_methodIcon(activeMethod), color: _methodAccent(activeMethod)),
+              child: Icon(
+                _methodIcon(activeMethod),
+                color: _methodAccent(activeMethod),
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1575,19 +1698,28 @@ class _PremiumPaymentSelector extends StatelessWidget {
                       Flexible(
                         child: Text(
                           _methodTitle(activeMethod),
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF6EBCB),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
-                          activeMethod == 'UPI' ? 'Fastest' : activeMethod == 'COD' ? 'Flexible' : 'Secure',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          activeMethod == 'UPI'
+                              ? 'Fastest'
+                              : activeMethod == 'COD'
+                              ? 'Flexible'
+                              : 'Secure',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
                                 color: const Color(0xFF7B5A12),
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1604,9 +1736,9 @@ class _PremiumPaymentSelector extends StatelessWidget {
                   Text(
                     _methodFeedback(activeMethod),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF9C7A22),
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: const Color(0xFF9C7A22),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -1619,7 +1751,10 @@ class _PremiumPaymentSelector extends StatelessWidget {
     );
   }
 
-  Future<void> _showPaymentSheet(BuildContext context, String initialMethod) async {
+  Future<void> _showPaymentSheet(
+    BuildContext context,
+    String initialMethod,
+  ) async {
     final selected = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -1674,7 +1809,9 @@ class _PremiumPaymentSelector extends StatelessWidget {
       case 'CARDS':
         return 'Visa, Mastercard, RuPay with EMI support.';
       case 'COD':
-        return codAvailable ? 'Pay when your order arrives.' : 'Unavailable for custom-fit orders.';
+        return codAvailable
+            ? 'Pay when your order arrives.'
+            : 'Unavailable for custom-fit orders.';
       default:
         return 'Pay instantly via Google Pay, PhonePe, or Paytm.';
     }
@@ -1723,7 +1860,12 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Container(
-          padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.of(context).padding.bottom + 18),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            14,
+            20,
+            MediaQuery.of(context).padding.bottom + 18,
+          ),
           decoration: BoxDecoration(
             color: const Color(0xFFF9F4EA).withValues(alpha: 0.94),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
@@ -1739,113 +1881,126 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD6CCBC),
-                    borderRadius: BorderRadius.circular(999),
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD6CCBC),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'Choose Payment Method',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Fast, secure checkout tailored for you',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AbzioTheme.grey600),
-              ),
-              const SizedBox(height: 18),
-              _recommendedCard(context),
-              const SizedBox(height: 14),
-              _PaymentOptionCard(
-                icon: Icons.qr_code_2_rounded,
-                title: 'UPI',
-                subtitle: 'Pay instantly via Google Pay, PhonePe, Paytm',
-                hint: 'Last used: PhonePe',
-                extra: '98% success rate with UPI',
-                badge: 'Fastest',
-                selected: _selectedMethod == 'UPI',
-                enabled: true,
-                onTap: () => _select('UPI'),
-              ),
-              const SizedBox(height: 10),
-              _PaymentOptionCard(
-                icon: Icons.credit_card_rounded,
-                title: 'Credit / Debit Card',
-                subtitle: 'Visa, Mastercard, RuPay',
-                hint: 'Supports EMI',
-                extra: 'Processing may take 10–15 seconds',
-                selected: _selectedMethod == 'CARDS',
-                enabled: true,
-                onTap: () => _select('CARDS'),
-              ),
-              const SizedBox(height: 10),
-              _PaymentOptionCard(
-                icon: Icons.payments_outlined,
-                title: 'Cash on Delivery',
-                subtitle: widget.codAvailable ? 'Pay when order arrives' : 'Unavailable for custom-fit orders',
-                hint: widget.codAvailable ? 'Extra ₹40 handling fee may apply' : 'Choose UPI or cards instead',
-                extra: 'Confirms the order without online payment',
-                selected: _selectedMethod == 'COD',
-                enabled: widget.codAvailable,
-                onTap: () => _select('COD'),
-              ),
-              const SizedBox(height: 14),
-              _securityCard(context),
-              const SizedBox(height: 12),
-              _liveFeedbackCard(context),
-              if (_selectedMethod == 'COD' && widget.codAvailable) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7EA),
-                    borderRadius: BorderRadius.circular(18),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Choose Payment Method',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                  child: Text(
-                    'Are you sure? UPI is faster and safer for most orders.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  const SizedBox(height: 4),
+                  Text(
+                    'Fast, secure checkout tailored for you',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: AbzioTheme.grey600),
+                  ),
+                  const SizedBox(height: 18),
+                  _recommendedCard(context),
+                  const SizedBox(height: 14),
+                  _PaymentOptionCard(
+                    icon: Icons.qr_code_2_rounded,
+                    title: 'UPI',
+                    subtitle: 'Pay instantly via Google Pay, PhonePe, Paytm',
+                    hint: 'Last used: PhonePe',
+                    extra: '98% success rate with UPI',
+                    badge: 'Fastest',
+                    selected: _selectedMethod == 'UPI',
+                    enabled: true,
+                    onTap: () => _select('UPI'),
+                  ),
+                  const SizedBox(height: 10),
+                  _PaymentOptionCard(
+                    icon: Icons.credit_card_rounded,
+                    title: 'Credit / Debit Card',
+                    subtitle: 'Visa, Mastercard, RuPay',
+                    hint: 'Supports EMI',
+                    extra: 'Processing may take 10–15 seconds',
+                    selected: _selectedMethod == 'CARDS',
+                    enabled: true,
+                    onTap: () => _select('CARDS'),
+                  ),
+                  const SizedBox(height: 10),
+                  _PaymentOptionCard(
+                    icon: Icons.payments_outlined,
+                    title: 'Cash on Delivery',
+                    subtitle: widget.codAvailable
+                        ? 'Pay when order arrives'
+                        : 'Unavailable for custom-fit orders',
+                    hint: widget.codAvailable
+                        ? 'Extra ₹40 handling fee may apply'
+                        : 'Choose UPI or cards instead',
+                    extra: 'Confirms the order without online payment',
+                    selected: _selectedMethod == 'COD',
+                    enabled: widget.codAvailable,
+                    onTap: () => _select('COD'),
+                  ),
+                  const SizedBox(height: 14),
+                  _securityCard(context),
+                  const SizedBox(height: 12),
+                  _liveFeedbackCard(context),
+                  if (_selectedMethod == 'COD' && widget.codAvailable) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF7EA),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Text(
+                        'Are you sure? UPI is faster and safer for most orders.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: const Color(0xFF8B6620),
                           fontWeight: FontWeight.w700,
                         ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFE0C36C), Color(0xFFC89D34)],
-                    ),
-                    borderRadius: BorderRadius.circular(999),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFC89D34).withValues(alpha: 0.22),
-                        blurRadius: 18,
-                        offset: const Offset(0, 10),
                       ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(_selectedMethod),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                      padding: const EdgeInsets.symmetric(vertical: 17),
                     ),
-                    child: Text(_ctaLabelForSheet()),
+                  ],
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFE0C36C), Color(0xFFC89D34)],
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFFC89D34,
+                            ).withValues(alpha: 0.22),
+                            blurRadius: 18,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            Navigator.of(context).pop(_selectedMethod),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 17),
+                        ),
+                        child: Text(_ctaLabelForSheet()),
+                      ),
+                    ),
                   ),
-                ),
-              ),
                 ],
               ),
             ),
@@ -1886,13 +2041,16 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
               Text(
                 'Recommended for you ⚡',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAE7AA).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(999),
@@ -1900,9 +2058,9 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
                 child: Text(
                   '1-tap payment',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: const Color(0xFFF4DEAC),
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: const Color(0xFFF4DEAC),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],
@@ -1911,16 +2069,16 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
           Text(
             'UPI',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             'Faster checkout + ₹50 cashback available',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.78),
-                ),
+              color: Colors.white.withValues(alpha: 0.78),
+            ),
           ),
           const SizedBox(height: 14),
           Align(
@@ -1930,7 +2088,10 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
               style: TextButton.styleFrom(
                 backgroundColor: const Color(0xFFF4DEAC),
                 foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
               ),
               child: const Text('Pay instantly'),
             ),
@@ -1952,7 +2113,9 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
         children: [
           Text(
             'Your payment is protected 🔒',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           _trustPoint(context, 'Bank-level encryption'),
@@ -1968,12 +2131,18 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          const Icon(Icons.verified_user_outlined, size: 16, color: Color(0xFF9C7A22)),
+          const Icon(
+            Icons.verified_user_outlined,
+            size: 16,
+            color: Color(0xFF9C7A22),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AbzioTheme.grey600),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AbzioTheme.grey600),
             ),
           ),
         ],
@@ -1994,20 +2163,26 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isUpi ? '98% success rate with UPI' : isCod ? 'Manual confirmation flow' : 'Card processing insight',
+            isUpi
+                ? '98% success rate with UPI'
+                : isCod
+                ? 'Manual confirmation flow'
+                : 'Card processing insight',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF9C7A22),
-                  fontWeight: FontWeight.w700,
-                ),
+              color: const Color(0xFF9C7A22),
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             isUpi
                 ? 'Estimated payment time: < 5 seconds • Save ₹120 using this method'
                 : isCod
-                    ? 'Processing may take longer at delivery. UPI usually confirms faster.'
-                    : 'Processing may take 10–15 seconds depending on bank verification.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AbzioTheme.grey600),
+                ? 'Processing may take longer at delivery. UPI usually confirms faster.'
+                : 'Processing may take 10–15 seconds depending on bank verification.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AbzioTheme.grey600),
           ),
         ],
       ),
@@ -2063,7 +2238,9 @@ class _PaymentOptionCard extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.84),
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
-              color: selected ? AbzioTheme.accentColor : const Color(0xFFEAE0CF),
+              color: selected
+                  ? AbzioTheme.accentColor
+                  : const Color(0xFFEAE0CF),
               width: selected ? 1.5 : 1,
             ),
             boxShadow: selected
@@ -2084,9 +2261,16 @@ class _PaymentOptionCard extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  color: selected ? const Color(0xFFFAF0D5) : const Color(0xFFF7F1E6),
+                  color: selected
+                      ? const Color(0xFFFAF0D5)
+                      : const Color(0xFFF7F1E6),
                 ),
-                child: Icon(icon, color: selected ? AbzioTheme.accentColor : const Color(0xFF8F7A56)),
+                child: Icon(
+                  icon,
+                  color: selected
+                      ? AbzioTheme.accentColor
+                      : const Color(0xFF8F7A56),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -2098,7 +2282,8 @@ class _PaymentOptionCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             title,
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
                                   fontWeight: FontWeight.w700,
                                   color: AbzioTheme.textPrimary,
                                 ),
@@ -2106,43 +2291,56 @@ class _PaymentOptionCard extends StatelessWidget {
                         ),
                         if (badge != null)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF6EBCB),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
                               badge!,
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: const Color(0xFF7B5A12),
-                                  ),
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(color: const Color(0xFF7B5A12)),
                             ),
                           ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       hint,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: title == 'Cash on Delivery' ? const Color(0xFF8B6620) : const Color(0xFF8C7446),
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: title == 'Cash on Delivery'
+                            ? const Color(0xFF8B6620)
+                            : const Color(0xFF8C7446),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       extra,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AbzioTheme.grey600),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AbzioTheme.grey600,
+                      ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
               Icon(
-                selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                selected
+                    ? Icons.radio_button_checked_rounded
+                    : Icons.radio_button_off_rounded,
                 size: 20,
-                color: selected ? AbzioTheme.accentColor : context.abzioSecondaryText,
+                color: selected
+                    ? AbzioTheme.accentColor
+                    : context.abzioSecondaryText,
               ),
             ],
           ),
@@ -2186,18 +2384,24 @@ class _CouponCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             child: Row(
               children: [
-                const Icon(Icons.local_offer_outlined, size: 18, color: AbzioTheme.accentColor),
+                const Icon(
+                  Icons.local_offer_outlined,
+                  size: 18,
+                  color: AbzioTheme.accentColor,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Apply Coupon',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 Icon(
-                  expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_right_rounded,
+                  expanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_right_rounded,
                   color: context.abzioSecondaryText,
                 ),
               ],
@@ -2205,7 +2409,9 @@ class _CouponCard extends StatelessWidget {
           ),
           AnimatedCrossFade(
             duration: const Duration(milliseconds: 180),
-            crossFadeState: expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            crossFadeState: expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
             firstChild: const SizedBox.shrink(),
             secondChild: Padding(
               padding: const EdgeInsets.only(top: 10),
@@ -2219,7 +2425,10 @@ class _CouponCard extends StatelessWidget {
                         textCapitalization: TextCapitalization.characters,
                         decoration: const InputDecoration(
                           hintText: 'Enter coupon code',
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
                         ),
                       ),
                     ),
@@ -2246,7 +2455,11 @@ class _CouponCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.local_offer_outlined, size: 16, color: AbzioTheme.accentColor),
+                  const Icon(
+                    Icons.local_offer_outlined,
+                    size: 16,
+                    color: AbzioTheme.accentColor,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -2254,9 +2467,9 @@ class _CouponCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AbzioTheme.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        color: AbzioTheme.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -2320,7 +2533,9 @@ class _ReferralCreditCard extends StatelessWidget {
       duration: const Duration(milliseconds: 260),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: highlight ? const Color(0xFFFFFBF0) : Theme.of(context).cardColor,
+        color: highlight
+            ? const Color(0xFFFFFBF0)
+            : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: highlight
@@ -2337,7 +2552,11 @@ class _ReferralCreditCard extends StatelessWidget {
               color: AbzioTheme.accentColor.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.account_balance_wallet_outlined, size: 18, color: AbzioTheme.accentColor),
+            child: const Icon(
+              Icons.account_balance_wallet_outlined,
+              size: 18,
+              color: AbzioTheme.accentColor,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -2349,21 +2568,23 @@ class _ReferralCreditCard extends StatelessWidget {
                       ? '₹${current.appliedCredits.toStringAsFixed(0)} credits applied automatically'
                       : current.message,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Available credits: ₹${current.availableCredits.toStringAsFixed(0)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.abzioSecondaryText,
-                        fontSize: 11,
-                      ),
+                    color: context.abzioSecondaryText,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
           ),
-          if (current.eligible && current.appliedCredits > 0 && !current.autoApplied)
+          if (current.eligible &&
+              current.appliedCredits > 0 &&
+              !current.autoApplied)
             Switch.adaptive(
               value: enabled,
               onChanged: onChanged,
@@ -2408,24 +2629,35 @@ class _PriceBreakdownCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _PriceLine(label: 'Base Price', value: formatter.format(originalSubtotal)),
+          _PriceLine(
+            label: 'Base Price',
+            value: formatter.format(originalSubtotal),
+          ),
           if ((dynamicSubtotal - originalSubtotal).abs() > 0.01) ...[
             const SizedBox(height: 6),
             _PriceLine(
               label: 'Dynamic Price',
               value: formatter.format(dynamicSubtotal),
-              valueColor: dynamicSubtotal < originalSubtotal ? const Color(0xFF218B5B) : null,
+              valueColor: dynamicSubtotal < originalSubtotal
+                  ? const Color(0xFF218B5B)
+                  : null,
             ),
           ],
           if ((dynamicSubtotal - originalSubtotal).abs() <= 0.01) ...[
             const SizedBox(height: 6),
-            _PriceLine(label: 'Subtotal', value: formatter.format(dynamicSubtotal)),
+            _PriceLine(
+              label: 'Subtotal',
+              value: formatter.format(dynamicSubtotal),
+            ),
           ],
           const SizedBox(height: 6),
           const _PriceLine(label: 'Delivery fee', value: 'Free'),
           if (customCharge > 0) ...[
             const SizedBox(height: 6),
-            _PriceLine(label: 'Custom fit service', value: formatter.format(customCharge)),
+            _PriceLine(
+              label: 'Custom fit service',
+              value: formatter.format(customCharge),
+            ),
           ],
           if (discount > 0) ...[
             const SizedBox(height: 6),
@@ -2476,8 +2708,12 @@ class _PriceLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = isTotal
-        ? Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)
-        : Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
+        ? Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)
+        : Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -2561,13 +2797,18 @@ class _AddressOptionTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(address.name, style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    address.name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     [
-                      if (address.locality.trim().isNotEmpty) address.locality.trim(),
+                      if (address.locality.trim().isNotEmpty)
+                        address.locality.trim(),
                       if (address.city.trim().isNotEmpty) address.city.trim(),
-                      if (address.pincode.trim().isNotEmpty) address.pincode.trim(),
+                      if (address.pincode.trim().isNotEmpty)
+                        address.pincode.trim(),
                     ].join(', '),
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
@@ -2576,7 +2817,9 @@ class _AddressOptionTile extends StatelessWidget {
             ),
             Icon(
               selected ? Icons.check_circle_rounded : Icons.circle_outlined,
-              color: selected ? AbzioTheme.accentColor : context.abzioSecondaryText,
+              color: selected
+                  ? AbzioTheme.accentColor
+                  : context.abzioSecondaryText,
             ),
           ],
         ),
@@ -2584,5 +2827,3 @@ class _AddressOptionTile extends StatelessWidget {
     );
   }
 }
-
-

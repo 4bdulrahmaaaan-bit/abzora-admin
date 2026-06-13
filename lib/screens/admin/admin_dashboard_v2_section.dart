@@ -35,10 +35,12 @@ class AdminDashboardV2Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final liveOrdersCount = orders.where((o) => o.status != 'delivered' && o.status != 'cancelled').length;
+    final liveOrdersCount = orders
+        .where((o) => o.status != 'delivered' && o.status != 'cancelled')
+        .length;
     final activeTrialsCount = analytics?.trialsRequiringAttention ?? 0;
     final activeVendorsCount = stores.where((s) => s.isActive).length;
-    final gmvToday = analytics?.totalRevenue ?? 0; 
+    final gmvToday = analytics?.totalRevenue ?? 0;
     final pendingRefundsCount = analytics?.pendingRefunds ?? 0;
     final fraudAlertsCount = analytics?.fraudAlerts ?? 0;
 
@@ -150,7 +152,9 @@ class AdminDashboardV2Section extends StatelessWidget {
                         ListView.separated(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: recentOrders.length > 5 ? 5 : recentOrders.length,
+                          itemCount: recentOrders.length > 5
+                              ? 5
+                              : recentOrders.length,
                           separatorBuilder: (context, index) => const Divider(),
                           itemBuilder: (context, index) {
                             final order = recentOrders[index];
@@ -247,9 +251,7 @@ class _QuickActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: onTap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
@@ -310,7 +312,10 @@ class _ExecutiveOperationsWidget extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.assignment_late_outlined, color: AbzioTheme.primaryColor),
+                    Icon(
+                      Icons.assignment_late_outlined,
+                      color: AbzioTheme.primaryColor,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Executive Command Center',
@@ -323,32 +328,51 @@ class _ExecutiveOperationsWidget extends StatelessWidget {
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: scoreColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: scoreColor.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: scoreColor.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Row(
                     children: [
                       Text(
                         'Readiness: ',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
+                        ),
                       ),
                       Text(
                         '$score',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: scoreColor),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: scoreColor,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: scoreColor,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           _getScoreLabel(score),
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -469,7 +493,10 @@ class _ExecutiveOperationsWidget extends StatelessWidget {
               children: [
                 Icon(icon, color: AbzioTheme.textSecondary, size: 20),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: severityColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),

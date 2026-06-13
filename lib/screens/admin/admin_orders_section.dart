@@ -15,7 +15,7 @@ class AdminOrdersSection extends StatefulWidget {
 
 class _AdminOrdersSectionState extends State<AdminOrdersSection> {
   final AdminOrdersApi _api = AdminOrdersApi();
-  
+
   bool _loading = true;
   String? _error;
 
@@ -28,7 +28,7 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
   String _searchQuery = '';
   String _statusFilter = '';
   String _healthFilter = '';
-  
+
   bool _showDrawer = false;
   Map<String, dynamic>? _activeOrderDetails;
   bool _loadingDetails = false;
@@ -54,10 +54,7 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
     });
     Object? caughtError;
     try {
-      await Future.wait([
-        _fetchDashboard(),
-        _fetchQueue(),
-      ]);
+      await Future.wait([_fetchDashboard(), _fetchQueue()]);
     } catch (e) {
       caughtError = e;
     } finally {
@@ -74,7 +71,9 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
     try {
       final res = await _api.getDashboard();
       if (res['success'] == true && mounted) {
-        setState(() => _dashboardMetrics = Map<String, dynamic>.from(res['data']));
+        setState(
+          () => _dashboardMetrics = Map<String, dynamic>.from(res['data']),
+        );
       }
     } catch (e) {
       debugPrint('Error fetching order dashboard: $e');
@@ -169,12 +168,7 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
           ],
         ),
         if (_showDrawer)
-          Positioned(
-            top: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildDetailsDrawer(),
-          ),
+          Positioned(top: 0, right: 0, bottom: 0, child: _buildDetailsDrawer()),
       ],
     );
   }
@@ -271,10 +265,25 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
                     ),
                     const SizedBox(width: 12),
                     DropdownButton<String>(
-                      value: _statusFilter.isEmpty ? 'All Status' : _statusFilter,
-                      items: ['All Status', 'pending', 'created', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                          .toList(),
+                      value: _statusFilter.isEmpty
+                          ? 'All Status'
+                          : _statusFilter,
+                      items:
+                          [
+                                'All Status',
+                                'pending',
+                                'created',
+                                'confirmed',
+                                'processing',
+                                'shipped',
+                                'delivered',
+                                'cancelled',
+                              ]
+                              .map(
+                                (s) =>
+                                    DropdownMenuItem(value: s, child: Text(s)),
+                              )
+                              .toList(),
                       onChanged: (val) {
                         setState(() {
                           _statusFilter = val == 'All Status' ? '' : val!;
@@ -285,9 +294,13 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
                     ),
                     const SizedBox(width: 12),
                     DropdownButton<String>(
-                      value: _healthFilter.isEmpty ? 'All Health' : _healthFilter,
+                      value: _healthFilter.isEmpty
+                          ? 'All Health'
+                          : _healthFilter,
                       items: ['All Health', 'Healthy', 'Warning', 'Critical']
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                          .map(
+                            (s) => DropdownMenuItem(value: s, child: Text(s)),
+                          )
                           .toList(),
                       onChanged: (val) {
                         setState(() {
@@ -329,26 +342,45 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
                   ],
                   rows: _queueData.map((order) {
                     final healthClass = order['healthClassification'] ?? 'N/A';
-                    final healthColor = healthClass == 'Healthy' ? Colors.green : healthClass == 'Warning' ? Colors.orange : Colors.red;
+                    final healthColor = healthClass == 'Healthy'
+                        ? Colors.green
+                        : healthClass == 'Warning'
+                        ? Colors.orange
+                        : Colors.red;
                     return DataRow(
                       cells: [
                         DataCell(Text(order['_id'].toString().substring(0, 8))),
-                        DataCell(Row(
-                          children: [
-                            Icon(Icons.circle, color: healthColor, size: 12),
-                            const SizedBox(width: 6),
-                            Text('${order['healthScore'] ?? 0}'),
-                          ],
-                        )),
+                        DataCell(
+                          Row(
+                            children: [
+                              Icon(Icons.circle, color: healthColor, size: 12),
+                              const SizedBox(width: 6),
+                              Text('${order['healthScore'] ?? 0}'),
+                            ],
+                          ),
+                        ),
                         DataCell(Text(order['storeId']?['name'] ?? 'N/A')),
-                        DataCell(Chip(label: Text(order['orderStatus']?.toString().toUpperCase() ?? ''))),
+                        DataCell(
+                          Chip(
+                            label: Text(
+                              order['orderStatus']?.toString().toUpperCase() ??
+                                  '',
+                            ),
+                          ),
+                        ),
                         DataCell(Text('₹${order['totalAmount']}')),
-                        DataCell(Text((order['createdAt']?.toString() ?? '').split('T').first)),
+                        DataCell(
+                          Text(
+                            (order['createdAt']?.toString() ?? '')
+                                .split('T')
+                                .first,
+                          ),
+                        ),
                         DataCell(
                           IconButton(
                             icon: const Icon(Icons.chevron_right),
                             onPressed: () => _fetchOrderDetails(order['_id']),
-                          )
+                          ),
                         ),
                       ],
                     );
@@ -364,18 +396,24 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.chevron_left),
-                      onPressed: _currentPage > 1 ? () {
-                        setState(() => _currentPage--);
-                        _fetchQueue();
-                      } : null,
+                      onPressed: _currentPage > 1
+                          ? () {
+                              setState(() => _currentPage--);
+                              _fetchQueue();
+                            }
+                          : null,
                     ),
-                    Text('Page $_currentPage of ${_queueMeta['totalPages'] ?? 1}'),
+                    Text(
+                      'Page $_currentPage of ${_queueMeta['totalPages'] ?? 1}',
+                    ),
                     IconButton(
                       icon: const Icon(Icons.chevron_right),
-                      onPressed: _currentPage < (_queueMeta['totalPages'] ?? 1) ? () {
-                        setState(() => _currentPage++);
-                        _fetchQueue();
-                      } : null,
+                      onPressed: _currentPage < (_queueMeta['totalPages'] ?? 1)
+                          ? () {
+                              setState(() => _currentPage++);
+                              _fetchQueue();
+                            }
+                          : null,
                     ),
                   ],
                 ),
@@ -400,7 +438,10 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Order Details', style: context.abzioText.titleLarge),
-                IconButton(icon: const Icon(Icons.close), onPressed: _closeDrawer),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _closeDrawer,
+                ),
               ],
             ),
           ),
@@ -408,35 +449,38 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
             child: _loadingDetails
                 ? const Center(child: CircularProgressIndicator())
                 : _activeOrderDetails == null
-                    ? const Center(child: Text('Failed to load details.'))
-                    : DefaultTabController(
-                        length: 5,
-                        child: Column(
-                          children: [
-                            const TabBar(
-                              isScrollable: true,
-                              tabs: [
-                                Tab(text: 'Timeline & SLA'),
-                                Tab(text: 'Customer'),
-                                Tab(text: 'Vendor'),
-                                Tab(text: 'Rider'),
-                                Tab(text: 'Financials'),
-                              ],
-                            ),
-                            Expanded(
-                              child: TabBarView(
-                                children: [
-                                  _buildTimelineTab(),
-                                  _buildProfileTab('customerProfile', 'Customer Details'),
-                                  _buildProfileTab('storeId', 'Store Details'),
-                                  _buildProfileTab('riderProfile', 'Rider Details'),
-                                  _buildFinancialsTab(),
-                                ],
-                              ),
-                            ),
+                ? const Center(child: Text('Failed to load details.'))
+                : DefaultTabController(
+                    length: 5,
+                    child: Column(
+                      children: [
+                        const TabBar(
+                          isScrollable: true,
+                          tabs: [
+                            Tab(text: 'Timeline & SLA'),
+                            Tab(text: 'Customer'),
+                            Tab(text: 'Vendor'),
+                            Tab(text: 'Rider'),
+                            Tab(text: 'Financials'),
                           ],
                         ),
-                      ),
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              _buildTimelineTab(),
+                              _buildProfileTab(
+                                'customerProfile',
+                                'Customer Details',
+                              ),
+                              _buildProfileTab('storeId', 'Store Details'),
+                              _buildProfileTab('riderProfile', 'Rider Details'),
+                              _buildFinancialsTab(),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
@@ -448,11 +492,23 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildSlaCard('Vendor SLA', order['vendorSlaStatus'], order['vendorSlaMinutes']),
+        _buildSlaCard(
+          'Vendor SLA',
+          order['vendorSlaStatus'],
+          order['vendorSlaMinutes'],
+        ),
         const SizedBox(height: 12),
-        _buildSlaCard('Rider SLA', order['riderSlaStatus'], order['riderSlaMinutes']),
+        _buildSlaCard(
+          'Rider SLA',
+          order['riderSlaStatus'],
+          order['riderSlaMinutes'],
+        ),
         const SizedBox(height: 12),
-        _buildSlaCard('Delivery SLA', order['deliverySlaStatus'], order['deliverySlaMinutes']),
+        _buildSlaCard(
+          'Delivery SLA',
+          order['deliverySlaStatus'],
+          order['deliverySlaMinutes'],
+        ),
         const Divider(height: 32),
         Text('Action Workflow', style: context.abzioText.titleMedium),
         const SizedBox(height: 12),
@@ -462,12 +518,18 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
               onPressed: () {},
               icon: const Icon(Icons.warning_amber),
               label: const Text('Escalate Order'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red.withValues(alpha: 0.1), foregroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.withValues(alpha: 0.1),
+                foregroundColor: Colors.red,
+              ),
             ),
             const SizedBox(width: 12),
-            OutlinedButton(onPressed: () {}, child: const Text('Contact Customer')),
+            OutlinedButton(
+              onPressed: () {},
+              child: const Text('Contact Customer'),
+            ),
           ],
-        )
+        ),
       ],
     );
   }
@@ -482,7 +544,11 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
       child: ListTile(
         leading: Icon(Icons.access_time, color: c),
         title: Text(title),
-        subtitle: Text(status == 'N/A' ? 'Not started' : '${(minutes ?? 0).toStringAsFixed(1)} minutes taken'),
+        subtitle: Text(
+          status == 'N/A'
+              ? 'Not started'
+              : '${(minutes ?? 0).toStringAsFixed(1)} minutes taken',
+        ),
         trailing: Chip(
           label: Text(status ?? 'N/A'),
           backgroundColor: c.withValues(alpha: 0.1),
@@ -502,8 +568,10 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
         Text(title, style: context.abzioText.titleMedium),
         const SizedBox(height: 16),
         _buildDetailRow('Name', profile['name'] ?? profile['ownerId'] ?? 'N/A'),
-        if (profile['phone'] != null) _buildDetailRow('Phone', profile['phone']),
-        if (profile['email'] != null) _buildDetailRow('Email', profile['email']),
+        if (profile['phone'] != null)
+          _buildDetailRow('Phone', profile['phone']),
+        if (profile['email'] != null)
+          _buildDetailRow('Email', profile['email']),
       ],
     );
   }
@@ -524,7 +592,12 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
         const Divider(height: 32),
         Text('Trial History', style: context.abzioText.titleMedium),
         _buildDetailRow('Is Trial', order['isTrialOrder']?.toString()),
-        _buildDetailRow('Outcome', order['trialOutcome']?.isEmpty ?? true ? 'Pending' : order['trialOutcome']),
+        _buildDetailRow(
+          'Outcome',
+          order['trialOutcome']?.isEmpty ?? true
+              ? 'Pending'
+              : order['trialOutcome'],
+        ),
       ],
     );
   }
@@ -535,7 +608,13 @@ class _AdminOrdersSectionState extends State<AdminOrdersSection> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
           Text(value?.toString() ?? 'N/A'),
         ],
       ),

@@ -30,22 +30,28 @@ class RoleSelectionScreen extends StatelessWidget {
           const SizedBox(height: 24),
           _PartnerOptionCard(
             title: 'Become Vendor',
-            subtitle: 'Launch your store, manage catalog, and grow revenue from nearby shoppers.',
+            subtitle:
+                'Launch your store, manage catalog, and grow revenue from nearby shoppers.',
             icon: Icons.storefront_outlined,
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const VendorRegistrationScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const VendorRegistrationScreen(),
+                ),
               );
             },
           ),
           const SizedBox(height: 16),
           _PartnerOptionCard(
             title: 'Become Rider',
-            subtitle: 'Accept deliveries, complete pickups, and manage live drop-offs efficiently.',
+            subtitle:
+                'Accept deliveries, complete pickups, and manage live drop-offs efficiently.',
             icon: Icons.delivery_dining_outlined,
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const RiderOnboardingScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const RiderOnboardingScreen(),
+                ),
               );
             },
           ),
@@ -112,12 +118,18 @@ class _PartnerOptionCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       subtitle,
-                      style: const TextStyle(color: Color(0xFF666666), height: 1.4),
+                      style: const TextStyle(
+                        color: Color(0xFF666666),
+                        height: 1.4,
+                      ),
                     ),
                   ],
                 ),
@@ -131,4 +143,3 @@ class _PartnerOptionCard extends StatelessWidget {
     );
   }
 }
-

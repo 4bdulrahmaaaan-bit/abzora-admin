@@ -676,7 +676,8 @@ class BackendApiClient {
       422 => 'Some details need attention. Please review and try again.',
       429 => 'Too many requests. Please wait a moment and try again.',
       >= 500 => 'Server error. Please try again in a moment.',
-      _ => 'Unexpected response from the backend. Please try again in a moment.',
+      _ =>
+        'Unexpected response from the backend. Please try again in a moment.',
     };
   }
 

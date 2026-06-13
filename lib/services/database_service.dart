@@ -1713,8 +1713,6 @@ class DatabaseService {
     }
   }
 
-
-
   void _requireSuperAdmin(AppUser? actor) {
     if (!isSuperAdmin(actor)) {
       throw StateError('Super admin privileges required.');
@@ -1726,8 +1724,6 @@ class DatabaseService {
       throw StateError('Cross-store access denied.');
     }
   }
-
-
 
   void _requireRiderOrAdmin(AppUser? actor) {
     if (actor == null) {
@@ -2859,7 +2855,10 @@ class DatabaseService {
       }
       return null;
     }
-    final store = await _fetchDocument('stores/$storeId', (map, id) => Store.fromMap(map, id));
+    final store = await _fetchDocument(
+      'stores/$storeId',
+      (map, id) => Store.fromMap(map, id),
+    );
     if (store != null) {
       return _decorateStore(store);
     }
@@ -7031,8 +7030,7 @@ class DatabaseService {
       loader: () async {
         final orders = await _backendCommerce.getAssignedDeliveries();
         orders.sort(
-          (a, b) =>
-              _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+          (a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
         );
         return orders;
       },
@@ -7046,8 +7044,7 @@ class DatabaseService {
       loader: () async {
         final orders = await _backendCommerce.getAvailableDeliveries();
         orders.sort(
-          (a, b) =>
-              _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
+          (a, b) => _orderTimestampValue(b).compareTo(_orderTimestampValue(a)),
         );
         return orders;
       },
@@ -7063,8 +7060,6 @@ class DatabaseService {
     );
     return orders;
   }
-
-
 
   Future<void> acceptDeliveryRequest(String orderId, AppUser actor) async {
     final tasks = await _backendCommerce.getRiderLogisticsTasks(
@@ -7090,9 +7085,7 @@ class DatabaseService {
     String deliveryStatus, {
     required AppUser actor,
   }) async {
-    final taskStatus = switch (_normalizeRiderDeliveryStatus(
-      deliveryStatus,
-    )) {
+    final taskStatus = switch (_normalizeRiderDeliveryStatus(deliveryStatus)) {
       'Assigned' => 'accepted',
       'Picked up' => 'picked_up',
       'Out for delivery' => 'out_for_delivery',
@@ -8651,14 +8644,12 @@ class DatabaseService {
                   existingStore?.customVendorProfile.metrics ??
                   const CustomVendorMetrics(),
             )
-          : (existingStore?.customVendorProfile ??
-                const CustomVendorProfile()),
+          : (existingStore?.customVendorProfile ?? const CustomVendorProfile()),
       vendorScore: existingStore?.vendorScore ?? 0,
       vendorRank: existingStore?.vendorRank ?? 0,
       vendorVisibility: existingStore?.vendorVisibility ?? 'normal',
       performanceMetrics:
-          existingStore?.performanceMetrics ??
-          const VendorPerformanceMetrics(),
+          existingStore?.performanceMetrics ?? const VendorPerformanceMetrics(),
     );
 
     final updatedUser = user.copyWith(
@@ -11512,6 +11503,7 @@ class DatabaseService {
       actor: user,
     );
   }
+
   Future<void> runVendorMigration({required AppUser actor}) async {
     _requireSuperAdmin(actor);
 
@@ -11524,9 +11516,9 @@ class DatabaseService {
       if (store.ownerId.isEmpty) continue;
 
       final owner = users.cast<AppUser?>().firstWhere(
-            (u) => u?.id == store.ownerId,
-            orElse: () => null,
-          );
+        (u) => u?.id == store.ownerId,
+        orElse: () => null,
+      );
 
       if (owner == null) continue;
 
@@ -11538,11 +11530,12 @@ class DatabaseService {
         needsUpdate = true;
       }
 
-      if (store.approvalStatus == 'approved' && !owner.roles.containsKey('vendor')) {
+      if (store.approvalStatus == 'approved' &&
+          !owner.roles.containsKey('vendor')) {
         updates['users/${owner.id}/roles/vendor'] = true;
         needsUpdate = true;
       }
-      
+
       if (store.approvalStatus == 'approved' && owner.role != 'vendor') {
         updates['users/${owner.id}/role'] = 'vendor';
         needsUpdate = true;

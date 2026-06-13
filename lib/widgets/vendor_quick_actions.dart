@@ -20,10 +20,7 @@ class VendorQuickActionItem {
 }
 
 class VendorQuickActions extends StatelessWidget {
-  const VendorQuickActions({
-    super.key,
-    required this.actions,
-  });
+  const VendorQuickActions({super.key, required this.actions});
 
   final List<VendorQuickActionItem> actions;
 
@@ -68,7 +65,9 @@ class VendorQuickActions extends StatelessWidget {
                     width: 46,
                     height: 46,
                     decoration: BoxDecoration(
-                      color: action.tint.withValues(alpha: enabled ? 0.14 : 0.08),
+                      color: action.tint.withValues(
+                        alpha: enabled ? 0.14 : 0.08,
+                      ),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(

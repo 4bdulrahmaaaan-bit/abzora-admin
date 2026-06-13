@@ -43,26 +43,27 @@ class TrialHomeProvider with ChangeNotifier {
     int trialDurationMinutes = 30,
   }) async {
     final actionKey = 'request:${items.map((item) => item.id).join(',')}';
-    return _runGuarded(
-      () async {
-        final session = await _api.requestTrial(
-          items: items
-              .map((product) => TrialSessionItem.fromProduct(
-                    product,
-                    recommendedSize: product.sizes.isNotEmpty ? product.sizes.first : 'M',
-                    fitConfidence: 99,
-                  ).toMap())
-              .toList(),
-          addressLabel: addressLabel,
-          deliverySlot: deliverySlot,
-          deliveryWindowLabel: deliveryWindowLabel,
-          trialDurationMinutes: trialDurationMinutes,
-        );
-        _currentTrial = session;
-        return session;
-      },
-      actionKey: actionKey,
-    );
+    return _runGuarded(() async {
+      final session = await _api.requestTrial(
+        items: items
+            .map(
+              (product) => TrialSessionItem.fromProduct(
+                product,
+                recommendedSize: product.sizes.isNotEmpty
+                    ? product.sizes.first
+                    : 'M',
+                fitConfidence: 99,
+              ).toMap(),
+            )
+            .toList(),
+        addressLabel: addressLabel,
+        deliverySlot: deliverySlot,
+        deliveryWindowLabel: deliveryWindowLabel,
+        trialDurationMinutes: trialDurationMinutes,
+      );
+      _currentTrial = session;
+      return session;
+    }, actionKey: actionKey);
   }
 
   Future<TrialSession> bookTrial({
@@ -75,28 +76,29 @@ class TrialHomeProvider with ChangeNotifier {
     String? bookingOrderId,
   }) async {
     final actionKey = 'book:${items.map((item) => item.id).join(',')}';
-    return _runGuarded(
-      () async {
-        final session = await _api.bookTrial(
-          items: items
-              .map((product) => TrialSessionItem.fromProduct(
-                    product,
-                    recommendedSize: product.sizes.isNotEmpty ? product.sizes.first : 'M',
-                    fitConfidence: 99,
-                  ).toMap())
-              .toList(),
-          addressLabel: addressLabel,
-          deliverySlot: deliverySlot,
-          deliveryWindowLabel: deliveryWindowLabel,
-          trialDurationMinutes: trialDurationMinutes,
-          bookingPaymentId: bookingPaymentId,
-          bookingOrderId: bookingOrderId,
-        );
-        _currentTrial = session;
-        return session;
-      },
-      actionKey: actionKey,
-    );
+    return _runGuarded(() async {
+      final session = await _api.bookTrial(
+        items: items
+            .map(
+              (product) => TrialSessionItem.fromProduct(
+                product,
+                recommendedSize: product.sizes.isNotEmpty
+                    ? product.sizes.first
+                    : 'M',
+                fitConfidence: 99,
+              ).toMap(),
+            )
+            .toList(),
+        addressLabel: addressLabel,
+        deliverySlot: deliverySlot,
+        deliveryWindowLabel: deliveryWindowLabel,
+        trialDurationMinutes: trialDurationMinutes,
+        bookingPaymentId: bookingPaymentId,
+        bookingOrderId: bookingOrderId,
+      );
+      _currentTrial = session;
+      return session;
+    }, actionKey: actionKey);
   }
 
   Future<TrialSession> modifyTrial({
@@ -111,11 +113,13 @@ class TrialHomeProvider with ChangeNotifier {
       final session = await _api.modifyTrial(
         trialId,
         items: items
-            ?.map((product) => TrialSessionItem.fromProduct(
-                  product,
-                  recommendedSize: recommendedSize,
-                  fitConfidence: fitConfidence,
-                ).toMap())
+            ?.map(
+              (product) => TrialSessionItem.fromProduct(
+                product,
+                recommendedSize: recommendedSize,
+                fitConfidence: fitConfidence,
+              ).toMap(),
+            )
             .toList(),
         addressLabel: addressLabel,
         deliverySlot: deliverySlot,
@@ -141,7 +145,10 @@ class TrialHomeProvider with ChangeNotifier {
     String? status,
   }) async {
     return _runGuarded(() async {
-      final session = await _api.modifyTrial(trialId, note: '$note\nFit: $fit\nRecommendation: $tailoringRecommendation');
+      final session = await _api.modifyTrial(
+        trialId,
+        note: '$note\nFit: $fit\nRecommendation: $tailoringRecommendation',
+      );
       _currentTrial = session;
       return session;
     }, actionKey: 'feedback:$trialId');

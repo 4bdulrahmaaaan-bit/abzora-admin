@@ -12,12 +12,12 @@ enum KycRequestFilterTab {
 
 class KycReviewEntry {
   const KycReviewEntry.vendor(this.vendorRequest)
-      : riderRequest = null,
-        roleLabel = 'Vendor';
+    : riderRequest = null,
+      roleLabel = 'Vendor';
 
   const KycReviewEntry.rider(this.riderRequest)
-      : vendorRequest = null,
-        roleLabel = 'Rider';
+    : vendorRequest = null,
+      roleLabel = 'Rider';
 
   final VendorKycRequest? vendorRequest;
   final RiderKycRequest? riderRequest;
@@ -99,8 +99,11 @@ List<KycReviewEntry> filterKycReviewEntries({
   }) {
     final haystack = '$name $phone $city'.toLowerCase();
     final matchesSearch = query.isEmpty || haystack.contains(query);
-    final matchesCity = normalizedCity.isEmpty || city.toLowerCase().contains(normalizedCity);
-    return matchesTab(role: role, status: status) && matchesSearch && matchesCity;
+    final matchesCity =
+        normalizedCity.isEmpty || city.toLowerCase().contains(normalizedCity);
+    return matchesTab(role: role, status: status) &&
+        matchesSearch &&
+        matchesCity;
   }
 
   final items = <KycReviewEntry>[
@@ -116,16 +119,20 @@ List<KycReviewEntry> filterKycReviewEntries({
         )
         .map(KycReviewEntry.vendor)
         .where((entry) {
-          final duplicates = [...vendors.map((item) => item.phone), ...riders.map((item) => item.phone)]
-                  .where((phone) => phone.trim() == entry.phone.trim())
-                  .length >
+          final duplicates =
+              [
+                ...vendors.map((item) => item.phone),
+                ...riders.map((item) => item.phone),
+              ].where((phone) => phone.trim() == entry.phone.trim()).length >
               1;
-          final highPriorityMatch = tab != KycRequestFilterTab.highPriority ||
+          final highPriorityMatch =
+              tab != KycRequestFilterTab.highPriority ||
               entry.hasMissingDocuments() ||
               duplicates ||
               requestRejectedRecently(entry);
           final todayMatch = !todaysOnly || isToday(entry.updatedAt);
-          final missingMatch = !missingDocumentsOnly || entry.hasMissingDocuments();
+          final missingMatch =
+              !missingDocumentsOnly || entry.hasMissingDocuments();
           return highPriorityMatch && todayMatch && missingMatch;
         }),
     ...riders
@@ -140,16 +147,20 @@ List<KycReviewEntry> filterKycReviewEntries({
         )
         .map(KycReviewEntry.rider)
         .where((entry) {
-          final duplicates = [...vendors.map((item) => item.phone), ...riders.map((item) => item.phone)]
-                  .where((phone) => phone.trim() == entry.phone.trim())
-                  .length >
+          final duplicates =
+              [
+                ...vendors.map((item) => item.phone),
+                ...riders.map((item) => item.phone),
+              ].where((phone) => phone.trim() == entry.phone.trim()).length >
               1;
-          final highPriorityMatch = tab != KycRequestFilterTab.highPriority ||
+          final highPriorityMatch =
+              tab != KycRequestFilterTab.highPriority ||
               entry.hasMissingDocuments() ||
               duplicates ||
               requestRejectedRecently(entry);
           final todayMatch = !todaysOnly || isToday(entry.updatedAt);
-          final missingMatch = !missingDocumentsOnly || entry.hasMissingDocuments();
+          final missingMatch =
+              !missingDocumentsOnly || entry.hasMissingDocuments();
           return highPriorityMatch && todayMatch && missingMatch;
         }),
   ];
@@ -161,7 +172,9 @@ List<KycReviewEntry> filterKycReviewEntries({
     if (priorityCompare != 0) {
       return priorityCompare;
     }
-    final pendingCompare = (a.status == 'pending' ? 1 : 0).compareTo(b.status == 'pending' ? 1 : 0);
+    final pendingCompare = (a.status == 'pending' ? 1 : 0).compareTo(
+      b.status == 'pending' ? 1 : 0,
+    );
     if (pendingCompare != 0) {
       return -pendingCompare;
     }
@@ -170,16 +183,19 @@ List<KycReviewEntry> filterKycReviewEntries({
   return items;
 }
 
-bool requestRejectedRecently(KycReviewEntry entry) => entry.status == 'rejected';
+bool requestRejectedRecently(KycReviewEntry entry) =>
+    entry.status == 'rejected';
 
 int _priorityScore(
   KycReviewEntry entry, {
   required List<VendorKycRequest> vendors,
   required List<RiderKycRequest> riders,
 }) {
-  final duplicatePhone = [...vendors.map((item) => item.phone), ...riders.map((item) => item.phone)]
-          .where((phone) => phone.trim() == entry.phone.trim())
-          .length >
+  final duplicatePhone =
+      [
+        ...vendors.map((item) => item.phone),
+        ...riders.map((item) => item.phone),
+      ].where((phone) => phone.trim() == entry.phone.trim()).length >
       1;
   var score = 0;
   if (entry.status == 'pending') {

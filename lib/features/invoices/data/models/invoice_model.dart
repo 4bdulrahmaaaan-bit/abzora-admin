@@ -34,7 +34,9 @@ class InvoiceModel extends InvoiceEntity {
       grandTotal: (json['grandTotal'] as num?)?.toDouble() ?? 0,
       status: (json['status'] ?? '').toString(),
       paymentStatus: (json['paymentStatus'] ?? '').toString(),
-      generatedAt: DateTime.tryParse((json['generatedAt'] ?? '').toString()) ?? DateTime.now(),
+      generatedAt:
+          DateTime.tryParse((json['generatedAt'] ?? '').toString()) ??
+          DateTime.now(),
       cgst: (json['cgst'] as num?)?.toDouble() ?? 0,
       sgst: (json['sgst'] as num?)?.toDouble() ?? 0,
       igst: (json['igst'] as num?)?.toDouble() ?? 0,

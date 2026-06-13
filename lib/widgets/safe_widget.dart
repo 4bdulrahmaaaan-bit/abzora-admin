@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 
 typedef AbzioWidgetBuilder = Widget Function(BuildContext context);
-typedef AbzioFallbackBuilder =
-    Widget Function(BuildContext context, Object error, StackTrace stackTrace);
+typedef AbzioFallbackBuilder = Widget Function(
+  BuildContext context,
+  Object error,
+  StackTrace stackTrace,
+);
 
 class AbzioGlobalErrorView extends StatelessWidget {
   const AbzioGlobalErrorView({
@@ -46,18 +49,18 @@ class AbzioGlobalErrorView extends StatelessWidget {
                 const SizedBox(height: 18),
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   message,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: context.abzioSecondaryText,
-                        height: 1.45,
-                      ),
+                    color: context.abzioSecondaryText,
+                    height: 1.45,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 if (onRetry != null) ...[
@@ -140,8 +143,7 @@ class AbzioSafeFutureBuilder<T> extends StatelessWidget {
         }
         final data = snapshot.data;
         if (data == null || (isEmpty != null && isEmpty!(data))) {
-          return emptyBuilder?.call(context) ??
-              const SizedBox.shrink();
+          return emptyBuilder?.call(context) ?? const SizedBox.shrink();
         }
         return dataBuilder(context, data);
       },
@@ -174,8 +176,8 @@ class AbzioSafeStreamBuilder<T> extends StatelessWidget {
       stream: streamSource == null
           ? null
           : (streamSource.isBroadcast
-              ? streamSource
-              : streamSource.asBroadcastStream()),
+                ? streamSource
+                : streamSource.asBroadcastStream()),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return loadingBuilder?.call(context) ??
@@ -189,8 +191,7 @@ class AbzioSafeStreamBuilder<T> extends StatelessWidget {
         }
         final data = snapshot.data;
         if (data == null || (isEmpty != null && isEmpty!(data))) {
-          return emptyBuilder?.call(context) ??
-              const SizedBox.shrink();
+          return emptyBuilder?.call(context) ?? const SizedBox.shrink();
         }
         return dataBuilder(context, data);
       },
@@ -228,10 +229,7 @@ class AbzioSafeNetworkImage extends StatelessWidget {
         height: height,
         color: const Color(0xFFF7F3EA),
         alignment: Alignment.center,
-        child: Icon(
-          fallbackIcon,
-          color: AbzioTheme.accentColor,
-        ),
+        child: Icon(fallbackIcon, color: AbzioTheme.accentColor),
       ),
     );
 
@@ -239,9 +237,6 @@ class AbzioSafeNetworkImage extends StatelessWidget {
       return image;
     }
 
-    return ClipRRect(
-      borderRadius: borderRadius!,
-      child: image,
-    );
+    return ClipRRect(borderRadius: borderRadius!, child: image);
   }
 }

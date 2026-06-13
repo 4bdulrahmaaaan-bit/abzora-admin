@@ -22,7 +22,11 @@ class _AdminSecuritySectionState extends State<AdminSecuritySection> {
   }
 
   Future<void> _loadData() async {
-    if (mounted) setState(() { _isLoading = true; _error = null; });
+    if (mounted)
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
     try {
       final data = await AdminSecurityApi.getDashboard();
       if (mounted) {
@@ -48,7 +52,9 @@ class _AdminSecuritySectionState extends State<AdminSecuritySection> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Revoke Access'),
-          content: Text('Are you sure you want to revoke access for $email? This will terminate their active sessions.'),
+          content: Text(
+            'Are you sure you want to revoke access for $email? This will terminate their active sessions.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -114,10 +120,7 @@ class _AdminSecuritySectionState extends State<AdminSecuritySection> {
       appBar: AppBar(
         title: const Text('Audit & Security Center'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],
       ),
       body: SingleChildScrollView(
@@ -150,12 +153,21 @@ class _AdminSecuritySectionState extends State<AdminSecuritySection> {
                     elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: severityColor.withValues(alpha: 0.3)),
+                      side: BorderSide(
+                        color: severityColor.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(16),
-                      leading: Icon(Icons.security, color: severityColor, size: 32),
-                      title: Text(event.type, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      leading: Icon(
+                        Icons.security,
+                        color: severityColor,
+                        size: 32,
+                      ),
+                      title: Text(
+                        event.type,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -164,19 +176,29 @@ class _AdminSecuritySectionState extends State<AdminSecuritySection> {
                           const SizedBox(height: 4),
                           Text(
                             'IP: ${event.ip} • ${DateFormat('MMM dd, HH:mm:ss').format(event.timestamp.toLocal())}',
-                            style: const TextStyle(color: Colors.grey, fontSize: 12),
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
                       trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: severityColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
                           event.severity.toUpperCase(),
-                          style: TextStyle(color: severityColor, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: TextStyle(
+                            color: severityColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
@@ -194,7 +216,10 @@ class _AdminSecuritySectionState extends State<AdminSecuritySection> {
                     children: [
                       const Text(
                         'Recent Admin Activity Log',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Card(
@@ -203,15 +228,28 @@ class _AdminSecuritySectionState extends State<AdminSecuritySection> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: _data!.recentActivity.length,
-                          separatorBuilder: (context, index) => const Divider(height: 1),
+                          separatorBuilder: (context, index) =>
+                              const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final log = _data!.recentActivity[index];
                             return ListTile(
-                              title: Text(log.action, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text('${log.adminEmail} • ${log.entityType}'),
+                              title: Text(
+                                log.action,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${log.adminEmail} • ${log.entityType}',
+                              ),
                               trailing: Text(
-                                DateFormat('MMM dd, HH:mm').format(log.createdAt.toLocal()),
-                                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                DateFormat(
+                                  'MMM dd, HH:mm',
+                                ).format(log.createdAt.toLocal()),
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
                               ),
                             );
                           },
@@ -228,7 +266,10 @@ class _AdminSecuritySectionState extends State<AdminSecuritySection> {
                     children: [
                       const Text(
                         'Admin Accounts',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Card(
@@ -237,14 +278,27 @@ class _AdminSecuritySectionState extends State<AdminSecuritySection> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: _data!.adminActionCounts.length,
-                          separatorBuilder: (context, index) => const Divider(height: 1),
+                          separatorBuilder: (context, index) =>
+                              const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final admin = _data!.adminActionCounts[index];
                             return ListTile(
-                              title: Text(admin.email, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              subtitle: Text('Actions: ${admin.count}\nLast Active: ${DateFormat('MMM dd').format(admin.lastActive.toLocal())}'),
+                              title: Text(
+                                admin.email,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              subtitle: Text(
+                                'Actions: ${admin.count}\nLast Active: ${DateFormat('MMM dd').format(admin.lastActive.toLocal())}',
+                              ),
                               trailing: IconButton(
-                                icon: const Icon(Icons.block, color: Colors.red, size: 20),
+                                icon: const Icon(
+                                  Icons.block,
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
                                 onPressed: () => _revokeAccess(admin.email),
                                 tooltip: 'Revoke Access',
                               ),

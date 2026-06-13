@@ -5,10 +5,7 @@ import '../providers/cart_provider.dart';
 import '../theme.dart';
 
 class OrderSummaryWidget extends StatelessWidget {
-  const OrderSummaryWidget({
-    super.key,
-    required this.items,
-  });
+  const OrderSummaryWidget({super.key, required this.items});
 
   final List<CartItem> items;
 
@@ -35,8 +32,12 @@ class _OrderItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final imageUrl = item.product.images.isNotEmpty ? item.product.images.first : '';
-    final metaLabel = item.product.category.trim().isNotEmpty ? item.product.category : 'Abianzo Edit';
+    final imageUrl = item.product.images.isNotEmpty
+        ? item.product.images.first
+        : '';
+    final metaLabel = item.product.category.trim().isNotEmpty
+        ? item.product.category
+        : 'Abianzo Edit';
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -55,19 +56,24 @@ class _OrderItemCard extends StatelessWidget {
                     height: 92,
                     width: 88,
                     color: context.abzioMuted,
-                    child: Icon(Icons.checkroom_outlined, color: context.abzioSecondaryText),
+                    child: Icon(
+                      Icons.checkroom_outlined,
+                      color: context.abzioSecondaryText,
+                    ),
                   )
                 : CachedNetworkImage(
                     imageUrl: imageUrl,
                     height: 92,
                     width: 88,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: context.abzioMuted,
-                    ),
+                    placeholder: (context, url) =>
+                        Container(color: context.abzioMuted),
                     errorWidget: (context, url, error) => Container(
                       color: context.abzioMuted,
-                      child: Icon(Icons.broken_image_outlined, color: context.abzioSecondaryText),
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        color: context.abzioSecondaryText,
+                      ),
                     ),
                   ),
           ),
@@ -96,8 +102,10 @@ class _OrderItemCard extends StatelessWidget {
                   runSpacing: 6,
                   children: [
                     _InfoPill(label: 'Qty ${item.quantity}'),
-                    if (item.size.trim().isNotEmpty) _InfoPill(label: 'Size ${item.size}'),
-                    if (item.product.isCustomTailoring) const _InfoPill(label: 'Custom'),
+                    if (item.size.trim().isNotEmpty)
+                      _InfoPill(label: 'Size ${item.size}'),
+                    if (item.product.isCustomTailoring)
+                      const _InfoPill(label: 'Custom'),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -132,11 +140,10 @@ class _InfoPill extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
 }
-

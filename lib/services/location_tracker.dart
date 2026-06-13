@@ -13,8 +13,8 @@ class LocationTracker {
   LocationTracker({
     LocationService? locationService,
     RiderService? riderService,
-  })  : _locationService = locationService ?? LocationService(),
-        _riderService = riderService ?? RiderService();
+  }) : _locationService = locationService ?? LocationService(),
+       _riderService = riderService ?? RiderService();
 
   final LocationService _locationService;
   final RiderService _riderService;
@@ -30,20 +30,20 @@ class LocationTracker {
     _subscription = _locationService
         .watchLocation(accuracy: LocationAccuracy.high, distanceFilter: 80)
         .listen((position) {
-      if (!_shouldSend(position)) {
-        return;
-      }
-      _lastSentAt = DateTime.now();
-      _lastSentPosition = position;
-      unawaited(
-        _riderService.updateRiderLocation(
-          orderId: orderId,
-          latitude: position.latitude,
-          longitude: position.longitude,
-          rider: rider,
-        ),
-      );
-    });
+          if (!_shouldSend(position)) {
+            return;
+          }
+          _lastSentAt = DateTime.now();
+          _lastSentPosition = position;
+          unawaited(
+            _riderService.updateRiderLocation(
+              orderId: orderId,
+              latitude: position.latitude,
+              longitude: position.longitude,
+              rider: rider,
+            ),
+          );
+        });
   }
 
   bool _shouldSend(Position current) {

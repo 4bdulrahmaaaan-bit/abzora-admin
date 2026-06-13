@@ -45,7 +45,9 @@ class ProductPublishBar extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   side: BorderSide(color: AbzioTheme.lightBorder),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: Text(
                   isDraft ? 'Save Draft' : 'Unpublish to Draft',
@@ -63,16 +65,18 @@ class ProductPublishBar extends StatelessWidget {
                 icon: const Icon(Icons.remove_red_eye_outlined, size: 18),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: AbzioTheme.accentColor.withValues(alpha: 0.5)),
+                  side: BorderSide(
+                    color: AbzioTheme.accentColor.withValues(alpha: 0.5),
+                  ),
                   backgroundColor: const Color(0xFFF9FAFB),
                   foregroundColor: AbzioTheme.accentColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 label: Text(
                   'Preview',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -86,7 +90,9 @@ class ProductPublishBar extends StatelessWidget {
                   backgroundColor: AbzioTheme.accentColor,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: Text(
                   'Publish Product',

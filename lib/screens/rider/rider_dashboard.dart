@@ -19,16 +19,14 @@ import 'rider_trials_screen.dart';
 import 'rider_performance_screen.dart';
 import 'rider_earnings_screen.dart';
 import 'rider_payouts_screen.dart';
+
 class _RiderUi {
   static const Color ivory = Color(0xFFF8F5EF);
   static const Color gold = Color(0xFFC8A86B);
 }
 
 class RiderDashboard extends StatelessWidget {
-  const RiderDashboard({
-    super.key,
-    this.embedded = false,
-  });
+  const RiderDashboard({super.key, this.embedded = false});
 
   final bool embedded;
 
@@ -52,7 +50,10 @@ class RiderDashboard extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, double.tryParse(controller.text.trim())),
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              double.tryParse(controller.text.trim()),
+            ),
             child: const Text('Submit'),
           ),
         ],
@@ -63,7 +64,10 @@ class RiderDashboard extends StatelessWidget {
       return;
     }
     try {
-      await DatabaseService().requestRiderWithdraw(amount: amount, actor: actor);
+      await DatabaseService().requestRiderWithdraw(
+        amount: amount,
+        actor: actor,
+      );
       if (!context.mounted) {
         return;
       }
@@ -150,12 +154,14 @@ class RiderDashboardContent extends StatefulWidget {
   });
 
   final bool embedded;
-  final Future<void> Function(BuildContext context, AppUser actor) requestWithdrawal;
+  final Future<void> Function(BuildContext context, AppUser actor)
+  requestWithdrawal;
   final Future<void> Function(
     BuildContext context,
     AppUser actor,
     PayoutProfileSummary profile,
-  ) managePayoutAccount;
+  )
+  managePayoutAccount;
 
   @override
   State<RiderDashboardContent> createState() => _RiderDashboardContentState();
@@ -198,7 +204,8 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
           padding: EdgeInsets.all(24),
           child: AbzioEmptyCard(
             title: 'Rider access only',
-            subtitle: 'This workspace is reserved for Abianzo delivery partners.',
+            subtitle:
+                'This workspace is reserved for Abianzo delivery partners.',
           ),
         ),
       );
@@ -270,23 +277,37 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                 const SizedBox(height: 14),
                 _RouteLaunchCard(taskCount: data.tasks.length),
                 const SizedBox(height: 24),
-                
+
                 // PHASE 3 DASHBOARD INTEGRATION
-                Text('WORKFORCE PLATFORM', style: Theme.of(context).textTheme.labelMedium),
+                Text(
+                  'WORKFORCE PLATFORM',
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
                       child: InkWell(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RiderEarningsScreen())),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RiderEarningsScreen(),
+                          ),
+                        ),
                         child: const Card(
                           child: Padding(
                             padding: EdgeInsets.symmetric(vertical: 16),
                             child: Column(
                               children: [
-                                Icon(Icons.account_balance_wallet, color: _RiderUi.gold),
+                                Icon(
+                                  Icons.account_balance_wallet,
+                                  color: _RiderUi.gold,
+                                ),
                                 SizedBox(height: 8),
-                                Text('Earnings', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Text(
+                                  'Earnings',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
                               ],
                             ),
                           ),
@@ -296,7 +317,12 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: InkWell(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RiderPerformanceScreen())),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RiderPerformanceScreen(),
+                          ),
+                        ),
                         child: const Card(
                           child: Padding(
                             padding: EdgeInsets.symmetric(vertical: 16),
@@ -304,7 +330,10 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                               children: [
                                 Icon(Icons.star, color: _RiderUi.gold),
                                 SizedBox(height: 8),
-                                Text('Performance', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Text(
+                                  'Performance',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
                               ],
                             ),
                           ),
@@ -314,7 +343,12 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: InkWell(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RiderPayoutsScreen())),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RiderPayoutsScreen(),
+                          ),
+                        ),
                         child: const Card(
                           child: Padding(
                             padding: EdgeInsets.symmetric(vertical: 16),
@@ -322,7 +356,10 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                               children: [
                                 Icon(Icons.payments, color: _RiderUi.gold),
                                 SizedBox(height: 8),
-                                Text('Payouts', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Text(
+                                  'Payouts',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
                               ],
                             ),
                           ),
@@ -333,7 +370,10 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                 ),
                 const SizedBox(height: 24),
 
-                Text('AVAILABLE DELIVERIES', style: Theme.of(context).textTheme.labelMedium),
+                Text(
+                  'AVAILABLE DELIVERIES',
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
                 const SizedBox(height: 12),
                 if (data.availableDeliveries.isEmpty)
                   const AbzioEmptyCard(
@@ -350,7 +390,10 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                     ),
                   ),
                 const SizedBox(height: 24),
-                Text('UNIFIED TASK QUEUE', style: Theme.of(context).textTheme.labelMedium),
+                Text(
+                  'UNIFIED TASK QUEUE',
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
                 const SizedBox(height: 12),
                 if (data.tasks.isEmpty)
                   const AbzioEmptyCard(
@@ -375,17 +418,12 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
     }
 
     if (widget.embedded) {
-      return ColoredBox(
-        color: _RiderUi.ivory,
-        child: content,
-      );
+      return ColoredBox(color: _RiderUi.ivory, child: content);
     }
 
     return Scaffold(
       backgroundColor: _RiderUi.ivory,
-      appBar: AppBar(
-        title: const Text('Abianzo Rider'),
-      ),
+      appBar: AppBar(title: const Text('Abianzo Rider')),
       extendBody: true,
       body: content,
       bottomNavigationBar: SafeArea(
@@ -440,7 +478,9 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const RiderEarningsScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const RiderEarningsScreen(),
+                    ),
                   );
                 },
               ),
@@ -450,7 +490,9 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const RiderOnboardingScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const RiderOnboardingScreen(),
+                    ),
                   );
                 },
               ),
@@ -484,7 +526,10 @@ class _QuickNavItem extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        padding: EdgeInsets.symmetric(horizontal: active ? 14 : 10, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: active ? 14 : 10,
+          vertical: 8,
+        ),
         decoration: BoxDecoration(
           color: active ? const Color(0xFFFFF8E9) : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
@@ -529,7 +574,9 @@ class _RouteLaunchCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFFFFEFB),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.18)),
+          border: Border.all(
+            color: AbzioTheme.accentColor.withValues(alpha: 0.18),
+          ),
         ),
         child: Row(
           children: [
@@ -539,7 +586,10 @@ class _RouteLaunchCard extends StatelessWidget {
                 color: const Color(0xFFF7F1E1),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(Icons.alt_route_rounded, color: Color(0xFF8D6A2E)),
+              child: const Icon(
+                Icons.alt_route_rounded,
+                color: Color(0xFF8D6A2E),
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -579,7 +629,9 @@ class _PendingApprovalView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final submitted = (actor.riderVehicleType ?? '').isNotEmpty && (actor.riderCity ?? actor.city ?? '').isNotEmpty;
+    final submitted =
+        (actor.riderVehicleType ?? '').isNotEmpty &&
+        (actor.riderCity ?? actor.city ?? '').isNotEmpty;
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -611,15 +663,24 @@ class _PendingApprovalView extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                submitted ? 'Application under review' : 'Complete your rider profile',
-                style: GoogleFonts.inter(color: const Color(0xFF111111), fontSize: 22, fontWeight: FontWeight.w700),
+                submitted
+                    ? 'Application under review'
+                    : 'Complete your rider profile',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF111111),
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 submitted
                     ? 'Your delivery partner profile is pending admin approval. Deliveries will appear here once approved.'
                     : 'Add your vehicle and city details so Abianzo can review your rider application.',
-                style: GoogleFonts.inter(color: const Color(0xFF666666), height: 1.5),
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF666666),
+                  height: 1.5,
+                ),
               ),
             ],
           ),
@@ -669,12 +730,16 @@ class _RiderHeroCard extends StatelessWidget {
         children: [
           Text(
             'DELIVERY PARTNER',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AbzioTheme.accentColor),
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: AbzioTheme.accentColor),
           ),
           const SizedBox(height: 10),
           Text(
             rider.name.isEmpty ? 'Abianzo Rider' : rider.name,
-            style: Theme.of(context).textTheme.displayMedium?.copyWith(color: const Color(0xFF111111)),
+            style: Theme.of(
+              context,
+            ).textTheme.displayMedium?.copyWith(color: const Color(0xFF111111)),
           ),
           const SizedBox(height: 6),
           Text(
@@ -701,9 +766,24 @@ class _RiderStatusStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tiles = [
-      _StatusTileData('Assigned', '$assignedCount', Icons.assignment_outlined, Colors.orange),
-      _StatusTileData('Active', '$activeCount', Icons.route_outlined, Colors.blue),
-      _StatusTileData('Delivered', '$completedCount', Icons.task_alt_rounded, Colors.green),
+      _StatusTileData(
+        'Assigned',
+        '$assignedCount',
+        Icons.assignment_outlined,
+        Colors.orange,
+      ),
+      _StatusTileData(
+        'Active',
+        '$activeCount',
+        Icons.route_outlined,
+        Colors.blue,
+      ),
+      _StatusTileData(
+        'Delivered',
+        '$completedCount',
+        Icons.task_alt_rounded,
+        Colors.green,
+      ),
     ];
     return Row(
       children: [
@@ -808,7 +888,11 @@ class _RiderWalletCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Earnings Wallet',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16, color: const Color(0xFF111111)),
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    color: const Color(0xFF111111),
+                  ),
                 ),
               ),
               OutlinedButton.icon(
@@ -818,8 +902,13 @@ class _RiderWalletCard extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF8D6A2E),
                   side: const BorderSide(color: Color(0xFFE8DCC2)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                 ),
               ),
             ],
@@ -872,33 +961,52 @@ class _RiderWalletCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Recent payouts',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 15, color: const Color(0xFF111111)),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...transactions.take(3).map(
-              (transaction) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    const Icon(Icons.payments_outlined, size: 18, color: Color(0xFF8D6A2E)),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        transaction.note.isEmpty ? transaction.status : transaction.note,
-                        style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Text(
-                      _money(transaction.amount.abs()),
-                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF111111)),
-                    ),
-                  ],
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: const Color(0xFF111111),
                 ),
               ),
             ),
+            const SizedBox(height: 8),
+            ...transactions
+                .take(3)
+                .map(
+                  (transaction) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.payments_outlined,
+                          size: 18,
+                          color: Color(0xFF8D6A2E),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            transaction.note.isEmpty
+                                ? transaction.status
+                                : transaction.note,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: const Color(0xFF666666),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          _money(transaction.amount.abs()),
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF111111),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
           ],
         ],
       ),
@@ -931,12 +1039,20 @@ class _RiderMoneyTile extends StatelessWidget {
         children: [
           Text(
             label,
-            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF666666)),
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF666666),
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w800, color: tint),
+            style: GoogleFonts.poppins(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: tint,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -983,9 +1099,22 @@ class _RiderStatusTile extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(tile.value, style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF111111))),
+              Text(
+                tile.value,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF111111),
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(tile.label, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666))),
+              Text(
+                tile.label,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: const Color(0xFF666666),
+                ),
+              ),
             ],
           ),
         ],
@@ -1015,7 +1144,10 @@ class _AvailableDeliveryCardState extends State<_AvailableDeliveryCard> {
   Future<void> _accept() async {
     setState(() => _accepting = true);
     try {
-      await widget.service.acceptDelivery(orderId: widget.order.id, rider: widget.rider);
+      await widget.service.acceptDelivery(
+        orderId: widget.order.id,
+        rider: widget.rider,
+      );
       if (!mounted) {
         return;
       }
@@ -1053,13 +1185,30 @@ class _AvailableDeliveryCardState extends State<_AvailableDeliveryCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.order.invoiceNumber.isEmpty ? widget.order.id : widget.order.invoiceNumber,
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w800, color: const Color(0xFF111111)),
+            widget.order.invoiceNumber.isEmpty
+                ? widget.order.id
+                : widget.order.invoiceNumber,
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF111111),
+            ),
           ),
           const SizedBox(height: 8),
-          Text(widget.order.shippingAddress, style: GoogleFonts.inter(color: const Color(0xFF666666), height: 1.45)),
+          Text(
+            widget.order.shippingAddress,
+            style: GoogleFonts.inter(
+              color: const Color(0xFF666666),
+              height: 1.45,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text('${widget.order.items.length} item(s) • ₹${widget.order.totalAmount.toInt()}', style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666))),
+          Text(
+            '${widget.order.items.length} item(s) • ₹${widget.order.totalAmount.toInt()}',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: const Color(0xFF666666),
+            ),
+          ),
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
@@ -1069,7 +1218,10 @@ class _AvailableDeliveryCardState extends State<_AvailableDeliveryCard> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Text('Accept Delivery'),
             ),
@@ -1079,7 +1231,6 @@ class _AvailableDeliveryCardState extends State<_AvailableDeliveryCard> {
     );
   }
 }
-
 
 class _UnifiedTaskCard extends StatefulWidget {
   const _UnifiedTaskCard({
@@ -1143,7 +1294,9 @@ class _UnifiedTaskCardState extends State<_UnifiedTaskCard> {
     final accent = isReturn ? Colors.orange : Colors.blue;
     final actionLabel = widget.task.status == 'assigned'
         ? (isReturn ? 'Mark Picked' : 'Start Task')
-        : (widget.task.status == 'in_progress' ? (isReturn ? 'Complete Return' : 'In Progress') : 'Completed');
+        : (widget.task.status == 'in_progress'
+              ? (isReturn ? 'Complete Return' : 'In Progress')
+              : 'Completed');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -1166,7 +1319,10 @@ class _UnifiedTaskCardState extends State<_UnifiedTaskCard> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -1185,30 +1341,46 @@ class _UnifiedTaskCardState extends State<_UnifiedTaskCard> {
               _DeliveryStatusPill(
                 status: widget.task.status == 'in_progress'
                     ? 'Picked up'
-                    : (widget.task.status == 'completed' ? 'Delivered' : 'Assigned'),
+                    : (widget.task.status == 'completed'
+                          ? 'Delivered'
+                          : 'Assigned'),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(widget.task.address, style: GoogleFonts.inter(color: const Color(0xFF666666), height: 1.45)),
+          Text(
+            widget.task.address,
+            style: GoogleFonts.inter(
+              color: const Color(0xFF666666),
+              height: 1.45,
+            ),
+          ),
           const SizedBox(height: 8),
           Text(
             isReturn
                 ? 'Bundled return pickup on your route'
                 : 'Unified delivery task synced from dispatch',
-            style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666)),
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: const Color(0xFF666666),
+            ),
           ),
           if (isReturn) ...[
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: (_busy || widget.task.status == 'completed') ? null : _handlePrimaryAction,
+                onPressed: (_busy || widget.task.status == 'completed')
+                    ? null
+                    : _handlePrimaryAction,
                 child: _busy
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : Text(actionLabel),
               ),
@@ -1269,22 +1441,43 @@ class _RiderTbybCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.shopping_bag_outlined, color: AbzioTheme.accentColor, size: 20),
+              const Icon(
+                Icons.shopping_bag_outlined,
+                color: AbzioTheme.accentColor,
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Text('Try Before You Buy', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'Try Before You Buy',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                child: _TbybStat(label: 'Active Trials', value: '1', color: Colors.green),
+                child: _TbybStat(
+                  label: 'Active Trials',
+                  value: '1',
+                  color: Colors.green,
+                ),
               ),
               Expanded(
-                child: _TbybStat(label: 'Upcoming', value: '3', color: Colors.orange),
+                child: _TbybStat(
+                  label: 'Upcoming',
+                  value: '3',
+                  color: Colors.orange,
+                ),
               ),
               Expanded(
-                child: _TbybStat(label: 'Avg. Duration', value: '25m', color: Colors.blue),
+                child: _TbybStat(
+                  label: 'Avg. Duration',
+                  value: '25m',
+                  color: Colors.blue,
+                ),
               ),
             ],
           ),
@@ -1293,9 +1486,7 @@ class _RiderTbybCard extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const RiderTrialsScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const RiderTrialsScreen()),
               );
             },
             icon: const Icon(Icons.timer),
@@ -1312,8 +1503,12 @@ class _RiderTbybCard extends StatelessWidget {
 }
 
 class _TbybStat extends StatelessWidget {
-  const _TbybStat({required this.label, required this.value, required this.color});
-  
+  const _TbybStat({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
   final String label;
   final String value;
   final Color color;
@@ -1322,11 +1517,21 @@ class _TbybStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 10, color: AbzioTheme.grey600), textAlign: TextAlign.center),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: AbzioTheme.grey600),
+          textAlign: TextAlign.center,
+        ),
       ],
     );
   }
 }
-

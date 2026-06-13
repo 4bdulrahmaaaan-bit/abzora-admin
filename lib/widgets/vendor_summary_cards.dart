@@ -20,10 +20,7 @@ class VendorSummaryMetric {
 }
 
 class VendorSummaryCards extends StatelessWidget {
-  const VendorSummaryCards({
-    super.key,
-    required this.metrics,
-  });
+  const VendorSummaryCards({super.key, required this.metrics});
 
   final List<VendorSummaryMetric> metrics;
 

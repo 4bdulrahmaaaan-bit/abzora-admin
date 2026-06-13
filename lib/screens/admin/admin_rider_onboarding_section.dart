@@ -10,10 +10,12 @@ class AdminRiderOnboardingSection extends StatefulWidget {
   const AdminRiderOnboardingSection({super.key});
 
   @override
-  State<AdminRiderOnboardingSection> createState() => _AdminRiderOnboardingSectionState();
+  State<AdminRiderOnboardingSection> createState() =>
+      _AdminRiderOnboardingSectionState();
 }
 
-class _AdminRiderOnboardingSectionState extends State<AdminRiderOnboardingSection> {
+class _AdminRiderOnboardingSectionState
+    extends State<AdminRiderOnboardingSection> {
   final _onboardingService = OnboardingService();
   bool _loading = true;
   String? _error;
@@ -58,14 +60,27 @@ class _AdminRiderOnboardingSectionState extends State<AdminRiderOnboardingSectio
     if (actor == null) return;
     try {
       if (newStatus == 'approved') {
-        await _onboardingService.approveRiderRequest(requestId: requestId, actor: actor);
+        await _onboardingService.approveRiderRequest(
+          requestId: requestId,
+          actor: actor,
+        );
       } else if (newStatus == 'rejected') {
-        await _onboardingService.rejectRiderRequest(requestId: requestId, reason: 'Admin rejected', actor: actor);
+        await _onboardingService.rejectRiderRequest(
+          requestId: requestId,
+          reason: 'Admin rejected',
+          actor: actor,
+        );
       }
       await _loadData();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Status updated to $newStatus')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Status updated to $newStatus')));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppErrorText.from(e))));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppErrorText.from(e))));
     }
   }
 
@@ -74,16 +89,23 @@ class _AdminRiderOnboardingSectionState extends State<AdminRiderOnboardingSectio
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return Center(child: Text('Error: $_error'));
 
-    final filtered = _statusFilter == 'All' 
-        ? _requests 
-        : _requests.where((r) => r.status.toLowerCase() == _statusFilter.toLowerCase()).toList();
+    final filtered = _statusFilter == 'All'
+        ? _requests
+        : _requests
+              .where(
+                (r) => r.status.toLowerCase() == _statusFilter.toLowerCase(),
+              )
+              .toList();
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Rider Onboarding', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold)),
+          Text(
+            'Rider Onboarding',
+            style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
           _buildKpis(),
           const SizedBox(height: 24),
@@ -98,12 +120,24 @@ class _AdminRiderOnboardingSectionState extends State<AdminRiderOnboardingSectio
   }
 
   Widget _buildKpis() {
-    final applicationsToday = _requests.where((r) => r.createdAt.startsWith(DateTime.now().toIso8601String().substring(0, 10))).length;
+    final applicationsToday = _requests
+        .where(
+          (r) => r.createdAt.startsWith(
+            DateTime.now().toIso8601String().substring(0, 10),
+          ),
+        )
+        .length;
     final pendingKyc = _requests.where((r) => r.status == 'pending_kyc').length;
-    final pendingVerification = _requests.where((r) => r.status == 'pending_verification').length;
-    final pendingTraining = _requests.where((r) => r.status == 'pending_training').length;
+    final pendingVerification = _requests
+        .where((r) => r.status == 'pending_verification')
+        .length;
+    final pendingTraining = _requests
+        .where((r) => r.status == 'pending_training')
+        .length;
     final activeRiders = _requests.where((r) => r.status == 'approved').length;
-    final rejectedRiders = _requests.where((r) => r.status == 'rejected').length;
+    final rejectedRiders = _requests
+        .where((r) => r.status == 'rejected')
+        .length;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -125,9 +159,18 @@ class _AdminRiderOnboardingSectionState extends State<AdminRiderOnboardingSectio
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              Text(title, style: GoogleFonts.inter(fontSize: 12, color: Colors.grey)),
+              Text(
+                title,
+                style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+              ),
               const SizedBox(height: 8),
-              Text('$count', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(
+                '$count',
+                style: GoogleFonts.inter(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
@@ -168,9 +211,15 @@ class _AdminRiderOnboardingSectionState extends State<AdminRiderOnboardingSectio
         const SizedBox(width: 8),
         DropdownButton<String>(
           value: _statusFilter,
-          items: ['All', 'Pending', 'Pending_KYC', 'Pending_Verification', 'Pending_Training', 'Approved', 'Rejected']
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-              .toList(),
+          items: [
+            'All',
+            'Pending',
+            'Pending_KYC',
+            'Pending_Verification',
+            'Pending_Training',
+            'Approved',
+            'Rejected',
+          ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
           onChanged: (val) {
             if (val != null) setState(() => _statusFilter = val);
           },
@@ -192,10 +241,19 @@ class _AdminRiderOnboardingSectionState extends State<AdminRiderOnboardingSectio
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (req.status != 'approved')
-                  IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: () => _updateStatus(req.id, 'approved')),
+                  IconButton(
+                    icon: const Icon(Icons.check, color: Colors.green),
+                    onPressed: () => _updateStatus(req.id, 'approved'),
+                  ),
                 if (req.status != 'rejected')
-                  IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => _updateStatus(req.id, 'rejected')),
-                IconButton(icon: const Icon(Icons.info), onPressed: () => _showDetailDrawer(req)),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.red),
+                    onPressed: () => _updateStatus(req.id, 'rejected'),
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.info),
+                  onPressed: () => _showDetailDrawer(req),
+                ),
               ],
             ),
           ),
@@ -216,7 +274,13 @@ class _AdminRiderOnboardingSectionState extends State<AdminRiderOnboardingSectio
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Details for ${req.name}', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(
+                  'Details for ${req.name}',
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 _sectionTitle('Profile Info'),
                 Text('Phone: ${req.phone}\nCity: ${req.city}'),
@@ -231,7 +295,9 @@ class _AdminRiderOnboardingSectionState extends State<AdminRiderOnboardingSectio
                 Text('Status: ${req.metadata['training_status'] ?? 'N/A'}'),
                 const SizedBox(height: 16),
                 _sectionTitle('Audit Trail'),
-                ...req.actionHistory.map((h) => Text('${h.timestamp}: ${h.action} by ${h.actorName}')),
+                ...req.actionHistory.map(
+                  (h) => Text('${h.timestamp}: ${h.action} by ${h.actorName}'),
+                ),
               ],
             ),
           ),
@@ -243,7 +309,10 @@ class _AdminRiderOnboardingSectionState extends State<AdminRiderOnboardingSectio
   Widget _sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(title, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
+      child: Text(
+        title,
+        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
     );
   }
 }

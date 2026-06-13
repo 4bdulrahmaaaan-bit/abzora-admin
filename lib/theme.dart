@@ -52,14 +52,14 @@ class AbzioTheme {
   static const double internalSpacing = spacing16;
 
   static List<BoxShadow> shadowFor(Brightness brightness) => [
-        BoxShadow(
-          color: Colors.black.withValues(
-            alpha: brightness == Brightness.dark ? 0.14 : 0.06,
-          ),
-          blurRadius: brightness == Brightness.dark ? 16 : 10,
-          offset: const Offset(0, 6),
-        ),
-      ];
+    BoxShadow(
+      color: Colors.black.withValues(
+        alpha: brightness == Brightness.dark ? 0.14 : 0.06,
+      ),
+      blurRadius: brightness == Brightness.dark ? 16 : 10,
+      offset: const Offset(0, 6),
+    ),
+  ];
 
   static List<BoxShadow> get eliteShadow => shadowFor(Brightness.light);
 
@@ -88,19 +88,20 @@ class AbzioTheme {
     final border = isDark ? const Color(0xFF3A3125) : lightBorder;
     final muted = isDark ? const Color(0xFF2B241A) : lightMuted;
 
-    final colorScheme = ColorScheme.fromSeed(
-      brightness: brightness,
-      seedColor: accentColor,
-      primary: accentColor,
-      secondary: accentColor,
-      surface: card,
-      error: const Color(0xFFD16A57),
-    ).copyWith(
-      onPrimary: Colors.black,
-      onSecondary: Colors.black,
-      onSurface: textPrimary,
-      onError: Colors.white,
-    );
+    final colorScheme =
+        ColorScheme.fromSeed(
+          brightness: brightness,
+          seedColor: accentColor,
+          primary: accentColor,
+          secondary: accentColor,
+          surface: card,
+          error: const Color(0xFFD16A57),
+        ).copyWith(
+          onPrimary: Colors.black,
+          onSecondary: Colors.black,
+          onSurface: textPrimary,
+          onError: Colors.white,
+        );
 
     final textTheme = TextTheme(
       displayLarge: GoogleFonts.cormorantGaramond(
@@ -234,7 +235,9 @@ class AbzioTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: elevated,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius),
+        ),
         titleTextStyle: textTheme.titleLarge,
         contentTextStyle: textTheme.bodyMedium,
       ),
@@ -253,54 +256,77 @@ class AbzioTheme {
         side: BorderSide(color: border),
         shape: StadiumBorder(side: BorderSide(color: border)),
         labelStyle: textTheme.labelMedium?.copyWith(color: textPrimary),
-        secondaryLabelStyle: textTheme.labelMedium?.copyWith(color: textPrimary),
+        secondaryLabelStyle: textTheme.labelMedium?.copyWith(
+          color: textPrimary,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: accentColor,
-          foregroundColor: Colors.black,
-          elevation: 0,
-          animationDuration: AbzioMotion.medium,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonRadius)),
-          textStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800),
-        ).copyWith(
-          overlayColor: WidgetStatePropertyAll(
-            accentColor.withValues(alpha: 0.10),
-          ),
-        ),
+        style:
+            ElevatedButton.styleFrom(
+              backgroundColor: accentColor,
+              foregroundColor: Colors.black,
+              elevation: 0,
+              animationDuration: AbzioMotion.medium,
+              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(buttonRadius),
+              ),
+              textStyle: GoogleFonts.outfit(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ).copyWith(
+              overlayColor: WidgetStatePropertyAll(
+                accentColor.withValues(alpha: 0.10),
+              ),
+            ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: textPrimary,
-          side: BorderSide(color: border, width: 1.1),
-          animationDuration: AbzioMotion.medium,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonRadius)),
-          textStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800),
-        ).copyWith(
-          overlayColor: WidgetStatePropertyAll(
-            accentColor.withValues(alpha: 0.08),
-          ),
-        ),
+        style:
+            OutlinedButton.styleFrom(
+              foregroundColor: textPrimary,
+              side: BorderSide(color: border, width: 1.1),
+              animationDuration: AbzioMotion.medium,
+              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(buttonRadius),
+              ),
+              textStyle: GoogleFonts.outfit(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ).copyWith(
+              overlayColor: WidgetStatePropertyAll(
+                accentColor.withValues(alpha: 0.08),
+              ),
+            ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: accentColor,
-          animationDuration: AbzioMotion.medium,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonRadius)),
-          textStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800),
-        ).copyWith(
-          overlayColor: WidgetStatePropertyAll(
-            accentColor.withValues(alpha: 0.08),
-          ),
-        ),
+        style:
+            TextButton.styleFrom(
+              foregroundColor: accentColor,
+              animationDuration: AbzioMotion.medium,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(buttonRadius),
+              ),
+              textStyle: GoogleFonts.outfit(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ).copyWith(
+              overlayColor: WidgetStatePropertyAll(
+                accentColor.withValues(alpha: 0.08),
+              ),
+            ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isDark ? const Color(0xFF2A2218) : const Color(0xFFFDF8F0),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 20,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(inputRadius),
           borderSide: BorderSide(color: border, width: 1),
@@ -334,7 +360,9 @@ class AbzioTheme {
         labelStyle: GoogleFonts.outfit(color: textSecondary, fontSize: 13),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isDark ? const Color(0xFF221B14) : const Color(0xFF15110D),
+        backgroundColor: isDark
+            ? const Color(0xFF221B14)
+            : const Color(0xFF15110D),
         contentTextStyle: GoogleFonts.outfit(
           color: isDark ? const Color(0xFFF5EEDF) : const Color(0xFFFFF8F0),
         ),
@@ -367,7 +395,9 @@ class AbzioTheme {
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: accentColor,
         foregroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonRadius)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(buttonRadius),
+        ),
       ),
     );
   }
@@ -398,15 +428,11 @@ class AbzioThemedScreen extends StatelessWidget {
 }
 
 class AbzioThemeScope extends StatelessWidget {
-  const AbzioThemeScope.light({
-    super.key,
-    required this.child,
-  }) : sectionTheme = AbzioSectionTheme.light;
+  const AbzioThemeScope.light({super.key, required this.child})
+    : sectionTheme = AbzioSectionTheme.light;
 
-  const AbzioThemeScope.dark({
-    super.key,
-    required this.child,
-  }) : sectionTheme = AbzioSectionTheme.dark;
+  const AbzioThemeScope.dark({super.key, required this.child})
+    : sectionTheme = AbzioSectionTheme.dark;
 
   final AbzioSectionTheme sectionTheme;
   final Widget child;
@@ -421,8 +447,13 @@ extension AbzioThemeContext on BuildContext {
   ColorScheme get abzioColors => Theme.of(this).colorScheme;
   TextTheme get abzioText => Theme.of(this).textTheme;
   bool get isDarkSection => Theme.of(this).brightness == Brightness.dark;
-  Color get abzioBorder => isDarkSection ? AbzioTheme.darkBorder : AbzioTheme.lightBorder;
-  Color get abzioMuted => isDarkSection ? AbzioTheme.darkMuted : AbzioTheme.lightMuted;
-  Color get abzioSecondaryText => isDarkSection ? AbzioTheme.darkTextSecondary : AbzioTheme.lightTextSecondary;
-  List<BoxShadow> get abzioShadow => AbzioTheme.shadowFor(Theme.of(this).brightness);
+  Color get abzioBorder =>
+      isDarkSection ? AbzioTheme.darkBorder : AbzioTheme.lightBorder;
+  Color get abzioMuted =>
+      isDarkSection ? AbzioTheme.darkMuted : AbzioTheme.lightMuted;
+  Color get abzioSecondaryText => isDarkSection
+      ? AbzioTheme.darkTextSecondary
+      : AbzioTheme.lightTextSecondary;
+  List<BoxShadow> get abzioShadow =>
+      AbzioTheme.shadowFor(Theme.of(this).brightness);
 }

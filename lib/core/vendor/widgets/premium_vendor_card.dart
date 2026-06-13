@@ -47,22 +47,18 @@ class PremiumVendorCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: backgroundColor ?? VendorTheme.card,
                 borderRadius: BorderRadius.circular(VendorTheme.radiusMedium),
-                border: hasBorder ? Border.all(color: VendorTheme.grey200) : null,
+                border: hasBorder
+                    ? Border.all(color: VendorTheme.grey200)
+                    : null,
                 boxShadow: hasBorder ? null : VendorTheme.softShadow,
               ),
-              child: Padding(
-                padding: padding,
-                child: child,
-              ),
+              child: Padding(padding: padding, child: child),
             ),
           ),
         ),
       );
     }
 
-    return Padding(
-      padding: margin,
-      child: cardContent,
-    );
+    return Padding(padding: margin, child: cardContent);
   }
 }

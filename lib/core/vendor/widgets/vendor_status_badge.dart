@@ -62,10 +62,10 @@ class VendorStatusBadge extends StatelessWidget {
           Text(
             label.toUpperCase(),
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: textColor,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8,
-                ),
+              color: textColor,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+            ),
           ),
         ],
       ),

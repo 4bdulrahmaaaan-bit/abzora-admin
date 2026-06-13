@@ -9,10 +9,12 @@ class AdminConfigurationSection extends StatefulWidget {
   const AdminConfigurationSection({super.key});
 
   @override
-  State<AdminConfigurationSection> createState() => _AdminConfigurationSectionState();
+  State<AdminConfigurationSection> createState() =>
+      _AdminConfigurationSectionState();
 }
 
-class _AdminConfigurationSectionState extends State<AdminConfigurationSection> with SingleTickerProviderStateMixin {
+class _AdminConfigurationSectionState extends State<AdminConfigurationSection>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = true;
   String _error = '';
@@ -78,7 +80,10 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection> w
 
   Future<void> _fetchHistory() async {
     try {
-      final res = await AdminConfigurationApi.fetchConfigHistory(page: _historyPage, limit: 10);
+      final res = await AdminConfigurationApi.fetchConfigHistory(
+        page: _historyPage,
+        limit: 10,
+      );
       if (mounted) {
         setState(() {
           _history = res['history'] as List<Map<String, dynamic>>;
@@ -91,24 +96,35 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection> w
   }
 
   void _populateControllers() {
-    _commissionController.text = _config['commissionPercent']?.toString() ?? '15';
+    _commissionController.text =
+        _config['commissionPercent']?.toString() ?? '15';
     _deliveryFeeController.text = _config['deliveryFee']?.toString() ?? '40';
     _returnFeeController.text = _config['returnFee']?.toString() ?? '20';
     _serviceFeeController.text = _config['serviceFee']?.toString() ?? '10';
 
     _trialFeeController.text = _config['trialFee']?.toString() ?? '50';
-    _trialDurationController.text = _config['trialDurationHours']?.toString() ?? '24';
-    _returnWindowController.text = _config['returnWindowHours']?.toString() ?? '48';
-    _purchaseWindowController.text = _config['purchaseWindowHours']?.toString() ?? '72';
-    _maxActiveTrialsController.text = _config['maxActiveTrials']?.toString() ?? '3';
+    _trialDurationController.text =
+        _config['trialDurationHours']?.toString() ?? '24';
+    _returnWindowController.text =
+        _config['returnWindowHours']?.toString() ?? '48';
+    _purchaseWindowController.text =
+        _config['purchaseWindowHours']?.toString() ?? '72';
+    _maxActiveTrialsController.text =
+        _config['maxActiveTrials']?.toString() ?? '3';
 
-    _fraudWarningController.text = _config['fraudWarningThreshold']?.toString() ?? '60';
-    _fraudCriticalController.text = _config['fraudCriticalThreshold']?.toString() ?? '85';
-    _fraudAlertController.text = _config['fraudAlertThreshold']?.toString() ?? '75';
+    _fraudWarningController.text =
+        _config['fraudWarningThreshold']?.toString() ?? '60';
+    _fraudCriticalController.text =
+        _config['fraudCriticalThreshold']?.toString() ?? '85';
+    _fraudAlertController.text =
+        _config['fraudAlertThreshold']?.toString() ?? '75';
 
-    _couponReferralController.text = _config['couponReferralLimit']?.toString() ?? '5';
-    _couponCampaignController.text = _config['couponCampaignLimit']?.toString() ?? '1000';
-    _couponGlobalController.text = _config['couponGlobalLimit']?.toString() ?? '5000';
+    _couponReferralController.text =
+        _config['couponReferralLimit']?.toString() ?? '5';
+    _couponCampaignController.text =
+        _config['couponCampaignLimit']?.toString() ?? '1000';
+    _couponGlobalController.text =
+        _config['couponGlobalLimit']?.toString() ?? '5000';
   }
 
   Future<void> _saveConfig() async {
@@ -127,24 +143,30 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection> w
       'maxActiveTrials': int.tryParse(_maxActiveTrialsController.text) ?? 3,
 
       'fraudWarningThreshold': int.tryParse(_fraudWarningController.text) ?? 60,
-      'fraudCriticalThreshold': int.tryParse(_fraudCriticalController.text) ?? 85,
+      'fraudCriticalThreshold':
+          int.tryParse(_fraudCriticalController.text) ?? 85,
       'fraudAlertThreshold': int.tryParse(_fraudAlertController.text) ?? 75,
 
       'couponReferralLimit': int.tryParse(_couponReferralController.text) ?? 5,
-      'couponCampaignLimit': int.tryParse(_couponCampaignController.text) ?? 1000,
+      'couponCampaignLimit':
+          int.tryParse(_couponCampaignController.text) ?? 1000,
       'couponGlobalLimit': int.tryParse(_couponGlobalController.text) ?? 5000,
     };
 
     try {
       await AdminConfigurationApi.updateConfig(payload);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Configuration updated successfully')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Configuration updated successfully')),
+        );
         _fetchConfig();
         _fetchHistory();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update config: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update config: $e')));
       }
     }
   }
@@ -233,21 +255,44 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection> w
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Marketplace Fee Structure', style: context.abzioText.titleMedium),
+              Text(
+                'Marketplace Fee Structure',
+                style: context.abzioText.titleMedium,
+              ),
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Expanded(child: _buildTextField('Platform Commission (%)', _commissionController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Platform Commission (%)',
+                      _commissionController,
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildTextField('Delivery Fee (₹)', _deliveryFeeController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Delivery Fee (₹)',
+                      _deliveryFeeController,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildTextField('Return Fee (₹)', _returnFeeController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Return Fee (₹)',
+                      _returnFeeController,
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildTextField('Service Charge (₹)', _serviceFeeController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Service Charge (₹)',
+                      _serviceFeeController,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -265,27 +310,55 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection> w
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Try Before You Buy Constraints', style: context.abzioText.titleMedium),
+              Text(
+                'Try Before You Buy Constraints',
+                style: context.abzioText.titleMedium,
+              ),
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Expanded(child: _buildTextField('Trial Fee (₹)', _trialFeeController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Trial Fee (₹)',
+                      _trialFeeController,
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildTextField('Trial Duration (Hours)', _trialDurationController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Trial Duration (Hours)',
+                      _trialDurationController,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildTextField('Return Window (Hours)', _returnWindowController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Return Window (Hours)',
+                      _returnWindowController,
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildTextField('Purchase Window (Hours)', _purchaseWindowController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Purchase Window (Hours)',
+                      _purchaseWindowController,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildTextField('Max Active Trials Per User', _maxActiveTrialsController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Max Active Trials Per User',
+                      _maxActiveTrialsController,
+                    ),
+                  ),
                   const Spacer(),
                 ],
               ),
@@ -304,19 +377,37 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection> w
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Fraud Engine Sensitivity Settings', style: context.abzioText.titleMedium),
+              Text(
+                'Fraud Engine Sensitivity Settings',
+                style: context.abzioText.titleMedium,
+              ),
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Expanded(child: _buildTextField('Warning Threshold (Score)', _fraudWarningController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Warning Threshold (Score)',
+                      _fraudWarningController,
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildTextField('Critical Threshold (Score)', _fraudCriticalController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Critical Threshold (Score)',
+                      _fraudCriticalController,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildTextField('Automated Alert Threshold (Score)', _fraudAlertController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Automated Alert Threshold (Score)',
+                      _fraudAlertController,
+                    ),
+                  ),
                   const Spacer(),
                 ],
               ),
@@ -335,19 +426,37 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection> w
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Coupon & Promotion Limits', style: context.abzioText.titleMedium),
+              Text(
+                'Coupon & Promotion Limits',
+                style: context.abzioText.titleMedium,
+              ),
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Expanded(child: _buildTextField('Referral Usage Limit', _couponReferralController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Referral Usage Limit',
+                      _couponReferralController,
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildTextField('Campaign Max Redemptions', _couponCampaignController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Campaign Max Redemptions',
+                      _couponCampaignController,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildTextField('Global Coupon Cap', _couponGlobalController)),
+                  Expanded(
+                    child: _buildTextField(
+                      'Global Coupon Cap',
+                      _couponGlobalController,
+                    ),
+                  ),
                   const Spacer(),
                 ],
               ),
@@ -366,7 +475,10 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection> w
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Notification Rules (Read-Only JSON Config)', style: context.abzioText.titleMedium),
+              Text(
+                'Notification Rules (Read-Only JSON Config)',
+                style: context.abzioText.titleMedium,
+              ),
               const SizedBox(height: 24),
               Container(
                 width: double.infinity,
@@ -402,7 +514,9 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection> w
               itemBuilder: (context, index) {
                 final log = _history[index];
                 return ListTile(
-                  title: Text('Update by ${log['actorRole']} (${log['actorId']})'),
+                  title: Text(
+                    'Update by ${log['actorRole']} (${log['actorId']})',
+                  ),
                   subtitle: Text(log['timestampIso'] ?? ''),
                   trailing: const Icon(Icons.settings),
                   onTap: () {
@@ -414,12 +528,22 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection> w
                           width: 500,
                           child: SingleChildScrollView(
                             child: Text(
-                              const JsonEncoder.withIndent('  ').convert(log['newState']),
-                              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                              const JsonEncoder.withIndent(
+                                '  ',
+                              ).convert(log['newState']),
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ),
-                        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Close'),
+                          ),
+                        ],
                       ),
                     );
                   },

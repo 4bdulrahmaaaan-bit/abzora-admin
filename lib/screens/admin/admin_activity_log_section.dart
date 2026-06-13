@@ -11,7 +11,8 @@ class AdminActivityLogSection extends StatefulWidget {
   const AdminActivityLogSection({super.key});
 
   @override
-  State<AdminActivityLogSection> createState() => _AdminActivityLogSectionState();
+  State<AdminActivityLogSection> createState() =>
+      _AdminActivityLogSectionState();
 }
 
 class _AdminActivityLogSectionState extends State<AdminActivityLogSection> {
@@ -85,24 +86,34 @@ class _AdminActivityLogSectionState extends State<AdminActivityLogSection> {
                   Text('Message: ${log.message}'),
                   const Divider(),
                   if (log.previousState != null) ...[
-                    const Text('Previous State:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Previous State:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     Container(
                       padding: const EdgeInsets.all(8),
                       color: Colors.grey.shade100,
                       child: Text(
-                        const JsonEncoder.withIndent('  ').convert(log.previousState),
+                        const JsonEncoder.withIndent(
+                          '  ',
+                        ).convert(log.previousState),
                         style: GoogleFonts.firaCode(fontSize: 12),
                       ),
                     ),
                     const SizedBox(height: 16),
                   ],
                   if (log.newState != null) ...[
-                    const Text('New State:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      'New State:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     Container(
                       padding: const EdgeInsets.all(8),
                       color: Colors.grey.shade100,
                       child: Text(
-                        const JsonEncoder.withIndent('  ').convert(log.newState),
+                        const JsonEncoder.withIndent(
+                          '  ',
+                        ).convert(log.newState),
                         style: GoogleFonts.firaCode(fontSize: 12),
                       ),
                     ),
@@ -187,7 +198,10 @@ class _AdminActivityLogSectionState extends State<AdminActivityLogSection> {
                   icon: const Icon(Icons.search),
                   label: const Text('Filter'),
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
                   ),
                 ),
               ],
@@ -199,98 +213,114 @@ class _AdminActivityLogSectionState extends State<AdminActivityLogSection> {
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _error.isNotEmpty
-                  ? Center(child: Text('Error: $_error'))
-                  : _logs.isEmpty
-                      ? const AbzioEmptyCard(
-                          title: 'No activity logs found',
-                          subtitle: 'Adjust your filters or check back later.',
-                        )
-                      : Card(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Text(
-                                  'Showing ${_logs.length} of $_totalCount logs',
-                                  style: context.abzioText.titleMedium,
-                                ),
-                              ),
-                              const Divider(height: 1),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: SingleChildScrollView(
-                                    child: DataTable(
-                                      showCheckboxColumn: false,
-                                      columns: const [
-                                        DataColumn(label: Text('Timestamp')),
-                                        DataColumn(label: Text('Action')),
-                                        DataColumn(label: Text('Actor')),
-                                        DataColumn(label: Text('Entity')),
-                                        DataColumn(label: Text('Message')),
-                                      ],
-                                      rows: _logs.map((log) {
-                                        return DataRow(
-                                          onSelectChanged: (_) => _showStateDiff(context, log),
-                                          cells: [
-                                            DataCell(Text(log.timestamp.toString().split('.')[0])),
-                                            DataCell(Text(log.action.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold))),
-                                            DataCell(Text(log.actorId)),
-                                            DataCell(Text('${log.targetType}\n[${log.targetId}]')),
-                                            DataCell(
-                                              SizedBox(
-                                                width: 300,
-                                                child: Text(
-                                                  log.message,
-                                                  maxLines: 2,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      }).toList(),
+              ? Center(child: Text('Error: $_error'))
+              : _logs.isEmpty
+              ? const AbzioEmptyCard(
+                  title: 'No activity logs found',
+                  subtitle: 'Adjust your filters or check back later.',
+                )
+              : Card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'Showing ${_logs.length} of $_totalCount logs',
+                          style: context.abzioText.titleMedium,
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SingleChildScrollView(
+                            child: DataTable(
+                              showCheckboxColumn: false,
+                              columns: const [
+                                DataColumn(label: Text('Timestamp')),
+                                DataColumn(label: Text('Action')),
+                                DataColumn(label: Text('Actor')),
+                                DataColumn(label: Text('Entity')),
+                                DataColumn(label: Text('Message')),
+                              ],
+                              rows: _logs.map((log) {
+                                return DataRow(
+                                  onSelectChanged: (_) =>
+                                      _showStateDiff(context, log),
+                                  cells: [
+                                    DataCell(
+                                      Text(
+                                        log.timestamp.toString().split('.')[0],
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ),
-                              const Divider(height: 1),
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('Page $_currentPage of $_totalPages'),
-                                    Row(
-                                      children: [
-                                        OutlinedButton(
-                                          onPressed: _currentPage > 1
-                                              ? () {
-                                                  setState(() => _currentPage--);
-                                                  _fetchLogs();
-                                                }
-                                              : null,
-                                          child: const Text('Previous'),
+                                    DataCell(
+                                      Text(
+                                        log.action.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        const SizedBox(width: 8),
-                                        OutlinedButton(
-                                          onPressed: _currentPage < _totalPages
-                                              ? () {
-                                                  setState(() => _currentPage++);
-                                                  _fetchLogs();
-                                                }
-                                              : null,
-                                          child: const Text('Next'),
+                                      ),
+                                    ),
+                                    DataCell(Text(log.actorId)),
+                                    DataCell(
+                                      Text(
+                                        '${log.targetType}\n[${log.targetId}]',
+                                      ),
+                                    ),
+                                    DataCell(
+                                      SizedBox(
+                                        width: 300,
+                                        child: Text(
+                                          log.message,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ],
+                                      ),
                                     ),
                                   ],
-                                ),
-                              ),
-                            ],
+                                );
+                              }).toList(),
+                            ),
                           ),
                         ),
+                      ),
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Page $_currentPage of $_totalPages'),
+                            Row(
+                              children: [
+                                OutlinedButton(
+                                  onPressed: _currentPage > 1
+                                      ? () {
+                                          setState(() => _currentPage--);
+                                          _fetchLogs();
+                                        }
+                                      : null,
+                                  child: const Text('Previous'),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton(
+                                  onPressed: _currentPage < _totalPages
+                                      ? () {
+                                          setState(() => _currentPage++);
+                                          _fetchLogs();
+                                        }
+                                      : null,
+                                  child: const Text('Next'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );

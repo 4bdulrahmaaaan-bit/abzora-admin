@@ -14,10 +14,7 @@ import '../vendor/add_product_screen.dart';
 class AdminManagementScreen extends StatefulWidget {
   final int initialTab;
 
-  const AdminManagementScreen({
-    super.key,
-    this.initialTab = 0,
-  });
+  const AdminManagementScreen({super.key, this.initialTab = 0});
 
   @override
   State<AdminManagementScreen> createState() => _AdminManagementScreenState();
@@ -40,7 +37,11 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTab);
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: widget.initialTab,
+    );
     _load();
   }
 
@@ -109,8 +110,14 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
             onChanged: (value) => setDialogState(() => selectedStoreId = value),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Save'),
+            ),
           ],
         ),
       ),
@@ -120,7 +127,10 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
       return;
     }
 
-    final store = _stores.cast<Store?>().firstWhere((item) => item?.id == selectedStoreId, orElse: () => null);
+    final store = _stores.cast<Store?>().firstWhere(
+      (item) => item?.id == selectedStoreId,
+      orElse: () => null,
+    );
     if (store == null) {
       return;
     }
@@ -131,7 +141,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
   }
 
   Future<void> _createStoreForUser(AppUser user) async {
-    final nameController = TextEditingController(text: user.name.isEmpty ? '' : '${user.name} Studio');
+    final nameController = TextEditingController(
+      text: user.name.isEmpty ? '' : '${user.name} Studio',
+    );
     final addressController = TextEditingController(text: user.address ?? '');
     final taglineController = TextEditingController();
 
@@ -143,34 +155,57 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Store Name')),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Store Name'),
+              ),
               const SizedBox(height: 12),
-              TextField(controller: addressController, decoration: const InputDecoration(labelText: 'Address')),
+              TextField(
+                controller: addressController,
+                decoration: const InputDecoration(labelText: 'Address'),
+              ),
               const SizedBox(height: 12),
-              TextField(controller: taglineController, decoration: const InputDecoration(labelText: 'Tagline')),
+              TextField(
+                controller: taglineController,
+                decoration: const InputDecoration(labelText: 'Tagline'),
+              ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Create')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Create'),
+          ),
         ],
       ),
     );
 
-    if (result != true || nameController.text.trim().isEmpty || addressController.text.trim().isEmpty) {
+    if (result != true ||
+        nameController.text.trim().isEmpty ||
+        addressController.text.trim().isEmpty) {
       return;
     }
 
-    final geoResult = await _locationService.geocodeAddress(addressController.text.trim());
-    if (geoResult.status != AddressLookupStatus.success || geoResult.latitude == null || geoResult.longitude == null) {
+    final geoResult = await _locationService.geocodeAddress(
+      addressController.text.trim(),
+    );
+    if (geoResult.status != AddressLookupStatus.success ||
+        geoResult.latitude == null ||
+        geoResult.longitude == null) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Could not verify store address. Please add a clearer address with city details.'),
+          content: Text(
+            'Could not verify store address. Please add a clearer address with city details.',
+          ),
         ),
       );
       return;
@@ -189,7 +224,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
       rating: 0,
       reviewCount: 0,
       address: addressController.text.trim(),
-      city: resolvedAddress.city.isNotEmpty ? resolvedAddress.city : (user.city ?? ''),
+      city: resolvedAddress.city.isNotEmpty
+          ? resolvedAddress.city
+          : (user.city ?? ''),
       isApproved: false,
       isActive: false,
       isFeatured: false,
@@ -242,7 +279,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
   }
 
   Future<void> _adjustCommission(Store store) async {
-    final controller = TextEditingController(text: (store.commissionRate * 100).toStringAsFixed(0));
+    final controller = TextEditingController(
+      text: (store.commissionRate * 100).toStringAsFixed(0),
+    );
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -253,16 +292,29 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
           decoration: const InputDecoration(labelText: 'Commission %'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
     if (result != true) {
       return;
     }
-    final value = (double.tryParse(controller.text.trim()) ?? (store.commissionRate * 100)) / 100;
-    await _db.adjustStoreCommission(storeId: store.id, commissionRate: value.clamp(0, 1), actor: _actor!);
+    final value =
+        (double.tryParse(controller.text.trim()) ??
+            (store.commissionRate * 100)) /
+        100;
+    await _db.adjustStoreCommission(
+      storeId: store.id,
+      commissionRate: value.clamp(0, 1),
+      actor: _actor!,
+    );
     await _load();
   }
 
@@ -274,12 +326,23 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
         title: Text('Adjust Earnings for ${store.name}'),
         content: TextField(
           controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-          decoration: const InputDecoration(labelText: 'Adjustment amount (Rs)'),
+          keyboardType: const TextInputType.numberWithOptions(
+            signed: true,
+            decimal: true,
+          ),
+          decoration: const InputDecoration(
+            labelText: 'Adjustment amount (Rs)',
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Apply')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Apply'),
+          ),
         ],
       ),
     );
@@ -287,7 +350,11 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
       return;
     }
     final value = double.tryParse(controller.text.trim()) ?? 0;
-    await _db.adjustStoreWallet(storeId: store.id, delta: value, actor: _actor!);
+    await _db.adjustStoreWallet(
+      storeId: store.id,
+      delta: value,
+      actor: _actor!,
+    );
     await _load();
   }
 
@@ -314,7 +381,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
         return SafeArea(
           top: false,
           child: Container(
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(sheetContext).size.height * 0.9),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.9,
+            ),
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -330,9 +399,21 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${product.name} Variants', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w800)),
+                            Text(
+                              '${product.name} Variants',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text('${variants.length} color variant(s)', style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500)),
+                            Text(
+                              '${variants.length} color variant(s)',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AbzioTheme.grey500,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -355,14 +436,16 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                             padding: EdgeInsets.all(24),
                             child: AbzioEmptyCard(
                               title: 'No variants yet',
-                              subtitle: 'Open the product editor to add color variants, sizes, images, and stock.',
+                              subtitle:
+                                  'Open the product editor to add color variants, sizes, images, and stock.',
                             ),
                           ),
                         )
                       : ListView.separated(
                           padding: const EdgeInsets.all(16),
                           itemCount: variants.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 12),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final variant = variants[index];
                             return Container(
@@ -370,7 +453,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFCFAF5),
                                 borderRadius: BorderRadius.circular(18),
-                                border: Border.all(color: const Color(0xFFE9DECB)),
+                                border: Border.all(
+                                  color: const Color(0xFFE9DECB),
+                                ),
                               ),
                               child: Row(
                                 children: [
@@ -382,36 +467,57 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                                       child: variant.thumbnail.isNotEmpty
                                           ? AbzioNetworkImage(
                                               imageUrl: variant.thumbnail,
-                                              fallbackLabel: variant.colorName.isNotEmpty ? variant.colorName : variant.name,
+                                              fallbackLabel:
+                                                  variant.colorName.isNotEmpty
+                                                  ? variant.colorName
+                                                  : variant.name,
                                             )
                                           : Container(
                                               color: const Color(0xFFF2E7CF),
-                                              child: const Icon(Icons.palette_outlined, color: Color(0xFFC6A769)),
+                                              child: const Icon(
+                                                Icons.palette_outlined,
+                                                color: Color(0xFFC6A769),
+                                              ),
                                             ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          variant.colorName.isNotEmpty ? variant.colorName : variant.name,
-                                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700),
+                                          variant.colorName.isNotEmpty
+                                              ? variant.colorName
+                                              : variant.name,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           'SKU ${variant.sku.isNotEmpty ? variant.sku : 'Auto'} • Stock ${variant.stock} • ${variant.status}',
-                                          style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500),
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: AbzioTheme.grey500,
+                                          ),
                                         ),
                                         const SizedBox(height: 8),
                                         Wrap(
                                           spacing: 6,
                                           runSpacing: 6,
                                           children: [
-                                            _adminChip('Images ${variant.images.length + (variant.thumbnail.isNotEmpty ? 1 : 0)}'),
-                                            _adminChip('Sizes ${variant.sizes.length}'),
-                                            _adminChip(variant.hex.toUpperCase()),
+                                            _adminChip(
+                                              'Images ${variant.images.length + (variant.thumbnail.isNotEmpty ? 1 : 0)}',
+                                            ),
+                                            _adminChip(
+                                              'Sizes ${variant.sizes.length}',
+                                            ),
+                                            _adminChip(
+                                              variant.hex.toUpperCase(),
+                                            ),
                                           ],
                                         ),
                                       ],
@@ -459,7 +565,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
             padding: EdgeInsets.all(24),
             child: AbzioEmptyCard(
               title: 'Restricted workspace',
-              subtitle: 'This control center is reserved for platform administrators only.',
+              subtitle:
+                  'This control center is reserved for platform administrators only.',
             ),
           ),
         ),
@@ -566,11 +673,17 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Firebase User Onboarding', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+              Text(
+                'Firebase User Onboarding',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+              ),
               const SizedBox(height: 8),
               Text(
                 'New Firebase accounts start as users. From here you can promote them, create a pending store, or link an existing store without editing Firestore manually.',
-                style: GoogleFonts.inter(color: AbzioTheme.grey600, height: 1.4),
+                style: GoogleFonts.inter(
+                  color: AbzioTheme.grey600,
+                  height: 1.4,
+                ),
               ),
             ],
           ),
@@ -585,9 +698,15 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(user.name, style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+                    Text(
+                      user.name,
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                    ),
                     const SizedBox(height: 4),
-                    Text(user.email, style: GoogleFonts.inter(color: AbzioTheme.grey600)),
+                    Text(
+                      user.email,
+                      style: GoogleFonts.inter(color: AbzioTheme.grey600),
+                    ),
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
@@ -595,7 +714,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                       children: [
                         Chip(label: Text(user.role.toUpperCase())),
                         Chip(label: Text(user.isActive ? 'ACTIVE' : 'BLOCKED')),
-                        if (user.storeId != null && user.storeId!.isNotEmpty) Chip(label: Text('STORE ${user.storeId}')),
+                        if (user.storeId != null && user.storeId!.isNotEmpty)
+                          Chip(label: Text('STORE ${user.storeId}')),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -605,18 +725,35 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                       children: [
                         OutlinedButton(
                           onPressed: () => _toggleUserActive(user),
-                          child: Text(user.isActive ? 'BLOCK USER' : 'RESTORE USER'),
+                          child: Text(
+                            user.isActive ? 'BLOCK USER' : 'RESTORE USER',
+                          ),
                         ),
                         PopupMenuButton<String>(
                           onSelected: (role) => _changeUserRole(user, role),
                           itemBuilder: (_) => const [
-                            PopupMenuItem(value: 'user', child: Text('Set as User')),
-                            PopupMenuItem(value: 'vendor', child: Text('Set as Vendor')),
-                            PopupMenuItem(value: 'rider', child: Text('Set as Rider')),
-                            PopupMenuItem(value: 'super_admin', child: Text('Set as Super Admin')),
+                            PopupMenuItem(
+                              value: 'user',
+                              child: Text('Set as User'),
+                            ),
+                            PopupMenuItem(
+                              value: 'vendor',
+                              child: Text('Set as Vendor'),
+                            ),
+                            PopupMenuItem(
+                              value: 'rider',
+                              child: Text('Set as Rider'),
+                            ),
+                            PopupMenuItem(
+                              value: 'super_admin',
+                              child: Text('Set as Super Admin'),
+                            ),
                           ],
                           child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
                             child: Text('CHANGE ROLE'),
                           ),
                         ),
@@ -665,15 +802,19 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                     color: store.approvalStatus == 'approved'
                         ? Colors.green
                         : store.approvalStatus == 'rejected'
-                            ? Colors.red
-                            : Colors.orange,
+                        ? Colors.red
+                        : Colors.orange,
                     fontWeight: FontWeight.w700,
                     fontSize: width < 360 ? 10 : 11,
                   ),
                 ),
                 Text(
                   store.isActive ? 'ACTIVE' : 'INACTIVE',
-                  style: TextStyle(color: store.isActive ? Colors.blue : Colors.red, fontWeight: FontWeight.w700, fontSize: width < 360 ? 10 : 11),
+                  style: TextStyle(
+                    color: store.isActive ? Colors.blue : Colors.red,
+                    fontWeight: FontWeight.w700,
+                    fontSize: width < 360 ? 10 : 11,
+                  ),
                 ),
               ],
             ),
@@ -684,7 +825,11 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                   child: Wrap(
                     children: [
                       ListTile(
-                        title: Text(store.isApproved ? 'Move To Pending' : 'Approve Store'),
+                        title: Text(
+                          store.isApproved
+                              ? 'Move To Pending'
+                              : 'Approve Store',
+                        ),
                         onTap: () async {
                           Navigator.pop(sheetContext);
                           await _toggleStoreApproval(store);
@@ -698,14 +843,20 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                         },
                       ),
                       ListTile(
-                        title: Text(store.isActive ? 'Deactivate Shop' : 'Activate Shop'),
+                        title: Text(
+                          store.isActive ? 'Deactivate Shop' : 'Activate Shop',
+                        ),
                         onTap: () async {
                           Navigator.pop(sheetContext);
                           await _toggleStoreActive(store);
                         },
                       ),
                       ListTile(
-                        title: Text(store.isFeatured ? 'Remove Featured' : 'Mark Featured'),
+                        title: Text(
+                          store.isFeatured
+                              ? 'Remove Featured'
+                              : 'Mark Featured',
+                        ),
                         onTap: () async {
                           Navigator.pop(sheetContext);
                           await _toggleFeatured(store);
@@ -749,7 +900,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
             leading: CircleAvatar(
               child: ClipOval(
                 child: AbzioNetworkImage(
-                  imageUrl: product.images.isNotEmpty ? product.images.first : '',
+                  imageUrl: product.images.isNotEmpty
+                      ? product.images.first
+                      : '',
                   fallbackLabel: product.name,
                 ),
               ),
@@ -767,13 +920,19 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                         icon: const Icon(Icons.palette_outlined),
                         tooltip: 'View variants',
                       ),
-                      IconButton(onPressed: () => _editProduct(product), icon: const Icon(Icons.edit_outlined)),
+                      IconButton(
+                        onPressed: () => _editProduct(product),
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
                       IconButton(
                         onPressed: () async {
                           await _db.deleteProduct(product.id, actor: _actor);
                           await _load();
                         },
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
                       ),
                     ],
                   )
@@ -785,13 +944,19 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                         icon: const Icon(Icons.palette_outlined),
                         tooltip: 'View variants',
                       ),
-                      IconButton(onPressed: () => _editProduct(product), icon: const Icon(Icons.edit_outlined)),
+                      IconButton(
+                        onPressed: () => _editProduct(product),
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
                       IconButton(
                         onPressed: () async {
                           await _db.deleteProduct(product.id, actor: _actor);
                           await _load();
                         },
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
                       ),
                     ],
                   ),
@@ -815,13 +980,27 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Order ${order.id}', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+                Text(
+                  'Order ${order.id}',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 6),
-                Text('${order.items.length} item(s) | ₹${order.totalAmount.toInt()} | Store ${order.storeId}'),
+                Text(
+                  '${order.items.length} item(s) | ₹${order.totalAmount.toInt()} | Store ${order.storeId}',
+                ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  initialValue: statuses.contains(order.status) ? order.status : statuses.first,
-                  items: statuses.map((status) => DropdownMenuItem(value: status, child: Text(status))).toList(),
+                  initialValue: statuses.contains(order.status)
+                      ? order.status
+                      : statuses.first,
+                  items: statuses
+                      .map(
+                        (status) => DropdownMenuItem(
+                          value: status,
+                          child: Text(status),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (value) async {
                     if (value == null) {
                       return;

@@ -111,7 +111,9 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
         return;
       }
       setState(() {
-        _parentOptions = result.items.where((category) => category.parentId.isEmpty).toList();
+        _parentOptions = result.items
+            .where((category) => category.parentId.isEmpty)
+            .toList();
         _loadingParents = false;
       });
     } catch (_) {
@@ -133,7 +135,10 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
     });
   }
 
-  Future<String> _uploadPickedImage(XFile file, {required String folder}) async {
+  Future<String> _uploadPickedImage(
+    XFile file, {
+    required String folder,
+  }) async {
     final actor = context.read<AuthProvider>().user;
     final actorId = actor?.id ?? '';
     final ownerId = actorId.isNotEmpty ? actorId : 'admin';
@@ -145,7 +150,9 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
     );
   }
 
-  Future<void> _showCategoryForm([CategoryManagementModel? initialCategory]) async {
+  Future<void> _showCategoryForm([
+    CategoryManagementModel? initialCategory,
+  ]) async {
     if (_parentOptions.isEmpty && !_loadingParents) {
       await _loadParentOptions();
     }
@@ -167,11 +174,17 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
     try {
       var category = result.category;
       if (result.imageFile != null) {
-        final imageUrl = await _uploadPickedImage(result.imageFile!, folder: 'category_images');
+        final imageUrl = await _uploadPickedImage(
+          result.imageFile!,
+          folder: 'category_images',
+        );
         category = category.copyWith(image: imageUrl);
       }
       if (result.bannerFile != null) {
-        final bannerUrl = await _uploadPickedImage(result.bannerFile!, folder: 'category_banners');
+        final bannerUrl = await _uploadPickedImage(
+          result.bannerFile!,
+          folder: 'category_banners',
+        );
         category = category.copyWith(bannerImage: bannerUrl);
       }
 
@@ -199,9 +212,9 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -214,14 +227,18 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete category'),
-        content: Text('Soft delete "${category.name}"? It will remain recoverable in the database.'),
+        content: Text(
+          'Soft delete "${category.name}"? It will remain recoverable in the database.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB42318)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB42318),
+            ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Delete'),
           ),
@@ -247,9 +264,9 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -257,10 +274,16 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
     }
   }
 
-  Future<void> _toggleCategory(CategoryManagementModel category, bool isActive) async {
+  Future<void> _toggleCategory(
+    CategoryManagementModel category,
+    bool isActive,
+  ) async {
     setState(() => _saving = true);
     try {
-      await _commerce.toggleCategoryStatus(categoryId: category.id, isActive: isActive);
+      await _commerce.toggleCategoryStatus(
+        categoryId: category.id,
+        isActive: isActive,
+      );
       if (!mounted) {
         return;
       }
@@ -270,9 +293,9 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -280,7 +303,10 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
     }
   }
 
-  Future<void> _toggleFeatured(CategoryManagementModel category, bool isFeatured) async {
+  Future<void> _toggleFeatured(
+    CategoryManagementModel category,
+    bool isFeatured,
+  ) async {
     setState(() => _saving = true);
     try {
       await _commerce.toggleCategoryFeatured(
@@ -295,9 +321,9 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -305,7 +331,10 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
     }
   }
 
-  Future<void> _toggleShowOnHome(CategoryManagementModel category, bool value) async {
+  Future<void> _toggleShowOnHome(
+    CategoryManagementModel category,
+    bool value,
+  ) async {
     setState(() => _saving = true);
     try {
       await _commerce.updateCategory(category.copyWith(showOnHome: value));
@@ -317,9 +346,9 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -344,9 +373,9 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -514,9 +543,15 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
                               ],
                             ),
                           ),
-                          _CountPill(label: 'Total', value: _totalCount.toString()),
+                          _CountPill(
+                            label: 'Total',
+                            value: _totalCount.toString(),
+                          ),
                           const SizedBox(width: 10),
-                          _CountPill(label: 'Page', value: '$_page/$_totalPages'),
+                          _CountPill(
+                            label: 'Page',
+                            value: '$_page/$_totalPages',
+                          ),
                           if (_saving) ...[
                             const SizedBox(width: 12),
                             Text(
@@ -556,16 +591,23 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
                               padding: const EdgeInsets.only(bottom: 12),
                               child: _CategoryInventoryRow(
                                 category: category,
-                                parentName: _categoryById(category.parentId)?.name ?? category.parentName,
+                                parentName:
+                                    _categoryById(category.parentId)?.name ??
+                                    category.parentName,
                                 saving: _saving,
                                 onEdit: () => _showCategoryForm(category),
                                 onDelete: () => _deleteCategory(category),
-                                onToggleActive: (value) => _toggleCategory(category, value),
-                                onToggleFeatured: (value) => _toggleFeatured(category, value),
-                                onToggleShowOnHome: (value) => _toggleShowOnHome(category, value),
+                                onToggleActive: (value) =>
+                                    _toggleCategory(category, value),
+                                onToggleFeatured: (value) =>
+                                    _toggleFeatured(category, value),
+                                onToggleShowOnHome: (value) =>
+                                    _toggleShowOnHome(category, value),
                                 dragHandle: ReorderableDragStartListener(
                                   index: index,
-                                  child: const Icon(Icons.drag_indicator_rounded),
+                                  child: const Icon(
+                                    Icons.drag_indicator_rounded,
+                                  ),
                                 ),
                               ),
                             );
@@ -672,7 +714,10 @@ class _CategoryFilters extends StatelessWidget {
                     items: const [
                       DropdownMenuItem(value: 'all', child: Text('All')),
                       DropdownMenuItem(value: 'active', child: Text('Active')),
-                      DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
+                      DropdownMenuItem(
+                        value: 'inactive',
+                        child: Text('Inactive'),
+                      ),
                     ],
                     onChanged: (value) => onStatusChanged(value ?? 'all'),
                   ),
@@ -700,7 +745,10 @@ class _CategoryFilters extends StatelessWidget {
                     items: const [
                       DropdownMenuItem(value: 'all', child: Text('All')),
                       DropdownMenuItem(value: 'true', child: Text('Featured')),
-                      DropdownMenuItem(value: 'false', child: Text('Not featured')),
+                      DropdownMenuItem(
+                        value: 'false',
+                        child: Text('Not featured'),
+                      ),
                     ],
                     onChanged: (value) => onFeaturedChanged(value ?? 'all'),
                   ),
@@ -709,10 +757,18 @@ class _CategoryFilters extends StatelessWidget {
                   width: 240,
                   child: DropdownButtonFormField<String>(
                     initialValue: parentFilter,
-                    decoration: const InputDecoration(labelText: 'Parent category'),
+                    decoration: const InputDecoration(
+                      labelText: 'Parent category',
+                    ),
                     items: [
-                      const DropdownMenuItem(value: 'all', child: Text('All parents')),
-                      const DropdownMenuItem(value: 'root', child: Text('Top-level only')),
+                      const DropdownMenuItem(
+                        value: 'all',
+                        child: Text('All parents'),
+                      ),
+                      const DropdownMenuItem(
+                        value: 'root',
+                        child: Text('Top-level only'),
+                      ),
                       ...parentOptions.map(
                         (category) => DropdownMenuItem(
                           value: category.id,
@@ -720,7 +776,9 @@ class _CategoryFilters extends StatelessWidget {
                         ),
                       ),
                     ],
-                    onChanged: loadingParents ? null : (value) => onParentChanged(value ?? 'all'),
+                    onChanged: loadingParents
+                        ? null
+                        : (value) => onParentChanged(value ?? 'all'),
                   ),
                 ),
                 FilterChip(
@@ -832,19 +890,27 @@ class _CategoryInventoryRow extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _InfoChip(label: parentName.isEmpty ? 'Top-level' : parentName),
+                        _InfoChip(
+                          label: parentName.isEmpty ? 'Top-level' : parentName,
+                        ),
                         _InfoChip(label: 'Order ${category.sortOrder}'),
                         _InfoChip(
                           label: category.isActive ? 'Active' : 'Inactive',
-                          color: category.isActive ? const Color(0xFF067647) : const Color(0xFF667085),
+                          color: category.isActive
+                              ? const Color(0xFF067647)
+                              : const Color(0xFF667085),
                         ),
                         _InfoChip(
                           label: category.isFeatured ? 'Featured' : 'Standard',
-                          color: category.isFeatured ? AbzioTheme.accentColor : const Color(0xFF667085),
+                          color: category.isFeatured
+                              ? AbzioTheme.accentColor
+                              : const Color(0xFF667085),
                         ),
                         _InfoChip(
                           label: category.showOnHome ? 'Home' : 'Hidden',
-                          color: category.showOnHome ? const Color(0xFFC6A769) : const Color(0xFF667085),
+                          color: category.showOnHome
+                              ? const Color(0xFFC6A769)
+                              : const Color(0xFF667085),
                         ),
                         _InfoChip(label: category.tabType),
                         _InfoChip(label: _formatDate(category.createdAt)),
@@ -856,26 +922,43 @@ class _CategoryInventoryRow extends StatelessWidget {
                         Switch.adaptive(
                           value: category.isActive,
                           onChanged: saving ? null : onToggleActive,
-                          activeTrackColor: AbzioTheme.accentColor.withValues(alpha: 0.45),
+                          activeTrackColor: AbzioTheme.accentColor.withValues(
+                            alpha: 0.45,
+                          ),
                           activeThumbColor: AbzioTheme.accentColor,
                         ),
                         const SizedBox(width: 8),
-                        Text('Active', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                        Text(
+                          'Active',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                        ),
                         const Spacer(),
                         IconButton(
                           tooltip: 'Featured',
-                          onPressed: saving ? null : () => onToggleFeatured(!category.isFeatured),
+                          onPressed: saving
+                              ? null
+                              : () => onToggleFeatured(!category.isFeatured),
                           icon: Icon(
-                            category.isFeatured ? Icons.star_rounded : Icons.star_border_rounded,
-                            color: category.isFeatured ? AbzioTheme.accentColor : AbzioTheme.textSecondary,
+                            category.isFeatured
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            color: category.isFeatured
+                                ? AbzioTheme.accentColor
+                                : AbzioTheme.textSecondary,
                           ),
                         ),
                         IconButton(
                           tooltip: 'Show on home',
-                          onPressed: saving ? null : () => onToggleShowOnHome(!category.showOnHome),
+                          onPressed: saving
+                              ? null
+                              : () => onToggleShowOnHome(!category.showOnHome),
                           icon: Icon(
-                            category.showOnHome ? Icons.home_rounded : Icons.home_outlined,
-                            color: category.showOnHome ? AbzioTheme.accentColor : AbzioTheme.textSecondary,
+                            category.showOnHome
+                                ? Icons.home_rounded
+                                : Icons.home_outlined,
+                            color: category.showOnHome
+                                ? AbzioTheme.accentColor
+                                : AbzioTheme.textSecondary,
                           ),
                         ),
                         IconButton(
@@ -949,15 +1032,24 @@ class _CategoryInventoryRow extends StatelessWidget {
                     ),
                     SizedBox(
                       width: 92,
-                      child: _MiniStatus(label: category.isActive ? 'Active' : 'Inactive', active: category.isActive),
+                      child: _MiniStatus(
+                        label: category.isActive ? 'Active' : 'Inactive',
+                        active: category.isActive,
+                      ),
                     ),
                     SizedBox(
                       width: 102,
-                      child: _MiniStatus(label: category.isFeatured ? 'Featured' : 'Standard', active: category.isFeatured),
+                      child: _MiniStatus(
+                        label: category.isFeatured ? 'Featured' : 'Standard',
+                        active: category.isFeatured,
+                      ),
                     ),
                     SizedBox(
                       width: 108,
-                      child: _MiniStatus(label: category.showOnHome ? 'Home' : 'Hidden', active: category.showOnHome),
+                      child: _MiniStatus(
+                        label: category.showOnHome ? 'Home' : 'Hidden',
+                        active: category.showOnHome,
+                      ),
                     ),
                     SizedBox(
                       width: 96,
@@ -978,26 +1070,44 @@ class _CategoryInventoryRow extends StatelessWidget {
                       children: [
                         IconButton(
                           tooltip: 'Toggle active',
-                          onPressed: saving ? null : () => onToggleActive(!category.isActive),
+                          onPressed: saving
+                              ? null
+                              : () => onToggleActive(!category.isActive),
                           icon: Icon(
-                            category.isActive ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
-                            color: category.isActive ? AbzioTheme.accentColor : AbzioTheme.textSecondary,
+                            category.isActive
+                                ? Icons.toggle_on_rounded
+                                : Icons.toggle_off_rounded,
+                            color: category.isActive
+                                ? AbzioTheme.accentColor
+                                : AbzioTheme.textSecondary,
                           ),
                         ),
                         IconButton(
                           tooltip: 'Featured',
-                          onPressed: saving ? null : () => onToggleFeatured(!category.isFeatured),
+                          onPressed: saving
+                              ? null
+                              : () => onToggleFeatured(!category.isFeatured),
                           icon: Icon(
-                            category.isFeatured ? Icons.star_rounded : Icons.star_border_rounded,
-                            color: category.isFeatured ? AbzioTheme.accentColor : AbzioTheme.textSecondary,
+                            category.isFeatured
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            color: category.isFeatured
+                                ? AbzioTheme.accentColor
+                                : AbzioTheme.textSecondary,
                           ),
                         ),
                         IconButton(
                           tooltip: 'Show on home',
-                          onPressed: saving ? null : () => onToggleShowOnHome(!category.showOnHome),
+                          onPressed: saving
+                              ? null
+                              : () => onToggleShowOnHome(!category.showOnHome),
                           icon: Icon(
-                            category.showOnHome ? Icons.home_rounded : Icons.home_outlined,
-                            color: category.showOnHome ? AbzioTheme.accentColor : AbzioTheme.textSecondary,
+                            category.showOnHome
+                                ? Icons.home_rounded
+                                : Icons.home_outlined,
+                            color: category.showOnHome
+                                ? AbzioTheme.accentColor
+                                : AbzioTheme.textSecondary,
                           ),
                         ),
                         IconButton(
@@ -1039,8 +1149,10 @@ class _CategoryThumb extends StatelessWidget {
             : Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    Icon(Icons.category_outlined, color: AbzioTheme.textSecondary),
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  Icons.category_outlined,
+                  color: AbzioTheme.textSecondary,
+                ),
               ),
       ),
     );
@@ -1058,7 +1170,8 @@ class _MiniStatus extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: (active ? AbzioTheme.accentColor : AbzioTheme.textSecondary).withValues(alpha: 0.1),
+        color: (active ? AbzioTheme.accentColor : AbzioTheme.textSecondary)
+            .withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -1114,7 +1227,9 @@ class _CountPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: AbzioTheme.accentColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbzioTheme.accentColor.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AbzioTheme.accentColor.withValues(alpha: 0.18),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1214,7 +1329,8 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
   final TextEditingController _slugController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _seoTitleController = TextEditingController();
-  final TextEditingController _seoDescriptionController = TextEditingController();
+  final TextEditingController _seoDescriptionController =
+      TextEditingController();
   final TextEditingController _orderController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
@@ -1351,7 +1467,9 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
         .toList();
 
     return AlertDialog(
-      title: Text(widget.initialCategory == null ? 'Add category' : 'Edit category'),
+      title: Text(
+        widget.initialCategory == null ? 'Add category' : 'Edit category',
+      ),
       content: SizedBox(
         width: 700,
         child: SingleChildScrollView(
@@ -1394,7 +1512,9 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
                         child: Text(
                           _pickedImage!.name,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                          style: GoogleFonts.inter(
+                            color: AbzioTheme.textSecondary,
+                          ),
                         ),
                       ),
                     ],
@@ -1434,7 +1554,9 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
                         child: Text(
                           _pickedBanner!.name,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                          style: GoogleFonts.inter(
+                            color: AbzioTheme.textSecondary,
+                          ),
                         ),
                       ),
                     ],
@@ -1447,8 +1569,9 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
                     labelText: 'Category Name',
                     hintText: 'Women',
                   ),
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty ? 'Category name is required.' : null,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Category name is required.'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -1457,8 +1580,9 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
                     labelText: 'Slug',
                     hintText: 'women',
                   ),
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty ? 'Slug is required.' : null,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Slug is required.'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -1499,7 +1623,8 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
                     DropdownMenuItem(value: 'Women', child: Text('Women')),
                     DropdownMenuItem(value: 'Kids', child: Text('Kids')),
                   ],
-                  onChanged: (value) => setState(() => _tabType = value ?? 'All'),
+                  onChanged: (value) =>
+                      setState(() => _tabType = value ?? 'All'),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -1508,14 +1633,17 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
                       child: TextFormField(
                         controller: _orderController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Sort Order'),
+                        decoration: const InputDecoration(
+                          labelText: 'Sort Order',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: SwitchListTile.adaptive(
                         value: _isFeatured,
-                        onChanged: (value) => setState(() => _isFeatured = value),
+                        onChanged: (value) =>
+                            setState(() => _isFeatured = value),
                         title: const Text('Featured'),
                         contentPadding: EdgeInsets.zero,
                       ),
@@ -1528,7 +1656,8 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
                     Expanded(
                       child: SwitchListTile.adaptive(
                         value: _showOnHome,
-                        onChanged: (value) => setState(() => _showOnHome = value),
+                        onChanged: (value) =>
+                            setState(() => _showOnHome = value),
                         title: const Text('Show on home'),
                         contentPadding: EdgeInsets.zero,
                       ),
@@ -1558,7 +1687,8 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
                   maxLines: 3,
                   decoration: const InputDecoration(
                     labelText: 'SEO Description',
-                    hintText: 'Premium fashion discovery curated for Abianzo shoppers.',
+                    hintText:
+                        'Premium fashion discovery curated for Abianzo shoppers.',
                   ),
                 ),
               ],
@@ -1610,16 +1740,20 @@ class _ImagePickerPreview extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
           child: previewBytes != null
-              ? Image.memory(previewBytes!, fit: BoxFit.cover, width: double.infinity)
+              ? Image.memory(
+                  previewBytes!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                )
               : imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _UploadPlaceholder(fallbackIcon: fallbackIcon),
-                    )
-                  : _UploadPlaceholder(fallbackIcon: fallbackIcon),
+              ? Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _UploadPlaceholder(fallbackIcon: fallbackIcon),
+                )
+              : _UploadPlaceholder(fallbackIcon: fallbackIcon),
         ),
       ),
     );
@@ -1680,4 +1814,3 @@ String _formatDate(String value) {
   }
   return '${parsed.day.toString().padLeft(2, '0')}/${parsed.month.toString().padLeft(2, '0')}/${parsed.year}';
 }
-

@@ -43,7 +43,11 @@ class _VendorDashboardState extends State<VendorDashboard> {
   String? _boundStoreId;
 
   String _money(double amount) {
-    return NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(amount);
+    return NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+      decimalDigits: 0,
+    ).format(amount);
   }
 
   void _ensureFutures(AppUser actor) {
@@ -62,7 +66,11 @@ class _VendorDashboardState extends State<VendorDashboard> {
   }
 
   void _ensureDashboardFutures(AppUser actor, Store store) {
-    if (_boundActorId == actor.id && _boundStoreId == store.id && _ordersFuture != null && _analyticsFuture != null) return;
+    if (_boundActorId == actor.id &&
+        _boundStoreId == store.id &&
+        _ordersFuture != null &&
+        _analyticsFuture != null)
+      return;
     _boundStoreId = store.id;
     _ordersFuture = _db.getVendorOrders(store.id, actor: actor).first;
     _analyticsFuture = _db.getVendorAnalytics(store.id, actor: actor);
@@ -89,7 +97,10 @@ class _VendorDashboardState extends State<VendorDashboard> {
     final actor = context.watch<AuthProvider>().user;
     if (actor == null) {
       return const Scaffold(
-        body: AbzioLoadingView(title: 'Loading Workspace', subtitle: 'Authenticating vendor session...'),
+        body: AbzioLoadingView(
+          title: 'Loading Workspace',
+          subtitle: 'Authenticating vendor session...',
+        ),
       );
     }
 
@@ -100,7 +111,8 @@ class _VendorDashboardState extends State<VendorDashboard> {
         body: const Center(
           child: VendorEmptyState(
             title: 'Vendor Access Required',
-            subtitle: 'Switch to a vendor account to manage store orders and operations.',
+            subtitle:
+                'Switch to a vendor account to manage store orders and operations.',
             icon: Icons.storefront_outlined,
           ),
         ),
@@ -111,25 +123,39 @@ class _VendorDashboardState extends State<VendorDashboard> {
 
     return Scaffold(
       backgroundColor: VendorTheme.background,
-      appBar: widget.embedded ? null : AppBar(title: const Text('Store Overview')),
+      appBar: widget.embedded
+          ? null
+          : AppBar(title: const Text('Store Overview')),
       body: FutureBuilder<Store?>(
         future: _storeFuture,
         builder: (context, storeSnapshot) {
           if (storeSnapshot.connectionState == ConnectionState.waiting) {
-            return const AbzioLoadingView(title: 'Loading Store', subtitle: 'Fetching store profile...');
+            return const AbzioLoadingView(
+              title: 'Loading Store',
+              subtitle: 'Fetching store profile...',
+            );
           }
           final store = storeSnapshot.data;
-          final status = VendorStatusHelper.getVendorStatus(user: actor, store: store);
+          final status = VendorStatusHelper.getVendorStatus(
+            user: actor,
+            store: store,
+          );
 
           if (status != VendorAccountStatus.approved || store == null) {
             return Center(
               child: VendorEmptyState(
                 title: 'Set up your store',
-                subtitle: 'Register your storefront to begin operations and access the dashboard.',
+                subtitle:
+                    'Register your storefront to begin operations and access the dashboard.',
                 icon: Icons.add_business_outlined,
                 primaryActionLabel: 'Register Store',
                 onPrimaryAction: () async {
-                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const VendorRegistrationScreen()));
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const VendorRegistrationScreen(),
+                    ),
+                  );
                   if (mounted) _refresh(actor);
                 },
               ),
@@ -147,16 +173,27 @@ class _VendorDashboardState extends State<VendorDashboard> {
                 return FutureBuilder<List<OrderModel>>(
                   future: _ordersFuture,
                   builder: (context, ordersSnapshot) {
-                    if (ordersSnapshot.connectionState == ConnectionState.waiting && analyticsSnapshot.connectionState != ConnectionState.done) {
-                      return const AbzioLoadingView(title: 'Loading Data', subtitle: 'Aggregating order and analytics data...');
+                    if (ordersSnapshot.connectionState ==
+                            ConnectionState.waiting &&
+                        analyticsSnapshot.connectionState !=
+                            ConnectionState.done) {
+                      return const AbzioLoadingView(
+                        title: 'Loading Data',
+                        subtitle: 'Aggregating order and analytics data...',
+                      );
                     }
 
-                    final orders = List<OrderModel>.of(ordersSnapshot.data ?? [])..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+                    final orders = List<OrderModel>.of(
+                      ordersSnapshot.data ?? [],
+                    )..sort((a, b) => b.timestamp.compareTo(a.timestamp));
                     final analytics = analyticsSnapshot.data;
                     final products = analytics?.bestSellingProducts ?? [];
 
                     return ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing16, vertical: VendorTheme.spacing24),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: VendorTheme.spacing16,
+                        vertical: VendorTheme.spacing24,
+                      ),
                       children: [
                         _buildWelcomeHeader(store),
                         const SizedBox(height: VendorTheme.spacing24),
@@ -195,8 +232,12 @@ class _VendorDashboardState extends State<VendorDashboard> {
         ),
         VendorStatusBadge(
           label: store.isActive ? 'Active' : 'Paused',
-          type: store.isActive ? VendorBadgeType.success : VendorBadgeType.warning,
-          icon: store.isActive ? Icons.check_circle_rounded : Icons.pause_circle_rounded,
+          type: store.isActive
+              ? VendorBadgeType.success
+              : VendorBadgeType.warning,
+          icon: store.isActive
+              ? Icons.check_circle_rounded
+              : Icons.pause_circle_rounded,
         ),
       ],
     );
@@ -212,15 +253,61 @@ class _VendorDashboardState extends State<VendorDashboard> {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              _QuickActionChip(icon: Icons.add_circle_outline, label: 'Add Product', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddProductScreen(storeId: store.id)))),
+              _QuickActionChip(
+                icon: Icons.add_circle_outline,
+                label: 'Add Product',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AddProductScreen(storeId: store.id),
+                  ),
+                ),
+              ),
               const SizedBox(width: VendorTheme.spacing8),
-              _QuickActionChip(icon: Icons.inventory_2_outlined, label: 'Products', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductManagementScreen(storeId: store.id)))),
+              _QuickActionChip(
+                icon: Icons.inventory_2_outlined,
+                label: 'Products',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProductManagementScreen(storeId: store.id),
+                  ),
+                ),
+              ),
               const SizedBox(width: VendorTheme.spacing8),
-              _QuickActionChip(icon: Icons.shopping_bag_outlined, label: 'Orders', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderManagementScreen(actor: actor, store: store)))),
+              _QuickActionChip(
+                icon: Icons.shopping_bag_outlined,
+                label: 'Orders',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        OrderManagementScreen(actor: actor, store: store),
+                  ),
+                ),
+              ),
               const SizedBox(width: VendorTheme.spacing8),
-              _QuickActionChip(icon: Icons.price_change_outlined, label: 'Pricing', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingManagementScreen(storeId: store.id)))),
+              _QuickActionChip(
+                icon: Icons.price_change_outlined,
+                label: 'Pricing',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PricingManagementScreen(storeId: store.id),
+                  ),
+                ),
+              ),
               const SizedBox(width: VendorTheme.spacing8),
-              _QuickActionChip(icon: Icons.settings_outlined, label: 'Settings', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StoreSettingsScreen(store: store)))),
+              _QuickActionChip(
+                icon: Icons.settings_outlined,
+                label: 'Settings',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StoreSettingsScreen(store: store),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -230,10 +317,12 @@ class _VendorDashboardState extends State<VendorDashboard> {
 
   Widget _buildAiInsights(List<OrderModel> orders, List<Product> products) {
     final lowStock = products.where((p) => p.stock > 0 && p.stock <= 5).length;
-    final String insight = lowStock > 0 
-        ? 'Restock Opportunity: You have $lowStock products critically low on stock.' 
+    final String insight = lowStock > 0
+        ? 'Restock Opportunity: You have $lowStock products critically low on stock.'
         : 'Pricing Health: Your pricing aligns well with market standards this week.';
-    final Color insightColor = lowStock > 0 ? VendorTheme.warning : VendorTheme.info;
+    final Color insightColor = lowStock > 0
+        ? VendorTheme.warning
+        : VendorTheme.info;
 
     return PremiumVendorCard(
       backgroundColor: insightColor.withValues(alpha: 0.05),
@@ -247,7 +336,12 @@ class _VendorDashboardState extends State<VendorDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('AI INSIGHT', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: insightColor)),
+                Text(
+                  'AI INSIGHT',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(color: insightColor),
+                ),
                 const SizedBox(height: VendorTheme.spacing4),
                 Text(insight, style: Theme.of(context).textTheme.bodyMedium),
               ],
@@ -260,14 +354,33 @@ class _VendorDashboardState extends State<VendorDashboard> {
 
   Widget _buildTodayOverview(List<OrderModel> orders) {
     final now = DateTime.now();
-    final todayOrders = orders.where((o) => o.timestamp.day == now.day && o.timestamp.month == now.month).toList();
-    final yesterdayOrders = orders.where((o) => o.timestamp.day == now.subtract(const Duration(days: 1)).day).toList();
+    final todayOrders = orders
+        .where(
+          (o) => o.timestamp.day == now.day && o.timestamp.month == now.month,
+        )
+        .toList();
+    final yesterdayOrders = orders
+        .where(
+          (o) => o.timestamp.day == now.subtract(const Duration(days: 1)).day,
+        )
+        .toList();
 
-    final todayRev = todayOrders.fold<double>(0, (sum, o) => sum + o.totalAmount);
-    final yestRev = yesterdayOrders.fold<double>(0, (sum, o) => sum + o.totalAmount);
-    double revTrend = yestRev == 0 ? (todayRev > 0 ? 100 : 0) : ((todayRev - yestRev) / yestRev) * 100;
+    final todayRev = todayOrders.fold<double>(
+      0,
+      (sum, o) => sum + o.totalAmount,
+    );
+    final yestRev = yesterdayOrders.fold<double>(
+      0,
+      (sum, o) => sum + o.totalAmount,
+    );
+    double revTrend = yestRev == 0
+        ? (todayRev > 0 ? 100 : 0)
+        : ((todayRev - yestRev) / yestRev) * 100;
 
-    final todayItems = todayOrders.fold<int>(0, (sum, o) => sum + o.items.fold<int>(0, (s, i) => s + i.quantity));
+    final todayItems = todayOrders.fold<int>(
+      0,
+      (sum, o) => sum + o.items.fold<int>(0, (s, i) => s + i.quantity),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,17 +389,41 @@ class _VendorDashboardState extends State<VendorDashboard> {
         const SizedBox(height: VendorTheme.spacing12),
         Row(
           children: [
-            Expanded(child: VendorMetricCard(title: 'Revenue', value: _money(todayRev), trend: revTrend)),
+            Expanded(
+              child: VendorMetricCard(
+                title: 'Revenue',
+                value: _money(todayRev),
+                trend: revTrend,
+              ),
+            ),
             const SizedBox(width: VendorTheme.spacing12),
-            Expanded(child: VendorMetricCard(title: 'Orders', value: '${todayOrders.length}', trend: todayOrders.length >= yesterdayOrders.length ? 5.0 : -2.0)), // Dummy trend for orders
+            Expanded(
+              child: VendorMetricCard(
+                title: 'Orders',
+                value: '${todayOrders.length}',
+                trend: todayOrders.length >= yesterdayOrders.length
+                    ? 5.0
+                    : -2.0,
+              ),
+            ), // Dummy trend for orders
           ],
         ),
         const SizedBox(height: VendorTheme.spacing12),
         Row(
           children: [
-            Expanded(child: VendorMetricCard(title: 'Units Sold', value: '$todayItems')),
+            Expanded(
+              child: VendorMetricCard(
+                title: 'Units Sold',
+                value: '$todayItems',
+              ),
+            ),
             const SizedBox(width: VendorTheme.spacing12),
-            Expanded(child: VendorMetricCard(title: 'Store Visits', value: '${todayOrders.length * 4}')), // Mock metric
+            Expanded(
+              child: VendorMetricCard(
+                title: 'Store Visits',
+                value: '${todayOrders.length * 4}',
+              ),
+            ), // Mock metric
           ],
         ),
       ],
@@ -298,7 +435,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
     final accepted = orders.where((o) => o.status == 'Confirmed').length;
     final packed = orders.where((o) => o.status == 'Packed').length;
     final shipped = orders.where((o) => o.status == 'Shipped').length;
-    
+
     return PremiumVendorCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,18 +443,45 @@ class _VendorDashboardState extends State<VendorDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('ORDER PIPELINE', style: Theme.of(context).textTheme.labelMedium),
-              const Icon(Icons.arrow_forward_rounded, size: 16, color: VendorTheme.grey400),
+              Text(
+                'ORDER PIPELINE',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              const Icon(
+                Icons.arrow_forward_rounded,
+                size: 16,
+                color: VendorTheme.grey400,
+              ),
             ],
           ),
           const SizedBox(height: VendorTheme.spacing20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _PipelineStep(label: 'New', count: newOrders, color: VendorTheme.info, isActive: newOrders > 0),
-              _PipelineStep(label: 'Accepted', count: accepted, color: VendorTheme.warning, isActive: accepted > 0),
-              _PipelineStep(label: 'Packed', count: packed, color: VendorTheme.warning, isActive: packed > 0),
-              _PipelineStep(label: 'Shipped', count: shipped, color: VendorTheme.success, isActive: shipped > 0),
+              _PipelineStep(
+                label: 'New',
+                count: newOrders,
+                color: VendorTheme.info,
+                isActive: newOrders > 0,
+              ),
+              _PipelineStep(
+                label: 'Accepted',
+                count: accepted,
+                color: VendorTheme.warning,
+                isActive: accepted > 0,
+              ),
+              _PipelineStep(
+                label: 'Packed',
+                count: packed,
+                color: VendorTheme.warning,
+                isActive: packed > 0,
+              ),
+              _PipelineStep(
+                label: 'Shipped',
+                count: shipped,
+                color: VendorTheme.success,
+                isActive: shipped > 0,
+              ),
             ],
           ),
         ],
@@ -325,26 +489,45 @@ class _VendorDashboardState extends State<VendorDashboard> {
     );
   }
 
-  Widget _buildStoreHealthScore(Store store, List<OrderModel> orders, List<Product> products) {
+  Widget _buildStoreHealthScore(
+    Store store,
+    List<OrderModel> orders,
+    List<Product> products,
+  ) {
     // Basic calculation logic to form a 0-100 score
     int score = 70;
     if (store.bannerImageUrl.isNotEmpty) score += 10;
     if (orders.isNotEmpty) score += 20;
-    
+
     return PremiumVendorCard(
       backgroundColor: VendorTheme.primary,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('STORE HEALTH SCORE', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: VendorTheme.grey400)),
+          Text(
+            'STORE HEALTH SCORE',
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: VendorTheme.grey400),
+          ),
           const SizedBox(height: VendorTheme.spacing16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('$score', style: Theme.of(context).textTheme.displayLarge?.copyWith(color: Colors.white)),
+              Text(
+                '$score',
+                style: Theme.of(
+                  context,
+                ).textTheme.displayLarge?.copyWith(color: Colors.white),
+              ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 6, left: 4),
-                child: Text('/ 100', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: VendorTheme.grey400)),
+                child: Text(
+                  '/ 100',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(color: VendorTheme.grey400),
+                ),
               ),
             ],
           ),
@@ -352,14 +535,20 @@ class _VendorDashboardState extends State<VendorDashboard> {
           LinearProgressIndicator(
             value: score / 100,
             backgroundColor: VendorTheme.grey800,
-            valueColor: AlwaysStoppedAnimation<Color>(score > 80 ? VendorTheme.success : VendorTheme.warning),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              score > 80 ? VendorTheme.success : VendorTheme.warning,
+            ),
             borderRadius: BorderRadius.circular(4),
             minHeight: 6,
           ),
           const SizedBox(height: VendorTheme.spacing16),
           Text(
-            score > 80 ? 'Your store is performing exceptionally well.' : 'Update your store policies and banner to improve health.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: VendorTheme.grey300),
+            score > 80
+                ? 'Your store is performing exceptionally well.'
+                : 'Update your store policies and banner to improve health.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: VendorTheme.grey300),
           ),
         ],
       ),
@@ -368,7 +557,11 @@ class _VendorDashboardState extends State<VendorDashboard> {
 }
 
 class _QuickActionChip extends StatelessWidget {
-  const _QuickActionChip({required this.icon, required this.label, required this.onTap});
+  const _QuickActionChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -379,7 +572,10 @@ class _QuickActionChip extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(VendorTheme.radiusMedium),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing16, vertical: VendorTheme.spacing12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: VendorTheme.spacing16,
+          vertical: VendorTheme.spacing12,
+        ),
         decoration: BoxDecoration(
           border: Border.all(color: VendorTheme.grey200),
           borderRadius: BorderRadius.circular(VendorTheme.radiusMedium),
@@ -399,7 +595,12 @@ class _QuickActionChip extends StatelessWidget {
 }
 
 class _PipelineStep extends StatelessWidget {
-  const _PipelineStep({required this.label, required this.count, required this.color, this.isActive = false});
+  const _PipelineStep({
+    required this.label,
+    required this.count,
+    required this.color,
+    this.isActive = false,
+  });
   final String label;
   final int count;
   final Color color;
@@ -414,8 +615,13 @@ class _PipelineStep extends StatelessWidget {
           height: 48,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isActive ? color.withValues(alpha: 0.1) : VendorTheme.grey100,
-            border: Border.all(color: isActive ? color : VendorTheme.grey200, width: 2),
+            color: isActive
+                ? color.withValues(alpha: 0.1)
+                : VendorTheme.grey100,
+            border: Border.all(
+              color: isActive ? color : VendorTheme.grey200,
+              width: 2,
+            ),
           ),
           alignment: Alignment.center,
           child: Text(

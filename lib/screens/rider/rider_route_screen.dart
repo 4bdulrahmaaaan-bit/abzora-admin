@@ -25,10 +25,7 @@ LatLngBounds _boundsFromLatLngList(List<LatLng> list) {
       if (latLng.longitude < y0!) y0 = latLng.longitude;
     }
   }
-  return LatLngBounds(
-    northeast: LatLng(x1!, y1!),
-    southwest: LatLng(x0!, y0!),
-  );
+  return LatLngBounds(northeast: LatLng(x1!, y1!), southwest: LatLng(x0!, y0!));
 }
 
 class RiderRouteScreen extends StatefulWidget {
@@ -91,7 +88,8 @@ class _RiderRouteScreenState extends State<RiderRouteScreen> {
                   SizedBox(height: 140),
                   AbzioLoadingView(
                     title: 'Building your route',
-                    subtitle: 'Sorting deliveries and return pickups by distance.',
+                    subtitle:
+                        'Sorting deliveries and return pickups by distance.',
                   ),
                 ],
               );
@@ -111,7 +109,9 @@ class _RiderRouteScreenState extends State<RiderRouteScreen> {
                 Marker(
                   markerId: const MarkerId('rider'),
                   position: LatLng(rider.latitude!, rider.longitude!),
-                  icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueBlue,
+                  ),
                   infoWindow: const InfoWindow(title: 'You'),
                 ),
               );
@@ -119,9 +119,13 @@ class _RiderRouteScreenState extends State<RiderRouteScreen> {
 
             for (int i = 0; i < stops.length; i++) {
               final stop = stops[i];
-              final lat = stop.task.type == 'return' ? stop.task.pickupLat : stop.task.dropLat;
-              final lng = stop.task.type == 'return' ? stop.task.pickupLng : stop.task.dropLng;
-              
+              final lat = stop.task.type == 'return'
+                  ? stop.task.pickupLat
+                  : stop.task.dropLat;
+              final lng = stop.task.type == 'return'
+                  ? stop.task.pickupLng
+                  : stop.task.dropLng;
+
               if (lat != null && lng != null) {
                 final pos = LatLng(lat, lng);
                 points.add(pos);
@@ -130,26 +134,30 @@ class _RiderRouteScreenState extends State<RiderRouteScreen> {
                     markerId: MarkerId(stop.task.id),
                     position: pos,
                     icon: BitmapDescriptor.defaultMarkerWithHue(
-                      stop.task.type == 'return' ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueGreen,
+                      stop.task.type == 'return'
+                          ? BitmapDescriptor.hueOrange
+                          : BitmapDescriptor.hueGreen,
                     ),
-                    infoWindow: InfoWindow(title: 'Stop ${i + 1} - ${stop.routeLabel}'),
+                    infoWindow: InfoWindow(
+                      title: 'Stop ${i + 1} - ${stop.routeLabel}',
+                    ),
                   ),
                 );
               }
             }
 
             if (points.isNotEmpty) {
-               polylines.add(
-                 Polyline(
-                   polylineId: const PolylineId('route'),
-                   points: points,
-                   color: AbzioTheme.accentColor,
-                   width: 4,
-                 )
-               );
+              polylines.add(
+                Polyline(
+                  polylineId: const PolylineId('route'),
+                  points: points,
+                  color: AbzioTheme.accentColor,
+                  width: 4,
+                ),
+              );
             }
 
-            final initialCameraPosition = points.isNotEmpty 
+            final initialCameraPosition = points.isNotEmpty
                 ? CameraPosition(target: points.first, zoom: 14)
                 : const CameraPosition(target: LatLng(0, 0), zoom: 2);
 
@@ -162,11 +170,16 @@ class _RiderRouteScreenState extends State<RiderRouteScreen> {
                     markers: markers,
                     polylines: polylines,
                     onMapCreated: (controller) {
-                       if (points.isNotEmpty) {
-                          Future.delayed(const Duration(milliseconds: 300), () {
-                            controller.animateCamera(CameraUpdate.newLatLngBounds(_boundsFromLatLngList(points), 50));
-                          });
-                       }
+                      if (points.isNotEmpty) {
+                        Future.delayed(const Duration(milliseconds: 300), () {
+                          controller.animateCamera(
+                            CameraUpdate.newLatLngBounds(
+                              _boundsFromLatLngList(points),
+                              50,
+                            ),
+                          );
+                        });
+                      }
                     },
                     myLocationEnabled: true,
                     myLocationButtonEnabled: true,
@@ -179,7 +192,9 @@ class _RiderRouteScreenState extends State<RiderRouteScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                     children: [
                       _RouteHeroCard(
-                        riderName: rider.name.trim().isEmpty ? 'Abianzo Rider' : rider.name.trim(),
+                        riderName: rider.name.trim().isEmpty
+                            ? 'Abianzo Rider'
+                            : rider.name.trim(),
                         totalStops: stops.length,
                         deliveryCount: deliveries.length,
                         returnCount: returns.length,
@@ -188,13 +203,15 @@ class _RiderRouteScreenState extends State<RiderRouteScreen> {
                       if (stops.isEmpty)
                         const AbzioEmptyCard(
                           title: 'No active route yet',
-                          subtitle: 'Accepted deliveries and nearby return pickups will appear here automatically.',
+                          subtitle:
+                              'Accepted deliveries and nearby return pickups will appear here automatically.',
                         )
                       else ...[
                         if (deliveries.isNotEmpty) ...[
                           _RouteSectionHeader(
                             title: 'Deliveries First',
-                            subtitle: 'Orders closest to you and ready to complete.',
+                            subtitle:
+                                'Orders closest to you and ready to complete.',
                           ),
                           const SizedBox(height: 12),
                           ...List.generate(
@@ -209,7 +226,10 @@ class _RiderRouteScreenState extends State<RiderRouteScreen> {
                                 }
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => DeliveryScreen(order: order)),
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        DeliveryScreen(order: order),
+                                  ),
                                 );
                               },
                             ),
@@ -219,7 +239,8 @@ class _RiderRouteScreenState extends State<RiderRouteScreen> {
                         if (returns.isNotEmpty) ...[
                           _RouteSectionHeader(
                             title: 'Nearby Return Pickups',
-                            subtitle: 'Bundle these stops while you are already in the area.',
+                            subtitle:
+                                'Bundle these stops while you are already in the area.',
                           ),
                           const SizedBox(height: 12),
                           ...List.generate(
@@ -350,10 +371,7 @@ class _RouteHeroCard extends StatelessWidget {
 }
 
 class _HeroMetricChip extends StatelessWidget {
-  const _HeroMetricChip({
-    required this.label,
-    required this.value,
-  });
+  const _HeroMetricChip({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -392,10 +410,7 @@ class _HeroMetricChip extends StatelessWidget {
 }
 
 class _RouteSectionHeader extends StatelessWidget {
-  const _RouteSectionHeader({
-    required this.title,
-    required this.subtitle,
-  });
+  const _RouteSectionHeader({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -407,9 +422,9 @@ class _RouteSectionHeader extends StatelessWidget {
       children: [
         Text(
           title.toUpperCase(),
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: AbzioTheme.accentColor,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium?.copyWith(color: AbzioTheme.accentColor),
         ),
         const SizedBox(height: 6),
         Text(
@@ -443,8 +458,10 @@ class _RouteStopCard extends StatelessWidget {
 
     final buttonLabel = stop.isReturn
         ? (stop.task.status == 'assigned'
-            ? 'Mark Picked'
-            : (stop.task.status == 'in_progress' ? 'Complete Return' : 'Completed'))
+              ? 'Mark Picked'
+              : (stop.task.status == 'in_progress'
+                    ? 'Complete Return'
+                    : 'Completed'))
         : 'Open Delivery';
 
     return Container(
@@ -490,7 +507,10 @@ class _RouteStopCard extends StatelessWidget {
                   children: [
                     Text(
                       stop.routeLabel,
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: const Color(0xFF111111)),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF111111),
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -501,7 +521,10 @@ class _RouteStopCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -521,7 +544,10 @@ class _RouteStopCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             stop.task.address,
-            style: GoogleFonts.inter(color: const Color(0xFF666666), height: 1.45),
+            style: GoogleFonts.inter(
+              color: const Color(0xFF666666),
+              height: 1.45,
+            ),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -548,7 +574,10 @@ class _RouteStopCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             stop.supportText,
-            style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666)),
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: const Color(0xFF666666),
+            ),
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -564,7 +593,9 @@ class _RouteStopCard extends StatelessWidget {
                       : ElevatedButton(
                           onPressed: onAction,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: stop.isReturn ? accent : const Color(0xFF111111),
+                            backgroundColor: stop.isReturn
+                                ? accent
+                                : const Color(0xFF111111),
                           ),
                           child: Text(buttonLabel),
                         ),
@@ -573,10 +604,18 @@ class _RouteStopCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
                     onPressed: () {
-                      final lat = stop.task.type == 'return' ? stop.task.pickupLat : stop.task.dropLat;
-                      final lng = stop.task.type == 'return' ? stop.task.pickupLng : stop.task.dropLng;
+                      final lat = stop.task.type == 'return'
+                          ? stop.task.pickupLat
+                          : stop.task.dropLat;
+                      final lng = stop.task.type == 'return'
+                          ? stop.task.pickupLng
+                          : stop.task.dropLng;
                       if (lat != null && lng != null) {
-                        launchUrl(Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng'));
+                        launchUrl(
+                          Uri.parse(
+                            'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
+                          ),
+                        );
                       }
                     },
                     icon: const Icon(Icons.navigation_outlined, size: 16),
@@ -593,10 +632,7 @@ class _RouteStopCard extends StatelessWidget {
 }
 
 class _MiniInfoChip extends StatelessWidget {
-  const _MiniInfoChip({
-    required this.icon,
-    required this.label,
-  });
+  const _MiniInfoChip({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -626,4 +662,3 @@ class _MiniInfoChip extends StatelessWidget {
     );
   }
 }
-

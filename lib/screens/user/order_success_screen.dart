@@ -33,7 +33,9 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
     super.initState();
     debugPrint('Abianzo success: initState orderId=${widget.orderId}');
     HapticFeedback.mediumImpact();
-    _orderPreviewItems = List<CartItem>.from(context.read<CartProvider>().items);
+    _orderPreviewItems = List<CartItem>.from(
+      context.read<CartProvider>().items,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -80,9 +82,15 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
   Widget build(BuildContext context) {
     debugPrint('Abianzo success: build orderId=${widget.orderId}');
     final theme = Theme.of(context);
-    final deliveryLabel = DateFormat('EEE, dd MMM').format(widget.estimatedDelivery);
-    final previewItem = _orderPreviewItems.isNotEmpty ? _orderPreviewItems.first : null;
-    final extraItems = _orderPreviewItems.length > 1 ? _orderPreviewItems.length - 1 : 0;
+    final deliveryLabel = DateFormat(
+      'EEE, dd MMM',
+    ).format(widget.estimatedDelivery);
+    final previewItem = _orderPreviewItems.isNotEmpty
+        ? _orderPreviewItems.first
+        : null;
+    final extraItems = _orderPreviewItems.length > 1
+        ? _orderPreviewItems.length - 1
+        : 0;
 
     return AbzioThemeScope.light(
       child: Scaffold(
@@ -171,7 +179,8 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                                 width: 72,
                                 height: 72,
                                 child: AbzioNetworkImage(
-                                  imageUrl: previewItem.product.images.isNotEmpty
+                                  imageUrl:
+                                      previewItem.product.images.isNotEmpty
                                       ? previewItem.product.images.first
                                       : '',
                                   fallbackLabel: previewItem.product.name,
@@ -196,7 +205,9 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    extraItems > 0 ? '+$extraItems more item${extraItems == 1 ? '' : 's'}' : 'Ready to ship',
+                                    extraItems > 0
+                                        ? '+$extraItems more item${extraItems == 1 ? '' : 's'}'
+                                        : 'Ready to ship',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: theme.textTheme.bodySmall?.copyWith(
@@ -273,10 +284,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -289,9 +297,9 @@ class _InfoRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: context.abzioSecondaryText,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: context.abzioSecondaryText),
           ),
         ),
         const SizedBox(width: 16),
@@ -300,13 +308,12 @@ class _InfoRow extends StatelessWidget {
             value,
             textAlign: TextAlign.right,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AbzioTheme.textPrimary,
-                ),
+              fontWeight: FontWeight.w700,
+              color: AbzioTheme.textPrimary,
+            ),
           ),
         ),
       ],
     );
   }
 }
-

@@ -3,12 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/models.dart';
 import 'backend_commerce_service.dart';
 
-enum StylistIntent {
-  outfitSuggestion,
-  sizeHelp,
-  productSearch,
-  generalChat,
-}
+enum StylistIntent { outfitSuggestion, sizeHelp, productSearch, generalChat }
 
 class StylistProductCard {
   const StylistProductCard({
@@ -43,13 +38,17 @@ class StylistReply {
 class AiStylistService {
   const AiStylistService();
 
-  static final BackendCommerceService _backendCommerce = BackendCommerceService();
+  static final BackendCommerceService _backendCommerce =
+      BackendCommerceService();
 
   String _cleanPrompt(String value) {
     return value
         .trim()
         .replaceAll(RegExp(r'\s+'), ' ')
-        .replaceAll(RegExp(r'^(please|hi|hello|hey)\s+', caseSensitive: false), '')
+        .replaceAll(
+          RegExp(r'^(please|hi|hello|hey)\s+', caseSensitive: false),
+          '',
+        )
         .trim()
         .toLowerCase();
   }
@@ -139,15 +138,20 @@ class AiStylistService {
       if (preferredStyle.isNotEmpty && haystack.contains(preferredStyle)) {
         total += 20;
       }
-      if (focusedProduct != null && product.category == focusedProduct.category) {
+      if (focusedProduct != null &&
+          product.category == focusedProduct.category) {
         total += 18;
       }
       if (bodyProfile != null &&
           bodyProfile.recommendedSize.isNotEmpty &&
-          product.sizes.map((size) => size.toUpperCase()).contains(bodyProfile.recommendedSize.toUpperCase())) {
+          product.sizes
+              .map((size) => size.toUpperCase())
+              .contains(bodyProfile.recommendedSize.toUpperCase())) {
         total += 10;
       }
-      if (orderedProductNames.any((name) => haystack.contains(name.split(' ').first))) {
+      if (orderedProductNames.any(
+        (name) => haystack.contains(name.split(' ').first),
+      )) {
         total += 8;
       }
       total += product.purchaseCount * 2;
@@ -162,10 +166,11 @@ class AiStylistService {
       return total;
     }
 
-    final ranked = catalogProducts
-        .where((product) => product.isActive && product.stock > 0)
-        .toList()
-      ..sort((a, b) => score(b).compareTo(score(a)));
+    final ranked =
+        catalogProducts
+            .where((product) => product.isActive && product.stock > 0)
+            .toList()
+          ..sort((a, b) => score(b).compareTo(score(a)));
 
     return ranked.take(limit).map((product) {
       final recommendedSize = recommendSize(
@@ -191,13 +196,16 @@ class AiStylistService {
     MeasurementProfile? measurement,
     UserMemory? memory,
   }) {
-    final base = (bodyProfile?.recommendedSize ??
-            measurement?.recommendedSize ??
-            memory?.size ??
-            'M')
-        .trim()
-        .toUpperCase();
-    final sizes = product.sizes.map((size) => size.trim().toUpperCase()).toList();
+    final base =
+        (bodyProfile?.recommendedSize ??
+                measurement?.recommendedSize ??
+                memory?.size ??
+                'M')
+            .trim()
+            .toUpperCase();
+    final sizes = product.sizes
+        .map((size) => size.trim().toUpperCase())
+        .toList();
     if (sizes.isEmpty) {
       return base;
     }
@@ -313,12 +321,15 @@ class AiStylistService {
     final productModels = (payload['products'] as List? ?? const [])
         .whereType<Product>()
         .toList();
-    final highlightedSize = (payload['highlightedSize'] ?? '').toString().trim().isEmpty
+    final highlightedSize =
+        (payload['highlightedSize'] ?? '').toString().trim().isEmpty
         ? null
         : (payload['highlightedSize'] ?? '').toString().trim();
     final products = <StylistProductCard>[];
     for (var index = 0; index < productModels.length; index += 1) {
-      final raw = index < rawProducts.length ? rawProducts[index] : const <String, dynamic>{};
+      final raw = index < rawProducts.length
+          ? rawProducts[index]
+          : const <String, dynamic>{};
       products.add(
         StylistProductCard(
           product: productModels[index],
@@ -364,7 +375,6 @@ class AiStylistService {
     }
   }
 
-
   StylistReply _fallbackReply({
     required String userName,
     required String prompt,
@@ -380,7 +390,9 @@ class AiStylistService {
     required List<StylistProductCard> recommendations,
   }) {
     final text = prompt.trim().toLowerCase();
-    final firstName = userName.trim().isEmpty ? 'there' : userName.trim().split(' ').first;
+    final firstName = userName.trim().isEmpty
+        ? 'there'
+        : userName.trim().split(' ').first;
     final month = DateTime.now().month;
     final season = switch (month) {
       3 || 4 || 5 || 6 => 'summer',
@@ -390,7 +402,10 @@ class AiStylistService {
     };
     final latestOrder = orders.isEmpty ? null : orders.first;
     final primaryMeasurement = measurements.isEmpty ? null : measurements.first;
-    final size = bodyProfile?.recommendedSize ?? primaryMeasurement?.recommendedSize ?? 'M';
+    final size =
+        bodyProfile?.recommendedSize ??
+        primaryMeasurement?.recommendedSize ??
+        'M';
 
     if (text.contains('wedding')) {
       return StylistReply(
@@ -453,8 +468,8 @@ class AiStylistService {
       final sizeLine = bodyProfile != null
           ? 'Your saved body profile points to a confident $size top fit and ${bodyProfile.pantSize.isEmpty ? 'a regular trouser fit' : '${bodyProfile.pantSize} trousers'}.'
           : primaryMeasurement != null
-              ? 'Your saved measurement profile ${primaryMeasurement.label} points to a confident $size fit.'
-              : 'I do not have a saved body profile for you yet, so this is a guided estimate.';
+          ? 'Your saved measurement profile ${primaryMeasurement.label} points to a confident $size fit.'
+          : 'I do not have a saved body profile for you yet, so this is a guided estimate.';
       return StylistReply(
         text:
             '$sizeLine ${focusedProduct != null ? 'For ${focusedProduct.name}, I would start with ${recommendSize(product: focusedProduct, bodyProfile: bodyProfile, measurement: primaryMeasurement, memory: memory)} if that size is available.' : 'Start with $size for tops and adjust only if you prefer a roomier look.'}',
@@ -508,10 +523,12 @@ class AiStylistService {
       );
     }
 
-    final locationLine =
-        (location ?? '').trim().isEmpty ? '' : ' Since you are in ${location!.trim()}, I can also tune looks to the weather and local dressing vibe.';
-    final productLine =
-        recommendations.isNotEmpty ? ' I also pulled a few matching pieces you can browse right away.' : '';
+    final locationLine = (location ?? '').trim().isEmpty
+        ? ''
+        : ' Since you are in ${location!.trim()}, I can also tune looks to the weather and local dressing vibe.';
+    final productLine = recommendations.isNotEmpty
+        ? ' I also pulled a few matching pieces you can browse right away.'
+        : '';
     return StylistReply(
       text:
           'Hi $firstName, I am Abianzo Stylist. I can suggest outfits for occasions, help you choose colors, and guide your size or custom-fit decisions with your saved profile.$locationLine$productLine',
@@ -552,7 +569,10 @@ class AiStylistService {
     return 'Popular match for your request';
   }
 
-  String styleSummaryForProduct(Product product, MeasurementProfile? measurement) {
+  String styleSummaryForProduct(
+    Product product,
+    MeasurementProfile? measurement,
+  ) {
     final category = product.category.isEmpty ? 'piece' : product.category;
     final sizeNote = measurement?.recommendedSize != null
         ? 'Your saved profile leans toward ${measurement!.recommendedSize} for similar silhouettes.'
@@ -564,4 +584,3 @@ class AiStylistService {
     return '#${order.id} | ${DateFormat('dd MMM').format(order.timestamp)} | INR ${order.totalAmount.toStringAsFixed(0)}';
   }
 }
-

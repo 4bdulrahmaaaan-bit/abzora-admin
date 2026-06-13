@@ -32,11 +32,7 @@ class ProductAttributes extends StatelessWidget {
       if (entry['key'] == null) continue;
       final key = '${entry['key']}'.trim().toLowerCase();
       if (key.isEmpty) continue;
-      cleanedStructured.add({
-        ...entry,
-        'key': key,
-        'value': entry['value'],
-      });
+      cleanedStructured.add({...entry, 'key': key, 'value': entry['value']});
     }
 
     if (cleanedAttributes.isEmpty && cleanedStructured.isEmpty) {
@@ -44,7 +40,8 @@ class ProductAttributes extends StatelessWidget {
     }
 
     final config = productAttributeConfig[normalizeProductCategory(category)];
-    final sections = config?.sections ??
+    final sections =
+        config?.sections ??
         const [
           ProductAttributeSectionConfig(
             title: 'Product Details',
@@ -52,29 +49,35 @@ class ProductAttributes extends StatelessWidget {
           ),
         ];
 
-    final visibleSections = sections.map((section) {
-      final structuredRows = cleanedStructured
-          .where(
-            (field) =>
-                (field['section']?.toString().trim() ?? '').toLowerCase() ==
-                section.title.toLowerCase(),
-          )
-          .map((field) {
-            final value = field['value'];
-            final normalizedValue = value is List
-                ? value.map((item) => '$item').where((item) => item.trim().isNotEmpty).join(', ')
-                : '$value';
-            return MapEntry('${field['key']}', normalizedValue);
-          })
-          .toList();
-      final rows = structuredRows.isNotEmpty
-          ? structuredRows
-          : section.fields
-              .where((field) => cleanedAttributes.containsKey(field))
-              .map((field) => MapEntry(field, cleanedAttributes[field]!))
+    final visibleSections = sections
+        .map((section) {
+          final structuredRows = cleanedStructured
+              .where(
+                (field) =>
+                    (field['section']?.toString().trim() ?? '').toLowerCase() ==
+                    section.title.toLowerCase(),
+              )
+              .map((field) {
+                final value = field['value'];
+                final normalizedValue = value is List
+                    ? value
+                          .map((item) => '$item')
+                          .where((item) => item.trim().isNotEmpty)
+                          .join(', ')
+                    : '$value';
+                return MapEntry('${field['key']}', normalizedValue);
+              })
               .toList();
-      return MapEntry(section.title, rows);
-    }).where((entry) => entry.value.isNotEmpty).toList();
+          final rows = structuredRows.isNotEmpty
+              ? structuredRows
+              : section.fields
+                    .where((field) => cleanedAttributes.containsKey(field))
+                    .map((field) => MapEntry(field, cleanedAttributes[field]!))
+                    .toList();
+          return MapEntry(section.title, rows);
+        })
+        .where((entry) => entry.value.isNotEmpty)
+        .toList();
 
     if (visibleSections.isEmpty) {
       return const SizedBox.shrink();
@@ -102,9 +105,9 @@ class ProductAttributes extends StatelessWidget {
             if (i > 0) const SizedBox(height: 16),
             Text(
               visibleSections[i].key,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 10),
             LayoutBuilder(
@@ -135,10 +138,7 @@ class ProductAttributes extends StatelessWidget {
 }
 
 class _AttributeTile extends StatelessWidget {
-  const _AttributeTile({
-    required this.label,
-    required this.value,
-  });
+  const _AttributeTile({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -160,9 +160,9 @@ class _AttributeTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: context.abzioSecondaryText,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: context.abzioSecondaryText,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -170,9 +170,9 @@ class _AttributeTile extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1E1E1E),
-                ),
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF1E1E1E),
+            ),
           ),
         ],
       ),

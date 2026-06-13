@@ -124,7 +124,10 @@ class _LiveSelfieVerificationScreenState
       if (nextEyesOpenSeen && leftEye < 0.35 && rightEye < 0.35) {
         nextEyesClosedSeen = true;
       }
-      if (nextEyesOpenSeen && nextEyesClosedSeen && leftEye > 0.65 && rightEye > 0.65) {
+      if (nextEyesOpenSeen &&
+          nextEyesClosedSeen &&
+          leftEye > 0.65 &&
+          rightEye > 0.65) {
         nextLivenessPassed = true;
         nextInstruction = 'Blink detected. You can capture now.';
       }
@@ -232,10 +235,9 @@ class _LiveSelfieVerificationScreenState
         foregroundColor: Colors.white,
         title: const Text('Live Selfie Verification'),
       ),
-      body: _initializing || controller == null || !controller.value.isInitialized
-          ? const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            )
+      body:
+          _initializing || controller == null || !controller.value.isInitialized
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : Stack(
               children: [
                 Positioned.fill(child: CameraPreview(controller)),
@@ -277,11 +279,17 @@ class _LiveSelfieVerificationScreenState
                         Text(
                           _instruction,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white70, height: 1.4),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            height: 1.4,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.35),
                             borderRadius: BorderRadius.circular(999),
@@ -289,8 +297,8 @@ class _LiveSelfieVerificationScreenState
                           child: Text(
                             _faceDetected
                                 ? _livenessPassed
-                                    ? 'Verified movement detected'
-                                    : 'Blink or turn your head slightly'
+                                      ? 'Verified movement detected'
+                                      : 'Blink or turn your head slightly'
                                 : 'Center your face in the circle',
                             style: const TextStyle(
                               color: Colors.white,
@@ -303,7 +311,10 @@ class _LiveSelfieVerificationScreenState
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(999),
@@ -325,14 +336,23 @@ class _LiveSelfieVerificationScreenState
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
                                 colors: _livenessPassed
-                                    ? const [Color(0xFFD9B14D), Color(0xFFB78716)]
-                                    : const [Color(0xFF666666), Color(0xFF454545)],
+                                    ? const [
+                                        Color(0xFFD9B14D),
+                                        Color(0xFFB78716),
+                                      ]
+                                    : const [
+                                        Color(0xFF666666),
+                                        Color(0xFF454545),
+                                      ],
                               ),
                               border: Border.all(color: Colors.white, width: 4),
                               boxShadow: [
                                 BoxShadow(
-                                  color: (_livenessPassed ? const Color(0xFFD9B14D) : Colors.black)
-                                      .withValues(alpha: 0.35),
+                                  color:
+                                      (_livenessPassed
+                                              ? const Color(0xFFD9B14D)
+                                              : Colors.black)
+                                          .withValues(alpha: 0.35),
                                   blurRadius: 20,
                                   offset: const Offset(0, 10),
                                 ),

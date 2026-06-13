@@ -12,7 +12,7 @@ void main() async {
 
     print("CREATING AUTH PROVIDER...");
     final auth = AuthProvider();
-    
+
     print("WAITING FOR IS_INITIALIZED...");
     auth.addListener(() {
       print("AUTH NOTIFIED. isInitialized: ${auth.isInitialized}");

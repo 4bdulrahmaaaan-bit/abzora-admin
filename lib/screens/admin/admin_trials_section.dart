@@ -13,10 +13,11 @@ class AdminTrialsSection extends StatefulWidget {
   State<AdminTrialsSection> createState() => _AdminTrialsSectionState();
 }
 
-class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTickerProviderStateMixin {
+class _AdminTrialsSectionState extends State<AdminTrialsSection>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final AdminTrialsApi _api = AdminTrialsApi();
-  
+
   bool _loading = true;
   String? _error;
 
@@ -31,7 +32,7 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
   String _statusFilter = '';
   String _outcomeFilter = ''; // ignore: prefer_final_fields
   String _paymentFilter = ''; // ignore: prefer_final_fields
-  
+
   bool _showDrawer = false;
   String? _activeTrialId;
   Map<String, dynamic>? _activeTrialDetails;
@@ -66,10 +67,7 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
       _error = null;
     });
     try {
-      await Future.wait([
-        _fetchDashboard(),
-        _fetchQueue(),
-      ]);
+      await Future.wait([_fetchDashboard(), _fetchQueue()]);
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -81,7 +79,9 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
     try {
       final res = await _api.getDashboard();
       if (res['success'] == true) {
-        setState(() => _dashboardMetrics = Map<String, dynamic>.from(res['data']));
+        setState(
+          () => _dashboardMetrics = Map<String, dynamic>.from(res['data']),
+        );
       }
     } catch (e) {
       debugPrint('Error fetching trial dashboard: $e');
@@ -160,7 +160,9 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Action failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Action failed: $e')));
     }
   }
 
@@ -223,21 +225,13 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
-                  children: [
-                    _buildOverviewTab(),
-                    _buildAnalyticsTab(),
-                  ],
+                  children: [_buildOverviewTab(), _buildAnalyticsTab()],
                 ),
               ),
           ],
         ),
         if (_showDrawer)
-          Positioned(
-            top: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildDetailsDrawer(),
-          ),
+          Positioned(top: 0, right: 0, bottom: 0, child: _buildDetailsDrawer()),
       ],
     );
   }
@@ -317,10 +311,7 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Trial Queue',
-                  style: context.abzioText.titleLarge,
-                ),
+                Text('Trial Queue', style: context.abzioText.titleLarge),
                 Row(
                   children: [
                     SizedBox(
@@ -343,10 +334,25 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
                     ),
                     const SizedBox(width: 12),
                     DropdownButton<String>(
-                      value: _statusFilter.isEmpty ? 'All Status' : _statusFilter,
-                      items: ['All Status', 'Scheduled', 'Assigned', 'Trial Active', 'Purchased', 'Returned', 'Cancelled', 'Closed']
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                          .toList(),
+                      value: _statusFilter.isEmpty
+                          ? 'All Status'
+                          : _statusFilter,
+                      items:
+                          [
+                                'All Status',
+                                'Scheduled',
+                                'Assigned',
+                                'Trial Active',
+                                'Purchased',
+                                'Returned',
+                                'Cancelled',
+                                'Closed',
+                              ]
+                              .map(
+                                (s) =>
+                                    DropdownMenuItem(value: s, child: Text(s)),
+                              )
+                              .toList(),
                       onChanged: (val) {
                         setState(() {
                           _statusFilter = val == 'All Status' ? '' : val!;
@@ -370,7 +376,8 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
             else if (_queueData.isEmpty)
               const AbzioEmptyCard(
                 title: 'No active trials',
-                subtitle: 'There are no ongoing TBYB sessions matching your criteria.',
+                subtitle:
+                    'There are no ongoing TBYB sessions matching your criteria.',
               )
             else
               SingleChildScrollView(
@@ -390,12 +397,26 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
                     return DataRow(
                       cells: [
                         DataCell(Text(trial['id'].toString().substring(0, 8))),
-                        DataCell(Text('${trial['customerName']}\n${trial['customerPhone']}')),
+                        DataCell(
+                          Text(
+                            '${trial['customerName']}\n${trial['customerPhone']}',
+                          ),
+                        ),
                         DataCell(Text(trial['vendorName']?.toString() ?? '')),
-                        DataCell(Text(trial['riderName']?.toString() ?? 'Unassigned')),
+                        DataCell(
+                          Text(trial['riderName']?.toString() ?? 'Unassigned'),
+                        ),
                         DataCell(Text('₹${trial['trialFee']}')),
-                        DataCell(Chip(label: Text(trial['status']?.toString() ?? ''))),
-                        DataCell(Text((trial['createdAt']?.toString() ?? '').split('T').first)),
+                        DataCell(
+                          Chip(label: Text(trial['status']?.toString() ?? '')),
+                        ),
+                        DataCell(
+                          Text(
+                            (trial['createdAt']?.toString() ?? '')
+                                .split('T')
+                                .first,
+                          ),
+                        ),
                         DataCell(
                           PopupMenuButton<String>(
                             onSelected: (val) {
@@ -406,12 +427,30 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
                               }
                             },
                             itemBuilder: (context) => const [
-                              PopupMenuItem(value: 'view', child: Text('View Details')),
-                              PopupMenuItem(value: 'assign', child: Text('Assign Rider')),
-                              PopupMenuItem(value: 'reschedule', child: Text('Reschedule')),
-                              PopupMenuItem(value: 'cancel', child: Text('Cancel Trial')),
-                              PopupMenuItem(value: 'purchased', child: Text('Mark Purchased')),
-                              PopupMenuItem(value: 'returned', child: Text('Mark Returned')),
+                              PopupMenuItem(
+                                value: 'view',
+                                child: Text('View Details'),
+                              ),
+                              PopupMenuItem(
+                                value: 'assign',
+                                child: Text('Assign Rider'),
+                              ),
+                              PopupMenuItem(
+                                value: 'reschedule',
+                                child: Text('Reschedule'),
+                              ),
+                              PopupMenuItem(
+                                value: 'cancel',
+                                child: Text('Cancel Trial'),
+                              ),
+                              PopupMenuItem(
+                                value: 'purchased',
+                                child: Text('Mark Purchased'),
+                              ),
+                              PopupMenuItem(
+                                value: 'returned',
+                                child: Text('Mark Returned'),
+                              ),
                             ],
                           ),
                         ),
@@ -429,18 +468,24 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
                   children: [
                     IconButton(
                       icon: const Icon(Icons.chevron_left),
-                      onPressed: _currentPage > 1 ? () {
-                        setState(() => _currentPage--);
-                        _fetchQueue();
-                      } : null,
+                      onPressed: _currentPage > 1
+                          ? () {
+                              setState(() => _currentPage--);
+                              _fetchQueue();
+                            }
+                          : null,
                     ),
-                    Text('Page $_currentPage of ${_queueMeta['totalPages'] ?? 1}'),
+                    Text(
+                      'Page $_currentPage of ${_queueMeta['totalPages'] ?? 1}',
+                    ),
                     IconButton(
                       icon: const Icon(Icons.chevron_right),
-                      onPressed: _currentPage < (_queueMeta['totalPages'] ?? 1) ? () {
-                        setState(() => _currentPage++);
-                        _fetchQueue();
-                      } : null,
+                      onPressed: _currentPage < (_queueMeta['totalPages'] ?? 1)
+                          ? () {
+                              setState(() => _currentPage++);
+                              _fetchQueue();
+                            }
+                          : null,
                     ),
                   ],
                 ),
@@ -465,7 +510,10 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Trial Details', style: context.abzioText.titleLarge),
-                IconButton(icon: const Icon(Icons.close), onPressed: _closeDrawer),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _closeDrawer,
+                ),
               ],
             ),
           ),
@@ -473,33 +521,57 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
             child: _loadingDetails
                 ? const Center(child: CircularProgressIndicator())
                 : _activeTrialDetails == null
-                    ? const Center(child: Text('Failed to load details.'))
-                    : ListView(
-                        padding: const EdgeInsets.all(16),
-                        children: [
-                          _buildDetailRow('Trial ID', _activeTrialDetails!['id']),
-                          _buildDetailRow('Status', _activeTrialDetails!['status']),
-                          _buildDetailRow('Outcome', _activeTrialDetails!['trialOutcome'] ?? 'Pending'),
-                          const Divider(),
-                          Text('Customer', style: context.abzioText.titleMedium),
-                          _buildDetailRow('Name', _activeTrialDetails!['customer']?['name']),
-                          _buildDetailRow('Phone', _activeTrialDetails!['customer']?['phone']),
-                          const Divider(),
-                          Text('Vendor & Rider', style: context.abzioText.titleMedium),
-                          _buildDetailRow('Vendor', _activeTrialDetails!['vendor']?['name']),
-                          _buildDetailRow('Rider', _activeTrialDetails!['rider']?['name']),
-                          const Divider(),
-                          Text('Timeline', style: context.abzioText.titleMedium),
-                          ...(_activeTrialDetails!['timeline'] as List? ?? []).map((t) {
-                            return ListTile(
-                              title: Text(t['type']?.toString().toUpperCase() ?? ''),
-                              subtitle: Text(t['note'] ?? ''),
-                              trailing: Text((t['createdAt']?.toString() ?? '').split('T').first),
-                              contentPadding: EdgeInsets.zero,
-                            );
-                          }),
-                        ],
+                ? const Center(child: Text('Failed to load details.'))
+                : ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _buildDetailRow('Trial ID', _activeTrialDetails!['id']),
+                      _buildDetailRow('Status', _activeTrialDetails!['status']),
+                      _buildDetailRow(
+                        'Outcome',
+                        _activeTrialDetails!['trialOutcome'] ?? 'Pending',
                       ),
+                      const Divider(),
+                      Text('Customer', style: context.abzioText.titleMedium),
+                      _buildDetailRow(
+                        'Name',
+                        _activeTrialDetails!['customer']?['name'],
+                      ),
+                      _buildDetailRow(
+                        'Phone',
+                        _activeTrialDetails!['customer']?['phone'],
+                      ),
+                      const Divider(),
+                      Text(
+                        'Vendor & Rider',
+                        style: context.abzioText.titleMedium,
+                      ),
+                      _buildDetailRow(
+                        'Vendor',
+                        _activeTrialDetails!['vendor']?['name'],
+                      ),
+                      _buildDetailRow(
+                        'Rider',
+                        _activeTrialDetails!['rider']?['name'],
+                      ),
+                      const Divider(),
+                      Text('Timeline', style: context.abzioText.titleMedium),
+                      ...(_activeTrialDetails!['timeline'] as List? ?? []).map((
+                        t,
+                      ) {
+                        return ListTile(
+                          title: Text(
+                            t['type']?.toString().toUpperCase() ?? '',
+                          ),
+                          subtitle: Text(t['note'] ?? ''),
+                          trailing: Text(
+                            (t['createdAt']?.toString() ?? '').split('T').first,
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        );
+                      }),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -512,7 +584,13 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
           Text(value?.toString() ?? 'N/A'),
         ],
       ),
@@ -523,9 +601,9 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
     if (_analyticsData.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    
+
     final funnel = _analyticsData['trialFunnel'] ?? {};
-    
+
     return ListView(
       children: [
         Card(
@@ -562,15 +640,20 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Most Converted Products', style: context.abzioText.titleMedium),
+                      Text(
+                        'Most Converted Products',
+                        style: context.abzioText.titleMedium,
+                      ),
                       const SizedBox(height: 8),
-                      ...(_analyticsData['mostConvertedProducts'] as List? ?? []).map((item) {
-                        return ListTile(
-                          title: Text('Product ID: ${item['_id']}'),
-                          trailing: Text('${item['count']} conversions'),
-                          contentPadding: EdgeInsets.zero,
-                        );
-                      }),
+                      ...(_analyticsData['mostConvertedProducts'] as List? ??
+                              [])
+                          .map((item) {
+                            return ListTile(
+                              title: Text('Product ID: ${item['_id']}'),
+                              trailing: Text('${item['count']} conversions'),
+                              contentPadding: EdgeInsets.zero,
+                            );
+                          }),
                     ],
                   ),
                 ),
@@ -584,22 +667,26 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Most Returned Products', style: context.abzioText.titleMedium),
+                      Text(
+                        'Most Returned Products',
+                        style: context.abzioText.titleMedium,
+                      ),
                       const SizedBox(height: 8),
-                      ...(_analyticsData['mostReturnedProducts'] as List? ?? []).map((item) {
-                        return ListTile(
-                          title: Text('Product ID: ${item['_id']}'),
-                          trailing: Text('${item['count']} returns'),
-                          contentPadding: EdgeInsets.zero,
-                        );
-                      }),
+                      ...(_analyticsData['mostReturnedProducts'] as List? ?? [])
+                          .map((item) {
+                            return ListTile(
+                              title: Text('Product ID: ${item['_id']}'),
+                              trailing: Text('${item['count']} returns'),
+                              contentPadding: EdgeInsets.zero,
+                            );
+                          }),
                     ],
                   ),
                 ),
               ),
             ),
           ],
-        )
+        ),
       ],
     );
   }
@@ -607,7 +694,10 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection> with SingleTick
   Widget _buildFunnelStage(String label, dynamic value) {
     return Column(
       children: [
-        Text(value?.toString() ?? '0', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        Text(
+          value?.toString() ?? '0',
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
         Text(label, style: const TextStyle(color: Colors.grey)),
       ],
     );

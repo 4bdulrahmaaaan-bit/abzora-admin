@@ -20,7 +20,10 @@ class _AdminBackupSectionState extends State<AdminBackupSection> {
   void initState() {
     super.initState();
     _loadData();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) => _loadData());
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _loadData(),
+    );
   }
 
   @override
@@ -54,15 +57,19 @@ class _AdminBackupSectionState extends State<AdminBackupSection> {
       await AdminBackupApi.triggerBackup();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Backup triggered successfully. It will run in the background.')),
+          const SnackBar(
+            content: Text(
+              'Backup triggered successfully. It will run in the background.',
+            ),
+          ),
         );
       }
       _loadData();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to trigger backup: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to trigger backup: $e')));
       }
     }
   }
@@ -95,7 +102,10 @@ class _AdminBackupSectionState extends State<AdminBackupSection> {
                         title: const Text('Operation Denied'),
                         content: Text(e.toString()),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(c), child: const Text('OK'))
+                          TextButton(
+                            onPressed: () => Navigator.pop(c),
+                            child: const Text('OK'),
+                          ),
                         ],
                       ),
                     );
@@ -147,10 +157,7 @@ class _AdminBackupSectionState extends State<AdminBackupSection> {
       appBar: AppBar(
         title: const Text('Backup & Recovery Center'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],
       ),
       body: SingleChildScrollView(
@@ -179,7 +186,9 @@ class _AdminBackupSectionState extends State<AdminBackupSection> {
             const SizedBox(height: 16),
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -193,25 +202,45 @@ class _AdminBackupSectionState extends State<AdminBackupSection> {
                     leading: CircleAvatar(
                       backgroundColor: statusColor.withValues(alpha: 0.1),
                       child: Icon(
-                        backup.status == 'completed' ? Icons.check_circle : (backup.status == 'in_progress' ? Icons.sync : Icons.error),
+                        backup.status == 'completed'
+                            ? Icons.check_circle
+                            : (backup.status == 'in_progress'
+                                  ? Icons.sync
+                                  : Icons.error),
                         color: statusColor,
                       ),
                     ),
-                    title: Text(backup.backupId, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      backup.backupId,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 4),
-                        Text('Triggered By: ${backup.triggeredBy} • Type: ${backup.type.toUpperCase()}'),
+                        Text(
+                          'Triggered By: ${backup.triggeredBy} • Type: ${backup.type.toUpperCase()}',
+                        ),
                         const SizedBox(height: 4),
                         Text(
-                          DateFormat('MMM dd, yyyy HH:mm:ss').format(backup.createdAt.toLocal()),
-                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                          DateFormat(
+                            'MMM dd, yyyy HH:mm:ss',
+                          ).format(backup.createdAt.toLocal()),
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
                         ),
                         if (backup.errorMessage.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
-                            child: Text(backup.errorMessage, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                            child: Text(
+                              backup.errorMessage,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -219,14 +248,19 @@ class _AdminBackupSectionState extends State<AdminBackupSection> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (backup.status == 'completed')
-                          Text('${backup.fileSizeMb} MB', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '${backup.fileSizeMb} MB',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         const SizedBox(width: 16),
                         if (backup.status == 'completed')
                           OutlinedButton.icon(
                             onPressed: () => _restoreBackup(backup),
                             icon: const Icon(Icons.restore, size: 18),
                             label: const Text('RESTORE'),
-                            style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
                           ),
                         if (backup.status == 'in_progress')
                           const SizedBox(

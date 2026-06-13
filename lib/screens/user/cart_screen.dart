@@ -1814,42 +1814,54 @@ class _BagFooterState extends State<_BagFooter>
       vsync: this,
       duration: const Duration(milliseconds: 260),
     );
-    _liftY = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0, end: -6),
-        weight: 58,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: -6, end: 0),
-        weight: 42,
-      ),
-    ]).animate(
-      CurvedAnimation(parent: _intentController, curve: Curves.easeOutCubic),
-    );
-    _scale = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1, end: 1.05),
-        weight: 58,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.05, end: 1),
-        weight: 42,
-      ),
-    ]).animate(
-      CurvedAnimation(parent: _intentController, curve: Curves.easeOutCubic),
-    );
-    _iconBounceY = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0, end: -5),
-        weight: 45,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: -5, end: 0),
-        weight: 55,
-      ),
-    ]).animate(
-      CurvedAnimation(parent: _intentController, curve: Curves.easeOutCubic),
-    );
+    _liftY =
+        TweenSequence<double>([
+          TweenSequenceItem(
+            tween: Tween<double>(begin: 0, end: -6),
+            weight: 58,
+          ),
+          TweenSequenceItem(
+            tween: Tween<double>(begin: -6, end: 0),
+            weight: 42,
+          ),
+        ]).animate(
+          CurvedAnimation(
+            parent: _intentController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+    _scale =
+        TweenSequence<double>([
+          TweenSequenceItem(
+            tween: Tween<double>(begin: 1, end: 1.05),
+            weight: 58,
+          ),
+          TweenSequenceItem(
+            tween: Tween<double>(begin: 1.05, end: 1),
+            weight: 42,
+          ),
+        ]).animate(
+          CurvedAnimation(
+            parent: _intentController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+    _iconBounceY =
+        TweenSequence<double>([
+          TweenSequenceItem(
+            tween: Tween<double>(begin: 0, end: -5),
+            weight: 45,
+          ),
+          TweenSequenceItem(
+            tween: Tween<double>(begin: -5, end: 0),
+            weight: 55,
+          ),
+        ]).animate(
+          CurvedAnimation(
+            parent: _intentController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
   }
 
   @override

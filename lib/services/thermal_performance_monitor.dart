@@ -42,9 +42,13 @@ class ThermalPerformanceMonitor {
     required double trackingReliability,
   }) {
     final targetThermal = (1 - sessionQuality).clamp(0.0, 1.0);
-    _thermalLoad = ((_thermalLoad * 0.5) + (targetThermal * 0.5)).clamp(0.0, 1.0);
-    _fpsEstimate = ((_fpsEstimate * 0.35) + ((14 + (trackingReliability * 20)) * 0.65))
-        .clamp(8.0, 60.0);
+    _thermalLoad = ((_thermalLoad * 0.5) + (targetThermal * 0.5)).clamp(
+      0.0,
+      1.0,
+    );
+    _fpsEstimate =
+        ((_fpsEstimate * 0.35) + ((14 + (trackingReliability * 20)) * 0.65))
+            .clamp(8.0, 60.0);
     _gpuPressure = ((_thermalLoad * 0.72) + ((1 - trackingReliability) * 0.28))
         .clamp(0.0, 1.0);
   }

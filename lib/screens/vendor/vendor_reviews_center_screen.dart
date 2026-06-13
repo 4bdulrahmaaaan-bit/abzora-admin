@@ -10,7 +10,8 @@ class VendorReviewsCenterScreen extends StatefulWidget {
   const VendorReviewsCenterScreen({super.key});
 
   @override
-  State<VendorReviewsCenterScreen> createState() => _VendorReviewsCenterScreenState();
+  State<VendorReviewsCenterScreen> createState() =>
+      _VendorReviewsCenterScreenState();
 }
 
 class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
@@ -77,7 +78,10 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
     return Scaffold(
       backgroundColor: VendorTheme.background,
       appBar: AppBar(
-        title: Text('Reviews Center', style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          'Reviews Center',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         centerTitle: true,
       ),
       body: _buildBody(),
@@ -86,7 +90,9 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
 
   Widget _buildBody() {
     if (_isLoading && _page == 1) {
-      return const Center(child: CircularProgressIndicator(color: VendorTheme.primary));
+      return const Center(
+        child: CircularProgressIndicator(color: VendorTheme.primary),
+      );
     }
     if (_error != null && _reviews.isEmpty) {
       return Center(
@@ -98,7 +104,7 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
             ElevatedButton(
               onPressed: () => _fetchData(),
               child: const Text('Retry'),
-            )
+            ),
           ],
         ),
       );
@@ -188,7 +194,12 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
           ],
         ),
         const SizedBox(height: VendorTheme.spacing24),
-        Text('Recent Reviews', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+        Text(
+          'Recent Reviews',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: VendorTheme.spacing16),
       ],
     );
@@ -213,7 +224,9 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
               Row(
                 children: List.generate(5, (index) {
                   return Icon(
-                    index < rating ? Icons.star_rounded : Icons.star_border_rounded,
+                    index < rating
+                        ? Icons.star_rounded
+                        : Icons.star_border_rounded,
                     color: Colors.amber,
                     size: 20,
                   );
@@ -239,9 +252,17 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Your Reply:', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Your Reply:',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: VendorTheme.spacing4),
-                  Text(reply['message'] ?? '', style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    reply['message'] ?? '',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ],
               ),
             ),
@@ -256,7 +277,7 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
                 label: const Text('Reply'),
               ),
             ),
-          ]
+          ],
         ],
       ),
     );
@@ -288,7 +309,9 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
                 if (context.mounted) Navigator.pop(context, true);
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to reply: $e')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to reply: $e')),
+                  );
                 }
               }
             },

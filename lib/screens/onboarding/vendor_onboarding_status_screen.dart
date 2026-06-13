@@ -36,11 +36,7 @@ class VendorOnboardingStatusScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.hourglass_empty,
-                size: 80,
-                color: Colors.orange,
-              ),
+              const Icon(Icons.hourglass_empty, size: 80, color: Colors.orange),
               const SizedBox(height: 24),
               Text(
                 'Your application is ${vendorOnboarding['status'] ?? 'pending'}',

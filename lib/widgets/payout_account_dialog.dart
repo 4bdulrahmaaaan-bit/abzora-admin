@@ -31,10 +31,8 @@ Future<PayoutAccountFormValue?> showPayoutAccountDialog({
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => _PayoutAccountSheet(
-      title: title,
-      initialValue: initialValue,
-    ),
+    builder: (context) =>
+        _PayoutAccountSheet(title: title, initialValue: initialValue),
   );
 }
 
@@ -56,8 +54,8 @@ class PayoutAccountSummaryCard extends StatelessWidget {
     final descriptor = !profile.isConfigured
         ? 'Add bank account or UPI details to receive automated settlements.'
         : hasBank
-            ? '${profile.bankName.isEmpty ? 'Bank account' : profile.bankName} • ${_maskedAccount(profile.bankAccountNumber)}'
-            : profile.upiId;
+        ? '${profile.bankName.isEmpty ? 'Bank account' : profile.bankName} • ${_maskedAccount(profile.bankAccountNumber)}'
+        : profile.upiId;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -74,7 +72,10 @@ class PayoutAccountSummaryCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               OutlinedButton.icon(
@@ -113,7 +114,9 @@ class PayoutAccountSummaryCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
-                    hasBank ? Icons.account_balance_outlined : Icons.qr_code_2_rounded,
+                    hasBank
+                        ? Icons.account_balance_outlined
+                        : Icons.qr_code_2_rounded,
                     color: const Color(0xFFD4AF37),
                   ),
                 ),
@@ -124,14 +127,19 @@ class PayoutAccountSummaryCard extends StatelessWidget {
                     children: [
                       Text(
                         profile.isConfigured
-                            ? (hasBank ? 'Bank settlement enabled' : 'UPI settlement enabled')
+                            ? (hasBank
+                                  ? 'Bank settlement enabled'
+                                  : 'UPI settlement enabled')
                             : 'Payout account not configured',
                         style: GoogleFonts.inter(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         descriptor,
-                        style: GoogleFonts.inter(fontSize: 12, color: AbzioTheme.grey500),
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AbzioTheme.grey500,
+                        ),
                       ),
                     ],
                   ),
@@ -154,10 +162,7 @@ String _maskedAccount(String value) {
 }
 
 class _PayoutAccountSheet extends StatefulWidget {
-  const _PayoutAccountSheet({
-    required this.title,
-    required this.initialValue,
-  });
+  const _PayoutAccountSheet({required this.title, required this.initialValue});
 
   final String title;
   final PayoutProfileSummary initialValue;
@@ -178,12 +183,20 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
   @override
   void initState() {
     super.initState();
-    _methodType = widget.initialValue.methodType.isEmpty ? 'vpa' : widget.initialValue.methodType;
-    _accountHolderController = TextEditingController(text: widget.initialValue.accountHolderName);
+    _methodType = widget.initialValue.methodType.isEmpty
+        ? 'vpa'
+        : widget.initialValue.methodType;
+    _accountHolderController = TextEditingController(
+      text: widget.initialValue.accountHolderName,
+    );
     _upiController = TextEditingController(text: widget.initialValue.upiId);
-    _bankAccountController = TextEditingController(text: widget.initialValue.bankAccountNumber);
+    _bankAccountController = TextEditingController(
+      text: widget.initialValue.bankAccountNumber,
+    );
     _ifscController = TextEditingController(text: widget.initialValue.bankIfsc);
-    _bankNameController = TextEditingController(text: widget.initialValue.bankName);
+    _bankNameController = TextEditingController(
+      text: widget.initialValue.bankName,
+    );
   }
 
   @override
@@ -236,7 +249,10 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
                       Expanded(
                         child: Text(
                           widget.title,
-                          style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                       IconButton(
@@ -247,7 +263,11 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
                   ),
                   Text(
                     'Choose where Abianzo should send your approved withdrawals through RazorpayX.',
-                    style: GoogleFonts.inter(fontSize: 13, color: AbzioTheme.grey500, height: 1.45),
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: AbzioTheme.grey500,
+                      height: 1.45,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   SegmentedButton<String>(
@@ -370,4 +390,3 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
     );
   }
 }
-

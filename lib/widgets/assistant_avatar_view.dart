@@ -3,12 +3,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../services/app_config.dart';
 
-enum AssistantAvatarState {
-  listening,
-  thinking,
-  speaking,
-  idle,
-}
+enum AssistantAvatarState { listening, thinking, speaking, idle }
 
 class AssistantAvatarView extends StatefulWidget {
   const AssistantAvatarView({
@@ -87,9 +82,7 @@ class _AssistantAvatarViewState extends State<AssistantAvatarView> {
             Colors.white.withValues(alpha: 0.02),
           ],
         ),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.10),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
         boxShadow: [
           BoxShadow(
             color: widget.accent.withValues(alpha: 0.20),
@@ -146,9 +139,7 @@ class _AssistantAvatarViewState extends State<AssistantAvatarView> {
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.74),
             shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.10),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -157,20 +148,15 @@ class _AssistantAvatarViewState extends State<AssistantAvatarView> {
                 switch (widget.state) {
                   AssistantAvatarState.listening =>
                     Icons.multitrack_audio_rounded,
-                  AssistantAvatarState.thinking =>
-                    Icons.auto_awesome_rounded,
-                  AssistantAvatarState.speaking =>
-                    Icons.graphic_eq_rounded,
+                  AssistantAvatarState.thinking => Icons.auto_awesome_rounded,
+                  AssistantAvatarState.speaking => Icons.graphic_eq_rounded,
                   _ => Icons.self_improvement_rounded,
                 },
                 size: 38,
                 color: Colors.white,
               ),
               const SizedBox(height: 14),
-              _WaveBarOverlay(
-                accent: Colors.white,
-                state: widget.state,
-              ),
+              _WaveBarOverlay(accent: Colors.white, state: widget.state),
             ],
           ),
         ),
@@ -180,10 +166,7 @@ class _AssistantAvatarViewState extends State<AssistantAvatarView> {
 }
 
 class _WaveBarOverlay extends StatelessWidget {
-  const _WaveBarOverlay({
-    required this.accent,
-    required this.state,
-  });
+  const _WaveBarOverlay({required this.accent, required this.state});
 
   final Color accent;
   final AssistantAvatarState state;

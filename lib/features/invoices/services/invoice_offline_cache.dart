@@ -37,7 +37,9 @@ class InvoiceOfflineCache {
   Future<void> enqueueRetry(Map<String, dynamic> payload) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_retryKey);
-    final rows = raw == null || raw.isEmpty ? <dynamic>[] : (jsonDecode(raw) as List<dynamic>);
+    final rows = raw == null || raw.isEmpty
+        ? <dynamic>[]
+        : (jsonDecode(raw) as List<dynamic>);
     rows.add(payload);
     await prefs.setString(_retryKey, jsonEncode(rows));
   }

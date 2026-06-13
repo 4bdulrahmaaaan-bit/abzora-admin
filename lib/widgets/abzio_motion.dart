@@ -16,45 +16,39 @@ class AbzioMotion {
 }
 
 class AbzioSlideFadePageRoute<T> extends PageRouteBuilder<T> {
-  AbzioSlideFadePageRoute({
-    super.settings,
-    required WidgetBuilder builder,
-  }) : super(
-          transitionDuration: AbzioMotion.medium,
-          reverseTransitionDuration: AbzioMotion.fast,
-          pageBuilder: (context, animation, secondaryAnimation) => builder(context),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            final slide = Tween<Offset>(
-              begin: const Offset(0.06, 0),
-              end: Offset.zero,
-            ).animate(
-              CurvedAnimation(
-                parent: animation,
-                curve: AbzioMotion.curve,
-              ),
-            );
-            final fade = CurvedAnimation(
-              parent: animation,
+  AbzioSlideFadePageRoute({super.settings, required WidgetBuilder builder})
+    : super(
+        transitionDuration: AbzioMotion.medium,
+        reverseTransitionDuration: AbzioMotion.fast,
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            builder(context),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final slide =
+              Tween<Offset>(
+                begin: const Offset(0.06, 0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: animation, curve: AbzioMotion.curve),
+              );
+          final fade = CurvedAnimation(
+            parent: animation,
+            curve: AbzioMotion.curve,
+          );
+          final previousFade = Tween<double>(begin: 1, end: 0.92).animate(
+            CurvedAnimation(
+              parent: secondaryAnimation,
               curve: AbzioMotion.curve,
-            );
-            final previousFade = Tween<double>(begin: 1, end: 0.92).animate(
-              CurvedAnimation(
-                parent: secondaryAnimation,
-                curve: AbzioMotion.curve,
-              ),
-            );
-            return FadeTransition(
-              opacity: fade,
-              child: SlideTransition(
-                position: slide,
-                child: FadeTransition(
-                  opacity: previousFade,
-                  child: child,
-                ),
-              ),
-            );
-          },
-        );
+            ),
+          );
+          return FadeTransition(
+            opacity: fade,
+            child: SlideTransition(
+              position: slide,
+              child: FadeTransition(opacity: previousFade, child: child),
+            ),
+          );
+        },
+      );
 }
 
 class AbzioPageTransitionsBuilder extends PageTransitionsBuilder {
@@ -71,9 +65,7 @@ class AbzioPageTransitionsBuilder extends PageTransitionsBuilder {
     final slide = Tween<Offset>(
       begin: const Offset(0.055, 0),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: animation, curve: AbzioMotion.curve),
-    );
+    ).animate(CurvedAnimation(parent: animation, curve: AbzioMotion.curve));
     final fade = CurvedAnimation(parent: animation, curve: AbzioMotion.curve);
     final previousFade = Tween<double>(begin: 1, end: 0.94).animate(
       CurvedAnimation(parent: secondaryAnimation, curve: AbzioMotion.curve),
@@ -82,10 +74,7 @@ class AbzioPageTransitionsBuilder extends PageTransitionsBuilder {
       opacity: fade,
       child: SlideTransition(
         position: slide,
-        child: FadeTransition(
-          opacity: previousFade,
-          child: child,
-        ),
+        child: FadeTransition(opacity: previousFade, child: child),
       ),
     );
   }
@@ -123,7 +112,8 @@ class _AbzioAnimatedCardState extends State<AbzioAnimatedCard> {
 
   @override
   Widget build(BuildContext context) {
-    final decoration = widget.decoration ??
+    final decoration =
+        widget.decoration ??
         BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
@@ -139,7 +129,12 @@ class _AbzioAnimatedCardState extends State<AbzioAnimatedCard> {
         curve: AbzioMotion.curve,
         padding: widget.padding,
         transform: Matrix4.identity()
-          ..translateByDouble(0.0, _pressed ? AbzioMotion.cardLift : 0.0, 0.0, 1.0),
+          ..translateByDouble(
+            0.0,
+            _pressed ? AbzioMotion.cardLift : 0.0,
+            0.0,
+            1.0,
+          ),
         decoration: decoration.copyWith(
           boxShadow: [
             BoxShadow(
@@ -189,11 +184,7 @@ class AbzioStaggerItem extends StatelessWidget {
 }
 
 class AbzioShake extends StatefulWidget {
-  const AbzioShake({
-    super.key,
-    required this.child,
-    required this.shakeKey,
-  });
+  const AbzioShake({super.key, required this.child, required this.shakeKey});
 
   final Widget child;
   final ValueKey<int> shakeKey;
@@ -202,7 +193,8 @@ class AbzioShake extends StatefulWidget {
   State<AbzioShake> createState() => _AbzioShakeState();
 }
 
-class _AbzioShakeState extends State<AbzioShake> with SingleTickerProviderStateMixin {
+class _AbzioShakeState extends State<AbzioShake>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
@@ -234,13 +226,11 @@ class _AbzioShakeState extends State<AbzioShake> with SingleTickerProviderStateM
       animation: _controller,
       child: widget.child,
       builder: (context, child) {
-        final offset = sin(_controller.value * 6 * 3.141592653589793) *
+        final offset =
+            sin(_controller.value * 6 * 3.141592653589793) *
             (1 - _controller.value) *
             10;
-        return Transform.translate(
-          offset: Offset(offset, 0),
-          child: child,
-        );
+        return Transform.translate(offset: Offset(offset, 0), child: child);
       },
     );
   }
@@ -264,9 +254,7 @@ Future<T?> showAbzioBottomSheet<T>({
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.20),
-              ),
+              child: Container(color: Colors.black.withValues(alpha: 0.20)),
             ),
           ),
           Align(
@@ -285,7 +273,9 @@ Future<T?> showAbzioBottomSheet<T>({
                 );
               },
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
                 child: Material(
                   color: Theme.of(context).scaffoldBackgroundColor,
                   child: builder(sheetContext),

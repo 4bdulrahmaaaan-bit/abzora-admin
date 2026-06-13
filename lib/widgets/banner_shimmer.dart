@@ -4,11 +4,7 @@ import '../theme.dart';
 import 'shimmer_widget.dart';
 
 class BannerShimmer extends StatelessWidget {
-  const BannerShimmer({
-    super.key,
-    this.height = 220,
-    this.itemCount = 1,
-  });
+  const BannerShimmer({super.key, this.height = 220, this.itemCount = 1});
 
   final double height;
   final int itemCount;
@@ -41,11 +37,23 @@ class BannerShimmer extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const ShimmerWidget(width: 140, height: 14, radius: 99),
+                            const ShimmerWidget(
+                              width: 140,
+                              height: 14,
+                              radius: 99,
+                            ),
                             const SizedBox(height: 14),
-                            const ShimmerWidget(width: 220, height: 24, radius: 10),
+                            const ShimmerWidget(
+                              width: 220,
+                              height: 24,
+                              radius: 10,
+                            ),
                             const SizedBox(height: 10),
-                            const ShimmerWidget(width: 180, height: 14, radius: 10),
+                            const ShimmerWidget(
+                              width: 180,
+                              height: 14,
+                              radius: 10,
+                            ),
                             const SizedBox(height: 16),
                             Align(
                               alignment: Alignment.centerLeft,
@@ -54,7 +62,9 @@ class BannerShimmer extends StatelessWidget {
                                 height: 46,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(16),
-                                  color: AbzioTheme.accentColor.withValues(alpha: 0.15),
+                                  color: AbzioTheme.accentColor.withValues(
+                                    alpha: 0.15,
+                                  ),
                                 ),
                                 child: const ShimmerWidget(radius: 16),
                               ),
@@ -79,7 +89,9 @@ class BannerShimmer extends StatelessWidget {
               width: index == 0 ? 22 : 8,
               height: 8,
               decoration: BoxDecoration(
-                color: index == 0 ? AbzioTheme.accentColor.withValues(alpha: 0.45) : Theme.of(context).dividerColor,
+                color: index == 0
+                    ? AbzioTheme.accentColor.withValues(alpha: 0.45)
+                    : Theme.of(context).dividerColor,
                 borderRadius: BorderRadius.circular(999),
               ),
             ),

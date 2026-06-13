@@ -19,14 +19,15 @@ class PremiumPriceRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentSize = compact ? 20.0 : 31.0;
-    final oldStyle = (compact
-            ? Theme.of(context).textTheme.bodySmall
-            : Theme.of(context).textTheme.bodyMedium)
-        ?.copyWith(
-          color: const Color(0xFFA8A8A8),
-          decoration: TextDecoration.lineThrough,
-          fontWeight: FontWeight.w500,
-        );
+    final oldStyle =
+        (compact
+                ? Theme.of(context).textTheme.bodySmall
+                : Theme.of(context).textTheme.bodyMedium)
+            ?.copyWith(
+              color: const Color(0xFFA8A8A8),
+              decoration: TextDecoration.lineThrough,
+              fontWeight: FontWeight.w500,
+            );
 
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -84,4 +85,3 @@ class PremiumPriceRow extends StatelessWidget {
     );
   }
 }
-

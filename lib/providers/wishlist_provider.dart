@@ -7,9 +7,8 @@ import '../services/backend_api_client.dart';
 import '../services/wishlist_service.dart';
 
 class WishlistProvider with ChangeNotifier {
-  WishlistProvider({
-    WishlistService? wishlistService,
-  }) : _wishlistService = wishlistService ?? WishlistService();
+  WishlistProvider({WishlistService? wishlistService})
+    : _wishlistService = wishlistService ?? WishlistService();
 
   final WishlistService _wishlistService;
   StreamSubscription<List<WishlistItem>>? _subscription;
@@ -50,23 +49,25 @@ class WishlistProvider with ChangeNotifier {
 
     _isLoading = true;
     notifyListeners();
-    _subscription = _wishlistService.watchWishlist(_userId!).listen(
-      (items) {
-        _cache
-          ..clear()
-          ..addEntries(items.map((item) => MapEntry(item.productId, item)));
-        _isLoading = false;
-        notifyListeners();
-      },
-      onError: (_) {
-        _isLoading = false;
-        notifyListeners();
-      },
-      onDone: () {
-        _isLoading = false;
-        notifyListeners();
-      },
-    );
+    _subscription = _wishlistService
+        .watchWishlist(_userId!)
+        .listen(
+          (items) {
+            _cache
+              ..clear()
+              ..addEntries(items.map((item) => MapEntry(item.productId, item)));
+            _isLoading = false;
+            notifyListeners();
+          },
+          onError: (_) {
+            _isLoading = false;
+            notifyListeners();
+          },
+          onDone: () {
+            _isLoading = false;
+            notifyListeners();
+          },
+        );
   }
 
   Future<void> addToWishlist(Product product) async {
@@ -102,7 +103,10 @@ class WishlistProvider with ChangeNotifier {
     _cache.remove(productId);
     notifyListeners();
     try {
-      await _wishlistService.removeFromWishlist(userId: userId, productId: productId);
+      await _wishlistService.removeFromWishlist(
+        userId: userId,
+        productId: productId,
+      );
     } catch (error) {
       if (existing != null) {
         _cache[productId] = existing;

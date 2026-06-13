@@ -40,7 +40,9 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
               future: _summaryFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const AbzioLoadingView(title: 'Loading earnings summary');
+                  return const AbzioLoadingView(
+                    title: 'Loading earnings summary',
+                  );
                 }
                 if (snapshot.hasError || !snapshot.hasData) {
                   return const Text('Failed to load summary.');
@@ -67,7 +69,10 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
               },
             ),
             const SizedBox(height: 24),
-            Text('Recent Earnings', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Recent Earnings',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             FutureBuilder<List<dynamic>>(
               future: _earningsFuture,
@@ -78,13 +83,29 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
                 final list = snapshot.data ?? [];
                 if (list.isEmpty) return const Text('No recent earnings.');
                 return Column(
-                  children: list.map((e) => Card(
-                    child: ListTile(
-                      title: Text(e['earningType'].toString().replaceAll('_', ' ').toUpperCase()),
-                      subtitle: Text(e['status'].toString().toUpperCase()),
-                      trailing: Text('₹${e['amount']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  )).toList(),
+                  children: list
+                      .map(
+                        (e) => Card(
+                          child: ListTile(
+                            title: Text(
+                              e['earningType']
+                                  .toString()
+                                  .replaceAll('_', ' ')
+                                  .toUpperCase(),
+                            ),
+                            subtitle: Text(
+                              e['status'].toString().toUpperCase(),
+                            ),
+                            trailing: Text(
+                              '₹${e['amount']}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 );
               },
             ),

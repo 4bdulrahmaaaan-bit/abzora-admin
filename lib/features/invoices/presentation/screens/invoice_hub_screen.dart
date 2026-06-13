@@ -32,10 +32,17 @@ class _VendorInvoiceOpsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(vendorInvoicePagerProvider);
     final gst = ref.watch(gstSummaryProvider);
-    final totalInvoiced = state.items.fold<double>(0, (sum, row) => sum + row.grandTotal);
+    final totalInvoiced = state.items.fold<double>(
+      0,
+      (sum, row) => sum + row.grandTotal,
+    );
     final totalGst = state.items.fold<double>(0, (sum, row) => sum + row.tax);
-    final refunds = state.items.where((e) => e.status.contains('refund')).length;
-    final pending = state.items.where((e) => e.paymentStatus.toLowerCase() != 'paid').length;
+    final refunds = state.items
+        .where((e) => e.status.contains('refund'))
+        .length;
+    final pending = state.items
+        .where((e) => e.paymentStatus.toLowerCase() != 'paid')
+        .length;
 
     return Scaffold(
       appBar: AppBar(
@@ -43,13 +50,15 @@ class _VendorInvoiceOpsScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => ref.read(vendorInvoicePagerProvider.notifier).refresh(),
+            onPressed: () =>
+                ref.read(vendorInvoicePagerProvider.notifier).refresh(),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(vendorInvoicePagerProvider.notifier).refresh(),
+        onRefresh: () =>
+            ref.read(vendorInvoicePagerProvider.notifier).refresh(),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -57,7 +66,10 @@ class _VendorInvoiceOpsScreen extends ConsumerWidget {
               spacing: 12,
               runSpacing: 12,
               children: [
-                _metric('Total Invoiced', 'INR ${totalInvoiced.toStringAsFixed(0)}'),
+                _metric(
+                  'Total Invoiced',
+                  'INR ${totalInvoiced.toStringAsFixed(0)}',
+                ),
                 _metric('GST Collected', 'INR ${totalGst.toStringAsFixed(0)}'),
                 _metric('Refunds Issued', '$refunds'),
                 _metric('Pending Invoices', '$pending'),
@@ -87,7 +99,11 @@ class _VendorInvoiceOpsScreen extends ConsumerWidget {
                     'INR ${invoice.grandTotal.toStringAsFixed(2)} • ${invoice.status} • ${invoice.versionLabel}',
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => Navigator.pushNamed(context, '/invoice/details', arguments: invoice.id),
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    '/invoice/details',
+                    arguments: invoice.id,
+                  ),
                 ),
               ),
             ),
@@ -102,10 +118,12 @@ class _AdminInvoiceOpsScreen extends ConsumerStatefulWidget {
   const _AdminInvoiceOpsScreen();
 
   @override
-  ConsumerState<_AdminInvoiceOpsScreen> createState() => _AdminInvoiceOpsScreenState();
+  ConsumerState<_AdminInvoiceOpsScreen> createState() =>
+      _AdminInvoiceOpsScreenState();
 }
 
-class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> {
+class _AdminInvoiceOpsScreenState
+    extends ConsumerState<_AdminInvoiceOpsScreen> {
   final _search = TextEditingController();
   final _verifyInvoiceId = TextEditingController();
   final _verifyHash = TextEditingController();
@@ -137,7 +155,9 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
 
   Future<void> _applyFilters({int page = 1}) async {
     final current = ref.read(adminInvoicePagerProvider).query;
-    await ref.read(adminInvoicePagerProvider.notifier).refresh(
+    await ref
+        .read(adminInvoicePagerProvider.notifier)
+        .refresh(
           query: current.copyWith(
             search: _search.text.trim(),
             paymentStatus: _paymentFilter,
@@ -152,7 +172,10 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
       'BACKEND_BASE_URL',
       defaultValue: 'https://abzora-backend.onrender.com',
     );
-    await launchUrl(Uri.parse('$baseUrl$relativePath'), mode: LaunchMode.externalApplication);
+    await launchUrl(
+      Uri.parse('$baseUrl$relativePath'),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   Future<String?> _askReplayToken(String title) async {
@@ -169,8 +192,14 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Confirm')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Confirm'),
+          ),
         ],
       ),
     );
@@ -185,27 +214,33 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
     if (token == null) return;
     await ref.read(invoiceRepositoryProvider).replayDlq(confirmation: token);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('DLQ replay queued.')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('DLQ replay queued.')));
     _refreshAll();
   }
 
   Future<void> _queueControl({required bool pause}) async {
-    final token = await _askReplayToken(pause ? 'Pause Email Queue' : 'Resume Email Queue');
+    final token = await _askReplayToken(
+      pause ? 'Pause Email Queue' : 'Resume Email Queue',
+    );
     if (token == null) return;
     if (pause) {
-      await ref.read(invoiceRepositoryProvider).pauseQueue(
-            queueName: 'invoice-email-sending',
-            confirmation: token,
-          );
+      await ref
+          .read(invoiceRepositoryProvider)
+          .pauseQueue(queueName: 'invoice-email-sending', confirmation: token);
     } else {
-      await ref.read(invoiceRepositoryProvider).resumeQueue(
-            queueName: 'invoice-email-sending',
-            confirmation: token,
-          );
+      await ref
+          .read(invoiceRepositoryProvider)
+          .resumeQueue(queueName: 'invoice-email-sending', confirmation: token);
     }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(pause ? 'Queue pause requested.' : 'Queue resume requested.')),
+      SnackBar(
+        content: Text(
+          pause ? 'Queue pause requested.' : 'Queue resume requested.',
+        ),
+      ),
     );
     _refreshAll();
   }
@@ -213,7 +248,9 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
   Future<void> _verifyInvoiceLookup() async {
     final id = _verifyInvoiceId.text.trim();
     if (id.isEmpty) return;
-    final result = await ref.read(invoiceRepositoryProvider).verifyInvoice(id, hash: _verifyHash.text.trim());
+    final result = await ref
+        .read(invoiceRepositoryProvider)
+        .verifyInvoice(id, hash: _verifyHash.text.trim());
     if (!mounted) return;
     setState(() => _verifyResult = result);
   }
@@ -236,7 +273,8 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
                   DropdownMenuItem(value: 'frozen', child: Text('frozen')),
                   DropdownMenuItem(value: 'locked', child: Text('locked')),
                 ],
-                onChanged: (v) => setStateDialog(() => freezeState = v ?? 'none'),
+                onChanged: (v) =>
+                    setStateDialog(() => freezeState = v ?? 'none'),
               ),
               CheckboxListTile(
                 value: legalHold,
@@ -247,20 +285,30 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Save'),
+            ),
           ],
         ),
       ),
     );
     if (confirmed != true) return;
-    await ref.read(invoiceRepositoryProvider).freezeInvoice(
+    await ref
+        .read(invoiceRepositoryProvider)
+        .freezeInvoice(
           invoice.id,
           freezeState: freezeState,
           legalHold: legalHold,
         );
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Freeze/hold updated.')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Freeze/hold updated.')));
     _refreshAll();
   }
 
@@ -314,9 +362,18 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
                     DropdownButton<String>(
                       value: _paymentFilter,
                       items: const [
-                        DropdownMenuItem(value: '', child: Text('Payment: All')),
-                        DropdownMenuItem(value: 'paid', child: Text('Payment: Paid')),
-                        DropdownMenuItem(value: 'pending', child: Text('Payment: Pending')),
+                        DropdownMenuItem(
+                          value: '',
+                          child: Text('Payment: All'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'paid',
+                          child: Text('Payment: Paid'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'pending',
+                          child: Text('Payment: Pending'),
+                        ),
                       ],
                       onChanged: (v) {
                         setState(() => _paymentFilter = v ?? '');
@@ -327,10 +384,22 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
                       value: _statusFilter,
                       items: const [
                         DropdownMenuItem(value: '', child: Text('Status: All')),
-                        DropdownMenuItem(value: 'generated', child: Text('Generated')),
-                        DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
-                        DropdownMenuItem(value: 'refunded', child: Text('Refunded')),
-                        DropdownMenuItem(value: 'partially_refunded', child: Text('Partially Refunded')),
+                        DropdownMenuItem(
+                          value: 'generated',
+                          child: Text('Generated'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'cancelled',
+                          child: Text('Cancelled'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'refunded',
+                          child: Text('Refunded'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'partially_refunded',
+                          child: Text('Partially Refunded'),
+                        ),
                       ],
                       onChanged: (v) {
                         setState(() => _statusFilter = v ?? '');
@@ -340,13 +409,25 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
                     DropdownButton<String>(
                       value: _sortBy,
                       items: const [
-                        DropdownMenuItem(value: 'latest', child: Text('Sort: Latest')),
-                        DropdownMenuItem(value: 'amount_desc', child: Text('Sort: Amount High-Low')),
-                        DropdownMenuItem(value: 'amount_asc', child: Text('Sort: Amount Low-High')),
+                        DropdownMenuItem(
+                          value: 'latest',
+                          child: Text('Sort: Latest'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'amount_desc',
+                          child: Text('Sort: Amount High-Low'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'amount_asc',
+                          child: Text('Sort: Amount Low-High'),
+                        ),
                       ],
                       onChanged: (v) => setState(() => _sortBy = v ?? 'latest'),
                     ),
-                    FilledButton.tonal(onPressed: _refreshAll, child: const Text('Reload')),
+                    FilledButton.tonal(
+                      onPressed: _refreshAll,
+                      child: const Text('Reload'),
+                    ),
                   ],
                 ),
               ),
@@ -372,12 +453,16 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
                   label: const Text('Resume Queue'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: () => _openExport(ref.read(invoiceRepositoryProvider).exportCsvUrl()),
+                  onPressed: () => _openExport(
+                    ref.read(invoiceRepositoryProvider).exportCsvUrl(),
+                  ),
                   icon: const Icon(Icons.table_view_outlined),
                   label: const Text('Export CSV'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: () => _openExport(ref.read(invoiceRepositoryProvider).exportXlsxUrl()),
+                  onPressed: () => _openExport(
+                    ref.read(invoiceRepositoryProvider).exportXlsxUrl(),
+                  ),
                   icon: const Icon(Icons.grid_on_outlined),
                   label: const Text('Export XLSX'),
                 ),
@@ -395,14 +480,18 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
                       width: 220,
                       child: TextField(
                         controller: _verifyInvoiceId,
-                        decoration: const InputDecoration(hintText: 'Invoice ID'),
+                        decoration: const InputDecoration(
+                          hintText: 'Invoice ID',
+                        ),
                       ),
                     ),
                     SizedBox(
                       width: 220,
                       child: TextField(
                         controller: _verifyHash,
-                        decoration: const InputDecoration(hintText: 'Optional hash'),
+                        decoration: const InputDecoration(
+                          hintText: 'Optional hash',
+                        ),
                       ),
                     ),
                     FilledButton.tonal(
@@ -438,11 +527,16 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
                 child: ExpansionTile(
                   title: const Text('Replay Audit Logs'),
                   subtitle: Text('Recent: ${rows.length}'),
-                  children: rows.take(10).map((row) => ListTile(
-                    dense: true,
-                    title: Text((row['action'] ?? '').toString()),
-                    subtitle: Text('queue: ${row['queueName'] ?? ''}'),
-                  )).toList(),
+                  children: rows
+                      .take(10)
+                      .map(
+                        (row) => ListTile(
+                          dense: true,
+                          title: Text((row['action'] ?? '').toString()),
+                          subtitle: Text('queue: ${row['queueName'] ?? ''}'),
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
               loading: () => const LinearProgressIndicator(),
@@ -454,11 +548,16 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
                 child: ExpansionTile(
                   title: const Text('Suppressed Emails'),
                   subtitle: Text('Active: ${rows.length}'),
-                  children: rows.take(10).map((row) => ListTile(
-                    dense: true,
-                    title: Text((row['email'] ?? '').toString()),
-                    subtitle: Text('reason: ${row['reason'] ?? ''}'),
-                  )).toList(),
+                  children: rows
+                      .take(10)
+                      .map(
+                        (row) => ListTile(
+                          dense: true,
+                          title: Text((row['email'] ?? '').toString()),
+                          subtitle: Text('reason: ${row['reason'] ?? ''}'),
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
               loading: () => const LinearProgressIndicator(),
@@ -482,10 +581,16 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
                               onPressed: id.isEmpty
                                   ? null
                                   : () async {
-                                      await ref.read(invoiceRepositoryProvider).resendEmailLog(id);
+                                      await ref
+                                          .read(invoiceRepositoryProvider)
+                                          .resendEmailLog(id);
                                       if (!mounted) return;
-                                      ScaffoldMessenger.of(this.context).showSnackBar(
-                                        const SnackBar(content: Text('Resend queued.')),
+                                      ScaffoldMessenger.of(
+                                        this.context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Resend queued.'),
+                                        ),
                                       );
                                       ref.invalidate(invoiceEmailLogsProvider);
                                     },
@@ -508,22 +613,38 @@ class _AdminInvoiceOpsScreenState extends ConsumerState<_AdminInvoiceOpsScreen> 
                     Text('Page ${query.page}'),
                     const SizedBox(width: 8),
                     OutlinedButton(
-                      onPressed: query.page <= 1 ? null : () => _applyFilters(page: query.page - 1),
+                      onPressed: query.page <= 1
+                          ? null
+                          : () => _applyFilters(page: query.page - 1),
                       child: const Text('Prev'),
                     ),
                     const SizedBox(width: 8),
                     OutlinedButton(
-                      onPressed: invoicesState.hasMore ? () => ref.read(adminInvoicePagerProvider.notifier).nextPage() : null,
+                      onPressed: invoicesState.hasMore
+                          ? () => ref
+                                .read(adminInvoicePagerProvider.notifier)
+                                .nextPage()
+                          : null,
                       child: const Text('Next'),
                     ),
                     const Spacer(),
                     if (invoicesState.loading)
-                      const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                   ],
                 ),
               ),
             ),
-            ...sorted.map((invoice) => _invoiceTile(context, invoice, onFreeze: () => _freezeInvoice(invoice))),
+            ...sorted.map(
+              (invoice) => _invoiceTile(
+                context,
+                invoice,
+                onFreeze: () => _freezeInvoice(invoice),
+              ),
+            ),
           ],
         ),
       ),
@@ -551,7 +672,11 @@ Widget _invoiceTile(
           PopupMenuItem(value: 'freeze', child: Text('Freeze / Legal Hold')),
         ],
       ),
-      onTap: () => Navigator.pushNamed(context, '/invoice/details', arguments: invoice.id),
+      onTap: () => Navigator.pushNamed(
+        context,
+        '/invoice/details',
+        arguments: invoice.id,
+      ),
     ),
   );
 }
@@ -569,7 +694,10 @@ Widget _metric(String title, String value) {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 12, color: Colors.black54),
+          ),
           const SizedBox(height: 6),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
         ],

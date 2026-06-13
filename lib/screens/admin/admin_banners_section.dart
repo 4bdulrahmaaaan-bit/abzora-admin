@@ -112,7 +112,9 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            initialBanner == null ? 'Banner created successfully.' : 'Banner updated successfully.',
+            initialBanner == null
+                ? 'Banner created successfully.'
+                : 'Banner updated successfully.',
           ),
         ),
       );
@@ -121,9 +123,9 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -149,9 +151,9 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -171,9 +173,9 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
       setState(() => _saving = false);
     }
   }
@@ -183,14 +185,18 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete banner'),
-        content: Text('Delete "${banner.title.isEmpty ? 'Untitled banner' : banner.title}"?'),
+        content: Text(
+          'Delete "${banner.title.isEmpty ? 'Untitled banner' : banner.title}"?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB42318)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB42318),
+            ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Delete'),
           ),
@@ -216,9 +222,9 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
       setState(() => _saving = false);
     }
   }
@@ -228,7 +234,8 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
   ]) async {
     final result = await showDialog<_CategoryVisualFormResult>(
       context: context,
-      builder: (dialogContext) => _CategoryVisualFormModal(initialVisual: initialVisual),
+      builder: (dialogContext) =>
+          _CategoryVisualFormModal(initialVisual: initialVisual),
     );
     if (result == null) {
       return;
@@ -262,7 +269,9 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
       } else {
         visuals.add(visual);
       }
-      await _saveHomeVisualConfig(_homeVisualConfig.copyWith(categoryVisuals: visuals));
+      await _saveHomeVisualConfig(
+        _homeVisualConfig.copyWith(categoryVisuals: visuals),
+      );
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -275,24 +284,30 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
     bool value,
   ) async {
     final visuals = _homeVisualConfig.categoryVisuals
-        .map((item) => item.id == visual.id ? item.copyWith(isActive: value) : item)
+        .map(
+          (item) =>
+              item.id == visual.id ? item.copyWith(isActive: value) : item,
+        )
         .toList();
-    await _saveHomeVisualConfig(_homeVisualConfig.copyWith(categoryVisuals: visuals));
+    await _saveHomeVisualConfig(
+      _homeVisualConfig.copyWith(categoryVisuals: visuals),
+    );
   }
 
   Future<void> _deleteCategoryVisual(HomeCategoryVisualModel visual) async {
     final visuals = _homeVisualConfig.categoryVisuals
         .where((item) => item.id != visual.id)
         .toList();
-    await _saveHomeVisualConfig(_homeVisualConfig.copyWith(categoryVisuals: visuals));
+    await _saveHomeVisualConfig(
+      _homeVisualConfig.copyWith(categoryVisuals: visuals),
+    );
   }
 
-  Future<void> _showPromoBlockForm([
-    HomePromoBlockModel? initialBlock,
-  ]) async {
+  Future<void> _showPromoBlockForm([HomePromoBlockModel? initialBlock]) async {
     final result = await showDialog<_PromoBlockFormResult>(
       context: context,
-      builder: (dialogContext) => _PromoBlockFormModal(initialBlock: initialBlock),
+      builder: (dialogContext) =>
+          _PromoBlockFormModal(initialBlock: initialBlock),
     );
     if (result == null) {
       return;
@@ -326,7 +341,9 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
       } else {
         promoBlocks.add(block);
       }
-      await _saveHomeVisualConfig(_homeVisualConfig.copyWith(promoBlocks: promoBlocks));
+      await _saveHomeVisualConfig(
+        _homeVisualConfig.copyWith(promoBlocks: promoBlocks),
+      );
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -336,16 +353,22 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
 
   Future<void> _togglePromoBlock(HomePromoBlockModel block, bool value) async {
     final promoBlocks = _homeVisualConfig.promoBlocks
-        .map((item) => item.id == block.id ? item.copyWith(isActive: value) : item)
+        .map(
+          (item) => item.id == block.id ? item.copyWith(isActive: value) : item,
+        )
         .toList();
-    await _saveHomeVisualConfig(_homeVisualConfig.copyWith(promoBlocks: promoBlocks));
+    await _saveHomeVisualConfig(
+      _homeVisualConfig.copyWith(promoBlocks: promoBlocks),
+    );
   }
 
   Future<void> _deletePromoBlock(HomePromoBlockModel block) async {
     final promoBlocks = _homeVisualConfig.promoBlocks
         .where((item) => item.id != block.id)
         .toList();
-    await _saveHomeVisualConfig(_homeVisualConfig.copyWith(promoBlocks: promoBlocks));
+    await _saveHomeVisualConfig(
+      _homeVisualConfig.copyWith(promoBlocks: promoBlocks),
+    );
   }
 
   @override
@@ -395,9 +418,7 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
         if (_loading)
           const SizedBox(
             height: 320,
-            child: Center(
-              child: CircularProgressIndicator(),
-            ),
+            child: Center(child: CircularProgressIndicator()),
           )
         else if (_error != null)
           Center(
@@ -441,7 +462,9 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
                       const SizedBox(height: 4),
                       Text(
                         'Banners are sorted by order. Lower values show first on the home page.',
-                        style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                        style: GoogleFonts.inter(
+                          color: AbzioTheme.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       if (_banners.isEmpty)
@@ -458,10 +481,16 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
                                   padding: const EdgeInsets.only(bottom: 12),
                                   child: BannerRow(
                                     banner: banner,
-                                    onEdit: _saving ? null : () => _showBannerForm(banner),
-                                    onDelete: _saving ? null : () => _deleteBanner(banner),
-                                    onToggleActive:
-                                        _saving ? null : (value) => _toggleBanner(banner, value),
+                                    onEdit: _saving
+                                        ? null
+                                        : () => _showBannerForm(banner),
+                                    onDelete: _saving
+                                        ? null
+                                        : () => _deleteBanner(banner),
+                                    onToggleActive: _saving
+                                        ? null
+                                        : (value) =>
+                                              _toggleBanner(banner, value),
                                   ),
                                 ),
                               )
@@ -487,10 +516,15 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _HomeCategoryVisualRow(
                           visual: visual,
-                          onEdit: _saving ? null : () => _showCategoryVisualForm(visual),
-                          onDelete: _saving ? null : () => _deleteCategoryVisual(visual),
-                          onToggleActive:
-                              _saving ? null : (value) => _toggleCategoryVisual(visual, value),
+                          onEdit: _saving
+                              ? null
+                              : () => _showCategoryVisualForm(visual),
+                          onDelete: _saving
+                              ? null
+                              : () => _deleteCategoryVisual(visual),
+                          onToggleActive: _saving
+                              ? null
+                              : (value) => _toggleCategoryVisual(visual, value),
                         ),
                       ),
                     )
@@ -512,10 +546,15 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _HomePromoBlockRow(
                           block: block,
-                          onEdit: _saving ? null : () => _showPromoBlockForm(block),
-                          onDelete: _saving ? null : () => _deletePromoBlock(block),
-                          onToggleActive:
-                              _saving ? null : (value) => _togglePromoBlock(block, value),
+                          onEdit: _saving
+                              ? null
+                              : () => _showPromoBlockForm(block),
+                          onDelete: _saving
+                              ? null
+                              : () => _deletePromoBlock(block),
+                          onToggleActive: _saving
+                              ? null
+                              : (value) => _togglePromoBlock(block, value),
                         ),
                       ),
                     )
@@ -590,7 +629,9 @@ class BannerRow extends StatelessWidget {
                     ),
                     _MiniPill(
                       label: banner.isActive ? 'Active' : 'Inactive',
-                      color: banner.isActive ? const Color(0xFF067647) : const Color(0xFF667085),
+                      color: banner.isActive
+                          ? const Color(0xFF067647)
+                          : const Color(0xFF667085),
                     ),
                     _MiniPill(
                       label: 'Order ${banner.order}',
@@ -600,7 +641,9 @@ class BannerRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  banner.subtitle.isEmpty ? 'No subtitle provided.' : banner.subtitle,
+                  banner.subtitle.isEmpty
+                      ? 'No subtitle provided.'
+                      : banner.subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
@@ -615,7 +658,11 @@ class BannerRow extends StatelessWidget {
                   children: [
                     _MetaChip(label: 'CTA: ${banner.ctaText}'),
                     _MetaChip(label: 'Redirect: ${banner.redirectType}'),
-                    _MetaChip(label: banner.redirectId.isEmpty ? 'No redirect ID' : 'ID: ${banner.redirectId}'),
+                    _MetaChip(
+                      label: banner.redirectId.isEmpty
+                          ? 'No redirect ID'
+                          : 'ID: ${banner.redirectId}',
+                    ),
                   ],
                 ),
               ],
@@ -658,10 +705,7 @@ class BannerRow extends StatelessWidget {
 }
 
 class BannerFormModal extends StatefulWidget {
-  const BannerFormModal({
-    super.key,
-    this.initialBanner,
-  });
+  const BannerFormModal({super.key, this.initialBanner});
 
   final BannerModel? initialBanner;
 
@@ -712,7 +756,10 @@ class _BannerFormModalState extends State<BannerFormModal> {
   }
 
   Future<void> _pickImage() async {
-    final file = await _picker.pickImage(imageQuality: 92, source: ImageSource.gallery);
+    final file = await _picker.pickImage(
+      imageQuality: 92,
+      source: ImageSource.gallery,
+    );
     if (file == null) {
       return;
     }
@@ -730,7 +777,8 @@ class _BannerFormModalState extends State<BannerFormModal> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    if (_pickedImage == null && (widget.initialBanner?.imageUrl.trim().isEmpty ?? true)) {
+    if (_pickedImage == null &&
+        (widget.initialBanner?.imageUrl.trim().isEmpty ?? true)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please choose a banner image.')),
       );
@@ -744,7 +792,9 @@ class _BannerFormModalState extends State<BannerFormModal> {
           imageUrl: widget.initialBanner?.imageUrl ?? '',
           title: _titleController.text.trim(),
           subtitle: _subtitleController.text.trim(),
-          ctaText: _ctaController.text.trim().isEmpty ? 'Shop Now' : _ctaController.text.trim(),
+          ctaText: _ctaController.text.trim().isEmpty
+              ? 'Shop Now'
+              : _ctaController.text.trim(),
           redirectType: _redirectType,
           redirectId: _redirectIdController.text.trim(),
           order: int.tryParse(_orderController.text.trim()) ?? 0,
@@ -794,14 +844,13 @@ class _BannerFormModalState extends State<BannerFormModal> {
                       child: hasPreview
                           ? Image.memory(_pickedPreview!, fit: BoxFit.cover)
                           : currentImage.isNotEmpty
-                              ? Image.network(
-                                  currentImage,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => _UploadPlaceholder(
-                                    hasImage: false,
-                                  ),
-                                )
-                              : const _UploadPlaceholder(hasImage: false),
+                          ? Image.network(
+                              currentImage,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _UploadPlaceholder(hasImage: false),
+                            )
+                          : const _UploadPlaceholder(hasImage: false),
                     ),
                   ),
                 ),
@@ -811,7 +860,11 @@ class _BannerFormModalState extends State<BannerFormModal> {
                     OutlinedButton.icon(
                       onPressed: _pickImage,
                       icon: const Icon(Icons.upload_outlined),
-                      label: Text(hasPreview || currentImage.isNotEmpty ? 'Replace image' : 'Upload image'),
+                      label: Text(
+                        hasPreview || currentImage.isNotEmpty
+                            ? 'Replace image'
+                            : 'Upload image',
+                      ),
                     ),
                     if (_pickedImage != null) ...[
                       const SizedBox(width: 12),
@@ -819,7 +872,9 @@ class _BannerFormModalState extends State<BannerFormModal> {
                         child: Text(
                           _pickedImage!.name,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                          style: GoogleFonts.inter(
+                            color: AbzioTheme.textSecondary,
+                          ),
                         ),
                       ),
                     ],
@@ -832,7 +887,9 @@ class _BannerFormModalState extends State<BannerFormModal> {
                     labelText: 'Title',
                     hintText: 'Top-rated stores around you',
                   ),
-                  validator: (value) => value == null || value.trim().isEmpty ? 'Title is required.' : null,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Title is required.'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -861,9 +918,7 @@ class _BannerFormModalState extends State<BannerFormModal> {
                       child: TextFormField(
                         controller: _orderController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Order',
-                        ),
+                        decoration: const InputDecoration(labelText: 'Order'),
                       ),
                     ),
                   ],
@@ -871,13 +926,14 @@ class _BannerFormModalState extends State<BannerFormModal> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _redirectType,
-                  decoration: const InputDecoration(
-                    labelText: 'Redirect type',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Redirect type'),
                   items: const [
                     DropdownMenuItem(value: 'product', child: Text('product')),
                     DropdownMenuItem(value: 'store', child: Text('store')),
-                    DropdownMenuItem(value: 'category', child: Text('category')),
+                    DropdownMenuItem(
+                      value: 'category',
+                      child: Text('category'),
+                    ),
                   ],
                   onChanged: (value) {
                     if (value == null) {
@@ -899,9 +955,13 @@ class _BannerFormModalState extends State<BannerFormModal> {
                   value: _isActive,
                   contentPadding: EdgeInsets.zero,
                   activeThumbColor: AbzioTheme.accentColor,
-                  activeTrackColor: AbzioTheme.accentColor.withValues(alpha: 0.32),
+                  activeTrackColor: AbzioTheme.accentColor.withValues(
+                    alpha: 0.32,
+                  ),
                   title: const Text('Active banner'),
-                  subtitle: const Text('Inactive banners stay saved but will not show on the customer app.'),
+                  subtitle: const Text(
+                    'Inactive banners stay saved but will not show on the customer app.',
+                  ),
                   onChanged: (value) => setState(() => _isActive = value),
                 ),
               ],
@@ -916,7 +976,9 @@ class _BannerFormModalState extends State<BannerFormModal> {
         ),
         FilledButton(
           onPressed: _submit,
-          child: Text(widget.initialBanner == null ? 'Create banner' : 'Save changes'),
+          child: Text(
+            widget.initialBanner == null ? 'Create banner' : 'Save changes',
+          ),
         ),
       ],
     );
@@ -950,10 +1012,7 @@ class _MetaChip extends StatelessWidget {
 }
 
 class _MiniPill extends StatelessWidget {
-  const _MiniPill({
-    required this.label,
-    required this.color,
-  });
+  const _MiniPill({required this.label, required this.color});
 
   final String label;
   final Color color;
@@ -979,9 +1038,7 @@ class _MiniPill extends StatelessWidget {
 }
 
 class _UploadPlaceholder extends StatelessWidget {
-  const _UploadPlaceholder({
-    required this.hasImage,
-  });
+  const _UploadPlaceholder({required this.hasImage});
 
   final bool hasImage;
 
@@ -992,7 +1049,9 @@ class _UploadPlaceholder extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            hasImage ? Icons.image_outlined : Icons.add_photo_alternate_outlined,
+            hasImage
+                ? Icons.image_outlined
+                : Icons.add_photo_alternate_outlined,
             size: 32,
             color: AbzioTheme.textSecondary,
           ),
@@ -1011,10 +1070,7 @@ class _UploadPlaceholder extends StatelessWidget {
 }
 
 class _BannerFormResult {
-  const _BannerFormResult({
-    required this.banner,
-    required this.imageFile,
-  });
+  const _BannerFormResult({required this.banner, required this.imageFile});
 
   final BannerModel banner;
   final XFile? imageFile;
@@ -1063,7 +1119,9 @@ class _HomeVisualInventoryCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
-                        style: GoogleFonts.inter(color: AbzioTheme.textSecondary),
+                        style: GoogleFonts.inter(
+                          color: AbzioTheme.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -1078,10 +1136,7 @@ class _HomeVisualInventoryCard extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             if (children.isEmpty)
-              AbzioEmptyCard(
-                title: emptyTitle,
-                subtitle: emptySubtitle,
-              )
+              AbzioEmptyCard(title: emptyTitle, subtitle: emptySubtitle)
             else
               Column(children: children),
           ],
@@ -1124,11 +1179,10 @@ class _HomeCategoryVisualRow extends StatelessWidget {
               child: Image.network(
                 visual.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const ColoredBox(
-                      color: Color(0xFFF2EEE5),
-                      child: Icon(Icons.broken_image_outlined),
-                    ),
+                errorBuilder: (context, error, stackTrace) => const ColoredBox(
+                  color: Color(0xFFF2EEE5),
+                  child: Icon(Icons.broken_image_outlined),
+                ),
               ),
             ),
           ),
@@ -1242,11 +1296,10 @@ class _HomePromoBlockRow extends StatelessWidget {
               child: Image.network(
                 block.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const ColoredBox(
-                      color: Color(0xFFF2EEE5),
-                      child: Icon(Icons.broken_image_outlined),
-                    ),
+                errorBuilder: (context, error, stackTrace) => const ColoredBox(
+                  color: Color(0xFFF2EEE5),
+                  child: Icon(Icons.broken_image_outlined),
+                ),
               ),
             ),
           ),
@@ -1313,10 +1366,7 @@ class _HomePromoBlockRow extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Switch.adaptive(
-                value: block.isActive,
-                onChanged: onToggleActive,
-              ),
+              Switch.adaptive(value: block.isActive, onChanged: onToggleActive),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -1351,7 +1401,8 @@ class _CategoryVisualFormModal extends StatefulWidget {
   final HomeCategoryVisualModel? initialVisual;
 
   @override
-  State<_CategoryVisualFormModal> createState() => _CategoryVisualFormModalState();
+  State<_CategoryVisualFormModal> createState() =>
+      _CategoryVisualFormModalState();
 }
 
 class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
@@ -1404,7 +1455,10 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
   }
 
   Future<void> _pickImage() async {
-    final file = await _picker.pickImage(imageQuality: 92, source: ImageSource.gallery);
+    final file = await _picker.pickImage(
+      imageQuality: 92,
+      source: ImageSource.gallery,
+    );
     if (file == null) {
       return;
     }
@@ -1422,7 +1476,8 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    if (_pickedImage == null && (widget.initialVisual?.imageUrl.trim().isEmpty ?? true)) {
+    if (_pickedImage == null &&
+        (widget.initialVisual?.imageUrl.trim().isEmpty ?? true)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please choose a category image.')),
       );
@@ -1434,7 +1489,9 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
     Navigator.of(context).pop(
       _CategoryVisualFormResult(
         visual: HomeCategoryVisualModel(
-          id: widget.initialVisual?.id.isNotEmpty == true ? widget.initialVisual!.id : generatedId,
+          id: widget.initialVisual?.id.isNotEmpty == true
+              ? widget.initialVisual!.id
+              : generatedId,
           tab: _tab,
           label: normalizedLabel,
           imageUrl: widget.initialVisual?.imageUrl ?? '',
@@ -1452,7 +1509,11 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
     final currentImage = widget.initialVisual?.imageUrl ?? '';
     final hasPreview = _pickedPreview != null;
     return AlertDialog(
-      title: Text(widget.initialVisual == null ? 'Add category visual' : 'Edit category visual'),
+      title: Text(
+        widget.initialVisual == null
+            ? 'Add category visual'
+            : 'Edit category visual',
+      ),
       content: SizedBox(
         width: 560,
         child: SingleChildScrollView(
@@ -1467,14 +1528,18 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
                   pickedPreview: _pickedPreview,
                   currentImage: currentImage,
                   onPickImage: _pickImage,
-                  buttonLabel: hasPreview || currentImage.isNotEmpty ? 'Replace image' : 'Upload image',
+                  buttonLabel: hasPreview || currentImage.isNotEmpty
+                      ? 'Replace image'
+                      : 'Upload image',
                 ),
                 const SizedBox(height: 18),
                 DropdownButtonFormField<String>(
                   initialValue: _tab,
                   decoration: const InputDecoration(labelText: 'Audience tab'),
                   items: _tabOptions
-                      .map((tab) => DropdownMenuItem(value: tab, child: Text(tab)))
+                      .map(
+                        (tab) => DropdownMenuItem(value: tab, child: Text(tab)),
+                      )
                       .toList(),
                   onChanged: (value) {
                     if (value != null) {
@@ -1489,8 +1554,9 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
                     labelText: 'Label',
                     hintText: 'Casual / atelier-noir / blazers',
                   ),
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty ? 'Label is required.' : null,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Label is required.'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -1498,7 +1564,9 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         initialValue: _icon,
-                        decoration: const InputDecoration(labelText: 'Icon key'),
+                        decoration: const InputDecoration(
+                          labelText: 'Icon key',
+                        ),
                         items: _iconOptions
                             .map(
                               (icon) => DropdownMenuItem(
@@ -1530,7 +1598,9 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
                   value: _isActive,
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Active visual'),
-                  subtitle: const Text('Inactive visuals stay saved but will not appear on home.'),
+                  subtitle: const Text(
+                    'Inactive visuals stay saved but will not appear on home.',
+                  ),
                   onChanged: (value) => setState(() => _isActive = value),
                 ),
               ],
@@ -1545,7 +1615,9 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
         ),
         FilledButton(
           onPressed: _submit,
-          child: Text(widget.initialVisual == null ? 'Create visual' : 'Save changes'),
+          child: Text(
+            widget.initialVisual == null ? 'Create visual' : 'Save changes',
+          ),
         ),
       ],
     );
@@ -1611,7 +1683,10 @@ class _PromoBlockFormModalState extends State<_PromoBlockFormModal> {
   }
 
   Future<void> _pickImage() async {
-    final file = await _picker.pickImage(imageQuality: 92, source: ImageSource.gallery);
+    final file = await _picker.pickImage(
+      imageQuality: 92,
+      source: ImageSource.gallery,
+    );
     if (file == null) {
       return;
     }
@@ -1629,7 +1704,8 @@ class _PromoBlockFormModalState extends State<_PromoBlockFormModal> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    if (_pickedImage == null && (widget.initialBlock?.imageUrl.trim().isEmpty ?? true)) {
+    if (_pickedImage == null &&
+        (widget.initialBlock?.imageUrl.trim().isEmpty ?? true)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please choose a promo image.')),
       );
@@ -1641,12 +1717,16 @@ class _PromoBlockFormModalState extends State<_PromoBlockFormModal> {
     Navigator.of(context).pop(
       _PromoBlockFormResult(
         block: HomePromoBlockModel(
-          id: widget.initialBlock?.id.isNotEmpty == true ? widget.initialBlock!.id : generatedId,
+          id: widget.initialBlock?.id.isNotEmpty == true
+              ? widget.initialBlock!.id
+              : generatedId,
           slot: int.tryParse(_slotController.text.trim()) ?? 1,
           eyebrow: _eyebrowController.text.trim(),
           title: normalizedTitle,
           subtitle: _subtitleController.text.trim(),
-          ctaText: _ctaController.text.trim().isEmpty ? 'Explore' : _ctaController.text.trim(),
+          ctaText: _ctaController.text.trim().isEmpty
+              ? 'Explore'
+              : _ctaController.text.trim(),
           imageUrl: widget.initialBlock?.imageUrl ?? '',
           redirectType: _redirectType,
           redirectId: _redirectIdController.text.trim(),
@@ -1663,7 +1743,9 @@ class _PromoBlockFormModalState extends State<_PromoBlockFormModal> {
     final currentImage = widget.initialBlock?.imageUrl ?? '';
     final hasPreview = _pickedPreview != null;
     return AlertDialog(
-      title: Text(widget.initialBlock == null ? 'Add promo block' : 'Edit promo block'),
+      title: Text(
+        widget.initialBlock == null ? 'Add promo block' : 'Edit promo block',
+      ),
       content: SizedBox(
         width: 580,
         child: SingleChildScrollView(
@@ -1678,7 +1760,9 @@ class _PromoBlockFormModalState extends State<_PromoBlockFormModal> {
                   pickedPreview: _pickedPreview,
                   currentImage: currentImage,
                   onPickImage: _pickImage,
-                  buttonLabel: hasPreview || currentImage.isNotEmpty ? 'Replace image' : 'Upload image',
+                  buttonLabel: hasPreview || currentImage.isNotEmpty
+                      ? 'Replace image'
+                      : 'Upload image',
                 ),
                 const SizedBox(height: 18),
                 TextFormField(
@@ -1695,8 +1779,9 @@ class _PromoBlockFormModalState extends State<_PromoBlockFormModal> {
                     labelText: 'Title',
                     hintText: 'New arrivals from Mizaj',
                   ),
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty ? 'Title is required.' : null,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Title is required.'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -1704,7 +1789,8 @@ class _PromoBlockFormModalState extends State<_PromoBlockFormModal> {
                   maxLines: 2,
                   decoration: const InputDecoration(
                     labelText: 'Subtitle',
-                    hintText: 'Modern occasion wear, refined for every celebration.',
+                    hintText:
+                        'Modern occasion wear, refined for every celebration.',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1713,7 +1799,9 @@ class _PromoBlockFormModalState extends State<_PromoBlockFormModal> {
                     Expanded(
                       child: TextFormField(
                         controller: _ctaController,
-                        decoration: const InputDecoration(labelText: 'CTA text'),
+                        decoration: const InputDecoration(
+                          labelText: 'CTA text',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1743,7 +1831,10 @@ class _PromoBlockFormModalState extends State<_PromoBlockFormModal> {
                   items: const [
                     DropdownMenuItem(value: 'product', child: Text('product')),
                     DropdownMenuItem(value: 'store', child: Text('store')),
-                    DropdownMenuItem(value: 'category', child: Text('category')),
+                    DropdownMenuItem(
+                      value: 'category',
+                      child: Text('category'),
+                    ),
                     DropdownMenuItem(value: 'custom', child: Text('custom')),
                   ],
                   onChanged: (value) {
@@ -1765,7 +1856,9 @@ class _PromoBlockFormModalState extends State<_PromoBlockFormModal> {
                   value: _isActive,
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Active promo'),
-                  subtitle: const Text('Inactive promos stay saved but will not appear on home.'),
+                  subtitle: const Text(
+                    'Inactive promos stay saved but will not appear on home.',
+                  ),
                   onChanged: (value) => setState(() => _isActive = value),
                 ),
               ],
@@ -1780,7 +1873,9 @@ class _PromoBlockFormModalState extends State<_PromoBlockFormModal> {
         ),
         FilledButton(
           onPressed: _submit,
-          child: Text(widget.initialBlock == null ? 'Create promo' : 'Save changes'),
+          child: Text(
+            widget.initialBlock == null ? 'Create promo' : 'Save changes',
+          ),
         ),
       ],
     );
@@ -1830,13 +1925,13 @@ class _VisualUploadPreview extends StatelessWidget {
               child: pickedPreview != null
                   ? Image.memory(pickedPreview!, fit: BoxFit.cover)
                   : currentImage.isNotEmpty
-                      ? Image.network(
-                          currentImage,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const _UploadPlaceholder(hasImage: false),
-                        )
-                      : const _UploadPlaceholder(hasImage: false),
+                  ? Image.network(
+                      currentImage,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const _UploadPlaceholder(hasImage: false),
+                    )
+                  : const _UploadPlaceholder(hasImage: false),
             ),
           ),
         ),
@@ -1862,12 +1957,8 @@ class _CategoryVisualFormResult {
 }
 
 class _PromoBlockFormResult {
-  const _PromoBlockFormResult({
-    required this.block,
-    required this.imageFile,
-  });
+  const _PromoBlockFormResult({required this.block, required this.imageFile});
 
   final HomePromoBlockModel block;
   final XFile? imageFile;
 }
-

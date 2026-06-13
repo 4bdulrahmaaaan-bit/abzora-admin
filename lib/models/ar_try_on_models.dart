@@ -49,9 +49,7 @@ class ArTryOnProductMetadata {
       overlayAssetUrl: map['overlayAssetUrl']?.toString() ?? '',
       transparentAssetUrl: map['transparentAssetUrl']?.toString() ?? '',
       model3dUrl: map['model3d']?.toString() ?? '',
-      assetBundleUrl:
-          map['assetBundleUrl']?.toString() ??
-          '',
+      assetBundleUrl: map['assetBundleUrl']?.toString() ?? '',
       rigProfile: map['rigProfile']?.toString() ?? '',
       materialProfile: map['materialProfile']?.toString() ?? '',
       alignmentConfig: Map<String, dynamic>.from(
@@ -203,7 +201,9 @@ class GarmentTemplateModel {
       slug: map['slug']?.toString() ?? '',
       name: map['name']?.toString() ?? '',
       category: map['category']?.toString() ?? '',
-      modelUrls: Map<String, dynamic>.from(map['modelUrls'] as Map? ?? const {}),
+      modelUrls: Map<String, dynamic>.from(
+        map['modelUrls'] as Map? ?? const {},
+      ),
       runtimeProfile: Map<String, dynamic>.from(
         map['runtimeProfile'] as Map? ?? const {},
       ),
@@ -214,7 +214,9 @@ class GarmentTemplateModel {
       customizableParts: Map<String, dynamic>.from(
         map['customizableParts'] as Map? ?? const {},
       ),
-      supportedFits: List<String>.from(map['supportedFits'] as List? ?? const []),
+      supportedFits: List<String>.from(
+        map['supportedFits'] as List? ?? const [],
+      ),
       defaultMaterialProfile: map['defaultMaterialProfile']?.toString() ?? '',
       defaultColorHex: map['defaultColorHex']?.toString() ?? '#C6A769',
       defaultFabricTextureUrl: map['defaultFabricTextureUrl']?.toString() ?? '',
@@ -288,9 +290,10 @@ class ArFitAssessment {
       usedMeasurements: List<String>.from(
         map['usedMeasurements'] as List? ?? const [],
       ),
-      sizeChart: Map<String, dynamic>.from(map['sizeChart'] as Map? ?? const {}),
+      sizeChart: Map<String, dynamic>.from(
+        map['sizeChart'] as Map? ?? const {},
+      ),
       template: Map<String, dynamic>.from(map['template'] as Map? ?? const {}),
     );
   }
 }
-

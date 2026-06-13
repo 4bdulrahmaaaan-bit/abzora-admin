@@ -63,7 +63,7 @@ class ProductFormController extends ChangeNotifier {
     } else {
       _initDefaultAttributes();
     }
-    
+
     // Listeners for live pricing updates
     mrpController.addListener(notifyListeners);
     sellingPriceController.addListener(notifyListeners);
@@ -71,7 +71,10 @@ class ProductFormController extends ChangeNotifier {
 
   void _initDefaultAttributes() {
     attributeControllers.clear();
-    final template = getProductAttributeTemplate(selectedCategory, selectedSubcategory);
+    final template = getProductAttributeTemplate(
+      selectedCategory,
+      selectedSubcategory,
+    );
     for (final field in template.fields.keys) {
       attributeControllers[field] = TextEditingController();
     }
@@ -81,10 +84,13 @@ class ProductFormController extends ChangeNotifier {
     selectedCategory = category;
     selectedSubcategory = ''; // Reset
     _initDefaultAttributes();
-    
+
     // Auto-gen sizes based on config
     sizeQuantities.clear();
-    final template = getProductAttributeTemplate(selectedCategory, selectedSubcategory);
+    final template = getProductAttributeTemplate(
+      selectedCategory,
+      selectedSubcategory,
+    );
     for (final size in template.sizes) {
       sizeQuantities[size] = 0;
     }
@@ -94,9 +100,12 @@ class ProductFormController extends ChangeNotifier {
   void updateSubcategory(String subcategory) {
     selectedSubcategory = subcategory;
     _initDefaultAttributes();
-    
+
     sizeQuantities.clear();
-    final template = getProductAttributeTemplate(selectedCategory, selectedSubcategory);
+    final template = getProductAttributeTemplate(
+      selectedCategory,
+      selectedSubcategory,
+    );
     for (final size in template.sizes) {
       sizeQuantities[size] = 0;
     }
@@ -113,7 +122,7 @@ class ProductFormController extends ChangeNotifier {
     imageUrls.addAll(product.images);
     colorVariants.addAll(product.colorVariants);
     descriptionController.text = product.description;
-    
+
     selectedCategory = product.category;
     selectedSubcategory = product.subcategory;
     status = product.status;
@@ -175,8 +184,13 @@ class ProductFormController extends ChangeNotifier {
   }
 
   void generateSku() {
-    final prefix = selectedCategory.isNotEmpty ? selectedCategory.substring(0, min(3, selectedCategory.length)).toUpperCase() : 'PRD';
-    skuController.text = '$prefix-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
+    final prefix = selectedCategory.isNotEmpty
+        ? selectedCategory
+              .substring(0, min(3, selectedCategory.length))
+              .toUpperCase()
+        : 'PRD';
+    skuController.text =
+        '$prefix-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
     notifyListeners();
   }
 

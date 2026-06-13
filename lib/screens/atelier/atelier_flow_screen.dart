@@ -1,4 +1,3 @@
-
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -97,7 +96,11 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
 
   final List<String> _necks = const <String>['Classic', 'Band', 'Cutaway'];
   final List<String> _sleeves = const <String>['Full', '3/4', 'Short'];
-  final List<String> _lengths = const <String>['Regular', 'Longline', 'Cropped'];
+  final List<String> _lengths = const <String>[
+    'Regular',
+    'Longline',
+    'Cropped',
+  ];
 
   @override
   void initState() {
@@ -141,40 +144,42 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
   int get _total => _basePrice + _fabricDelta + _stitching + _addons;
 
   List<int> get _filteredFabricIndexes {
-    return List<int>.generate(atelierFabrics.length, (int i) => i).where((int i) {
-      final fabric = atelierFabrics[i];
-      if (_materialFilter != 'All' && fabric.material != _materialFilter) {
-        return false;
-      }
-      if (_occasionFilter != 'All' && fabric.occasion != _occasionFilter) {
-        return false;
-      }
-      if (_priceFilter == 'Under 1500' && fabric.delta >= 1500) {
-        return false;
-      }
-      if (_priceFilter == '1500-2500' &&
-          (fabric.delta < 1500 || fabric.delta > 2500)) {
-        return false;
-      }
-      if (_priceFilter == '2500+' && fabric.delta < 2500) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    return List<int>.generate(atelierFabrics.length, (int i) => i)
+        .where((int i) {
+          final fabric = atelierFabrics[i];
+          if (_materialFilter != 'All' && fabric.material != _materialFilter) {
+            return false;
+          }
+          if (_occasionFilter != 'All' && fabric.occasion != _occasionFilter) {
+            return false;
+          }
+          if (_priceFilter == 'Under 1500' && fabric.delta >= 1500) {
+            return false;
+          }
+          if (_priceFilter == '1500-2500' &&
+              (fabric.delta < 1500 || fabric.delta > 2500)) {
+            return false;
+          }
+          if (_priceFilter == '2500+' && fabric.delta < 2500) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   String get _cta => switch (_step) {
-        _Step.entry => 'Enter Atelier',
-        _Step.store => 'Start with this Boutique',
-        _Step.style => 'Continue to Fabrics',
-        _Step.fabric => 'Continue to Design',
-        _Step.design => 'Continue to Measurements',
-        _Step.measurement => 'Continue to Preview',
-        _Step.preview => 'Review Pricing',
-        _Step.pricing => 'Proceed to Checkout',
-        _Step.checkout => 'Place Atelier Order',
-        _Step.tracking => 'Back to Home',
-      };
+    _Step.entry => 'Enter Atelier',
+    _Step.store => 'Start with this Boutique',
+    _Step.style => 'Continue to Fabrics',
+    _Step.fabric => 'Continue to Design',
+    _Step.design => 'Continue to Measurements',
+    _Step.measurement => 'Continue to Preview',
+    _Step.preview => 'Review Pricing',
+    _Step.pricing => 'Proceed to Checkout',
+    _Step.checkout => 'Place Atelier Order',
+    _Step.tracking => 'Back to Home',
+  };
 
   Future<void> _next() async {
     if (_step == _Step.checkout) {
@@ -464,24 +469,29 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: tabs.map((tab) {
-            final selected = tab.$1 == _storeTab;
-            return ChoiceChip(
-              label: Text(tab.$2, style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
-              selected: selected,
-              showCheckmark: false,
-              side: BorderSide(color: selected ? _gold : _line),
-              selectedColor: _gold.withValues(alpha: 0.16),
-              backgroundColor: _card,
-              onSelected: (bool value) {
-                if (!value) return;
-                setState(() {
-                  _storeTab = tab.$1;
-                  _selectedStore = 0;
-                });
-              },
-            );
-          }).toList(growable: false),
+          children: tabs
+              .map((tab) {
+                final selected = tab.$1 == _storeTab;
+                return ChoiceChip(
+                  label: Text(
+                    tab.$2,
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+                  ),
+                  selected: selected,
+                  showCheckmark: false,
+                  side: BorderSide(color: selected ? _gold : _line),
+                  selectedColor: _gold.withValues(alpha: 0.16),
+                  backgroundColor: _card,
+                  onSelected: (bool value) {
+                    if (!value) return;
+                    setState(() {
+                      _storeTab = tab.$1;
+                      _selectedStore = 0;
+                    });
+                  },
+                );
+              })
+              .toList(growable: false),
         ),
         const SizedBox(height: 10),
         ...List<Widget>.generate(_storesForTab.length, (int index) {
@@ -527,14 +537,48 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text(store.name, style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
-                          Text(store.tagline, style: GoogleFonts.manrope(color: Colors.white.withValues(alpha: 0.88), fontSize: 12)),
+                          Text(
+                            store.name,
+                            style: GoogleFonts.manrope(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
+                          Text(
+                            store.tagline,
+                            style: GoogleFonts.manrope(
+                              color: Colors.white.withValues(alpha: 0.88),
+                              fontSize: 12,
+                            ),
+                          ),
                           Row(
                             children: <Widget>[
-                              Text('★ ${store.rating}', style: GoogleFonts.manrope(color: Colors.white, fontSize: 12)),
+                              Text(
+                                '★ ${store.rating}',
+                                style: GoogleFonts.manrope(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
                               const SizedBox(width: 8),
-                              Expanded(child: Text(store.distance, style: GoogleFonts.manrope(color: Colors.white, fontSize: 12))),
-                              Text('From ${_money.format(store.startPrice)}', style: GoogleFonts.manrope(color: const Color(0xFFFFD88C), fontSize: 12, fontWeight: FontWeight.w700)),
+                              Expanded(
+                                child: Text(
+                                  store.distance,
+                                  style: GoogleFonts.manrope(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                'From ${_money.format(store.startPrice)}',
+                                style: GoogleFonts.manrope(
+                                  color: const Color(0xFFFFD88C),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -570,7 +614,10 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
             decoration: BoxDecoration(
               color: _card,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: selected ? _gold : _line, width: selected ? 2 : 1),
+              border: Border.all(
+                color: selected ? _gold : _line,
+                width: selected ? 2 : 1,
+              ),
             ),
             clipBehavior: Clip.antiAlias,
             child: Column(
@@ -579,7 +626,14 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
                 Expanded(child: _image(style.image)),
                 Padding(
                   padding: const EdgeInsets.all(10),
-                  child: Text('${style.name}\n${style.subtitle}', style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w700, fontSize: 12)),
+                  child: Text(
+                    '${style.name}\n${style.subtitle}',
+                    style: GoogleFonts.manrope(
+                      color: _ink,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -597,9 +651,21 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       children: <Widget>[
-        _chipFilters(_materials, _materialFilter, (v) => setState(() => _materialFilter = v)),
-        _chipFilters(_priceBands, _priceFilter, (v) => setState(() => _priceFilter = v)),
-        _chipFilters(_occasions, _occasionFilter, (v) => setState(() => _occasionFilter = v)),
+        _chipFilters(
+          _materials,
+          _materialFilter,
+          (v) => setState(() => _materialFilter = v),
+        ),
+        _chipFilters(
+          _priceBands,
+          _priceFilter,
+          (v) => setState(() => _priceFilter = v),
+        ),
+        _chipFilters(
+          _occasions,
+          _occasionFilter,
+          (v) => setState(() => _occasionFilter = v),
+        ),
         const SizedBox(height: 8),
         GridView.builder(
           shrinkWrap: true,
@@ -622,7 +688,10 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
                 decoration: BoxDecoration(
                   color: _card,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: selected ? _gold : _line, width: selected ? 2 : 1),
+                  border: Border.all(
+                    color: selected ? _gold : _line,
+                    width: selected ? 2 : 1,
+                  ),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: Column(
@@ -637,7 +706,9 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
                             top: 8,
                             child: IconButton(
                               style: IconButton.styleFrom(
-                                backgroundColor: Colors.black.withValues(alpha: 0.45),
+                                backgroundColor: Colors.black.withValues(
+                                  alpha: 0.45,
+                                ),
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.all(4),
                               ),
@@ -650,7 +721,16 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
                     ),
                     Padding(
                       padding: const EdgeInsets.all(8),
-                      child: Text('${fabric.name}\n${fabric.description}', maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.manrope(color: _ink, fontSize: 11, fontWeight: FontWeight.w700)),
+                      child: Text(
+                        '${fabric.name}\n${fabric.description}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.manrope(
+                          color: _ink,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -663,126 +743,237 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
   }
 
   Widget _designStep() => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        children: <Widget>[
-          _optionCard('Neckline', _necks, _selectedNeck, (v) => setState(() => _selectedNeck = v)),
-          const SizedBox(height: 12),
-          _optionCard('Sleeve', _sleeves, _selectedSleeve, (v) => setState(() => _selectedSleeve = v)),
-          const SizedBox(height: 12),
-          _optionCard('Length', _lengths, _selectedLength, (v) => setState(() => _selectedLength = v)),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
-            child: Text('Live preview updates as you customize.', style: GoogleFonts.manrope(color: _muted, fontWeight: FontWeight.w600)),
+    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    children: <Widget>[
+      _optionCard(
+        'Neckline',
+        _necks,
+        _selectedNeck,
+        (v) => setState(() => _selectedNeck = v),
+      ),
+      const SizedBox(height: 12),
+      _optionCard(
+        'Sleeve',
+        _sleeves,
+        _selectedSleeve,
+        (v) => setState(() => _selectedSleeve = v),
+      ),
+      const SizedBox(height: 12),
+      _optionCard(
+        'Length',
+        _lengths,
+        _selectedLength,
+        (v) => setState(() => _selectedLength = v),
+      ),
+      const SizedBox(height: 12),
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _line),
+        ),
+        child: Text(
+          'Live preview updates as you customize.',
+          style: GoogleFonts.manrope(
+            color: _muted,
+            fontWeight: FontWeight.w600,
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 
   Widget _measurementStep() => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        children: <Widget>[
-          _measurementCard('Manual Input', 'Enter chest, waist, and length', Icons.straighten_rounded, _measurementMode == 'manual', () => setState(() => _measurementMode = 'manual')),
-          _measurementCard('Saved Profile', 'Use previous verified measurements', Icons.bookmark_rounded, _measurementMode == 'saved', () => setState(() => _measurementMode = 'saved')),
-          _measurementCard('AI Body Scan', 'Coming soon for precision scan', Icons.camera_alt_rounded, _measurementMode == 'ai', () {}, enabled: false),
-          if (_measurementMode == 'manual')
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
-              child: Column(
-                children: <Widget>[
-                  _inputField('Chest (inches)', _chest),
-                  const SizedBox(height: 8),
-                  _inputField('Waist (inches)', _waist),
-                  const SizedBox(height: 8),
-                  _inputField('Length (inches)', _length),
-                ],
-              ),
-            ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _saveMeasurements,
-            icon: const Icon(Icons.bookmark_add_rounded),
-            style: ElevatedButton.styleFrom(backgroundColor: _ink, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-            label: Text(_savedMeasurements ? 'Measurements Saved' : 'Save Measurements (Login Required)', style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
+    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    children: <Widget>[
+      _measurementCard(
+        'Manual Input',
+        'Enter chest, waist, and length',
+        Icons.straighten_rounded,
+        _measurementMode == 'manual',
+        () => setState(() => _measurementMode = 'manual'),
+      ),
+      _measurementCard(
+        'Saved Profile',
+        'Use previous verified measurements',
+        Icons.bookmark_rounded,
+        _measurementMode == 'saved',
+        () => setState(() => _measurementMode = 'saved'),
+      ),
+      _measurementCard(
+        'AI Body Scan',
+        'Coming soon for precision scan',
+        Icons.camera_alt_rounded,
+        _measurementMode == 'ai',
+        () {},
+        enabled: false,
+      ),
+      if (_measurementMode == 'manual')
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: _card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _line),
           ),
-        ],
-      );
+          child: Column(
+            children: <Widget>[
+              _inputField('Chest (inches)', _chest),
+              const SizedBox(height: 8),
+              _inputField('Waist (inches)', _waist),
+              const SizedBox(height: 8),
+              _inputField('Length (inches)', _length),
+            ],
+          ),
+        ),
+      const SizedBox(height: 12),
+      ElevatedButton.icon(
+        onPressed: _saveMeasurements,
+        icon: const Icon(Icons.bookmark_add_rounded),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _ink,
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        label: Text(
+          _savedMeasurements
+              ? 'Measurements Saved'
+              : 'Save Measurements (Login Required)',
+          style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+        ),
+      ),
+    ],
+  );
 
   Widget _previewStep() => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        children: <Widget>[
-          Container(
-            height: 360,
-            decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(24), border: Border.all(color: _line)),
-            clipBehavior: Clip.antiAlias,
-            child: Stack(
-              fit: StackFit.expand,
-              children: <Widget>[
-                _image(atelierStyles[_selectedStyle].image),
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 16,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        color: Colors.black.withValues(alpha: 0.4),
-                        child: Text(_frontView ? 'Front View' : 'Back View', style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.w700)),
+    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    children: <Widget>[
+      Container(
+        height: 360,
+        decoration: BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _line),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            _image(atelierStyles[_selectedStyle].image),
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    color: Colors.black.withValues(alpha: 0.4),
+                    child: Text(
+                      _frontView ? 'Front View' : 'Back View',
+                      style: GoogleFonts.manrope(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                 ),
-              ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 10),
+      Row(
+        children: <Widget>[
+          Expanded(
+            child: _toggle(
+              'Front',
+              _frontView,
+              () => setState(() => _frontView = true),
             ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: <Widget>[
-              Expanded(child: _toggle('Front', _frontView, () => setState(() => _frontView = true))),
-              const SizedBox(width: 8),
-              Expanded(child: _toggle('Back', !_frontView, () => setState(() => _frontView = false))),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _toggle('3D Try-On', false, () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('3D try-on can be enabled as next phase.', style: GoogleFonts.manrope())),
-                  );
-                }),
-              ),
-            ],
+          const SizedBox(width: 8),
+          Expanded(
+            child: _toggle(
+              'Back',
+              !_frontView,
+              () => setState(() => _frontView = false),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _toggle('3D Try-On', false, () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    '3D try-on can be enabled as next phase.',
+                    style: GoogleFonts.manrope(),
+                  ),
+                ),
+              );
+            }),
           ),
         ],
-      );
+      ),
+    ],
+  );
 
   Widget _pricingStep() => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        children: <Widget>[
-          _priceRow('Garment Base (${atelierStyles[_selectedStyle].name})', _basePrice),
-          _priceRow('Fabric (${atelierFabrics[_selectedFabric].name})', _fabricDelta),
-          _priceRow('Stitching & Tailoring', _stitching),
-          _priceRow('Add-ons & Measurement', _addons),
-          const Divider(height: 28, color: _line),
-          _priceRow('Total', _total, highlight: true),
-        ],
-      );
+    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    children: <Widget>[
+      _priceRow(
+        'Garment Base (${atelierStyles[_selectedStyle].name})',
+        _basePrice,
+      ),
+      _priceRow(
+        'Fabric (${atelierFabrics[_selectedFabric].name})',
+        _fabricDelta,
+      ),
+      _priceRow('Stitching & Tailoring', _stitching),
+      _priceRow('Add-ons & Measurement', _addons),
+      const Divider(height: 28, color: _line),
+      _priceRow('Total', _total, highlight: true),
+    ],
+  );
 
   Widget _checkoutStep() => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        children: <Widget>[
-          _checkoutTile(Icons.storefront_rounded, 'Boutique', _storesForTab[_selectedStore].name),
-          _checkoutTile(Icons.schedule_rounded, 'Delivery Timeline', '10-14 days including fit confirmation'),
-          _checkoutTile(Icons.payments_rounded, 'Order Value', _money.format(_total)),
-          Text('Browsing stays open without login. Login is required only for saving measurements and placing order.', style: GoogleFonts.manrope(color: _muted, fontSize: 12)),
-        ],
-      );
+    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    children: <Widget>[
+      _checkoutTile(
+        Icons.storefront_rounded,
+        'Boutique',
+        _storesForTab[_selectedStore].name,
+      ),
+      _checkoutTile(
+        Icons.schedule_rounded,
+        'Delivery Timeline',
+        '10-14 days including fit confirmation',
+      ),
+      _checkoutTile(
+        Icons.payments_rounded,
+        'Order Value',
+        _money.format(_total),
+      ),
+      Text(
+        'Browsing stays open without login. Login is required only for saving measurements and placing order.',
+        style: GoogleFonts.manrope(color: _muted, fontSize: 12),
+      ),
+    ],
+  );
 
   Widget _trackingStep() {
     final milestones = <AtelierTrackingMilestone>[
-      AtelierTrackingMilestone(title: 'Fabric Cutting', completed: _orderPlaced),
+      AtelierTrackingMilestone(
+        title: 'Fabric Cutting',
+        completed: _orderPlaced,
+      ),
       AtelierTrackingMilestone(title: 'Stitching', completed: _orderPlaced),
       AtelierTrackingMilestone(title: 'Finishing', completed: _orderPlaced),
       const AtelierTrackingMilestone(title: 'Delivery', completed: false),
@@ -792,18 +983,40 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
       children: <Widget>[
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(18), border: Border.all(color: _line)),
+          decoration: BoxDecoration(
+            color: _card,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: _line),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('Order #ATL-Abianzo-2401', style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w800)),
+              Text(
+                'Order #ATL-Abianzo-2401',
+                style: GoogleFonts.manrope(
+                  color: _ink,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 12),
               for (int i = 0; i < milestones.length; i++) ...<Widget>[
                 Row(
                   children: <Widget>[
-                    Icon(milestones[i].completed ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: milestones[i].completed ? _gold : _muted, size: 20),
+                    Icon(
+                      milestones[i].completed
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                      color: milestones[i].completed ? _gold : _muted,
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
-                    Text(milestones[i].title, style: GoogleFonts.manrope(color: milestones[i].completed ? _ink : _muted, fontWeight: FontWeight.w700)),
+                    Text(
+                      milestones[i].title,
+                      style: GoogleFonts.manrope(
+                        color: milestones[i].completed ? _ink : _muted,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
                 if (i != milestones.length - 1)
@@ -819,7 +1032,11 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
     );
   }
 
-  Widget _chipFilters(List<String> opts, String selected, ValueChanged<String> onSelect) {
+  Widget _chipFilters(
+    List<String> opts,
+    String selected,
+    ValueChanged<String> onSelect,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: SizedBox(
@@ -833,7 +1050,13 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
             final option = opts[i];
             final isSelected = option == selected;
             return ChoiceChip(
-              label: Text(option, style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 12)),
+              label: Text(
+                option,
+                style: GoogleFonts.manrope(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
               selected: isSelected,
               showCheckmark: false,
               side: BorderSide(color: isSelected ? _gold : _line),
@@ -849,14 +1072,29 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
     );
   }
 
-  Widget _optionCard(String title, List<String> options, int selected, ValueChanged<int> onChanged) {
+  Widget _optionCard(
+    String title,
+    List<String> options,
+    int selected,
+    ValueChanged<int> onChanged,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _line),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(title, style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w800)),
+          Text(
+            title,
+            style: GoogleFonts.manrope(
+              color: _ink,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -864,7 +1102,13 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
             children: List<Widget>.generate(options.length, (int i) {
               final isSelected = selected == i;
               return ChoiceChip(
-                label: Text(options[i], style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 12)),
+                label: Text(
+                  options[i],
+                  style: GoogleFonts.manrope(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
                 selected: isSelected,
                 showCheckmark: false,
                 side: BorderSide(color: isSelected ? _gold : _line),
@@ -881,7 +1125,14 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
     );
   }
 
-  Widget _measurementCard(String title, String subtitle, IconData icon, bool selected, VoidCallback onTap, {bool enabled = true}) {
+  Widget _measurementCard(
+    String title,
+    String subtitle,
+    IconData icon,
+    bool selected,
+    VoidCallback onTap, {
+    bool enabled = true,
+  }) {
     return Opacity(
       opacity: enabled ? 1 : 0.56,
       child: Padding(
@@ -893,7 +1144,10 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
             decoration: BoxDecoration(
               color: _card,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: selected ? _gold : _line, width: selected ? 2 : 1),
+              border: Border.all(
+                color: selected ? _gold : _line,
+                width: selected ? 2 : 1,
+              ),
             ),
             child: Row(
               children: <Widget>[
@@ -903,8 +1157,17 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(title, style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w800)),
-                      Text(subtitle, style: GoogleFonts.manrope(color: _muted, fontSize: 12)),
+                      Text(
+                        title,
+                        style: GoogleFonts.manrope(
+                          color: _ink,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: GoogleFonts.manrope(color: _muted, fontSize: 12),
+                      ),
                     ],
                   ),
                 ),
@@ -926,9 +1189,18 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
         hintStyle: GoogleFonts.manrope(color: _muted),
         filled: true,
         fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _line)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _line)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _gold)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _line),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _line),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _gold),
+        ),
       ),
     );
   }
@@ -938,8 +1210,21 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(color: selected ? _gold.withValues(alpha: 0.16) : _card, borderRadius: BorderRadius.circular(14), border: Border.all(color: selected ? _gold : _line)),
-        child: Center(child: Text(label, style: GoogleFonts.manrope(color: selected ? _ink : _muted, fontWeight: FontWeight.w700, fontSize: 12))),
+        decoration: BoxDecoration(
+          color: selected ? _gold.withValues(alpha: 0.16) : _card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: selected ? _gold : _line),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: GoogleFonts.manrope(
+              color: selected ? _ink : _muted,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -949,8 +1234,24 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: <Widget>[
-          Expanded(child: Text(label, style: GoogleFonts.manrope(color: highlight ? _ink : _muted, fontWeight: highlight ? FontWeight.w800 : FontWeight.w600, fontSize: highlight ? 16 : 13))),
-          Text(_money.format(amount), style: GoogleFonts.manrope(color: highlight ? _gold : _ink, fontWeight: FontWeight.w800, fontSize: highlight ? 24 : 14)),
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.manrope(
+                color: highlight ? _ink : _muted,
+                fontWeight: highlight ? FontWeight.w800 : FontWeight.w600,
+                fontSize: highlight ? 16 : 13,
+              ),
+            ),
+          ),
+          Text(
+            _money.format(amount),
+            style: GoogleFonts.manrope(
+              color: highlight ? _gold : _ink,
+              fontWeight: FontWeight.w800,
+              fontSize: highlight ? 24 : 14,
+            ),
+          ),
         ],
       ),
     );
@@ -960,7 +1261,11 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _line),
+      ),
       child: Row(
         children: <Widget>[
           Icon(icon, color: _ink),
@@ -969,8 +1274,19 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(title, style: GoogleFonts.manrope(color: _muted, fontSize: 12)),
-                Text(value, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.manrope(color: _ink, fontWeight: FontWeight.w800)),
+                Text(
+                  title,
+                  style: GoogleFonts.manrope(color: _muted, fontSize: 12),
+                ),
+                Text(
+                  value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.manrope(
+                    color: _ink,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1007,7 +1323,13 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
                     color: Colors.black.withValues(alpha: 0.58),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text('${fabric.name} • ${fabric.description}', style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.w600)),
+                  child: Text(
+                    '${fabric.name} • ${fabric.description}',
+                    style: GoogleFonts.manrope(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1023,11 +1345,11 @@ class _AtelierFlowScreenState extends State<AtelierFlowScreen>
       fit: BoxFit.cover,
       placeholder: (BuildContext context, String _) =>
           const ColoredBox(color: Color(0xFFEADFCF)),
-      errorWidget: (BuildContext context, String _, Object error) => const ColoredBox(
-        color: Color(0xFFEADFCF),
-        child: Icon(Icons.broken_image_outlined, color: Color(0xFF7E7465)),
-      ),
+      errorWidget: (BuildContext context, String _, Object error) =>
+          const ColoredBox(
+            color: Color(0xFFEADFCF),
+            child: Icon(Icons.broken_image_outlined, color: Color(0xFF7E7465)),
+          ),
     );
   }
 }
-

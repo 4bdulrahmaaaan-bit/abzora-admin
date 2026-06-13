@@ -36,15 +36,17 @@ class TrackingStepWidget extends StatelessWidget {
     final color = isCompleted
         ? const Color(0xFF2E7D32)
         : isCurrent
-            ? AbzioTheme.accentColor
-            : context.abzioSecondaryText.withValues(alpha: 0.55);
+        ? AbzioTheme.accentColor
+        : context.abzioSecondaryText.withValues(alpha: 0.55);
 
     final marker = Container(
       height: 38,
       width: 38,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isCompleted || isCurrent ? color.withValues(alpha: isCompleted ? 1 : 0.14) : context.abzioMuted,
+        color: isCompleted || isCurrent
+            ? color.withValues(alpha: isCompleted ? 1 : 0.14)
+            : context.abzioMuted,
         border: Border.all(
           color: isCompleted || isCurrent ? color : context.abzioBorder,
           width: 1.4,
@@ -77,7 +79,9 @@ class TrackingStepWidget extends StatelessWidget {
                 Text(
                   step.title,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: isCurrent || isCompleted ? AbzioTheme.textPrimary : context.abzioSecondaryText,
+                    color: isCurrent || isCompleted
+                        ? AbzioTheme.textPrimary
+                        : context.abzioSecondaryText,
                     fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w700,
                   ),
                 ),

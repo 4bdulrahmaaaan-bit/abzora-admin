@@ -12,7 +12,11 @@ class ChatDetailScreen extends StatefulWidget {
   final String chatId;
   final String otherUserName;
 
-  const ChatDetailScreen({super.key, required this.chatId, required this.otherUserName});
+  const ChatDetailScreen({
+    super.key,
+    required this.chatId,
+    required this.otherUserName,
+  });
 
   @override
   State<ChatDetailScreen> createState() => _ChatDetailScreenState();
@@ -80,7 +84,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     behavior: SnackBarBehavior.floating,
-                    content: Text('More conversation tools for ${widget.otherUserName} are on the way.'),
+                    content: Text(
+                      'More conversation tools for ${widget.otherUserName} are on the way.',
+                    ),
                   ),
                 );
               },
@@ -102,7 +108,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   final messages = snapshot.data!;
                   return ListView.builder(
                     reverse: true,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 24,
+                    ),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final msg = messages[index];
@@ -124,12 +133,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
-        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isMe
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Container(
             margin: const EdgeInsets.symmetric(vertical: 4),
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.75,
+            ),
             decoration: BoxDecoration(
               color: isMe ? AbzioTheme.accentColor : AbzioTheme.darkMuted,
               borderRadius: BorderRadius.only(
@@ -171,7 +184,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     return SafeArea(
       top: false,
       child: Container(
-        padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 16),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
         decoration: BoxDecoration(
           color: AbzioTheme.darkCard,
           border: Border(top: BorderSide(color: context.abzioBorder, width: 1)),
@@ -209,10 +227,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       ),
       child: TextField(
         controller: _messageController,
-        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AbzioTheme.textPrimary),
+        style: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: AbzioTheme.textPrimary,
+        ),
         decoration: InputDecoration(
           hintText: 'Message...',
-          hintStyle: GoogleFonts.inter(color: AbzioTheme.grey500, fontWeight: FontWeight.w500),
+          hintStyle: GoogleFonts.inter(
+            color: AbzioTheme.grey500,
+            fontWeight: FontWeight.w500,
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),

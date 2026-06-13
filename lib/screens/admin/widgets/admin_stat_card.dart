@@ -41,10 +41,7 @@ class AdminStatCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AbzioTheme.spacing12),
-            Text(
-              value,
-              style: context.abzioText.headlineLarge,
-            ),
+            Text(value, style: context.abzioText.headlineLarge),
             if (trend != null) ...[
               const SizedBox(height: AbzioTheme.spacing8),
               Row(
@@ -64,7 +61,7 @@ class AdminStatCard extends StatelessWidget {
                   ),
                 ],
               ),
-            ]
+            ],
           ],
         ),
       ),

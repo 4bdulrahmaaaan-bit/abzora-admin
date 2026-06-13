@@ -9,7 +9,10 @@ class InvoiceDownloadManager {
 
   final Dio _dio;
 
-  Future<File> downloadToAppStorage({required String id, required String url}) async {
+  Future<File> downloadToAppStorage({
+    required String id,
+    required String url,
+  }) async {
     final dir = await getApplicationDocumentsDirectory();
     final path = '${dir.path}/invoice_$id.pdf';
     await _dio.download(

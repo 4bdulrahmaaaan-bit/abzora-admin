@@ -97,16 +97,15 @@ class _RiderLiveTrackingScreenState extends State<RiderLiveTrackingScreen> {
     unawaited(
       AuthSessionService.instance
           .requiredAuthorizationToken(
-            failureMessage:
-                'Please sign in again to continue rider tracking.',
+            failureMessage: 'Please sign in again to continue rider tracking.',
           )
           .then((token) {
-        _socketService.connect(
-          riderId: widget.rider.id,
-          authToken: token,
-          orderId: widget.order.id,
-        );
-      }),
+            _socketService.connect(
+              riderId: widget.rider.id,
+              authToken: token,
+              orderId: widget.order.id,
+            );
+          }),
     );
     _socketService.onConnect(() {
       if (mounted) {

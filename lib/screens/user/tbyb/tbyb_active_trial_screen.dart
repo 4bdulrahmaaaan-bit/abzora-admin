@@ -7,10 +7,7 @@ import '../../../providers/trial_home_provider.dart';
 import 'tbyb_final_bill_screen.dart';
 
 class TbybActiveTrialScreen extends StatefulWidget {
-  const TbybActiveTrialScreen({
-    super.key,
-    required this.session,
-  });
+  const TbybActiveTrialScreen({super.key, required this.session});
 
   final TrialSession session;
 
@@ -21,7 +18,7 @@ class TbybActiveTrialScreen extends StatefulWidget {
 class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
   // Simulating the state transition from tracking -> trial in progress
   bool _isTrialInProgress = false;
-  
+
   final Map<String, bool> _keepDecisions = {};
   Timer? _timer;
   int _secondsRemaining = 0;
@@ -62,7 +59,7 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
         .where((e) => e.value)
         .map((e) => e.key)
         .toList();
-    
+
     final returnedItems = _keepDecisions.entries
         .where((e) => !e.value)
         .map((e) => e.key)
@@ -90,7 +87,9 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -130,15 +129,25 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Icon(Icons.map, size: 100, color: Colors.black.withValues(alpha: 0.1)),
+                Icon(
+                  Icons.map,
+                  size: 100,
+                  color: Colors.black.withValues(alpha: 0.1),
+                ),
                 const Text(
                   'Live Rider Tracking Map',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black54,
+                  ),
                 ),
                 Positioned(
                   bottom: 20,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(30),
@@ -146,9 +155,16 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.timer, color: AbzioTheme.accentColor, size: 20),
+                        Icon(
+                          Icons.timer,
+                          color: AbzioTheme.accentColor,
+                          size: 20,
+                        ),
                         SizedBox(width: 8),
-                        Text('Estimated Arrival: 25 Minutes', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          'Estimated Arrival: 25 Minutes',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
                   ),
@@ -175,16 +191,29 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
                     CircleAvatar(
                       radius: 24,
                       backgroundColor: AbzioTheme.grey200,
-                      child: const Icon(Icons.person, color: AbzioTheme.grey500),
+                      child: const Icon(
+                        Icons.person,
+                        color: AbzioTheme.grey500,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Rider Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          const Text(
+                            'Rider Name',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          Text('+91 9876543210 • MH 01 AB 1234', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AbzioTheme.grey500)),
+                          Text(
+                            '+91 9876543210 • MH 01 AB 1234',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AbzioTheme.grey500),
+                          ),
                         ],
                       ),
                     ),
@@ -196,12 +225,19 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text('Status Timeline', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text(
+                'Status Timeline',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
               const SizedBox(height: 16),
               _StatusNode(title: 'Booking Confirmed', isCompleted: true),
               _StatusNode(title: 'Rider Assigned', isCompleted: true),
               _StatusNode(title: 'Items Picked Up', isCompleted: true),
-              _StatusNode(title: 'Out For Delivery', isCompleted: true, isCurrent: true),
+              _StatusNode(
+                title: 'Out For Delivery',
+                isCompleted: true,
+                isCurrent: true,
+              ),
               _StatusNode(title: 'Arrived', isCompleted: false, isLast: true),
             ],
           ),
@@ -223,18 +259,25 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
 
     final minutes = (_secondsRemaining / 60).floor();
     final seconds = _secondsRemaining % 60;
-    final timeString = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    final timeString =
+        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     final isTimeLow = _secondsRemaining < 300; // less than 5 minutes
 
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          color: isTimeLow ? Colors.red.shade50 : AbzioTheme.accentColor.withValues(alpha: 0.1),
+          color: isTimeLow
+              ? Colors.red.shade50
+              : AbzioTheme.accentColor.withValues(alpha: 0.1),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.timer, color: isTimeLow ? Colors.red : AbzioTheme.accentColor, size: 24),
+              Icon(
+                Icons.timer,
+                color: isTimeLow ? Colors.red : AbzioTheme.accentColor,
+                size: 24,
+              ),
               const SizedBox(width: 12),
               Text(
                 'Time Remaining: $timeString',
@@ -272,7 +315,9 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isKeeping ? AbzioTheme.accentColor : AbzioTheme.grey300,
+                      color: isKeeping
+                          ? AbzioTheme.accentColor
+                          : AbzioTheme.grey300,
                       width: isKeeping ? 1.5 : 1,
                     ),
                     boxShadow: AbzioTheme.eliteShadow,
@@ -288,7 +333,10 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
                               height: 80,
                               color: AbzioTheme.grey200,
                               child: item.imageUrl.isNotEmpty
-                                  ? Image.network(item.imageUrl, fit: BoxFit.cover)
+                                  ? Image.network(
+                                      item.imageUrl,
+                                      fit: BoxFit.cover,
+                                    )
                                   : null,
                             ),
                           ),
@@ -297,9 +345,20 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                Text(
+                                  item.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                                 const SizedBox(height: 8),
-                                Text('₹${item.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                Text(
+                                  '₹${item.price.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -314,12 +373,22 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () {
-                                setState(() => _keepDecisions[item.productId] = false);
+                                setState(
+                                  () => _keepDecisions[item.productId] = false,
+                                );
                               },
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: !isKeeping ? Colors.red : AbzioTheme.grey600,
-                                side: BorderSide(color: !isKeeping ? Colors.red : AbzioTheme.grey300),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                foregroundColor: !isKeeping
+                                    ? Colors.red
+                                    : AbzioTheme.grey600,
+                                side: BorderSide(
+                                  color: !isKeeping
+                                      ? Colors.red
+                                      : AbzioTheme.grey300,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                               child: const Text('Return Item'),
                             ),
@@ -328,12 +397,20 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
                           Expanded(
                             child: FilledButton(
                               onPressed: () {
-                                setState(() => _keepDecisions[item.productId] = true);
+                                setState(
+                                  () => _keepDecisions[item.productId] = true,
+                                );
                               },
                               style: FilledButton.styleFrom(
-                                backgroundColor: isKeeping ? AbzioTheme.accentColor : AbzioTheme.grey200,
-                                foregroundColor: isKeeping ? Colors.white : Colors.black87,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                backgroundColor: isKeeping
+                                    ? AbzioTheme.accentColor
+                                    : AbzioTheme.grey200,
+                                foregroundColor: isKeeping
+                                    ? Colors.white
+                                    : Colors.black87,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                               child: const Text('Keep Item'),
                             ),
@@ -348,7 +425,12 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
           ),
         ),
         Container(
-          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            16,
+            20,
+            MediaQuery.of(context).padding.bottom + 16,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
@@ -364,18 +446,36 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('$keptCount Items Kept', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                  Text('$returnedCount Items Returned', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade700)),
+                  Text(
+                    '$keptCount Items Kept',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                  Text(
+                    '$returnedCount Items Returned',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red.shade700,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Estimated Total', style: TextStyle(color: AbzioTheme.grey600)),
+                  const Text(
+                    'Estimated Total',
+                    style: TextStyle(color: AbzioTheme.grey600),
+                  ),
                   Text(
                     '₹${keptTotal.toStringAsFixed(0)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
                 ],
               ),
@@ -385,11 +485,17 @@ class _TbybActiveTrialScreenState extends State<TbybActiveTrialScreen> {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
                   backgroundColor: AbzioTheme.accentColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: const Text(
                   'Done Trying',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ],
@@ -435,11 +541,14 @@ class _StatusNode extends StatelessWidget {
                 child: isCompleted
                     ? const Icon(Icons.check, size: 16, color: Colors.white)
                     : (isCurrent
-                        ? Container(
-                            margin: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(color: AbzioTheme.accentColor, shape: BoxShape.circle),
-                          )
-                        : null),
+                          ? Container(
+                              margin: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AbzioTheme.accentColor,
+                                shape: BoxShape.circle,
+                              ),
+                            )
+                          : null),
               ),
               if (!isLast)
                 Expanded(
@@ -457,9 +566,11 @@ class _StatusNode extends StatelessWidget {
               child: Text(
                 title,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: isCurrent ? FontWeight.bold : (isCompleted ? FontWeight.w500 : FontWeight.normal),
-                      color: isCompleted ? Colors.black87 : AbzioTheme.grey500,
-                    ),
+                  fontWeight: isCurrent
+                      ? FontWeight.bold
+                      : (isCompleted ? FontWeight.w500 : FontWeight.normal),
+                  color: isCompleted ? Colors.black87 : AbzioTheme.grey500,
+                ),
               ),
             ),
           ),

@@ -4,10 +4,7 @@ import '../../../theme.dart';
 import 'tbyb_active_trial_screen.dart';
 
 class TbybSuccessScreen extends StatelessWidget {
-  const TbybSuccessScreen({
-    super.key,
-    required this.session,
-  });
+  const TbybSuccessScreen({super.key, required this.session});
 
   final TrialSession session;
 
@@ -22,7 +19,8 @@ class TbybSuccessScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
-            onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+            onPressed: () =>
+                Navigator.of(context).popUntil((route) => route.isFirst),
           ),
         ],
       ),
@@ -48,13 +46,17 @@ class TbybSuccessScreen extends StatelessWidget {
               const SizedBox(height: 24),
               Text(
                 'Trial Booked Successfully',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               Text(
                 'Your Try Before You Buy session is confirmed.',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AbzioTheme.grey500),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: AbzioTheme.grey500),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
@@ -67,13 +69,35 @@ class TbybSuccessScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _InfoRow(label: 'Products Selected', value: '${session.items.length}'),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider()),
-                    _InfoRow(label: 'Delivery Slot', value: session.deliverySlot),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider()),
-                    _InfoRow(label: 'Trial Duration', value: '${session.trialDurationMinutes} Minutes'),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider()),
-                    _InfoRow(label: '₹99 Trial Booking Fee. Adjusted on purchase.', value: '₹99', isBold: true),
+                    _InfoRow(
+                      label: 'Products Selected',
+                      value: '${session.items.length}',
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(),
+                    ),
+                    _InfoRow(
+                      label: 'Delivery Slot',
+                      value: session.deliverySlot,
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(),
+                    ),
+                    _InfoRow(
+                      label: 'Trial Duration',
+                      value: '${session.trialDurationMinutes} Minutes',
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(),
+                    ),
+                    _InfoRow(
+                      label: '₹99 Trial Booking Fee. Adjusted on purchase.',
+                      value: '₹99',
+                      isBold: true,
+                    ),
                   ],
                 ),
               ),
@@ -90,23 +114,36 @@ class TbybSuccessScreen extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
                   backgroundColor: AbzioTheme.accentColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: const Text(
                   'Track Trial',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                onPressed: () =>
+                    Navigator.of(context).popUntil((route) => route.isFirst),
                 style: TextButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: Text(
                   'Back To Home',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AbzioTheme.grey600),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AbzioTheme.grey600,
+                  ),
                 ),
               ),
             ],
@@ -135,9 +172,9 @@ class _InfoRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AbzioTheme.grey500,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AbzioTheme.grey500),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -145,8 +182,8 @@ class _InfoRow extends StatelessWidget {
             value,
             textAlign: TextAlign.right,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-                ),
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+            ),
           ),
         ),
       ],

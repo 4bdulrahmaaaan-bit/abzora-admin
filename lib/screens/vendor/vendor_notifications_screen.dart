@@ -9,12 +9,13 @@ class VendorNotificationsScreen extends StatefulWidget {
   const VendorNotificationsScreen({super.key});
 
   @override
-  State<VendorNotificationsScreen> createState() => _VendorNotificationsScreenState();
+  State<VendorNotificationsScreen> createState() =>
+      _VendorNotificationsScreenState();
 }
 
 class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
   final VendorNotificationApi _api = VendorNotificationApi();
-  
+
   String _selectedFilter = 'All';
   List<Map<String, dynamic>> _notifications = [];
   bool _isLoading = true;
@@ -37,7 +38,9 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
         priority: _selectedFilter == 'Priority' ? 'high' : null,
       );
       setState(() {
-        _notifications = List<Map<String, dynamic>>.from(response['notifications'] ?? []);
+        _notifications = List<Map<String, dynamic>>.from(
+          response['notifications'] ?? [],
+        );
         _isLoading = false;
       });
     } catch (e) {
@@ -68,7 +71,7 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
 
   Future<void> _markAsRead(String id, int index) async {
     if (_notifications[index]['isRead'] == true) return;
-    
+
     setState(() {
       _notifications[index]['isRead'] = true;
     });
@@ -80,9 +83,9 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
         _notifications[index]['isRead'] = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to mark as read: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to mark as read: $e')));
       }
     }
   }
@@ -92,7 +95,10 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
     return Scaffold(
       backgroundColor: VendorTheme.background,
       appBar: AppBar(
-        title: Text('Notifications', style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          'Notifications',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -105,9 +111,7 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
       body: Column(
         children: [
           _buildFilterChips(),
-          Expanded(
-            child: _buildBody(),
-          ),
+          Expanded(child: _buildBody()),
         ],
       ),
     );
@@ -115,19 +119,24 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: VendorTheme.primary));
+      return const Center(
+        child: CircularProgressIndicator(color: VendorTheme.primary),
+      );
     }
     if (_error != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Failed to load notifications: $_error', textAlign: TextAlign.center),
+            Text(
+              'Failed to load notifications: $_error',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: VendorTheme.spacing16),
             ElevatedButton(
               onPressed: _fetchNotifications,
               child: const Text('Retry'),
-            )
+            ),
           ],
         ),
       );
@@ -137,9 +146,18 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.notifications_none, size: 64, color: VendorTheme.grey300),
+            Icon(
+              Icons.notifications_none,
+              size: 64,
+              color: VendorTheme.grey300,
+            ),
             const SizedBox(height: VendorTheme.spacing16),
-            Text('No notifications', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: VendorTheme.grey500)),
+            Text(
+              'No notifications',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: VendorTheme.grey500),
+            ),
           ],
         ),
       );
@@ -149,9 +167,13 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
       onRefresh: _fetchNotifications,
       color: VendorTheme.primary,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing16, vertical: VendorTheme.spacing8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: VendorTheme.spacing16,
+          vertical: VendorTheme.spacing8,
+        ),
         itemCount: _notifications.length,
-        separatorBuilder: (context, index) => const SizedBox(height: VendorTheme.spacing12),
+        separatorBuilder: (context, index) =>
+            const SizedBox(height: VendorTheme.spacing12),
         itemBuilder: (context, index) {
           final notification = _notifications[index];
           return _buildNotificationCard(notification, index);
@@ -163,7 +185,10 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
   Widget _buildFilterChips() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing16, vertical: VendorTheme.spacing12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: VendorTheme.spacing16,
+        vertical: VendorTheme.spacing12,
+      ),
       child: Row(
         children: ['All', 'Unread', 'Priority'].map((filter) {
           final isSelected = _selectedFilter == filter;
@@ -196,29 +221,37 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
 
   IconData _getIconForType(String? type) {
     switch (type) {
-      case 'new_order': return Icons.shopping_cart_outlined;
-      case 'low_stock': return Icons.inventory_2_outlined;
-      case 'settlement_complete': return Icons.account_balance_wallet_outlined;
-      case 'campaign_performance': return Icons.insights_outlined;
-      default: return Icons.notifications_outlined;
+      case 'new_order':
+        return Icons.shopping_cart_outlined;
+      case 'low_stock':
+        return Icons.inventory_2_outlined;
+      case 'settlement_complete':
+        return Icons.account_balance_wallet_outlined;
+      case 'campaign_performance':
+        return Icons.insights_outlined;
+      default:
+        return Icons.notifications_outlined;
     }
   }
 
   Color _getColorForPriority(String? priority) {
     switch (priority) {
       case 'high':
-      case 'critical': return VendorTheme.error;
-      default: return VendorTheme.primary;
+      case 'critical':
+        return VendorTheme.error;
+      default:
+        return VendorTheme.primary;
     }
   }
 
   Widget _buildNotificationCard(Map<String, dynamic> notification, int index) {
     final bool isRead = notification['isRead'] == true;
-    final String priority = (notification['priority'] as String?)?.toLowerCase() ?? 'normal';
+    final String priority =
+        (notification['priority'] as String?)?.toLowerCase() ?? 'normal';
     final String title = notification['title'] ?? '';
     final String body = notification['message'] ?? notification['body'] ?? '';
     final String type = notification['type'] ?? '';
-    
+
     final String timeStr = notification['createdAt'] ?? '';
     String displayTime = 'Just now';
     if (timeStr.isNotEmpty) {
@@ -240,7 +273,9 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
 
     return PremiumVendorCard(
       padding: const EdgeInsets.all(VendorTheme.spacing16),
-      backgroundColor: isRead ? Colors.white : VendorTheme.primary.withValues(alpha: 0.03),
+      backgroundColor: isRead
+          ? Colors.white
+          : VendorTheme.primary.withValues(alpha: 0.03),
       onTap: () => _markAsRead(notification['_id'] ?? '', index),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,8 +313,10 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
                       child: Text(
                         title,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: isRead ? FontWeight.w600 : FontWeight.bold,
-                            ),
+                          fontWeight: isRead
+                              ? FontWeight.w600
+                              : FontWeight.bold,
+                        ),
                       ),
                     ),
                     if (priority == 'high' || priority == 'critical')
@@ -296,16 +333,18 @@ class _VendorNotificationsScreenState extends State<VendorNotificationsScreen> {
                 Text(
                   body,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: isRead ? VendorTheme.grey600 : Theme.of(context).colorScheme.onSurface,
-                        height: 1.4,
-                      ),
+                    color: isRead
+                        ? VendorTheme.grey600
+                        : Theme.of(context).colorScheme.onSurface,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: VendorTheme.spacing8),
                 Text(
                   displayTime,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: VendorTheme.grey400,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: VendorTheme.grey400),
                 ),
               ],
             ),

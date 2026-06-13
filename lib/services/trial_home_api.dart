@@ -5,7 +5,7 @@ import 'trial_status_guard.dart';
 
 class TrialHomeApi {
   TrialHomeApi({BackendApiClient? client})
-      : _client = client ?? const BackendApiClient();
+    : _client = client ?? const BackendApiClient();
 
   final BackendApiClient _client;
 
@@ -37,8 +37,13 @@ class TrialHomeApi {
         'bookingOrderId': ?bookingOrderId,
       },
     );
-    final session = TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
-    final productIds = items.map((item) => item['productId']?.toString() ?? '').where((id) => id.isNotEmpty).toList();
+    final session = TrialSession.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
+    final productIds = items
+        .map((item) => item['productId']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList();
     await InventoryService().reserveTrialInventory(productIds);
     return session;
   }
@@ -120,7 +125,8 @@ class TrialHomeApi {
     }
     if (note != null) body['note'] = note;
     if (fit != null) body['fit'] = fit;
-    if (tailoringRecommendation != null) body['tailoringRecommendation'] = tailoringRecommendation;
+    if (tailoringRecommendation != null)
+      body['tailoringRecommendation'] = tailoringRecommendation;
     if (status != null) body['status'] = status;
     final payload = await _client.patch(
       '/trial-home/$id/modify',
@@ -139,7 +145,9 @@ class TrialHomeApi {
       authenticated: true,
       body: {'note': note},
     );
-    final session = TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+    final session = TrialSession.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
     final productIds = session.items.map((i) => i.productId).toList();
     await InventoryService().releaseTrialInventory(productIds);
     return session;
@@ -151,15 +159,15 @@ class TrialHomeApi {
     List<String> returnedItems = const <String>[],
   }) async {
     final currentSession = await getTrialById(id);
-    TrialStatusGuard.validateTransition(currentSession.status, 'awaiting_final_payment');
+    TrialStatusGuard.validateTransition(
+      currentSession.status,
+      'awaiting_final_payment',
+    );
 
     final payload = await _client.post(
       '/trial-home/$id/await-payment',
       authenticated: true,
-      body: {
-        'keptItems': keptItems,
-        'returnedItems': returnedItems,
-      },
+      body: {'keptItems': keptItems, 'returnedItems': returnedItems},
     );
     return TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
   }
@@ -176,7 +184,10 @@ class TrialHomeApi {
     double? finalAmount,
   }) async {
     final currentSession = await getTrialById(id);
-    TrialStatusGuard.validateTransition(currentSession.status, 'converted_to_order');
+    TrialStatusGuard.validateTransition(
+      currentSession.status,
+      'converted_to_order',
+    );
 
     final payload = await _client.post(
       '/trial-home/$id/convert-to-order',
@@ -192,7 +203,9 @@ class TrialHomeApi {
         'finalAmount': ?finalAmount,
       },
     );
-    final session = TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+    final session = TrialSession.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
     final productIds = session.items.map((i) => i.productId).toList();
     await InventoryService().releaseTrialInventory(productIds);
     return session;
@@ -206,7 +219,9 @@ class TrialHomeApi {
       '/trial-home/$id/no-show',
       authenticated: true,
     );
-    final session = TrialSession.fromMap(Map<String, dynamic>.from(payload as Map));
+    final session = TrialSession.fromMap(
+      Map<String, dynamic>.from(payload as Map),
+    );
     final productIds = session.items.map((i) => i.productId).toList();
     await InventoryService().releaseTrialInventory(productIds);
     return session;

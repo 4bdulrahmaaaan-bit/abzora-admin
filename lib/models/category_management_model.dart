@@ -44,22 +44,35 @@ class CategoryManagementModel {
   bool get hasParent => parentId.trim().isNotEmpty;
 
   factory CategoryManagementModel.fromMap(Map<String, dynamic> map) {
-    final subcategories = ((map['subcategories'] as List?) ?? const [])
-        .whereType<Map>()
-        .map((item) => SubcategoryManagementModel.fromMap(Map<String, dynamic>.from(item)))
-        .toList()
-      ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
+    final subcategories =
+        ((map['subcategories'] as List?) ?? const [])
+            .whereType<Map>()
+            .map(
+              (item) => SubcategoryManagementModel.fromMap(
+                Map<String, dynamic>.from(item),
+              ),
+            )
+            .toList()
+          ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
 
     return CategoryManagementModel(
       id: map['id']?.toString() ?? '',
       name: map['name']?.toString() ?? '',
       slug: map['slug']?.toString() ?? '',
       image: map['image']?.toString() ?? map['icon']?.toString() ?? '',
-      bannerImage: map['bannerImage']?.toString() ?? map['bannerImageUrl']?.toString() ?? '',
+      bannerImage:
+          map['bannerImage']?.toString() ??
+          map['bannerImageUrl']?.toString() ??
+          '',
       description: map['description']?.toString() ?? '',
-      parentId: map['parentId']?.toString() ?? map['parent_id']?.toString() ?? '',
+      parentId:
+          map['parentId']?.toString() ?? map['parent_id']?.toString() ?? '',
       parentName: map['parentName']?.toString() ?? '',
-      sortOrder: int.tryParse(map['sortOrder']?.toString() ?? map['order']?.toString() ?? '') ?? 0,
+      sortOrder:
+          int.tryParse(
+            map['sortOrder']?.toString() ?? map['order']?.toString() ?? '',
+          ) ??
+          0,
       isFeatured: map['isFeatured'] == true || map['featured'] == true,
       isActive: map['isActive'] != false,
       showOnHome: map['showOnHome'] == true,
@@ -163,7 +176,11 @@ class SubcategoryManagementModel {
       name: map['name']?.toString() ?? '',
       slug: map['slug']?.toString() ?? '',
       image: map['image']?.toString() ?? map['icon']?.toString() ?? '',
-      sortOrder: int.tryParse(map['sortOrder']?.toString() ?? map['order']?.toString() ?? '') ?? 0,
+      sortOrder:
+          int.tryParse(
+            map['sortOrder']?.toString() ?? map['order']?.toString() ?? '',
+          ) ??
+          0,
       isActive: map['isActive'] != false,
     );
   }
@@ -215,19 +232,35 @@ class CategoryManagementPage {
   final int totalPages;
 
   factory CategoryManagementPage.fromMap(Map<String, dynamic> map) {
-    final rawItems = (map['data'] as List? ?? map['items'] as List? ?? const []);
+    final rawItems =
+        (map['data'] as List? ?? map['items'] as List? ?? const []);
     final meta = map['meta'] is Map
         ? Map<String, dynamic>.from(map['meta'] as Map)
         : const <String, dynamic>{};
     return CategoryManagementPage(
       items: rawItems
           .whereType<Map>()
-          .map((item) => CategoryManagementModel.fromMap(Map<String, dynamic>.from(item)))
+          .map(
+            (item) => CategoryManagementModel.fromMap(
+              Map<String, dynamic>.from(item),
+            ),
+          )
           .toList(),
       page: int.tryParse((meta['page'] ?? map['page'])?.toString() ?? '') ?? 1,
-      limit: int.tryParse((meta['limit'] ?? map['limit'])?.toString() ?? '') ?? 20,
-      totalCount: int.tryParse((meta['totalCount'] ?? map['totalCount'] ?? map['total'])?.toString() ?? '') ?? rawItems.length,
-      totalPages: int.tryParse((meta['totalPages'] ?? map['totalPages'])?.toString() ?? '') ?? 1,
+      limit:
+          int.tryParse((meta['limit'] ?? map['limit'])?.toString() ?? '') ?? 20,
+      totalCount:
+          int.tryParse(
+            (meta['totalCount'] ?? map['totalCount'] ?? map['total'])
+                    ?.toString() ??
+                '',
+          ) ??
+          rawItems.length,
+      totalPages:
+          int.tryParse(
+            (meta['totalPages'] ?? map['totalPages'])?.toString() ?? '',
+          ) ??
+          1,
     );
   }
 }

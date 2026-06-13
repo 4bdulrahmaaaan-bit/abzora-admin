@@ -7,11 +7,9 @@ import 'package:http/http.dart' as http;
 import 'app_config.dart';
 
 class AvatarVoiceService {
-  AvatarVoiceService({
-    FlutterTts? tts,
-    AudioPlayer? audioPlayer,
-  })  : _tts = tts ?? FlutterTts(),
-        _audioPlayer = audioPlayer ?? AudioPlayer();
+  AvatarVoiceService({FlutterTts? tts, AudioPlayer? audioPlayer})
+    : _tts = tts ?? FlutterTts(),
+      _audioPlayer = audioPlayer ?? AudioPlayer();
 
   final FlutterTts _tts;
   final AudioPlayer _audioPlayer;
@@ -83,14 +81,16 @@ class AvatarVoiceService {
     final uri = Uri.parse(
       '${AppConfig.elevenLabsEndpoint}/${AppConfig.elevenLabsVoiceId}',
     );
-    final response = await http.post(
-      uri,
-      headers: {
-        'xi-api-key': AppConfig.elevenLabsApiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'audio/mpeg',
-      },
-      body: '''
+    final response = await http
+        .post(
+          uri,
+          headers: {
+            'xi-api-key': AppConfig.elevenLabsApiKey,
+            'Content-Type': 'application/json',
+            'Accept': 'audio/mpeg',
+          },
+          body:
+              '''
 {
   "text": ${_jsonString(text)},
   "model_id": "eleven_multilingual_v2",
@@ -102,7 +102,8 @@ class AvatarVoiceService {
   }
 }
 ''',
-    ).timeout(const Duration(seconds: 8));
+        )
+        .timeout(const Duration(seconds: 8));
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       return null;

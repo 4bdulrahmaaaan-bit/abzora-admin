@@ -3,15 +3,42 @@ class AppConfig {
     'BACKEND_BASE_URL',
     defaultValue: 'https://abzora-backend.onrender.com',
   );
-  static const String firebaseWebApiKey = String.fromEnvironment('FIREBASE_WEB_API_KEY', defaultValue: '');
-  static const String firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID', defaultValue: '');
-  static const String firebaseMessagingSenderId = String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID', defaultValue: '');
-  static const String firebaseProjectId = String.fromEnvironment('FIREBASE_PROJECT_ID', defaultValue: '');
-  static const String firebaseEmulatorHost = String.fromEnvironment('FIREBASE_EMULATOR_HOST', defaultValue: '127.0.0.1');
-  static const int firebaseAuthEmulatorPort = int.fromEnvironment('FIREBASE_AUTH_EMULATOR_PORT', defaultValue: 9099);
-  static const int firebaseDatabaseEmulatorPort = int.fromEnvironment('FIREBASE_DATABASE_EMULATOR_PORT', defaultValue: 9000);
-  static const bool useFirebaseEmulators = bool.fromEnvironment('USE_FIREBASE_EMULATORS', defaultValue: false);
-  static const String razorpayKey = String.fromEnvironment('RAZORPAY_KEY', defaultValue: '');
+  static const String firebaseWebApiKey = String.fromEnvironment(
+    'FIREBASE_WEB_API_KEY',
+    defaultValue: '',
+  );
+  static const String firebaseAppId = String.fromEnvironment(
+    'FIREBASE_APP_ID',
+    defaultValue: '',
+  );
+  static const String firebaseMessagingSenderId = String.fromEnvironment(
+    'FIREBASE_MESSAGING_SENDER_ID',
+    defaultValue: '',
+  );
+  static const String firebaseProjectId = String.fromEnvironment(
+    'FIREBASE_PROJECT_ID',
+    defaultValue: '',
+  );
+  static const String firebaseEmulatorHost = String.fromEnvironment(
+    'FIREBASE_EMULATOR_HOST',
+    defaultValue: '127.0.0.1',
+  );
+  static const int firebaseAuthEmulatorPort = int.fromEnvironment(
+    'FIREBASE_AUTH_EMULATOR_PORT',
+    defaultValue: 9099,
+  );
+  static const int firebaseDatabaseEmulatorPort = int.fromEnvironment(
+    'FIREBASE_DATABASE_EMULATOR_PORT',
+    defaultValue: 9000,
+  );
+  static const bool useFirebaseEmulators = bool.fromEnvironment(
+    'USE_FIREBASE_EMULATORS',
+    defaultValue: false,
+  );
+  static const String razorpayKey = String.fromEnvironment(
+    'RAZORPAY_KEY',
+    defaultValue: '',
+  );
   static const String razorpayVerificationEndpoint = String.fromEnvironment(
     'RAZORPAY_VERIFICATION_ENDPOINT',
     defaultValue: '',
@@ -32,7 +59,10 @@ class AppConfig {
     'RAZORPAY_CARD_FINALIZE_ENDPOINT',
     defaultValue: '',
   );
-  static const String googleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY', defaultValue: '');
+  static const String googleMapsApiKey = String.fromEnvironment(
+    'GOOGLE_MAPS_API_KEY',
+    defaultValue: '',
+  );
   static const String cloudinaryCloudName = String.fromEnvironment(
     'CLOUDINARY_CLOUD_NAME',
     defaultValue: 'dcedoi0wp',
@@ -85,17 +115,17 @@ class AppConfig {
 
   static String get effectiveRazorpayVerificationEndpoint =>
       razorpayVerificationEndpoint.isNotEmpty
-          ? razorpayVerificationEndpoint
-          : hasBackendBaseUrl
-              ? '$backendBaseUrl/orders/verify-payment'
-              : '';
+      ? razorpayVerificationEndpoint
+      : hasBackendBaseUrl
+      ? '$backendBaseUrl/orders/verify-payment'
+      : '';
 
   static String get effectiveRazorpayOrderEndpoint =>
       razorpayOrderEndpoint.isNotEmpty
-          ? razorpayOrderEndpoint
-          : hasBackendBaseUrl
-              ? '$backendBaseUrl/orders/create-razorpay-order'
-              : '';
+      ? razorpayOrderEndpoint
+      : hasBackendBaseUrl
+      ? '$backendBaseUrl/orders/create-razorpay-order'
+      : '';
 
   static String get effectiveUploadEndpoint =>
       hasBackendBaseUrl ? '$backendBaseUrl/upload' : '';
@@ -127,12 +157,10 @@ class AppConfig {
 
   static bool get hasKycFaceMatchEndpoint => kycFaceMatchEndpoint.isNotEmpty;
 
-  static bool get hasOpenAiConfig =>
-      false;
+  static bool get hasOpenAiConfig => false;
 
   static bool get hasElevenLabsConfig =>
       elevenLabsApiKey.isNotEmpty && elevenLabsVoiceId.isNotEmpty;
 
-  static bool get hasReadyPlayerMeAvatar =>
-      readyPlayerMeAvatarUrl.isNotEmpty;
+  static bool get hasReadyPlayerMeAvatar => readyPlayerMeAvatarUrl.isNotEmpty;
 }

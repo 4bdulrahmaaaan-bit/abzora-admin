@@ -161,8 +161,7 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
                         OutlinedButton(
                           onPressed: _loading
                               ? null
-                              : () =>
-                                    _managePayout(user, wallet.payoutProfile),
+                              : () => _managePayout(user, wallet.payoutProfile),
                           child: Text(
                             wallet.payoutProfile.isConfigured
                                 ? 'Edit Payout Account'
@@ -187,14 +186,16 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ...wallet.transactions.take(5).map(
-                      (t) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(t.note.isEmpty ? t.type : t.note),
-                        subtitle: Text(t.createdAt),
-                        trailing: Text('? ${t.amount.toStringAsFixed(0)}'),
-                      ),
-                    ),
+                    ...wallet.transactions
+                        .take(5)
+                        .map(
+                          (t) => ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(t.note.isEmpty ? t.type : t.note),
+                            subtitle: Text(t.createdAt),
+                            trailing: Text('? ${t.amount.toStringAsFixed(0)}'),
+                          ),
+                        ),
                   ],
                 ),
               ),

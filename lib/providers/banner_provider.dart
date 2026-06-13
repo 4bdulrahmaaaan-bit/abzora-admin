@@ -9,7 +9,8 @@ class BannerProvider with ChangeNotifier {
 
   static const List<BannerModel> _seedBanners = [
     BannerModel(
-      imageUrl: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1400&q=80',
+      imageUrl:
+          'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1400&q=80',
       title: 'Elevate Your Style',
       subtitle: 'Premium looks near you',
       ctaText: 'Shop Now',
@@ -17,7 +18,8 @@ class BannerProvider with ChangeNotifier {
       redirectId: 'Men',
     ),
     BannerModel(
-      imageUrl: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1400&q=80',
+      imageUrl:
+          'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1400&q=80',
       title: 'Wedding edits worth arriving for',
       subtitle: 'Celebrate every moment in statement silhouettes',
       ctaText: 'Discover',
@@ -25,7 +27,8 @@ class BannerProvider with ChangeNotifier {
       redirectId: 'Wedding',
     ),
     BannerModel(
-      imageUrl: 'https://images.unsplash.com/photo-1523398002811-999ca8dec234?w=1400&q=80',
+      imageUrl:
+          'https://images.unsplash.com/photo-1523398002811-999ca8dec234?w=1400&q=80',
       title: 'Top-rated stores around you',
       subtitle: 'Handpicked fashion destinations from your city',
       ctaText: 'View Stores',
@@ -33,7 +36,8 @@ class BannerProvider with ChangeNotifier {
       redirectId: '',
     ),
     BannerModel(
-      imageUrl: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=1400&q=80',
+      imageUrl:
+          'https://images.unsplash.com/photo-1445205170230-053b83016050?w=1400&q=80',
       title: 'Custom fits, made for you',
       subtitle: 'Precision tailoring with a premium finish',
       ctaText: 'Start Custom Order',

@@ -9,7 +9,8 @@ class VendorSupportCenterScreen extends StatefulWidget {
   const VendorSupportCenterScreen({super.key});
 
   @override
-  State<VendorSupportCenterScreen> createState() => _VendorSupportCenterScreenState();
+  State<VendorSupportCenterScreen> createState() =>
+      _VendorSupportCenterScreenState();
 }
 
 class _VendorSupportCenterScreenState extends State<VendorSupportCenterScreen> {
@@ -40,7 +41,8 @@ class _VendorSupportCenterScreenState extends State<VendorSupportCenterScreen> {
 
       setState(() {
         _analytics = futures[0]['data'] ?? {};
-        _tickets = (futures[1]['data']['tickets'] as List).cast<Map<String, dynamic>>();
+        _tickets = (futures[1]['data']['tickets'] as List)
+            .cast<Map<String, dynamic>>();
         _isLoading = false;
       });
     } catch (e) {
@@ -67,23 +69,50 @@ class _VendorSupportCenterScreenState extends State<VendorSupportCenterScreen> {
             children: [
               TextField(
                 controller: titleCtrl,
-                decoration: const InputDecoration(labelText: 'Subject', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Subject',
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: category,
-                decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
-                items: ['technical', 'payout', 'orders', 'returns', 'store', 'other']
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c.toUpperCase())))
-                    .toList(),
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  border: OutlineInputBorder(),
+                ),
+                items:
+                    [
+                          'technical',
+                          'payout',
+                          'orders',
+                          'returns',
+                          'store',
+                          'other',
+                        ]
+                        .map(
+                          (c) => DropdownMenuItem(
+                            value: c,
+                            child: Text(c.toUpperCase()),
+                          ),
+                        )
+                        .toList(),
                 onChanged: (val) => category = val!,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: priority,
-                decoration: const InputDecoration(labelText: 'Priority', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Priority',
+                  border: OutlineInputBorder(),
+                ),
                 items: ['low', 'normal', 'high', 'critical']
-                    .map((p) => DropdownMenuItem(value: p, child: Text(p.toUpperCase())))
+                    .map(
+                      (p) => DropdownMenuItem(
+                        value: p,
+                        child: Text(p.toUpperCase()),
+                      ),
+                    )
                     .toList(),
                 onChanged: (val) => priority = val!,
               ),
@@ -91,13 +120,19 @@ class _VendorSupportCenterScreenState extends State<VendorSupportCenterScreen> {
               TextField(
                 controller: descCtrl,
                 maxLines: 4,
-                decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               try {
@@ -111,7 +146,9 @@ class _VendorSupportCenterScreenState extends State<VendorSupportCenterScreen> {
                 _fetchData();
               } catch (e) {
                 if (ctx.mounted) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  ScaffoldMessenger.of(
+                    ctx,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
                 }
               }
             },
@@ -137,12 +174,18 @@ class _VendorSupportCenterScreenState extends State<VendorSupportCenterScreen> {
             TextField(
               controller: msgCtrl,
               maxLines: 2,
-              decoration: const InputDecoration(labelText: 'Send a reply...', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Send a reply...',
+                border: OutlineInputBorder(),
+              ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
           ElevatedButton(
             onPressed: () async {
               try {
@@ -151,7 +194,9 @@ class _VendorSupportCenterScreenState extends State<VendorSupportCenterScreen> {
                 _fetchData();
               } catch (e) {
                 if (ctx.mounted) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  ScaffoldMessenger.of(
+                    ctx,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
                 }
               }
             },
@@ -167,10 +212,16 @@ class _VendorSupportCenterScreenState extends State<VendorSupportCenterScreen> {
     return Scaffold(
       backgroundColor: VendorTheme.background,
       appBar: AppBar(
-        title: Text('Support Center', style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          'Support Center',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.add), onPressed: _openCreateTicketDialog),
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _openCreateTicketDialog,
+          ),
         ],
       ),
       body: _buildBody(),
@@ -179,16 +230,21 @@ class _VendorSupportCenterScreenState extends State<VendorSupportCenterScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: VendorTheme.primary));
+      return const Center(
+        child: CircularProgressIndicator(color: VendorTheme.primary),
+      );
     }
     if (_error != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Failed to load tickets: $_error', textAlign: TextAlign.center),
+            Text(
+              'Failed to load tickets: $_error',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: VendorTheme.spacing16),
-            ElevatedButton(onPressed: _fetchData, child: const Text('Retry'))
+            ElevatedButton(onPressed: _fetchData, child: const Text('Retry')),
           ],
         ),
       );
@@ -203,13 +259,23 @@ class _VendorSupportCenterScreenState extends State<VendorSupportCenterScreen> {
         children: [
           _buildAnalyticsGrid(),
           const SizedBox(height: VendorTheme.spacing24),
-          Text('Recent Tickets', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            'Recent Tickets',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: VendorTheme.spacing16),
           ..._tickets.map(_buildTicketCard),
           if (_tickets.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32.0),
-              child: Center(child: Text('No support tickets found.', style: TextStyle(color: VendorTheme.grey500))),
+              child: Center(
+                child: Text(
+                  'No support tickets found.',
+                  style: TextStyle(color: VendorTheme.grey500),
+                ),
+              ),
             ),
         ],
       ),
@@ -257,7 +323,9 @@ class _VendorSupportCenterScreenState extends State<VendorSupportCenterScreen> {
 
   Widget _buildTicketCard(Map<String, dynamic> t) {
     final status = t['status'] ?? 'open';
-    final type = status == 'open' || status == 'pending' ? VendorBadgeType.warning : VendorBadgeType.success;
+    final type = status == 'open' || status == 'pending'
+        ? VendorBadgeType.warning
+        : VendorBadgeType.success;
 
     return PremiumVendorCard(
       margin: const EdgeInsets.only(bottom: VendorTheme.spacing16),
@@ -268,14 +336,29 @@ class _VendorSupportCenterScreenState extends State<VendorSupportCenterScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(t['ticketId'] ?? '', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                t['ticketId'] ?? '',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
               VendorStatusBadge(label: status, type: type),
             ],
           ),
           const SizedBox(height: VendorTheme.spacing8),
-          Text(t['subject'] ?? 'No Subject', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            t['subject'] ?? 'No Subject',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: VendorTheme.spacing4),
-          Text(t['description'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            t['description'] ?? '',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
           const SizedBox(height: VendorTheme.spacing16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,

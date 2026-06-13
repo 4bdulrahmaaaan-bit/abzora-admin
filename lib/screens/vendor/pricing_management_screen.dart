@@ -18,7 +18,8 @@ class PricingManagementScreen extends StatefulWidget {
   final String storeId;
 
   @override
-  State<PricingManagementScreen> createState() => _PricingManagementScreenState();
+  State<PricingManagementScreen> createState() =>
+      _PricingManagementScreenState();
 }
 
 class _PricingManagementScreenState extends State<PricingManagementScreen> {
@@ -78,12 +79,13 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
   }
 
   List<String> get _categories {
-    final values = _rows
-        .map((row) => (row['category'] ?? '').toString().trim())
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final values =
+        _rows
+            .map((row) => (row['category'] ?? '').toString().trim())
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return <String>['All', ...values];
   }
 
@@ -150,10 +152,7 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
     return value.toStringAsFixed(value % 1 == 0 ? 0 : 1);
   }
 
-  List<double> _chartValues(
-    List<Map<String, dynamic>> points,
-    String key,
-  ) {
+  List<double> _chartValues(List<Map<String, dynamic>> points, String key) {
     return points.map((item) => _asDouble(item[key])).take(8).toList();
   }
 
@@ -224,7 +223,8 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
 
       final rows = List<Map<String, dynamic>>.from(results[0] as List);
       final summary = Map<String, dynamic>.from(results[1] as Map);
-      final nextFocus = rows.any((row) => row['id']?.toString() == _focusedProductId)
+      final nextFocus =
+          rows.any((row) => row['id']?.toString() == _focusedProductId)
           ? _focusedProductId
           : (rows.isEmpty ? null : rows.first['id']?.toString());
 
@@ -382,17 +382,16 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
   Widget _buildKpiCard(String label, String value) {
     IconData icon = Icons.analytics_outlined;
     if (label.toLowerCase().contains('view')) icon = Icons.visibility_outlined;
-    if (label.toLowerCase().contains('cart')) icon = Icons.shopping_cart_outlined;
-    if (label.toLowerCase().contains('conversion')) icon = Icons.swap_calls_outlined;
+    if (label.toLowerCase().contains('cart'))
+      icon = Icons.shopping_cart_outlined;
+    if (label.toLowerCase().contains('conversion'))
+      icon = Icons.swap_calls_outlined;
     if (label.toLowerCase().contains('revenue')) icon = Icons.payments_outlined;
-    if (label.toLowerCase().contains('purchase')) icon = Icons.shopping_bag_outlined;
-    
+    if (label.toLowerCase().contains('purchase'))
+      icon = Icons.shopping_bag_outlined;
+
     return Expanded(
-      child: VendorMetricCard(
-        title: label,
-        value: value,
-        icon: icon,
-      ),
+      child: VendorMetricCard(title: label, value: value, icon: icon),
     );
   }
 
@@ -409,10 +408,7 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 10),
           SizedBox(
             height: 90,
@@ -441,7 +437,9 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                         .map(
                           (value) => Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 3,
+                              ),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 280),
                                 curve: Curves.easeInOut,
@@ -498,10 +496,8 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
           value: value,
           items: values
               .map(
-                (item) => DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(item),
-                ),
+                (item) =>
+                    DropdownMenuItem<String>(value: item, child: Text(item)),
               )
               .toList(),
           onChanged: (next) {
@@ -577,7 +573,10 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
 
     return PremiumVendorCard(
       margin: const EdgeInsets.only(top: VendorTheme.spacing16),
-      padding: const EdgeInsets.symmetric(horizontal: VendorTheme.spacing16, vertical: VendorTheme.spacing12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: VendorTheme.spacing16,
+        vertical: VendorTheme.spacing12,
+      ),
       backgroundColor: VendorTheme.secondary.withValues(alpha: 0.1),
       child: Row(
         children: <Widget>[
@@ -616,9 +615,7 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                 child: const Text('Apply Discount'),
               ),
               OutlinedButton(
-                onPressed: () => _configureBulkAction(
-                  removeDiscount: true,
-                ),
+                onPressed: () => _configureBulkAction(removeDiscount: true),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: VendorTheme.primary,
                   side: const BorderSide(color: VendorTheme.primary),
@@ -635,7 +632,10 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
   Widget _buildBulkPanel() {
     final focused = _focusedProduct;
     final suggestion = focused == null
-        ? const <String, dynamic>{'suggested': 25, 'reason': 'No data available.'}
+        ? const <String, dynamic>{
+            'suggested': 25,
+            'reason': 'No data available.',
+          }
         : _discountSuggestionFor(focused);
     final updates = (_preview?['updates'] as List?) ?? const <dynamic>[];
     final sample = updates.isNotEmpty
@@ -656,7 +656,10 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
         children: <Widget>[
           Text(
             'Bulk Pricing Edit',
-            style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w700),
+            style: GoogleFonts.poppins(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -720,7 +723,9 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Remove discount'),
-            subtitle: const Text('Turn off active discount windows on selected products.'),
+            subtitle: const Text(
+              'Turn off active discount windows on selected products.',
+            ),
             value: _removeDiscount,
             onChanged: (value) => setState(() => _removeDiscount = value),
           ),
@@ -759,8 +764,9 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                 ),
                 TextButton(
                   onPressed: () => setState(() {
-                    _bulkDiscountController.text =
-                        _asInt(suggestion['suggested']).toString();
+                    _bulkDiscountController.text = _asInt(
+                      suggestion['suggested'],
+                    ).toString();
                     _bulkMode = 'decrease';
                     _bulkUnit = 'percent';
                     _removeDiscount = false;
@@ -774,7 +780,10 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
             const SizedBox(height: 16),
             Text(
               'Live Preview',
-              style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600),
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 8),
             Row(
@@ -850,7 +859,10 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
     }
 
     final analytics = _focusedAnalytics;
-    final views = _asDouble(analytics['views'], _asDouble(product['viewCount']));
+    final views = _asDouble(
+      analytics['views'],
+      _asDouble(product['viewCount']),
+    );
     final purchases = _asDouble(
       analytics['purchases'],
       _asDouble(product['purchaseCount']),
@@ -859,18 +871,20 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
       analytics['conversion_rate'],
       _asDouble(product['conversionRate']),
     );
-    final carts = _asDouble(analytics['carts'], _asDouble(product['cartCount']));
+    final carts = _asDouble(
+      analytics['carts'],
+      _asDouble(product['cartCount']),
+    );
     final cartRate = _asDouble(analytics['cart_rate']);
     final suggestion = _discountSuggestionFor(product);
     final bestPricePoint = _priceConversionPoints.isEmpty
         ? null
-        : (_priceConversionPoints.toList()
-              ..sort(
+        : (_priceConversionPoints.toList()..sort(
                 (a, b) => _asDouble(
                   b['conversion_rate'],
                 ).compareTo(_asDouble(a['conversion_rate'])),
               ))
-            .first;
+              .first;
 
     return PremiumVendorCard(
       padding: const EdgeInsets.all(VendorTheme.spacing16),
@@ -939,7 +953,10 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
               Expanded(
                 child: _buildMiniBarChart(
                   title: 'Price vs Conversion',
-                  values: _chartValues(_priceConversionPoints, 'conversion_rate'),
+                  values: _chartValues(
+                    _priceConversionPoints,
+                    'conversion_rate',
+                  ),
                   footer: bestPricePoint == null
                       ? 'Price testing data will appear after enough sessions.'
                       : 'Best performing price appears near ${_fmt(bestPricePoint['price'])}.',
@@ -1008,7 +1025,8 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
     final purchases = _asDouble(_summary['purchases']);
     final estimatedRevenue = _rows.fold<double>(
       0,
-      (sum, row) => sum + (_asDouble(row['price']) * _asDouble(row['purchaseCount'])),
+      (sum, row) =>
+          sum + (_asDouble(row['price']) * _asDouble(row['purchaseCount'])),
     );
 
     return Scaffold(
@@ -1019,10 +1037,7 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
           style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
         ),
         actions: <Widget>[
-          IconButton(
-            onPressed: _load,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
+          IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
         ],
       ),
       body: _loading
@@ -1136,7 +1151,10 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                   children: <Widget>[
                     _buildKpiCard('Views', _formatNumber(views)),
                     const SizedBox(width: 10),
-                    _buildKpiCard('Cart Rate', '${cartRate.toStringAsFixed(1)}%'),
+                    _buildKpiCard(
+                      'Cart Rate',
+                      '${cartRate.toStringAsFixed(1)}%',
+                    ),
                     const SizedBox(width: 10),
                     _buildKpiCard(
                       'Conversion',
@@ -1166,19 +1184,24 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                       children: [
                         Text(
                           'AI Pricing Suggestions',
-                          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         const SizedBox(height: 10),
                         _SuggestionTile(
-                          text: 'Running Sneakers -> Reduce price by ?200 to increase conversion',
+                          text:
+                              'Running Sneakers -> Reduce price by ?200 to increase conversion',
                           impact: 'HIGH IMPACT',
                         ),
                         _SuggestionTile(
-                          text: 'Denim Jacket -> High demand, increase price by ?150',
+                          text:
+                              'Denim Jacket -> High demand, increase price by ?150',
                           impact: 'MEDIUM',
                         ),
                         _SuggestionTile(
-                          text: 'Floral Dress -> Out of stock, losing potential revenue',
+                          text:
+                              'Floral Dress -> Out of stock, losing potential revenue',
                           impact: 'HIGH IMPACT',
                         ),
                       ],
@@ -1207,7 +1230,9 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                         width: 180,
                         child: DropdownButtonFormField<String>(
                           initialValue: _category,
-                          decoration: const InputDecoration(labelText: 'Category'),
+                          decoration: const InputDecoration(
+                            labelText: 'Category',
+                          ),
                           items: _categories
                               .map(
                                 (item) => DropdownMenuItem<String>(
@@ -1285,7 +1310,8 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                 if (_rows.isEmpty)
                   VendorEmptyState(
                     title: 'Add products to start optimizing pricing',
-                    subtitle: 'Start selling to unlock demand and purchase insights.',
+                    subtitle:
+                        'Start selling to unlock demand and purchase insights.',
                     icon: Icons.price_change_outlined,
                   )
                 else
@@ -1304,143 +1330,153 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
-                      columnSpacing: 18,
-                      headingTextStyle: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF635E55),
-                      ),
-                      columns: const <DataColumn>[
-                        DataColumn(label: Text('Select')),
-                        DataColumn(label: Text('Product')),
-                        DataColumn(label: Text('Price')),
-                        DataColumn(label: Text('MRP')),
-                        DataColumn(label: Text('Discount %')),
-                        DataColumn(label: Text('Status')),
-                        DataColumn(label: Text('Conversion %')),
-                        DataColumn(label: Text('Actions')),
-                      ],
-                      rows: _rows.map((row) {
-                        final id = row['id'].toString();
-                        final isSelected = _selected.contains(id);
-                        final productName = (row['name'] ?? '').toString();
-                        final discount = _asInt(row['discountPercentage']);
-                        final status = (row['pricingStatus'] ?? 'active')
-                            .toString();
-                        return DataRow(
-                          selected: isSelected,
-                          onSelectChanged: (value) {
-                            setState(() {
-                              if (value == true) {
-                                _selected.add(id);
-                              } else {
-                                _selected.remove(id);
-                              }
-                            });
-                            _focusProduct(id);
-                          },
-                          cells: <DataCell>[
-                            DataCell(
-                              Checkbox(
-                                value: isSelected,
-                                onChanged: (value) {
-                                  setState(() {
-                                    if (value == true) {
-                                      _selected.add(id);
-                                    } else {
-                                      _selected.remove(id);
-                                    }
-                                  });
-                                  _focusProduct(id);
-                                },
+                        columnSpacing: 18,
+                        headingTextStyle: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF635E55),
+                        ),
+                        columns: const <DataColumn>[
+                          DataColumn(label: Text('Select')),
+                          DataColumn(label: Text('Product')),
+                          DataColumn(label: Text('Price')),
+                          DataColumn(label: Text('MRP')),
+                          DataColumn(label: Text('Discount %')),
+                          DataColumn(label: Text('Status')),
+                          DataColumn(label: Text('Conversion %')),
+                          DataColumn(label: Text('Actions')),
+                        ],
+                        rows: _rows.map((row) {
+                          final id = row['id'].toString();
+                          final isSelected = _selected.contains(id);
+                          final productName = (row['name'] ?? '').toString();
+                          final discount = _asInt(row['discountPercentage']);
+                          final status = (row['pricingStatus'] ?? 'active')
+                              .toString();
+                          return DataRow(
+                            selected: isSelected,
+                            onSelectChanged: (value) {
+                              setState(() {
+                                if (value == true) {
+                                  _selected.add(id);
+                                } else {
+                                  _selected.remove(id);
+                                }
+                              });
+                              _focusProduct(id);
+                            },
+                            cells: <DataCell>[
+                              DataCell(
+                                Checkbox(
+                                  value: isSelected,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      if (value == true) {
+                                        _selected.add(id);
+                                      } else {
+                                        _selected.remove(id);
+                                      }
+                                    });
+                                    _focusProduct(id);
+                                  },
+                                ),
                               ),
-                            ),
-                            DataCell(
-                              SizedBox(
-                                width: 260,
-                                child: InkWell(
-                                  onTap: () => _focusProduct(id),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 4,
-                                    ),
-                                    child: Row(
-                                      children: <Widget>[
-                                        _buildProductThumb(row),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: <Widget>[
-                                              Text(
-                                                productName,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: GoogleFonts.inter(
-                                                  fontWeight: FontWeight.w600,
+                              DataCell(
+                                SizedBox(
+                                  width: 260,
+                                  child: InkWell(
+                                    onTap: () => _focusProduct(id),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 4,
+                                      ),
+                                      child: Row(
+                                        children: <Widget>[
+                                          _buildProductThumb(row),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: <Widget>[
+                                                Text(
+                                                  productName,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: GoogleFonts.inter(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
                                                 ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                row['category']?.toString() ?? '',
-                                                style: GoogleFonts.inter(
-                                                  fontSize: 12,
-                                                  color: const Color(0xFF8C857A),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  row['category']?.toString() ??
+                                                      '',
+                                                  style: GoogleFonts.inter(
+                                                    fontSize: 12,
+                                                    color: const Color(
+                                                      0xFF8C857A,
+                                                    ),
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                            DataCell(Text(_fmt(row['price']))),
-                            DataCell(
-                              Text(
-                                row['originalPrice'] == null
-                                    ? '--'
-                                    : _fmt(row['originalPrice']),
+                              DataCell(Text(_fmt(row['price']))),
+                              DataCell(
+                                Text(
+                                  row['originalPrice'] == null
+                                      ? '--'
+                                      : _fmt(row['originalPrice']),
+                                ),
                               ),
-                            ),
-                            DataCell(Text('$discount%')),
-                            DataCell(
-                              VendorStatusBadge(
-                                label: status,
-                                type: status == 'active' ? VendorBadgeType.success : status == 'scheduled' ? VendorBadgeType.warning : VendorBadgeType.neutral,
+                              DataCell(Text('$discount%')),
+                              DataCell(
+                                VendorStatusBadge(
+                                  label: status,
+                                  type: status == 'active'
+                                      ? VendorBadgeType.success
+                                      : status == 'scheduled'
+                                      ? VendorBadgeType.warning
+                                      : VendorBadgeType.neutral,
+                                ),
                               ),
-                            ),
-                            DataCell(
-                              Text(
-                                _asDouble(row['conversionRate']).toStringAsFixed(2),
+                              DataCell(
+                                Text(
+                                  _asDouble(
+                                    row['conversionRate'],
+                                  ).toStringAsFixed(2),
+                                ),
                               ),
-                            ),
-                            DataCell(
-                              TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _selected
-                                      ..clear()
-                                      ..add(id);
-                                    _preview = null;
-                                    _removeDiscount = false;
-                                    _bulkMode = 'set';
-                                  });
-                                  _focusProduct(id);
-                                },
-                                child: const Text('Edit'),
+                              DataCell(
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _selected
+                                        ..clear()
+                                        ..add(id);
+                                      _preview = null;
+                                      _removeDiscount = false;
+                                      _bulkMode = 'set';
+                                    });
+                                    _focusProduct(id);
+                                  },
+                                  child: const Text('Edit'),
+                                ),
                               ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
+                            ],
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ),
-                ),
                 if (_selected.isNotEmpty) _buildBulkPanel(),
                 const SizedBox(height: 14),
                 _buildAnalyticsPanel(),
@@ -1491,8 +1527,18 @@ class _SuggestionTile extends StatelessWidget {
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(999)),
-            child: Text(impact, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              impact,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
           ),
           const SizedBox(width: 8),
           TextButton(onPressed: () {}, child: const Text('Apply Suggestion')),
