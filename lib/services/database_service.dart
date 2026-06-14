@@ -148,6 +148,22 @@ class DatabaseService {
     await _ref('users/$userId/vendorOnboarding/lastCompletedStep').set(step);
   }
 
+  Future<void> saveVendorOnboardingDraft(String userId, Map<String, dynamic> data) async {
+    if (_backendCommerce.isConfigured) return;
+    await _ref('vendor_onboarding_drafts/$userId').set(data);
+  }
+
+  Future<Map<String, dynamic>?> getVendorOnboardingDraft(String userId) async {
+    if (_backendCommerce.isConfigured) return null;
+    final snapshot = await _ref('vendor_onboarding_drafts/$userId').get();
+    return _asMap(snapshot.value);
+  }
+
+  Future<void> deleteVendorOnboardingDraft(String userId) async {
+    if (_backendCommerce.isConfigured) return;
+    await _ref('vendor_onboarding_drafts/$userId').remove();
+  }
+
   Future<void> saveRiderOnboardingStep(String userId, int step) async {
     if (_backendCommerce.isConfigured) return;
     await _ref('users/$userId/riderOnboarding/lastCompletedStep').set(step);
@@ -8491,6 +8507,56 @@ class DatabaseService {
       message: 'Submitted vendor KYC request for ${request.storeName}.',
       actor: actor,
     );
+    
+    final storeId = 'store-${request.userId}';
+    final primaryIndex = request.metadata['primaryPortfolioIndex'] ?? 0;
+    final primaryUrl = request.portfolioImageUrls.isNotEmpty && primaryIndex < request.portfolioImageUrls.length
+        ? request.portfolioImageUrls[primaryIndex] 
+        : '';
+        
+    final store = Store(
+      id: storeId,
+      ownerId: request.userId,
+      name: request.storeName,
+      description: request.metadata['description'] ?? '',
+      imageUrl: primaryUrl,
+      bannerImageUrl: primaryUrl,
+      rating: 0.0,
+      address: request.address,
+      city: request.city,
+      isApproved: false,
+      isActive: false,
+      approvalStatus: 'pending',
+      commissionRate: 0.12,
+      latitude: request.latitude,
+      longitude: request.longitude,
+      category: request.metadata['category'] ?? '',
+      vendorType: request.vendorType,
+      customVendorProfile: CustomVendorProfile(
+        experienceYears: request.experienceYears,
+        specializations: request.specializations,
+        portfolioImages: request.portfolioImageUrls,
+        priceRangeMin: request.startingPrice,
+        priceRangeMax: request.typicalPriceUpper,
+        productionTimeDays: request.productionTimeDays,
+      ),
+    );
+
+    await _ref('stores/$storeId').set(store.toMap());
+
+    await _ref('vendor_wallets/$storeId').set({
+      'storeId': storeId,
+      'ownerId': request.userId,
+      'balance': 0.0,
+      'status': 'active',
+      'createdAt': nowIso,
+      'updatedAt': nowIso,
+    });
+
+    await _ref('users/${request.userId}/storeId').set(storeId);
+    await _ref('users/${request.userId}/vendorOnboarding/status').set('review');
+    await deleteVendorOnboardingDraft(request.userId);
+
     return resolved;
   }
 

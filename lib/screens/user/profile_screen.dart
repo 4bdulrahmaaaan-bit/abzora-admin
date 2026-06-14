@@ -27,7 +27,7 @@ import 'wishlist_screen.dart';
 import '../../features/legal/legal_consent_screen.dart';
 import '../../features/legal/legal_document_registry.dart';
 import '../../features/legal/legal_policy_hub_screen.dart';
-import '../vendor/legacy/vendor_registration_screen.dart';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -1711,7 +1711,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         icon: Icons.storefront_outlined,
         title: 'Sell on Abianzo',
         subtitle: 'Start selling fashion products on the marketplace',
-        onTap: () => _push(context, const VendorRegistrationScreen()),
+        onTap: () => Navigator.of(context).pushNamed('/vendor-onboarding'),
         minimal: true,
       ),
     );

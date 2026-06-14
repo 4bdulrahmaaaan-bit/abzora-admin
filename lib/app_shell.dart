@@ -58,13 +58,14 @@ import 'screens/admin/admin_riders_screen.dart';
 import 'screens/admin/admin_vendors_screen.dart';
 import 'screens/vendor/vendor_dashboard.dart';
 import 'screens/vendor/vendor_profile_screen.dart';
-import 'screens/vendor/smart_vendor_onboarding_screen.dart';
+
 import 'features/onboarding/vendor_onboarding_flow_screen.dart';
 import 'features/onboarding/rider_onboarding_screens.dart';
 import 'features/onboarding/rider_training_module_screen.dart';
 import 'screens/onboarding/vendor_onboarding_status_screen.dart';
-import 'screens/onboarding/rider_onboarding_status_screen.dart';
+import 'features/onboarding/screens/rider_application_center.dart';
 import 'screens/onboarding/application_rejected_screen.dart';
+import 'features/onboarding/screens/rider_suspended_screen.dart';
 import 'features/legal/legal_consent_screen.dart';
 import 'features/legal/legal_consent_service.dart';
 import 'features/legal/legal_document_registry.dart';
@@ -237,7 +238,8 @@ class AbzioApp extends StatelessWidget {
         '/rider-dashboard': (context) => const RiderDashboard(),
         '/rider-training': (context) => const RiderTrainingModuleScreen(),
         '/rider-onboarding': (context) => const RiderOnboardingFlowScreen(),
-        '/rider-status': (context) => const RiderOnboardingStatusScreen(),
+        '/rider-status': (context) => const RiderApplicationCenter(),
+        '/rider-suspended': (context) => const RiderSuspendedScreen(),
         '/rider-rejected': (context) => const ApplicationRejectedScreen(),
         '/invoice/hub': (context) => const InvoiceHubScreen(),
         '/invoice/history': (context) => const InvoiceHistoryScreen(),
@@ -348,7 +350,22 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
   }
 
   Widget _launchDestinationForRoute(String route, AppUser? user) {
-    switch (route) {
+    if (route == '/vendor-onboarding') {
+      debugPrint('[ROUTING DIAGNOSTIC] Resolving /vendor-onboarding');
+      debugPrint('currentRoute: $route');
+      debugPrint('onboardingScreenClass: VendorOnboardingFlowScreen');
+      debugPrint('activeRole: ${user?.activeRole}');
+      debugPrint('role: ${user?.role}');
+      debugPrint('accountType: ${user?.accountType}');
+      debugPrint('storeId: ${user?.storeId}');
+    }
+
+    String validatedRoute = route;
+    if (validatedRoute.startsWith('/rider') && user != null && hasRiderOperationsAccess(user)) {
+      validatedRoute = routeForRiderUser(user);
+    }
+
+    switch (validatedRoute) {
       case '/login':
         return LoginScreen(
           mode: widget.mode,
@@ -362,14 +379,19 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
         if (widget.mode == AbzioAppMode.vendor) {
           return const VendorDashboard();
         }
-        if (widget.mode == AbzioAppMode.rider) {
+        if (widget.mode == AbzioAppMode.rider && user != null) {
+          final validatedOpsRoute = routeForRiderUser(user);
+          if (validatedOpsRoute == '/rider-onboarding') return const RiderOnboardingFlowScreen();
+          if (validatedOpsRoute == '/rider-status') return const RiderApplicationCenter();
+          if (validatedOpsRoute == '/rider-training') return const RiderTrainingModuleScreen();
+          if (validatedOpsRoute == '/rider-suspended') return const RiderSuspendedScreen();
           return const RiderDashboard();
         }
         return const OpsShellScreen();
       case '/vendor-dashboard':
         return const VendorDashboard();
       case '/vendor-onboarding':
-        return const SmartVendorOnboardingScreen();
+        return const VendorOnboardingFlowScreen();
       case '/vendor-status':
         return const VendorOnboardingStatusScreen();
       case '/vendor-rejected':
@@ -383,7 +405,9 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       case '/rider-onboarding':
         return const RiderOnboardingFlowScreen();
       case '/rider-status':
-        return const RiderOnboardingStatusScreen();
+        return const RiderApplicationCenter();
+      case '/rider-suspended':
+        return const RiderSuspendedScreen();
       case '/rider-rejected':
         return const ApplicationRejectedScreen();
       case '/profile':

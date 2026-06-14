@@ -134,6 +134,49 @@ bool canAccessMode(AppUser? user, AbzioAppMode mode) {
   }
 }
 
+String routeForRiderUser(AppUser user) {
+  final approval = user.riderApprovalStatus.trim().toLowerCase();
+  final training = user.training?['status']?.toString().trim().toLowerCase();
+  final onboardingStatus = user.riderOnboarding?['status']?.toString().trim().toLowerCase();
+  final isActive = user.isActive;
+  final hasCompletedOnboarding = hasCompletedRiderOnboarding(user);
+
+  String resolvedRoute = '';
+
+  // 1. Suspension Gate
+  if (approval == 'suspended' || onboardingStatus == 'suspended' || !isActive) {
+    resolvedRoute = '/rider-suspended';
+  }
+  // 2. Onboarding Gate
+  else if (!hasCompletedOnboarding) {
+    resolvedRoute = '/rider-onboarding';
+  }
+  // 3 & 4. Approval Gates (handles pending, rejected, empty, unknown)
+  else if (approval != 'approved') {
+    resolvedRoute = '/rider-status';
+  }
+  // 5. Training Gate (handles null, empty, unknown)
+  else if (training != 'completed') {
+    resolvedRoute = '/rider-training';
+  }
+  // 6. Activation Gate
+  else {
+    resolvedRoute = '/rider-dashboard';
+  }
+
+  debugPrint(
+    '\n[RIDER_ROUTE_GUARD]\n'
+    'userId=${user.id}\n'
+    'approval=${approval.isEmpty ? 'null' : approval}\n'
+    'training=${(training == null || training.isEmpty) ? 'null' : training}\n'
+    'onboarding=$hasCompletedOnboarding\n'
+    'active=$isActive\n'
+    'resolvedRoute=$resolvedRoute\n'
+  );
+
+  return resolvedRoute;
+}
+
 String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
   if (user == null) {
     return '/login';
@@ -176,26 +219,22 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
       }
       return '/vendor-onboarding';
     case AbzioAppMode.rider:
-      if (!hasCompletedRiderOnboarding(user)) {
-        return '/rider-onboarding';
-      }
-      
-      final riderStatus = user.riderApprovalStatus.trim().toLowerCase();
-      if (riderStatus == 'rejected') {
-        return '/rider-rejected';
-      }
-      if (riderStatus != 'approved') {
-        return '/rider-status';
-      }
-      
-      final trainingStatus = user.training?['status'];
-      if (trainingStatus == 'pending') {
-        return '/rider-training';
-      }
-      
-      return '/rider-dashboard';
+      return routeForRiderUser(user);
     case AbzioAppMode.operations:
       if (canAccessOperationsMode(user)) {
+        if (hasVendorOperationsAccess(user) && (user.storeId ?? '').trim().isEmpty) {
+          final vendorOnboarding = user.vendorOnboarding;
+          if (vendorOnboarding != null) {
+            final status = vendorOnboarding['status'];
+            if (status == 'pending' || status == 'review') return '/vendor-status';
+            if (status == 'rejected') return '/vendor-rejected';
+          }
+          return '/vendor-onboarding';
+        }
+        if (hasRiderOperationsAccess(user)) {
+          final riderRoute = routeForRiderUser(user);
+          if (riderRoute != '/rider-dashboard') return riderRoute;
+        }
         return '/ops';
       }
       return '/login';
@@ -205,6 +244,19 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
         return '/admin';
       }
       if (canAccessOperationsMode(user)) {
+        if (hasVendorOperationsAccess(user) && (user.storeId ?? '').trim().isEmpty) {
+          final vendorOnboarding = user.vendorOnboarding;
+          if (vendorOnboarding != null) {
+            final status = vendorOnboarding['status'];
+            if (status == 'pending' || status == 'review') return '/vendor-status';
+            if (status == 'rejected') return '/vendor-rejected';
+          }
+          return '/vendor-onboarding';
+        }
+        if (hasRiderOperationsAccess(user)) {
+          final riderRoute = routeForRiderUser(user);
+          if (riderRoute != '/rider-dashboard') return riderRoute;
+        }
         return '/ops';
       }
       if (kIsWeb) return '/admin';

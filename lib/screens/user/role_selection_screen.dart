@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../features/onboarding/rider_onboarding_screens.dart';
-import '../vendor/legacy/vendor_registration_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -34,11 +33,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 'Launch your store, manage catalog, and grow revenue from nearby shoppers.',
             icon: Icons.storefront_outlined,
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const VendorRegistrationScreen(),
-                ),
-              );
+              Navigator.of(context).pushNamed('/vendor-onboarding');
             },
           ),
           const SizedBox(height: 16),

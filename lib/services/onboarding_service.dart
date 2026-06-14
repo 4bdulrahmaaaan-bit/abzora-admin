@@ -75,6 +75,32 @@ class OnboardingService {
     );
   }
 
+  Future<String> uploadDraftPortfolioImage({
+    required XFile file,
+    required String ownerId,
+    required String fileName,
+  }) {
+    return _storage.uploadPickedImage(
+      file: file,
+      folder: 'onboarding-drafts/portfolio',
+      ownerId: ownerId,
+      fileName: fileName,
+    );
+  }
+
+  Future<String> uploadDraftKycImage({
+    required XFile file,
+    required String ownerId,
+    required String fileName,
+  }) {
+    return _storage.uploadPickedImage(
+      file: file,
+      folder: 'onboarding-drafts/kyc',
+      ownerId: ownerId,
+      fileName: fileName,
+    );
+  }
+
   Future<String> uploadRiderProfilePhoto({
     required XFile file,
     required String ownerId,

@@ -9,12 +9,12 @@ import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
 import 'ops_account_screen.dart';
 import '../rider/rider_dashboard.dart';
-import '../vendor/smart_vendor_onboarding_screen.dart';
+import '../../features/onboarding/vendor_onboarding_flow_screen.dart';
 import '../vendor/vendor_dashboard.dart';
 import '../../features/onboarding/rider_onboarding_screens.dart';
 import '../../features/onboarding/rider_training_module_screen.dart';
-import '../onboarding/rider_onboarding_status_screen.dart';
-import '../onboarding/application_rejected_screen.dart';
+import '../../features/onboarding/screens/rider_application_center.dart';
+import '../../features/onboarding/screens/rider_suspended_screen.dart';
 
 class OpsShellScreen extends StatefulWidget {
   const OpsShellScreen({super.key});
@@ -54,7 +54,7 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
     if (isVendor) {
       if ((user.storeId ?? '').trim().isEmpty) {
         return const Scaffold(
-          body: SmartVendorOnboardingScreen(),
+          body: VendorOnboardingFlowScreen(),
         );
       }
       return Scaffold(
@@ -64,20 +64,18 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
     }
 
     if (isRider) {
-      if (!hasCompletedRiderOnboarding(user)) {
+      final targetRoute = routeForRiderUser(user);
+      
+      if (targetRoute == '/rider-onboarding') {
         return const Scaffold(body: RiderOnboardingFlowScreen());
-      }
-      final riderStatus = user.riderApprovalStatus.trim().toLowerCase();
-      if (riderStatus == 'rejected') {
-        return const Scaffold(body: ApplicationRejectedScreen());
-      }
-      if (riderStatus != 'approved') {
-        return const Scaffold(body: RiderOnboardingStatusScreen());
-      }
-      final trainingStatus = user.training?['status'];
-      if (trainingStatus == 'pending') {
+      } else if (targetRoute == '/rider-status') {
+        return const Scaffold(body: RiderApplicationCenter());
+      } else if (targetRoute == '/rider-training') {
         return const Scaffold(body: RiderTrainingModuleScreen());
+      } else if (targetRoute == '/rider-suspended') {
+        return const Scaffold(body: RiderSuspendedScreen());
       }
+      // If targetRoute == '/rider-dashboard', fall through to show the dashboard.
     }
 
     final pages = [

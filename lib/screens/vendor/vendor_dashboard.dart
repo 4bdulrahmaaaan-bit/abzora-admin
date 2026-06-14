@@ -23,7 +23,7 @@ import '../../core/vendor/vendor_status_helper.dart';
 import 'order_management.dart';
 import 'vendor_notifications_screen.dart';
 import 'store_settings_screen.dart';
-import 'smart_vendor_onboarding_screen.dart';
+import '../../features/onboarding/vendor_onboarding_flow_screen.dart';
 import 'vendor_catalog_manager_screen.dart';
 import 'vendor_analytics_hub_screen.dart';
 import 'vendor_customer_center_screen.dart';
@@ -187,7 +187,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const SmartVendorOnboardingScreen(),
+                      builder: (_) => const VendorOnboardingFlowScreen(),
                     ),
                   );
                   if (mounted) _refresh(actor);

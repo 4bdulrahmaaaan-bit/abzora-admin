@@ -27,6 +27,8 @@ class StorageService {
     'vendor_kyc_selfie',
     'rider_kyc_profile',
     'rider_kyc_docs',
+    'onboarding-drafts/portfolio',
+    'onboarding-drafts/kyc',
   };
   static const Set<String> _allowedExtensions = {
     '.jpg',

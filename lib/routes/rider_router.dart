@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../features/onboarding/rider_onboarding_screens.dart';
+import '../features/onboarding/widgets/rider_success_screen.dart';
 import '../screens/rider/rider_operations_hub_screen.dart';
 import 'rider_routes.dart';
 

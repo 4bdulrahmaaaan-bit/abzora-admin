@@ -286,21 +286,51 @@ class _AdminVendorOnboardingSectionState
                 const SizedBox(height: 16),
                 _sectionTitle('Business Info'),
                 Text(
-                  'Owner: ${req.ownerName}\nPhone: ${req.phone}\nAddress: ${req.address}\nCity: ${req.city}\nType: ${req.vendorType}',
+                  'Owner: ${req.ownerName}\nPhone: ${req.phone}\nEmail: ${req.email}\nAddress: ${req.address}\nCity: ${req.city}\nType: ${req.vendorType}',
                 ),
+                if (req.metadata['businessType'] != null) ...[
+                  const SizedBox(height: 8),
+                  Text('Business Entity: ${req.metadata['businessType']}'),
+                ],
+                if (req.metadata['gstNumber'] != null && req.metadata['gstNumber'].toString().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('GST Number: ${req.metadata['gstNumber']}'),
+                ],
                 const SizedBox(height: 16),
-                _sectionTitle('Expertise'),
+                _sectionTitle('Expertise & Capacity'),
                 Text(
-                  'Experience: ${req.experienceYears} years\nSpecializations: ${req.specializations.join(", ")}',
+                  'Experience: ${req.experienceYears} years',
                 ),
+                if (req.metadata['monthlyCapacity'] != null)
+                  Text('Monthly Capacity: ${req.metadata['monthlyCapacity']} items'),
+                const SizedBox(height: 8),
+                Text('Specializations: ${req.specializations.join(", ")}'),
+                if (req.metadata['serviceTypes'] != null)
+                  Text('Service Types: ${(req.metadata['serviceTypes'] as List).join(", ")}'),
+                if (req.metadata['storeTags'] != null)
+                  Text('Store Tags: ${(req.metadata['storeTags'] as List).join(", ")}'),
                 const SizedBox(height: 16),
                 _sectionTitle('Portfolio'),
                 Text('Images: ${req.portfolioImageUrls.length}'),
+                if (req.metadata['primaryPortfolioIndex'] != null)
+                  Text('Primary Index: ${req.metadata['primaryPortfolioIndex']}'),
                 const SizedBox(height: 16),
-                _sectionTitle('Pricing'),
+                _sectionTitle('Pricing & Terms'),
                 Text(
-                  'Starting: ${req.startingPrice}\nUpper: ${req.typicalPriceUpper}',
+                  'Starting: ₹${req.startingPrice}\nUpper: ₹${req.typicalPriceUpper}',
                 ),
+                if (req.metadata['productionTimeDays'] != null)
+                  Text('Production Time: ${req.metadata['productionTimeDays']} days'),
+                const SizedBox(height: 16),
+                _sectionTitle('Finance & Settlement'),
+                Text('Preferred Method: ${req.metadata['preferredPaymentMethod'] ?? 'N/A'}'),
+                Text('Settlement Preference: ${req.metadata['settlementPreference'] ?? 'N/A'}'),
+                if (req.metadata['payoutDetails'] != null) ...[
+                  const SizedBox(height: 8),
+                  Text('Account: ${req.metadata['payoutDetails']['bankAccount']}'),
+                  Text('IFSC: ${req.metadata['payoutDetails']['ifsc']}'),
+                  Text('UPI: ${req.metadata['payoutDetails']['upi']}'),
+                ],
                 const SizedBox(height: 16),
                 _sectionTitle('KYC'),
                 Text(
