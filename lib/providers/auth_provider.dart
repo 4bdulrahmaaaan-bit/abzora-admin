@@ -130,7 +130,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     unawaited(previousProfileSubscription?.cancel() ?? Future<void>.value());
     AppUser? mappedUser = user;
     if (mappedUser != null) {
-      final role = _mode == AbzioAppMode.vendor ? 'vendor' : _mode == AbzioAppMode.rider ? 'rider' : 'customer';
+      final role = mode == AbzioAppMode.vendor ? 'vendor' : mode == AbzioAppMode.rider ? 'rider' : 'customer';
       mappedUser = mappedUser.copyWith(activeRole: role, accountType: role);
     }
     _user = mappedUser;
@@ -155,7 +155,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     _liveProfileSubscription = _db.watchUser(mappedUser.id).listen((liveUser) {
       AppUser? nextUser = liveUser ?? mappedUser;
       if (nextUser != null) {
-        final role = _mode == AbzioAppMode.vendor ? 'vendor' : _mode == AbzioAppMode.rider ? 'rider' : 'customer';
+        final role = mode == AbzioAppMode.vendor ? 'vendor' : mode == AbzioAppMode.rider ? 'rider' : 'customer';
         nextUser = nextUser.copyWith(activeRole: role, accountType: role);
       }
       if (_isSameUserSnapshot(_user, nextUser)) {
