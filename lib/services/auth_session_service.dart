@@ -467,7 +467,7 @@ class AuthSessionService {
 
     final payload = response.body.isEmpty
         ? <String, dynamic>{}
-        : Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+        : Map<String, dynamic>.from(jsonDecode(utf8.decode(response.bodyBytes)) as Map);
     final data = payload['data'] is Map
         ? Map<String, dynamic>.from(payload['data'] as Map)
         : payload;
@@ -505,7 +505,7 @@ class AuthSessionService {
 
     final payload = response.body.isEmpty
         ? <String, dynamic>{}
-        : Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+        : Map<String, dynamic>.from(jsonDecode(utf8.decode(response.bodyBytes)) as Map);
     final data = payload['data'] is Map
         ? Map<String, dynamic>.from(payload['data'] as Map)
         : payload;

@@ -382,13 +382,16 @@ class _PricingManagementScreenState extends State<PricingManagementScreen> {
   Widget _buildKpiCard(String label, String value) {
     IconData icon = Icons.analytics_outlined;
     if (label.toLowerCase().contains('view')) icon = Icons.visibility_outlined;
-    if (label.toLowerCase().contains('cart'))
+    if (label.toLowerCase().contains('cart')) {
       icon = Icons.shopping_cart_outlined;
-    if (label.toLowerCase().contains('conversion'))
+    }
+    if (label.toLowerCase().contains('conversion')) {
       icon = Icons.swap_calls_outlined;
+    }
     if (label.toLowerCase().contains('revenue')) icon = Icons.payments_outlined;
-    if (label.toLowerCase().contains('purchase'))
+    if (label.toLowerCase().contains('purchase')) {
       icon = Icons.shopping_bag_outlined;
+    }
 
     return Expanded(
       child: VendorMetricCard(title: label, value: value, icon: icon),

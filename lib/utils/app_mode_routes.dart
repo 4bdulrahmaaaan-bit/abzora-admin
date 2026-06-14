@@ -166,6 +166,10 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
       return '/vendor-onboarding';
     case AbzioAppMode.rider:
       if (hasRiderOperationsAccess(user)) {
+        final trainingStatus = user.training?['status'];
+        if (trainingStatus == 'pending') {
+          return '/rider-training';
+        }
         return '/rider-dashboard';
       }
       final riderOnboarding = user.riderOnboarding;

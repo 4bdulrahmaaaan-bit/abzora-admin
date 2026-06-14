@@ -72,15 +72,17 @@ class _AdminVendorOnboardingSectionState
         );
       }
       await _loadData();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Status updated to $newStatus')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(AppErrorText.from(e))));
+      }
     }
   }
 

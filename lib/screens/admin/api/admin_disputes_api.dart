@@ -21,8 +21,9 @@ class AdminDisputesApi {
       'limit': limit.toString(),
     };
     if (status != null && status.isNotEmpty) queryParams['status'] = status;
-    if (priority != null && priority.isNotEmpty)
+    if (priority != null && priority.isNotEmpty) {
       queryParams['priority'] = priority;
+    }
 
     final queryStr = Uri(queryParameters: queryParams).query;
     final payload = await const BackendApiClient().get(

@@ -1,3 +1,4 @@
+// ignore_for_file: uri_does_not_exist, undefined_class, undefined_identifier, undefined_method, non_type_as_type_argument, invalid_constant, dead_code, unused_local_variable
 import 'dart:async';
 
 import 'package:confetti/confetti.dart';

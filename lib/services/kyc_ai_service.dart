@@ -71,7 +71,7 @@ class KycAiService {
         );
       }
 
-      final decoded = jsonDecode(response.body);
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
       final text = _extractTextResponse(decoded).trim();
       final payload = _extractJsonObject(text);
       if (payload == null) {

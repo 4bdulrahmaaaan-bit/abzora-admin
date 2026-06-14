@@ -163,7 +163,7 @@ class StorageService {
 
     final signPayload = signResponse.body.isEmpty
         ? <String, dynamic>{}
-        : jsonDecode(signResponse.body) as Map<String, dynamic>;
+        : jsonDecode(utf8.decode(signResponse.bodyBytes)) as Map<String, dynamic>;
     if (signResponse.statusCode < 200 || signResponse.statusCode >= 300) {
       throw StateError(
         signPayload['error']?.toString() ??

@@ -309,7 +309,7 @@ class SupportAiService {
       return null;
     }
 
-    final decoded = jsonDecode(response.body);
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
     if (decoded is Map<String, dynamic>) {
       final functionCall = _extractFunctionCall(decoded);
       if (functionCall != null) {
@@ -509,7 +509,7 @@ class SupportAiService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       return null;
     }
-    final decoded = jsonDecode(response.body);
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
     if (decoded is! Map<String, dynamic>) {
       return null;
     }
@@ -596,7 +596,7 @@ class SupportAiService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       return null;
     }
-    final decoded = jsonDecode(response.body);
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
     final text = _extractTextResponse(decoded);
     if (!text.trim().startsWith('{')) {
       return null;
@@ -664,7 +664,7 @@ class SupportAiService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       return null;
     }
-    final decoded = jsonDecode(response.body);
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
     final text = _extractTextResponse(decoded).trim();
     return text.isEmpty ? null : text;
   }

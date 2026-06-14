@@ -1,8 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/database_service.dart';
+import '../../services/business_health_api.dart';
+import '../../models/models.dart';
 
-class AccountStoreControlScreen extends StatelessWidget {
+class AccountStoreControlScreen extends StatefulWidget {
   const AccountStoreControlScreen({super.key});
+
+  @override
+  State<AccountStoreControlScreen> createState() => _AccountStoreControlScreenState();
+}
+
+class _AccountStoreControlScreenState extends State<AccountStoreControlScreen> {
+  Store? _store;
+  WalletSummary? _wallet;
+  Map<String, dynamic>? _health;
+  PayoutProfileSummary? _payoutProfile;
+  bool _isLoading = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isLoading) _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final actor = context.read<AuthProvider>().user;
+    if (actor == null) return;
+    try {
+      final db = DatabaseService();
+      final storeId = actor.storeId;
+      final futures = await Future.wait([
+        if (storeId != null) db.getStore(storeId) else db.getStoreByOwner(actor.id),
+        db.getVendorWallet(actor: actor),
+        BusinessHealthApi().getHealth(),
+        db.getVendorPayoutProfile(actor: actor),
+      ]);
+      if (mounted) {
+        setState(() {
+          _store = futures[0] as Store?;
+          _wallet = futures[1] as WalletSummary?;
+          _health = futures[2] as Map<String, dynamic>?;
+          _payoutProfile = futures[3] as PayoutProfileSummary?;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String _money(double value) => NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(value);
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +82,9 @@ class AccountStoreControlScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView(
+      body: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           _card(
@@ -42,7 +95,7 @@ class AccountStoreControlScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Louis Vuitton',
+                        _store?.name.isNotEmpty == true ? _store!.name : 'Your Store',
                         style: GoogleFonts.poppins(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -50,19 +103,19 @@ class AccountStoreControlScreen extends StatelessWidget {
                       ),
                     ),
                     _badge(
-                      'Active',
-                      const Color(0xFF1C8C4E),
-                      const Color(0xFFE7F6ED),
+                      _store?.isActive == true ? 'Active' : 'Inactive',
+                      _store?.isActive == true ? const Color(0xFF1C8C4E) : const Color(0xFFC03C2E),
+                      _store?.isActive == true ? const Color(0xFFE7F6ED) : const Color(0xFFFDE8E8),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                _kv('Address', 'Mumbai, Maharashtra'),
-                _kv('Commission', '12%'),
+                _kv('Address', _store?.city.isNotEmpty == true ? _store!.city : 'Address not set'),
+                _kv('Commission', '${_store?.commissionRate ?? _wallet?.commissionRate ?? 12}%'),
                 _kv(
                   'Payout Status',
-                  'Pending',
-                  valueColor: const Color(0xFFC03C2E),
+                  _payoutProfile?.isConfigured == true ? 'Verified' : 'Pending',
+                  valueColor: _payoutProfile?.isConfigured == true ? const Color(0xFF1C8C4E) : const Color(0xFFC03C2E),
                 ),
                 const SizedBox(height: 14),
                 Row(
@@ -84,35 +137,35 @@ class AccountStoreControlScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 _healthRow(
                   'Orders Processing',
-                  'Good',
+                  _health?['ordersHealthy'] == true ? 'Good' : 'Needs attention',
+                  _health?['ordersHealthy'] == true ? Icons.check_circle : Icons.warning_amber_rounded,
+                  _health?['ordersHealthy'] == true ? const Color(0xFF1C8C4E) : const Color(0xFFB27A1D),
+                ),
+                _healthRow(
+                  'Stock Levels',
+                  'Stable',
                   Icons.check_circle,
                   const Color(0xFF1C8C4E),
                 ),
                 _healthRow(
-                  'Low Stock',
-                  '3 products',
-                  Icons.warning_amber_rounded,
-                  const Color(0xFFB27A1D),
-                ),
-                _healthRow(
                   'Payout Verification',
-                  'Not verified',
-                  Icons.cancel_rounded,
-                  const Color(0xFFC03C2E),
+                  _payoutProfile?.isConfigured == true ? 'Verified' : 'Not verified',
+                  _payoutProfile?.isConfigured == true ? Icons.check_circle : Icons.cancel_rounded,
+                  _payoutProfile?.isConfigured == true ? const Color(0xFF1C8C4E) : const Color(0xFFC03C2E),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '78% Healthy',
+                  '${_health?['score'] ?? 70}% Healthy',
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: const LinearProgressIndicator(
-                    value: 0.78,
+                  child: LinearProgressIndicator(
+                    value: (_health?['score'] ?? 70) / 100.0,
                     minHeight: 10,
-                    valueColor: AlwaysStoppedAnimation(Color(0xFF4BAA54)),
-                    backgroundColor: Color(0xFFF0E8D8),
+                    valueColor: const AlwaysStoppedAnimation(Color(0xFF4BAA54)),
+                    backgroundColor: const Color(0xFFF0E8D8),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -127,9 +180,9 @@ class AccountStoreControlScreen extends StatelessWidget {
               children: [
                 _title('Finance Overview'),
                 const SizedBox(height: 10),
-                _kv('Available Balance', '₹0'),
-                _kv('Pending Settlement', '₹0'),
-                _kv('Commission Rate', '12%'),
+                _kv('Available Balance', _money(_wallet?.balance ?? 0)),
+                _kv('Pending Settlement', _money(_wallet?.pendingAmount ?? 0)),
+                _kv('Commission Rate', '${_wallet?.commissionRate ?? _store?.commissionRate ?? 12}%'),
                 const SizedBox(height: 12),
                 _actionButton('Go to Earnings', gold),
               ],
@@ -167,21 +220,26 @@ class AccountStoreControlScreen extends StatelessWidget {
               children: [
                 _title('Alerts'),
                 const SizedBox(height: 10),
-                _alertRow(
-                  'Payout details missing',
-                  'High',
-                  const Color(0xFFC03C2E),
-                ),
-                _alertRow(
-                  'Low stock on 3 products',
-                  'Medium',
-                  const Color(0xFFB27A1D),
-                ),
-                _alertRow(
-                  'High return rate detected',
-                  'Medium',
-                  const Color(0xFFB27A1D),
-                ),
+                if (_payoutProfile?.isConfigured != true)
+                  _alertRow(
+                    'Payout details missing',
+                    'High',
+                    const Color(0xFFC03C2E),
+                  ),
+                if ((_wallet?.pendingAmount ?? 0) > 0)
+                  _alertRow(
+                    'Pending settlement',
+                    'Medium',
+                    const Color(0xFFB27A1D),
+                  ),
+                if (_health != null && _health!['score'] < 60)
+                  _alertRow(
+                    'Low store health score',
+                    'Medium',
+                    const Color(0xFFB27A1D),
+                  ),
+                if (_payoutProfile?.isConfigured == true && (_wallet?.pendingAmount ?? 0) == 0 && (_health?['score'] ?? 100) >= 60)
+                  Text('No alerts right now.', style: GoogleFonts.inter()),
               ],
             ),
           ),
@@ -196,7 +254,31 @@ class AccountStoreControlScreen extends StatelessWidget {
                 color: const Color(0xFF8A1F2D),
               ),
             ),
-            onTap: () {},
+            onTap: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to log out?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Logout', style: TextStyle(color: Color(0xFF8A1F2D))),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true && context.mounted) {
+                await context.read<AuthProvider>().logout();
+                if (context.mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                }
+              }
+            },
           ),
         ],
       ),

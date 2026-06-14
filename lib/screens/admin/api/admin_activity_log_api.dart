@@ -16,11 +16,13 @@ class AdminActivityLogApi {
       'limit': limit.toString(),
     };
     if (actorId != null && actorId.isNotEmpty) queryParams['actorId'] = actorId;
-    if (targetType != null && targetType.isNotEmpty)
+    if (targetType != null && targetType.isNotEmpty) {
       queryParams['targetType'] = targetType;
+    }
     if (action != null && action.isNotEmpty) queryParams['action'] = action;
-    if (startDate != null && startDate.isNotEmpty)
+    if (startDate != null && startDate.isNotEmpty) {
       queryParams['startDate'] = startDate;
+    }
     if (endDate != null && endDate.isNotEmpty) queryParams['endDate'] = endDate;
 
     final queryStr = Uri(queryParameters: queryParams).query;

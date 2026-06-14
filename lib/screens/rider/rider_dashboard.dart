@@ -11,13 +11,16 @@ import '../../utils/app_error_text.dart';
 import '../../widgets/payout_account_dialog.dart';
 import '../../widgets/state_views.dart';
 
-import 'rider_onboarding_screen.dart';
+import '../../features/onboarding/rider_onboarding_screens.dart';
+import 'rider_notifications_screen.dart';
+import 'rider_operations_hub_screen.dart';
 import 'rider_route_screen.dart';
 import 'rider_tasks_screen.dart';
 import 'rider_trials_screen.dart';
 
 import 'rider_performance_screen.dart';
 import 'rider_earnings_screen.dart';
+import '../../services/rider_notification_api.dart';
 import 'rider_payouts_screen.dart';
 
 class _RiderUi {
@@ -278,93 +281,107 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                 _RouteLaunchCard(taskCount: data.tasks.length),
                 const SizedBox(height: 24),
 
-                // PHASE 3 DASHBOARD INTEGRATION
+                // ─── ENTERPRISE ACTION GRID ───
                 Text(
-                  'WORKFORCE PLATFORM',
+                  'OPERATIONS',
                   style: Theme.of(context).textTheme.labelMedium,
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RiderEarningsScreen(),
-                          ),
-                        ),
-                        child: const Card(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.account_balance_wallet,
-                                  color: _RiderUi.gold,
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Earnings',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                _EnterpriseActionGrid(
+                  items: [
+                    _GridAction(
+                      icon: Icons.local_shipping_rounded,
+                      label: 'Deliveries',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RiderTasksScreen())),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RiderPerformanceScreen(),
-                          ),
-                        ),
-                        child: const Card(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            child: Column(
-                              children: [
-                                Icon(Icons.star, color: _RiderUi.gold),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Performance',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                    _GridAction(
+                      icon: Icons.inventory_2_rounded,
+                      label: 'Active Tasks',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RiderTasksScreen())),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RiderPayoutsScreen(),
-                          ),
-                        ),
-                        child: const Card(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            child: Column(
-                              children: [
-                                Icon(Icons.payments, color: _RiderUi.gold),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Payouts',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                    _GridAction(
+                      icon: Icons.map_rounded,
+                      label: 'Routes',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RiderRouteScreen())),
+                    ),
+                    _GridAction(
+                      icon: Icons.checkroom_rounded,
+                      label: 'Trials',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RiderTrialsScreen())),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                Text(
+                  'FINANCIAL',
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+                const SizedBox(height: 12),
+                _EnterpriseActionGrid(
+                  items: [
+                    _GridAction(
+                      icon: Icons.account_balance_wallet_rounded,
+                      label: 'Earnings',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RiderEarningsScreen())),
+                    ),
+                    _GridAction(
+                      icon: Icons.payments_rounded,
+                      label: 'Wallet',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RiderPayoutsScreen())),
+                    ),
+                    _GridAction(
+                      icon: Icons.history_rounded,
+                      label: 'Settlements',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RiderPayoutsScreen())),
+                    ),
+                    _GridAction(
+                      icon: Icons.trending_up_rounded,
+                      label: 'Performance',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RiderPerformanceScreen())),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                Text(
+                  'OPERATIONS HUB',
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+                const SizedBox(height: 12),
+                _EnterpriseActionGrid(
+                  items: [
+                    _GridAction(
+                      icon: Icons.person_rounded,
+                      label: 'Profile',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RiderOperationsHubScreen(initialIndex: 0))),
+                    ),
+                    _GridAction(
+                      icon: Icons.school_rounded,
+                      label: 'Training',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RiderOperationsHubScreen(initialIndex: 1))),
+                    ),
+                    _GridAction(
+                      icon: Icons.support_agent_rounded,
+                      label: 'Support',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RiderOperationsHubScreen(initialIndex: 2))),
+                    ),
+                    _GridAction(
+                      icon: Icons.settings_rounded,
+                      label: 'Settings',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RiderOperationsHubScreen(initialIndex: 3))),
                     ),
                   ],
                 ),
@@ -423,7 +440,35 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
 
     return Scaffold(
       backgroundColor: _RiderUi.ivory,
-      appBar: AppBar(title: const Text('Abianzo Rider')),
+      appBar: AppBar(
+        title: const Text('Abianzo Rider'),
+        actions: [
+          FutureBuilder<int>(
+            future: RiderNotificationApi.getUnreadCount(),
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              return IconButton(
+                icon: Badge(
+                  isLabelVisible: count > 0,
+                  label: Text('$count'),
+                  backgroundColor: const Color(0xFFD4AF37),
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+                tooltip: 'Notifications',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RiderNotificationsScreen()),
+                ).then((_) {
+                  // Refresh count when returning
+                  if (context.mounted) {
+                    (context as Element).markNeedsBuild();
+                  }
+                }),
+              );
+            },
+          ),
+        ],
+      ),
       extendBody: true,
       body: content,
       bottomNavigationBar: SafeArea(
@@ -488,10 +533,15 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                 icon: Icons.person_rounded,
                 label: 'Profile',
                 onTap: () {
+                  final auth = context.read<AuthProvider>();
+                  final user = auth.user;
+                  final submitted = (user?.riderVehicleType ?? '').isNotEmpty && (user?.riderCity ?? user?.city ?? '').isNotEmpty;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const RiderOnboardingScreen(),
+                      builder: (_) => submitted 
+                          ? const RiderOperationsHubScreen() 
+                          : const RiderOnboardingFlowScreen(),
                     ),
                   );
                 },
@@ -695,7 +745,7 @@ class _PendingApprovalView extends StatelessWidget {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const RiderOnboardingScreen()),
+              MaterialPageRoute(builder: (_) => const RiderOnboardingFlowScreen()),
             );
           },
         ),
@@ -1532,6 +1582,80 @@ class _TbybStat extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
       ],
+    );
+  }
+}
+
+// ── Enterprise Action Grid ────────────────────────────────────────────────────
+
+class _GridAction {
+  const _GridAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+}
+
+class _EnterpriseActionGrid extends StatelessWidget {
+  const _EnterpriseActionGrid({required this.items});
+
+  final List<_GridAction> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 4,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      children: items.map((action) {
+        return GestureDetector(
+          onTap: action.onTap,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEFCF8),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE8DCC2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  action.icon,
+                  color: const Color(0xFF8D6A2E),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                action.label,
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF444444),
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

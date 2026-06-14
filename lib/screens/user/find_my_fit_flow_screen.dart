@@ -902,16 +902,19 @@ class _FindMyFitFlowScreenState extends State<FindMyFitFlowScreen>
   }
 
   String _confidenceLabel() {
-    if (_bodyType == 'Regular' && _fitPreference == 'Regular')
+    if (_bodyType == 'Regular' && _fitPreference == 'Regular') {
       return 'High confidence';
+    }
     return 'Good confidence';
   }
 
   String _fitNote() {
-    if (_fitPreference == 'Tight')
+    if (_fitPreference == 'Tight') {
       return 'A close-cut fit is recommended for your profile.';
-    if (_fitPreference == 'Loose')
+    }
+    if (_fitPreference == 'Loose') {
       return 'A relaxed silhouette will feel best on you.';
+    }
     return 'Regular fit recommended';
   }
 }

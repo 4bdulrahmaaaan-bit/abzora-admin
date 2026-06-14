@@ -6,7 +6,7 @@ import '../../app_shell.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme.dart';
 import '../../widgets/brand_logo.dart';
-import '../rider/rider_onboarding_screen.dart';
+import '../../features/onboarding/rider_onboarding_screens.dart';
 
 class OpsAccountScreen extends StatelessWidget {
   const OpsAccountScreen({super.key, this.mode = AbzioAppMode.operations});
@@ -179,7 +179,7 @@ class OpsAccountScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const RiderOnboardingScreen(),
+                      builder: (_) => const RiderOnboardingFlowScreen(),
                     ),
                   );
                 },

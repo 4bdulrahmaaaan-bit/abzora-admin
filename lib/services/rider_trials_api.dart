@@ -39,7 +39,7 @@ class RiderTrialsApi {
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final json = jsonDecode(response.body);
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
       if (json['success'] == true) {
         final List data = json['data'] ?? [];
         return data.map((e) => TrialSession.fromMap(e)).toList();
@@ -55,7 +55,7 @@ class RiderTrialsApi {
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final json = jsonDecode(response.body);
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
       if (json['success'] == true) {
         ServerTimeOffset().updateOffset(json['serverTime']);
         final List data = json['data'] ?? [];
@@ -72,7 +72,7 @@ class RiderTrialsApi {
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final json = jsonDecode(response.body);
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
       if (json['success'] == true) {
         ServerTimeOffset().updateOffset(json['serverTime']);
         final List data = json['data'] ?? [];
@@ -102,7 +102,7 @@ class RiderTrialsApi {
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final json = jsonDecode(response.body);
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
       if (json['success'] == true && json['data'] != null) {
         ServerTimeOffset().updateOffset(json['serverTime']);
         return TrialSession.fromMap(json['data']);
@@ -134,7 +134,7 @@ class RiderTrialsApi {
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final json = jsonDecode(response.body);
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
       if (json['success'] == true && json['data'] != null) {
         ServerTimeOffset().updateOffset(json['serverTime']);
         return TrialSession.fromMap(json['data']);
@@ -161,7 +161,7 @@ class RiderTrialsApi {
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final json = jsonDecode(response.body);
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
       if (json['success'] == true && json['data'] != null) {
         return json['data'];
       }
@@ -213,7 +213,7 @@ class RiderTrialsApi {
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final json = jsonDecode(response.body);
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
       if (json['success'] == true && json['data'] != null) {
         ServerTimeOffset().updateOffset(json['serverTime']);
         return TrialSession.fromMap(json['data']);
@@ -237,7 +237,7 @@ class RiderTrialsApi {
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final json = jsonDecode(response.body);
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
       if (json['success'] == true && json['data'] != null) {
         ServerTimeOffset().updateOffset(json['serverTime']);
         return TrialSession.fromMap(json['data']);

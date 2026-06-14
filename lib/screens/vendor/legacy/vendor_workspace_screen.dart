@@ -3,18 +3,18 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../models/models.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/database_service.dart';
-import '../../theme.dart';
-import '../../utils/app_error_text.dart';
-import '../../utils/app_mode_routes.dart';
-import '../../widgets/state_views.dart';
-import 'add_product_screen.dart';
-import 'order_management.dart';
-import 'pricing_management_screen.dart';
-import 'product_management.dart';
-import 'store_settings_screen.dart';
+import '../../../models/models.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../services/database_service.dart';
+import '../../../theme.dart';
+import '../../../utils/app_error_text.dart';
+import '../../../utils/app_mode_routes.dart';
+import '../../../widgets/state_views.dart';
+import '../add_product_screen.dart';
+import '../order_management.dart';
+import '../pricing_management_screen.dart';
+import '../product_management.dart';
+import '../store_settings_screen.dart';
 import 'vendor_trial_home_dashboard_screen.dart';
 
 class VendorWorkspaceScreen extends StatefulWidget {
@@ -769,8 +769,9 @@ class _VendorWorkspaceScreenState extends State<VendorWorkspaceScreen> {
         return o.customOrderStatus == 'delivered';
       }
       if (_orderTab == 'new') return o.status == 'Placed';
-      if (_orderTab == 'processing')
+      if (_orderTab == 'processing') {
         return o.status == 'Confirmed' || o.status == 'Packed';
+      }
       if (_orderTab == 'ready') return o.status == 'Ready for pickup';
       return o.status == 'Delivered' || o.status == 'Completed';
     }).toList();

@@ -8,7 +8,8 @@ import '../../../providers/auth_provider.dart';
 import '../../../core/widgets/rider_glow_button.dart';
 
 class RiderTrainingModuleScreen extends StatefulWidget {
-  const RiderTrainingModuleScreen({super.key});
+  const RiderTrainingModuleScreen({super.key, this.embeddedMode = false});
+  final bool embeddedMode;
 
   @override
   State<RiderTrainingModuleScreen> createState() =>
@@ -350,6 +351,32 @@ class _RiderTrainingModuleScreenState extends State<RiderTrainingModuleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final body = SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF141414),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF222222)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1A000000),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(24),
+          child: _quizMode ? _buildQuizContent() : _buildModuleContent(),
+        ),
+      ),
+    );
+
+    if (widget.embeddedMode) {
+      return body;
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
@@ -361,27 +388,7 @@ class _RiderTrainingModuleScreenState extends State<RiderTrainingModuleScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF141414),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF222222)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x1A000000),
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(24),
-            child: _quizMode ? _buildQuizContent() : _buildModuleContent(),
-          ),
-        ),
-      ),
+      body: body,
     );
   }
 }

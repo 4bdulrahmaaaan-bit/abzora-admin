@@ -18,8 +18,9 @@ class AdminRiderIntelligenceApi {
       'page': page.toString(),
       'limit': limit.toString(),
     };
-    if (classification != null && classification.isNotEmpty)
+    if (classification != null && classification.isNotEmpty) {
       queryParams['classification'] = classification;
+    }
 
     final queryStr = Uri(queryParameters: queryParams).query;
     final payload = await const BackendApiClient().get(

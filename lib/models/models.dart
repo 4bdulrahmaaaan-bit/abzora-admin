@@ -30,6 +30,7 @@ class AppUser {
   final String? referredBy;
   final Map<String, dynamic>? vendorOnboarding;
   final Map<String, dynamic>? riderOnboarding;
+  final Map<String, dynamic>? training;
 
   AppUser({
     required this.id,
@@ -58,6 +59,7 @@ class AppUser {
     this.referredBy,
     this.vendorOnboarding,
     this.riderOnboarding,
+    this.training,
   });
 
   Map<String, dynamic> toMap() => {
@@ -88,6 +90,7 @@ class AppUser {
     'referredBy': referredBy,
     'vendorOnboarding': vendorOnboarding,
     'riderOnboarding': riderOnboarding,
+    'training': training,
   };
 
   factory AppUser.fromMap(Map<String, dynamic> map) => AppUser(
@@ -127,6 +130,9 @@ class AppUser {
     riderOnboarding: map['riderOnboarding'] != null
         ? Map<String, dynamic>.from(map['riderOnboarding'])
         : null,
+    training: map['training'] != null
+        ? Map<String, dynamic>.from(map['training'])
+        : null,
   );
 
   AppUser copyWith({
@@ -156,6 +162,7 @@ class AppUser {
     String? referredBy,
     Map<String, dynamic>? vendorOnboarding,
     Map<String, dynamic>? riderOnboarding,
+    Map<String, dynamic>? training,
   }) {
     return AppUser(
       id: id ?? this.id,
@@ -184,6 +191,7 @@ class AppUser {
       referredBy: referredBy ?? this.referredBy,
       vendorOnboarding: vendorOnboarding ?? this.vendorOnboarding,
       riderOnboarding: riderOnboarding ?? this.riderOnboarding,
+      training: training ?? this.training,
     );
   }
 }

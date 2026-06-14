@@ -206,12 +206,15 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen>
   }
 
   Widget _buildTabContent() {
-    if (_tabController.index == 0)
+    if (_tabController.index == 0) {
       return _buildList(_returns, 'Returns', _buildReturnCard);
-    if (_tabController.index == 1)
+    }
+    if (_tabController.index == 1) {
       return _buildList(_refunds, 'Refunds', _buildRefundCard);
-    if (_tabController.index == 2)
+    }
+    if (_tabController.index == 2) {
       return _buildList(_exchanges, 'Exchanges', _buildExchangeCard);
+    }
     return const SizedBox();
   }
 

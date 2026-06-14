@@ -21,11 +21,12 @@ class _AdminAutomationSectionState extends State<AdminAutomationSection> {
   }
 
   Future<void> _loadData() async {
-    if (mounted)
+    if (mounted) {
       setState(() {
         _isLoading = true;
         _error = null;
       });
+    }
     try {
       final data = await AdminAutomationApi.getAutomations();
       if (mounted) {

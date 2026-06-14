@@ -496,7 +496,7 @@ class BackendApiClient {
     required String method,
     required String path,
   }) {
-    final rawBody = response.body.trim();
+    final rawBody = utf8.decode(response.bodyBytes).trim();
     if (rawBody.isEmpty) {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         _markBackendOk();

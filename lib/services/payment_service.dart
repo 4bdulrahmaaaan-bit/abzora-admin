@@ -215,7 +215,7 @@ class PaymentService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw StateError('Payment verification failed. Please try again.');
     }
-    final payload = jsonDecode(response.body);
+    final payload = jsonDecode(utf8.decode(response.bodyBytes));
     final data = payload is Map && payload['data'] is Map
         ? Map<String, dynamic>.from(payload['data'] as Map)
         : payload is Map
@@ -262,7 +262,7 @@ class PaymentService {
       throw StateError('Refund could not be processed right now.');
     }
 
-    final payload = jsonDecode(response.body);
+    final payload = jsonDecode(utf8.decode(response.bodyBytes));
     final map = payload is Map
         ? Map<String, dynamic>.from(payload)
         : const <String, dynamic>{};
@@ -322,7 +322,7 @@ class PaymentService {
       throw StateError('We could not start secure payment right now.');
     }
 
-    final payload = jsonDecode(response.body);
+    final payload = jsonDecode(utf8.decode(response.bodyBytes));
     if (payload is! Map) {
       throw StateError('Secure payment setup returned an unexpected response.');
     }
@@ -371,7 +371,7 @@ class PaymentService {
       throw StateError('We could not start secure card setup right now.');
     }
 
-    final setupPayload = jsonDecode(setupResponse.body);
+    final setupPayload = jsonDecode(utf8.decode(setupResponse.bodyBytes));
     if (setupPayload is! Map) {
       throw StateError('Secure card setup returned an unexpected response.');
     }
@@ -454,7 +454,7 @@ class PaymentService {
         );
       }
 
-      final finalizePayload = jsonDecode(finalizeResponse.body);
+      final finalizePayload = jsonDecode(utf8.decode(finalizeResponse.bodyBytes));
       if (finalizePayload is! Map) {
         throw StateError('Saved card response is invalid.');
       }

@@ -125,8 +125,9 @@ class TrialHomeApi {
     }
     if (note != null) body['note'] = note;
     if (fit != null) body['fit'] = fit;
-    if (tailoringRecommendation != null)
+    if (tailoringRecommendation != null) {
       body['tailoringRecommendation'] = tailoringRecommendation;
+    }
     if (status != null) body['status'] = status;
     final payload = await _client.patch(
       '/trial-home/$id/modify',

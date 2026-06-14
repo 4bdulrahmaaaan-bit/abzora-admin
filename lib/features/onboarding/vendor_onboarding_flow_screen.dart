@@ -181,10 +181,12 @@ class _VendorOnboardingFlowScreenState
       final days = int.tryParse(_productionDays.text.trim()) ?? 0;
       final capacity = int.tryParse(_monthlyCapacity.text.trim()) ?? 0;
       if (start <= 0) return 'Starting price must be greater than zero';
-      if (upper < start)
+      if (upper < start) {
         return 'Upper range must be greater than starting price';
-      if (days <= 0 || days > 60)
+      }
+      if (days <= 0 || days > 60) {
         return 'Production days must be between 1 and 60';
+      }
       if (capacity <= 0) return 'Monthly capacity must be greater than zero';
 
       if (_bankAccount.text.trim().isEmpty && _upi.text.trim().isEmpty) {

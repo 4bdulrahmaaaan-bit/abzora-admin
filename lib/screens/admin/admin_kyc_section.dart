@@ -348,10 +348,12 @@ class _AdminKycSectionState extends State<AdminKycSection>
   }
 
   Widget _buildDashboardTab() {
-    if (_isLoadingDashboard)
+    if (_isLoadingDashboard) {
       return const Center(child: CircularProgressIndicator());
-    if (_dashboardError.isNotEmpty)
+    }
+    if (_dashboardError.isNotEmpty) {
       return Center(child: Text('Error: $_dashboardError'));
+    }
 
     return SingleChildScrollView(
       child: Column(

@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
+import '../../services/vendor_notification_api.dart';
+import '../../services/business_health_api.dart';
 
 import '../../widgets/state_views.dart';
 import '../../utils/app_mode_routes.dart';
@@ -18,12 +20,17 @@ import '../../core/vendor/widgets/vendor_empty_state.dart';
 
 import '../../core/vendor/vendor_status_helper.dart';
 
-import 'add_product_screen.dart';
 import 'order_management.dart';
-import 'pricing_management_screen.dart';
-import 'product_management.dart';
+import 'vendor_notifications_screen.dart';
 import 'store_settings_screen.dart';
-import 'vendor_registration_screen.dart';
+import 'smart_vendor_onboarding_screen.dart';
+import 'vendor_catalog_manager_screen.dart';
+import 'vendor_analytics_hub_screen.dart';
+import 'vendor_customer_center_screen.dart';
+import 'vendor_finance_hub_screen.dart';
+import 'marketing_center_screen.dart';
+import 'business_health_center_screen.dart';
+import 'account_store_control_screen.dart';
 
 class VendorDashboard extends StatefulWidget {
   const VendorDashboard({super.key, this.embedded = false});
@@ -69,8 +76,9 @@ class _VendorDashboardState extends State<VendorDashboard> {
     if (_boundActorId == actor.id &&
         _boundStoreId == store.id &&
         _ordersFuture != null &&
-        _analyticsFuture != null)
+        _analyticsFuture != null) {
       return;
+    }
     _boundStoreId = store.id;
     _ordersFuture = _db.getVendorOrders(store.id, actor: actor).first;
     _analyticsFuture = _db.getVendorAnalytics(store.id, actor: actor);
@@ -125,7 +133,33 @@ class _VendorDashboardState extends State<VendorDashboard> {
       backgroundColor: VendorTheme.background,
       appBar: widget.embedded
           ? null
-          : AppBar(title: const Text('Store Overview')),
+          : AppBar(
+              title: const Text('Store Overview'),
+              actions: [
+                IconButton(
+                  icon: FutureBuilder<int>(
+                    future: VendorNotificationApi().getUnreadCount(),
+                    builder: (context, snapshot) {
+                      final count = snapshot.data ?? 0;
+                      if (count == 0) return const Icon(Icons.notifications_outlined);
+                      return Badge(
+                        label: Text(count.toString()),
+                        child: const Icon(Icons.notifications_outlined),
+                      );
+                    },
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const VendorNotificationsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: VendorTheme.spacing8),
+              ],
+            ),
       body: FutureBuilder<Store?>(
         future: _storeFuture,
         builder: (context, storeSnapshot) {
@@ -153,7 +187,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const VendorRegistrationScreen(),
+                      builder: (_) => const SmartVendorOnboardingScreen(),
                     ),
                   );
                   if (mounted) _refresh(actor);
@@ -247,69 +281,103 @@ class _VendorDashboardState extends State<VendorDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('QUICK ACTIONS', style: Theme.of(context).textTheme.labelMedium),
+        Text('OPERATIONS', style: Theme.of(context).textTheme.labelMedium),
         const SizedBox(height: VendorTheme.spacing12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _QuickActionChip(
-                icon: Icons.add_circle_outline,
-                label: 'Add Product',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddProductScreen(storeId: store.id),
-                  ),
-                ),
+        Wrap(
+          spacing: VendorTheme.spacing8,
+          runSpacing: VendorTheme.spacing8,
+          children: [
+            _QuickActionChip(
+              icon: Icons.shopping_bag_outlined,
+              label: 'Orders',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => OrderManagementScreen(actor: actor, store: store)),
               ),
-              const SizedBox(width: VendorTheme.spacing8),
-              _QuickActionChip(
-                icon: Icons.inventory_2_outlined,
-                label: 'Products',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ProductManagementScreen(storeId: store.id),
-                  ),
-                ),
+            ),
+            _QuickActionChip(
+              icon: Icons.inventory_2_outlined,
+              label: 'Catalog Manager',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => VendorCatalogManagerScreen(storeId: store.id)),
               ),
-              const SizedBox(width: VendorTheme.spacing8),
-              _QuickActionChip(
-                icon: Icons.shopping_bag_outlined,
-                label: 'Orders',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        OrderManagementScreen(actor: actor, store: store),
-                  ),
-                ),
+            ),
+          ],
+        ),
+        const SizedBox(height: VendorTheme.spacing24),
+        Text('BUSINESS & GROWTH', style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: VendorTheme.spacing12),
+        Wrap(
+          spacing: VendorTheme.spacing8,
+          runSpacing: VendorTheme.spacing8,
+          children: [
+            _QuickActionChip(
+              icon: Icons.account_balance_wallet_outlined,
+              label: 'Finance Hub',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const VendorFinanceHubScreen()),
               ),
-              const SizedBox(width: VendorTheme.spacing8),
-              _QuickActionChip(
-                icon: Icons.price_change_outlined,
-                label: 'Pricing',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PricingManagementScreen(storeId: store.id),
-                  ),
-                ),
+            ),
+            _QuickActionChip(
+              icon: Icons.insights_outlined,
+              label: 'Analytics Hub',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const VendorAnalyticsHubScreen()),
               ),
-              const SizedBox(width: VendorTheme.spacing8),
-              _QuickActionChip(
-                icon: Icons.settings_outlined,
-                label: 'Settings',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => StoreSettingsScreen(store: store),
-                  ),
-                ),
+            ),
+            _QuickActionChip(
+              icon: Icons.campaign_outlined,
+              label: 'Marketing Center',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MarketingCenterScreen()),
               ),
-            ],
-          ),
+            ),
+            _QuickActionChip(
+              icon: Icons.support_agent_outlined,
+              label: 'Customer Center',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const VendorCustomerCenterScreen()),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: VendorTheme.spacing24),
+        Text('ACCOUNT & SYSTEM', style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: VendorTheme.spacing12),
+        Wrap(
+          spacing: VendorTheme.spacing8,
+          runSpacing: VendorTheme.spacing8,
+          children: [
+            _QuickActionChip(
+              icon: Icons.settings_outlined,
+              label: 'Store Settings',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => StoreSettingsScreen(store: store)),
+              ),
+            ),
+            _QuickActionChip(
+              icon: Icons.health_and_safety_outlined,
+              label: 'Business Health',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BusinessHealthCenterScreen()),
+              ),
+            ),
+            _QuickActionChip(
+              icon: Icons.security_outlined,
+              label: 'Account Control',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AccountStoreControlScreen()),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -401,11 +469,9 @@ class _VendorDashboardState extends State<VendorDashboard> {
               child: VendorMetricCard(
                 title: 'Orders',
                 value: '${todayOrders.length}',
-                trend: todayOrders.length >= yesterdayOrders.length
-                    ? 5.0
-                    : -2.0,
+                trend: revTrend,
               ),
-            ), // Dummy trend for orders
+            ),
           ],
         ),
         const SizedBox(height: VendorTheme.spacing12),
@@ -421,9 +487,9 @@ class _VendorDashboardState extends State<VendorDashboard> {
             Expanded(
               child: VendorMetricCard(
                 title: 'Store Visits',
-                value: '${todayOrders.length * 4}',
+                value: '-',
               ),
-            ), // Mock metric
+            ),
           ],
         ),
       ],
@@ -494,10 +560,19 @@ class _VendorDashboardState extends State<VendorDashboard> {
     List<OrderModel> orders,
     List<Product> products,
   ) {
-    // Basic calculation logic to form a 0-100 score
-    int score = 70;
-    if (store.bannerImageUrl.isNotEmpty) score += 10;
-    if (orders.isNotEmpty) score += 20;
+    return FutureBuilder<Map<String, dynamic>>(
+      future: BusinessHealthApi().getHealth(),
+      builder: (context, snapshot) {
+        int score = 70;
+        if (store.bannerImageUrl.isNotEmpty) score += 10;
+        if (orders.isNotEmpty) score += 20;
+
+        if (snapshot.hasData && snapshot.data != null) {
+          final data = snapshot.data!;
+          if (data['score'] != null) {
+            score = (data['score'] as num).toInt();
+          }
+        }
 
     return PremiumVendorCard(
       backgroundColor: VendorTheme.primary,
@@ -552,6 +627,8 @@ class _VendorDashboardState extends State<VendorDashboard> {
           ),
         ],
       ),
+    );
+      },
     );
   }
 }

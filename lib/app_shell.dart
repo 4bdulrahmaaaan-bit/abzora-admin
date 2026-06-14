@@ -25,7 +25,7 @@ import 'screens/ops/ops_account_screen.dart';
 import 'screens/ops/ops_shell_screen.dart';
 import 'screens/otp_verification_screen.dart';
 import 'screens/rider/rider_dashboard.dart';
-import 'screens/rider/rider_onboarding_screen.dart';
+// import 'screens/rider/rider_onboarding_screen.dart';
 import 'screens/admin/admin_analytics_screen.dart';
 import 'screens/admin/admin_web_panel.dart';
 import 'screens/user/cart_screen.dart';
@@ -60,6 +60,7 @@ import 'screens/vendor/vendor_dashboard.dart';
 import 'screens/vendor/vendor_profile_screen.dart';
 import 'features/onboarding/vendor_onboarding_flow_screen.dart';
 import 'features/onboarding/rider_onboarding_screens.dart';
+import 'features/onboarding/rider_training_module_screen.dart';
 import 'screens/onboarding/vendor_onboarding_status_screen.dart';
 import 'screens/onboarding/rider_onboarding_status_screen.dart';
 import 'screens/onboarding/application_rejected_screen.dart';
@@ -217,7 +218,7 @@ class AbzioApp extends StatelessWidget {
         '/add-card': (context) => const AddCardScreen(),
         '/payments': (context) => const PaymentMethodsScreen(),
         '/profile-completion': (context) => const ProfileCompletionFlowScreen(),
-        '/profile-setup': (context) => const RiderOnboardingScreen(),
+        '/profile-setup': (context) => const RiderOnboardingFlowScreen(),
         '/cart': (context) => const CartScreen(),
         '/checkout': (context) => const CheckoutScreen(),
         '/orders': (context) => const OrderTrackingScreen(),
@@ -233,6 +234,7 @@ class AbzioApp extends StatelessWidget {
         '/vendor-status': (context) => const VendorOnboardingStatusScreen(),
         '/vendor-rejected': (context) => const ApplicationRejectedScreen(),
         '/rider-dashboard': (context) => const RiderDashboard(),
+        '/rider-training': (context) => const RiderTrainingModuleScreen(),
         '/rider-onboarding': (context) => const RiderOnboardingFlowScreen(),
         '/rider-status': (context) => const RiderOnboardingStatusScreen(),
         '/rider-rejected': (context) => const ApplicationRejectedScreen(),
@@ -369,8 +371,10 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
         return const VendorProfileScreen();
       case '/rider-dashboard':
         return const RiderDashboard();
+      case '/rider-training':
+        return const RiderTrainingModuleScreen();
       case '/profile-setup':
-        return const RiderOnboardingScreen();
+        return const RiderOnboardingFlowScreen();
       case '/profile':
         if (widget.mode == AbzioAppMode.vendor) {
           return const VendorProfileScreen();

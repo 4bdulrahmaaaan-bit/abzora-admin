@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/services/vendor_telemetry.dart';
-import '../../models/models.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/database_service.dart';
-import '../../services/location_service.dart';
-import '../../services/onboarding_service.dart';
-import '../../utils/app_error_text.dart';
-import '../../widgets/kyc_upload_widget.dart';
-import '../../widgets/state_views.dart';
+import '../../../core/services/vendor_telemetry.dart';
+import '../../../models/models.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../services/database_service.dart';
+import '../../../services/location_service.dart';
+import '../../../services/onboarding_service.dart';
+import '../../../utils/app_error_text.dart';
+import '../../../widgets/kyc_upload_widget.dart';
+import '../../../widgets/state_views.dart';
 
 class VendorOnboardingScreen extends StatefulWidget {
   const VendorOnboardingScreen({super.key});

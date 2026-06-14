@@ -203,11 +203,12 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       if (actor == null) {
         // Auth session not restored yet. Set a pending flag so that
         // didChangeDependencies retries once AuthProvider signals ready.
-        if (mounted)
+        if (mounted) {
           setState(() {
             _pendingLoadAfterAuth = true;
             _loading = false;
           });
+        }
         return;
       }
       await _ensurePinIfNeeded();

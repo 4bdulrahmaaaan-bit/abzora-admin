@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../rider/rider_onboarding_screen.dart';
-import '../vendor/vendor_registration_screen.dart';
+import '../../features/onboarding/rider_onboarding_screens.dart';
+import '../vendor/legacy/vendor_registration_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -50,7 +50,7 @@ class RoleSelectionScreen extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => const RiderOnboardingScreen(),
+                  builder: (_) => const RiderOnboardingFlowScreen(),
                 ),
               );
             },

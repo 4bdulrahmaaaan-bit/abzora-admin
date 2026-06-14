@@ -27,7 +27,7 @@ import 'wishlist_screen.dart';
 import '../../features/legal/legal_consent_screen.dart';
 import '../../features/legal/legal_document_registry.dart';
 import '../../features/legal/legal_policy_hub_screen.dart';
-import '../vendor/vendor_registration_screen.dart';
+import '../vendor/legacy/vendor_registration_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});

@@ -153,10 +153,11 @@ class _AdminInventorySectionState extends State<AdminInventorySection>
                   _fetchProducts();
                   _fetchDashboard();
                 } catch (e) {
-                  if (mounted)
+                  if (mounted) {
                     scaffoldMessenger.showSnackBar(
                       SnackBar(content: Text('Failed: $e')),
                     );
+                  }
                 }
               },
               child: const Text('Save Changes'),
@@ -263,10 +264,12 @@ class _AdminInventorySectionState extends State<AdminInventorySection>
   }
 
   Widget _buildDashboardTab() {
-    if (_isLoadingDashboard)
+    if (_isLoadingDashboard) {
       return const Center(child: CircularProgressIndicator());
-    if (_dashboardError.isNotEmpty)
+    }
+    if (_dashboardError.isNotEmpty) {
       return Center(child: Text('Error: $_dashboardError'));
+    }
 
     return SingleChildScrollView(
       child: Column(

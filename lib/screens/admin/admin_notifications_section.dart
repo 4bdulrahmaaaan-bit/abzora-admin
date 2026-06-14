@@ -126,10 +126,11 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection>
           channels: _channels,
           scheduledAt: schDate,
         );
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Campaign scheduled successfully!')),
           );
+        }
       } else {
         await AdminNotificationsApi.sendCampaign(
           title: _titleController.text.trim(),
@@ -138,10 +139,11 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection>
           channels: _channels,
           campaignType: _campaignType,
         );
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Campaign dispatched successfully!')),
           );
+        }
       }
 
       _titleController.clear();
@@ -153,10 +155,11 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection>
       });
       _tabController.animateTo(1);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       setState(() => _isSending = false);
     }

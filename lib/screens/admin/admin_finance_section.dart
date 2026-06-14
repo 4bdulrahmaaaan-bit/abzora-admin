@@ -241,10 +241,12 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection>
   }
 
   Widget _buildOverviewTab() {
-    if (_isLoadingDashboard)
+    if (_isLoadingDashboard) {
       return const Center(child: CircularProgressIndicator());
-    if (_dashboardError.isNotEmpty)
+    }
+    if (_dashboardError.isNotEmpty) {
       return Center(child: Text('Error: $_dashboardError'));
+    }
 
     return SingleChildScrollView(
       child: Column(

@@ -459,8 +459,9 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
 
   Widget _buildPayoutsTab() {
     final payouts = _activeVendorDetails!['payouts'] as List? ?? [];
-    if (payouts.isEmpty)
+    if (payouts.isEmpty) {
       return const Center(child: Text('No payouts recorded.'));
+    }
 
     return ListView.builder(
       itemCount: payouts.length,
@@ -477,13 +478,14 @@ class _AdminVendorsSectionState extends State<AdminVendorsSection> {
 
   Widget _buildComplaintsTab() {
     final complaints = _activeVendorDetails!['complaints'] as List? ?? [];
-    if (complaints.isEmpty)
+    if (complaints.isEmpty) {
       return const Center(
         child: Text(
           'No complaints recorded.',
           style: TextStyle(color: Colors.green),
         ),
       );
+    }
 
     return ListView.builder(
       itemCount: complaints.length,

@@ -17,8 +17,9 @@ class VendorNotificationApi {
       'limit': limit.toString(),
     };
     if (priority != null) queryParameters['priority'] = priority;
-    if (unreadOnly != null && unreadOnly)
+    if (unreadOnly != null && unreadOnly) {
       queryParameters['unreadOnly'] = 'true';
+    }
 
     final payload = await _backendApiClient.get(
       '/vendor/notifications',

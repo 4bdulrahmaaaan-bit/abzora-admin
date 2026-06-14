@@ -102,7 +102,7 @@ class KycSelfieService {
         );
       }
 
-      final decoded = jsonDecode(response.body);
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
       final payload = decoded is Map<String, dynamic>
           ? decoded
           : const <String, dynamic>{};

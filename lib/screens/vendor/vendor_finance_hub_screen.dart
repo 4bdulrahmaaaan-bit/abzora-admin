@@ -4,45 +4,124 @@ import '../../core/vendor/widgets/premium_vendor_card.dart';
 import '../../core/vendor/widgets/vendor_metric_card.dart';
 import '../../core/vendor/widgets/vendor_status_badge.dart';
 import '../../core/vendor/widgets/vendor_buttons.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/database_service.dart';
+import '../../models/models.dart';
+import 'finance_settlements_tab.dart';
+import 'finance_payouts_tab.dart';
+import 'finance_tax_center_tab.dart';
+import 'finance_earnings_analytics_tab.dart';
 
-class VendorFinanceHubScreen extends StatefulWidget {
-  const VendorFinanceHubScreen({super.key, required this.storeId});
+class VendorFinanceHubScreen extends StatelessWidget {
+  const VendorFinanceHubScreen({super.key, this.storeId});
 
-  final String storeId;
-
-  @override
-  State<VendorFinanceHubScreen> createState() => _VendorFinanceHubScreenState();
-}
-
-class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
-  String _selectedPeriod = 'This Month';
+  final String? storeId;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: VendorTheme.background,
-      appBar: AppBar(
-        title: Text(
-          'Finance Hub',
-          style: Theme.of(context).textTheme.titleLarge,
+    return DefaultTabController(
+      length: 5,
+      child: Scaffold(
+        backgroundColor: VendorTheme.background,
+        appBar: AppBar(
+          title: const Text('Finance Hub'),
+          bottom: const TabBar(
+            isScrollable: true,
+            labelColor: VendorTheme.primary,
+            unselectedLabelColor: VendorTheme.grey400,
+            indicatorColor: VendorTheme.primary,
+            tabs: [
+              Tab(text: 'Overview'),
+              Tab(text: 'Settlements'),
+              Tab(text: 'Payouts'),
+              Tab(text: 'Tax Center'),
+              Tab(text: 'Earnings Analytics'),
+            ],
+          ),
         ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(VendorTheme.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _buildWalletOverview(context),
-            const SizedBox(height: VendorTheme.spacing24),
-            _buildMetricsGrid(),
-            const SizedBox(height: VendorTheme.spacing24),
-            _buildPayoutSchedule(context),
-            const SizedBox(height: VendorTheme.spacing24),
-            _buildRecentTransactions(context),
-            const SizedBox(height: VendorTheme.spacing32),
+        body: TabBarView(
+          children: [
+            _FinanceOverviewTab(storeId: storeId),
+            FinanceSettlementsTab(storeId: storeId),
+            FinancePayoutsTab(storeId: storeId),
+            FinanceTaxCenterTab(storeId: storeId),
+            FinanceEarningsAnalyticsTab(storeId: storeId),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _FinanceOverviewTab extends StatefulWidget {
+  final String? storeId;
+  const _FinanceOverviewTab({this.storeId});
+
+  @override
+  State<_FinanceOverviewTab> createState() => _FinanceOverviewTabState();
+}
+
+class _FinanceOverviewTabState extends State<_FinanceOverviewTab> {
+  String _selectedPeriod = 'This Month';
+  WalletSummary? _wallet;
+  VendorAnalytics? _analytics;
+  List<PayoutModel>? _payouts;
+  PayoutProfileSummary? _profile;
+  bool _isLoading = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isLoading) _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final actor = context.read<AuthProvider>().user;
+    if (actor == null) return;
+    try {
+      final db = DatabaseService();
+      final storeId = widget.storeId ?? actor.storeId;
+      final futures = await Future.wait([
+        db.getVendorWallet(actor: actor),
+        if (storeId != null) db.getVendorAnalytics(storeId, actor: actor) else Future.value(null),
+        db.getPayouts(actor: actor, storeId: storeId),
+        db.getVendorPayoutProfile(actor: actor),
+      ]);
+      if (mounted) {
+        setState(() {
+          _wallet = futures[0] as WalletSummary?;
+          _analytics = futures[1] as VendorAnalytics?;
+          _payouts = futures[2] as List<PayoutModel>?;
+          _profile = futures[3] as PayoutProfileSummary?;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String _money(double value) => NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(value);
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(VendorTheme.spacing16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _buildWalletOverview(context),
+          const SizedBox(height: VendorTheme.spacing24),
+          _buildMetricsGrid(),
+          const SizedBox(height: VendorTheme.spacing24),
+          _buildPayoutSchedule(context),
+          const SizedBox(height: VendorTheme.spacing24),
+          _buildRecentTransactions(context),
+          const SizedBox(height: VendorTheme.spacing32),
+        ],
       ),
     );
   }
@@ -71,7 +150,7 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
           ),
           const SizedBox(height: VendorTheme.spacing12),
           Text(
-            '\u20B91,24,500.00',
+            _money(_wallet?.balance ?? 0),
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
               color: VendorTheme.background,
               fontWeight: FontWeight.bold,
@@ -141,16 +220,15 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
             Expanded(
               child: VendorMetricCard(
                 title: 'Total Revenue',
-                value: '\u20B94,80,000',
+                value: _money(_analytics?.totalSales ?? 0),
                 icon: Icons.payments_outlined,
-                trend: 12.5,
               ),
             ),
             const SizedBox(width: VendorTheme.spacing16),
             Expanded(
               child: VendorMetricCard(
                 title: 'Pending Payout',
-                value: '\u20B945,000',
+                value: _money(_wallet?.pendingAmount ?? 0),
                 icon: Icons.schedule_outlined,
               ),
             ),
@@ -161,19 +239,17 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
           children: <Widget>[
             Expanded(
               child: VendorMetricCard(
-                title: 'Avg Order Value',
-                value: '\u20B91,200',
+                title: 'Total Earnings',
+                value: _money(_wallet?.totalEarnings ?? 0),
                 icon: Icons.shopping_bag_outlined,
-                trend: 2.1,
               ),
             ),
             const SizedBox(width: VendorTheme.spacing16),
             Expanded(
               child: VendorMetricCard(
-                title: 'Refunds',
-                value: '\u20B912,400',
+                title: 'Total Withdrawn',
+                value: _money(_wallet?.totalWithdrawn ?? 0),
                 icon: Icons.assignment_return_outlined,
-                trend: -5.0,
               ),
             ),
           ],
@@ -183,6 +259,11 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
   }
 
   Widget _buildPayoutSchedule(BuildContext context) {
+    if (_payouts == null || _payouts!.isEmpty) return const SizedBox.shrink();
+    final nextPayout = _payouts!.firstWhere((p) => p.status != 'completed', orElse: () => _payouts!.first);
+    final isConfigured = _profile?.isConfigured ?? false;
+    final bankInfo = isConfigured ? '${_profile!.bankName} **** ${_profile!.bankAccountNumber.substring(_profile!.bankAccountNumber.length > 4 ? _profile!.bankAccountNumber.length - 4 : 0)}' : 'No payout method';
+
     return PremiumVendorCard(
       padding: const EdgeInsets.all(VendorTheme.spacing20),
       child: Column(
@@ -200,15 +281,15 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
               child: const Icon(Icons.check_circle, color: VendorTheme.success),
             ),
             title: Text(
-              'Scheduled for Oct 15, 2026',
+              'Scheduled for ${DateFormat('MMM dd, yyyy').format(nextPayout.createdAt.add(const Duration(days: 3)))}',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             subtitle: Text(
-              'Direct to HDFC Bank **** 1234',
+              isConfigured ? 'Direct to $bankInfo' : 'Payout method missing',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             trailing: Text(
-              '\u20B945,000.00',
+              _money(nextPayout.amount),
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: VendorTheme.primary,
@@ -221,6 +302,9 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
   }
 
   Widget _buildRecentTransactions(BuildContext context) {
+    final txs = _wallet?.transactions ?? [];
+    if (txs.isEmpty) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -240,10 +324,11 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: 4,
+            itemCount: txs.length > 5 ? 5 : txs.length,
             separatorBuilder: (context, index) => const Divider(height: 1),
             itemBuilder: (context, index) {
-              final isSettlement = index == 2;
+              final tx = txs[index];
+              final isSettlement = tx.type == 'withdrawal';
               return ListTile(
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: VendorTheme.spacing16,
@@ -262,17 +347,15 @@ class _VendorFinanceHubScreenState extends State<VendorFinanceHubScreen> {
                   ),
                 ),
                 title: Text(
-                  isSettlement ? 'Payout to Bank' : 'Order #100${45 + index}',
+                  isSettlement ? 'Payout to Bank' : (tx.orderId.isNotEmpty ? 'Order #${tx.orderId.substring(0, 5)}' : 'Transaction'),
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 subtitle: Text(
-                  isSettlement
-                      ? 'Oct 01, 2026 \u2022 Processing'
-                      : 'Oct ${10 - index}, 2026 \u2022 Completed',
+                  '${DateFormat('MMM dd, yyyy').format(DateTime.now())} \u2022 ${tx.status}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 trailing: Text(
-                  isSettlement ? '-\u20B950,000.00' : '+\u20B91,240.00',
+                  (isSettlement ? '-' : '+') + _money(tx.amount),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: isSettlement

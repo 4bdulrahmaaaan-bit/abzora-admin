@@ -22,11 +22,12 @@ class _AdminSecuritySectionState extends State<AdminSecuritySection> {
   }
 
   Future<void> _loadData() async {
-    if (mounted)
+    if (mounted) {
       setState(() {
         _isLoading = true;
         _error = null;
       });
+    }
     try {
       final data = await AdminSecurityApi.getDashboard();
       if (mounted) {

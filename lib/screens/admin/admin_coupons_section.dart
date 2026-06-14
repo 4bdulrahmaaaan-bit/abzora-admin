@@ -441,10 +441,11 @@ class _CouponDialogState extends State<_CouponDialog> {
       widget.onSaved();
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       setState(() => _isSaving = false);
     }
@@ -595,8 +596,9 @@ class _CouponDialogState extends State<_CouponDialog> {
                             firstDate: DateTime(2020),
                             lastDate: DateTime(2100),
                           );
-                          if (picked != null)
+                          if (picked != null) {
                             setState(() => _startDate = picked);
+                          }
                         },
                       ),
                     ),

@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../models/models.dart';
-import '../../models/trial_session.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/database_service.dart';
-import '../../theme.dart';
-import '../../utils/app_error_text.dart';
-import '../../utils/app_mode_routes.dart';
+import '../../../models/models.dart';
+import '../../../models/trial_session.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../services/database_service.dart';
+import '../../../theme.dart';
+import '../../../utils/app_error_text.dart';
+import '../../../utils/app_mode_routes.dart';
 
 class VendorTrialHomeDashboardScreen extends StatefulWidget {
   const VendorTrialHomeDashboardScreen({super.key});

@@ -17,7 +17,7 @@ class RiderPerformanceApi {
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final json = jsonDecode(response.body);
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
       if (json['success'] == true && json['data'] != null) {
         return json['data'];
       }
@@ -32,7 +32,7 @@ class RiderPerformanceApi {
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final json = jsonDecode(response.body);
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
       if (json['success'] == true) {
         return json['data'] ?? [];
       }

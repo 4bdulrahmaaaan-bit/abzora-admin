@@ -34,6 +34,8 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
   late final TextEditingController _bannerController;
   bool _saving = false;
   final _picker = ImagePicker();
+  PayoutProfileSummary? _payoutProfile;
+  bool _payoutFetched = false;
 
   @override
   void initState() {
@@ -55,6 +57,22 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
     _descriptionController.addListener(_updateCompletion);
     _logoController.addListener(_updateCompletion);
     _bannerController.addListener(_updateCompletion);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_payoutFetched) {
+      _payoutFetched = true;
+      final actor = context.read<AuthProvider>().user;
+      if (actor != null) {
+        DatabaseService()
+            .getVendorPayoutProfile(actor: actor)
+            .then((profile) {
+          if (mounted) setState(() => _payoutProfile = profile);
+        }).catchError((_) {});
+      }
+    }
   }
 
   void _updateCompletion() {
@@ -231,6 +249,74 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
             _buildImageField('Logo URL', _logoController, true),
             const SizedBox(height: VendorTheme.spacing24),
             _buildImageField('Banner URL', _bannerController, false),
+            const SizedBox(height: VendorTheme.spacing32),
+            _buildSectionHeader('Business Information', Icons.business_outlined),
+            const SizedBox(height: VendorTheme.spacing16),
+            _buildLegalListTile(
+              title: 'GSTIN & PAN Details',
+              subtitle: 'Manage tax compliance and verification',
+              onTap: () {},
+            ),
+            const SizedBox(height: VendorTheme.spacing12),
+            _buildLegalListTile(
+              title: 'Business Type',
+              subtitle: 'Sole Proprietorship, LLP, Pvt Ltd, etc.',
+              onTap: () {},
+            ),
+            const SizedBox(height: VendorTheme.spacing32),
+            _buildSectionHeader('Financial Settings', Icons.account_balance_outlined),
+            const SizedBox(height: VendorTheme.spacing16),
+            _buildLegalListTile(
+              title: 'Bank Account Details',
+              subtitle: _payoutProfile != null && _payoutProfile!.isConfigured && _payoutProfile!.bankAccountNumber.length >= 4
+                  ? '${_payoutProfile!.bankName} **** ${_payoutProfile!.bankAccountNumber.substring(_payoutProfile!.bankAccountNumber.length - 4)}'
+                  : 'Not configured',
+              onTap: () {},
+            ),
+            const SizedBox(height: VendorTheme.spacing12),
+            _buildLegalListTile(
+              title: 'Payout Preferences',
+              subtitle: _payoutProfile != null && _payoutProfile!.isConfigured
+                  ? _payoutProfile!.methodType
+                  : 'Not set',
+              onTap: () {},
+            ),
+            const SizedBox(height: VendorTheme.spacing32),
+            _buildSectionHeader('Notifications', Icons.notifications_active_outlined),
+            const SizedBox(height: VendorTheme.spacing16),
+            _buildLegalListTile(
+              title: 'Notification Preferences',
+              subtitle: 'Orders, Returns, Finance, Reviews alerts',
+              onTap: () {},
+            ),
+            const SizedBox(height: VendorTheme.spacing32),
+            _buildSectionHeader('Security & Access', Icons.security_outlined),
+            const SizedBox(height: VendorTheme.spacing16),
+            _buildLegalListTile(
+              title: 'Device Sessions',
+              subtitle: 'Manage logged-in devices',
+              onTap: () {},
+            ),
+            const SizedBox(height: VendorTheme.spacing12),
+            _buildLegalListTile(
+              title: 'Selfie Verification',
+              subtitle: 'Verified Identity',
+              onTap: () {},
+            ),
+            const SizedBox(height: VendorTheme.spacing32),
+            _buildSectionHeader('Store Controls', Icons.power_settings_new_outlined),
+            const SizedBox(height: VendorTheme.spacing16),
+            _buildLegalListTile(
+              title: 'Vacation Mode',
+              subtitle: 'Temporarily hide store from customers',
+              onTap: () {},
+            ),
+            const SizedBox(height: VendorTheme.spacing12),
+            _buildLegalListTile(
+              title: 'Auto-Reject Orders',
+              subtitle: 'Automatically reject when inventory is 0',
+              onTap: () {},
+            ),
             const SizedBox(height: VendorTheme.spacing32),
             _buildSectionHeader('Legal & Settings', Icons.gavel_outlined),
             const SizedBox(height: VendorTheme.spacing16),

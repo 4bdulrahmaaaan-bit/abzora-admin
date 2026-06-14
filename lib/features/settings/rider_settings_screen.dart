@@ -3,13 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/widgets/rider_glass_card.dart';
-import '../legal/account_deletion_request_screen.dart';
-import '../legal/legal_consent_screen.dart';
 import '../legal/legal_document_registry.dart';
 import '../legal/legal_policy_hub_screen.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/database_service.dart';
-import '../../widgets/payout_account_dialog.dart';
 
 class RiderSettingsScreen extends StatefulWidget {
   const RiderSettingsScreen({super.key, this.embedded = false});
@@ -23,7 +19,6 @@ class RiderSettingsScreen extends StatefulWidget {
 class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
   static const String _notifKey = 'rider_notifications_enabled';
   bool _notificationsEnabled = true;
-  bool _loading = false;
 
   @override
   void initState() {
@@ -46,66 +41,17 @@ class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
     setState(() => _notificationsEnabled = value);
   }
 
-  Future<void> _managePayout() async {
-    final user = context.read<AuthProvider>().user;
-    if (user == null) return;
-    setState(() => _loading = true);
-    try {
-      final db = DatabaseService();
-      final profile = await db.getRiderPayoutProfile(actor: user);
-      if (!mounted) return;
-      final formValue = await showPayoutAccountDialog(
-        context: context,
-        title: 'Rider payout account',
-        initialValue: profile,
-      );
-      if (formValue == null) return;
-      await db.saveRiderPayoutProfile(
-        actor: user,
-        methodType: formValue.methodType,
-        accountHolderName: formValue.accountHolderName,
-        upiId: formValue.upiId,
-        bankAccountNumber: formValue.bankAccountNumber,
-        bankIfsc: formValue.bankIfsc,
-        bankName: formValue.bankName,
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Payout account updated')));
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
 
-  void _showHelp() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Color(0xFF101010),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Help & Support',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            SizedBox(height: 8),
-            Text('Email: rider-support@abianzo.com'),
-            SizedBox(height: 4),
-            Text('Phone: +91 90000 00000'),
-          ],
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 8, left: 4),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF8D6A2E),
+          letterSpacing: 1.2,
         ),
       ),
     );
@@ -115,111 +61,155 @@ class _RiderSettingsScreenState extends State<RiderSettingsScreen> {
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
     final content = <Widget>[
-      if (_loading) const LinearProgressIndicator(color: Color(0xFFD4AF37)),
+      _buildSectionHeader('ACCOUNT'),
       RiderGlassCard(
-        child: SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Notifications'),
-          subtitle: const Text('Delivery updates, payout and alerts'),
-          value: _notificationsEnabled,
-          onChanged: _setNotifications,
+        child: Column(
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Name'),
+              subtitle: Text(user?.name ?? 'Not set'),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Email'),
+              subtitle: Text(user?.email ?? 'Not set'),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Phone'),
+              subtitle: Text(user?.phone ?? 'Not set'),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+            ),
+          ],
         ),
       ),
-      const SizedBox(height: 12),
+
+      _buildSectionHeader('NOTIFICATIONS'),
       RiderGlassCard(
-        child: ListTile(
-          title: const Text('Payout Account'),
-          subtitle: const Text('Manage bank/UPI for withdrawals'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: _loading ? null : _managePayout,
+        child: Column(
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Delivery Alerts'),
+              value: _notificationsEnabled,
+              onChanged: _setNotifications,
+            ),
+            const Divider(height: 1),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Earnings Alerts'),
+              value: true,
+              onChanged: (val) {},
+            ),
+            const Divider(height: 1),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Promotions'),
+              value: false,
+              onChanged: (val) {},
+            ),
+          ],
         ),
       ),
-      const SizedBox(height: 12),
+
+      _buildSectionHeader('PRIVACY'),
       RiderGlassCard(
-        child: ListTile(
-          title: const Text('Help & Support'),
-          subtitle: const Text('Chat / Email / Call support'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: _showHelp,
+        child: Column(
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Permissions'),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () {},
+            ),
+            const Divider(height: 1),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Data Controls'),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () {},
+            ),
+          ],
         ),
       ),
-      const SizedBox(height: 12),
+
+      _buildSectionHeader('APP'),
       RiderGlassCard(
-        child: ListTile(
-          title: const Text('Referral Program'),
-          subtitle: Text(
-            'Your code: RIDER-${(user?.id ?? '0000').substring(0, (user?.id.length ?? 4) >= 4 ? 4 : (user?.id.length ?? 0))}',
-          ),
+        child: Column(
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Theme'),
+              trailing: const Text('System', style: TextStyle(color: Colors.grey)),
+              onTap: () {},
+            ),
+            const Divider(height: 1),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Language'),
+              trailing: const Text('English', style: TextStyle(color: Colors.grey)),
+              onTap: () {},
+            ),
+          ],
         ),
       ),
-      const SizedBox(height: 12),
+
+      _buildSectionHeader('SECURITY & LEGAL'),
       RiderGlassCard(
-        child: ListTile(
-          title: const Text('Legal & Policies'),
-          subtitle: const Text(
-            'Terms, privacy, agreements, delivery and refund policies',
-          ),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const LegalPolicyHubScreen(
-                audience: LegalAudience.rider,
-                title: 'Rider Legal Center',
+        child: Column(
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Device Sessions'),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () {},
+            ),
+            const Divider(height: 1),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Legal & Policies'),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const LegalPolicyHubScreen(
+                    audience: LegalAudience.rider,
+                    title: 'Rider Legal Center',
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-      ),
-      const SizedBox(height: 12),
-      RiderGlassCard(
-        child: ListTile(
-          title: const Text('Legal Consent'),
-          subtitle: const Text('Review and accept Terms and Privacy'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  const LegalConsentScreen(audience: LegalAudience.rider),
+            const Divider(height: 1),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Logout'),
+              trailing: const Icon(Icons.logout, size: 20, color: Colors.red),
+              onTap: () async {
+                await context.read<AuthProvider>().logout(resetNavigation: true);
+              },
             ),
-          ),
+          ],
         ),
       ),
-      const SizedBox(height: 12),
-      RiderGlassCard(
-        child: ListTile(
-          title: const Text('Request Account Deletion'),
-          subtitle: const Text('Send deletion request to support'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  const AccountDeletionRequestScreen(roleLabel: 'Rider'),
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(height: 12),
-      RiderGlassCard(
-        child: ListTile(
-          title: const Text('Logout'),
-          trailing: const Icon(Icons.logout),
-          onTap: () async {
-            await context.read<AuthProvider>().logout(resetNavigation: true);
-          },
-        ),
-      ),
+      const SizedBox(height: 32),
     ];
 
     if (widget.embedded) {
       return Padding(
         padding: const EdgeInsets.only(top: 8),
-        child: Column(children: content),
+        child: ListView(children: content),
       );
     }
 
-    return ListView(padding: const EdgeInsets.all(16), children: content);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      backgroundColor: const Color(0xFFF8F5EF),
+      body: ListView(padding: const EdgeInsets.all(16), children: content),
+    );
   }
 }

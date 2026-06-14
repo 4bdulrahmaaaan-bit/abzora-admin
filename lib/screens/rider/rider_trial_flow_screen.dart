@@ -294,8 +294,9 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
                                 ),
                                 selected: _selectedOutcome == val,
                                 onSelected: (selected) {
-                                  if (selected)
+                                  if (selected) {
                                     setSheetState(() => _selectedOutcome = val);
+                                  }
                                 },
                               );
                             }).toList(),
