@@ -3162,6 +3162,8 @@ class BackendCommerceService {
             'deliveryRadiusKm': user.deliveryRadiusKm,
             'locationUpdatedAt': user.locationUpdatedAt ?? '',
             'role': user.role,
+            'activeRole': user.activeRole,
+            'accountType': user.accountType,
             'isActive': user.isActive,
             'storeId': user.storeId ?? '',
             'walletBalance': user.walletBalance,
@@ -3225,6 +3227,8 @@ class BackendCommerceService {
       'riderVehicleType': map['riderVehicleType'],
       'riderLicenseNumber': map['riderLicenseNumber'],
       'riderCity': map['riderCity'],
+      'activeRole': map['activeRole'] ?? map['role'] ?? 'customer',
+      'accountType': map['accountType'] ?? map['role'] ?? 'customer',
     });
   }
 

@@ -93,26 +93,24 @@ bool hasVendorOperationsAccess(AppUser? user) {
   if (user == null) {
     return false;
   }
-  if (normalizedUserRole(user) == 'vendor') {
-    return true;
-  }
-  final roles = normalizedUserRoles(user);
-  return roles['vendor'] == true || (user.storeId ?? '').trim().isNotEmpty;
+  return normalizedUserRole(user) == 'vendor';
 }
 
 bool hasRiderOperationsAccess(AppUser? user) {
   if (user == null) {
     return false;
   }
-  if (normalizedUserRole(user) == 'rider') {
-    return true;
-  }
-  final roles = normalizedUserRoles(user);
-  if (roles['rider'] == true) {
-    return true;
-  }
-  final riderStatus = user.riderApprovalStatus.trim().toLowerCase();
-  return riderStatus == 'approved';
+  return normalizedUserRole(user) == 'rider';
+}
+
+bool hasCompletedRiderOnboarding(AppUser user) {
+  final hasVehicle = (user.riderVehicleType ?? '').trim().isNotEmpty;
+  final hasLicense = (user.riderLicenseNumber ?? '').trim().isNotEmpty;
+  final hasCity = (user.riderCity ?? '').trim().isNotEmpty;
+  final status = user.riderOnboarding?['status'];
+  final hasValidStatus = status != null && status != 'incomplete';
+  
+  return hasVehicle && hasLicense && hasCity && hasValidStatus;
 }
 
 bool canAccessOperationsMode(AppUser? user) {
@@ -143,11 +141,24 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
 
   switch (mode) {
     case AbzioAppMode.customer:
-      // Customer app supports guest-style browsing for all roles.
-      // High-intent actions are gated by soft auth prompts at action time.
+      if (user.activeRole.toLowerCase() != 'customer') {
+         return '/login';
+      }
       return '/shop';
     case AbzioAppMode.vendor:
       if (hasVendorOperationsAccess(user)) {
+        if ((user.storeId ?? '').trim().isEmpty) {
+          final vendorOnboarding = user.vendorOnboarding;
+          if (vendorOnboarding != null) {
+            final status = vendorOnboarding['status'];
+            if (status == 'pending' || status == 'review') {
+              return '/vendor-status';
+            } else if (status == 'rejected') {
+              return '/vendor-rejected';
+            }
+          }
+          return '/vendor-onboarding';
+        }
         return '/vendor-dashboard';
       }
       final vendorOnboarding = user.vendorOnboarding;
@@ -165,27 +176,24 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
       }
       return '/vendor-onboarding';
     case AbzioAppMode.rider:
-      if (hasRiderOperationsAccess(user)) {
-        final trainingStatus = user.training?['status'];
-        if (trainingStatus == 'pending') {
-          return '/rider-training';
-        }
-        return '/rider-dashboard';
+      if (!hasCompletedRiderOnboarding(user)) {
+        return '/rider-onboarding';
       }
-      final riderOnboarding = user.riderOnboarding;
-      if (riderOnboarding != null) {
-        final status = riderOnboarding['status'];
-        if (status == 'active') {
-          return '/rider-dashboard';
-        } else if (status == 'pending' || status == 'review') {
-          return '/rider-status';
-        } else if (status == 'rejected') {
-          return '/rider-rejected';
-        } else if (riderOnboarding['resubmissionRequired'] == true) {
-          return '/rider-onboarding';
-        }
+      
+      final riderStatus = user.riderApprovalStatus.trim().toLowerCase();
+      if (riderStatus == 'rejected') {
+        return '/rider-rejected';
       }
-      return '/rider-onboarding';
+      if (riderStatus != 'approved') {
+        return '/rider-status';
+      }
+      
+      final trainingStatus = user.training?['status'];
+      if (trainingStatus == 'pending') {
+        return '/rider-training';
+      }
+      
+      return '/rider-dashboard';
     case AbzioAppMode.operations:
       if (canAccessOperationsMode(user)) {
         return '/ops';
@@ -212,7 +220,7 @@ String? accessRestrictionMessage(AppUser? user, AbzioAppMode mode) {
     return null;
   }
   final role = normalizedUserRole(user);
-  if (mode == AbzioAppMode.customer && role != 'user' && role != 'customer') {
+  if (mode == AbzioAppMode.customer && user.activeRole.toLowerCase() != 'customer') {
     return 'This build is for customer shopping only. Please use the partner or rider app for operations accounts.';
   }
   if (mode == AbzioAppMode.vendor && !hasVendorOperationsAccess(user)) {

@@ -16,6 +16,7 @@ import '../services/notification_service.dart';
 import '../services/app_navigation_service.dart';
 import '../services/storage_service.dart';
 import '../utils/app_mode_routes.dart';
+import '../app_shell.dart';
 import 'auth_session_recovery_policy.dart';
 
 class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
@@ -41,6 +42,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
   DateTime? _lastUnauthorizedRecoveryAttemptAt;
   String? _pendingPhoneNumber;
   String? _lastBackendProfileSyncKey;
+  AbzioAppMode mode = AbzioAppMode.customer;
 
   bool _profileLoaded = false;
   bool _vendorPermissionsResolved = false;
@@ -126,27 +128,36 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     final previousProfileSubscription = _liveProfileSubscription;
     _liveProfileSubscription = null;
     unawaited(previousProfileSubscription?.cancel() ?? Future<void>.value());
-    _user = user;
-    _isAuthenticated = user != null;
+    AppUser? mappedUser = user;
+    if (mappedUser != null) {
+      final role = _mode == AbzioAppMode.vendor ? 'vendor' : _mode == AbzioAppMode.rider ? 'rider' : 'customer';
+      mappedUser = mappedUser.copyWith(activeRole: role, accountType: role);
+    }
+    _user = mappedUser;
+    _isAuthenticated = mappedUser != null;
     debugPrint(
-      'AuthProvider: auth state changed -> ${user == null ? 'signed_out' : 'signed_in:${user.id}'}',
+      'AuthProvider: auth state changed -> ${mappedUser == null ? 'signed_out' : 'signed_in:${mappedUser.id}'}',
     );
-    if (user != null) {
+    if (mappedUser != null) {
       debugPrint('=== PERMISSION RESOLUTION START ===');
       debugPrint('=== PERMISSION RESOLUTION COMPLETE ===');
     }
-    if (user == null) {
+    if (mappedUser == null) {
       _token = null;
       _lastBackendProfileSyncKey = null;
       unawaited(_sessionService.saveUserSnapshot(null));
       return;
     }
-    unawaited(_sessionService.saveUserSnapshot(user));
+    unawaited(_sessionService.saveUserSnapshot(mappedUser));
     unawaited(_refreshAuthToken());
-    unawaited(_syncNotificationChannels(user));
-    _maybeSyncBackendProfile(user);
-    _liveProfileSubscription = _db.watchUser(user.id).listen((liveUser) {
-      final nextUser = liveUser ?? user;
+    unawaited(_syncNotificationChannels(mappedUser));
+    _maybeSyncBackendProfile(mappedUser);
+    _liveProfileSubscription = _db.watchUser(mappedUser.id).listen((liveUser) {
+      AppUser? nextUser = liveUser ?? mappedUser;
+      if (nextUser != null) {
+        final role = _mode == AbzioAppMode.vendor ? 'vendor' : _mode == AbzioAppMode.rider ? 'rider' : 'customer';
+        nextUser = nextUser.copyWith(activeRole: role, accountType: role);
+      }
       if (_isSameUserSnapshot(_user, nextUser)) {
         return;
       }

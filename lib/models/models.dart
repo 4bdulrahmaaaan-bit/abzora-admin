@@ -18,6 +18,8 @@ class AppUser {
   final String? locationUpdatedAt;
   final String? createdAt;
   final String role;
+  final String activeRole;
+  final String accountType;
   final bool isActive;
   final String? storeId;
   final double walletBalance;
@@ -47,6 +49,8 @@ class AppUser {
     this.locationUpdatedAt,
     this.createdAt,
     required this.role,
+    this.activeRole = 'customer',
+    this.accountType = 'customer',
     this.isActive = true,
     this.storeId,
     this.walletBalance = 0,
@@ -78,6 +82,8 @@ class AppUser {
     'locationUpdatedAt': locationUpdatedAt,
     'created_at': createdAt,
     'role': role,
+    'activeRole': activeRole,
+    'accountType': accountType,
     'isActive': isActive,
     'storeId': storeId,
     'walletBalance': walletBalance,
@@ -111,7 +117,9 @@ class AppUser {
     deliveryRadiusKm: (map['deliveryRadiusKm'] ?? 10).toDouble(),
     locationUpdatedAt: map['locationUpdatedAt'],
     createdAt: map['created_at'],
-    role: map['role'] ?? 'user',
+    role: map['role'] ?? 'customer',
+    activeRole: map['activeRole'] ?? map['role'] ?? 'customer',
+    accountType: map['accountType'] ?? map['role'] ?? 'customer',
     isActive: map['isActive'] ?? true,
     storeId: map['storeId'],
     walletBalance: (map['walletBalance'] ?? 0.0).toDouble(),
@@ -150,6 +158,8 @@ class AppUser {
     String? locationUpdatedAt,
     String? createdAt,
     String? role,
+    String? activeRole,
+    String? accountType,
     bool? isActive,
     String? storeId,
     double? walletBalance,
@@ -179,6 +189,8 @@ class AppUser {
       locationUpdatedAt: locationUpdatedAt ?? this.locationUpdatedAt,
       createdAt: createdAt ?? this.createdAt,
       role: role ?? this.role,
+      activeRole: activeRole ?? this.activeRole,
+      accountType: accountType ?? this.accountType,
       isActive: isActive ?? this.isActive,
       storeId: storeId ?? this.storeId,
       walletBalance: walletBalance ?? this.walletBalance,

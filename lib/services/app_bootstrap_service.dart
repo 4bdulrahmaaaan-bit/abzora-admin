@@ -22,13 +22,15 @@ class AppBootstrapService {
 
     try {
       debugPrint('[BOOT] 1 Firebase initialize start');
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      ).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () =>
-            throw Exception('[BOOT ERROR] Firebase.initializeApp timeout'),
-      );
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        ).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () =>
+              throw Exception('[BOOT ERROR] Firebase.initializeApp timeout'),
+        );
+      }
       debugPrint('[BOOT] 1 Firebase initialize done');
       firebaseReady = true;
     } catch (error, st) {

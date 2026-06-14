@@ -44,7 +44,8 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
     try {
       final analyticsData = await _analyticsApi.getAnalytics();
       final reviewData = await _reviewApi.getReviews(page: _page, limit: 10);
-      final List<dynamic> fetchedReviews = reviewData['data']['reviews'] ?? [];
+      final reviewDataMap = reviewData['data'] as Map<String, dynamic>?;
+      final List<dynamic> fetchedReviews = reviewDataMap?['reviews'] ?? [];
 
       setState(() {
         _analytics = analyticsData['data'] ?? {};
@@ -53,7 +54,7 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
         } else {
           _reviews = fetchedReviews.cast<Map<String, dynamic>>();
         }
-        _hasMore = _page < (reviewData['data']['totalPages'] ?? 1);
+        _hasMore = _page < (reviewDataMap?['totalPages'] as int? ?? 1);
         _isLoading = false;
       });
     } catch (e) {
@@ -116,9 +117,23 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(VendorTheme.spacing16),
-        itemCount: _reviews.length + 2, // Analytics + Reviews + Loader
+        itemCount: _reviews.isEmpty ? 2 : _reviews.length + 2, // Analytics + Reviews + Loader/Empty State
         itemBuilder: (context, index) {
           if (index == 0) return _buildAnalyticsGrid();
+          if (_reviews.isEmpty && index == 1) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 64.0),
+              child: Center(
+                child: Column(
+                  children: [
+                    const Icon(Icons.rate_review_outlined, size: 48, color: VendorTheme.grey300),
+                    const SizedBox(height: 16),
+                    Text('No reviews available yet', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: VendorTheme.grey500)),
+                  ],
+                ),
+              ),
+            );
+          }
           if (index == _reviews.length + 1) {
             if (_hasMore) {
               return Padding(

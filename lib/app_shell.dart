@@ -58,6 +58,7 @@ import 'screens/admin/admin_riders_screen.dart';
 import 'screens/admin/admin_vendors_screen.dart';
 import 'screens/vendor/vendor_dashboard.dart';
 import 'screens/vendor/vendor_profile_screen.dart';
+import 'screens/vendor/smart_vendor_onboarding_screen.dart';
 import 'features/onboarding/vendor_onboarding_flow_screen.dart';
 import 'features/onboarding/rider_onboarding_screens.dart';
 import 'features/onboarding/rider_training_module_screen.dart';
@@ -367,14 +368,24 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
         return const OpsShellScreen();
       case '/vendor-dashboard':
         return const VendorDashboard();
+      case '/vendor-onboarding':
+        return const SmartVendorOnboardingScreen();
+      case '/vendor-status':
+        return const VendorOnboardingStatusScreen();
+      case '/vendor-rejected':
+        return const ApplicationRejectedScreen();
       case '/vendor-profile':
         return const VendorProfileScreen();
       case '/rider-dashboard':
         return const RiderDashboard();
       case '/rider-training':
         return const RiderTrainingModuleScreen();
-      case '/profile-setup':
+      case '/rider-onboarding':
         return const RiderOnboardingFlowScreen();
+      case '/rider-status':
+        return const RiderOnboardingStatusScreen();
+      case '/rider-rejected':
+        return const ApplicationRejectedScreen();
       case '/profile':
         if (widget.mode == AbzioAppMode.vendor) {
           return const VendorProfileScreen();
@@ -387,6 +398,8 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       case '/home':
         return const HomeScreen();
       default:
+        debugPrint('[ROUTING ERROR] Unknown route: $route');
+        debugPrint('[RIDER ROUTING ERROR] Unknown route: $route');
         if (user != null) {
           return const HomeScreen();
         }
@@ -432,7 +445,26 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
         }
         if (widget.mode == AbzioAppMode.vendor) {
           final route = routeForUserInMode(user, widget.mode);
-          debugPrint('route=$route');
+          debugPrint('[ROUTING] Requested route: $route');
+          debugPrint('[ROUTING] User role: ${user.role}');
+          debugPrint('[ROUTING] Store ID: ${user.storeId}');
+          debugPrint('[ROUTING] activeRole=${user.activeRole}');
+          debugPrint('[ROUTING] accountType=${user.accountType}');
+          debugPrint('======================');
+          Navigator.of(context).pushAndRemoveUntil(
+            _launchRoute(_launchDestinationForRoute(route, user)),
+            (route) => false,
+          );
+          return;
+        }
+        if (widget.mode == AbzioAppMode.rider) {
+          final route = routeForUserInMode(user, widget.mode);
+          debugPrint('[RIDER ROUTING] route=$route');
+          debugPrint('[RIDER ROUTING] role=${user.role}');
+          debugPrint('[RIDER ROUTING] activeRole=${user.activeRole}');
+          debugPrint('[RIDER ROUTING] accountType=${user.accountType}');
+          debugPrint('[RIDER ROUTING] approval=${user.riderApprovalStatus}');
+          debugPrint('[RIDER ROUTING] training=${user.training?["status"]}');
           debugPrint('======================');
           Navigator.of(context).pushAndRemoveUntil(
             _launchRoute(_launchDestinationForRoute(route, user)),
@@ -1177,7 +1209,7 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
         return ProviderScope(
           child: MultiProvider(
             providers: [
-              ChangeNotifierProvider(create: (_) => AuthProvider()),
+              ChangeNotifierProvider(create: (_) => AuthProvider()..mode = widget.mode),
               ChangeNotifierProvider(create: (_) => BannerProvider()),
               ChangeNotifierProxyProvider<AuthProvider, CartProvider>(
                 create: (_) => CartProvider(),

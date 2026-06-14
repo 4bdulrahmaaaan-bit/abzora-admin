@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:firebase_core/firebase_core.dart';
 
 import '../models/models.dart';
 import '../utils/app_mode_routes.dart';
@@ -83,6 +84,9 @@ class NotificationService {
   static Future<void> _firebaseMessagingBackgroundHandler(
     RemoteMessage message,
   ) async {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp();
+    }
     debugPrint("Handling a background message: ${message.messageId}");
   }
 

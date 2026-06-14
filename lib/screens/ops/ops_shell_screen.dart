@@ -9,7 +9,12 @@ import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
 import 'ops_account_screen.dart';
 import '../rider/rider_dashboard.dart';
+import '../vendor/smart_vendor_onboarding_screen.dart';
 import '../vendor/vendor_dashboard.dart';
+import '../../features/onboarding/rider_onboarding_screens.dart';
+import '../../features/onboarding/rider_training_module_screen.dart';
+import '../onboarding/rider_onboarding_status_screen.dart';
+import '../onboarding/application_rejected_screen.dart';
 
 class OpsShellScreen extends StatefulWidget {
   const OpsShellScreen({super.key});
@@ -47,10 +52,32 @@ class _OpsShellScreenState extends State<OpsShellScreen> {
     }
 
     if (isVendor) {
+      if ((user.storeId ?? '').trim().isEmpty) {
+        return const Scaffold(
+          body: SmartVendorOnboardingScreen(),
+        );
+      }
       return Scaffold(
         backgroundColor: AbzioTheme.grey50,
         body: const VendorDashboard(),
       );
+    }
+
+    if (isRider) {
+      if (!hasCompletedRiderOnboarding(user)) {
+        return const Scaffold(body: RiderOnboardingFlowScreen());
+      }
+      final riderStatus = user.riderApprovalStatus.trim().toLowerCase();
+      if (riderStatus == 'rejected') {
+        return const Scaffold(body: ApplicationRejectedScreen());
+      }
+      if (riderStatus != 'approved') {
+        return const Scaffold(body: RiderOnboardingStatusScreen());
+      }
+      final trainingStatus = user.training?['status'];
+      if (trainingStatus == 'pending') {
+        return const Scaffold(body: RiderTrainingModuleScreen());
+      }
     }
 
     final pages = [
