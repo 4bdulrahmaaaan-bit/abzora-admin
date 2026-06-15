@@ -6,8 +6,12 @@ import '../screens/rider/rider_operations_hub_screen.dart';
 import 'rider_routes.dart';
 
 final riderRouter = GoRouter(
-  initialLocation: RiderRoutes.auth,
+  initialLocation: RiderRoutes.splash,
   routes: [
+    GoRoute(
+      path: RiderRoutes.splash,
+      builder: (context, state) => const RiderSplashScreen(),
+    ),
     GoRoute(
       path: RiderRoutes.auth,
       builder: (context, state) => const RiderAuthBannerScreen(),

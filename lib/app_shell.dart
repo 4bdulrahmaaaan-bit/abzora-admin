@@ -25,7 +25,6 @@ import 'screens/ops/ops_account_screen.dart';
 import 'screens/ops/ops_shell_screen.dart';
 import 'screens/otp_verification_screen.dart';
 import 'screens/rider/rider_dashboard.dart';
-// import 'screens/rider/rider_onboarding_screen.dart';
 import 'screens/admin/admin_analytics_screen.dart';
 import 'screens/admin/admin_web_panel.dart';
 import 'screens/user/cart_screen.dart';
