@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/vendor/theme/vendor_theme.dart';
 
 class WelcomeScreen extends StatelessWidget {
   final VoidCallback onStart;
@@ -14,55 +15,55 @@ class WelcomeScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Spacer(),
-          const Text(
-            'Welcome to Abzora Seller Network',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: -0.5,
-              height: 1.2,
-            ),
+          Text(
+            'Vendor Partner Setup',
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  color: VendorTheme.onboardingPrimaryText,
+                  fontWeight: FontWeight.w800,
+                  height: 1.2,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Complete your business profile and start selling on Abzora.',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: VendorTheme.onboardingSecondaryText,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
-          _buildBenefitItem(Icons.trending_up, 'Reach More Customers'),
+          _buildBadgeItem(Icons.save_outlined, 'Draft Auto Saved'),
           const SizedBox(height: 20),
-          _buildBenefitItem(Icons.payments_outlined, 'Weekly Settlements'),
+          _buildBadgeItem(Icons.verified_user_outlined, 'Secure Verification'),
           const SizedBox(height: 20),
-          _buildBenefitItem(Icons.local_shipping_outlined, 'Delivery Partner Support'),
-          const SizedBox(height: 20),
-          _buildBenefitItem(Icons.verified_user_outlined, 'Secure KYC Verification'),
+          _buildBadgeItem(Icons.flash_on_rounded, 'Faster Approval'),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              color: VendorTheme.onboardingSurface,
+              borderRadius: BorderRadius.circular(VendorTheme.radiusMedium),
+              border: Border.all(color: VendorTheme.onboardingElevatedSurface),
             ),
-            child: const Column(
+            child: Column(
               children: [
                 Text(
                   'Estimated Setup',
-                  style: TextStyle(color: Colors.white54, fontSize: 13),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(color: VendorTheme.onboardingSecondaryText),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   '5–7 Minutes',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(color: VendorTheme.onboardingPrimaryText),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             'Business • Expertise • Portfolio • Finance • KYC • Launch',
-            style: TextStyle(color: Colors.white38, fontSize: 11),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(color: VendorTheme.onboardingSecondaryText.withValues(alpha: 0.5)),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -70,10 +71,10 @@ class WelcomeScreen extends StatelessWidget {
             height: 56,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: VendorTheme.onboardingGold,
+                foregroundColor: VendorTheme.onboardingBackground,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(VendorTheme.radiusMedium),
                 ),
                 elevation: 0,
               ),
@@ -89,25 +90,25 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBenefitItem(IconData icon, String title) {
+  Widget _buildBadgeItem(IconData icon, String title) {
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: VendorTheme.onboardingSuccess.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: Colors.white, size: 24),
+          child: Icon(icon, color: VendorTheme.onboardingSuccess, size: 24),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: Text(
             title,
             style: const TextStyle(
-              color: Colors.white,
+              color: VendorTheme.onboardingPrimaryText,
               fontSize: 16,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),

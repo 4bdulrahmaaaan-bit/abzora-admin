@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/vendor/theme/vendor_theme.dart';
 
 class ComplianceStep extends StatelessWidget {
   final String? ownerPhotoUrl;
@@ -29,159 +30,186 @@ class ComplianceStep extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       children: [
-        _buildCard(
-          title: 'KYC Documents',
-          children: [
-            const Text(
-              'Please upload clear photos. These will be verified instantly using our OCR system.',
-              style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-            ),
-            const SizedBox(height: 20),
-            _buildUploadTile(
-              label: 'Owner Photo',
-              imageUrl: ownerPhotoUrl,
-              onTap: onUploadOwner,
-            ),
-            _buildUploadTile(
-              label: 'Storefront Photo',
-              imageUrl: storePhotoUrl,
-              onTap: onUploadStore,
-            ),
-            _buildUploadTile(
-              label: 'Aadhaar Card',
-              imageUrl: aadhaarUrl,
-              onTap: onUploadAadhaar,
-            ),
-            _buildUploadTile(
-              label: 'PAN Card',
-              imageUrl: panUrl,
-              onTap: onUploadPan,
-            ),
-          ],
+        Container(
+          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 24),
+          decoration: BoxDecoration(
+            color: VendorTheme.onboardingSurface,
+            borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+            border: Border.all(color: VendorTheme.onboardingElevatedSurface),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.lock_person_outlined, color: VendorTheme.onboardingGold, size: 24),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Secure Document Verification',
+                      style: TextStyle(color: VendorTheme.onboardingPrimaryText, fontWeight: FontWeight.w600, fontSize: 15),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Your documents are encrypted and verified instantly by our OCR systems. Data is never shared.',
+                      style: TextStyle(color: VendorTheme.onboardingSecondaryText, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+        _buildVisualCard(
+          context: context,
+          label: 'Owner Photo',
+          description: 'A clear photo of the primary business owner.',
+          imageUrl: ownerPhotoUrl,
+          onTap: onUploadOwner,
+        ),
+        const SizedBox(height: 16),
+        _buildVisualCard(
+          context: context,
+          label: 'Storefront Photo',
+          description: 'A photo of your physical store or manufacturing unit.',
+          imageUrl: storePhotoUrl,
+          onTap: onUploadStore,
+        ),
+        const SizedBox(height: 16),
+        _buildVisualCard(
+          context: context,
+          label: 'Aadhaar Card',
+          description: 'Front and back photo of the owner\'s Aadhaar.',
+          imageUrl: aadhaarUrl,
+          onTap: onUploadAadhaar,
+        ),
+        const SizedBox(height: 16),
+        _buildVisualCard(
+          context: context,
+          label: 'PAN Card',
+          description: 'Clear photo of the business or individual PAN card.',
+          imageUrl: panUrl,
+          onTap: onUploadPan,
+        ),
+        const SizedBox(height: 24),
       ],
     );
   }
 
-  Widget _buildCard({required String title, required List<Widget> children}) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 24),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUploadTile({
+  Widget _buildVisualCard({
+    required BuildContext context,
     required String label,
+    required String description,
     required String? imageUrl,
     required VoidCallback onTap,
   }) {
     final bool done = imageUrl != null;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+    return Container(
+      decoration: BoxDecoration(
+        color: VendorTheme.onboardingSurface,
+        borderRadius: BorderRadius.circular(VendorTheme.radiusMedium),
+        border: Border.all(color: done ? VendorTheme.onboardingSuccess.withValues(alpha: 0.3) : VendorTheme.onboardingElevatedSurface),
+      ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: done ? Colors.green.withValues(alpha: 0.4) : Colors.white12,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              color: done ? Colors.green.withValues(alpha: 0.05) : Colors.transparent,
-            ),
+          borderRadius: BorderRadius.circular(VendorTheme.radiusMedium),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
             child: Row(
               children: [
                 if (done)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        width: 48, height: 48,
-                        color: Colors.white10,
-                        child: const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: VendorTheme.onboardingSuccess.withValues(alpha: 0.5)),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: VendorTheme.onboardingElevatedSurface,
+                          child: const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: VendorTheme.onboardingGold),
+                          ),
                         ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        width: 48, height: 48,
-                        color: Colors.white10,
-                        child: const Icon(Icons.error, color: Colors.white38),
+                        errorWidget: (context, url, error) => Container(
+                          color: VendorTheme.onboardingElevatedSurface,
+                          child: const Icon(Icons.error, color: VendorTheme.onboardingSecondaryText),
+                        ),
                       ),
                     ),
                   )
                 else
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 72,
+                    height: 72,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: VendorTheme.onboardingElevatedSurface.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: VendorTheme.onboardingElevatedSurface, style: BorderStyle.solid),
                     ),
-                    child: const Icon(Icons.upload_file_rounded, color: Colors.white54, size: 24),
+                    child: Icon(Icons.add_a_photo_outlined, color: VendorTheme.onboardingSecondaryText.withValues(alpha: 0.5), size: 28),
                   ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            label,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: VendorTheme.onboardingPrimaryText,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                          if (done) ...[
+                            const SizedBox(width: 8),
+                            const Icon(Icons.check_circle, color: VendorTheme.onboardingSuccess, size: 16),
+                          ],
+                        ],
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
-                        done ? 'Uploaded successfully' : 'Tap to upload',
-                        style: TextStyle(
-                          color: done ? Colors.green : Colors.white54,
-                          fontSize: 13,
-                        ),
+                        description,
+                        style: TextStyle(color: VendorTheme.onboardingSecondaryText.withValues(alpha: 0.8), fontSize: 13, height: 1.3),
                       ),
+                      const SizedBox(height: 8),
+                      if (done)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: VendorTheme.onboardingSuccess.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('Ready for Verification', style: TextStyle(color: VendorTheme.onboardingSuccess, fontSize: 11, fontWeight: FontWeight.bold)),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: VendorTheme.onboardingWarning.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('Required', style: TextStyle(color: VendorTheme.onboardingWarning, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ),
                     ],
                   ),
                 ),
-                if (!done)
-                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16)
-                else
-                  const Icon(Icons.refresh_rounded, color: Colors.white54, size: 20),
+                Icon(
+                  done ? Icons.refresh_rounded : Icons.arrow_forward_ios_rounded,
+                  color: done ? VendorTheme.onboardingSecondaryText : VendorTheme.onboardingGold,
+                  size: 20,
+                ),
               ],
             ),
           ),

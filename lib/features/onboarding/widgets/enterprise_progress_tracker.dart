@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/vendor/theme/vendor_theme.dart';
 
 class EnterpriseProgressTracker extends StatelessWidget {
   final int currentStep;
@@ -27,32 +28,53 @@ class EnterpriseProgressTracker extends StatelessWidget {
     final minsRemaining = ((totalSteps - currentStep) * 1.2).ceil();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      color: const Color(0xFF121212),
+      margin: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: VendorTheme.onboardingSurface,
+        borderRadius: BorderRadius.circular(VendorTheme.radiusMedium),
+        border: Border.all(color: VendorTheme.onboardingElevatedSurface),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '$percentComplete% Complete',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Profile Completion $percentComplete%',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: VendorTheme.onboardingPrimaryText,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Step ${currentStep + 1} of $totalSteps',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: VendorTheme.onboardingSecondaryText,
+                        ),
+                  ),
+                ],
               ),
-              Text(
-                '~$minsRemaining Min Remaining',
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 13,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '~$minsRemaining Minutes Remaining',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: VendorTheme.onboardingSecondaryText,
+                        ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: TweenAnimationBuilder<double>(
@@ -65,46 +87,59 @@ class EnterpriseProgressTracker extends StatelessWidget {
               builder: (context, value, child) {
                 return LinearProgressIndicator(
                   value: value,
-                  minHeight: 4,
-                  backgroundColor: Colors.white10,
-                  valueColor: const AlwaysStoppedAnimation(Colors.white),
+                  minHeight: 8,
+                  backgroundColor: VendorTheme.onboardingElevatedSurface,
+                  valueColor: const AlwaysStoppedAnimation(VendorTheme.onboardingGold),
                 );
               },
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             child: Row(
               children: List.generate(totalSteps, (index) {
                 final isCompleted = index < currentStep;
                 final isCurrent = index == currentStep;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 16),
+                
+                Color bgColor = Colors.transparent;
+                Color borderColor = Colors.transparent;
+                Color textColor = VendorTheme.onboardingSecondaryText.withValues(alpha: 0.5);
+                IconData icon = Icons.circle_outlined;
+                Color iconColor = textColor;
+                
+                if (isCompleted) {
+                  bgColor = VendorTheme.onboardingGold.withValues(alpha: 0.1);
+                  borderColor = VendorTheme.onboardingGold.withValues(alpha: 0.3);
+                  textColor = VendorTheme.onboardingGold;
+                  icon = Icons.check_circle_rounded;
+                  iconColor = VendorTheme.onboardingGold;
+                } else if (isCurrent) {
+                  bgColor = VendorTheme.onboardingSurface;
+                  borderColor = VendorTheme.onboardingGold;
+                  textColor = VendorTheme.onboardingPrimaryText;
+                  icon = Icons.radio_button_checked;
+                  iconColor = VendorTheme.onboardingGold;
+                }
+
+                return Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(color: borderColor),
+                  ),
                   child: Row(
                     children: [
-                      Icon(
-                        isCompleted
-                            ? Icons.check_circle_rounded
-                            : (isCurrent
-                                ? Icons.radio_button_checked
-                                : Icons.radio_button_unchecked),
-                        size: 16,
-                        color: isCompleted || isCurrent
-                            ? Colors.white
-                            : Colors.white38,
-                      ),
+                      Icon(icon, size: 14, color: iconColor),
                       const SizedBox(width: 6),
                       Text(
                         _stepLabels[index],
-                        style: TextStyle(
-                          color: isCompleted || isCurrent
-                              ? Colors.white
-                              : Colors.white38,
-                          fontWeight: isCurrent
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                          fontSize: 13,
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: textColor,
+                          fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
                     ],

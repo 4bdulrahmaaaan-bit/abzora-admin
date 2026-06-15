@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../../models/rider_signup_model.dart';
 import '../../../core/widgets/rider_validated_text_field.dart';
 import '../../../core/utils/rider_validators.dart';
+import '../../../../core/theme/rider_theme.dart';
 
 class FinanceStep extends StatelessWidget {
   final RiderSignupModel model;
@@ -25,30 +26,80 @@ class FinanceStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: RiderTheme.onboardingSuccess.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(RiderTheme.radiusSmall),
+            border: Border.all(color: RiderTheme.onboardingSuccess.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.lock_rounded, color: RiderTheme.onboardingSuccess, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Secure Payments',
+                      style: TextStyle(
+                        color: RiderTheme.onboardingSuccess,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Your payout details are encrypted and stored securely for weekly settlements.',
+                      style: TextStyle(
+                        color: RiderTheme.onboardingSuccess.withValues(alpha: 0.8),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Bank Details',
+          style: TextStyle(
+            color: RiderTheme.onboardingPrimaryText,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
         TextFormField(
           initialValue: model.accountHolder,
           decoration: inputDecorationBuilder('Account Holder Name'),
+          style: const TextStyle(color: RiderTheme.onboardingPrimaryText),
           onChanged: (v) => onUpdate(model.copyWith(accountHolder: v)),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 16),
         TextFormField(
           initialValue: model.bankName,
           decoration: inputDecorationBuilder('Bank Name'),
+          style: const TextStyle(color: RiderTheme.onboardingPrimaryText),
           onChanged: (v) => onUpdate(model.copyWith(bankName: v)),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 16),
         RiderValidatedTextField(
           initialValue: model.accountNumber,
           label: 'Account Number',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           maxLength: 18,
-          helperText: '9 to 18 digits',
           validator: AppValidators.bankAccount,
           onChanged: (v) => onUpdate(model.copyWith(accountNumber: v)),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 16),
         RiderValidatedTextField(
           initialValue: model.ifsc,
           label: 'IFSC Code',
@@ -57,7 +108,6 @@ class FinanceStep extends StatelessWidget {
             FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
             LengthLimitingTextInputFormatter(11),
           ],
-          helperText: '11 character IFSC',
           validator: AppValidators.ifsc,
           onChanged: onIfscChanged,
         ),
@@ -68,45 +118,44 @@ class FinanceStep extends StatelessWidget {
             child: SizedBox(
               width: 18,
               height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: CircularProgressIndicator(strokeWidth: 2, color: RiderTheme.onboardingGold),
             ),
           ),
         if (ifscLookupMessage.isNotEmpty)
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              ifscLookupMessage,
-              style: const TextStyle(
-                color: Color.fromRGBO(255, 255, 255, 0.78),
-                fontSize: 12,
-              ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, size: 14, color: RiderTheme.onboardingGold),
+                const SizedBox(width: 6),
+                Text(
+                  ifscLookupMessage,
+                  style: const TextStyle(
+                    color: RiderTheme.onboardingGold,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 32),
+        const Text(
+          'Fast Payouts (Optional)',
+          style: TextStyle(
+            color: RiderTheme.onboardingPrimaryText,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
         RiderValidatedTextField(
           initialValue: model.upi,
-          label: 'UPI ID (optional)',
+          label: 'UPI ID',
           keyboardType: TextInputType.emailAddress,
           inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
-          helperText: 'Format: username@bank',
           validator: AppValidators.upi,
           onChanged: (v) => onUpdate(model.copyWith(upi: v)),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: const [
-            Icon(Icons.lock_rounded, color: Colors.greenAccent, size: 18),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Encrypted payout details. Stored securely for settlement only.',
-                style: TextStyle(
-                  color: Color.fromRGBO(255, 255, 255, 0.78),
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ],
         ),
       ],
     );

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../../models/rider_signup_model.dart';
 import '../../../core/widgets/rider_validated_text_field.dart';
 import '../../../core/utils/rider_validators.dart';
+import '../../../../core/theme/rider_theme.dart';
 
 class VehicleStep extends StatelessWidget {
   final RiderSignupModel model;
@@ -21,23 +22,47 @@ class VehicleStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Text(
+          'Vehicle Type',
+          style: TextStyle(
+            color: RiderTheme.onboardingPrimaryText,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
         Wrap(
-          spacing: 8,
+          spacing: 12,
+          runSpacing: 12,
           children: VehicleType.values.map((v) {
             final selected = model.vehicleType == v;
             return ChoiceChip(
-              label: Text(v.name),
+              label: Text(
+                v.name,
+                style: TextStyle(
+                  color: selected ? RiderTheme.onboardingBackground : RiderTheme.onboardingPrimaryText,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
               selected: selected,
-              selectedColor: const Color(0xFFD4AF37),
+              selectedColor: RiderTheme.onboardingGold,
+              backgroundColor: RiderTheme.onboardingElevatedSurface,
+              side: BorderSide(
+                color: selected ? RiderTheme.onboardingGold : RiderTheme.onboardingElevatedSurface,
+              ),
+              showCheckmark: false,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RiderTheme.radiusSmall)),
               onSelected: (selected) => onUpdate(model.copyWith(vehicleType: v)),
             );
           }).toList(),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 24),
         RiderValidatedTextField(
           initialValue: model.vehicleNumber,
-          label: 'Vehicle Number',
+          label: 'Vehicle Registration Number',
           textCapitalization: TextCapitalization.characters,
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')),
@@ -51,24 +76,34 @@ class VehicleStep extends StatelessWidget {
               );
             }),
           ],
-          helperText: 'Format: TN01AB1234 or KA05MK9090',
           validator: AppValidators.vehicleNumber,
           onChanged: (v) => onUpdate(model.copyWith(vehicleNumber: v)),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 16),
         TextFormField(
           initialValue: model.licenseNumber,
           decoration: inputDecorationBuilder('Driving License Number'),
+          style: const TextStyle(color: RiderTheme.onboardingPrimaryText),
+          textCapitalization: TextCapitalization.characters,
           onChanged: (v) => onUpdate(model.copyWith(licenseNumber: v)),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 24),
+        const Text(
+          'Vehicle Documents',
+          style: TextStyle(
+            color: RiderTheme.onboardingPrimaryText,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
         uploadRowBuilder(
           'RC Book',
           model.rcPath,
           (p) => onUpdate(model.copyWith(rcPath: p)),
         ),
         uploadRowBuilder(
-          'Insurance',
+          'Vehicle Insurance',
           model.insurancePath,
           (p) => onUpdate(model.copyWith(insurancePath: p)),
         ),

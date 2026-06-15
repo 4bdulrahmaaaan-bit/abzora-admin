@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../core/vendor/theme/vendor_theme.dart';
 
-class BusinessProfileStep extends StatelessWidget {
+class BusinessProfileStep extends StatefulWidget {
   final TextEditingController storeNameController;
   final TextEditingController ownerNameController;
   final TextEditingController phoneController;
@@ -31,6 +32,11 @@ class BusinessProfileStep extends StatelessWidget {
     required this.onChanged,
   });
 
+  @override
+  State<BusinessProfileStep> createState() => _BusinessProfileStepState();
+}
+
+class _BusinessProfileStepState extends State<BusinessProfileStep> {
   static const List<String> _businessTypeOptions = [
     'Individual Seller',
     'Registered Company',
@@ -38,6 +44,8 @@ class BusinessProfileStep extends StatelessWidget {
     'Manufacturing Unit',
     'Freelance Designer',
   ];
+
+  bool _detectingLocation = false;
 
   @override
   Widget build(BuildContext context) {
@@ -47,56 +55,92 @@ class BusinessProfileStep extends StatelessWidget {
         _buildCard(
           title: 'Business Information',
           children: [
-            _buildField(storeNameController, 'Store Name', hint: 'Abianzo Tailors'),
-            _buildDropdown('Business Type', businessType, _businessTypeOptions, onBusinessTypeChanged),
-            _buildField(ownerNameController, 'Owner Name', hint: 'A. Rahman'),
-            _buildField(phoneController, 'Phone', hint: '9876543210'),
-            _buildField(emailController, 'Email', hint: 'owner@store.com'),
-            _buildField(gstNumberController, 'GST Number (Optional)', hint: '22AAAAA0000A1Z5'),
+            _buildField(widget.storeNameController, 'Store Name', icon: Icons.storefront_outlined, hint: 'Abianzo Tailors'),
+            _buildDropdown('Business Type', widget.businessType, _businessTypeOptions, widget.onBusinessTypeChanged, icon: Icons.business_outlined),
+            _buildField(widget.ownerNameController, 'Owner Name', icon: Icons.person_outline, hint: 'A. Rahman'),
+            _buildField(
+              widget.phoneController, 
+              'Phone', 
+              icon: Icons.phone_outlined, 
+              hint: '9876543210', 
+              readOnly: true,
+              trailing: const Icon(Icons.verified, color: VendorTheme.onboardingSuccess, size: 20),
+            ),
+            _buildField(widget.emailController, 'Business Email Address', icon: Icons.email_outlined, hint: 'owner@store.com'),
+            _buildField(widget.gstNumberController, 'GST Number (Optional)', icon: Icons.receipt_long_outlined, hint: '22AAAAA0000A1Z5'),
           ],
         ),
         const SizedBox(height: 16),
         _buildCard(
-          title: 'Location Verification',
+          title: 'Location Verification Card',
           children: [
-            _buildField(addressController, 'Address', hint: 'Street, area, landmark', maxLines: 2),
-            _buildField(cityController, 'City', hint: 'Chennai'),
-            const SizedBox(height: 16),
-            if (hasLocation)
+            if (widget.hasLocation) ...[
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                  color: VendorTheme.onboardingSuccess.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+                  border: Border.all(color: VendorTheme.onboardingSuccess.withValues(alpha: 0.3)),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.verified, color: Colors.green, size: 20),
-                    SizedBox(width: 12),
+                    const Icon(Icons.location_on, color: VendorTheme.onboardingSuccess, size: 24),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        'Location Verified Securely',
-                        style: TextStyle(color: Colors.green, fontWeight: FontWeight.w500),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Location Verified',
+                            style: TextStyle(color: VendorTheme.onboardingSuccess, fontWeight: FontWeight.w600, fontSize: 15),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.cityController.text.isNotEmpty ? widget.cityController.text : 'Location Saved',
+                            style: const TextStyle(color: VendorTheme.onboardingSuccess, fontSize: 13),
+                          ),
+                        ],
                       ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: VendorTheme.onboardingSuccess),
+                      onPressed: () async {
+                        setState(() => _detectingLocation = true);
+                        widget.onDetectLocation();
+                        await Future.delayed(const Duration(seconds: 2));
+                        if (mounted) setState(() => _detectingLocation = false);
+                      },
+                      tooltip: 'Refresh Location',
                     ),
                   ],
                 ),
-              )
-            else
+              ),
+              const SizedBox(height: 16),
+            ] else ...[
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: onDetectLocation,
-                  icon: const Icon(Icons.my_location, color: Colors.white),
-                  label: const Text('Detect Current Location', style: TextStyle(color: Colors.white)),
+                  onPressed: _detectingLocation ? null : () async {
+                    setState(() => _detectingLocation = true);
+                    widget.onDetectLocation();
+                    await Future.delayed(const Duration(seconds: 2));
+                    if (mounted) setState(() => _detectingLocation = false);
+                  },
+                  icon: _detectingLocation 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: VendorTheme.onboardingGold))
+                      : const Icon(Icons.my_location, color: VendorTheme.onboardingGold),
+                  label: Text(_detectingLocation ? 'Detecting...' : 'Detect Current Location', style: const TextStyle(color: VendorTheme.onboardingGold)),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.white24),
+                    side: const BorderSide(color: VendorTheme.onboardingGold),
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(VendorTheme.radiusSmall)),
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+            ],
+            _buildField(widget.addressController, 'Address', icon: Icons.map_outlined, hint: 'Street, area, landmark', maxLines: 2),
+            _buildField(widget.cityController, 'City', icon: Icons.location_city_outlined, hint: 'Chennai'),
           ],
         ),
       ],
@@ -107,28 +151,16 @@ class BusinessProfileStep extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: VendorTheme.onboardingSurface,
+        borderRadius: BorderRadius.circular(VendorTheme.radiusMedium),
+        border: Border.all(color: VendorTheme.onboardingElevatedSurface),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              letterSpacing: -0.5,
-            ),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: VendorTheme.onboardingPrimaryText, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 24),
           ...children,
@@ -143,6 +175,8 @@ class BusinessProfileStep extends StatelessWidget {
     int maxLines = 1,
     String hint = '',
     bool readOnly = false,
+    IconData? icon,
+    Widget? trailing,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -151,63 +185,71 @@ class BusinessProfileStep extends StatelessWidget {
         maxLines: maxLines,
         readOnly: readOnly,
         style: TextStyle(
-          color: readOnly ? Colors.white54 : Colors.white,
+          color: readOnly ? VendorTheme.onboardingSecondaryText : VendorTheme.onboardingPrimaryText,
           fontSize: 15,
         ),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.white60),
+          labelStyle: const TextStyle(color: VendorTheme.onboardingSecondaryText),
           hintText: hint.isEmpty ? null : hint,
-          hintStyle: const TextStyle(color: Colors.white24),
+          hintStyle: TextStyle(color: VendorTheme.onboardingSecondaryText.withValues(alpha: 0.3)),
           filled: true,
-          fillColor: readOnly ? Colors.white.withValues(alpha: 0.02) : Colors.black26,
+          fillColor: readOnly ? VendorTheme.onboardingElevatedSurface.withValues(alpha: 0.5) : VendorTheme.onboardingElevatedSurface,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          prefixIcon: icon != null ? Icon(icon, color: VendorTheme.onboardingSecondaryText.withValues(alpha: 0.7), size: 20) : null,
+          suffixIcon: trailing,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+            borderSide: const BorderSide(color: Colors.transparent),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+            borderSide: const BorderSide(color: Colors.transparent),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.white, width: 1.5),
+            borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+            borderSide: const BorderSide(color: VendorTheme.onboardingGold, width: 1.5),
           ),
         ),
-        onChanged: (_) => onChanged(),
+        onChanged: (_) => widget.onChanged(),
       ),
     );
   }
 
-  Widget _buildDropdown(String label, String value, List<String> options, ValueChanged<String?> onSelect) {
+  Widget _buildDropdown(String label, String value, List<String> options, ValueChanged<String?> onSelect, {IconData? icon}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: DropdownButtonFormField<String>(
         initialValue: value.isEmpty ? null : value,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.white60),
+          labelStyle: const TextStyle(color: VendorTheme.onboardingSecondaryText),
           filled: true,
-          fillColor: Colors.black26,
+          fillColor: VendorTheme.onboardingElevatedSurface,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          prefixIcon: icon != null ? Icon(icon, color: VendorTheme.onboardingSecondaryText.withValues(alpha: 0.7), size: 20) : null,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+            borderSide: const BorderSide(color: Colors.transparent),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+            borderSide: const BorderSide(color: Colors.transparent),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.white, width: 1.5),
+            borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+            borderSide: const BorderSide(color: VendorTheme.onboardingGold, width: 1.5),
           ),
         ),
-        dropdownColor: const Color(0xFF1E1E1E),
-        style: const TextStyle(color: Colors.white, fontSize: 15),
-        items: options.map((opt) => DropdownMenuItem(value: opt, child: Text(opt))).toList(),
-        onChanged: onSelect,
+        dropdownColor: VendorTheme.onboardingElevatedSurface,
+        style: const TextStyle(color: VendorTheme.onboardingPrimaryText, fontSize: 15),
+        items: options.map((e) {
+          return DropdownMenuItem(value: e, child: Text(e));
+        }).toList(),
+        onChanged: (val) {
+          onSelect(val);
+          widget.onChanged();
+        },
       ),
     );
   }

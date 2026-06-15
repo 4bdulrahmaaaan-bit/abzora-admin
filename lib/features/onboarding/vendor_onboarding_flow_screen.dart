@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
-import 'package:file_picker/file_picker.dart';
+import '../../core/vendor/theme/vendor_theme.dart';
+
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -52,8 +55,6 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
   bool _autoValidate = false;
   int _invalidSubmitTick = 0;
   DateTime? _lastSaved;
-
-  static const _bgDark = Color(0xFF0A0A0A);
 
   @override
   void initState() {
@@ -399,40 +400,95 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     final user = context.read<AuthProvider>().user;
     if (user == null) return;
     
-    final files = await FilePicker.platform.pickFiles(allowMultiple: true, type: FileType.image);
-    if (files == null) return;
+    final files = await _picker.pickMultiImage(imageQuality: 80, maxWidth: 1600);
+    if (files.isEmpty) return;
     
     setState(() => _submitting = true);
 
-    try {
-      for (final f in files.files) {
-        if (_draft.portfolioPaths.length >= 10) break;
-        final path = f.path;
-        if (path == null) continue;
+    for (final f in files) {
+      if (_draft.portfolioPaths.length >= 10) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You can upload a maximum of 10 portfolio samples.')));
+        break;
+      }
+      
+      try {
+        final bytes = await f.readAsBytes();
+        final fileSize = bytes.length;
         
-        final fileSize = f.size;
-        if (fileSize < 5000) {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Image ${f.name} is too small and might be corrupted.')));
+        final sizeMb = fileSize / (1024 * 1024);
+        final extension = f.name.contains('.') ? f.name.substring(f.name.lastIndexOf('.')).toLowerCase() : '';
+        debugPrint('[PORTFOLIO_UPLOAD] name=${f.name} extension=$extension size=${sizeMb.toStringAsFixed(2)}MB status=started');
+
+        if (fileSize > 10 * 1024 * 1024) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image size exceeds 10 MB.')));
           continue;
         }
 
-        final xfile = XFile(path);
-        final url = await _onboarding.uploadDraftPortfolioImage(
-          file: xfile,
-          ownerId: user.id,
-          fileName: 'portfolio-${DateTime.now().millisecondsSinceEpoch}-${f.name}',
-        );
+        if (!['.jpg', '.jpeg', '.png', '.webp'].contains(extension)) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image format not supported.')));
+          continue;
+        }
 
-        setState(() {
-          _draft.portfolioPaths.add(url);
-          _saveDraft();
-        });
+        bool resolutionOk = true;
+        try {
+          final codec = await ui.instantiateImageCodec(bytes);
+          final frame = await codec.getNextFrame();
+          debugPrint('[PORTFOLIO_UPLOAD] dimensions=${frame.image.width}x${frame.image.height}');
+          if (frame.image.width < 500 || frame.image.height < 500) {
+            resolutionOk = false;
+          }
+        } catch (_) {
+          // ignore decoder failure and try to let backend handle it
+        }
+        
+        if (!resolutionOk) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image resolution is too low.')));
+          continue;
+        }
+
+        String? uploadedUrl;
+        int maxAttempts = 3;
+        
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            debugPrint('[PORTFOLIO_UPLOAD] attempt=$attempt status=uploading');
+            uploadedUrl = await _onboarding.uploadDraftPortfolioImage(
+              file: f,
+              ownerId: user.id,
+              fileName: 'portfolio-${DateTime.now().millisecondsSinceEpoch}-${f.name}',
+            );
+            debugPrint('[PORTFOLIO_UPLOAD] attempt=$attempt status=success url=$uploadedUrl');
+            break; // Success
+          } catch (e) {
+            debugPrint('[PORTFOLIO_UPLOAD] attempt=$attempt status=error error=$e');
+            if (attempt == maxAttempts) {
+              if (mounted) {
+                final errorMsg = e.toString().toLowerCase();
+                if (errorMsg.contains('timeout') || errorMsg.contains('network') || errorMsg.contains('unavailable') || errorMsg.contains('connection')) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image upload service temporarily unavailable. Please try again in a few minutes.')));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unable to upload this image. Please select a different image.')));
+                }
+              }
+            } else {
+              await Future.delayed(Duration(seconds: 1 * attempt)); // Exponential backoff
+            }
+          }
+        }
+
+        if (uploadedUrl != null) {
+          setState(() {
+            _draft.portfolioPaths.add(uploadedUrl!);
+            _saveDraft();
+          });
+        }
+      } catch (e) {
+        debugPrint('[PORTFOLIO_UPLOAD] name=${f.name} status=fatal_error error=$e');
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unable to process this image. Please select a different image.')));
       }
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error uploading portfolio images: $e')));
-    } finally {
-      setState(() => _submitting = false);
     }
+    
+    setState(() => _submitting = false);
   }
 
   void _removePortfolio(int index) {
@@ -485,8 +541,8 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     if (_step == 1 && _draft.specializations.isEmpty) {
       return 'Choose at least one specialization';
     }
-    if (_step == 2 && (_draft.portfolioPaths.length < 5 || _draft.portfolioPaths.length > 10)) {
-      return 'Upload between 5 and 10 portfolio samples';
+    if (_step == 2 && _draft.portfolioPaths.length > 10) {
+      return 'You can upload a maximum of 10 portfolio samples';
     }
     if (_step == 3) {
       final start = double.tryParse(_draft.startingPrice.text.trim()) ?? 0;
@@ -814,20 +870,20 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
     if (user == null) {
-      return const Scaffold(
-        backgroundColor: _bgDark,
-        body: AbzioLoadingView(title: 'Opening vendor onboarding', subtitle: 'Preparing your partner application.'),
+      return Scaffold(
+        backgroundColor: VendorTheme.onboardingBackground,
+        body: const AbzioLoadingView(title: 'Opening vendor onboarding', subtitle: 'Preparing your partner application.'),
       );
     }
 
     if (_step < 0) {
       return Scaffold(
-        backgroundColor: _bgDark,
+        backgroundColor: VendorTheme.onboardingBackground,
         appBar: AppBar(
-          backgroundColor: _bgDark,
+          backgroundColor: VendorTheme.onboardingBackground,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
+            icon: const Icon(Icons.close, color: VendorTheme.onboardingPrimaryText),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -838,16 +894,16 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     }
 
     return Scaffold(
-      backgroundColor: _bgDark,
+      backgroundColor: VendorTheme.onboardingBackground,
       appBar: AppBar(
-        backgroundColor: _bgDark,
+        backgroundColor: VendorTheme.onboardingBackground,
         elevation: 0,
         leading: IconButton(
           onPressed: _submitting || _draft.isProcessingKyc ? null : _back,
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: VendorTheme.onboardingPrimaryText),
           tooltip: 'Back',
         ),
-        title: const Text('Vendor Onboarding', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+        title: const Text('Vendor Partner Setup', style: TextStyle(color: VendorTheme.onboardingPrimaryText, fontSize: 16, fontWeight: FontWeight.w600)),
         centerTitle: true,
         actions: [
           DraftSaveBadge(lastSaved: _lastSaved),
@@ -1014,21 +1070,21 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
                   height: 52,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      disabledBackgroundColor: Colors.white30,
-                      disabledForegroundColor: Colors.black54,
+                      backgroundColor: VendorTheme.onboardingGold,
+                      foregroundColor: VendorTheme.onboardingBackground,
+                      disabledBackgroundColor: VendorTheme.onboardingGold.withValues(alpha: 0.3),
+                      disabledForegroundColor: VendorTheme.onboardingBackground.withValues(alpha: 0.5),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
                     onPressed: _submitting || _draft.isProcessingKyc ? null : _next,
                     child: _draft.isProcessingKyc
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 24, height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: VendorTheme.onboardingBackground),
                           )
                         : Text(
-                            _step == 5 ? (_submitting ? 'Submitting...' : 'Submit Application') : (_step == 4 ? 'Verify Documents' : 'Continue'),
+                            _step == 5 ? (_submitting ? 'Submitting Application...' : 'Submit Application →') : 'Save & Continue →',
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                   ),

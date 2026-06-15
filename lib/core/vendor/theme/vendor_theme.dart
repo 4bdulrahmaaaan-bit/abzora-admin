@@ -15,6 +15,17 @@ class VendorTheme {
   static const Color error = Color(0xFFD24B4B);
   static const Color info = Color(0xFF3366FF);
 
+  // Onboarding V4 Dark Theme Tokens
+  static const Color onboardingBackground = Color(0xFF13110F);
+  static const Color onboardingSurface = Color(0xFF1E1E1E);
+  static const Color onboardingElevatedSurface = Color(0xFF2C2C2C);
+  static const Color onboardingGold = Color(0xFFC2A15E);
+  static const Color onboardingSuccess = Color(0xFF238E5A);
+  static const Color onboardingWarning = Color(0xFFD39A00);
+  static const Color onboardingError = Color(0xFFD24B4B);
+  static const Color onboardingPrimaryText = Colors.white;
+  static const Color onboardingSecondaryText = Colors.white70;
+
   // Grey Scale
   static const Color grey50 = Color(0xFFFAFAFA);
   static const Color grey100 = Color(0xFFF5F5F5);

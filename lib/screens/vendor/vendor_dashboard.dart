@@ -231,6 +231,8 @@ class _VendorDashboardState extends State<VendorDashboard> {
                       children: [
                         _buildWelcomeHeader(store),
                         const SizedBox(height: VendorTheme.spacing24),
+                        _buildStoreProfileCompletion(context, store, products),
+                        const SizedBox(height: VendorTheme.spacing24),
                         _buildQuickActions(context, store, actor),
                         const SizedBox(height: VendorTheme.spacing24),
                         _buildAiInsights(orders, products),
@@ -274,6 +276,108 @@ class _VendorDashboardState extends State<VendorDashboard> {
               : Icons.pause_circle_rounded,
         ),
       ],
+    );
+  }
+
+  Widget _buildStoreProfileCompletion(BuildContext context, Store store, List<dynamic> products) {
+    int score = 40; // Base score for approved vendor
+    final suggestions = <String>[];
+
+    if (store.customVendorProfile.portfolioImages.isNotEmpty) {
+      score += 20;
+    } else {
+      suggestions.add('Add Portfolio Images');
+    }
+
+    if (store.bannerImageUrl.isNotEmpty) {
+      score += 15;
+    } else {
+      suggestions.add('Add Store Banner');
+    }
+
+    if (products.isNotEmpty) {
+      score += 15;
+    } else {
+      suggestions.add('Add Product Catalog');
+    }
+    
+    // Remaining 10 points
+    if (store.address.isNotEmpty && store.city.isNotEmpty) {
+      score += 10;
+    } else {
+      suggestions.add('Add Delivery Preferences');
+    }
+
+    if (score >= 100 && suggestions.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(VendorTheme.spacing16),
+      decoration: BoxDecoration(
+        color: VendorTheme.card,
+        borderRadius: BorderRadius.circular(VendorTheme.radiusLarge),
+        border: Border.all(color: VendorTheme.grey200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Store Profile Completion',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              Text(
+                '$score% Complete',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: score >= 80 ? VendorTheme.success : VendorTheme.warning,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: VendorTheme.spacing12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: score / 100,
+              minHeight: 8,
+              backgroundColor: VendorTheme.grey200,
+              valueColor: AlwaysStoppedAnimation(
+                score >= 80 ? VendorTheme.success : VendorTheme.warning,
+              ),
+            ),
+          ),
+          if (suggestions.isNotEmpty) ...[
+            const SizedBox(height: VendorTheme.spacing16),
+            Text(
+              'Suggestions to improve your profile:',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: VendorTheme.grey600),
+            ),
+            const SizedBox(height: VendorTheme.spacing8),
+            Wrap(
+              spacing: VendorTheme.spacing8,
+              runSpacing: VendorTheme.spacing8,
+              children: suggestions.map((s) => ActionChip(
+                label: Text(s, style: const TextStyle(fontSize: 12)),
+                backgroundColor: VendorTheme.primary.withValues(alpha: 0.1),
+                side: BorderSide.none,
+                onPressed: () {
+                  if (s == 'Add Portfolio Images' || s == 'Add Store Banner' || s == 'Add Delivery Preferences') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => StoreSettingsScreen(store: store)),
+                    );
+                  } else if (s == 'Add Product Catalog') {
+                    // Assume there's a products management screen or similar
+                    // They can navigate via the Quick Actions anyway.
+                  }
+                },
+              )).toList(),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

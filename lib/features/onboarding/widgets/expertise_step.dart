@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/vendor/theme/vendor_theme.dart';
 
 class ExpertiseStep extends StatelessWidget {
   final TextEditingController experienceYearsController;
@@ -23,32 +24,32 @@ class ExpertiseStep extends StatelessWidget {
     required this.onChanged,
   });
 
-  static const List<String> _serviceTypeOptions = [
-    'Ready-made',
-    'Custom Tailoring',
-    'Alterations',
-    'Premium Collections',
-    'Bridal Wear',
+  static const List<Map<String, dynamic>> _serviceTypeOptions = [
+    {'name': 'Ready-made', 'icon': Icons.checkroom_outlined},
+    {'name': 'Custom Tailoring', 'icon': Icons.content_cut_outlined},
+    {'name': 'Alterations', 'icon': Icons.straighten_outlined},
+    {'name': 'Premium Collections', 'icon': Icons.diamond_outlined},
+    {'name': 'Bridal Wear', 'icon': Icons.favorite_border},
   ];
 
-  static const List<String> _specializationOptions = [
-    'Men\'s Wear',
-    'Women\'s Wear',
-    'Kids Wear',
-    'Ethnic',
-    'Formal',
-    'Streetwear',
-    'Uniforms',
+  static const List<Map<String, dynamic>> _specializationOptions = [
+    {'name': 'Men\'s Wear', 'icon': Icons.man_outlined},
+    {'name': 'Women\'s Wear', 'icon': Icons.woman_outlined},
+    {'name': 'Kids Wear', 'icon': Icons.child_care_outlined},
+    {'name': 'Ethnic', 'icon': Icons.festival_outlined},
+    {'name': 'Formal', 'icon': Icons.business_center_outlined},
+    {'name': 'Streetwear', 'icon': Icons.skateboarding_outlined},
+    {'name': 'Uniforms', 'icon': Icons.badge_outlined},
   ];
 
-  static const List<String> _storeTagOptions = [
-    'Premium',
-    'Affordable',
-    'Express Delivery',
-    'Eco-Friendly',
-    'Handmade',
-    'Trending',
-    'Vintage',
+  static const List<Map<String, dynamic>> _storeTagOptions = [
+    {'name': 'Premium', 'icon': Icons.star_border},
+    {'name': 'Affordable', 'icon': Icons.sell_outlined},
+    {'name': 'Express Delivery', 'icon': Icons.local_shipping_outlined},
+    {'name': 'Eco-Friendly', 'icon': Icons.eco_outlined},
+    {'name': 'Handmade', 'icon': Icons.back_hand_outlined},
+    {'name': 'Trending', 'icon': Icons.trending_up_outlined},
+    {'name': 'Vintage', 'icon': Icons.history_outlined},
   ];
 
   @override
@@ -57,11 +58,12 @@ class ExpertiseStep extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       children: [
         _buildCard(
+          context: context,
           title: 'Experience & Craft',
           children: [
             _buildExperienceMeter(),
             const SizedBox(height: 24),
-            _buildSectionTitle('Fashion Categories'),
+            _buildSectionTitle(context, 'Fashion Categories'),
             const SizedBox(height: 12),
             _buildChips(
               options: _specializationOptions,
@@ -69,7 +71,7 @@ class ExpertiseStep extends StatelessWidget {
               onSelected: onToggleSpecialization,
             ),
             const SizedBox(height: 24),
-            _buildSectionTitle('Service Types'),
+            _buildSectionTitle(context, 'Service Types'),
             const SizedBox(height: 12),
             _buildChips(
               options: _serviceTypeOptions,
@@ -80,10 +82,10 @@ class ExpertiseStep extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildSectionTitle('Store Tags'),
+                _buildSectionTitle(context, 'Store Tags'),
                 Text(
                   '${storeTags.length}/5',
-                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  style: const TextStyle(color: VendorTheme.onboardingSecondaryText, fontSize: 13),
                 ),
               ],
             ),
@@ -99,32 +101,23 @@ class ExpertiseStep extends StatelessWidget {
     );
   }
 
-  Widget _buildCard({required String title, required List<Widget> children}) {
+  Widget _buildCard({required BuildContext context, required String title, required List<Widget> children}) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: VendorTheme.onboardingSurface,
+        borderRadius: BorderRadius.circular(VendorTheme.radiusMedium),
+        border: Border.all(color: VendorTheme.onboardingElevatedSurface),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              letterSpacing: -0.5,
-            ),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: VendorTheme.onboardingPrimaryText,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
           const SizedBox(height: 24),
           ...children,
@@ -133,19 +126,18 @@ class ExpertiseStep extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(BuildContext context, String title) {
     return Text(
       title,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
-      ),
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: VendorTheme.onboardingPrimaryText,
+            fontWeight: FontWeight.w600,
+          ),
     );
   }
 
   Widget _buildChips({
-    required List<String> options,
+    required List<Map<String, dynamic>> options,
     required Set<String> selected,
     required ValueChanged<String> onSelected,
   }) {
@@ -153,23 +145,31 @@ class ExpertiseStep extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: options.map((item) {
-        final isSelected = selected.contains(item);
+        final name = item['name'] as String;
+        final icon = item['icon'] as IconData;
+        final isSelected = selected.contains(name);
         return ChoiceChip(
-          label: Text(item),
+          avatar: Icon(
+            icon, 
+            size: 16, 
+            color: isSelected ? VendorTheme.onboardingBackground : VendorTheme.onboardingGold
+          ),
+          label: Text(name),
           selected: isSelected,
-          selectedColor: Colors.white,
+          selectedColor: VendorTheme.onboardingGold,
           backgroundColor: Colors.transparent,
+          showCheckmark: false,
           labelStyle: TextStyle(
-            color: isSelected ? Colors.black : Colors.white70,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            color: isSelected ? VendorTheme.onboardingBackground : VendorTheme.onboardingGold,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
             side: BorderSide(
-              color: isSelected ? Colors.white : Colors.white24,
+              color: VendorTheme.onboardingGold.withValues(alpha: isSelected ? 1.0 : 0.5),
             ),
           ),
-          onSelected: (_) => onSelected(item),
+          onSelected: (_) => onSelected(name),
         );
       }).toList(),
     );
@@ -185,24 +185,25 @@ class ExpertiseStep extends StatelessWidget {
             controller: experienceYearsController,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            style: const TextStyle(color: Colors.white, fontSize: 15),
+            style: const TextStyle(color: VendorTheme.onboardingPrimaryText, fontSize: 15),
             decoration: InputDecoration(
               labelText: 'Years of Experience',
-              labelStyle: const TextStyle(color: Colors.white60),
+              labelStyle: const TextStyle(color: VendorTheme.onboardingSecondaryText),
               filled: true,
-              fillColor: Colors.black26,
+              fillColor: VendorTheme.onboardingElevatedSurface,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              prefixIcon: const Icon(Icons.history, color: VendorTheme.onboardingSecondaryText, size: 20),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+                borderSide: const BorderSide(color: Colors.transparent),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+                borderSide: const BorderSide(color: Colors.transparent),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.white, width: 1.5),
+                borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
+                borderSide: const BorderSide(color: VendorTheme.onboardingGold, width: 1.5),
               ),
             ),
             onChanged: (_) => onChanged(),
@@ -212,24 +213,45 @@ class ExpertiseStep extends StatelessWidget {
           animation: experienceYearsController,
           builder: (context, _) {
             final years = int.tryParse(experienceYearsController.text) ?? 0;
-            int stars = 1;
-            if (years >= 2) stars = 2;
-            if (years >= 5) stars = 3;
-            if (years >= 10) stars = 4;
-            if (years >= 15) stars = 5;
+            String level = 'Beginner';
+            Color levelColor = VendorTheme.onboardingSecondaryText;
+            double progress = 0.25;
 
-            return Row(
+            if (years >= 2) {
+              level = 'Intermediate';
+              levelColor = VendorTheme.onboardingSuccess;
+              progress = 0.5;
+            }
+            if (years >= 5) {
+              level = 'Advanced';
+              levelColor = VendorTheme.onboardingWarning;
+              progress = 0.75;
+            }
+            if (years >= 10) {
+              level = 'Expert';
+              levelColor = VendorTheme.onboardingGold;
+              progress = 1.0;
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Experience Rating:', style: TextStyle(color: Colors.white54, fontSize: 13)),
-                const SizedBox(width: 8),
                 Row(
-                  children: List.generate(5, (index) {
-                    return Icon(
-                      index < stars ? Icons.star_rounded : Icons.star_outline_rounded,
-                      color: index < stars ? Colors.amber : Colors.white24,
-                      size: 18,
-                    );
-                  }),
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Experience Level', style: TextStyle(color: VendorTheme.onboardingSecondaryText, fontSize: 13)),
+                    Text(level, style: TextStyle(color: levelColor, fontWeight: FontWeight.w700, fontSize: 13)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 6,
+                    backgroundColor: VendorTheme.onboardingElevatedSurface,
+                    valueColor: AlwaysStoppedAnimation<Color>(levelColor),
+                  ),
                 ),
               ],
             );

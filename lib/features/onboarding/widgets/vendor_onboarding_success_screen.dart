@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/vendor/theme/vendor_theme.dart';
 
 class VendorOnboardingSuccessScreen extends StatelessWidget {
   const VendorOnboardingSuccessScreen({super.key});
@@ -6,7 +7,7 @@ class VendorOnboardingSuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: VendorTheme.onboardingBackground,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -14,14 +15,14 @@ class VendorOnboardingSuccessScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.1),
+                  color: VendorTheme.onboardingSuccess.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.verified_rounded,
-                  color: Colors.green,
+                  color: VendorTheme.onboardingSuccess,
                   size: 64,
                 ),
               ),
@@ -31,7 +32,7 @@ class VendorOnboardingSuccessScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
-                  color: Colors.white,
+                  color: VendorTheme.onboardingPrimaryText,
                   letterSpacing: -0.5,
                 ),
                 textAlign: TextAlign.center,
@@ -41,46 +42,46 @@ class VendorOnboardingSuccessScreen extends StatelessWidget {
                 'We are reviewing your details. You will be notified once the process is complete.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: VendorTheme.onboardingSecondaryText,
                   fontSize: 15,
                   height: 1.5,
                 ),
               ),
               const SizedBox(height: 32),
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  color: VendorTheme.onboardingSurface,
+                  borderRadius: BorderRadius.circular(VendorTheme.radiusMedium),
+                  border: Border.all(color: VendorTheme.onboardingElevatedSurface),
                 ),
                 child: Column(
                   children: [
-                    _buildTimelineRow('Submitted', true),
-                    _buildTimelineRow('OCR Review', true),
-                    _buildTimelineRow('Manual Review', false),
-                    _buildTimelineRow('Approval', false),
-                    _buildTimelineRow('Activation', false, isLast: true),
+                    _buildTimelineRow('Application Submitted', true),
+                    _buildTimelineRow('OCR Verification', true),
+                    _buildTimelineRow('Risk & Compliance Review', false),
+                    _buildTimelineRow('Store Approval', false),
+                    _buildTimelineRow('Marketplace Activation', false, isLast: true),
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: 56,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
+                    backgroundColor: VendorTheme.onboardingGold,
+                    foregroundColor: VendorTheme.onboardingBackground,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(VendorTheme.radiusSmall),
                     ),
                     elevation: 0,
                   ),
                   onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/ops', (route) => false),
                   child: const Text(
-                    'Go to Dashboard',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    'Return to Dashboard',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -98,35 +99,40 @@ class VendorOnboardingSuccessScreen extends StatelessWidget {
         Column(
           children: [
             Container(
-              width: 20,
-              height: 20,
+              width: 24,
+              height: 24,
               decoration: BoxDecoration(
-                color: isCompleted ? Colors.green : Colors.transparent,
+                color: isCompleted ? VendorTheme.onboardingSuccess : Colors.transparent,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isCompleted ? Colors.green : Colors.white38,
+                  color: isCompleted ? VendorTheme.onboardingSuccess : VendorTheme.onboardingElevatedSurface,
                   width: 2,
                 ),
               ),
               child: isCompleted
-                  ? const Icon(Icons.check, size: 12, color: Colors.black)
+                  ? const Icon(Icons.check, size: 14, color: VendorTheme.onboardingBackground)
                   : null,
             ),
             if (!isLast)
               Container(
                 width: 2,
-                height: 24,
-                color: isCompleted ? Colors.green : Colors.white12,
+                height: 32,
+                color: isCompleted ? VendorTheme.onboardingSuccess : VendorTheme.onboardingElevatedSurface,
               ),
           ],
         ),
         const SizedBox(width: 16),
-        Text(
-          title,
-          style: TextStyle(
-            color: isCompleted ? Colors.white : Colors.white54,
-            fontSize: 15,
-            fontWeight: isCompleted ? FontWeight.w600 : FontWeight.normal,
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              title,
+              style: TextStyle(
+                color: isCompleted ? VendorTheme.onboardingPrimaryText : VendorTheme.onboardingSecondaryText,
+                fontSize: 15,
+                fontWeight: isCompleted ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
           ),
         ),
       ],
