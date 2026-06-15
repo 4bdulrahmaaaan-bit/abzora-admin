@@ -20,6 +20,9 @@ import '../../services/onboarding_service.dart';
 import '../../widgets/state_views.dart';
 
 import '../../services/vendor_onboarding_api.dart';
+import '../../services/vendor_onboarding_local_cache.dart';
+import '../../services/vendor_onboarding_sync_service.dart';
+import '../../services/backend_api_client.dart';
 import 'models/vendor_onboarding_draft.dart';
 import 'widgets/welcome_screen.dart';
 import 'widgets/enterprise_progress_tracker.dart';
@@ -45,6 +48,8 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
   final _onboarding = OnboardingService();
   final _db = DatabaseService();
   final _api = const VendorOnboardingApi();
+  final _cache = VendorOnboardingLocalCache();
+  late final VendorOnboardingSyncService _syncService;
   final VendorOnboardingDraft _draft = VendorOnboardingDraft();
   
   final _picker = ImagePicker();
@@ -55,6 +60,7 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
   bool _autoValidate = false;
   int _invalidSubmitTick = 0;
   DateTime? _lastSaved;
+  SyncStatus _syncStatus = SyncStatus.cloudSynced;
 
   @override
   void initState() {
@@ -72,6 +78,9 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     
     _restoreDraft(user);
 
+    _syncService = VendorOnboardingSyncService(api: _api, cache: _cache);
+    _syncService.start();
+
     _autoSaveTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       _saveDraft();
     });
@@ -86,14 +95,35 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     _draft.address.text = user.address ?? '';
     _draft.city.text = 'Chennai';
 
-    Map<String, dynamic>? draft = await _api.getDraft();
+    Map<String, dynamic>? draft;
+    try {
+      draft = await _api.getDraft();
+    } catch (e) {
+      debugPrint('[RESTORE_STRATEGY] MongoDB unavailable, loading Hive backup...');
+    }
+    
+    if (draft == null) {
+      draft = await _cache.getDraft(user.id);
+      if (draft != null && draft['draftPayload'] != null) {
+        draft = Map<String, dynamic>.from(draft['draftPayload']);
+        if (mounted) {
+          setState(() {
+            _syncStatus = SyncStatus.pendingSync;
+          });
+        }
+      }
+    }
     
     if (draft == null) {
       draft = await _db.getVendorOnboardingDraft(user.id);
       if (draft != null) {
         // Safe migration
         draft['draftStatus'] = 'migrated';
-        await _api.saveDraft(draft);
+        try {
+          await _api.saveDraft(draft);
+        } catch (e) {
+          await _cache.saveDraft(user.id, draft, draft['currentStep'] ?? 0);
+        }
         await _db.deleteVendorOnboardingDraft(user.id);
       }
     }
@@ -247,9 +277,15 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     }
   }
 
-  void _saveDraft() {
+  void _saveDraft() async {
     final user = context.read<AuthProvider>().user;
     if (user == null || _submitting) return;
+
+    if (mounted) {
+      setState(() {
+        _syncStatus = SyncStatus.pendingSync;
+      });
+    }
 
     final data = {
       'userId': user.id,
@@ -301,17 +337,39 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
       }
     };
 
-    _api.saveDraft(data);
-    
-    if (mounted) {
-      setState(() {
-        _lastSaved = DateTime.now();
-      });
+    try {
+      await _api.saveDraft(data);
+      if (mounted) {
+        setState(() {
+          _lastSaved = DateTime.now();
+          _syncStatus = SyncStatus.cloudSynced;
+        });
+      }
+    } catch (e) {
+      if (e is BackendApiException && e.isNetworkIssue) {
+        await _cache.saveDraft(user.id, data, _step);
+        _syncService.syncPendingDrafts(); // Try syncing immediately in background
+        if (mounted) {
+          setState(() {
+            _lastSaved = DateTime.now();
+            _syncStatus = SyncStatus.pendingSync;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Connection temporarily unavailable. Your progress has been saved locally and will sync automatically.'),
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      } else {
+        debugPrint('[ONBOARDING_DRAFT_SAVE_FAILED] Unexpected error: $e');
+      }
     }
   }
 
   @override
   void dispose() {
+    _syncService.stop();
     _autoSaveTimer?.cancel();
     if (_step >= 0) _pageController.dispose();
     _draft.dispose();
@@ -906,7 +964,7 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
         title: const Text('Vendor Partner Setup', style: TextStyle(color: VendorTheme.onboardingPrimaryText, fontSize: 16, fontWeight: FontWeight.w600)),
         centerTitle: true,
         actions: [
-          DraftSaveBadge(lastSaved: _lastSaved),
+          DraftSaveBadge(lastSaved: _lastSaved, status: _syncStatus),
         ],
       ),
       body: SafeArea(

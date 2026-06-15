@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart';
 
 import 'app_config.dart';
 import 'auth_session_service.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 enum BackendFailureKind {
   noInternet,
@@ -134,6 +136,9 @@ class BackendApiClient {
     required String exceptionType,
     Duration? timeoutDuration,
     String? message,
+    Map<String, dynamic>? sentryContext,
+    Object? error,
+    StackTrace? stackTrace,
   }) {
     final timeoutLabel = timeoutDuration == null
         ? 'n/a'
@@ -142,6 +147,33 @@ class BackendApiClient {
       'BackendApiClient failure: endpoint=$method $path, statusCode=$statusCode, '
       'exceptionType=$exceptionType, timeout=$timeoutLabel${message == null ? '' : ', message=$message'}',
     );
+
+    if (error != null) {
+      Connectivity().checkConnectivity().then((connectivityResult) {
+        final networkType = connectivityResult.isNotEmpty ? connectivityResult.first.name : 'unknown';
+        Sentry.captureException(
+          error,
+          stackTrace: stackTrace,
+          withScope: (scope) {
+            final userSnapshot = AuthSessionService.instance.userSnapshot;
+            if (userSnapshot != null && userSnapshot['id'] != null) {
+              final userId = userSnapshot['id'].toString();
+              scope.setUser(SentryUser(id: userId));
+              scope.setTag('userId', userId);
+            }
+            scope.setTag('endpoint', '$method $path');
+            scope.setTag('baseUrl', AppConfig.backendBaseUrl);
+            scope.setTag('networkType', networkType);
+            
+            if (sentryContext != null) {
+              sentryContext.forEach((key, value) {
+                scope.setTag(key, value.toString());
+              });
+            }
+          },
+        );
+      });
+    }
   }
 
   bool _isNoInternetError(Object error) {
@@ -246,6 +278,8 @@ class BackendApiClient {
     required String path,
     required Object error,
     required Duration timeoutDuration,
+    StackTrace? stackTrace,
+    Map<String, dynamic>? sentryContext,
   }) {
     final kind = _classifyTransportFailure(error);
     final statusCode = switch (kind) {
@@ -266,6 +300,9 @@ class BackendApiClient {
       exceptionType: error.runtimeType.toString(),
       timeoutDuration: timeoutDuration,
       message: message,
+      sentryContext: sentryContext,
+      error: error,
+      stackTrace: stackTrace,
     );
     if (kind == BackendFailureKind.backendUnavailable ||
         kind == BackendFailureKind.timeout ||
