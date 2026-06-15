@@ -45,7 +45,7 @@ class RiderSplashScreen extends StatefulWidget {
 
 class _RiderSplashScreenState extends State<RiderSplashScreen> {
   static const _splashDuration = Duration(milliseconds: 1500);
-  static const _logoAsset = 'assets/branding/abzora_partner_icon.png';
+  static const _logoAsset = 'assets/branding/abianzo_partner_icon.png';
 
   @override
   void initState() {
@@ -1310,7 +1310,7 @@ class _RiderOnboardingFlowScreenState
               color: Colors.white.withValues(alpha: 0.92),
               padding: const EdgeInsets.all(4),
               child: Image.asset(
-                'assets/branding/abzora_rider_icon.png',
+                'assets/branding/abianzo_rider_icon.png',
                 fit: BoxFit.contain,
               ),
             ),
