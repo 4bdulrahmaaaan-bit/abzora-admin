@@ -49,9 +49,9 @@ class BusinessProfileStep extends StatelessWidget {
           children: [
             _buildField(storeNameController, 'Store Name', hint: 'Abianzo Tailors'),
             _buildDropdown('Business Type', businessType, _businessTypeOptions, onBusinessTypeChanged),
-            _buildField(ownerNameController, 'Owner Name', hint: 'A. Rahman', readOnly: true),
-            _buildField(phoneController, 'Phone', hint: '9876543210', readOnly: true),
-            _buildField(emailController, 'Email', hint: 'owner@store.com', readOnly: true),
+            _buildField(ownerNameController, 'Owner Name', hint: 'A. Rahman'),
+            _buildField(phoneController, 'Phone', hint: '9876543210'),
+            _buildField(emailController, 'Email', hint: 'owner@store.com'),
             _buildField(gstNumberController, 'GST Number (Optional)', hint: '22AAAAA0000A1Z5'),
           ],
         ),
@@ -60,7 +60,7 @@ class BusinessProfileStep extends StatelessWidget {
           title: 'Location Verification',
           children: [
             _buildField(addressController, 'Address', hint: 'Street, area, landmark', maxLines: 2),
-            _buildField(cityController, 'City', hint: 'Chennai', readOnly: true),
+            _buildField(cityController, 'City', hint: 'Chennai'),
             const SizedBox(height: 16),
             if (hasLocation)
               Container(
