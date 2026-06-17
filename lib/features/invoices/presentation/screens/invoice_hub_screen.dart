@@ -7,6 +7,7 @@ import '../../../../providers/auth_provider.dart';
 import '../../domain/entities/invoice_entity.dart';
 import '../providers/invoice_providers.dart';
 import 'invoice_history_screen.dart';
+import '../../../../utils/app_mode_routes.dart';
 
 class InvoiceHubScreen extends ConsumerWidget {
   const InvoiceHubScreen({super.key});
@@ -14,11 +15,11 @@ class InvoiceHubScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = context.watch<AuthProvider>();
-    final role = auth.user?.role ?? 'customer';
-    if (role == 'admin' || role == 'super_admin') {
+    final user = auth.user;
+    if (hasAdminAccess(user)) {
       return const _AdminInvoiceOpsScreen();
     }
-    if (role == 'vendor') {
+    if (hasVendorOperationsAccess(user)) {
       return const _VendorInvoiceOpsScreen();
     }
     return const InvoiceHistoryScreen();

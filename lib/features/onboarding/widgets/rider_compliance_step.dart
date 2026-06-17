@@ -8,13 +8,13 @@ import '../../../../core/theme/rider_theme.dart';
 class RiderComplianceStep extends StatelessWidget {
   final RiderSignupModel model;
   final ValueChanged<RiderSignupModel> onUpdate;
-  final Widget Function(String, String?, void Function(String)) uploadRowBuilder;
+  final Widget Function(String, String, String?, void Function(String)) visualCardBuilder;
 
   const RiderComplianceStep({
     super.key,
     required this.model,
     required this.onUpdate,
-    required this.uploadRowBuilder,
+    required this.visualCardBuilder,
   });
 
   @override
@@ -98,13 +98,15 @@ class RiderComplianceStep extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        uploadRowBuilder(
-          'Driving License Copy',
+        visualCardBuilder(
+          'Driving License',
+          'Front and back copy of your driving license',
           model.licenseDocPath,
           (p) => onUpdate(model.copyWith(licenseDocPath: p)),
         ),
-        uploadRowBuilder(
+        visualCardBuilder(
           'Selfie Verification',
+          'A clear selfie taken just now for identification',
           model.selfiePath,
           (p) => onUpdate(model.copyWith(selfiePath: p)),
         ),

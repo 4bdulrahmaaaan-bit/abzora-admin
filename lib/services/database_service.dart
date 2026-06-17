@@ -1659,7 +1659,7 @@ class DatabaseService {
   }
 
   bool isSuperAdmin(AppUser? actor) =>
-      actor != null && (actor.role == superAdminRole || actor.role == 'admin');
+      hasAdminAccess(actor);
   bool isRider(AppUser? actor) => hasRiderOperationsAccess(actor);
   bool isVendor(AppUser? actor) => hasVendorOperationsAccess(actor);
 
@@ -6381,8 +6381,7 @@ class DatabaseService {
           actor != null &&
           (isVendor(actor) ||
               isRider(actor) ||
-              actor.role == 'admin' ||
-              actor.role == 'super_admin');
+              hasAdminAccess(actor));
       final vendorOpsStatus = switch (normalizedStatus) {
         'placed' || 'new' || 'new_order' => 'new',
         'confirmed' || 'accepted' => 'accepted',
@@ -6392,9 +6391,7 @@ class DatabaseService {
         'cancelled' || 'rejected' => 'rejected',
         _ => '',
       };
-      if ((isVendor(actor) ||
-              actor?.role == 'admin' ||
-              actor?.role == 'super_admin') &&
+      if ((isVendor(actor) || hasAdminAccess(actor)) &&
           vendorOpsStatus.isNotEmpty) {
         await _backendCommerce.updateVendorOperationsOrderStatus(
           orderId: orderId,
@@ -9444,8 +9441,7 @@ class DatabaseService {
   bool _isPremiumAiUser(AppUser actor) {
     return actor.roles['premium'] == true ||
         actor.roles['elite'] == true ||
-        actor.role == 'admin' ||
-        actor.role == 'super_admin';
+        hasAdminAccess(actor);
   }
 
   int _dailyAiQuotaFor(AppUser actor) {

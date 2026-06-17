@@ -10,6 +10,22 @@ void main() {
       name: 'Test User',
       email: 'test@example.com',
       role: role,
+      activeRole: role,
+    );
+  }
+
+  AppUser buildCapabilityUser({
+    required String role,
+    required String activeRole,
+    required Map<String, bool> roles,
+  }) {
+    return AppUser(
+      id: 'u2',
+      name: 'Capability User',
+      email: 'capability@example.com',
+      role: role,
+      activeRole: activeRole,
+      roles: roles,
     );
   }
 
@@ -18,14 +34,61 @@ void main() {
       expect(routeForUserInMode(buildUser('user'), AbzioAppMode.unified), '/shop');
     });
 
-    test('routes vendor and rider to ops in unified mode', () {
-      expect(routeForUserInMode(buildUser('vendor'), AbzioAppMode.unified), '/ops');
-      expect(routeForUserInMode(buildUser('rider'), AbzioAppMode.unified), '/ops');
+    test('routes vendor and rider to onboarding in unified mode', () {
+      expect(routeForUserInMode(buildUser('vendor'), AbzioAppMode.unified), '/vendor-onboarding');
+      expect(routeForUserInMode(buildUser('rider'), AbzioAppMode.unified), '/rider-onboarding');
     });
 
     test('routes admin to admin entry in unified mode', () {
       expect(routeForUserInMode(buildUser('admin'), AbzioAppMode.unified), '/admin');
       expect(routeForUserInMode(buildUser('super_admin'), AbzioAppMode.unified), '/admin');
+    });
+
+    test('respects role capabilities from roles map and activeRole', () {
+      final vendorUser = buildCapabilityUser(
+        role: 'customer',
+        activeRole: 'vendor',
+        roles: const {'vendor': true},
+      );
+      final riderUser = buildCapabilityUser(
+        role: 'customer',
+        activeRole: 'rider',
+        roles: const {'rider': true},
+      );
+
+      expect(hasVendorOperationsAccess(vendorUser), isTrue);
+      expect(hasRiderOperationsAccess(riderUser), isTrue);
+      expect(routeForUserInMode(vendorUser, AbzioAppMode.vendor), '/vendor-onboarding');
+      expect(routeForUserInMode(riderUser, AbzioAppMode.rider), '/rider-onboarding');
+    });
+
+    test('routes rejected rider to rejected screen', () {
+      final rejectedRider = AppUser(
+        id: 'u3',
+        name: 'Rejected Rider',
+        email: 'rejected@example.com',
+        role: 'rider',
+        activeRole: 'rider',
+        riderApprovalStatus: 'rejected',
+        riderOnboarding: const {'status': 'rejected'},
+      );
+
+      expect(routeForUserInMode(rejectedRider, AbzioAppMode.rider), '/rider-rejected');
+    });
+
+    test('routes rejected vendor to rejected screen even with a store id', () {
+      final rejectedVendor = AppUser(
+        id: 'u4',
+        name: 'Rejected Vendor',
+        email: 'vendor@example.com',
+        role: 'vendor',
+        activeRole: 'vendor',
+        storeId: 'store-1',
+        vendorOnboarding: const {'status': 'rejected'},
+      );
+
+      expect(routeForUserInMode(rejectedVendor, AbzioAppMode.vendor), '/vendor-rejected');
+      expect(routeForUserInMode(rejectedVendor, AbzioAppMode.operations), '/vendor-rejected');
     });
   });
 
@@ -52,7 +115,7 @@ void main() {
     });
 
     test('allows valid role in matching build', () {
-      expect(accessRestrictionMessage(buildUser('user'), AbzioAppMode.customer), isNull);
+      expect(accessRestrictionMessage(buildUser('customer'), AbzioAppMode.customer), isNull);
       expect(accessRestrictionMessage(buildUser('vendor'), AbzioAppMode.operations), isNull);
     });
   });

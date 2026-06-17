@@ -2,6 +2,8 @@ import 'app_shell.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'services/app_config.dart';
 
 Future<void> main() async {
@@ -27,26 +29,29 @@ Future<void> main() async {
 Future<void> _performHealthCheck() async {
   try {
     final baseUrl = AppConfig.backendBaseUrl;
-    final response = await http.get(Uri.parse('$baseUrl/api/health')).timeout(const Duration(seconds: 5));
-    if (response.statusCode != 200) {
-      _showConnectivityWarning();
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity.contains(ConnectivityResult.none)) {
+      debugPrint('Vendor startup health check: device appears offline.');
+      return;
     }
-  } catch (e) {
-    _showConnectivityWarning();
-  }
-}
 
-void _showConnectivityWarning() {
-  Future.delayed(const Duration(seconds: 2), () {
-    final context = AbzioApp.navigatorKey.currentContext;
-    if (context != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Limited connectivity detected. Changes will sync automatically when connection is restored.'),
-          duration: Duration(seconds: 6),
-          behavior: SnackBarBehavior.floating,
-        ),
+    final response = await http
+        .get(Uri.parse('$baseUrl/api/health'))
+        .timeout(const Duration(seconds: 5));
+    if (response.statusCode != 200) {
+      debugPrint(
+        'Vendor startup health check returned ${response.statusCode}. '
+        'Suppressing user-facing connectivity banner.',
       );
+      return;
     }
-  });
+    debugPrint('Vendor startup health check passed.');
+  } catch (e) {
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity.contains(ConnectivityResult.none)) {
+      debugPrint('Vendor startup health check: offline exception detected.');
+      return;
+    }
+    debugPrint('Vendor startup health check failed: $e');
+  }
 }

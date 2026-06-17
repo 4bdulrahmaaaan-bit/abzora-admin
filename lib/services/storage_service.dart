@@ -1,12 +1,13 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'app_config.dart';
-import 'auth_session_service.dart';
 import 'backend_api_client.dart';
+import 'auth_session_service.dart';
 import 'image_url_service.dart';
 
 class StorageService {
@@ -35,6 +36,8 @@ class StorageService {
     '.jpeg',
     '.png',
     '.webp',
+    '.heic',
+    '.heif',
   };
   final BackendApiClient _backendApiClient;
 
@@ -55,7 +58,7 @@ class StorageService {
 
     final extension = _fileExtension(file.name);
     if (!_allowedExtensions.contains(extension)) {
-      throw StateError('Only JPG, PNG, and WEBP images are allowed.');
+      throw StateError('Only JPG, PNG, WEBP, HEIC, and HEIF images are allowed.');
     }
 
     final fileSize = await file.length();
@@ -63,195 +66,87 @@ class StorageService {
       throw StateError('Image must be smaller than 8 MB.');
     }
 
-    if (_backendApiClient.isConfigured) {
-      return _uploadViaBackend(file: file);
+    debugPrint('[CLOUDINARY_DEBUG] uploadType=Backend_Upload endpoint=/upload folder=$folder mimeType=$extension fileName=${fileName ?? file.name}');
+
+    if (!_backendApiClient.isConfigured) {
+      debugPrint('[CLOUDINARY_FAILURE] Backend is not configured. Cannot perform upload.');
+      throw StateError('Backend upload service is not configured.');
     }
 
-    if (AppConfig.hasCloudinarySignedUploadEndpoint) {
-      return _uploadWithSigner(
-        file: file,
-        folder: folder,
-        ownerId: normalizedOwnerId,
-        fileName: fileName,
-      );
-    }
-
-    if (!AppConfig.hasCloudinaryConfig) {
-      throw StateError('Cloudinary is not configured yet.');
-    }
-    if (!AppConfig.allowInsecureUnsignedUploads) {
-      throw StateError(
-        'Secure upload configuration is required. Configure backend or signed upload endpoint.',
-      );
-    }
-
-    return _uploadUnsigned(
-      file: file,
-      folder: folder,
-      ownerId: normalizedOwnerId,
-      fileName: fileName,
-    );
+    return _uploadViaBackend(file: file, folder: folder, ownerId: normalizedOwnerId);
   }
 
-  Future<String> _uploadViaBackend({required XFile file}) async {
+  Future<String> _uploadViaBackend({required XFile file, required String folder, required String ownerId}) async {
     final extension = _fileExtension(file.name);
-    final payload = await _backendApiClient.multipart(
-      '/upload',
-      fieldName: 'image',
-      bytes: await file.readAsBytes(),
-      filename: file.name,
-      contentType: _contentTypeForExtension(extension),
-    );
-    final data = payload is Map<String, dynamic>
-        ? payload
-        : Map<String, dynamic>.from(payload as Map);
-    final url = data['url']?.toString() ?? '';
-    if (url.isEmpty) {
-      throw StateError('Backend upload did not return an image URL.');
-    }
-    return ImageUrlService.optimizeForDelivery(url);
-  }
-
-  Future<String> _uploadUnsigned({
-    required XFile file,
-    required String folder,
-    required String ownerId,
-    String? fileName,
-  }) async {
-    final publicId = _buildPublicId(fileName ?? file.name);
-
-    final uri = Uri.parse(
-      'https://api.cloudinary.com/v1_1/${AppConfig.cloudinaryCloudName}/image/upload',
-    );
-    final request = http.MultipartRequest('POST', uri)
-      ..fields['upload_preset'] = AppConfig.cloudinaryUploadPreset
-      ..fields['folder'] = '$folder/$ownerId'
-      ..fields['public_id'] = publicId;
-
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        await file.readAsBytes(),
-        filename: file.name,
-      ),
-    );
-
-    return _sendCloudinaryUpload(request);
-  }
-
-  Future<String> _uploadWithSigner({
-    required XFile file,
-    required String folder,
-    required String ownerId,
-    String? fileName,
-  }) async {
-    final headers = await AuthSessionService.instance
-        .requiredAuthorizationHeaders(
-          failureMessage:
-              'Signed uploads require an authenticated user session.',
+    try {
+      Future<String> sendWithToken({required bool forceRefresh}) async {
+        final token = await AuthSessionService.instance.requiredAuthorizationToken(
+          forceRefresh: forceRefresh,
+          failureMessage: 'Please sign in again before uploading images.',
         );
 
-    final publicId = _buildPublicId(fileName ?? file.name);
-    final signResponse = await http.post(
-      Uri.parse(AppConfig.cloudinarySignedUploadEndpoint),
-      headers: headers,
-      body: jsonEncode({
-        'folder': folder,
-        'ownerId': ownerId,
-        'publicId': publicId,
-        'fileName': file.name,
-      }),
-    );
+        final request = http.MultipartRequest(
+          'POST',
+          Uri.parse('${AppConfig.backendBaseUrl}/upload'),
+        );
+        request.headers['Authorization'] = 'Bearer $token';
+        request.fields['folder'] = '$folder/$ownerId';
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'image',
+            await file.readAsBytes(),
+            filename: file.name,
+            contentType: _contentTypeForExtension(extension),
+          ),
+        );
 
-    final signPayload = signResponse.body.isEmpty
-        ? <String, dynamic>{}
-        : jsonDecode(utf8.decode(signResponse.bodyBytes)) as Map<String, dynamic>;
-    if (signResponse.statusCode < 200 || signResponse.statusCode >= 300) {
-      throw StateError(
-        signPayload['error']?.toString() ??
-            'Cloudinary signed upload could not be initialized.',
-      );
+        final response = await request.send().timeout(const Duration(seconds: 30));
+        final body = await response.stream.bytesToString();
+        final decoded = body.isEmpty
+            ? <String, dynamic>{}
+            : Map<String, dynamic>.from(jsonDecode(body) as Map);
+        final data = decoded['data'] is Map
+            ? Map<String, dynamic>.from(decoded['data'] as Map)
+            : decoded;
+        if (response.statusCode == 401 && !forceRefresh) {
+          return sendWithToken(forceRefresh: true);
+        }
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          final message = data['message']?.toString().trim();
+          throw StateError(
+            message?.isNotEmpty == true
+                ? message!
+                : 'Image upload failed (${response.statusCode}).',
+          );
+        }
+
+        final url = data['url']?.toString() ?? '';
+        if (url.isEmpty) {
+          throw StateError('Backend upload did not return an image URL.');
+        }
+        return ImageUrlService.optimizeForDelivery(url);
+      }
+
+      try {
+        return await sendWithToken(forceRefresh: false);
+      } on StateError {
+        rethrow;
+      } catch (_) {
+        return await sendWithToken(forceRefresh: true);
+      }
+    } on BackendApiException catch (e) {
+      debugPrint('[CLOUDINARY_FAILURE] Backend upload rejected: ${e.statusCode} ${e.message}');
+      throw StateError(e.message);
+    } on StateError catch (e) {
+      debugPrint('[CLOUDINARY_FAILURE] Backend upload failed: ${e.message}');
+      throw StateError(e.message);
+    } catch (e) {
+      debugPrint('[CLOUDINARY_FAILURE] Backend upload failed: $e');
+      throw StateError('Image upload failed. Please try again.');
     }
-
-    final cloudName =
-        (signPayload['cloudName']?.toString().trim().isNotEmpty ?? false)
-        ? signPayload['cloudName'].toString().trim()
-        : AppConfig.cloudinaryCloudName;
-    final signature = signPayload['signature']?.toString() ?? '';
-    final apiKey = signPayload['apiKey']?.toString() ?? '';
-    final timestamp = signPayload['timestamp']?.toString() ?? '';
-    final signedFolder =
-        signPayload['folder']?.toString() ?? '$folder/$ownerId';
-    final signedPublicId = signPayload['publicId']?.toString() ?? publicId;
-
-    if (cloudName.isEmpty ||
-        signature.isEmpty ||
-        apiKey.isEmpty ||
-        timestamp.isEmpty) {
-      throw StateError(
-        'Signed upload response is missing required Cloudinary fields.',
-      );
-    }
-
-    final request =
-        http.MultipartRequest(
-            'POST',
-            Uri.parse(
-              'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
-            ),
-          )
-          ..fields['api_key'] = apiKey
-          ..fields['timestamp'] = timestamp
-          ..fields['signature'] = signature
-          ..fields['folder'] = signedFolder
-          ..fields['public_id'] = signedPublicId;
-
-    final uploadPreset = signPayload['uploadPreset']?.toString();
-    if (uploadPreset != null && uploadPreset.trim().isNotEmpty) {
-      request.fields['upload_preset'] = uploadPreset.trim();
-    }
-
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        await file.readAsBytes(),
-        filename: file.name,
-      ),
-    );
-
-    return _sendCloudinaryUpload(request);
   }
 
-  Future<String> _sendCloudinaryUpload(http.MultipartRequest request) async {
-    final response = await request.send();
-    final body = await response.stream.bytesToString();
-    final payload = body.isEmpty
-        ? <String, dynamic>{}
-        : jsonDecode(body) as Map<String, dynamic>;
 
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message = payload['error'] is Map<String, dynamic>
-          ? (payload['error']['message']?.toString() ??
-                'Cloudinary upload failed.')
-          : 'Cloudinary upload failed.';
-      throw StateError(message);
-    }
-
-    final secureUrl = payload['secure_url']?.toString() ?? '';
-    if (secureUrl.isEmpty) {
-      throw StateError('Cloudinary did not return an image URL.');
-    }
-
-    return ImageUrlService.optimizeForDelivery(secureUrl);
-  }
-
-  String _buildPublicId(String seed) {
-    final sanitized = _sanitizePathSegment(
-      seed.replaceAll(RegExp(r'\.[^.]+$'), ''),
-    );
-    final fallback = sanitized.isEmpty ? 'upload' : sanitized;
-    return '$fallback-${DateTime.now().millisecondsSinceEpoch}';
-  }
 
   String _sanitizePathSegment(String value) {
     return value.trim().replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
@@ -274,6 +169,10 @@ class StorageService {
         return MediaType('image', 'png');
       case '.webp':
         return MediaType('image', 'webp');
+      case '.heic':
+        return MediaType('image', 'heic');
+      case '.heif':
+        return MediaType('image', 'heif');
       default:
         return MediaType('image', 'jpeg');
     }

@@ -22,11 +22,23 @@ class DraftSaveBadge extends StatelessWidget {
     String text;
 
     switch (status) {
+      case SyncStatus.saving:
+        bgColor = Colors.grey.withValues(alpha: 0.1);
+        fgColor = Colors.grey;
+        icon = Icons.sync_rounded;
+        text = 'Saving...';
+        break;
+      case SyncStatus.syncing:
+        bgColor = Colors.blue.withValues(alpha: 0.1);
+        fgColor = Colors.blue;
+        icon = Icons.cloud_sync_rounded;
+        text = 'Syncing...';
+        break;
       case SyncStatus.pendingSync:
         bgColor = Colors.orange.withValues(alpha: 0.1);
         fgColor = Colors.orange;
         icon = Icons.warning_amber_rounded;
-        text = '⚠ Pending Sync';
+        text = 'Pending Sync';
         break;
       case SyncStatus.syncFailed:
         bgColor = Colors.red.withValues(alpha: 0.1);
@@ -45,7 +57,7 @@ class DraftSaveBadge extends StatelessWidget {
         fgColor = Colors.green;
         icon = Icons.cloud_done_outlined;
         final diff = lastSaved != null ? DateTime.now().difference(lastSaved!) : const Duration(minutes: 5);
-        text = diff.inSeconds < 60 ? '✓ Synced Just Now' : '✓ Saved To Cloud';
+        text = diff.inSeconds < 60 ? 'Saved' : 'Saved';
         break;
     }
 

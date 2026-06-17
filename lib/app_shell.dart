@@ -459,7 +459,8 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       debugPrint('hasVendorAccess=${hasVendorOperationsAccess(user)}');
 
       if (user != null) {
-        if (widget.mode == AbzioAppMode.unified && kIsWeb) {
+        final isAdminUser = hasAdminAccess(user);
+        if (widget.mode == AbzioAppMode.unified && kIsWeb && isAdminUser) {
           Navigator.of(context).pushAndRemoveUntil(
             _launchRoute(_launchDestinationForRoute('/admin', user)),
             (route) => false,
@@ -1065,7 +1066,7 @@ class _AdminRoute extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    if (user.role != 'admin' && user.role != 'super_admin') {
+    if (!hasAdminAccess(user)) {
       return const Scaffold(
         body: Center(
           child: Padding(

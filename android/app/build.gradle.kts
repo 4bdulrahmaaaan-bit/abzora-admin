@@ -51,7 +51,7 @@ android {
         }
         create("vendor") {
             dimension = "app"
-            applicationId = "com.abdz.fashion.abzio.vendor"
+            applicationId = "com.abdz.fashion.abzio.partner"
             resValue("string", "app_name", "Abianzo Vendor")
         }
         create("rider") {

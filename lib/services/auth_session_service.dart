@@ -11,7 +11,7 @@ import '../models/models.dart';
 import 'app_config.dart';
 import 'secure_session_storage.dart';
 
-enum SessionRecoveryStatus { recovered, offline, failed }
+enum SessionRecoveryStatus { recovered, offline, failed, rateLimited, unprovisioned }
 
 class _RefreshOperationState {
   _RefreshOperationState({
@@ -59,6 +59,7 @@ class AuthSessionService {
   String? _sessionId;
   String? _deviceId;
   Map<String, dynamic>? _userSnapshot;
+  DateTime? _rateLimitUntil;
 
   Future<void> initialize() async {
     if (_initialized) {
@@ -120,6 +121,14 @@ class AuthSessionService {
 
     if (_isAccessTokenValid()) {
       return _accessToken;
+    }
+
+    if (refreshed == SessionRecoveryStatus.unprovisioned) {
+      throw StateError('Your account could not be provisioned. Please contact support if this persists.');
+    }
+
+    if (refreshed == SessionRecoveryStatus.rateLimited) {
+      throw StateError('Too many requests. Please wait a moment and try again.');
     }
 
     try {
@@ -215,7 +224,7 @@ class AuthSessionService {
     if (_isAccessTokenValid()) {
       return true;
     }
-    return true;
+    return false;
   }
 
   Future<SessionRecoveryStatus> attemptSilentRecovery({
@@ -462,6 +471,12 @@ class AuthSessionService {
       debugPrint(
         'AuthSessionService: session bootstrap failed (${response.statusCode}).',
       );
+      if (response.statusCode == 429) {
+        return SessionRecoveryStatus.rateLimited;
+      }
+      if (response.statusCode == 403) {
+        return SessionRecoveryStatus.unprovisioned;
+      }
       return SessionRecoveryStatus.failed;
     }
 
@@ -498,6 +513,9 @@ class AuthSessionService {
       debugPrint(
         'AuthSessionService: refresh failed (${response.statusCode}).',
       );
+      if (response.statusCode == 429) {
+        return SessionRecoveryStatus.rateLimited;
+      }
       return _isTransientNetworkResponse(response)
           ? SessionRecoveryStatus.offline
           : SessionRecoveryStatus.failed;
@@ -645,6 +663,11 @@ class AuthSessionService {
       return SessionRecoveryStatus.failed;
     }
 
+    if (_rateLimitUntil != null && DateTime.now().isBefore(_rateLimitUntil!)) {
+      debugPrint('AuthSessionService: backend session bootstrap deferred due to rate limiting.');
+      return SessionRecoveryStatus.rateLimited;
+    }
+
     final accessStatus = await _refreshBackendSession(
       force: forceIdTokenRefresh,
     );
@@ -777,6 +800,10 @@ class AuthSessionService {
         'AuthSessionService: queued requests replayed for ${operation.operationName} (count=$queued).',
       );
     } else {
+      if (result == SessionRecoveryStatus.rateLimited) {
+        _rateLimitUntil = DateTime.now().add(const Duration(seconds: 45));
+        debugPrint('AuthSessionService: Backoff activated for 45 seconds due to 429 Rate Limit.');
+      }
       debugPrint(
         'AuthSessionService: queued requests rejected for ${operation.operationName} (count=$queued, result=${result.name}).',
       );

@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "473004460649-pid2hk07tid5cu73fadrf5mgm613tmsq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.abdz.fashion.abzio",
+            "certificate_hash": "e3ef8b867f8bc1053ea745ee6af3721cba190c60"
+          }
+        },
+        {
           "client_id": "473004460649-p0d6kan0pbneun8u70879ouh8d7gnu3s.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -31,10 +39,10 @@
               "client_type": 3
             },
             {
-              "client_id": "473004460649-guom864asi1l10quiht8dpm7sc9hj0sv.apps.googleusercontent.com",
+              "client_id": "473004460649-7l87ab2l9n0ujm47dpc855l54foe21cd.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.abdz.fashion.abzio.partner"
+                "bundle_id": "com.abdz.fashion.abzio.rider"
               }
             }
           ]
@@ -50,6 +58,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "473004460649-fhocc4j1nt93m2ug3150a9uvgs7m9n9n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.abdz.fashion.abzio.partner",
+            "certificate_hash": "e3ef8b867f8bc1053ea745ee6af3721cba190c60"
+          }
+        },
+        {
           "client_id": "473004460649-p0d6kan0pbneun8u70879ouh8d7gnu3s.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -67,10 +83,54 @@
               "client_type": 3
             },
             {
-              "client_id": "473004460649-guom864asi1l10quiht8dpm7sc9hj0sv.apps.googleusercontent.com",
+              "client_id": "473004460649-7l87ab2l9n0ujm47dpc855l54foe21cd.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.abdz.fashion.abzio.partner"
+                "bundle_id": "com.abdz.fashion.abzio.rider"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:473004460649:android:d4194d03b01e592302b0f8",
+        "android_client_info": {
+          "package_name": "com.abdz.fashion.abzio.rider"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "473004460649-m5e4kc72rfu7vv9a4a5kroei3oerrclo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.abdz.fashion.abzio.rider",
+            "certificate_hash": "e3ef8b867f8bc1053ea745ee6af3721cba190c60"
+          }
+        },
+        {
+          "client_id": "473004460649-p0d6kan0pbneun8u70879ouh8d7gnu3s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtutc5iB4sCamdxuMMk46cZoNkxYlc-jI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "473004460649-p0d6kan0pbneun8u70879ouh8d7gnu3s.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "473004460649-7l87ab2l9n0ujm47dpc855l54foe21cd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.abdz.fashion.abzio.rider"
               }
             }
           ]

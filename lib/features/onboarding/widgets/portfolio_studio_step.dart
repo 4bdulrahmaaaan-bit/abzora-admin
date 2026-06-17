@@ -33,43 +33,47 @@ class PortfolioStudioStep extends StatelessWidget {
       children: [
         _buildCard(
           context: context,
-          title: 'Portfolio Studio (Optional)',
+          title: images.isEmpty ? 'Showcase Your Work' : 'Portfolio Studio (Optional)',
           children: [
-            const Text(
-              'Portfolio images help customers trust your store and improve store visibility.\nYou may upload them now or later from the Vendor Dashboard.',
-              style: TextStyle(color: VendorTheme.onboardingSecondaryText, fontSize: 13),
+            Text(
+              images.isEmpty
+                  ? 'Upload photos of your products, tailoring work, collections, storefront, or customer projects.\n\nStores with portfolio images receive more trust, higher visibility, and better customer engagement.'
+                  : 'Portfolio images help customers trust your store and improve store visibility.\nYou may upload them now or later from the Vendor Dashboard.',
+              style: const TextStyle(color: VendorTheme.onboardingSecondaryText, fontSize: 13),
             ),
             const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Portfolio Quality Score',
-                  style: TextStyle(color: VendorTheme.onboardingSecondaryText, fontSize: 14, fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  '$qualityScore/100',
-                  style: TextStyle(
-                    color: qualityScore >= 80 ? VendorTheme.onboardingSuccess : (qualityScore > 40 ? VendorTheme.onboardingWarning : VendorTheme.onboardingError),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+            if (images.isNotEmpty) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Portfolio Quality Score',
+                    style: TextStyle(color: VendorTheme.onboardingSecondaryText, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    '$qualityScore/100',
+                    style: TextStyle(
+                      color: qualityScore >= 80 ? VendorTheme.onboardingSuccess : (qualityScore > 40 ? VendorTheme.onboardingWarning : VendorTheme.onboardingError),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: qualityScore / 100,
+                  minHeight: 6,
+                  backgroundColor: VendorTheme.onboardingElevatedSurface,
+                  valueColor: AlwaysStoppedAnimation(
+                    qualityScore >= 80 ? VendorTheme.onboardingSuccess : (qualityScore > 40 ? VendorTheme.onboardingWarning : VendorTheme.onboardingError),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: qualityScore / 100,
-                minHeight: 6,
-                backgroundColor: VendorTheme.onboardingElevatedSurface,
-                valueColor: AlwaysStoppedAnimation(
-                  qualityScore >= 80 ? VendorTheme.onboardingSuccess : (qualityScore > 40 ? VendorTheme.onboardingWarning : VendorTheme.onboardingError),
-                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
+            ],
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

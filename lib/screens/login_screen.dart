@@ -38,9 +38,51 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _phoneFocusNode = FocusNode();
+  final _vendorBannerController = PageController();
+  final _riderBannerController = PageController();
   String? _phoneError;
   Timer? _adminCooldownTimer;
+  Timer? _vendorBannerTimer;
+  Timer? _riderBannerTimer;
+  int _vendorBannerIndex = 0;
+  int _riderBannerIndex = 0;
   int _adminCooldownSeconds = 0;
+
+  static const List<_WorkspaceBannerSlide> _vendorBannerSlides = [
+    _WorkspaceBannerSlide(
+      imagePath: 'assets/onboarding/vendor_visual_0.jpg',
+      title: 'POWER YOUR STORE',
+      subtitle: 'Stock, prep, payouts, and dispatch in one view.',
+    ),
+    _WorkspaceBannerSlide(
+      imagePath: 'assets/onboarding/vendor_visual_1.jpg',
+      title: 'SELL WITH CLARITY',
+      subtitle: 'Stay ready on inventory, menus, and fulfillment.',
+    ),
+    _WorkspaceBannerSlide(
+      imagePath: 'assets/onboarding/vendor_visual_2.jpg',
+      title: 'GROW WITH ABIANZO',
+      subtitle: 'Built for partner teams that want faster dispatch.',
+    ),
+  ];
+
+  static const List<_WorkspaceBannerSlide> _riderBannerSlides = [
+    _WorkspaceBannerSlide(
+      imagePath: 'assets/onboarding/rider_visual_0.jpg',
+      title: 'DELIVER WITH CONFIDENCE',
+      subtitle: 'Track orders, routes, and earnings in one workspace.',
+    ),
+    _WorkspaceBannerSlide(
+      imagePath: 'assets/onboarding/rider_visual_1.jpg',
+      title: 'STAY ROUTE READY',
+      subtitle: 'See live pickups, delivery updates, and handoff status.',
+    ),
+    _WorkspaceBannerSlide(
+      imagePath: 'assets/onboarding/rider_visual_2.jpg',
+      title: 'EARN EVERY SHIFT',
+      subtitle: 'Monitor payouts, incentives, and trip performance.',
+    ),
+  ];
 
   bool get _useGoogleAdminLogin => kIsWeb && widget.adminEntry;
   bool get _isPrimaryFashionLogin =>
@@ -80,6 +122,11 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _phoneFocusNode.addListener(_handleFocusChange);
     _phoneController.addListener(_handlePhoneChange);
+    if (widget.mode == AbzioAppMode.vendor) {
+      _startVendorBannerRotation();
+    } else if (widget.mode == AbzioAppMode.rider) {
+      _startRiderBannerRotation();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _phoneFocusNode.requestFocus();
@@ -111,6 +158,44 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _startVendorBannerRotation() {
+    _vendorBannerTimer?.cancel();
+    if (_vendorBannerSlides.length < 2) {
+      return;
+    }
+    _vendorBannerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_vendorBannerController.hasClients) {
+        return;
+      }
+      final next = (_vendorBannerIndex + 1) % _vendorBannerSlides.length;
+      _vendorBannerController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+      setState(() => _vendorBannerIndex = next);
+    });
+  }
+
+  void _startRiderBannerRotation() {
+    _riderBannerTimer?.cancel();
+    if (_riderBannerSlides.length < 2) {
+      return;
+    }
+    _riderBannerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_riderBannerController.hasClients) {
+        return;
+      }
+      final next = (_riderBannerIndex + 1) % _riderBannerSlides.length;
+      _riderBannerController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+      setState(() => _riderBannerIndex = next);
+    });
+  }
+
   String _normalizedPhone() =>
       _phoneController.text.replaceAll(RegExp(r'\s+'), '').trim();
 
@@ -131,10 +216,14 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _adminCooldownTimer?.cancel();
+    _vendorBannerTimer?.cancel();
+    _riderBannerTimer?.cancel();
     _phoneFocusNode.removeListener(_handleFocusChange);
     _phoneController.removeListener(_handlePhoneChange);
     _phoneController.dispose();
     _phoneFocusNode.dispose();
+    _vendorBannerController.dispose();
+    _riderBannerController.dispose();
     super.dispose();
   }
 
@@ -258,6 +347,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final logoAsset = widget.mode == AbzioAppMode.rider
         ? 'assets/branding/abianzo_rider_icon.png'
         : brandAssetForMode(widget.mode);
+
+    if (widget.mode == AbzioAppMode.vendor) {
+      return _buildVendorSignIn(context, auth, isFocused, hasError);
+    }
+    if (widget.mode == AbzioAppMode.rider) {
+      return _buildRiderSignIn(context, auth, isFocused, hasError);
+    }
 
     return AbzioThemeScope.light(
       child: Scaffold(
@@ -621,6 +717,523 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildVendorSignIn(
+    BuildContext context,
+    AuthProvider auth,
+    bool isFocused,
+    bool hasError,
+  ) {
+    return _buildWorkspaceSignIn(
+      context: context,
+      auth: auth,
+      isFocused: isFocused,
+      hasError: hasError,
+      controller: _vendorBannerController,
+      slides: _vendorBannerSlides,
+      activeIndex: _vendorBannerIndex,
+      onPageChanged: (index) {
+        if (!mounted) return;
+        setState(() => _vendorBannerIndex = index);
+      },
+      heroTitle: 'DELIVER WITH CONFIDENCE',
+      heroSubtitle: 'Sign in with your partner number to continue.',
+      phoneFieldLabel: 'Partner Number',
+      buttonLabel: 'Get Started',
+      panelBackground: const Color(0x1AFFFFFF),
+      panelBorder: const Color(0x26D8B74C),
+      inputBackground: const Color(0xFFF5F1E7),
+      inputTextColor: const Color(0xFF151515),
+      labelColor: const Color(0xFFB8AA84),
+      legalColor: const Color(0xFFCEBE98),
+      legalAudience: LegalAudience.vendor,
+      backgroundColor: const Color(0xFF0B0B0D),
+    );
+  }
+
+  Widget _buildRiderSignIn(
+    BuildContext context,
+    AuthProvider auth,
+    bool isFocused,
+    bool hasError,
+  ) {
+    return _buildWorkspaceSignIn(
+      context: context,
+      auth: auth,
+      isFocused: isFocused,
+      hasError: hasError,
+      controller: _riderBannerController,
+      slides: _riderBannerSlides,
+      activeIndex: _riderBannerIndex,
+      onPageChanged: (index) {
+        if (!mounted) return;
+        setState(() => _riderBannerIndex = index);
+      },
+      heroTitle: 'START YOUR DAY STRONG',
+      heroSubtitle: 'Sign in with your rider number to continue.',
+      phoneFieldLabel: 'Rider Number',
+      buttonLabel: 'Get Started',
+      panelBackground: const Color(0x1A0F0F12),
+      panelBorder: const Color(0x337D7D7D),
+      inputBackground: const Color(0xFFF5F1E7),
+      inputTextColor: const Color(0xFF151515),
+      labelColor: const Color(0xFFE3D7B8),
+      legalColor: const Color(0xFFE8DEC6),
+      legalAudience: LegalAudience.rider,
+      backgroundColor: const Color(0xFF0A0A0B),
+    );
+  }
+
+  Widget _buildWorkspaceSignIn({
+    required BuildContext context,
+    required AuthProvider auth,
+    required bool isFocused,
+    required bool hasError,
+    required PageController controller,
+    required List<_WorkspaceBannerSlide> slides,
+    required int activeIndex,
+    required ValueChanged<int> onPageChanged,
+    required String heroTitle,
+    required String heroSubtitle,
+    required String phoneFieldLabel,
+    required String buttonLabel,
+    required Color panelBackground,
+    required Color panelBorder,
+    required Color inputBackground,
+    required Color inputTextColor,
+    required Color labelColor,
+    required Color legalColor,
+    required LegalAudience legalAudience,
+    required Color backgroundColor,
+  }) {
+    return AbzioThemeScope.light(
+      child: Scaffold(
+        backgroundColor: backgroundColor,
+        resizeToAvoidBottomInset: true,
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bannerHeight = constraints.maxHeight * 0.58;
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _WorkspaceBanner(
+                      controller: controller,
+                      slides: slides,
+                      activeIndex: activeIndex,
+                      height: bannerHeight.clamp(340.0, 520.0).toDouble(),
+                      onPageChanged: onPageChanged,
+                    ),
+                    Transform.translate(
+                      offset: const Offset(0, -30),
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: backgroundColor,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(28),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            20,
+                            22,
+                            20,
+                            24 + MediaQuery.of(context).viewInsets.bottom,
+                          ),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 460),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  heroTitle,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFF2E4BF),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  heroSubtitle,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    color: const Color(0xFFCEBE98),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 22),
+                                _buildPhoneAuthSection(
+                                  context: context,
+                                  auth: auth,
+                                  isFocused: isFocused,
+                                  hasError: hasError,
+                                  phoneFieldLabel: phoneFieldLabel,
+                                  buttonLabel: buttonLabel,
+                                  panelBackground: panelBackground,
+                                  panelBorder: panelBorder,
+                                  inputBackground: inputBackground,
+                                  inputTextColor: inputTextColor,
+                                  labelColor: labelColor,
+                                  legalColor: legalColor,
+                                  legalAudience: legalAudience,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhoneAuthSection({
+    required BuildContext context,
+    required AuthProvider auth,
+    required bool isFocused,
+    required bool hasError,
+    required String phoneFieldLabel,
+    required String buttonLabel,
+    required Color panelBackground,
+    required Color panelBorder,
+    required Color inputBackground,
+    required Color inputTextColor,
+    required Color labelColor,
+    required Color legalColor,
+    required LegalAudience legalAudience,
+  }) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
+      decoration: BoxDecoration(
+        color: panelBackground,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: panelBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            phoneFieldLabel,
+            textAlign: TextAlign.left,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1,
+              color: labelColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            height: 56,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: hasError
+                    ? const Color(0xFFD64C4C)
+                    : isFocused
+                    ? const Color(0xFFC6A769)
+                    : const Color(0xFFE5E5E5),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: hasError
+                      ? const Color(0xFFD64C4C).withValues(alpha: 0.10)
+                      : const Color(0xFFC6A769).withValues(
+                          alpha: isFocused ? 0.15 : 0.04,
+                        ),
+                  blurRadius: isFocused ? 16 : 10,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  height: 44,
+                  constraints: const BoxConstraints(minWidth: 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: inputBackground,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    '+91',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: inputTextColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _phoneController,
+                    focusNode: _phoneFocusNode,
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.done,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                    autofillHints: const [AutofillHints.telephoneNumber],
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: inputTextColor,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: '9876543210',
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    onSubmitted: (_) {
+                      if (!auth.isLoading && _canContinueWithOtp) {
+                        _requestOtp();
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          TapScale(
+            scale: 0.97,
+            onTap: (auth.isLoading || !_canContinueWithOtp)
+                ? null
+                : _requestOtp,
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: (auth.isLoading || !_canContinueWithOtp)
+                    ? null
+                    : _requestOtp,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(56),
+                  elevation: 1,
+                  backgroundColor: const Color(0xFFD9B443),
+                  foregroundColor: const Color(0xFF000000),
+                  disabledBackgroundColor: const Color(0xFF5A513B),
+                  disabledForegroundColor: const Color(0xFFB3AA97),
+                  shadowColor: const Color(0xFFD9B443).withValues(alpha: 0.32),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: auth.isLoading
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        buttonLabel,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text.rich(
+            TextSpan(
+              text: 'By logging in, I agree to Abianzo\'s ',
+              children: [
+                TextSpan(
+                  text: 'terms and condition',
+                  style: const TextStyle(
+                    color: Color(0xFFD9B443),
+                    fontWeight: FontWeight.w800,
+                    decoration: TextDecoration.underline,
+                  ),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => LegalConsentScreen(
+                            audience: legalAudience,
+                          ),
+                        ),
+                      );
+                    },
+                ),
+              ],
+            ),
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              fontSize: 12.5,
+              color: legalColor,
+              fontWeight: FontWeight.w500,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkspaceBannerSlide {
+  const _WorkspaceBannerSlide({
+    required this.imagePath,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String imagePath;
+  final String title;
+  final String subtitle;
+}
+
+class _WorkspaceBanner extends StatelessWidget {
+  const _WorkspaceBanner({
+    required this.controller,
+    required this.slides,
+    required this.activeIndex,
+    required this.height,
+    required this.onPageChanged,
+  });
+
+  final PageController controller;
+  final List<_WorkspaceBannerSlide> slides;
+  final int activeIndex;
+  final double height;
+  final ValueChanged<int> onPageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: controller,
+            itemCount: slides.length,
+            onPageChanged: onPageChanged,
+            itemBuilder: (context, index) {
+              final slide = slides[index];
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    slide.imagePath,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                  ),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x2212100D),
+                          Color(0x0812100D),
+                          Color(0xCC12100D),
+                        ],
+                        stops: [0.0, 0.5, 1.0],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 24,
+                    right: 24,
+                    top: 56,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          slide.title,
+                          textAlign: TextAlign.left,
+                          style: GoogleFonts.poppins(
+                            fontSize: 28,
+                            height: 1.0,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFFE0C15B),
+                            letterSpacing: 0.3,
+                            shadows: const [
+                              Shadow(
+                                color: Color(0xAA000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          slide.subtitle,
+                          textAlign: TextAlign.left,
+                          style: GoogleFonts.inter(
+                            fontSize: 15,
+                            height: 1.35,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFFE8D8A6),
+                            shadows: const [
+                              Shadow(
+                                color: Color(0xA3000000),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 96,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(slides.length, (index) {
+                final isActive = index == activeIndex;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: isActive ? 22 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? const Color(0xFFE0C15B)
+                        : const Color(0x6EE0C15B),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
       ),
     );
   }

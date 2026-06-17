@@ -63,22 +63,7 @@ class AppConfig {
     'GOOGLE_MAPS_API_KEY',
     defaultValue: '',
   );
-  static const String cloudinaryCloudName = String.fromEnvironment(
-    'CLOUDINARY_CLOUD_NAME',
-    defaultValue: 'dcedoi0wp',
-  );
-  static const String cloudinaryUploadPreset = String.fromEnvironment(
-    'CLOUDINARY_UPLOAD_PRESET',
-    defaultValue: 'abzio_unsigned_uploads',
-  );
-  static const String cloudinarySignedUploadEndpoint = String.fromEnvironment(
-    'CLOUDINARY_SIGNED_UPLOAD_ENDPOINT',
-    defaultValue: '',
-  );
-  static const bool allowInsecureUnsignedUploads = bool.fromEnvironment(
-    'ALLOW_INSECURE_UNSIGNED_UPLOADS',
-    defaultValue: false,
-  );
+
   static const String kycFaceMatchEndpoint = String.fromEnvironment(
     'KYC_FACE_MATCH_ENDPOINT',
     defaultValue: '',
@@ -149,11 +134,7 @@ class AppConfig {
 
   static bool get hasGoogleMapsKey => googleMapsApiKey.isNotEmpty;
 
-  static bool get hasCloudinaryConfig =>
-      cloudinaryCloudName.isNotEmpty && cloudinaryUploadPreset.isNotEmpty;
 
-  static bool get hasCloudinarySignedUploadEndpoint =>
-      cloudinarySignedUploadEndpoint.isNotEmpty;
 
   static bool get hasKycFaceMatchEndpoint => kycFaceMatchEndpoint.isNotEmpty;
 

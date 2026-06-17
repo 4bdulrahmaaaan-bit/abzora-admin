@@ -3,11 +3,17 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../models/models.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/backend_commerce_service.dart';
 import '../../services/database_service.dart';
+import '../../services/location_service.dart';
 
 class FastDeliveryTrackingScreen extends StatefulWidget {
   const FastDeliveryTrackingScreen({super.key, required this.order});
@@ -30,16 +36,22 @@ class _FastDeliveryTrackingScreenState
   static const Color _accent = Color(0xFFC6A769);
   Timer? _refreshTimer;
   final DatabaseService _database = DatabaseService();
+  final BackendCommerceService _backendCommerce = BackendCommerceService();
+  final LocationService _locationService = LocationService();
 
   bool _loading = true;
-  final bool _mapUnavailable = false;
   bool _showNoTracking = false;
   String? _error;
   bool _detailsExpanded = false;
   AppUser? _rider;
+  AppUser? _customer;
+  late OrderModel _order;
+  LatLng? _customerDestination;
+  LatLng? _riderLocation;
+  Map<String, dynamic>? _trackingData;
+  GoogleMapController? _mapController;
 
   _TrackingStage _stage = _TrackingStage.confirmed;
-  double _markerProgress = 0.35;
   double _progressValue = 0.76;
   String _etaText = 'Arriving in 2-3 hours';
   String _statusText = 'Out for delivery';
@@ -47,6 +59,7 @@ class _FastDeliveryTrackingScreenState
   @override
   void initState() {
     super.initState();
+    _order = widget.order;
     _initScreen();
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 12),
@@ -57,23 +70,57 @@ class _FastDeliveryTrackingScreenState
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _mapController = null;
     super.dispose();
   }
 
   Future<void> _initScreen() async {
     await Future<void>.delayed(const Duration(milliseconds: 520));
     if (!mounted) return;
+    _customer = context.read<AuthProvider>().user;
+    await _loadCustomerDestination();
     await _loadRider();
+    await _loadTrackingSnapshot();
     setState(() {
       _loading = false;
       _error = null;
       _showNoTracking = false;
-      _syncFromOrder();
+      _syncFromOrder(_order);
     });
+    await _fitMapToMarkers();
+  }
+
+  Future<void> _loadCustomerDestination() async {
+    final customer = _customer ?? context.read<AuthProvider>().user;
+    if (customer == null) {
+      return;
+    }
+
+    if (customer.latitude != null && customer.longitude != null) {
+      _customerDestination = LatLng(customer.latitude!, customer.longitude!);
+      return;
+    }
+
+    final shippingAddress = _order.shippingAddress.trim();
+    if (shippingAddress.isEmpty) {
+      return;
+    }
+
+    try {
+      final lookup = await _locationService.geocodeAddress(shippingAddress);
+      if (!mounted) return;
+      if (lookup.status == AddressLookupStatus.success &&
+          lookup.latitude != null &&
+          lookup.longitude != null) {
+        _customerDestination = LatLng(lookup.latitude!, lookup.longitude!);
+      }
+    } catch (_) {
+      // Keep tracking resilient if geocoding fails.
+    }
   }
 
   Future<void> _loadRider() async {
-    final riderId = widget.order.riderId?.trim() ?? '';
+    final riderId = _order.riderId?.trim() ?? '';
     if (riderId.isEmpty) {
       return;
     }
@@ -88,19 +135,101 @@ class _FastDeliveryTrackingScreenState
     }
   }
 
-  void _syncFromOrder() {
+  Future<void> _loadTrackingSnapshot() async {
+    try {
+      final latestOrder = await _database.getOrderById(_order.id);
+      if (!mounted) {
+        return;
+      }
+      if (latestOrder != null) {
+        _order = latestOrder;
+      }
+      final payload = await _backendCommerce.getTrackingEta(_order.id);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _trackingData = payload;
+        final riderLive = payload['riderLive'];
+        if (riderLive is Map) {
+          final location = riderLive['location'];
+          if (location is Map) {
+            final lat = location['lat'];
+            final lng = location['lng'];
+            if (lat is num && lng is num) {
+              _riderLocation = LatLng(lat.toDouble(), lng.toDouble());
+            }
+          }
+        }
+      });
+    } catch (_) {
+      // Keep the customer tracker resilient even if ETA polling fails.
+    }
+  }
+
+  String _formatEtaTime(String isoTimestamp) {
+    final parsed = DateTime.tryParse(isoTimestamp);
+    if (parsed == null) {
+      return isoTimestamp;
+    }
+    return DateFormat('h:mm a').format(parsed.toLocal());
+  }
+
+  Future<void> _fitMapToMarkers() async {
+    final rider = _riderLocation;
+    final destination = _customerDestination;
+    final controller = _mapController;
+    if (controller == null || rider == null || destination == null) {
+      return;
+    }
+    final bounds = _boundsFromPoints([rider, destination]);
+    if (bounds == null) {
+      return;
+    }
+    try {
+      await controller.animateCamera(
+        CameraUpdate.newLatLngBounds(bounds, 64),
+      );
+    } catch (_) {
+      // Ignore camera fitting failures on initial render.
+    }
+  }
+
+  LatLngBounds? _boundsFromPoints(List<LatLng> points) {
+    if (points.isEmpty) {
+      return null;
+    }
+    var minLat = points.first.latitude;
+    var maxLat = points.first.latitude;
+    var minLng = points.first.longitude;
+    var maxLng = points.first.longitude;
+    for (final point in points.skip(1)) {
+      if (point.latitude < minLat) minLat = point.latitude;
+      if (point.latitude > maxLat) maxLat = point.latitude;
+      if (point.longitude < minLng) minLng = point.longitude;
+      if (point.longitude > maxLng) maxLng = point.longitude;
+    }
+    if (minLat == maxLat && minLng == maxLng) {
+      return null;
+    }
+    return LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+  }
+
+  void _syncFromOrder(OrderModel order) {
     final status =
-        (widget.order.deliveryStatus.isNotEmpty
-                ? widget.order.deliveryStatus
-                : widget.order.status)
+        (order.deliveryStatus.isNotEmpty
+                ? order.deliveryStatus
+                : order.status)
             .trim()
             .toLowerCase();
-    if (status == 'delivered' || widget.order.isDelivered) {
+    if (status == 'delivered' || order.isDelivered) {
       _stage = _TrackingStage.delivered;
       _statusText = 'Delivered Successfully';
       _etaText = 'Package delivered';
       _progressValue = 1;
-      _markerProgress = 1;
       return;
     }
     if (status == 'out for delivery' ||
@@ -129,33 +258,29 @@ class _FastDeliveryTrackingScreenState
     if (!silent) {
       setState(() => _loading = true);
     }
-    await Future<void>.delayed(const Duration(milliseconds: 420));
+    await _loadTrackingSnapshot();
     if (!mounted) return;
-
-    final next = (_markerProgress + 0.07).clamp(0.0, 1.0);
     setState(() {
       _loading = false;
-      _markerProgress = next;
-      _progressValue = (0.55 + (next * 0.45)).clamp(0.0, 1.0);
-      if (_markerProgress < 0.25) {
-        _stage = _TrackingStage.confirmed;
-        _statusText = 'Order confirmed';
-        _etaText = 'Getting your package ready';
-      } else if (_markerProgress < 0.55) {
-        _stage = _TrackingStage.packed;
-        _statusText = 'Packed';
-        _etaText = 'Handing over to delivery partner';
-      } else if (_markerProgress <= 0.94) {
-        _stage = _TrackingStage.outForDelivery;
-        _statusText = 'Out for delivery';
-        _etaText = 'Arriving in 2-3 hours';
-      }
-      if (_markerProgress > 0.94) {
-        _stage = _TrackingStage.delivered;
-        _statusText = 'Delivered Successfully';
-        _etaText = 'Package delivered';
+      _syncFromOrder(_order);
+      if (_trackingData != null) {
+        final etaMinutes = (_trackingData?['etaMinutes'] as num?)?.toInt();
+        final etaTimestamp = _trackingData?['etaTimestamp']?.toString().trim() ?? '';
+        if (etaTimestamp.isNotEmpty) {
+          _etaText = 'Arriving by ${DateTime.tryParse(etaTimestamp) != null ? _formatEtaTime(etaTimestamp) : _etaText}';
+        } else if (etaMinutes != null && etaMinutes > 0) {
+          _etaText = 'Arriving in ${etaMinutes.clamp(2, 180)} min';
+        }
+        final riderLive = _trackingData?['riderLive'];
+        final location = riderLive is Map ? riderLive['location'] as Map? : null;
+        final lat = location?['lat'];
+        final lng = location?['lng'];
+        if (lat is num && lng is num) {
+          _riderLocation = LatLng(lat.toDouble(), lng.toDouble());
+        }
       }
     });
+    await _fitMapToMarkers();
   }
 
   Future<void> _callPartner() async {
@@ -345,30 +470,69 @@ class _FastDeliveryTrackingScreenState
   }
 
   Widget _buildMapSection() {
+    final rider = _riderLocation;
+    final destination = _customerDestination;
+    final hasMap = rider != null || destination != null;
+    final markers = <Marker>{
+      if (destination != null)
+        Marker(
+          markerId: const MarkerId('destination'),
+          position: destination,
+          infoWindow: const InfoWindow(title: 'Delivery address'),
+        ),
+      if (rider != null)
+        Marker(
+          markerId: const MarkerId('rider'),
+          position: rider,
+          infoWindow: const InfoWindow(title: 'Delivery partner'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueOrange,
+          ),
+        ),
+    };
+    final polylines = <Polyline>{
+      if (rider != null && destination != null)
+        Polyline(
+          polylineId: const PolylineId('tracking-route'),
+          points: [rider, destination],
+          width: 5,
+          color: _accent,
+          startCap: Cap.roundCap,
+          endCap: Cap.roundCap,
+          jointType: JointType.round,
+        ),
+    };
+    final initialTarget = destination ?? rider ?? const LatLng(20.5937, 78.9629);
+    final initialCamera = CameraPosition(target: initialTarget, zoom: hasMap ? 13.5 : 4.5);
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: SizedBox(
         height: 232,
         width: double.infinity,
-        child: _mapUnavailable
+        child: hasMap
             ? Stack(
                 fit: StackFit.expand,
                 children: [
-                  CachedNetworkImage(
-                    imageUrl:
-                        'https://images.unsplash.com/photo-1473186578172-c141e6798cf4?auto=format&fit=crop&w=1200&q=80',
-                    fit: BoxFit.cover,
+                  GoogleMap(
+                    initialCameraPosition: initialCamera,
+                    myLocationEnabled: false,
+                    myLocationButtonEnabled: false,
+                    compassEnabled: false,
+                    zoomControlsEnabled: false,
+                    markers: markers,
+                    polylines: polylines,
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                      unawaited(_fitMapToMarkers());
+                    },
                   ),
-                  Container(color: Colors.black.withValues(alpha: 0.5)),
-                  Center(
-                    child: Text(
-                      'Live map unavailable. Tracking visually.',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        color: _text,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  Positioned(
+                    left: 12,
+                    top: 12,
+                    child: _MapStatusChip(
+                      riderLocation: rider,
+                      etaText: _etaText,
                     ),
                   ),
                 ],
@@ -376,34 +540,34 @@ class _FastDeliveryTrackingScreenState
             : Stack(
                 fit: StackFit.expand,
                 children: [
-                  CachedNetworkImage(
-                    imageUrl:
-                        'https://images.unsplash.com/photo-1533929736458-ca588d08c8be?auto=format&fit=crop&w=1200&q=80',
-                    fit: BoxFit.cover,
-                  ),
-                  Container(color: Colors.black.withValues(alpha: 0.35)),
-                  Positioned(
-                    left: 26,
-                    right: 26,
-                    top: 110,
-                    child: Container(
-                      height: 3,
-                      color: _accent.withValues(alpha: 0.92),
-                    ),
-                  ),
-                  const Positioned(
-                    left: 16,
-                    top: 97,
-                    child: _MapPin(icon: Icons.home_rounded, color: _green),
-                  ),
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 920),
-                    curve: Curves.easeInOutCubicEmphasized,
-                    left: 16 + (260 * _markerProgress),
-                    top: 87,
-                    child: const _MapPin(
-                      icon: Icons.delivery_dining_rounded,
-                      color: _accent,
+                  Container(color: const Color(0xFF161618)),
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.location_searching_rounded,
+                          color: _accent,
+                          size: 36,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Waiting for live tracking data',
+                          style: GoogleFonts.inter(
+                            color: _text,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'We will show your delivery partner here as soon as they start moving.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            color: _sub,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -455,19 +619,19 @@ class _FastDeliveryTrackingScreenState
                           _PartnerCard(
                             partnerName: _rider?.name.trim().isNotEmpty == true
                                 ? _rider!.name
-                                : widget.order.assignedDeliveryPartner,
+                                : _order.assignedDeliveryPartner,
                             partnerPhone: _rider?.phone,
                             onCall: _callPartner,
                             onChat: _openHelp,
                           ),
                           const SizedBox(height: 12),
-                          _OrderSummaryCard(order: widget.order),
+                          _OrderSummaryCard(order: _order),
                           const SizedBox(height: 12),
                           _ProgressSteps(stage: _stage),
                           const SizedBox(height: 12),
                           _DetailsCard(
                             expanded: _detailsExpanded,
-                            order: widget.order,
+                            order: _order,
                             etaText: _etaText,
                             onToggle: () => setState(
                               () => _detailsExpanded = !_detailsExpanded,
@@ -902,29 +1066,73 @@ class _DetailsCard extends StatelessWidget {
   }
 }
 
-class _MapPin extends StatelessWidget {
-  const _MapPin({required this.icon, required this.color});
+class _MapStatusChip extends StatelessWidget {
+  const _MapStatusChip({
+    required this.riderLocation,
+    required this.etaText,
+  });
 
-  final IconData icon;
-  final Color color;
+  final LatLng? riderLocation;
+  final String etaText;
 
   @override
   Widget build(BuildContext context) {
+    const liveColor = Color(0xFF00C853);
+    const pendingColor = Color(0xFFC6A769);
+    const textColor = Color(0xFFFFFFFF);
+    const subTextColor = Color(0xFF9A9A9A);
+    final live = riderLocation != null;
     return Container(
-      width: 28,
-      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
+        color: const Color(0xFF111113).withValues(alpha: 0.84),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.30),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: Icon(icon, size: 15, color: const Color(0xFF0F0F10)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            live ? Icons.my_location_rounded : Icons.schedule_rounded,
+            color: live ? liveColor : pendingColor,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            live ? 'Rider live' : 'Awaiting rider location',
+            style: GoogleFonts.inter(
+              color: textColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 4,
+            height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFF7E7E82),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            etaText,
+            style: GoogleFonts.inter(
+              color: subTextColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

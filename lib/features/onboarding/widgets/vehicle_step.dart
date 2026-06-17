@@ -9,14 +9,14 @@ class VehicleStep extends StatelessWidget {
   final RiderSignupModel model;
   final ValueChanged<RiderSignupModel> onUpdate;
   final InputDecoration Function(String) inputDecorationBuilder;
-  final Widget Function(String, String?, void Function(String)) uploadRowBuilder;
+  final Widget Function(String, String, String?, void Function(String)) visualCardBuilder;
 
   const VehicleStep({
     super.key,
     required this.model,
     required this.onUpdate,
     required this.inputDecorationBuilder,
-    required this.uploadRowBuilder,
+    required this.visualCardBuilder,
   });
 
   @override
@@ -97,13 +97,15 @@ class VehicleStep extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        uploadRowBuilder(
-          'RC Book',
+        visualCardBuilder(
+          'Vehicle RC',
+          'Registration Certificate for the vehicle',
           model.rcPath,
           (p) => onUpdate(model.copyWith(rcPath: p)),
         ),
-        uploadRowBuilder(
+        visualCardBuilder(
           'Vehicle Insurance',
+          'Current insurance policy document',
           model.insurancePath,
           (p) => onUpdate(model.copyWith(insurancePath: p)),
         ),

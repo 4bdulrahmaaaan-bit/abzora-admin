@@ -12,6 +12,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
 import '../../core/utils/vendor_kyc_policy.dart';
+import '../../utils/app_error_text.dart';
 import '../../core/services/vendor_telemetry.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
@@ -43,7 +44,8 @@ class VendorOnboardingFlowScreen extends StatefulWidget {
   State<VendorOnboardingFlowScreen> createState() => _VendorOnboardingFlowScreenState();
 }
 
-class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen> {
+class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
+    with WidgetsBindingObserver {
   late final PageController _pageController;
   final _onboarding = OnboardingService();
   final _db = DatabaseService();
@@ -65,6 +67,7 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final user = context.read<AuthProvider>().user;
     int initial = widget.initialStep;
     if (user != null && user.vendorOnboarding != null) {
@@ -78,7 +81,18 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     
     _restoreDraft(user);
 
-    _syncService = VendorOnboardingSyncService(api: _api, cache: _cache);
+    _syncService = VendorOnboardingSyncService(
+      api: _api, 
+      cache: _cache,
+      onSyncComplete: () {
+        if (mounted) {
+          setState(() {
+            _syncStatus = SyncStatus.cloudSynced;
+            _lastSaved = DateTime.now();
+          });
+        }
+      },
+    );
     _syncService.start();
 
     _autoSaveTimer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -96,21 +110,23 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     _draft.city.text = 'Chennai';
 
     Map<String, dynamic>? draft;
+    Map<String, dynamic>? cachedDraft;
     try {
       draft = await _api.getDraft();
     } catch (e) {
       debugPrint('[RESTORE_STRATEGY] MongoDB unavailable, loading Hive backup...');
     }
     
-    if (draft == null) {
-      draft = await _cache.getDraft(user.id);
-      if (draft != null && draft['draftPayload'] != null) {
-        draft = Map<String, dynamic>.from(draft['draftPayload']);
-        if (mounted) {
-          setState(() {
-            _syncStatus = SyncStatus.pendingSync;
-          });
-        }
+    cachedDraft = await _cache.getDraft(user.id);
+    final localDraft = _draftFromCachedRecord(cachedDraft);
+    if (_shouldPreferLocalVendorDraft(cachedDraft, draft)) {
+      draft = localDraft ?? draft;
+      if (mounted && cachedDraft != null) {
+        setState(() {
+          _syncStatus = cachedDraft['isPendingSync'] == true
+              ? SyncStatus.pendingSync
+              : SyncStatus.cloudSynced;
+        });
       }
     }
     
@@ -277,13 +293,65 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     }
   }
 
+  Map<String, dynamic>? _draftFromCachedRecord(Map<String, dynamic>? cachedRecord) {
+    final payload = cachedRecord?['draftPayload'];
+    if (payload is Map) {
+      return Map<String, dynamic>.from(payload);
+    }
+    return null;
+  }
+
+  DateTime? _draftTimestamp(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    return DateTime.tryParse(value.toString());
+  }
+
+  bool _shouldPreferLocalVendorDraft(
+    Map<String, dynamic>? cachedRecord,
+    Map<String, dynamic>? cloudDraft,
+  ) {
+    final localDraft = _draftFromCachedRecord(cachedRecord);
+    if (localDraft == null) {
+      return false;
+    }
+    if (cloudDraft == null) {
+      return true;
+    }
+
+    final localUpdatedAt = _draftTimestamp(
+      cachedRecord?['lastUpdatedAt'] ?? cachedRecord?['lastSavedAt'],
+    );
+    final cloudUpdatedAt = _draftTimestamp(
+      cloudDraft?['lastSavedAt'] ?? cloudDraft?['updatedAt'],
+    );
+
+    if (cachedRecord?['isPendingSync'] == true) {
+      if (cloudUpdatedAt == null || localUpdatedAt == null) {
+        return true;
+      }
+      return !cloudUpdatedAt.isAfter(localUpdatedAt);
+    }
+
+    if (localUpdatedAt == null && cloudUpdatedAt == null) {
+      return true;
+    }
+    if (localUpdatedAt == null) {
+      return false;
+    }
+    if (cloudUpdatedAt == null) {
+      return true;
+    }
+    return localUpdatedAt.isAfter(cloudUpdatedAt);
+  }
+
   void _saveDraft() async {
     final user = context.read<AuthProvider>().user;
     if (user == null || _submitting) return;
 
     if (mounted) {
       setState(() {
-        _syncStatus = SyncStatus.pendingSync;
+        _syncStatus = SyncStatus.saving;
       });
     }
 
@@ -338,7 +406,14 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     };
 
     try {
+      await _cache.saveDraft(user.id, data, _step);
+      if (mounted) {
+        setState(() {
+          _syncStatus = SyncStatus.syncing;
+        });
+      }
       await _api.saveDraft(data);
+      await _cache.markSynced(user.id);
       if (mounted) {
         setState(() {
           _lastSaved = DateTime.now();
@@ -346,14 +421,16 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
         });
       }
     } catch (e) {
+      await _cache.markSyncFailed(user.id);
+      if (mounted) {
+        setState(() {
+          _lastSaved = DateTime.now();
+          _syncStatus = SyncStatus.pendingSync;
+        });
+      }
       if (e is BackendApiException && e.isNetworkIssue) {
-        await _cache.saveDraft(user.id, data, _step);
         _syncService.syncPendingDrafts(); // Try syncing immediately in background
         if (mounted) {
-          setState(() {
-            _lastSaved = DateTime.now();
-            _syncStatus = SyncStatus.pendingSync;
-          });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Connection temporarily unavailable. Your progress has been saved locally and will sync automatically.'),
@@ -369,11 +446,21 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _syncService.stop();
     _autoSaveTimer?.cancel();
     if (_step >= 0) _pageController.dispose();
     _draft.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _saveDraft();
+    }
   }
 
   Future<void> _detectLocation() async {
@@ -448,7 +535,11 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
         _saveDraft();
       });
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error uploading image: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppErrorText.from(e))),
+        );
+      }
     } finally {
       setState(() => _submitting = false);
     }
@@ -482,8 +573,8 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
           continue;
         }
 
-        if (!['.jpg', '.jpeg', '.png', '.webp'].contains(extension)) {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image format not supported.')));
+        if (!['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'].contains(extension)) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image format not supported. Use JPG, PNG, WEBP, HEIC, or HEIF.')));
           continue;
         }
 
@@ -521,12 +612,9 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
             debugPrint('[PORTFOLIO_UPLOAD] attempt=$attempt status=error error=$e');
             if (attempt == maxAttempts) {
               if (mounted) {
-                final errorMsg = e.toString().toLowerCase();
-                if (errorMsg.contains('timeout') || errorMsg.contains('network') || errorMsg.contains('unavailable') || errorMsg.contains('connection')) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image upload service temporarily unavailable. Please try again in a few minutes.')));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unable to upload this image. Please select a different image.')));
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(AppErrorText.from(e))),
+                );
               }
             } else {
               await Future.delayed(Duration(seconds: 1 * attempt)); // Exponential backoff
@@ -747,8 +835,8 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     }
 
     if (_step < 5) {
-      _nextStep();
       _saveDraft();
+      _nextStep();
     } else {
       _submit();
     }
@@ -763,6 +851,7 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
       }
       return;
     }
+    _saveDraft();
     setState(() => _step--);
     _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOutCubic);
   }
@@ -908,6 +997,7 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
       try {
         await _api.deleteDraft();
       } catch (_) {}
+      await _cache.deleteDraft(user.id);
 
       await auth.refreshCurrentUser();
       VendorTelemetry.event('submit_success', data: {'userId': user.id});
@@ -1083,9 +1173,13 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
                     ),
                     ComplianceStep(
                       ownerPhotoUrl: _draft.ownerPhotoUrl,
+                      ownerStatus: _getDocStatus(_draft.ownerPhotoUrl),
                       storePhotoUrl: _draft.storePhotoUrl,
+                      storeStatus: _getDocStatus(_draft.storePhotoUrl),
                       aadhaarUrl: _draft.aadhaarUrl,
+                      aadhaarStatus: _getDocStatus(_draft.aadhaarUrl),
                       panUrl: _draft.panUrl,
+                      panStatus: _getDocStatus(_draft.panUrl),
                       onUploadOwner: () => _pickImage('owner', (x, url) => _draft.ownerPhotoUrl = url),
                       onUploadStore: () => _pickImage('store', (x, url) => _draft.storePhotoUrl = url),
                       onUploadAadhaar: () => _pickImage('aadhaar', (x, url) => _draft.aadhaarUrl = url),
@@ -1153,5 +1247,12 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
         ),
       ),
     );
+  }
+  DocumentStatus _getDocStatus(String? url) {
+    if (url == null || url.isEmpty) return DocumentStatus.required;
+    if (_draft.kycProcessed) return DocumentStatus.verified;
+    // Additional backend logic could set this to underReview or actionRequired,
+    // but default to uploaded if we just have the file.
+    return DocumentStatus.uploaded;
   }
 }

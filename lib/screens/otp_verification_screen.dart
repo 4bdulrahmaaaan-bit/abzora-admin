@@ -51,8 +51,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   String? _inlineError;
 
   Future<bool> _verifyAdminPinIfRequired(AppUser user) async {
-    if (!widget.adminEntry ||
-        (user.role != 'admin' && user.role != 'super_admin')) {
+    if (!widget.adminEntry || !hasAdminAccess(user)) {
       return true;
     }
 
@@ -293,10 +292,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       final restriction = widget.adminEntry
           ? null
           : accessRestrictionMessage(resolvedUser, widget.mode);
-      final adminRestriction =
-          widget.adminEntry &&
-              resolvedUser.role != 'admin' &&
-              resolvedUser.role != 'super_admin'
+      final adminRestriction = widget.adminEntry && !hasAdminAccess(resolvedUser)
           ? 'This OTP entry is reserved for super admin access.'
           : null;
       var combinedRestriction = adminRestriction ?? restriction;

@@ -60,7 +60,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
   bool get vendorProfileLoaded => _profileLoaded;
   bool get vendorPermissionsResolved => _vendorPermissionsResolved;
   bool get isSuperAdmin =>
-      _user?.role == 'super_admin' || _user?.role == 'admin';
+      hasAdminAccess(_user);
   bool get isVendor => hasVendorOperationsAccess(_user);
   bool get isRider => hasRiderOperationsAccess(_user);
   bool get isUser => _user?.role == 'user' || _user?.role == 'customer';
@@ -262,6 +262,8 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
       user.email,
       user.phone ?? '',
       user.role,
+      user.activeRole,
+      user.accountType,
       user.isActive,
       user.storeId ?? '',
       user.roles.toString(),
@@ -311,47 +313,25 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     try {
       debugPrint('[AUTH] Session validation started');
       debugPrint('[BOOT] 4.1 sessionService.initialize');
-      await _sessionService.initialize().timeout(
-        const Duration(seconds: 5),
-        onTimeout: () =>
-            throw Exception('[BOOT ERROR] sessionService.initialize timeout'),
-      );
+      await _sessionService.initialize();
       if (_sessionService.hasBackendSession ||
           _sessionService.sessionId != null) {
         debugPrint('[AUTH] Token restored');
       }
 
-      debugPrint('[BOOT] 4.2 authStateChanges().first');
-      await FirebaseAuth.instance.authStateChanges().first.timeout(
-        const Duration(seconds: 5),
-        onTimeout: () =>
-            throw Exception('[BOOT ERROR] authStateChanges().first timeout'),
-      );
+      debugPrint('[BOOT] 4.2 auth currentUser snapshot');
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        debugPrint('[AUTH] Firebase user present during restore');
+      }
 
       debugPrint('[BOOT] 4.3 sessionService.refreshIfNeeded');
-      await _sessionService.refreshIfNeeded().timeout(
-        const Duration(seconds: 8),
-        onTimeout: () {
-          // Timeout during refresh is transient — do not throw, just continue.
-          debugPrint(
-            '[AUTH] sessionService.refreshIfNeeded timeout – continuing with cached token.',
-          );
-          return true;
-        },
-      );
+      await _sessionService.refreshIfNeeded();
 
       debugPrint('[BOOT] 4.4 getCurrentAppUser');
       AppUser? existingUser;
       try {
-        existingUser = await _authService.getCurrentAppUser().timeout(
-          const Duration(seconds: 12),
-          onTimeout: () {
-            debugPrint(
-              '[AUTH] getCurrentAppUser timeout – falling back to snapshot.',
-            );
-            return null;
-          },
-        );
+        existingUser = await _authService.getCurrentAppUser();
       } on BackendApiException catch (e) {
         // 5xx and 429 are transient: fall back to snapshot.
         // 401 means tokens are genuinely invalid: existingUser stays null.
@@ -527,7 +507,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
       await _authService.signOut();
     } finally {
       await _liveProfileSubscription?.cancel();
-      await _sessionService.clearSession(reason: 'logout');
+      await _sessionService.revokeCurrentSession(reason: 'logout');
       await _clearLocalUserCache(currentUserId);
       _clearMemoryState();
       notifyListeners();
@@ -654,11 +634,46 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     notifyListeners();
   }
 
-  void setRole(String role) {
+  Future<void> switchRole(String role) async {
     if (_user != null) {
-      _user = _user!.copyWith(role: role);
+      final normalizedRole = role.trim().toLowerCase();
+      if (normalizedRole.isEmpty) {
+        return;
+      }
+      final updatedRoles = Map<String, bool>.from(_user!.roles);
+      updatedRoles[normalizedRole] = true;
+      final optimisticUser = _user!.copyWith(
+        activeRole: normalizedRole,
+        accountType: normalizedRole,
+        roles: updatedRoles,
+      );
+      _user = optimisticUser;
+      _lastBackendProfileSyncKey = null;
+      unawaited(_db.saveUser(optimisticUser));
+      unawaited(_sessionService.saveUserSnapshot(optimisticUser));
       notifyListeners();
+      try {
+        final backendUser = await _backendCommerce.switchActiveRole(
+          user: optimisticUser,
+          activeRole: normalizedRole,
+        );
+        if (backendUser != null) {
+          _bindLiveProfile(backendUser);
+          _lastBackendProfileSyncKey = null;
+          unawaited(_db.saveUser(backendUser));
+          await _sessionService.saveUserSnapshot(backendUser);
+          notifyListeners();
+          return;
+        }
+      } catch (error) {
+        debugPrint('AuthProvider: backend role switch failed: $error');
+      }
+      _maybeSyncBackendProfile(optimisticUser);
     }
+  }
+
+  void setRole(String role) {
+    unawaited(switchRole(role));
   }
 
   Future<void> refreshCurrentUser() async {

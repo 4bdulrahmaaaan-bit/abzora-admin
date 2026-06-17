@@ -182,8 +182,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         child: Text(
                           hasVendorOperationsAccess(user)
                               ? 'New order alerts, payout updates, and fulfillment changes appear here.'
-                              : normalizedUserRole(user) == 'super_admin' ||
-                                    normalizedUserRole(user) == 'admin'
+                              : hasAdminAccess(user)
                               ? 'Platform events, vendor approvals, and payout activity appear here.'
                               : hasRiderOperationsAccess(user)
                               ? 'Delivery updates, assignment changes, and payout alerts appear here.'

@@ -9,8 +9,11 @@ class VendorOnboardingSyncService {
   VendorOnboardingSyncService({
     VendorOnboardingApi? api,
     VendorOnboardingLocalCache? cache,
+    this.onSyncComplete,
   })  : _api = api ?? const VendorOnboardingApi(),
         _cache = cache ?? VendorOnboardingLocalCache();
+
+  final VoidCallback? onSyncComplete;
 
   final VendorOnboardingApi _api;
   final VendorOnboardingLocalCache _cache;
@@ -66,10 +69,10 @@ class VendorOnboardingSyncService {
             final payload = Map<String, dynamic>.from(draftData['draftPayload']);
             await _api.saveDraft(payload);
             
-            // Mark synced and delete
+            // Mark synced but keep the Hive copy as the offline backup.
             await _cache.markSynced(userId);
-            await _cache.deleteDraft(userId);
-            debugPrint('[ONBOARDING_SYNC] Successfully synced and removed local draft for $userId');
+            debugPrint('[ONBOARDING_SYNC] Successfully synced local draft for $userId');
+            onSyncComplete?.call();
           } catch (e) {
             debugPrint('[ONBOARDING_SYNC_ERROR] Failed to sync draft for $userId: $e');
             await _cache.markSyncFailed(userId);

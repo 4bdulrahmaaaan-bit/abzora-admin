@@ -20,11 +20,20 @@ class EnterpriseProgressTracker extends StatelessWidget {
     'Launch',
   ];
 
+  static const Map<int, int> _progressMap = {
+    0: 20,
+    1: 40,
+    2: 60,
+    3: 75,
+    4: 90,
+    5: 100,
+  };
+
   @override
   Widget build(BuildContext context) {
     if (currentStep < 0) return const SizedBox.shrink();
 
-    final percentComplete = ((currentStep) / totalSteps * 100).clamp(0, 100).toInt();
+    final percentComplete = _progressMap[currentStep] ?? 0;
     final minsRemaining = ((totalSteps - currentStep) * 1.2).ceil();
 
     return Container(
@@ -80,7 +89,7 @@ class EnterpriseProgressTracker extends StatelessWidget {
             child: TweenAnimationBuilder<double>(
               tween: Tween<double>(
                 begin: 0,
-                end: currentStep / totalSteps,
+                end: percentComplete / 100.0,
               ),
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,

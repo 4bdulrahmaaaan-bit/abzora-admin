@@ -186,8 +186,8 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
         SnackBar(
           content: Text(
             isLogo
-                ? 'Logo uploaded from Cloudinary.'
-                : 'Banner uploaded from Cloudinary.',
+                ? 'Logo uploaded successfully.'
+                : 'Banner uploaded successfully.',
           ),
         ),
       );

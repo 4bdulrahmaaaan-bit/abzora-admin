@@ -337,6 +337,11 @@ class BackendApiClient {
             failureMessage: 'Please sign in again to continue.',
           );
       headers['Authorization'] = 'Bearer $token';
+      
+      final uid = AuthSessionService.instance.userSnapshot?['id'] ?? 'unknown';
+      debugPrint('[AUTH_DEBUG] hasToken=true tokenLength=${token.length} uid=$uid');
+    } else {
+      debugPrint('[AUTH_DEBUG] hasToken=false tokenLength=0 uid=unknown');
     }
     return headers;
   }
@@ -997,6 +1002,7 @@ class BackendApiClient {
     required List<int> bytes,
     required String filename,
     MediaType? contentType,
+    Map<String, String>? fields,
     bool authenticated = true,
   }) async {
     const timeout = Duration(seconds: 30);
@@ -1007,6 +1013,9 @@ class BackendApiClient {
       }) {
         final request = http.MultipartRequest('POST', uri);
         request.headers.addAll(headers);
+        if (fields != null) {
+          request.fields.addAll(fields);
+        }
         request.files.add(
           http.MultipartFile.fromBytes(
             fieldName,

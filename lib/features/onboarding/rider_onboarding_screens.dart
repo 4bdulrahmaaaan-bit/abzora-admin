@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/gestures.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/utils/rider_validators.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../models/rider_signup_model.dart';
 import '../../../providers/rider_signup_provider.dart';
@@ -44,47 +45,46 @@ class RiderSplashScreen extends StatefulWidget {
   State<RiderSplashScreen> createState() => _RiderSplashScreenState();
 }
 
-class _RiderSplashScreenState extends State<RiderSplashScreen> {
-  static const _splashDuration = Duration(milliseconds: 1500);
-  static const _logoAsset = 'assets/branding/abianzo_partner_icon.png';
+class _RiderSplashScreenState extends State<RiderSplashScreen>
+    with WidgetsBindingObserver {
+  static const _splashAsset =
+      'assets/branding/abianzo_rider_splash_1080x1920.png';
+  static const _logoAsset = 'assets/branding/abianzo_rider_icon.png';
+  // Hard cap: force navigation to /auth after 12 seconds regardless
+  static const _maxWait = Duration(seconds: 12);
+
+  bool _routed = false;
+  Timer? _maxWaitTimer;
 
   @override
   void initState() {
     super.initState();
-    Future<void>.delayed(_splashDuration, _routeFromSplash);
+    // Hard-cap timer so we never sit black for more than 12 seconds
+    _maxWaitTimer = Timer(_maxWait, () {
+      if (!mounted || _routed) return;
+      _navigate(context.read<AuthProvider>());
+    });
   }
 
-  Future<void> _routeFromSplash() async {
-    if (!mounted) {
-      return;
-    }
+  @override
+  void dispose() {
+    _maxWaitTimer?.cancel();
+    super.dispose();
+  }
 
-    final auth = context.read<AuthProvider>();
-    if (!auth.isInitialized) {
-      for (var i = 0; i < 20; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 120));
-        if (!mounted) {
-          return;
-        }
-        if (auth.isInitialized) {
-          break;
-        }
-      }
-    }
-
-    if (!mounted) {
-      return;
-    }
+  void _navigate(AuthProvider auth) {
+    if (_routed || !mounted) return;
+    setState(() => _routed = true);
+    _maxWaitTimer?.cancel();
 
     final isAuthenticated = auth.isAuthenticated && auth.user != null;
     if (!isAuthenticated) {
-      context.replace(RiderRoutes.auth);
+      context.go(RiderRoutes.auth);
       return;
     }
 
     final appModeRoute = routeForRiderUser(auth.user!);
     String target = RiderRoutes.dashboard;
-
     if (appModeRoute == '/rider-onboarding') {
       target = RiderRoutes.profileSetup;
     } else if (appModeRoute == '/rider-status') {
@@ -96,31 +96,106 @@ class _RiderSplashScreenState extends State<RiderSplashScreen> {
     } else if (appModeRoute == '/rider-rejected') {
       target = RiderRoutes.rejected;
     }
-
-    context.replace(target);
+    context.go(target);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch AuthProvider — as soon as isInitialized becomes true we route
+    final auth = context.watch<AuthProvider>();
+    if (auth.isInitialized && !_routed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _navigate(auth));
+    }
+
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child:
-            const Image(
-                  image: AssetImage(_logoAsset),
-                  width: 168,
-                  height: 168,
+      backgroundColor: RiderTheme.onboardingBackground,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0, -0.28),
+                radius: 1.15,
+                colors: [
+                  Color(0xFF1B1711),
+                  RiderTheme.onboardingBackground,
+                  Color(0xFF050505),
+                ],
+                stops: [0, 0.68, 1],
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Image.asset(
+              _splashAsset,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  const SizedBox.shrink(),
+            ),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.14),
+                    Colors.black.withValues(alpha: 0.46),
+                    Colors.black.withValues(alpha: 0.78),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  _logoAsset,
+                  width: 156,
+                  height: 156,
                   fit: BoxFit.contain,
                   alignment: Alignment.center,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.delivery_dining_rounded,
+                      size: 124,
+                      color: RiderTheme.onboardingGold,
+                    );
+                  },
                 )
-                .animate()
-                .fadeIn(duration: _splashDuration, curve: Curves.easeOut)
-                .scale(
-                  begin: const Offset(0.95, 0.95),
-                  end: const Offset(1, 1),
-                  duration: _splashDuration,
-                  curve: Curves.easeOut,
-                ),
+                    .animate()
+                    .fadeIn(
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeOut,
+                    )
+                    .scale(
+                      begin: const Offset(0.92, 0.92),
+                      end: const Offset(1, 1),
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeOut,
+                    ),
+                const SizedBox(height: 44),
+                // Spinner — always visible so user knows app is working, not frozen
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(RiderTheme.onboardingGold),
+                  ),
+                ).animate().fadeIn(
+                      delay: const Duration(milliseconds: 600),
+                      duration: const Duration(milliseconds: 400),
+                    ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -261,9 +336,24 @@ class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final loginCardHeight = screenHeight < 720 ? 356.0 : 390.0;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: RiderTheme.onboardingBackground,
       body: Stack(
         children: [
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF1A1712),
+                    RiderTheme.onboardingBackground,
+                    Color(0xFF050505),
+                  ],
+                ),
+              ),
+            ),
+          ),
           Positioned.fill(
             child: PageView.builder(
               controller: _bannerController,
@@ -281,7 +371,21 @@ class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
                       curve: Curves.easeOutCubic,
                       builder: (context, scale, child) =>
                           Transform.scale(scale: scale, child: child),
-                      child: Image.asset(banner.imagePath, fit: BoxFit.cover),
+                      child: Image.asset(
+                        banner.imagePath,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: RiderTheme.onboardingBackground,
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.delivery_dining_rounded,
+                              size: 88,
+                              color: RiderTheme.onboardingGold,
+                            ),
+                          );
+                        },
+                      ),
                     ),
                     Positioned.fill(
                       child: DecoratedBox(
@@ -577,11 +681,12 @@ class _RiderOnboardingFlowScreenState
   bool _ifscLookupLoading = false;
   String _ifscLookupMessage = '';
   String _detectedBankName = '';
-  static const _draftKey = 'rider_onboarding_draft_v1';
+  static const _draftKeyPrefix = 'rider_onboarding_draft_v1';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _step = widget.initialStep;
     _pageController = PageController(initialPage: _step);
     _restoreDraft();
@@ -612,29 +717,83 @@ class _RiderOnboardingFlowScreenState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     _otpController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final x = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 70,
-    );
-    if (x == null) return;
-    final m = ref.read(riderSignupProvider);
-    ref
-        .read(riderSignupProvider.notifier)
-        .update(m.copyWith(profilePhotoPath: x.path));
-    _saveDraft(ref.read(riderSignupProvider));
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      final model = ref.read(riderSignupProvider);
+      _saveDraft(model);
+    }
   }
 
-  Future<void> _pickFile(void Function(String) setter) async {
-    final file = await FilePicker.platform.pickFiles();
-    if (file?.files.single.path != null) {
-      setter(file!.files.single.path!);
-      _saveDraft(ref.read(riderSignupProvider));
+  String _draftKeyForUser(String userId) => '$_draftKeyPrefix:$userId';
+
+  Future<void> _writeLocalDraft(String userId, Map<String, dynamic> data) async {
+    final prefs = await SharedPreferences.getInstance();
+    final payload = Map<String, dynamic>.from(data)
+      ..['lastSavedAt'] = DateTime.now().toIso8601String();
+    await prefs.setString(_draftKeyForUser(userId), jsonEncode(payload));
+  }
+
+  Future<Map<String, dynamic>?> _readLocalDraft(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_draftKeyForUser(userId));
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+      if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _clearLocalDraft(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_draftKeyForUser(userId));
+  }
+
+  Future<void> _pickAndUploadImage(String label, void Function(String url) onPicked) async {
+    final user = context.read<AuthProvider>().user;
+    if (user == null) return;
+    
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 1600,
+    );
+    if (file == null || !mounted) return;
+    
+    setState(() => _submitting = true);
+    
+    try {
+      final String url;
+      if (label == 'profile-photo') {
+        url = await _onboardingService.uploadRiderProfilePhoto(file: file, ownerId: user.id);
+      } else {
+        url = await _onboardingService.uploadRiderDocument(file: file, ownerId: user.id, label: label);
+      }
+      
+      setState(() {
+        onPicked(url);
+        _saveDraft(ref.read(riderSignupProvider));
+      });
+    } catch (e) {
+      if (mounted) context.showRiderSnack(AppErrorText.from(e));
+    } finally {
+      setState(() => _submitting = false);
     }
   }
 
@@ -648,6 +807,7 @@ class _RiderOnboardingFlowScreenState
       return;
     }
     if (_step < 6) {
+      _saveDraft(model);
       setState(() => _step++);
       _pageController.nextPage(
         duration: const Duration(milliseconds: 260),
@@ -671,6 +831,7 @@ class _RiderOnboardingFlowScreenState
       }
       return;
     }
+    _saveDraft(ref.read(riderSignupProvider));
     setState(() => _step--);
     _pageController.previousPage(
       duration: const Duration(milliseconds: 240),
@@ -757,14 +918,27 @@ class _RiderOnboardingFlowScreenState
         'signature': model.signature,
       }
     };
+    await _writeLocalDraft(user.id, data);
     try {
       await _api.saveDraft(data);
     } catch (_) {}
   }
 
   Future<void> _restoreDraft() async {
+    final user = context.read<AuthProvider>().user;
+    if (user == null) {
+      return;
+    }
     try {
-      final draft = await _api.getDraft();
+      Map<String, dynamic>? draft;
+      Map<String, dynamic>? localDraft;
+      try {
+        draft = await _api.getDraft();
+      } catch (_) {}
+      localDraft = await _readLocalDraft(user.id);
+      if (_shouldUseLocalRiderDraft(localDraft, draft)) {
+        draft = localDraft ?? draft;
+      }
       if (draft == null || !mounted) return;
 
       final safeDraft = draft;
@@ -833,6 +1007,40 @@ class _RiderOnboardingFlowScreenState
     } catch (_) {}
   }
 
+  DateTime? _draftTimestamp(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    return DateTime.tryParse(value.toString());
+  }
+
+  bool _shouldUseLocalRiderDraft(
+    Map<String, dynamic>? localDraft,
+    Map<String, dynamic>? remoteDraft,
+  ) {
+    if (localDraft == null) {
+      return false;
+    }
+    if (remoteDraft == null) {
+      return true;
+    }
+
+    final localUpdatedAt = _draftTimestamp(localDraft['lastSavedAt']);
+    final remoteUpdatedAt = _draftTimestamp(
+      remoteDraft['lastSavedAt'] ?? remoteDraft['updatedAt'],
+    );
+
+    if (localUpdatedAt == null && remoteUpdatedAt == null) {
+      return true;
+    }
+    if (localUpdatedAt == null) {
+      return false;
+    }
+    if (remoteUpdatedAt == null) {
+      return true;
+    }
+    return localUpdatedAt.isAfter(remoteUpdatedAt);
+  }
+
   Future<T> _withRetry<T>(
     Future<T> Function() action, {
     int attempts = 2,
@@ -868,32 +1076,18 @@ class _RiderOnboardingFlowScreenState
     setState(() => _submitting = true);
     try {
       RiderTelemetry.event('rider_submit_started', data: {'userId': user.id});
-      final profileUrl = await _withRetry(
-        () => _onboardingService.uploadRiderProfilePhoto(
-          file: XFile(model.profilePhotoPath!),
-          ownerId: user.id,
-        ),
-      );
-      final aadhaarUrl = await _withRetry(
-        () => _onboardingService.uploadRiderDocument(
-          file: XFile(model.selfiePath!),
-          ownerId: user.id,
-          label: 'aadhaar',
-        ),
-      );
-      final licenseUrl = await _withRetry(
-        () => _onboardingService.uploadRiderDocument(
-          file: XFile(model.licenseDocPath!),
-          ownerId: user.id,
-          label: 'license',
-        ),
-      );
+      
+      final profileUrl = model.profilePhotoPath ?? '';
+      final selfieUrl = model.selfiePath ?? '';
+      final licenseUrl = model.licenseDocPath ?? '';
+      final rcUrl = model.rcPath ?? '';
+      final insuranceUrl = model.insurancePath ?? '';
 
       final ocrExtraction = await _withRetry(
         () => _onboardingService.extractKycFields(
           documentType: 'aadhaar_pan',
           text: '${model.aadhaar} ${model.pan} ${model.fullName}',
-          documentUrl: aadhaarUrl,
+          documentUrl: selfieUrl,
         ),
       );
 
@@ -902,7 +1096,7 @@ class _RiderOnboardingFlowScreenState
           aadhaarNumber: model.aadhaar,
           panNumber: model.pan,
           profilePhotoUrl: profileUrl,
-          selfieUrl: aadhaarUrl,
+          selfieUrl: selfieUrl,
           licenseUrl: licenseUrl,
         ),
       );
@@ -934,7 +1128,8 @@ class _RiderOnboardingFlowScreenState
           city: model.city.trim(),
           kyc: KycDocuments(
             profilePhotoUrl: profileUrl,
-            aadhaarUrl: aadhaarUrl,
+            aadhaarUrl: '',
+            selfieUrl: selfieUrl,
             licenseUrl: licenseUrl,
           ),
           metadata: {
@@ -946,8 +1141,8 @@ class _RiderOnboardingFlowScreenState
               'vehicleType': model.vehicleType.name,
               'vehicleNumber': model.vehicleNumber.trim(),
               'licenseNumber': model.licenseNumber.trim(),
-              'rcPath': model.rcPath ?? '',
-              'insurancePath': model.insurancePath ?? '',
+              'rcUrl': rcUrl,
+              'insuranceUrl': insuranceUrl,
             },
             'bank': {
               'accountHolder': model.accountHolder.trim(),
@@ -997,10 +1192,14 @@ class _RiderOnboardingFlowScreenState
       }
       if (!mounted) return;
       RiderTelemetry.event('rider_submit_success', data: {'userId': user.id});
-      context.replace(RiderRoutes.success);
+      try {
+        await _api.deleteDraft();
+      } catch (_) {}
+      await _clearLocalDraft(user.id);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('onboarding_completed', true);
-      await prefs.remove(_draftKey);
+      if (!mounted) return;
+      context.replace(RiderRoutes.success);
     } catch (e) {
       if (!mounted) return;
       RiderTelemetry.event(
@@ -1152,9 +1351,16 @@ class _RiderOnboardingFlowScreenState
           ref.read(riderSignupProvider.notifier).update(newModel);
           _saveDraft(newModel);
         },
-        onPickImage: _pickImage,
+        onPickImage: () => _pickAndUploadImage('profile-photo', (url) {
+          ref.read(riderSignupProvider.notifier).update(model.copyWith(profilePhotoPath: url));
+        }),
         inputDecorationBuilder: _onboardingInputDecoration,
-        statusPillBuilder: _statusPill,
+        visualCardBuilder: (label, description, url, onTap) => _buildRiderVisualCard(
+          label: label,
+          description: description,
+          imageUrl: url,
+          onTap: onTap,
+        ),
         staggerColumnBuilder: _staggerColumn,
       ),
     );
@@ -1170,7 +1376,12 @@ class _RiderOnboardingFlowScreenState
           _saveDraft(newModel);
         },
         inputDecorationBuilder: _onboardingInputDecoration,
-        uploadRowBuilder: _uploadRow,
+        visualCardBuilder: (label, description, url, onPicked) => _buildRiderVisualCard(
+          label: label,
+          description: description,
+          imageUrl: url,
+          onTap: () => _pickAndUploadImage(label, onPicked),
+        ),
       ),
     );
   }
@@ -1184,7 +1395,12 @@ class _RiderOnboardingFlowScreenState
           ref.read(riderSignupProvider.notifier).update(newModel);
           _saveDraft(newModel);
         },
-        uploadRowBuilder: _uploadRow,
+        visualCardBuilder: (label, description, url, onPicked) => _buildRiderVisualCard(
+          label: label,
+          description: description,
+          imageUrl: url,
+          onTap: () => _pickAndUploadImage(label, onPicked),
+        ),
       ),
     );
   }
@@ -1303,53 +1519,91 @@ class _RiderOnboardingFlowScreenState
     ).animate().fadeIn(duration: 250.ms).slideY(begin: 0.08, end: 0);
   }
 
-  Widget _uploadRow(
-    String label,
-    String? path,
-    void Function(String) onPicked,
-  ) {
-    final uploaded = path != null && path.isNotEmpty;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(RiderTheme.radiusSmall),
-        border: Border.all(color: RiderTheme.onboardingElevatedSurface),
-        color: RiderTheme.onboardingElevatedSurface.withValues(alpha: 0.5),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w600, color: RiderTheme.onboardingPrimaryText),
-            ),
-          ),
-          _statusPill(uploaded),
-          const SizedBox(width: 8),
-          TextButton(
-            onPressed: () => _pickFile(onPicked),
-            child: Text(uploaded ? 'Replace' : 'Upload', style: const TextStyle(color: RiderTheme.onboardingGold)),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildRiderVisualCard({
+    required String label,
+    required String description,
+    required String? imageUrl,
+    required VoidCallback onTap,
+  }) {
+    final bool done = imageUrl != null && imageUrl.isNotEmpty;
+    
+    final Color statusColor = done ? RiderTheme.onboardingSuccess : RiderTheme.onboardingWarning;
+    final String statusText = done ? 'Uploaded' : 'Required';
 
-  Widget _statusPill(bool complete) {
-    final bg = complete
-        ? RiderTheme.onboardingSuccess.withValues(alpha: 0.15)
-        : RiderTheme.onboardingWarning.withValues(alpha: 0.15);
-    final fg = complete ? RiderTheme.onboardingSuccess : RiderTheme.onboardingWarning;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        complete ? 'Uploaded' : 'Pending',
-        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w700),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(RiderTheme.radiusSmall),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: RiderTheme.onboardingElevatedSurface.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(RiderTheme.radiusSmall),
+          border: Border.all(color: RiderTheme.onboardingElevatedSurface),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: RiderTheme.onboardingSurface,
+                borderRadius: BorderRadius.circular(RiderTheme.radiusSmall),
+                border: Border.all(color: RiderTheme.onboardingElevatedSurface),
+                image: done && imageUrl.startsWith('http')
+                    ? DecorationImage(
+                        image: CachedNetworkImageProvider(imageUrl),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: done
+                  ? (imageUrl.startsWith('http') ? null : const Icon(Icons.check_circle, color: RiderTheme.onboardingSuccess))
+                  : const Icon(Icons.add_photo_alternate_outlined, color: RiderTheme.onboardingSecondaryText),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: RiderTheme.onboardingPrimaryText,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      color: RiderTheme.onboardingPrimaryText.withValues(alpha: 0.6),
+                      fontSize: 12,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                statusText,
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

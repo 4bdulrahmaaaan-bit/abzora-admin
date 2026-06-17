@@ -6,6 +6,8 @@ enum SyncStatus {
   pendingSync,
   syncFailed,
   localOnly,
+  saving,
+  syncing,
 }
 
 class VendorOnboardingLocalCache {

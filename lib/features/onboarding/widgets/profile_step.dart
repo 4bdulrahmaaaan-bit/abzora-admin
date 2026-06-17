@@ -8,7 +8,7 @@ class ProfileStep extends StatelessWidget {
   final ValueChanged<RiderSignupModel> onUpdate;
   final VoidCallback onPickImage;
   final InputDecoration Function(String) inputDecorationBuilder;
-  final Widget Function(bool) statusPillBuilder;
+  final Widget Function(String, String, String?, VoidCallback) visualCardBuilder;
   final Widget Function(List<Widget>) staggerColumnBuilder;
 
   const ProfileStep({
@@ -18,7 +18,7 @@ class ProfileStep extends StatelessWidget {
     required this.onUpdate,
     required this.onPickImage,
     required this.inputDecorationBuilder,
-    required this.statusPillBuilder,
+    required this.visualCardBuilder,
     required this.staggerColumnBuilder,
   });
 
@@ -63,50 +63,11 @@ class ProfileStep extends StatelessWidget {
         decoration: inputDecorationBuilder('Operating City'),
       ),
       const SizedBox(height: 24),
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: RiderTheme.onboardingElevatedSurface.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(RiderTheme.radiusSmall),
-          border: Border.all(color: RiderTheme.onboardingElevatedSurface),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: RiderTheme.onboardingSurface,
-                shape: BoxShape.circle,
-                border: Border.all(color: RiderTheme.onboardingElevatedSurface),
-              ),
-              child: const Icon(Icons.person_outline_rounded, color: RiderTheme.onboardingSecondaryText),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Profile Photo', style: TextStyle(color: RiderTheme.onboardingPrimaryText, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  statusPillBuilder(model.profilePhotoPath != null),
-                ],
-              ),
-            ),
-            OutlinedButton(
-              onPressed: onPickImage,
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: RiderTheme.onboardingGold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RiderTheme.radiusSmall)),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-              child: Text(
-                model.profilePhotoPath != null ? 'Replace' : 'Upload',
-                style: const TextStyle(color: RiderTheme.onboardingGold, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
+      visualCardBuilder(
+        'Profile Photo',
+        'A clear photo of your face for your rider profile.',
+        model.profilePhotoPath,
+        onPickImage,
       ),
     ];
     

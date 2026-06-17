@@ -3200,6 +3200,78 @@ class BackendCommerceService {
     }
   }
 
+  Future<AppUser?> switchActiveRole({
+    required AppUser user,
+    required String activeRole,
+  }) async {
+    final normalizedRole = activeRole.trim().toLowerCase();
+    if (normalizedRole.isEmpty) {
+      return null;
+    }
+    Map<String, dynamic> envelope;
+    try {
+      final payload = await _client.withRetry(
+        () => _client.patch(
+          '/auth/me/role',
+          authenticated: true,
+          body: {
+            'activeRole': normalizedRole,
+            'role': user.role,
+            'accountType': user.accountType,
+          },
+        ),
+      );
+      envelope = payload is Map<String, dynamic>
+          ? payload
+          : Map<String, dynamic>.from(payload as Map);
+    } on BackendApiException catch (error) {
+      if (error.statusCode != 404) {
+        rethrow;
+      }
+      final fallbackPayload = await _client.withRetry(
+        () => _client.post(
+          '/auth/sync-profile',
+          authenticated: true,
+          body: {
+            'name': user.name,
+            'email': user.email,
+            'phone': user.phone ?? '',
+            'profileImageUrl': user.profileImageUrl ?? '',
+            'address': user.address ?? '',
+            'area': user.area ?? '',
+            'city': user.city ?? '',
+            'latitude': user.latitude,
+            'longitude': user.longitude,
+            'deliveryRadiusKm': user.deliveryRadiusKm,
+            'locationUpdatedAt': user.locationUpdatedAt ?? '',
+            'role': user.role,
+            'activeRole': normalizedRole,
+            'accountType': normalizedRole,
+            'isActive': user.isActive,
+            'storeId': user.storeId ?? '',
+            'walletBalance': user.walletBalance,
+            'roles': user.roles,
+            'riderApprovalStatus': user.riderApprovalStatus,
+            'riderVehicleType': user.riderVehicleType ?? '',
+            'riderLicenseNumber': user.riderLicenseNumber ?? '',
+            'riderCity': user.riderCity ?? '',
+          },
+        ),
+      );
+      envelope = fallbackPayload is Map<String, dynamic>
+          ? fallbackPayload
+          : Map<String, dynamic>.from(fallbackPayload as Map);
+    }
+    final data = envelope['data'];
+    if (data == null) {
+      return null;
+    }
+    final map = data is Map<String, dynamic>
+        ? data
+        : Map<String, dynamic>.from(data as Map);
+    return _appUserFromBackend(map);
+  }
+
   AppUser _appUserFromBackend(Map<String, dynamic> map) {
     return AppUser.fromMap({
       'id': map['firebaseUid'] ?? map['uid'] ?? map['id'],
