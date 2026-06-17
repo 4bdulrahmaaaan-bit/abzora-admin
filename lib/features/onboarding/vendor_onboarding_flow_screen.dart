@@ -718,7 +718,6 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
       if (_draft.ownerPhotoUrl == null || _draft.storePhotoUrl == null || _draft.aadhaarUrl == null || _draft.panUrl == null) {
         return 'Owner, store, Aadhaar and PAN images are required';
       }
-      if (!_draft.kycProcessed) return 'Please wait for KYC verification to complete';
     }
     if (_step == 5) {
       if (!_draft.agreedToTruth) return 'You must certify the information is accurate';
@@ -1242,7 +1241,11 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
                             child: CircularProgressIndicator(strokeWidth: 2, color: VendorTheme.onboardingBackground),
                           )
                         : Text(
-                            _step == 5 ? (_submitting ? 'Submitting Application...' : 'Submit Application →') : 'Save & Continue →',
+                            _step == 5
+                                ? (_submitting ? 'Submitting Application...' : 'Submit Application ->')
+                                : _step == 4
+                                    ? 'Verify & Continue ->'
+                                    : 'Save & Continue ->',
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                   ),

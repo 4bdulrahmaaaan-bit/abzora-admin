@@ -45,10 +45,7 @@ class RiderSplashScreen extends StatefulWidget {
   State<RiderSplashScreen> createState() => _RiderSplashScreenState();
 }
 
-class _RiderSplashScreenState extends State<RiderSplashScreen>
-    with WidgetsBindingObserver {
-  static const _splashAsset =
-      'assets/branding/abianzo_rider_splash_1080x1920.png';
+class _RiderSplashScreenState extends State<RiderSplashScreen> {
   static const _logoAsset = 'assets/branding/abianzo_rider_icon.png';
   // Hard cap: force navigation to /auth after 12 seconds regardless
   static const _maxWait = Duration(seconds: 12);
@@ -126,29 +123,6 @@ class _RiderSplashScreenState extends State<RiderSplashScreen>
               ),
             ),
           ),
-          Positioned.fill(
-            child: Image.asset(
-              _splashAsset,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  const SizedBox.shrink(),
-            ),
-          ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.14),
-                    Colors.black.withValues(alpha: 0.46),
-                    Colors.black.withValues(alpha: 0.78),
-                  ],
-                ),
-              ),
-            ),
-          ),
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -177,20 +151,6 @@ class _RiderSplashScreenState extends State<RiderSplashScreen>
                       end: const Offset(1, 1),
                       duration: const Duration(milliseconds: 500),
                       curve: Curves.easeOut,
-                    ),
-                const SizedBox(height: 44),
-                // Spinner — always visible so user knows app is working, not frozen
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(RiderTheme.onboardingGold),
-                  ),
-                ).animate().fadeIn(
-                      delay: const Duration(milliseconds: 600),
-                      duration: const Duration(milliseconds: 400),
                     ),
               ],
             ),
@@ -1110,8 +1070,11 @@ class _RiderOnboardingFlowScreenState
           verificationStatus == 'manual_review') {
         if (mounted) {
           HapticFeedback.heavyImpact();
+          final reason = verificationStatus == 'manual_review'
+              ? 'Your rider KYC is under manual review.'
+              : 'KYC confidence is low (${confidence.toStringAsFixed(0)}%).';
           context.showRiderSnack(
-            'KYC confidence is low (${confidence.toStringAsFixed(0)}%). Please re-upload clearer documents before submission.',
+            '$reason Please re-upload clearer documents before submission.',
           );
         }
         return;
