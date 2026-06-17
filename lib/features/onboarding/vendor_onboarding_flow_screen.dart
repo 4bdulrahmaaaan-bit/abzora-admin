@@ -121,9 +121,10 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     final localDraft = _draftFromCachedRecord(cachedDraft);
     if (_shouldPreferLocalVendorDraft(cachedDraft, draft)) {
       draft = localDraft ?? draft;
-      if (mounted && cachedDraft != null) {
+      final cachedDraftSnapshot = cachedDraft;
+      if (mounted && cachedDraftSnapshot != null) {
         setState(() {
-          _syncStatus = cachedDraft['isPendingSync'] == true
+          _syncStatus = cachedDraftSnapshot['isPendingSync'] == true
               ? SyncStatus.pendingSync
               : SyncStatus.cloudSynced;
         });
@@ -315,18 +316,23 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     if (localDraft == null) {
       return false;
     }
-    if (cloudDraft == null) {
+    final cached = cachedRecord;
+    if (cached == null) {
+      return true;
+    }
+    final cloud = cloudDraft;
+    if (cloud == null) {
       return true;
     }
 
     final localUpdatedAt = _draftTimestamp(
-      cachedRecord?['lastUpdatedAt'] ?? cachedRecord?['lastSavedAt'],
+      cached['lastUpdatedAt'] ?? cached['lastSavedAt'],
     );
     final cloudUpdatedAt = _draftTimestamp(
-      cloudDraft?['lastSavedAt'] ?? cloudDraft?['updatedAt'],
+      cloud['lastSavedAt'] ?? cloud['updatedAt'],
     );
 
-    if (cachedRecord?['isPendingSync'] == true) {
+    if (cached['isPendingSync'] == true) {
       if (cloudUpdatedAt == null || localUpdatedAt == null) {
         return true;
       }

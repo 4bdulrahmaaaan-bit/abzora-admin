@@ -668,7 +668,8 @@ class RiderOnboardingFlowScreen extends ConsumerStatefulWidget {
 }
 
 class _RiderOnboardingFlowScreenState
-    extends ConsumerState<RiderOnboardingFlowScreen> {
+    extends ConsumerState<RiderOnboardingFlowScreen>
+    with WidgetsBindingObserver {
   static const double _kycMinimumConfidence = 75;
   late final PageController _pageController;
   final _otpController = TextEditingController();

@@ -102,9 +102,7 @@ class StorageService {
 
         final response = await request.send().timeout(const Duration(seconds: 30));
         final body = await response.stream.bytesToString();
-        final decoded = body.isEmpty
-            ? <String, dynamic>{}
-            : Map<String, dynamic>.from(jsonDecode(body) as Map);
+        final decoded = _decodeResponseBody(body);
         final data = decoded['data'] is Map
             ? Map<String, dynamic>.from(decoded['data'] as Map)
             : decoded;
@@ -112,7 +110,7 @@ class StorageService {
           return sendWithToken(forceRefresh: true);
         }
         if (response.statusCode < 200 || response.statusCode >= 300) {
-          final message = data['message']?.toString().trim();
+          final message = _responseMessage(data, fallbackStatus: response.statusCode);
           throw StateError(
             message?.isNotEmpty == true
                 ? message!
@@ -144,6 +142,39 @@ class StorageService {
       debugPrint('[CLOUDINARY_FAILURE] Backend upload failed: $e');
       throw StateError('Image upload failed. Please try again.');
     }
+  }
+
+  Map<String, dynamic> _decodeResponseBody(String body) {
+    if (body.trim().isEmpty) {
+      return <String, dynamic>{};
+    }
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded);
+      }
+    } catch (_) {
+      // Fall through to a text payload wrapper so the backend message is not lost.
+    }
+    return <String, dynamic>{'message': body.trim()};
+  }
+
+  String? _responseMessage(Map<String, dynamic> payload, {required int fallbackStatus}) {
+    final directMessage = payload['message']?.toString().trim();
+    if (directMessage?.isNotEmpty == true) {
+      return directMessage;
+    }
+    final data = payload['data'];
+    if (data is Map) {
+      final nestedMessage = data['message']?.toString().trim();
+      if (nestedMessage?.isNotEmpty == true) {
+        return nestedMessage;
+      }
+    }
+    if (fallbackStatus == 403) {
+      return 'Access denied. Please sign in with the correct account.';
+    }
+    return null;
   }
 
 
