@@ -1134,7 +1134,7 @@ class _RiderOnboardingFlowScreenState
         await _withRetry(
           () => _db.saveRiderPayoutProfile(
             actor: user,
-            methodType: model.upi.trim().isNotEmpty ? 'upi' : 'bank',
+            methodType: model.upi.trim().isNotEmpty ? 'vpa' : 'bank_account',
             accountHolderName: model.accountHolder.trim(),
             upiId: model.upi.trim(),
             bankAccountNumber: model.accountNumber.trim(),

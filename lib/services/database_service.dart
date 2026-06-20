@@ -7771,9 +7771,6 @@ class DatabaseService {
     String bankName = '',
   }) async {
     if (_backendCommerce.isConfigured) {
-      if (!isVendor(actor)) {
-        throw StateError('Vendor access required.');
-      }
       return _backendCommerce.saveVendorPayoutProfile(
         methodType: methodType,
         accountHolderName: accountHolderName,
@@ -7812,9 +7809,6 @@ class DatabaseService {
     String bankName = '',
   }) async {
     if (_backendCommerce.isConfigured) {
-      if (!isRider(actor)) {
-        throw StateError('Rider access required.');
-      }
       return _backendCommerce.saveRiderPayoutProfile(
         methodType: methodType,
         accountHolderName: accountHolderName,

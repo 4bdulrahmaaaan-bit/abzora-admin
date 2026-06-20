@@ -987,7 +987,7 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
         try {
           await _db.saveVendorPayoutProfile(
             actor: user,
-            methodType: _draft.preferredPaymentMethod == 'UPI' ? 'upi' : 'bank',
+            methodType: _draft.preferredPaymentMethod == 'UPI' ? 'vpa' : 'bank_account',
             accountHolderName: _draft.ownerName.text.trim(),
             upiId: _draft.upi.text.trim(),
             bankAccountNumber: _draft.bankAccount.text.trim(),

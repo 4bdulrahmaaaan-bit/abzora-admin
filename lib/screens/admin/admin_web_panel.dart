@@ -300,6 +300,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     }
     setState(() {
       _tab = section;
+      _loadError = null;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
@@ -411,7 +412,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         return;
       }
       setState(() {
-        _loadError = AppErrorText.from(error);
+        _dataWarnings.add(AppErrorText.from(error));
       });
     } finally {
       if (mounted) {
@@ -501,8 +502,28 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         _analytics = analytics;
         _dashboardLoaded = true;
       });
-    } catch (_) {
-      rethrow;
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _analytics = AdminAnalytics(
+          totalRevenue: 0,
+          platformCommissionRevenue: 0,
+          vendorPayouts: 0,
+          riderPayouts: 0,
+          totalOrders: 0,
+          ordersToday: 0,
+          topStores: const [],
+          dailySales: const [],
+          weeklySales: const [],
+        );
+        _dashboardLoaded = true;
+        _dataWarnings.add(
+          'Dashboard metrics are temporarily unavailable. Showing a fallback view.',
+        );
+      });
+      debugPrint('Admin dashboard load failed: $error');
     }
   }
 
