@@ -36,7 +36,7 @@ class _RiderApplicationCenterState extends State<RiderApplicationCenter> {
     final authProvider = prov.Provider.of<AuthProvider>(context);
     final user = authProvider.user;
     final riderOnboarding = user?.riderOnboarding ?? {};
-    final status = riderOnboarding['status'] ?? 'pending';
+    final status = (riderOnboarding['status'] ?? 'pending').toString().toLowerCase();
     final adminNotes = riderOnboarding['adminNotes'];
 
     return Scaffold(
@@ -168,6 +168,7 @@ class _RiderApplicationCenterState extends State<RiderApplicationCenter> {
         iconData = Icons.school_outlined;
         bgColor = Colors.blue.withValues(alpha: 0.1);
         break;
+      case 'submitted':
       case 'pending':
       default:
         iconColor = const Color(0xFFD4AF37);
@@ -195,6 +196,7 @@ class _RiderApplicationCenterState extends State<RiderApplicationCenter> {
         return 'Application Issue';
       case 'training_pending':
         return 'Training Required';
+      case 'submitted':
       case 'pending':
       default:
         return 'Review in Progress';
@@ -209,6 +211,7 @@ class _RiderApplicationCenterState extends State<RiderApplicationCenter> {
         return 'There was an issue with your application. Please review the notes below and contact support.';
       case 'training_pending':
         return 'Your application is approved, but you must complete the required safety training before you can go online.';
+      case 'submitted':
       case 'pending':
       default:
         return 'Our onboarding team is reviewing your documents and background check. This usually takes 24-48 hours.';

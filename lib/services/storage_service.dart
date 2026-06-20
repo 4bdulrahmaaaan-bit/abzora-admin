@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
@@ -79,11 +80,41 @@ class StorageService {
   Future<String> _uploadViaBackend({required XFile file, required String folder, required String ownerId}) async {
     final extension = _fileExtension(file.name);
     try {
+      Future<String> resolveUploadToken({required bool forceRefresh}) async {
+        try {
+          return await AuthSessionService.instance.requiredAuthorizationToken(
+            forceRefresh: forceRefresh,
+            failureMessage: 'Please sign in again before uploading images.',
+          );
+        } on StateError catch (error) {
+          final message = error.message.toString().toLowerCase();
+          final canFallbackToFirebase =
+              message.contains('provisioned') ||
+              message.contains('sign in again') ||
+              message.contains('session') ||
+              message.contains('backend session');
+          if (!canFallbackToFirebase) {
+            rethrow;
+          }
+          final firebaseUser = FirebaseAuth.instance.currentUser;
+          if (firebaseUser == null) {
+            rethrow;
+          }
+          final firebaseToken = await firebaseUser
+              .getIdToken(forceRefresh)
+              .timeout(const Duration(seconds: 15));
+          if (firebaseToken == null || firebaseToken.isEmpty) {
+            rethrow;
+          }
+          debugPrint(
+            '[CLOUDINARY_DEBUG] Falling back to Firebase ID token for upload provisioning.',
+          );
+          return firebaseToken;
+        }
+      }
+
       Future<String> sendWithToken({required bool forceRefresh}) async {
-        final token = await AuthSessionService.instance.requiredAuthorizationToken(
-          forceRefresh: forceRefresh,
-          failureMessage: 'Please sign in again before uploading images.',
-        );
+        final token = await resolveUploadToken(forceRefresh: forceRefresh);
 
         final request = http.MultipartRequest(
           'POST',

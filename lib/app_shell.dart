@@ -1041,42 +1041,33 @@ class _AdminRoute extends StatelessWidget {
       );
     }
 
-    // CRITICAL: Do not make any redirect decision until session restoration
-    // is fully complete. During a browser refresh, _isRestoringSession is
-    // true while tokens are being read from LocalStorage and /auth/me is
-    // called. Checking `user == null` at this moment always returns true
-    // and causes an incorrect redirect to /admin-login.
-    if (!auth.isInitialized || auth.isSessionRestoring) {
+    // CRITICAL: Never build the admin panel before auth resolution completes.
+    // During startup, session restore and token refresh can briefly leave the
+    // auth state unresolved. Showing the loading gate here prevents the
+    // dashboard from flashing before we know whether the user is an admin.
+    if (!auth.isInitialized || auth.isSessionRestoring || auth.isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFFF9F7F2),
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: CircularProgressIndicator(),
+          ),
+        ),
       );
     }
 
     if (user == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (context.mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            '/admin-login',
-            (route) => false,
-          );
-        }
-      });
-      return const SizedBox.shrink();
+      return const LoginScreen(
+        mode: AbzioAppMode.unified,
+        adminEntry: true,
+      );
     }
 
     if (!hasAdminAccess(user)) {
-      return const Scaffold(
-        body: Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Text(
-              'This area is restricted to platform administrators.',
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
+      return const LoginScreen(
+        mode: AbzioAppMode.unified,
+        adminEntry: true,
       );
     }
 

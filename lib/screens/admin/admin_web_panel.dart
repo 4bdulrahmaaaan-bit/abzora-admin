@@ -2293,6 +2293,17 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    if (!auth.isInitialized || auth.isSessionRestoring || auth.isLoading) {
+      return const Scaffold(
+        backgroundColor: AbzioTheme.backgroundColor,
+        body: Center(
+          child: AbzioLoadingView(
+            title: 'Verifying admin access',
+            subtitle: 'Checking your session before loading the control center.',
+          ),
+        ),
+      );
+    }
     if (!auth.isAdmin) {
       return const Scaffold(
         body: Center(
