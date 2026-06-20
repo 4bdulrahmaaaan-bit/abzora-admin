@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:convert';
 
+import '../../providers/auth_provider.dart';
 import '../../../theme.dart';
+import '../../../widgets/state_views.dart';
 import 'api/admin_finance_api.dart';
 
 class AdminFinanceSection extends StatefulWidget {
@@ -179,6 +182,20 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection>
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    if (!auth.isSuperAdmin) {
+      return const Scaffold(
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: AbzioEmptyCard(
+              title: 'Admin access only',
+              subtitle: 'Finance is restricted to platform administrators.',
+            ),
+          ),
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

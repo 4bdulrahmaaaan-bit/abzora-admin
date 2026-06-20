@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/auth_provider.dart';
 import '../../services/backend_commerce_service.dart';
 import '../../theme.dart';
+import '../../widgets/state_views.dart';
 
 class AdminAnalyticsScreen extends StatefulWidget {
   const AdminAnalyticsScreen({super.key});
@@ -101,6 +104,21 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    if (!auth.isSuperAdmin) {
+      return const Scaffold(
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: AbzioEmptyCard(
+              title: 'Admin access only',
+              subtitle:
+                  'Analytics is restricted to platform administrators.',
+            ),
+          ),
+        ),
+      );
+    }
     final arSessions = Map<String, dynamic>.from(
       _summary['arSessions'] as Map? ?? const {},
     );

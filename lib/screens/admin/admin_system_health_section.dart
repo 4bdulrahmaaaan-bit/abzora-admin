@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
 import 'api/admin_system_health_api.dart';
+
+import '../../providers/auth_provider.dart';
 
 class AdminSystemHealthSection extends StatefulWidget {
   const AdminSystemHealthSection({super.key});
@@ -129,6 +132,12 @@ class _AdminSystemHealthSectionState extends State<AdminSystemHealthSection> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    if (!auth.isSuperAdmin) {
+      return const Scaffold(
+        body: Center(child: Text('Admin access only')),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('System Health & Monitoring'),

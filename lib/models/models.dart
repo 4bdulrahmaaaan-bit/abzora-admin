@@ -4316,6 +4316,10 @@ class PayoutProfileSummary {
   final String razorpayContactId;
   final String razorpayFundAccountId;
   final String lastSyncedAt;
+  final String verificationStatus;
+  final String verifiedAt;
+  final String verificationReference;
+  final String verificationMessage;
   final bool isConfigured;
 
   const PayoutProfileSummary({
@@ -4328,6 +4332,10 @@ class PayoutProfileSummary {
     required this.razorpayContactId,
     required this.razorpayFundAccountId,
     required this.lastSyncedAt,
+    this.verificationStatus = 'unverified',
+    this.verifiedAt = '',
+    this.verificationReference = '',
+    this.verificationMessage = '',
     required this.isConfigured,
   });
 
@@ -4341,6 +4349,10 @@ class PayoutProfileSummary {
       razorpayContactId = '',
       razorpayFundAccountId = '',
       lastSyncedAt = '',
+      verificationStatus = 'unverified',
+      verifiedAt = '',
+      verificationReference = '',
+      verificationMessage = '',
       isConfigured = false;
 
   factory PayoutProfileSummary.fromMap(Map<String, dynamic> map) =>
@@ -4354,6 +4366,10 @@ class PayoutProfileSummary {
         razorpayContactId: map['razorpayContactId'] ?? '',
         razorpayFundAccountId: map['razorpayFundAccountId'] ?? '',
         lastSyncedAt: map['lastSyncedAt'] ?? '',
+        verificationStatus: map['verificationStatus'] ?? 'unverified',
+        verifiedAt: map['verifiedAt'] ?? '',
+        verificationReference: map['verificationReference'] ?? '',
+        verificationMessage: map['verificationMessage'] ?? '',
         isConfigured: map['isConfigured'] == true,
       );
 
@@ -4367,6 +4383,10 @@ class PayoutProfileSummary {
     String? razorpayContactId,
     String? razorpayFundAccountId,
     String? lastSyncedAt,
+    String? verificationStatus,
+    String? verifiedAt,
+    String? verificationReference,
+    String? verificationMessage,
     bool? isConfigured,
   }) {
     return PayoutProfileSummary(
@@ -4380,6 +4400,11 @@ class PayoutProfileSummary {
       razorpayFundAccountId:
           razorpayFundAccountId ?? this.razorpayFundAccountId,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      verifiedAt: verifiedAt ?? this.verifiedAt,
+      verificationReference:
+          verificationReference ?? this.verificationReference,
+      verificationMessage: verificationMessage ?? this.verificationMessage,
       isConfigured: isConfigured ?? this.isConfigured,
     );
   }
@@ -4398,6 +4423,7 @@ class WithdrawalRequestSummary {
   final String processedAt;
   final String processedBy;
   final String approvedAt;
+  final String paidAt;
   final String completedAt;
   final String rejectionReason;
   final String payoutMode;
@@ -4407,6 +4433,11 @@ class WithdrawalRequestSummary {
   final String idempotencyKey;
   final String failureReason;
   final int retryCount;
+  final String approvedBy;
+  final String approvalLockId;
+  final String processingStartedAt;
+  final String reversedAt;
+  final String cancelledAt;
   final bool isSuspicious;
   final bool reviewRequired;
   final int riskScore;
@@ -4427,6 +4458,7 @@ class WithdrawalRequestSummary {
     required this.processedAt,
     required this.processedBy,
     required this.approvedAt,
+    this.paidAt = '',
     required this.completedAt,
     required this.rejectionReason,
     required this.payoutMode,
@@ -4436,6 +4468,11 @@ class WithdrawalRequestSummary {
     required this.idempotencyKey,
     required this.failureReason,
     required this.retryCount,
+    this.approvedBy = '',
+    this.approvalLockId = '',
+    this.processingStartedAt = '',
+    this.reversedAt = '',
+    this.cancelledAt = '',
     this.isSuspicious = false,
     this.reviewRequired = false,
     this.riskScore = 0,
@@ -4458,6 +4495,7 @@ class WithdrawalRequestSummary {
         processedAt: map['processedAt'] ?? '',
         processedBy: map['processedBy'] ?? '',
         approvedAt: map['approvedAt'] ?? '',
+        paidAt: map['paidAt'] ?? '',
         completedAt: map['completedAt'] ?? '',
         rejectionReason: map['rejectionReason'] ?? '',
         payoutMode: map['payoutMode'] ?? '',
@@ -4467,12 +4505,75 @@ class WithdrawalRequestSummary {
         idempotencyKey: map['idempotencyKey'] ?? '',
         failureReason: map['failureReason'] ?? '',
         retryCount: ((map['retryCount'] ?? 0) as num).toInt(),
+        approvedBy: map['approvedBy'] ?? '',
+        approvalLockId: map['approvalLockId'] ?? '',
+        processingStartedAt: map['processingStartedAt'] ?? '',
+        reversedAt: map['reversedAt'] ?? '',
+        cancelledAt: map['cancelledAt'] ?? '',
         isSuspicious: map['isSuspicious'] ?? false,
         reviewRequired: map['reviewRequired'] ?? false,
         riskScore: ((map['riskScore'] ?? 0) as num).toInt(),
         riskReasons: List<String>.from(map['riskReasons'] ?? const []),
         auditOrderIds: List<String>.from(map['auditOrderIds'] ?? const []),
         metadata: Map<String, dynamic>.from(map['metadata'] ?? const {}),
+      );
+
+  bool get isProcessing => status.toLowerCase() == 'processing';
+  bool get isPending => status.toLowerCase() == 'pending';
+  bool get isApproved => status.toLowerCase() == 'approved';
+  bool get isPaid => status.toLowerCase() == 'paid';
+  bool get isFailed => status.toLowerCase() == 'failed';
+  bool get isReversed => status.toLowerCase() == 'reversed';
+  bool get isCancelled => status.toLowerCase() == 'cancelled';
+  bool get isManualReview => status.toLowerCase() == 'manual_review';
+}
+
+class PayoutRecoveryJobSummary {
+  final String id;
+  final String withdrawalRequestId;
+  final String userId;
+  final String userRole;
+  final String razorpayPayoutId;
+  final String status;
+  final int attemptCount;
+  final String lastCheckedAt;
+  final String resolvedAt;
+  final String failureReason;
+  final Map<String, dynamic> metadata;
+  final String createdAt;
+  final String updatedAt;
+
+  const PayoutRecoveryJobSummary({
+    required this.id,
+    required this.withdrawalRequestId,
+    required this.userId,
+    required this.userRole,
+    required this.razorpayPayoutId,
+    required this.status,
+    required this.attemptCount,
+    required this.lastCheckedAt,
+    required this.resolvedAt,
+    required this.failureReason,
+    this.metadata = const {},
+    this.createdAt = '',
+    this.updatedAt = '',
+  });
+
+  factory PayoutRecoveryJobSummary.fromMap(Map<String, dynamic> map) =>
+      PayoutRecoveryJobSummary(
+        id: map['id']?.toString() ?? '',
+        withdrawalRequestId: map['withdrawalRequestId']?.toString() ?? '',
+        userId: map['userId']?.toString() ?? '',
+        userRole: map['userRole']?.toString() ?? '',
+        razorpayPayoutId: map['razorpayPayoutId']?.toString() ?? '',
+        status: map['status']?.toString() ?? 'pending',
+        attemptCount: ((map['attemptCount'] ?? 0) as num).toInt(),
+        lastCheckedAt: map['lastCheckedAt']?.toString() ?? '',
+        resolvedAt: map['resolvedAt']?.toString() ?? '',
+        failureReason: map['failureReason']?.toString() ?? '',
+        metadata: Map<String, dynamic>.from(map['metadata'] as Map? ?? const {}),
+        createdAt: map['createdAt']?.toString() ?? '',
+        updatedAt: map['updatedAt']?.toString() ?? '',
       );
 }
 

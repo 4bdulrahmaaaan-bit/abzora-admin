@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
 import 'api/admin_security_api.dart';
 import 'package:intl/intl.dart';
+
+import '../../providers/auth_provider.dart';
 
 class AdminSecuritySection extends StatefulWidget {
   const AdminSecuritySection({super.key});
@@ -101,6 +104,10 @@ class _AdminSecuritySectionState extends State<AdminSecuritySection> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    if (!auth.isSuperAdmin) {
+      return const Center(child: Text('Admin access only'));
+    }
     if (_isLoading && _data == null) {
       return const Center(child: CircularProgressIndicator());
     }
