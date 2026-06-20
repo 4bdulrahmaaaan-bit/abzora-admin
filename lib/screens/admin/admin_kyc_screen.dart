@@ -803,7 +803,7 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
   @override
   Widget build(BuildContext context) {
     final actor = context.watch<AuthProvider>().user;
-    if (actor == null || !context.read<AuthProvider>().isSuperAdmin) {
+    if (actor == null || !context.read<AuthProvider>().isAdmin) {
       return const Scaffold(
         body: Center(
           child: Padding(

@@ -59,6 +59,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
   bool get profileLoaded => _profileLoaded;
   bool get vendorProfileLoaded => _profileLoaded;
   bool get vendorPermissionsResolved => _vendorPermissionsResolved;
+  bool get isAdmin => hasAdminAccess(_user);
   bool get isSuperAdmin =>
       hasAdminAccess(_user);
   bool get isVendor => hasVendorOperationsAccess(_user);

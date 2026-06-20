@@ -105,59 +105,49 @@ class _RiderSplashScreenState extends State<RiderSplashScreen> {
     }
 
     return Scaffold(
-      backgroundColor: RiderTheme.onboardingBackground,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(0, -0.28),
-                radius: 1.15,
-                colors: [
-                  Color(0xFF1B1711),
-                  RiderTheme.onboardingBackground,
-                  Color(0xFF050505),
-                ],
-                stops: [0, 0.68, 1],
-              ),
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  _logoAsset,
-                  width: 156,
-                  height: 156,
-                  fit: BoxFit.contain,
-                  alignment: Alignment.center,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
-                      Icons.delivery_dining_rounded,
-                      size: 124,
-                      color: RiderTheme.onboardingGold,
-                    );
-                  },
-                )
-                    .animate()
-                    .fadeIn(
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeOut,
-                    )
-                    .scale(
-                      begin: const Offset(0.92, 0.92),
-                      end: const Offset(1, 1),
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeOut,
-                    ),
-              ],
-            ),
-          ),
-        ],
+      backgroundColor: Colors.black,
+      body: const ColoredBox(
+        color: Colors.black,
+        child: Center(
+          child: _RiderSplashLogo(),
+        ),
       ),
     );
+  }
+}
+
+class _RiderSplashLogo extends StatelessWidget {
+  const _RiderSplashLogo();
+
+  static const _logoAsset = 'assets/branding/abianzo_rider_icon.png';
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      _logoAsset,
+      width: 156,
+      height: 156,
+      fit: BoxFit.contain,
+      alignment: Alignment.center,
+      errorBuilder: (context, error, stackTrace) {
+        return const Icon(
+          Icons.delivery_dining_rounded,
+          size: 124,
+          color: RiderTheme.onboardingGold,
+        );
+      },
+    )
+        .animate()
+        .fadeIn(
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOut,
+        )
+        .scale(
+          begin: const Offset(0.92, 0.92),
+          end: const Offset(1, 1),
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOut,
+        );
   }
 }
 

@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service | Abianzo</title>
+    <style>
+        :root {
+            --primary: #1E293B;
+            --primary-light: #334155;
+            --accent: #3B82F6;
+            --accent-hover: #2563EB;
+            --bg-color: #F8FAFC;
+            --text-main: #334155;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            --surface: #FFFFFF;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            background-color: var(--surface);
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        .last-updated {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            background: var(--bg-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 2rem auto 4rem;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 3rem;
+        }
+
+        /* Sidebar Navigation */
+        aside {
+            position: sticky;
+            top: 6rem;
+            height: fit-content;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.95rem;
+            border-left: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+            background-color: var(--surface);
+            border-left-color: var(--border-color);
+        }
+
+        .nav-link.active {
+            color: var(--accent);
+            border-left-color: var(--accent);
+            background-color: #EFF6FF;
+            font-weight: 500;
+        }
+
+        /* Content Area */
+        .content {
+            background: var(--surface);
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            line-height: 1.2;
+            letter-spacing: -0.025em;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin: 2.5rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            scroll-margin-top: 6rem;
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            color: var(--text-main);
+        }
+
+        ul {
+            margin-bottom: 1.5rem;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .highlight-box {
+            background-color: #EFF6FF;
+            border: 1px solid #BFDBFE;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        .highlight-box p {
+            margin: 0;
+            color: #1E3A8A;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        footer {
+            background-color: var(--primary);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .contact-email {
+            display: inline-block;
+            margin-top: 1rem;
+            color: #93C5FD;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .contact-email:hover {
+            color: white;
+        }
+
+        .nav-header {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin: 0 0 1rem 1rem;
+            font-weight: 700;
+        }
+
+        .bottom-links a {
+            color: #93C5FD;
+            text-decoration: none;
+            margin: 0 1rem;
+        }
+
+        .bottom-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            main {
+                grid-template-columns: 1fr;
+                padding: 0 1rem;
+                gap: 1.5rem;
+            }
+
+            aside {
+                display: none;
+            }
+
+            .content {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+            }
+        }
+
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <a href="/" class="logo">Abianzo<span>.</span></a>
+            <div class="last-updated">Last Updated: June 2026</div>
+        </div>
+    </header>
+
+    <main>
+        <aside>
+            <nav id="toc">
+                <div class="nav-header">Table of Contents</div>
+                <a href="#acceptance" class="nav-link active">1. Acceptance of Terms</a>
+                <a href="#description" class="nav-link">2. Description of Service</a>
+                <a href="#accounts" class="nav-link">3. User Accounts</a>
+                <a href="#auth" class="nav-link">4. Phone Auth</a>
+                <a href="#responsibilities" class="nav-link">5. User Responsibilities</a>
+                <a href="#prohibited" class="nav-link">6. Prohibited Activities</a>
+                <a href="#privacy" class="nav-link">7. Privacy</a>
+                <a href="#ip" class="nav-link">8. Intellectual Property</a>
+                <a href="#warranties" class="nav-link">9. Disclaimer of Warranties</a>
+                <a href="#liability" class="nav-link">10. Limitation of Liability</a>
+                <a href="#changes" class="nav-link">11. Changes to Terms</a>
+                <a href="#contact" class="nav-link">12. Contact Information</a>
+            </nav>
+        </aside>
+
+        <div class="content">
+            <h1>Terms of Service</h1>
+            <p>Welcome to Abianzo. These Terms of Service ("Terms") govern your use of the Abianzo mobile application and related services provided by us.</p>
+
+            <div class="highlight-box">
+                <p>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="min-width: 24px;"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                    By downloading or using the Abianzo app, you agree to be bound by these Terms. If you do not agree, do not use the app.
+                </p>
+            </div>
+
+            <section id="acceptance">
+                <h2>1. Acceptance of Terms</h2>
+                <p>By creating an account, downloading, accessing, or using the Abianzo mobile application (the "App"), you agree to abide by these Terms of Service. These Terms constitute a legally binding agreement between you and Abianzo.</p>
+            </section>
+
+            <section id="description">
+                <h2>2. Description of Service</h2>
+                <p>Abianzo provides a dynamic mobile platform that utilizes device capabilities, including location mapping and camera features, to deliver personalized services, connect users, and facilitate on-demand fulfillment. Features and functionalities are subject to updates, modifications, or removal at our sole discretion.</p>
+            </section>
+
+            <section id="accounts">
+                <h2>3. User Accounts</h2>
+                <p>To access certain features of the App, you must register for an account. You agree to provide accurate, current, and complete information during the registration process and to keep your account information up to date. You are entirely responsible for maintaining the confidentiality of your account credentials.</p>
+            </section>
+
+            <section id="auth">
+                <h2>4. Phone Number Authentication</h2>
+                <p>Abianzo requires a valid phone number to create an account. We use Firebase Authentication to send a One-Time Password (OTP) to your device for identity verification. By providing your phone number, you consent to receive SMS messages from Abianzo or its authentication partners strictly for account access and security alerts. Standard messaging rates may apply.</p>
+            </section>
+
+            <section id="responsibilities">
+                <h2>5. User Responsibilities</h2>
+                <p>When using Abianzo, you are responsible for:</p>
+                <ul>
+                    <li>Ensuring your device meets the technical requirements of the App.</li>
+                    <li>Granting necessary permissions (such as Location Services or Camera access) required for specific App functionalities.</li>
+                    <li>All activities that occur under your account.</li>
+                    <li>Notifying us immediately of any unauthorized use of your account.</li>
+                </ul>
+            </section>
+
+            <section id="prohibited">
+                <h2>6. Prohibited Activities</h2>
+                <p>You agree not to engage in any of the following prohibited activities:</p>
+                <ul>
+                    <li>Using the App for any illegal or unauthorized purpose.</li>
+                    <li>Attempting to hack, destabilize, or adapt the App or its backend servers.</li>
+                    <li>Submitting false, fraudulent, or misleading information.</li>
+                    <li>Harassing, abusing, or harming another person using the App.</li>
+                    <li>Using the App in a manner that infringes on the intellectual property rights of others.</li>
+                </ul>
+            </section>
+
+            <section id="privacy">
+                <h2>7. Privacy</h2>
+                <p>Your privacy is important to us. Your use of Abianzo is also governed by our Privacy Policy, which details how we handle your personal information. As outlined in our Privacy Policy, <strong>we do not sell your personal data to third parties</strong>. Our application utilizes Firebase and Google Maps for core functionalities; their usage falls under strict data security protocols.</p>
+            </section>
+
+            <section id="ip">
+                <h2>8. Intellectual Property</h2>
+                <p>All content, design, graphics, compilation, magnetic translation, digital conversion, and other matters related to the App are protected under applicable copyrights, trademarks, and other proprietary rights. The copying, redistribution, use, or publication of any such matters or any part of the App is strictly prohibited without our express written permission.</p>
+            </section>
+
+            <section id="warranties">
+                <h2>9. Disclaimer of Warranties</h2>
+                <p>The App is provided on an "as is" and "as available" basis. Abianzo makes no representations or warranties of any kind, express or implied, as to the operation of the App or the information, content, or materials included in it. You expressly agree that your use of the App is at your sole risk.</p>
+            </section>
+
+            <section id="liability">
+                <h2>10. Limitation of Liability</h2>
+                <p>To the maximum extent permitted by law, Abianzo and its affiliates shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from your use or inability to use the App.</p>
+            </section>
+
+            <section id="changes">
+                <h2>11. Changes to Terms</h2>
+                <p>We reserve the right to modify or replace these Terms at any time. We will provide notice of significant changes by updating the "Last Updated" date at the top of these Terms and/or via a prominent notice within the App. Your continued use of the App after such changes constitutes your acceptance of the new Terms.</p>
+            </section>
+
+            <section id="contact">
+                <h2>12. Contact Information</h2>
+                <p>If you have any questions or concerns about these Terms of Service, please contact us at:</p>
+                <p><strong>Email:</strong> <a href="mailto:4bdulrahmaaan@gmail.com" style="color: var(--accent); font-weight: 500;">4bdulrahmaaan@gmail.com</a></p>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <h2 style="color: white; margin: 0 0 1.5rem 0; border: none; font-size: 1.8rem; padding: 0;">Abianzo</h2>
+            
+            <div class="bottom-links" style="margin-bottom: 1.5rem;">
+                <a href="/privacy.html">Privacy Policy</a>
+                <a href="/terms.html" style="text-decoration: underline;">Terms of Service</a>
+            </div>
+
+            <p style="color: #94A3B8; margin-bottom: 0;">&copy; 2026 Abianzo. All rights reserved.</p>
+            <a href="mailto:4bdulrahmaaan@gmail.com" class="contact-email">4bdulrahmaaan@gmail.com</a>
+        </div>
+    </footer>
+
+    <script>
+        // Simple scrollspy logic for sidebar navigation
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            const observerOptions = {
+                root: null,
+                rootMargin: '-20% 0px -80% 0px',
+                threshold: 0
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const currentId = entry.target.getAttribute('id');
+                        
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === `#${currentId}`) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</body>
+</html>

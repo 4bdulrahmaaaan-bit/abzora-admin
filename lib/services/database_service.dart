@@ -1735,6 +1735,12 @@ class DatabaseService {
     }
   }
 
+  void _requireAdminAccess(AppUser? actor) {
+    if (!hasAdminAccess(actor)) {
+      throw StateError('Admin privileges required.');
+    }
+  }
+
   void _requireStoreAccess(AppUser? actor, String storeId) {
     if (!canAccessStore(actor, storeId)) {
       throw StateError('Cross-store access denied.');
@@ -6520,11 +6526,11 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
-      _requireSuperAdmin(actor);
+      _requireAdminAccess(actor);
       await _backendCommerce.approveRefundRequest(refundId);
       return;
     }
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     final refund = await _fetchDocument(
       'refundRequests/$refundId',
       (map, id) => RefundRequest.fromMap(map, id),
@@ -6641,14 +6647,14 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
-      _requireSuperAdmin(actor);
+      _requireAdminAccess(actor);
       await _backendCommerce.rejectRefundRequest(
         refundId: refundId,
         reason: reason,
       );
       return;
     }
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     final trimmedReason = reason.trim();
     if (trimmedReason.isEmpty) {
       throw StateError('Add a reason before rejecting this refund.');
@@ -6711,11 +6717,11 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
-      _requireSuperAdmin(actor);
+      _requireAdminAccess(actor);
       await _backendCommerce.approveReturnRequest(returnId);
       return;
     }
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     final request = await _fetchDocument(
       'returnRequests/$returnId',
       (map, id) => ReturnRequest.fromMap(map, id),
@@ -7563,7 +7569,7 @@ class DatabaseService {
     String periodLabel = 'Manual payout',
   }) async {
     if (_backendCommerce.isConfigured) {
-      _requireSuperAdmin(actor);
+      _requireAdminAccess(actor);
       final payout = await _backendCommerce.processAdminPayout(
         storeId: storeId,
         periodLabel: periodLabel,
@@ -7585,7 +7591,7 @@ class DatabaseService {
       }
       return payout;
     }
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     final readyOrders = (await getAllOrders()).where((order) {
       return order.storeId == storeId &&
           order.payoutStatus == 'Ready' &&
@@ -7824,7 +7830,7 @@ class DatabaseService {
   }
 
   Future<AdminFinanceSummary> getAdminFinance({required AppUser actor}) async {
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.getAdminFinance();
     }
@@ -8120,7 +8126,7 @@ class DatabaseService {
     String? city,
     bool? sameDay,
   }) async {
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.assignRiderTask(
         taskType: taskType,
@@ -8257,7 +8263,7 @@ class DatabaseService {
     String? riderId,
     String periodLabel = 'Rider settlement',
   }) async {
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.settleRiderPayouts(
         riderId: riderId,
@@ -8349,10 +8355,10 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
-      _requireSuperAdmin(actor);
+      _requireAdminAccess(actor);
       return _backendCommerce.getVendorKycRequests();
     }
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     final requests = await _fetchCollection(
       'vendorRequests',
       (map, id) => VendorKycRequest.fromMap(map, id),
@@ -8365,10 +8371,10 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
-      _requireSuperAdmin(actor);
+      _requireAdminAccess(actor);
       return _backendCommerce.getRiderKycRequests();
     }
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     final requests = await _fetchCollection(
       'riderRequests',
       (map, id) => RiderKycRequest.fromMap(map, id),
@@ -8422,7 +8428,7 @@ class DatabaseService {
     );
     final resolved = request.copyWith(
       id: 'vendor-${request.userId}',
-      status: 'pending',
+      status: 'submitted',
       createdAt: existing?.createdAt.isNotEmpty == true
           ? existing!.createdAt
           : nowIso,
@@ -8551,7 +8557,7 @@ class DatabaseService {
     });
 
     await _ref('users/${request.userId}/storeId').set(storeId);
-    await _ref('users/${request.userId}/vendorOnboarding/status').set('review');
+    await _ref('users/${request.userId}/vendorOnboarding/status').set('submitted');
     await deleteVendorOnboardingDraft(request.userId);
 
     return resolved;
@@ -8628,14 +8634,14 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
-      _requireSuperAdmin(actor);
+      _requireAdminAccess(actor);
       await _backendCommerce.reviewVendorKycRequest(
         requestId: requestId,
         status: 'approved',
       );
       return;
     }
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     final request = await _fetchDocument(
       'vendorRequests/$requestId',
       (map, id) => VendorKycRequest.fromMap(map, id),
@@ -8778,7 +8784,7 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
-      _requireSuperAdmin(actor);
+      _requireAdminAccess(actor);
       await _backendCommerce.reviewVendorKycRequest(
         requestId: requestId,
         status: 'rejected',
@@ -8786,7 +8792,7 @@ class DatabaseService {
       );
       return;
     }
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     final request = await _fetchDocument(
       'vendorRequests/$requestId',
       (map, id) => VendorKycRequest.fromMap(map, id),
@@ -8840,7 +8846,7 @@ class DatabaseService {
     Map<String, dynamic> overrideMetadata = const {},
   }) async {
     if (_backendCommerce.isConfigured) {
-      _requireSuperAdmin(actor);
+      _requireAdminAccess(actor);
       await _backendCommerce.reviewRiderKycRequest(
         requestId: requestId,
         status: 'approved',
@@ -8848,7 +8854,7 @@ class DatabaseService {
       );
       return;
     }
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     final request = await _fetchDocument(
       'riderRequests/$requestId',
       (map, id) => RiderKycRequest.fromMap(map, id),
@@ -8932,7 +8938,7 @@ class DatabaseService {
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
-      _requireSuperAdmin(actor);
+      _requireAdminAccess(actor);
       await _backendCommerce.reviewRiderKycRequest(
         requestId: requestId,
         status: 'rejected',
@@ -8940,7 +8946,7 @@ class DatabaseService {
       );
       return;
     }
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     final request = await _fetchDocument(
       'riderRequests/$requestId',
       (map, id) => RiderKycRequest.fromMap(map, id),
@@ -11355,7 +11361,7 @@ class DatabaseService {
     DisputeRecord dispute, {
     required AppUser actor,
   }) async {
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     if (_backendCommerce.isConfigured) {
       await _backendCommerce.updateAdminDispute(dispute);
       await logActivity(
@@ -11462,7 +11468,7 @@ class DatabaseService {
   Future<List<ActivityLogEntry>> getActivityLogs({
     required AppUser actor,
   }) async {
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     if (_backendCommerce.isConfigured) {
       final logs = await _backendCommerce.getAdminActivityLogs();
       logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -11480,7 +11486,7 @@ class DatabaseService {
     required AppUser actor,
     int limit = 120,
   }) async {
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.getAiUsageLogs(limit: limit);
     }
@@ -11493,7 +11499,7 @@ class DatabaseService {
   }
 
   Future<List<AiDailyStat>> getAiDailyStats({required AppUser actor}) async {
-    _requireSuperAdmin(actor);
+    _requireAdminAccess(actor);
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.getAiDailyStats();
     }

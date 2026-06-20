@@ -91,11 +91,29 @@ class _AdminVendorOnboardingSectionState
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return Center(child: Text('Error: $_error'));
 
+    bool matchesStatus(VendorKycRequest request, String filter) {
+      final status = request.status.toLowerCase();
+      final normalizedFilter = filter.toLowerCase();
+      if (normalizedFilter == 'all') {
+        return true;
+      }
+      if (normalizedFilter == 'submitted') {
+        return status == 'submitted' || status == 'applied';
+      }
+      if (normalizedFilter == 'approved') {
+        return status == 'approved' || status == 'active';
+      }
+      if (normalizedFilter == 'rejected') {
+        return status == 'rejected' || status == 'suspended';
+      }
+      return status == normalizedFilter;
+    }
+
     final filtered = _statusFilter == 'All'
         ? _requests
         : _requests
               .where(
-                (r) => r.status.toLowerCase() == _statusFilter.toLowerCase(),
+                (r) => matchesStatus(r, _statusFilter),
               )
               .toList();
 
@@ -129,14 +147,19 @@ class _AdminVendorOnboardingSectionState
           ),
         )
         .length;
-    final pendingOcr = _requests.where((r) => r.status == 'pending_ocr').length;
+    final submitted = _requests
+        .where((r) => r.status == 'submitted' || r.status == 'applied')
+        .length;
+    final pendingOcr = _requests.where((r) => r.status == 'ocr_review').length;
     final pendingBusiness = _requests
-        .where((r) => r.status == 'pending_business')
+        .where((r) => r.status == 'business_review')
         .length;
     final pendingFinance = _requests
-        .where((r) => r.status == 'pending_finance')
+        .where((r) => r.status == 'finance_review')
         .length;
-    final activeVendors = _requests.where((r) => r.status == 'approved').length;
+    final activeVendors = _requests
+        .where((r) => r.status == 'approved' || r.status == 'active')
+        .length;
     final rejectedVendors = _requests
         .where((r) => r.status == 'rejected')
         .length;
@@ -145,6 +168,7 @@ class _AdminVendorOnboardingSectionState
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _kpiCard('Apps Today', applicationsToday),
+        _kpiCard('Submitted', submitted),
         _kpiCard('Pending OCR', pendingOcr),
         _kpiCard('Pending Business', pendingBusiness),
         _kpiCard('Pending Finance', pendingFinance),
@@ -213,15 +237,17 @@ class _AdminVendorOnboardingSectionState
         const SizedBox(width: 8),
         DropdownButton<String>(
           value: _statusFilter,
-          items: [
-            'All',
-            'Pending',
-            'Pending_OCR',
-            'Pending_Business',
-            'Pending_Finance',
-            'Approved',
-            'Rejected',
-          ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          items: const [
+            DropdownMenuItem(value: 'All', child: Text('All')),
+            DropdownMenuItem(value: 'submitted', child: Text('Submitted')),
+            DropdownMenuItem(value: 'ocr_review', child: Text('OCR Review')),
+            DropdownMenuItem(value: 'business_review', child: Text('Business Review')),
+            DropdownMenuItem(value: 'finance_review', child: Text('Finance Review')),
+            DropdownMenuItem(value: 'Approved', child: Text('Approved')),
+            DropdownMenuItem(value: 'Active', child: Text('Active')),
+            DropdownMenuItem(value: 'Rejected', child: Text('Rejected')),
+            DropdownMenuItem(value: 'Suspended', child: Text('Suspended')),
+          ],
           onChanged: (val) {
             if (val != null) setState(() => _statusFilter = val);
           },

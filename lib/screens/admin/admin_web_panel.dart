@@ -311,7 +311,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
 
   Future<void> _ensurePinIfNeeded() async {
     final actor = _actor;
-    if (actor == null || !context.read<AuthProvider>().isSuperAdmin) {
+    if (actor == null || !context.read<AuthProvider>().isAdmin) {
       return;
     }
     final settings = await _safePlatformSettings(actor);
@@ -2293,7 +2293,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    if (!auth.isSuperAdmin) {
+    if (!auth.isAdmin) {
       return const Scaffold(
         body: Center(
           child: Padding(

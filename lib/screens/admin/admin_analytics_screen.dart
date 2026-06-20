@@ -105,7 +105,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    if (!auth.isSuperAdmin) {
+    if (!auth.isAdmin) {
       return const Scaffold(
         body: Center(
           child: Padding(
