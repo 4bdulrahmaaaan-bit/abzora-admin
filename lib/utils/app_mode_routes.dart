@@ -100,6 +100,27 @@ bool hasVendorOperationsAccess(AppUser? user) {
       roles['vendor'] == true;
 }
 
+String vendorOnboardingStatus(AppUser? user) {
+  return user?.vendorOnboarding?['status']?.toString().trim().toLowerCase() ?? '';
+}
+
+bool hasApprovedVendorOnboarding(AppUser? user) {
+  final status = vendorOnboardingStatus(user);
+  return status == 'approved' || status == 'active';
+}
+
+bool shouldShowVendorStatus(AppUser? user) {
+  final status = vendorOnboardingStatus(user);
+  return status == 'pending' ||
+      status == 'review' ||
+      status == 'submitted' ||
+      status == 'ocr_review' ||
+      status == 'business_review' ||
+      status == 'finance_review' ||
+      status == 'manual_review' ||
+      status == 'processing';
+}
+
 bool hasRiderOperationsAccess(AppUser? user) {
   if (user == null) {
     return false;
@@ -170,6 +191,34 @@ bool canAccessMode(AppUser? user, AbzioAppMode mode) {
   }
 }
 
+String routeForVendorUser(AppUser user) {
+  final status = vendorOnboardingStatus(user);
+  final resubmissionRequired = user.vendorOnboarding?['resubmissionRequired'] == true;
+  final isActive = user.isActive;
+
+  if (!isActive) {
+    return '/vendor-status';
+  }
+
+  if (status == 'rejected' || status == 'suspended') {
+    return '/vendor-rejected';
+  }
+
+  if (resubmissionRequired) {
+    return '/vendor-onboarding';
+  }
+
+  if (hasApprovedVendorOnboarding(user)) {
+    return '/vendor-dashboard';
+  }
+
+  if (shouldShowVendorStatus(user) || status.isNotEmpty) {
+    return '/vendor-status';
+  }
+
+  return hasVendorOperationsAccess(user) ? '/vendor-onboarding' : '/vendor-onboarding';
+}
+
 String routeForRiderUser(AppUser user) {
   final approval = user.riderApprovalStatus.trim().toLowerCase();
   final training = (user.training?['status']?.toString() ?? '').trim().toLowerCase();
@@ -234,41 +283,15 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
       }
       return '/shop';
     case AbzioAppMode.vendor:
-      final vendorOnboarding = user.vendorOnboarding;
-      if (vendorOnboarding != null) {
-        final status = vendorOnboarding['status']?.toString().toLowerCase() ?? '';
-        if (status == 'pending' || status == 'review') {
-          return '/vendor-status';
-        }
-        if (status == 'rejected') {
-          return '/vendor-rejected';
-        }
-        if (vendorOnboarding['resubmissionRequired'] == true) {
-          return '/vendor-onboarding';
-        }
-        if (status == 'active') {
-          return '/vendor-dashboard';
-        }
-      }
-      if (hasVendorOperationsAccess(user)) {
-        return (user.storeId ?? '').trim().isEmpty ? '/vendor-onboarding' : '/vendor-dashboard';
-      }
-      return '/vendor-onboarding';
+      return routeForVendorUser(user);
     case AbzioAppMode.rider:
       return routeForRiderUser(user);
     case AbzioAppMode.operations:
       if (canAccessOperationsMode(user)) {
         if (hasVendorOperationsAccess(user)) {
-          final vendorOnboarding = user.vendorOnboarding;
-          if (vendorOnboarding != null) {
-            final status = vendorOnboarding['status']?.toString().toLowerCase() ?? '';
-            if (status == 'pending' || status == 'review') return '/vendor-status';
-            if (status == 'rejected') return '/vendor-rejected';
-            if (vendorOnboarding['resubmissionRequired'] == true) return '/vendor-onboarding';
-            if (status == 'active') return '/ops';
-          }
-          if ((user.storeId ?? '').trim().isEmpty) {
-            return '/vendor-onboarding';
+          final vendorRoute = routeForVendorUser(user);
+          if (vendorRoute != '/vendor-dashboard') {
+            return vendorRoute;
           }
         }
         if (hasRiderOperationsAccess(user)) {
@@ -284,16 +307,9 @@ String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
       }
       if (canAccessOperationsMode(user)) {
         if (hasVendorOperationsAccess(user)) {
-          final vendorOnboarding = user.vendorOnboarding;
-          if (vendorOnboarding != null) {
-            final status = vendorOnboarding['status']?.toString().toLowerCase() ?? '';
-            if (status == 'pending' || status == 'review') return '/vendor-status';
-            if (status == 'rejected') return '/vendor-rejected';
-            if (vendorOnboarding['resubmissionRequired'] == true) return '/vendor-onboarding';
-            if (status == 'active') return '/ops';
-          }
-          if ((user.storeId ?? '').trim().isEmpty) {
-            return '/vendor-onboarding';
+          final vendorRoute = routeForVendorUser(user);
+          if (vendorRoute != '/vendor-dashboard') {
+            return vendorRoute;
           }
         }
         if (hasRiderOperationsAccess(user)) {

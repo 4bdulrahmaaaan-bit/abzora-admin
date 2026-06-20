@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/auth_session_service.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_error_text.dart';
+import '../../utils/app_mode_routes.dart';
 import '../../widgets/state_views.dart';
 import '../../core/vendor/vendor_status_helper.dart';
 import 'store_settings_screen.dart';
@@ -118,7 +119,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
               const SizedBox(height: 14),
               _VendorSummaryGrid(store: store),
               const SizedBox(height: 14),
-              _QuickActionRow(store: store),
+              _QuickActionRow(store: store, user: user),
               const SizedBox(height: 18),
               _ProfileSection(
                 title: 'Store',
@@ -155,8 +156,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                     icon: Icons.account_balance_wallet_rounded,
                     title: 'Payout account',
                     subtitle: 'Manage settlement and withdrawal details',
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/vendor-dashboard'),
+                    onTap: () => Navigator.of(context).pushNamed(routeForVendorUser(user)),
                   ),
                   _ProfileTile(
                     icon: Icons.description_rounded,
@@ -364,9 +364,10 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _QuickActionRow extends StatelessWidget {
-  const _QuickActionRow({required this.store});
+  const _QuickActionRow({required this.store, required this.user});
 
   final Store? store;
+  final AppUser user;
 
   @override
   Widget build(BuildContext context) {
@@ -390,7 +391,7 @@ class _QuickActionRow extends StatelessWidget {
           child: _QuickAction(
             icon: Icons.payments_rounded,
             label: 'Payouts',
-            onTap: () => Navigator.of(context).pushNamed('/vendor-dashboard'),
+            onTap: () => Navigator.of(context).pushNamed(routeForVendorUser(user)),
           ),
         ),
         const SizedBox(width: 10),

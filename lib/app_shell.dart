@@ -731,9 +731,7 @@ class _VendorAuthBannerScreenState extends State<VendorAuthBannerScreen> {
         return;
       }
       Navigator.of(context).pushNamedAndRemoveUntil(
-        hasVendorOperationsAccess(user)
-            ? '/vendor-dashboard'
-            : '/vendor-profile',
+        routeForUserInMode(user, AbzioAppMode.vendor),
         (route) => false,
       );
     } catch (_) {

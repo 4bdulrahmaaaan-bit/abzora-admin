@@ -46,7 +46,6 @@ class RiderSplashScreen extends StatefulWidget {
 }
 
 class _RiderSplashScreenState extends State<RiderSplashScreen> {
-  static const _logoAsset = 'assets/branding/abianzo_rider_icon.png';
   // Hard cap: force navigation to /auth after 12 seconds regardless
   static const _maxWait = Duration(seconds: 12);
 

@@ -78,6 +78,16 @@ class BackendApiClient {
   static final ValueNotifier<BackendAvailability> backendAvailability =
       ValueNotifier(const BackendAvailability.available());
 
+  String _safeSnapshotUserId() {
+    final snapshot = AuthSessionService.instance.userSnapshot;
+    if (snapshot == null) {
+      return 'unknown';
+    }
+    final rawId = snapshot['id'];
+    final idText = rawId?.toString().trim() ?? '';
+    return idText.isEmpty ? 'unknown' : idText;
+  }
+
   static void registerUnauthorizedHandler(Future<void> Function()? handler) {
     _unauthorizedHandler = handler;
   }
@@ -155,9 +165,8 @@ class BackendApiClient {
           error,
           stackTrace: stackTrace,
           withScope: (scope) {
-            final userSnapshot = AuthSessionService.instance.userSnapshot;
-            if (userSnapshot != null && userSnapshot['id'] != null) {
-              final userId = userSnapshot['id'].toString();
+            final userId = _safeSnapshotUserId();
+            if (userId != 'unknown') {
               scope.setUser(SentryUser(id: userId));
               scope.setTag('userId', userId);
             }
@@ -335,11 +344,12 @@ class BackendApiClient {
           .requiredAuthorizationToken(
             forceRefresh: forceRefreshToken,
             failureMessage: 'Please sign in again to continue.',
-          );
+      );
       headers['Authorization'] = 'Bearer $token';
-      
-      final uid = AuthSessionService.instance.userSnapshot?['id'] ?? 'unknown';
-      debugPrint('[AUTH_DEBUG] hasToken=true tokenLength=${token.length} uid=$uid');
+
+      debugPrint(
+        '[AUTH_DEBUG] hasToken=true tokenLength=${token.length} uid=${_safeSnapshotUserId()}',
+      );
     } else {
       debugPrint('[AUTH_DEBUG] hasToken=false tokenLength=0 uid=unknown');
     }
