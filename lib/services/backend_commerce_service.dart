@@ -4820,6 +4820,13 @@ class BackendCommerceService {
         : rawType == 'TRIAL_DELIVERY'
         ? 'trial_delivery'
         : 'delivery';
+    final description = map['description']?.toString().trim().isNotEmpty == true
+        ? map['description'].toString()
+        : rawType == 'TRIAL_PICKUP'
+        ? 'Return pickup task'
+        : rawType == 'TRIAL_DELIVERY'
+        ? 'Trial delivery task'
+        : 'Delivery task';
     return UnifiedRiderTask(
       id: map['id']?.toString() ?? map['_id']?.toString() ?? '',
       type: taskType,
@@ -4830,6 +4837,7 @@ class BackendCommerceService {
           ? null
           : map['trialSessionId']?.toString(),
       userId: map['userId']?.toString() ?? '',
+      description: description,
       address: map['dropAddress']?.toString().trim().isNotEmpty == true
           ? map['dropAddress'].toString()
           : (map['pickupAddress']?.toString() ?? ''),

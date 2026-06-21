@@ -5,6 +5,7 @@ import '../../../theme.dart';
 import '../../../widgets/state_views.dart';
 import 'widgets/admin_stat_card.dart';
 import 'api/admin_trials_api.dart';
+import 'api/admin_rider_intelligence_api.dart';
 
 class AdminTrialsSection extends StatefulWidget {
   const AdminTrialsSection({super.key});
@@ -143,8 +144,23 @@ class _AdminTrialsSectionState extends State<AdminTrialsSection>
   Future<void> _performAction(String action, String trialId) async {
     try {
       if (action == 'assign') {
-        // Implement rider assignment modal logic here
-        await _api.assignRider(trialId: trialId, riderId: 'mock_rider_id');
+        final riderList = await AdminRiderIntelligenceApi.fetchRidersList(
+          page: 1,
+          limit: 1,
+        );
+        final riders = (riderList['riders'] as List? ?? const [])
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+        final riderId = riders.isNotEmpty
+            ? (riders.first['uid'] ?? riders.first['id'] ?? riders.first['_id'] ?? '')
+                .toString()
+                .trim()
+            : '';
+        if (riderId.isEmpty) {
+          throw StateError('No active riders are available to assign.');
+        }
+        await _api.assignRider(trialId: trialId, riderId: riderId);
       } else if (action == 'reschedule') {
         await _api.reschedule(trialId: trialId, deliverySlot: 'Tomorrow');
       } else if (action == 'cancel') {

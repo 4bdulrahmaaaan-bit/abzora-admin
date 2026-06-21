@@ -9,13 +9,24 @@ class OfflineActionQueue {
 
   static Future<void> init() async {
     try {
-      debugPrint('[BOOT] 2 Hive initialize start');
-      await Hive.initFlutter().timeout(
-        const Duration(seconds: 5),
-        onTimeout: () =>
-            throw Exception('[BOOT ERROR] Hive.initFlutter timeout'),
-      );
-      debugPrint('[BOOT] 2 Hive initialize done');
+      debugPrint('[BOOT] 2 Hive open start');
+      if (!_boxExists()) {
+        try {
+          await Hive.openBox(_boxName).timeout(
+            const Duration(seconds: 10),
+            onTimeout: () =>
+                throw Exception('[BOOT ERROR] Hive.openBox timeout'),
+          );
+        } catch (_) {
+          debugPrint('[BOOT] 2 Hive init fallback start');
+          await Hive.initFlutter().timeout(
+            const Duration(seconds: 5),
+            onTimeout: () =>
+                throw Exception('[BOOT ERROR] Hive.initFlutter timeout'),
+          );
+        }
+      }
+      debugPrint('[BOOT] 2 Hive open done');
 
       debugPrint('[BOOT] 3 Open offline queue start');
       _box = await Hive.openBox(_boxName).timeout(
@@ -27,6 +38,14 @@ class OfflineActionQueue {
       debugPrint('[BOOT ERROR] $e');
       debugPrint('$st');
       rethrow;
+    }
+  }
+
+  static bool _boxExists() {
+    try {
+      return Hive.isBoxOpen(_boxName);
+    } catch (_) {
+      return false;
     }
   }
 

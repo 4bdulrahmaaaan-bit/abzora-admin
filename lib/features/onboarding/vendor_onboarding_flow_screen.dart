@@ -6,6 +6,7 @@ import '../../core/vendor/theme/vendor_theme.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -19,6 +20,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/onboarding_service.dart';
 import '../../widgets/state_views.dart';
+import '../../utils/app_mode_routes.dart';
 
 import '../../services/vendor_onboarding_api.dart';
 import '../../services/vendor_onboarding_local_cache.dart';
@@ -103,7 +105,10 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
   Future<void> _restoreDraft(AppUser? user) async {
     if (user == null) return;
     
-    _draft.ownerName.text = user.name;
+    final ownerName = user.name.trim();
+    _draft.ownerName.text = ownerName.isEmpty || ownerName.toLowerCase() == 'abianzo member'
+        ? ''
+        : ownerName;
     _draft.phone.text = user.phone ?? '';
     _draft.email.text = user.email;
     _draft.address.text = user.address ?? '';
@@ -849,8 +854,11 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
 
   void _back() {
     if (_step <= 0) {
+      final auth = context.read<AuthProvider>();
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
+      } else if (auth.isAuthenticated && auth.user != null) {
+        context.go(routeForVendorUser(auth.user!));
       } else {
         Navigator.of(context).pushReplacementNamed('/ops');
       }
@@ -940,7 +948,7 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
           startingPrice: double.tryParse(_draft.startingPrice.text.trim()) ?? 0,
           typicalPriceUpper: double.tryParse(_draft.upperPrice.text.trim()) ?? 0,
           productionTimeDays: int.tryParse(_draft.productionDays.text.trim()) ?? 7,
-          payoutSetupLabel: _draft.preferredPaymentMethod == 'UPI' ? _draft.upi.text.trim() : _draft.bankAccount.text.trim(),
+          payoutLabel: _draft.preferredPaymentMethod == 'UPI' ? _draft.upi.text.trim() : _draft.bankAccount.text.trim(),
           kyc: KycDocuments(
             ownerPhotoUrl: _draft.ownerPhotoUrl ?? '',
             storeImageUrl: _draft.storePhotoUrl ?? '',
@@ -1056,7 +1064,7 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: VendorTheme.onboardingPrimaryText),
           tooltip: 'Back',
         ),
-        title: const Text('Vendor Partner Setup', style: TextStyle(color: VendorTheme.onboardingPrimaryText, fontSize: 16, fontWeight: FontWeight.w600)),
+        title: const Text('Vendor Onboarding', style: TextStyle(color: VendorTheme.onboardingPrimaryText, fontSize: 16, fontWeight: FontWeight.w600)),
         centerTitle: true,
         actions: [
           DraftSaveBadge(lastSaved: _lastSaved, status: _syncStatus),

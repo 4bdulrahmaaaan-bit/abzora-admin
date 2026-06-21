@@ -710,7 +710,7 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
               (meta['specializations'] as List).isNotEmpty)
             'Specializations': (meta['specializations'] as List).join(', '),
           if ((meta['payoutSetupLabel']?.toString().trim().isNotEmpty ?? false))
-            'Payout Setup': meta['payoutSetupLabel'].toString(),
+            'Payout Method': meta['payoutSetupLabel'].toString(),
           if ((ocrAadhaar['aadhaarNumber']?.toString().trim().isNotEmpty ??
               false))
             'OCR Aadhaar': ocrAadhaar['aadhaarNumber'].toString(),

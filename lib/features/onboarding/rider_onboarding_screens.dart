@@ -82,7 +82,7 @@ class _RiderSplashScreenState extends State<RiderSplashScreen> {
     final appModeRoute = routeForRiderUser(auth.user!);
     String target = RiderRoutes.dashboard;
     if (appModeRoute == '/rider-onboarding') {
-      target = RiderRoutes.profileSetup;
+      target = RiderRoutes.profileOnboarding;
     } else if (appModeRoute == '/rider-status') {
       target = RiderRoutes.status;
     } else if (appModeRoute == '/rider-training') {
@@ -269,7 +269,7 @@ class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
       context.go(
         hasRiderOperationsAccess(user)
             ? RiderRoutes.dashboard
-            : RiderRoutes.profileSetup,
+            : RiderRoutes.profileOnboarding,
       );
     } catch (error) {
       if (!mounted) {
@@ -774,8 +774,11 @@ class _RiderOnboardingFlowScreenState
 
   void _back() {
     if (_step == 0) {
+      final auth = context.read<AuthProvider>();
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
+      } else if (auth.isAuthenticated && auth.user != null) {
+        context.go(RiderRoutes.status);
       } else {
         context.go(RiderRoutes.auth);
       }
@@ -1223,7 +1226,7 @@ class _RiderOnboardingFlowScreenState
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: RiderTheme.onboardingPrimaryText),
           tooltip: 'Back',
         ),
-        title: const Text('Rider Partner Setup', style: TextStyle(color: RiderTheme.onboardingPrimaryText, fontWeight: FontWeight.w700)),
+        title: const Text('Rider Onboarding', style: TextStyle(color: RiderTheme.onboardingPrimaryText, fontWeight: FontWeight.w700)),
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),

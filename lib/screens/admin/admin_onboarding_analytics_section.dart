@@ -337,16 +337,24 @@ class _AdminOnboardingAnalyticsSectionState
           children: [
             Expanded(
               child: _buildKpiCard(
-                'Vendor Applications Today',
-                '${vendorKpis['applicationsToday'] ?? 0}',
+                'Vendor Applications',
+                '${vendorKpis['totalApplications'] ?? 0}',
                 Colors.orange.shade50,
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _buildKpiCard(
-                'Vendor Conv. Rate',
-                '${vendorKpis['conversionRate'] ?? 0}%',
+                'Vendor Pending',
+                '${vendorKpis['pendingApplications'] ?? 0}',
+                Colors.orange.shade50,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildKpiCard(
+                'Vendor Approved',
+                '${vendorKpis['approvedApplications'] ?? 0}',
                 Colors.orange.shade50,
               ),
             ),
@@ -354,15 +362,7 @@ class _AdminOnboardingAnalyticsSectionState
             Expanded(
               child: _buildKpiCard(
                 'Vendor Avg Approval',
-                '${vendorKpis['avgApprovalTimeHours'] ?? 0} hrs',
-                Colors.orange.shade50,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildKpiCard(
-                'Vendor Avg Activation',
-                '${vendorKpis['avgActivationTimeDays'] ?? 0} days',
+                '${(vendorKpis['avgApprovalTimeHours'] ?? 0).toString()} hrs',
                 Colors.orange.shade50,
               ),
             ),
@@ -374,16 +374,24 @@ class _AdminOnboardingAnalyticsSectionState
           children: [
             Expanded(
               child: _buildKpiCard(
-                'Rider Applications Today',
-                '${riderKpis['applicationsToday'] ?? 0}',
+                'Rider Applications',
+                '${riderKpis['totalApplications'] ?? 0}',
                 Colors.blue.shade50,
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _buildKpiCard(
-                'Rider Conv. Rate',
-                '${riderKpis['conversionRate'] ?? 0}%',
+                'Rider Pending',
+                '${riderKpis['pendingApplications'] ?? 0}',
+                Colors.blue.shade50,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildKpiCard(
+                'Rider Approved',
+                '${riderKpis['approvedApplications'] ?? 0}',
                 Colors.blue.shade50,
               ),
             ),
@@ -391,15 +399,7 @@ class _AdminOnboardingAnalyticsSectionState
             Expanded(
               child: _buildKpiCard(
                 'Rider Avg Approval',
-                '${riderKpis['avgApprovalTimeHours'] ?? 0} hrs',
-                Colors.blue.shade50,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildKpiCard(
-                'Rider Avg Activation',
-                '${riderKpis['avgActivationTimeDays'] ?? 0} days',
+                '${(riderKpis['avgApprovalTimeHours'] ?? 0).toString()} hrs',
                 Colors.blue.shade50,
               ),
             ),

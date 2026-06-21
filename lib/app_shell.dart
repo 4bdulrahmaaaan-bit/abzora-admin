@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:provider/provider.dart';
 
@@ -90,6 +91,7 @@ Future<void> bootstrapAndRunWithInitialRoute(
   String initialRoute = '/',
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _initializeLocalStorage();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   _installGlobalErrorHandling();
 
@@ -97,6 +99,26 @@ Future<void> bootstrapAndRunWithInitialRoute(
   // SentryFlutter.init removed: empty DSN blocks appRunner on Flutter Web.
 
   runApp(AbzioBootstrapApp(mode: mode, initialRoute: initialRoute));
+}
+
+Future<void> _initializeLocalStorage() async {
+  if (Hive.isBoxOpen('offline_actions_v1') ||
+      Hive.isBoxOpen('vendor_onboarding_drafts')) {
+    return;
+  }
+
+  try {
+    debugPrint('[BOOT] Local storage initialize start');
+    await Hive.initFlutter().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => throw Exception('[BOOT ERROR] Hive.initFlutter timeout'),
+    );
+    debugPrint('[BOOT] Local storage initialize done');
+  } catch (error, st) {
+    debugPrint('[BOOT ERROR] Hive init fallback: $error');
+    debugPrint('$st');
+    rethrow;
+  }
 }
 
 void _installGlobalErrorHandling() {

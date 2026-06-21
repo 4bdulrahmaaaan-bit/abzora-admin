@@ -5,6 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:share_plus/share_plus.dart';
 
+import '../../services/backend_api_client.dart';
+
 class AdminComplianceSection extends StatefulWidget {
   const AdminComplianceSection({super.key});
 
@@ -14,6 +16,7 @@ class AdminComplianceSection extends StatefulWidget {
 
 class _AdminComplianceSectionState extends State<AdminComplianceSection> {
   bool _isExporting = false;
+  final BackendApiClient _api = const BackendApiClient();
 
   final List<Map<String, String>> _exportModules = [
     {
@@ -43,13 +46,154 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
     },
   ];
 
+  List<Map<String, dynamic>> _asMapList(dynamic value) {
+    return value is List
+        ? value.whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList()
+        : <Map<String, dynamic>>[];
+  }
+
+  String _text(dynamic value, [String fallback = '']) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? fallback : text;
+  }
+
+  List<List<String>> _buildRowsForModule(String moduleId, Map<String, dynamic> response) {
+    switch (moduleId) {
+      case 'settlements':
+        final settlements = _asMapList(response['data']);
+        return [
+          ['Type', 'ID', 'Status', 'Amount', 'Updated At'],
+          ...settlements.map(
+            (item) => [
+              _text(item['settlementType'], 'Settlement'),
+              _text(item['_id'] ?? item['id'] ?? item['settlementId']),
+              _text(item['status'], 'Pending'),
+              _text(item['amount'] ?? item['netAmount'] ?? item['payoutAmount']),
+              _text(item['updatedAt'] ?? item['createdAt']),
+            ],
+          ),
+        ];
+      case 'inventory':
+        final products = _asMapList(response['data']);
+        return [
+          ['Product', 'Vendor', 'Status', 'Available', 'Reserved', 'Trial Reserved', 'Updated At'],
+          ...products.map(
+            (item) => [
+              _text(item['name']),
+              _text(item['vendorId']),
+              _text(item['status'], 'Unknown'),
+              _text(item['inventory'] is Map ? (item['inventory'] as Map)['available'] : item['available']),
+              _text(item['inventory'] is Map ? (item['inventory'] as Map)['reserved'] : item['reserved']),
+              _text(item['inventory'] is Map ? (item['inventory'] as Map)['trialReserved'] : item['trialReserved']),
+              _text(item['updatedAt']),
+            ],
+          ),
+        ];
+      case 'kyc':
+        final vendors = _asMapList(response['vendors']);
+        final riders = _asMapList(response['riders']);
+        return [
+          ['Type', 'ID', 'Name / Store', 'Status', 'Submitted At', 'Reason'],
+          ...vendors.map(
+            (item) => [
+              'Vendor',
+              _text(item['requestId'] ?? item['_id'] ?? item['id']),
+              _text(item['storeName'] ?? item['ownerName']),
+              _text(item['status'], 'submitted'),
+              _text(item['createdAt']),
+              _text(item['rejectionReason']),
+            ],
+          ),
+          ...riders.map(
+            (item) => [
+              'Rider',
+              _text(item['requestId'] ?? item['_id'] ?? item['id']),
+              _text(item['name']),
+              _text(item['status'], 'submitted'),
+              _text(item['createdAt']),
+              _text(item['rejectionReason']),
+            ],
+          ),
+        ];
+      case 'riders':
+        final riders = _asMapList(response['data']);
+        return [
+          ['Rider', 'Classification', 'Status', 'City', 'Updated At'],
+          ...riders.map(
+            (item) => [
+              _text(item['name'] ?? item['uid']),
+              _text(item['classification'] ?? item['segment'] ?? item['riskClass']),
+              _text(item['status'] ?? item['isActive']),
+              _text(item['city']),
+              _text(item['updatedAt'] ?? item['createdAt']),
+            ],
+          ),
+        ];
+      case 'analytics':
+        final analytics = response['data'] is Map
+            ? Map<String, dynamic>.from(response['data'] as Map)
+            : <String, dynamic>{};
+        final rows = <List<String>>[
+          ['Metric', 'Value'],
+        ];
+        void flatten(String prefix, dynamic value) {
+          if (value is Map) {
+            for (final entry in value.entries) {
+              final key = prefix.isEmpty ? entry.key.toString() : '$prefix.${entry.key}';
+              flatten(key, entry.value);
+            }
+            return;
+          }
+          if (value is List) {
+            for (var i = 0; i < value.length; i++) {
+              flatten('$prefix[$i]', value[i]);
+            }
+            return;
+          }
+          rows.add([prefix, _text(value)]);
+        }
+        flatten('analytics', analytics);
+        return rows;
+      default:
+        return [
+          ['ID', 'Status', 'Date'],
+        ];
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchModulePayload(String moduleId) async {
+    switch (moduleId) {
+      case 'settlements':
+        return Map<String, dynamic>.from(
+          await _api.get('/admin/finance/settlements?page=1&limit=200', authenticated: true) as Map,
+        );
+      case 'inventory':
+        return Map<String, dynamic>.from(
+          await _api.get('/admin/inventory/products?page=1&limit=200', authenticated: true) as Map,
+        );
+      case 'kyc':
+        final vendor = await _api.get('/admin/kyc/vendors', authenticated: true);
+        final rider = await _api.get('/admin/kyc/riders', authenticated: true);
+        return {
+          'vendors': (vendor is Map ? vendor['data'] : const []) ?? const [],
+          'riders': (rider is Map ? rider['data'] : const []) ?? const [],
+        };
+      case 'riders':
+        return Map<String, dynamic>.from(
+          await _api.get('/admin/rider-intelligence/list?page=1&limit=200', authenticated: true) as Map,
+        );
+      case 'analytics':
+        return Map<String, dynamic>.from(
+          await _api.get('/admin/business-analytics/v2', authenticated: true) as Map,
+        );
+      default:
+        return {};
+    }
+  }
+
   Future<void> _exportAsCsv(String moduleId) async {
-    // Mock Data Fetching (Replace with actual backend call)
-    final data = [
-      ['ID', 'Status', 'Date'],
-      ['1001', 'Completed', '2026-06-12'],
-      ['1002', 'Pending', '2026-06-12'],
-    ];
+    final response = await _fetchModulePayload(moduleId);
+    final data = _buildRowsForModule(moduleId, response);
 
     final csv = data
         .map(
@@ -68,26 +212,15 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
   }
 
   Future<void> _exportAsExcel(String moduleId) async {
+    final response = await _fetchModulePayload(moduleId);
     final excel = Excel.createExcel();
     final sheet = excel[excel.getDefaultSheet()!];
 
     // Headers
-    sheet.appendRow([
-      TextCellValue('ID'),
-      TextCellValue('Status'),
-      TextCellValue('Date'),
-    ]);
-    // Data
-    sheet.appendRow([
-      TextCellValue('1001'),
-      TextCellValue('Completed'),
-      TextCellValue('2026-06-12'),
-    ]);
-    sheet.appendRow([
-      TextCellValue('1002'),
-      TextCellValue('Pending'),
-      TextCellValue('2026-06-12'),
-    ]);
+    final rows = _buildRowsForModule(moduleId, response);
+    for (final row in rows) {
+      sheet.appendRow(row.map((e) => TextCellValue(e)).toList());
+    }
 
     final bytes = excel.encode()!;
     await _saveAndShareFile(
@@ -98,7 +231,9 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
   }
 
   Future<void> _exportAsPdf(String moduleId) async {
+    final response = await _fetchModulePayload(moduleId);
     final pdf = pw.Document();
+    final data = _buildRowsForModule(moduleId, response);
 
     pdf.addPage(
       pw.Page(
@@ -114,14 +249,7 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
                 ),
               ),
               pw.SizedBox(height: 20),
-              pw.TableHelper.fromTextArray(
-                context: context,
-                data: const <List<String>>[
-                  <String>['ID', 'Status', 'Date'],
-                  <String>['1001', 'Completed', '2026-06-12'],
-                  <String>['1002', 'Pending', '2026-06-12'],
-                ],
-              ),
+              pw.TableHelper.fromTextArray(context: context, data: data),
             ],
           );
         },

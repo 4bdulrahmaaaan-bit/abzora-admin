@@ -21,7 +21,7 @@ final riderRouter = GoRouter(
       builder: (context, state) => const RiderAuthBannerScreen(),
     ),
     GoRoute(
-      path: RiderRoutes.profileSetup,
+      path: RiderRoutes.profileOnboarding,
       builder: (context, state) => const RiderOnboardingFlowScreen(),
     ),
     GoRoute(

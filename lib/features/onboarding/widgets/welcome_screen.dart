@@ -16,7 +16,7 @@ class WelcomeScreen extends StatelessWidget {
         children: [
           const Spacer(),
           Text(
-            'Vendor Partner Setup',
+            'Vendor Onboarding',
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   color: VendorTheme.onboardingPrimaryText,
                   fontWeight: FontWeight.w800,
@@ -49,7 +49,7 @@ class WelcomeScreen extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'Estimated Setup',
+                  'Estimated Time',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(color: VendorTheme.onboardingSecondaryText),
                 ),
                 const SizedBox(height: 4),
@@ -80,7 +80,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
               onPressed: onStart,
               child: const Text(
-                'Start Setup',
+                'Start Onboarding',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),

@@ -5197,6 +5197,7 @@ class DatabaseService {
       type: 'return',
       returnId: request.id,
       userId: request.userId,
+      description: 'Return pickup task',
       address: request.address,
       status: _returnTaskStatusForRequest(request),
       riderId: riderId,
@@ -6971,6 +6972,7 @@ class DatabaseService {
       type: 'delivery',
       orderId: existing.id,
       userId: existing.userId,
+      description: 'Delivery task',
       address: existing.shippingAddress.trim().isNotEmpty
           ? existing.shippingAddress.trim()
           : (user?.address?.trim().isNotEmpty == true

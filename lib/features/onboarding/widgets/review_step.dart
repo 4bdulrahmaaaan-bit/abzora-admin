@@ -14,7 +14,7 @@ class ReviewStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = [
       ('Personal Details', model.fullName.isNotEmpty && model.email.isNotEmpty),
-      ('Vehicle Setup', model.vehicleNumber.isNotEmpty),
+      ('Vehicle Details', model.vehicleNumber.isNotEmpty),
       ('Identity KYC', model.aadhaar.isNotEmpty && model.pan.isNotEmpty),
       ('Bank Verification', model.accountNumber.isNotEmpty),
       ('Agreements', model.acceptedTerms && model.signature.isNotEmpty),

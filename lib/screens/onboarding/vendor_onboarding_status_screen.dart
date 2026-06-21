@@ -37,7 +37,7 @@ class _VendorOnboardingStatusScreenState extends State<VendorOnboardingStatusScr
         return 2; // Assume Document Verification is next
       case 'reviewing':
         return 3;
-      case 'setup':
+      case 'onboarding':
         return 4;
       case 'approved':
         return 5;
@@ -186,7 +186,7 @@ class _VendorOnboardingStatusScreenState extends State<VendorOnboardingStatusScr
       {'title': 'Application Submitted', 'subtitle': 'Your details are securely received.'},
       {'title': 'Document Verification', 'subtitle': 'AI & Manual KYC checks.'},
       {'title': 'Portfolio Review', 'subtitle': 'Quality check of your craft.'},
-      {'title': 'Store Setup', 'subtitle': 'Creating your digital storefront.'},
+      {'title': 'Store Onboarding', 'subtitle': 'Creating your digital storefront.'},
       {'title': 'Final Approval', 'subtitle': 'Ready to go live.'},
     ];
 

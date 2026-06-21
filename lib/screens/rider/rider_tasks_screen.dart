@@ -158,7 +158,23 @@ class _TaskTileState extends State<_TaskTile> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(widget.task.address, style: GoogleFonts.inter(height: 1.45)),
+          Text(
+            widget.task.description.isNotEmpty
+                ? widget.task.description
+                : 'Task details unavailable',
+            style: GoogleFonts.inter(height: 1.45),
+          ),
+          if (widget.task.address.trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              widget.task.address,
+              style: GoogleFonts.inter(
+                color: AbzioTheme.grey600,
+                height: 1.35,
+                fontSize: 12,
+              ),
+            ),
+          ],
           if (isReturn) ...[
             const SizedBox(height: 12),
             SizedBox(

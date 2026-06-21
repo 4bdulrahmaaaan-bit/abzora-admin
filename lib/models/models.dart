@@ -2301,6 +2301,7 @@ class UnifiedRiderTask {
   final String? orderId;
   final String? returnId;
   final String userId;
+  final String description;
   final String address;
   final String status;
   final String riderId;
@@ -2317,6 +2318,7 @@ class UnifiedRiderTask {
     this.orderId,
     this.returnId,
     required this.userId,
+    this.description = '',
     required this.address,
     required this.status,
     required this.riderId,
@@ -2334,6 +2336,7 @@ class UnifiedRiderTask {
     'orderId': orderId,
     'returnId': returnId,
     'userId': userId,
+    'description': description,
     'address': address,
     'status': status,
     'riderId': riderId,
@@ -2354,6 +2357,7 @@ class UnifiedRiderTask {
     orderId: map['orderId'],
     returnId: map['returnId'],
     userId: map['userId'] ?? '',
+    description: map['description'] ?? '',
     address: map['address'] ?? '',
     status: map['status'] ?? 'assigned',
     riderId: map['riderId'] ?? '',
@@ -3893,7 +3897,7 @@ class VendorKycRequest {
   final double typicalPriceUpper;
   final int ordersPerDay;
   final int productionTimeDays;
-  final String payoutSetupLabel;
+  final String payoutLabel;
   final KycDocuments kyc;
   final String status;
   final String createdAt;
@@ -3925,7 +3929,7 @@ class VendorKycRequest {
     this.typicalPriceUpper = 0,
     this.ordersPerDay = 0,
     this.productionTimeDays = 0,
-    this.payoutSetupLabel = '',
+    this.payoutLabel = '',
     required this.kyc,
     this.status = 'pending',
     required this.createdAt,
@@ -3958,7 +3962,7 @@ class VendorKycRequest {
     'typicalPriceUpper': typicalPriceUpper,
     'ordersPerDay': ordersPerDay,
     'productionTimeDays': productionTimeDays,
-    'payoutSetupLabel': payoutSetupLabel,
+    'payoutSetupLabel': payoutLabel,
     'kyc': kyc.toMap(),
     'status': status,
     'createdAt': createdAt,
@@ -3998,7 +4002,7 @@ class VendorKycRequest {
     typicalPriceUpper: (map['typicalPriceUpper'] ?? 0).toDouble(),
     ordersPerDay: map['ordersPerDay'] ?? 0,
     productionTimeDays: map['productionTimeDays'] ?? 0,
-    payoutSetupLabel: map['payoutSetupLabel'] ?? '',
+    payoutLabel: map['payoutSetupLabel'] ?? map['payoutLabel'] ?? '',
     kyc: KycDocuments.fromMap(
       Map<String, dynamic>.from((map['kyc'] as Map?) ?? const {}),
     ),
@@ -4040,7 +4044,7 @@ class VendorKycRequest {
     double? typicalPriceUpper,
     int? ordersPerDay,
     int? productionTimeDays,
-    String? payoutSetupLabel,
+    String? payoutLabel,
     KycDocuments? kyc,
     String? status,
     String? createdAt,
@@ -4072,7 +4076,7 @@ class VendorKycRequest {
       typicalPriceUpper: typicalPriceUpper ?? this.typicalPriceUpper,
       ordersPerDay: ordersPerDay ?? this.ordersPerDay,
       productionTimeDays: productionTimeDays ?? this.productionTimeDays,
-      payoutSetupLabel: payoutSetupLabel ?? this.payoutSetupLabel,
+      payoutLabel: payoutLabel ?? this.payoutLabel,
       kyc: kyc ?? this.kyc,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,

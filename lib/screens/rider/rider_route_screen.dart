@@ -543,12 +543,25 @@ class _RouteStopCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            stop.task.address,
+            stop.task.description.isNotEmpty
+                ? stop.task.description
+                : stop.supportText,
             style: GoogleFonts.inter(
               color: const Color(0xFF666666),
               height: 1.45,
             ),
           ),
+          if (stop.task.address.trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              stop.task.address,
+              style: GoogleFonts.inter(
+                color: const Color(0xFF9B9B9B),
+                height: 1.35,
+                fontSize: 12,
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Wrap(
             spacing: 12,

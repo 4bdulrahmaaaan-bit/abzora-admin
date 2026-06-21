@@ -1399,12 +1399,25 @@ class _UnifiedTaskCardState extends State<_UnifiedTaskCard> {
           ),
           const SizedBox(height: 10),
           Text(
-            widget.task.address,
+            widget.task.description.isNotEmpty
+                ? widget.task.description
+                : 'Task details unavailable',
             style: GoogleFonts.inter(
               color: const Color(0xFF666666),
               height: 1.45,
             ),
           ),
+          if (widget.task.address.trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              widget.task.address,
+              style: GoogleFonts.inter(
+                color: const Color(0xFF9B9B9B),
+                height: 1.35,
+                fontSize: 12,
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Text(
             isReturn

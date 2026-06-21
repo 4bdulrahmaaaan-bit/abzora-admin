@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/vendor/theme/vendor_theme.dart';
 
 class BusinessProfileStep extends StatefulWidget {
@@ -57,7 +58,7 @@ class _BusinessProfileStepState extends State<BusinessProfileStep> {
           children: [
             _buildField(widget.storeNameController, 'Store Name', icon: Icons.storefront_outlined, hint: 'Abianzo Tailors'),
             _buildDropdown('Business Type', widget.businessType, _businessTypeOptions, widget.onBusinessTypeChanged, icon: Icons.business_outlined),
-            _buildField(widget.ownerNameController, 'Owner Name', icon: Icons.person_outline, hint: 'A. Rahman'),
+            _buildField(widget.ownerNameController, 'Owner Name', icon: Icons.person_outline, hint: 'Enter owner name'),
             _buildField(
               widget.phoneController, 
               'Phone', 
@@ -67,7 +68,24 @@ class _BusinessProfileStepState extends State<BusinessProfileStep> {
               trailing: const Icon(Icons.verified, color: VendorTheme.onboardingSuccess, size: 20),
             ),
             _buildField(widget.emailController, 'Business Email Address', icon: Icons.email_outlined, hint: 'owner@store.com'),
-            _buildField(widget.gstNumberController, 'GST Number (Optional)', icon: Icons.receipt_long_outlined, hint: '22AAAAA0000A1Z5'),
+            _buildField(
+              widget.gstNumberController,
+              'GST Number (Optional)',
+              icon: Icons.receipt_long_outlined,
+              hint: '22AAAAA0000A1Z5',
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                LengthLimitingTextInputFormatter(15),
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  final upper = newValue.text.toUpperCase();
+                  return TextEditingValue(
+                    text: upper,
+                    selection: TextSelection.collapsed(offset: upper.length),
+                  );
+                }),
+              ],
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -177,6 +195,8 @@ class _BusinessProfileStepState extends State<BusinessProfileStep> {
     bool readOnly = false,
     IconData? icon,
     Widget? trailing,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -184,6 +204,8 @@ class _BusinessProfileStepState extends State<BusinessProfileStep> {
         controller: controller,
         maxLines: maxLines,
         readOnly: readOnly,
+        textCapitalization: textCapitalization,
+        inputFormatters: inputFormatters,
         style: TextStyle(
           color: readOnly ? VendorTheme.onboardingSecondaryText : VendorTheme.onboardingPrimaryText,
           fontSize: 15,

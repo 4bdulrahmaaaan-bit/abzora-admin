@@ -13,11 +13,25 @@ enum SyncStatus {
 class VendorOnboardingLocalCache {
   static const String _boxName = 'vendor_onboarding_drafts';
 
+  Future<void> _ensureHiveReady() async {
+    try {
+      await Hive.initFlutter();
+    } catch (_) {
+      // Hive may already be initialized by app bootstrap.
+    }
+  }
+
   Future<Box> _getBox() async {
     if (Hive.isBoxOpen(_boxName)) {
       return Hive.box(_boxName);
     }
-    return await Hive.openBox(_boxName);
+
+    try {
+      return await Hive.openBox(_boxName);
+    } catch (_) {
+      await _ensureHiveReady();
+      return await Hive.openBox(_boxName);
+    }
   }
 
   Future<void> saveDraft(String userId, Map<String, dynamic> payload, int currentStep) async {

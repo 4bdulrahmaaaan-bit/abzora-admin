@@ -115,7 +115,6 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection>
     setState(() => _isSending = true);
     try {
       if (_campaignType == 'Scheduled') {
-        // Mock schedule for 1 hour from now
         final schDate = DateTime.now()
             .add(const Duration(hours: 1))
             .toIso8601String();
@@ -293,7 +292,7 @@ class _AdminNotificationsSectionState extends State<AdminNotificationsSection>
                             ),
                             DropdownMenuItem(
                               value: 'Scheduled',
-                              child: Text('Scheduled (1hr mock)'),
+                              child: Text('Scheduled'),
                             ),
                             DropdownMenuItem(
                               value: 'Segmented',
