@@ -112,6 +112,13 @@ class AppConfig {
       ? '$backendBaseUrl/orders/create-razorpay-order'
       : '';
 
+  static String get effectiveRazorpayRefundEndpoint =>
+      razorpayRefundEndpoint.isNotEmpty
+      ? razorpayRefundEndpoint
+      : hasBackendBaseUrl
+      ? '$backendBaseUrl/admin/finance/refunds/process'
+      : '';
+
   static String get effectiveUploadEndpoint =>
       hasBackendBaseUrl ? '$backendBaseUrl/upload' : '';
 
@@ -122,7 +129,7 @@ class AppConfig {
   static bool get hasRazorpayOrderEndpoint =>
       effectiveRazorpayOrderEndpoint.isNotEmpty;
   static bool get hasRazorpayRefundEndpoint =>
-      razorpayRefundEndpoint.isNotEmpty;
+      effectiveRazorpayRefundEndpoint.isNotEmpty;
   static bool get hasRazorpayCardSetupEndpoint =>
       razorpayCardSetupEndpoint.isNotEmpty;
   static bool get hasRazorpayCardFinalizeEndpoint =>

@@ -248,7 +248,7 @@ class PaymentService {
 
     final response = await http
         .post(
-          Uri.parse(AppConfig.razorpayRefundEndpoint),
+          Uri.parse(AppConfig.effectiveRazorpayRefundEndpoint),
           headers: const {'Content-Type': 'application/json'},
           body: jsonEncode({
             'paymentId': paymentId,
