@@ -867,166 +867,177 @@ class _VendorAuthBannerScreenState extends State<VendorAuthBannerScreen> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(22, 20, 22, 24),
-              decoration: const BoxDecoration(
-                color: Color(0xEB111111),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List<Widget>.generate(_slides.length, (dot) {
-                        final active = dot == _index;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 220),
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: active ? 20 : 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: active
-                                ? const Color(0xFFD4AF37)
-                                : const Color(0xFF555555),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 18),
-                    const Text(
-                      'Enter vendor workspace',
-                      style: TextStyle(
-                        color: Color(0xFFF5E7C1),
-                        fontSize: 27,
-                        fontFamily: 'Cormorant Garamond',
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    const Text(
-                      'Use your registered mobile number to continue',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0xFFC8A96B),
-                        fontSize: 14.5,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    TextField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      maxLength: 10,
-                      decoration: InputDecoration(
-                        prefixText: '+91  ',
-                        prefixStyle: const TextStyle(
-                          color: Color(0xFF111111),
-                          fontWeight: FontWeight.w800,
+            child: Transform.translate(
+              offset: const Offset(0, -30),
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Color(0xEB111111),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    22,
+                    20,
+                    22,
+                    24 + MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List<Widget>.generate(_slides.length, (dot) {
+                            final active = dot == _index;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 220),
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: active ? 20 : 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: active
+                                    ? const Color(0xFFD4AF37)
+                                    : const Color(0xFF555555),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            );
+                          }),
                         ),
-                        counterText: '',
-                        hintText: 'Enter 10 digit mobile number',
-                        hintStyle: const TextStyle(color: Color(0xFF9A958B)),
-                        filled: true,
-                        fillColor: const Color(0xFFFAF8F2),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFE5D7B3),
+                        const SizedBox(height: 18),
+                        const Text(
+                          'Enter vendor workspace',
+                          style: TextStyle(
+                            color: Color(0xFFF5E7C1),
+                            fontSize: 27,
+                            fontFamily: 'Cormorant Garamond',
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFD4AF37),
-                            width: 1.4,
+                        const SizedBox(height: 7),
+                        const Text(
+                          'Use your registered mobile number to continue',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFFC8A96B),
+                            fontSize: 14.5,
                           ),
                         ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: auth.isLoading ? null : _startOtp,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          disabledBackgroundColor: const Color(0xFFE0D8C9),
-                          foregroundColor: const Color(0xFF111111),
-                          minimumSize: const Size.fromHeight(54),
-                          elevation: 0,
-                          padding: EdgeInsets.zero,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: Ink(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFD4AF37), Color(0xFFF5E7C1)],
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Center(
-                            child: auth.isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Color(0xFF111111),
-                                    ),
-                                  )
-                                : const Text(
-                                    'Get Started',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text.rich(
-                      TextSpan(
-                        text: "By logging in, I agree to Abianzo's ",
-                        children: [
-                          TextSpan(
-                            text: 'terms and condition',
-                            style: const TextStyle(
-                              color: Color(0xFF8A6A16),
+                        const SizedBox(height: 18),
+                        TextField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          maxLength: 10,
+                          decoration: InputDecoration(
+                            prefixText: '+91  ',
+                            prefixStyle: const TextStyle(
+                              color: Color(0xFF111111),
                               fontWeight: FontWeight.w800,
-                              decoration: TextDecoration.underline,
                             ),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const LegalPolicyHubScreen(
-                                      audience: LegalAudience.vendor,
-                                      title: 'Vendor Legal Center',
-                                    ),
-                                  ),
-                                );
-                              },
+                            counterText: '',
+                            hintText: 'Enter 10 digit mobile number',
+                            hintStyle: const TextStyle(color: Color(0xFF9A958B)),
+                            filled: true,
+                            fillColor: const Color(0xFFFAF8F2),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5D7B3),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFD4AF37),
+                                width: 1.4,
+                              ),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
-                        ],
-                      ),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF716B5E),
-                        fontSize: 12.5,
-                        height: 1.35,
-                      ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: auth.isLoading ? null : _startOtp,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              disabledBackgroundColor: const Color(0xFFE0D8C9),
+                              foregroundColor: const Color(0xFF111111),
+                              minimumSize: const Size.fromHeight(54),
+                              elevation: 0,
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: Ink(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFD4AF37), Color(0xFFF5E7C1)],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Center(
+                                child: auth.isLoading
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xFF111111),
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Get Started',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text.rich(
+                          TextSpan(
+                            text: "By logging in, I agree to Abianzo's ",
+                            children: [
+                              TextSpan(
+                                text: 'terms and condition',
+                                style: const TextStyle(
+                                  color: Color(0xFF8A6A16),
+                                  fontWeight: FontWeight.w800,
+                                  decoration: TextDecoration.underline,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const LegalPolicyHubScreen(
+                                          audience: LegalAudience.vendor,
+                                          title: 'Vendor Legal Center',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Color(0xFF716B5E),
+                            fontSize: 12.5,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
