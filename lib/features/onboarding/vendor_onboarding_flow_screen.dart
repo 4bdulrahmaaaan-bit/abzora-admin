@@ -19,6 +19,7 @@ import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/onboarding_service.dart';
+import '../../services/document_ocr_service.dart';
 import '../../widgets/state_views.dart';
 import '../../utils/app_mode_routes.dart';
 
@@ -50,6 +51,7 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     with WidgetsBindingObserver {
   late final PageController _pageController;
   final _onboarding = OnboardingService();
+  final _ocrService = const DocumentOcrService();
   final _db = DatabaseService();
   final _api = const VendorOnboardingApi();
   final _cache = VendorOnboardingLocalCache();
@@ -539,9 +541,16 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     try {
       final fileName = '$uploadType-${DateTime.now().millisecondsSinceEpoch}-${file.name}';
       final url = await _onboarding.uploadDraftKycImage(file: file, ownerId: user.id, fileName: fileName);
+      final ocrData = await _ocrService.scanImage(file: file, documentType: uploadType);
       
       setState(() {
         onPicked(file, url);
+        if (uploadType.toLowerCase().contains('aadhaar')) {
+          _draft.aadhaarOcr = Map<String, dynamic>.from(ocrData);
+        } else if (uploadType.toLowerCase().contains('pan')) {
+          _draft.panOcr = Map<String, dynamic>.from(ocrData);
+        }
+        _draft.vendorVerification = Map<String, dynamic>.from(_draft.vendorVerification);
         _draft.kycProcessed = false;
         _saveDraft();
       });
@@ -737,16 +746,20 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     setState(() => _draft.isProcessingKyc = true);
 
     try {
-      _draft.aadhaarOcr = await _onboarding.extractKycFields(
-        documentType: 'aadhaar',
-        text: '${_draft.ownerName.text.trim()} ${_draft.phone.text.trim()} ${_draft.address.text.trim()}',
-        documentUrl: _draft.aadhaarUrl!,
-      );
-      _draft.panOcr = await _onboarding.extractKycFields(
-        documentType: 'pan',
-        text: '${_draft.ownerName.text.trim()} ${_draft.email.text.trim()}',
-        documentUrl: _draft.panUrl!,
-      );
+      if (_draft.aadhaarOcr.isEmpty && _draft.aadhaarUrl != null) {
+        _draft.aadhaarOcr = await _onboarding.extractKycFields(
+          documentType: 'aadhaar',
+          text: '${_draft.ownerName.text.trim()} ${_draft.phone.text.trim()} ${_draft.address.text.trim()}',
+          documentUrl: _draft.aadhaarUrl!,
+        );
+      }
+      if (_draft.panOcr.isEmpty && _draft.panUrl != null) {
+        _draft.panOcr = await _onboarding.extractKycFields(
+          documentType: 'pan',
+          text: '${_draft.ownerName.text.trim()} ${_draft.email.text.trim()}',
+          documentUrl: _draft.panUrl!,
+        );
+      }
       _draft.vendorVerification = await _onboarding.verifyVendorKyc(
         ownerName: _draft.ownerName.text.trim(),
         aadhaarNumber: (_draft.aadhaarOcr['aadhaarNumber'] ?? '').toString(),

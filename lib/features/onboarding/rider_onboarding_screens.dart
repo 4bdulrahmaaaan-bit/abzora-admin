@@ -18,6 +18,7 @@ import '../../../providers/rider_signup_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../app_shell.dart';
 import '../../../services/database_service.dart';
+import '../../../services/document_ocr_service.dart';
 import '../../../services/onboarding_service.dart';
 import '../../services/rider_onboarding_api.dart';
 import '../../../core/services/rider_telemetry.dart';
@@ -623,10 +624,12 @@ class _RiderOnboardingFlowScreenState
   late final PageController _pageController;
   final _otpController = TextEditingController();
   final _onboardingService = OnboardingService();
+  final _ocrService = const DocumentOcrService();
   final _db = DatabaseService();
   final _api = const RiderOnboardingApi();
   late int _step;
   bool _submitting = false;
+  Map<String, dynamic> _documentOcr = {};
   int _invalidSubmitTick = 0;
   bool _ifscLookupLoading = false;
   String _ifscLookupMessage = '';
@@ -735,9 +738,23 @@ class _RiderOnboardingFlowScreenState
       } else {
         url = await _onboardingService.uploadRiderDocument(file: file, ownerId: user.id, label: label);
       }
+      final normalizedLabel = label.trim().toLowerCase();
+      final ocrBucket = _ocrBucketForLabel(normalizedLabel);
+      final shouldScan = ocrBucket != null;
+      final bucket = ocrBucket;
+      final scanResult = shouldScan
+          ? await _ocrService.scanImage(file: file, documentType: bucket!)
+          : const <String, dynamic>{};
       
       setState(() {
         onPicked(url);
+        if (shouldScan) {
+          final bucketKey = bucket!;
+          _documentOcr = {
+            ..._documentOcr,
+            bucketKey: scanResult,
+          };
+        }
         _saveDraft(ref.read(riderSignupProvider));
       });
     } catch (e) {
@@ -745,6 +762,18 @@ class _RiderOnboardingFlowScreenState
     } finally {
       setState(() => _submitting = false);
     }
+  }
+
+  String? _ocrBucketForLabel(String label) {
+    if (label == 'profile-photo') {
+      return null;
+    }
+    if (label.contains('aadhaar')) return 'aadhaar';
+    if (label.contains('pan')) return 'pan';
+    if (label.contains('license')) return 'license';
+    if (label.contains('rc') || label.contains('registration')) return 'rc';
+    if (label.contains('insurance')) return 'insurance';
+    return label.isEmpty ? null : label;
   }
 
   void _next() {
@@ -869,7 +898,8 @@ class _RiderOnboardingFlowScreenState
       'policies': {
         'acceptedTerms': model.acceptedTerms,
         'signature': model.signature,
-      }
+      },
+      'ocr': _documentOcr,
     };
     await _writeLocalDraft(user.id, data);
     try {
@@ -908,6 +938,7 @@ class _RiderOnboardingFlowScreenState
       final finance = safeDraft['finance'] ?? {};
       final preferences = safeDraft['preferences'] ?? {};
       final policies = safeDraft['policies'] ?? {};
+      final ocr = safeDraft['ocr'] ?? {};
 
       final VehicleType vType = VehicleType.values.firstWhere(
         (e) => e.name == vehicle['vehicleType'],
@@ -955,6 +986,10 @@ class _RiderOnboardingFlowScreenState
         acceptedTerms: policies['acceptedTerms'] ?? false,
         signature: policies['signature'] ?? '',
       );
+
+      if (ocr is Map) {
+        _documentOcr = Map<String, dynamic>.from(ocr);
+      }
 
       ref.read(riderSignupProvider.notifier).update(model);
     } catch (_) {}
@@ -1035,12 +1070,21 @@ class _RiderOnboardingFlowScreenState
       final licenseUrl = model.licenseDocPath ?? '';
       final rcUrl = model.rcPath ?? '';
       final insuranceUrl = model.insurancePath ?? '';
+      final combinedOcrText = _documentOcr.values
+          .whereType<Map>()
+          .map((entry) => (entry['rawText'] ?? entry['recognizedText'] ?? '').toString().trim())
+          .where((value) => value.isNotEmpty)
+          .join(' ');
+      final licenseOcr = Map<String, dynamic>.from(
+        (_documentOcr['license'] as Map?) ?? const <String, dynamic>{},
+      );
 
       final ocrExtraction = await _withRetry(
         () => _onboardingService.extractKycFields(
           documentType: 'aadhaar_pan',
-          text: '${model.aadhaar} ${model.pan} ${model.fullName}',
-          documentUrl: selfieUrl,
+          text: '${model.aadhaar} ${model.pan} ${model.fullName} $combinedOcrText',
+          recognizedText: combinedOcrText,
+          documentUrl: licenseUrl,
         ),
       );
 
@@ -1121,6 +1165,8 @@ class _RiderOnboardingFlowScreenState
               'acceptedTerms': model.acceptedTerms,
               'signature': model.signature.trim(),
             },
+            'ocr': _documentOcr,
+            'ocrLicense': licenseOcr,
             'ocrExtraction': ocrExtraction,
             'verification': verificationSummary,
             'submittedAt': nowIso,

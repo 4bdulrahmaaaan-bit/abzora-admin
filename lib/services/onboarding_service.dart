@@ -219,6 +219,7 @@ class OnboardingService {
   Future<Map<String, dynamic>> extractKycFields({
     required String documentType,
     String text = '',
+    String recognizedText = '',
     String documentUrl = '',
   }) async {
     final payload = await _backend.post(
@@ -227,6 +228,7 @@ class OnboardingService {
       body: {
         'documentType': documentType,
         'text': text,
+        'recognizedText': recognizedText,
         'documentUrl': documentUrl,
       },
     );
