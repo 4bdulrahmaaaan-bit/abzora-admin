@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +14,8 @@ class NotificationService {
   static StreamSubscription<RemoteMessage>? _foregroundSubscription;
   static StreamSubscription<RemoteMessage>? _openedAppSubscription;
   static StreamSubscription<String>? _tokenRefreshSubscription;
+  static String? _lastSyncedUserId;
+  static String? _lastSyncedToken;
 
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
@@ -87,14 +89,17 @@ class NotificationService {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp();
     }
-    debugPrint("Handling a background message: ${message.messageId}");
+    debugPrint('Handling a background message: ${message.messageId}');
   }
 
   Future<void> syncToken(AppUser user) async {
     try {
-      String? token = await _fcm.getToken();
-      if (token != null) {
+      final token = await _fcm.getToken();
+      if (token != null &&
+          (_lastSyncedUserId != user.id || _lastSyncedToken != token)) {
         await DatabaseService().updateFcmToken(userId: user.id, token: token);
+        _lastSyncedUserId = user.id;
+        _lastSyncedToken = token;
         debugPrint('FCM token synced to Realtime Database');
       }
 

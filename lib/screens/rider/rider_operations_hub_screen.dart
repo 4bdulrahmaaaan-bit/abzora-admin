@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../features/onboarding/rider_training_module_screen.dart';
 import '../../features/profile/rider_profile_screen.dart';
 import '../../features/settings/rider_help_support_screen.dart';
 import '../../features/settings/rider_settings_screen.dart';
+import '../../widgets/lazy_indexed_tab_view.dart';
 
 class RiderOperationsHubScreen extends StatelessWidget {
   const RiderOperationsHubScreen({super.key, this.initialIndex = 0});
@@ -30,13 +31,22 @@ class RiderOperationsHubScreen extends StatelessWidget {
             ],
           ),
         ),
-        body: const TabBarView(
-          children: [
-            RiderProfileScreen(embedded: true),
-            RiderTrainingModuleScreen(embeddedMode: true),
-            RiderHelpSupportScreen(embeddedMode: true),
-            RiderSettingsScreen(embedded: true),
-          ],
+        body: LazyIndexedTabView(
+          length: 4,
+          itemBuilder: (context, index) {
+            switch (index) {
+              case 0:
+                return const RiderProfileScreen(embedded: true);
+              case 1:
+                return const RiderTrainingModuleScreen(embeddedMode: true);
+              case 2:
+                return const RiderHelpSupportScreen(embeddedMode: true);
+              case 3:
+                return const RiderSettingsScreen(embedded: true);
+              default:
+                return const SizedBox.shrink();
+            }
+          },
         ),
       ),
     );

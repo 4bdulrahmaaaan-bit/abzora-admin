@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -59,22 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _restoreAiDiscoveryState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      unawaited(
-        Future<void>.delayed(const Duration(milliseconds: 220), () async {
-          if (!mounted) {
-            return;
-          }
-          final auth = context.read<AuthProvider>();
-          await context.read<ProductProvider>().fetchHomeData(user: auth.user);
-        }),
-      );
-    });
   }
-
   Future<void> _restoreAiDiscoveryState() async {
     final prefs = await SharedPreferences.getInstance();
     final hasUsedAi = prefs.getBool(_hasUsedAiKey) ?? false;
@@ -352,28 +337,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   Future<_LuxuryCategoriesFeed>? _feedFuture;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _feedFuture ??= _loadFeed();
-  }
-
-  Future<_LuxuryCategoriesFeed> _loadFeed() async {
-    final feed = _LuxuryCategoriesFeed.curated();
-    final urls = feed.preloadImageUrls;
-
-    await Future.wait(
-      urls.map((url) async {
-        try {
-          await precacheImage(NetworkImage(url), context);
-        } catch (_) {
-          // The screen still renders with graceful image fallbacks.
-        }
-      }),
-    );
-
-    return feed;
-  }
-
   @override
   Widget build(BuildContext context) {
     final background = const Color(0xFFF9F7F2);
@@ -1199,8 +1162,6 @@ class _HomeContentState extends State<HomeContent>
   final _scrollController = ScrollController();
   bool _isHeaderScrolled = false;
   Timer? _loadMoreThrottle;
-  String? _lastHydratedUserId;
-  bool _isHydratingForUser = false;
   String _selectedCategory = 'View All';
 
   @override
@@ -1231,40 +1192,8 @@ class _HomeContentState extends State<HomeContent>
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final auth = context.watch<AuthProvider>();
-    final userId = auth.user?.id;
-    if (userId == _lastHydratedUserId) {
-      return;
-    }
-    _lastHydratedUserId = userId;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      _refreshForCurrentUser();
-    });
-  }
-
   @override
   bool get wantKeepAlive => true;
-
-  Future<void> _refreshForCurrentUser() async {
-    if (_isHydratingForUser || !mounted) {
-      return;
-    }
-    _isHydratingForUser = true;
-    try {
-      final auth = context.read<AuthProvider>();
-      await context.read<ProductProvider>().fetchHomeData(
-        user: auth.user,
-        forceLocationRefresh: true,
-      );
-    } finally {
-      _isHydratingForUser = false;
-    }
-  }
 
   @override
   void dispose() {
@@ -1866,7 +1795,7 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'Complete your profile for perfect fit ✨',
+                                'Complete your profile for perfect fit Ã¢Å“Â¨',
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.w800,
@@ -1874,7 +1803,7 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'We’ll use this to personalize your fit and delivery',
+                                'WeÃ¢â‚¬â„¢ll use this to personalize your fit and delivery',
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: context.abzioSecondaryText,
@@ -2145,7 +2074,7 @@ Widget _aiStylistHighlight({required VoidCallback onTap}) {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Try AI Stylist ✨',
+                    'Try AI Stylist Ã¢Å“Â¨',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -2283,7 +2212,7 @@ class _AiStylistFloatingButton extends StatelessWidget {
                   ],
                 ),
                 child: Text(
-                  'Try AI Stylist for perfect outfit 🔥',
+                  'Try AI Stylist for perfect outfit Ã°Å¸â€Â¥',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -2350,49 +2279,12 @@ class CategorySection extends StatefulWidget {
 }
 
 class _CategorySectionState extends State<CategorySection> {
-  final BackendApiClient _apiClient = const BackendApiClient();
   late final Future<_CategoryRailData> _categoryRailFuture;
 
   @override
   void initState() {
     super.initState();
-    _categoryRailFuture = _fetchCategoryRailData();
-  }
-
-  Future<_CategoryRailData> _fetchCategoryRailData() async {
-    if (!_apiClient.isConfigured) {
-      return const _CategoryRailData();
-    }
-    try {
-      final results = await Future.wait([
-        _apiClient.get('/api/categories/home'),
-        _apiClient.get('/home-visuals'),
-      ]);
-      final categoriesPayload = results[0];
-      final visualsPayload = results[1];
-      final categoriesMap = categoriesPayload is Map<String, dynamic>
-          ? categoriesPayload
-          : Map<String, dynamic>.from(categoriesPayload as Map);
-      final categories =
-          (categoriesMap['data'] as List? ?? const [])
-              .whereType<Map>()
-              .map(
-                (item) => CategoryManagementModel.fromMap(
-                  Map<String, dynamic>.from(item),
-                ),
-              )
-              .where((category) => category.isActive && category.showOnHome)
-              .toList()
-            ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
-      final visualsMap = Map<String, dynamic>.from(visualsPayload as Map);
-      final visualsData = visualsMap['data'] is Map
-          ? Map<String, dynamic>.from(visualsMap['data'] as Map)
-          : visualsMap;
-      final visuals = HomeVisualConfigModel.fromMap(visualsData);
-      return _CategoryRailData(categories: categories, visuals: visuals);
-    } catch (_) {
-      return const _CategoryRailData();
-    }
+    _categoryRailFuture = Future.value(const _CategoryRailData());
   }
 
   List<_CategoryStripItem> _itemsForTab(_CategoryRailData data, String tab) {
@@ -2673,10 +2565,9 @@ class _CategorySectionState extends State<CategorySection> {
 }
 
 class _CategoryRailData {
-  const _CategoryRailData({
-    this.categories = const [],
-    this.visuals = const HomeVisualConfigModel(),
-  });
+  const _CategoryRailData()
+      : categories = const [],
+        visuals = const HomeVisualConfigModel();
 
   final List<CategoryManagementModel> categories;
   final HomeVisualConfigModel visuals;
@@ -3437,9 +3328,8 @@ class HomeBanner extends StatefulWidget {
 }
 
 class _HomeBannerState extends State<HomeBanner> {
-  final PageController _pageController = PageController();
   final BackendApiClient _apiClient = const BackendApiClient();
-
+  final PageController _pageController = PageController();
   late final Future<List<BannerModel>> _bannersFuture;
   Timer? _autoSlideTimer;
   int _autoSlideCount = 0;
@@ -3741,7 +3631,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
   final DatabaseService _db = DatabaseService();
   final NumberFormat _currencyFormatter = NumberFormat.currency(
     locale: 'en_IN',
-    symbol: '₹',
+    symbol: 'Ã¢â€šÂ¹',
     decimalDigits: 0,
   );
 
@@ -3832,7 +3722,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
       return 'All';
     }
     if (value.startsWith('under_')) {
-      return value.replaceFirst('under_', 'Under ₹').replaceAll('_', '');
+      return value.replaceFirst('under_', 'Under Ã¢â€šÂ¹').replaceAll('_', '');
     }
     return '${value[0].toUpperCase()}${value.substring(1)}';
   }
@@ -4077,7 +3967,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
                       const SizedBox(height: 4),
                       Text(
                         outfit.bodyTypeLabel.isNotEmpty
-                            ? 'Perfect for your body type · ${outfit.bodyTypeLabel}'
+                            ? 'Perfect for your body type Ã‚Â· ${outfit.bodyTypeLabel}'
                             : 'Recommended for you',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -4432,7 +4322,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${items.length} picks · ${_labelForFilter(outfit.occasion)} · ${_labelForFilter(outfit.style)}',
+                                '${items.length} picks Ã‚Â· ${_labelForFilter(outfit.occasion)} Ã‚Â· ${_labelForFilter(outfit.style)}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -4654,9 +4544,8 @@ class HomePromoBannerSlot extends StatefulWidget {
 }
 
 class _HomePromoBannerSlotState extends State<HomePromoBannerSlot> {
-  static Future<HomeVisualConfigModel>? _sharedFuture;
   final BackendApiClient _apiClient = const BackendApiClient();
-
+  static Future<HomeVisualConfigModel>? _sharedFuture;
   @override
   void initState() {
     super.initState();
@@ -4885,3 +4774,10 @@ class _StoreSkeletonList extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
+
+

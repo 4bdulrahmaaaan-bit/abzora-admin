@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -43,7 +43,7 @@ class RiderDashboard extends StatelessWidget {
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(
-            labelText: 'Amount (₹)',
+            labelText: 'Amount (â‚¹)',
             hintText: '200',
           ),
         ),
@@ -173,6 +173,7 @@ class RiderDashboardContent extends StatefulWidget {
 class _RiderDashboardContentState extends State<RiderDashboardContent> {
   final RiderService _service = RiderService();
   Future<RiderDashboardSnapshot>? _dashboardFuture;
+  Future<int>? _unreadCountFuture;
   String? _boundActorId;
 
   void _ensureDashboardFuture(AppUser actor) {
@@ -181,11 +182,13 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
     }
     _boundActorId = actor.id;
     _dashboardFuture = _service.loadDashboardSnapshot(actor);
+    _unreadCountFuture = RiderNotificationApi.getUnreadCount();
   }
 
   Future<void> _refreshDashboard(AppUser actor) async {
     setState(() {
       _dashboardFuture = _service.loadDashboardSnapshot(actor);
+      _unreadCountFuture = RiderNotificationApi.getUnreadCount();
     });
     await _dashboardFuture;
   }
@@ -281,7 +284,7 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                 _RouteLaunchCard(taskCount: data.tasks.length),
                 const SizedBox(height: 24),
 
-                // ─── ENTERPRISE ACTION GRID ───
+                // â”€â”€â”€ ENTERPRISE ACTION GRID â”€â”€â”€
                 Text(
                   'OPERATIONS',
                   style: Theme.of(context).textTheme.labelMedium,
@@ -444,7 +447,7 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
         title: const Text('Abianzo Rider'),
         actions: [
           FutureBuilder<int>(
-            future: RiderNotificationApi.getUnreadCount(),
+            future: _unreadCountFuture,
             builder: (context, snapshot) {
               final count = snapshot.data ?? 0;
               return IconButton(
@@ -793,7 +796,7 @@ class _RiderHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${rider.riderVehicleType ?? 'Bike'} • ${rider.riderCity ?? rider.city ?? 'City not set'}',
+            '${rider.riderVehicleType ?? 'Bike'} â€¢ ${rider.riderCity ?? rider.city ?? 'City not set'}',
             style: GoogleFonts.inter(color: const Color(0xFF666666)),
           ),
         ],
@@ -857,7 +860,7 @@ class _RiderRealtimeStats extends StatelessWidget {
   final double earningsToday;
   final double pendingPayout;
 
-  String _money(double amount) => '₹${amount.toStringAsFixed(0)}';
+  String _money(double amount) => 'â‚¹${amount.toStringAsFixed(0)}';
 
   @override
   Widget build(BuildContext context) {
@@ -912,7 +915,7 @@ class _RiderWalletCard extends StatelessWidget {
   final VoidCallback onWithdraw;
   final VoidCallback onManagePayoutAccount;
 
-  String _money(double amount) => '₹${amount.toStringAsFixed(0)}';
+  String _money(double amount) => 'â‚¹${amount.toStringAsFixed(0)}';
 
   @override
   Widget build(BuildContext context) {
@@ -1253,7 +1256,7 @@ class _AvailableDeliveryCardState extends State<_AvailableDeliveryCard> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${widget.order.items.length} item(s) • ₹${widget.order.totalAmount.toInt()}',
+            '${widget.order.items.length} item(s) â€¢ â‚¹${widget.order.totalAmount.toInt()}',
             style: GoogleFonts.inter(
               fontSize: 12,
               color: const Color(0xFF666666),
@@ -1599,7 +1602,7 @@ class _TbybStat extends StatelessWidget {
   }
 }
 
-// ── Enterprise Action Grid ────────────────────────────────────────────────────
+// â”€â”€ Enterprise Action Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _GridAction {
   const _GridAction({
@@ -1672,3 +1675,4 @@ class _EnterpriseActionGrid extends StatelessWidget {
     );
   }
 }
+

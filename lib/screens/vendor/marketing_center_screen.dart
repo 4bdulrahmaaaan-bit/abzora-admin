@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../core/vendor/theme/vendor_theme.dart';
 import '../../core/vendor/widgets/premium_vendor_card.dart';
@@ -6,6 +6,7 @@ import '../../core/vendor/widgets/vendor_buttons.dart';
 import '../../core/vendor/widgets/vendor_status_badge.dart';
 import '../../services/campaign_api.dart';
 import '../../services/coupon_api.dart';
+import '../../widgets/lazy_indexed_tab_view.dart';
 
 class MarketingCenterScreen extends StatefulWidget {
   const MarketingCenterScreen({super.key});
@@ -103,13 +104,21 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen>
           ],
         ),
       ),
-      body: TabBarView(
+      body: LazyIndexedTabView(
         controller: _tabController,
-        children: [
-          _buildCampaignsTab(),
-          _buildCouponsTab(),
-          _buildFlashSalesTab(),
-        ],
+        length: 3,
+        itemBuilder: (context, index) {
+          switch (index) {
+            case 0:
+              return _buildCampaignsTab();
+            case 1:
+              return _buildCouponsTab();
+            case 2:
+              return _buildFlashSalesTab();
+            default:
+              return const SizedBox.shrink();
+          }
+        },
       ),
     );
   }
@@ -490,3 +499,7 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen>
     );
   }
 }
+
+
+
+

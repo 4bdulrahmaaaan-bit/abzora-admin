@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/models.dart';
@@ -7,6 +7,7 @@ import '../../widgets/state_views.dart';
 
 // V2 Design System Imports
 import '../../core/vendor/theme/vendor_theme.dart';
+import '../../widgets/lazy_indexed_tab_view.dart';
 import '../../core/vendor/widgets/premium_vendor_card.dart';
 import '../../core/vendor/widgets/vendor_metric_card.dart';
 import '../../core/vendor/widgets/vendor_status_badge.dart';
@@ -55,7 +56,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
     super.dispose();
   }
 
-  String _money(double amount) => '₹${amount.toStringAsFixed(0)}';
+  String _money(double amount) => 'â‚¹${amount.toStringAsFixed(0)}';
 
   void _handleNewOrderArrival(int newCount) {
     final hasNewOrder = newCount > _lastNewOrdersCount;
@@ -197,38 +198,47 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
                 ),
               ),
               Expanded(
-                child: TabBarView(
+                child: LazyIndexedTabView(
                   controller: _tabController,
-                  children: [
-                    _buildOrderList(
-                      newOrders,
-                      'No new orders',
-                      'Incoming orders will appear here.',
-                      _newOrdersScrollController,
-                      canAccept: true,
-                      canReject: true,
-                    ),
-                    _buildOrderList(
-                      processingOrders,
-                      'No processing orders',
-                      'Accepted and packed orders appear here.',
-                      null,
-                      canPack: true,
-                      canReady: true,
-                    ),
-                    _buildOrderList(
-                      readyOrders,
-                      'No ready orders',
-                      'Orders ready for rider pickup appear here.',
-                      null,
-                    ),
-                    _buildOrderList(
-                      completedOrders,
-                      'No completed orders',
-                      'Delivered and in-flight orders appear here.',
-                      null,
-                    ),
-                  ],
+                  length: 4,
+                  itemBuilder: (context, index) {
+                    switch (index) {
+                      case 0:
+                        return _buildOrderList(
+                          newOrders,
+                          'No new orders',
+                          'Incoming orders will appear here.',
+                          _newOrdersScrollController,
+                          canAccept: true,
+                          canReject: true,
+                        );
+                      case 1:
+                        return _buildOrderList(
+                          processingOrders,
+                          'No processing orders',
+                          'Accepted and packed orders appear here.',
+                          null,
+                          canPack: true,
+                          canReady: true,
+                        );
+                      case 2:
+                        return _buildOrderList(
+                          readyOrders,
+                          'No ready orders',
+                          'Orders ready for rider pickup appear here.',
+                          null,
+                        );
+                      case 3:
+                        return _buildOrderList(
+                          completedOrders,
+                          'No completed orders',
+                          'Delivered and in-flight orders appear here.',
+                          null,
+                        );
+                      default:
+                        return const SizedBox.shrink();
+                    }
+                  },
                 ),
               ),
             ],
@@ -405,3 +415,5 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
     );
   }
 }
+
+

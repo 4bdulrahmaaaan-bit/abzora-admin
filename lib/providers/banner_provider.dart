@@ -1,10 +1,11 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 
 import '../models/banner_model.dart';
 
 class BannerProvider with ChangeNotifier {
   BannerProvider() {
-    loadBanners();
+    _banners = List<BannerModel>.unmodifiable(_seedBanners);
+    _isLoading = false;
   }
 
   static const List<BannerModel> _seedBanners = [
@@ -48,16 +49,18 @@ class BannerProvider with ChangeNotifier {
 
   List<BannerModel> _banners = const [];
   int _activeIndex = 0;
-  bool _isLoading = true;
+  bool _isLoading = false;
 
   List<BannerModel> get banners => _banners;
   int get activeIndex => _activeIndex;
   bool get isLoading => _isLoading;
 
   Future<void> loadBanners() async {
+    if (_banners.isNotEmpty) {
+      return;
+    }
     _isLoading = true;
     notifyListeners();
-    await Future<void>.delayed(const Duration(milliseconds: 350));
     _banners = List<BannerModel>.unmodifiable(_seedBanners);
     _activeIndex = 0;
     _isLoading = false;

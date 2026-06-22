@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../models/trial_session.dart';
 import '../../theme.dart';
 import '../../services/rider_trials_api.dart';
+import '../../widgets/lazy_indexed_tab_view.dart';
 import 'rider_trial_flow_screen.dart';
 
 class RiderTrialsScreen extends StatefulWidget {
@@ -74,15 +75,26 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : TabBarView(
-                children: [
-                  _buildTrialList(_activeTrials, 'No active trials.'),
-                  _buildTrialList(
-                    _assignedTrials,
-                    'No upcoming trials assigned to you.',
-                  ),
-                  _buildTrialList(_completedTrials, 'No completed trials yet.'),
-                ],
+            : LazyIndexedTabView(
+                length: 3,
+                itemBuilder: (context, index) {
+                  switch (index) {
+                    case 0:
+                      return _buildTrialList(_activeTrials, 'No active trials.');
+                    case 1:
+                      return _buildTrialList(
+                        _assignedTrials,
+                        'No upcoming trials assigned to you.',
+                      );
+                    case 2:
+                      return _buildTrialList(
+                        _completedTrials,
+                        'No completed trials yet.',
+                      );
+                    default:
+                      return const SizedBox.shrink();
+                  }
+                },
               ),
       ),
     );

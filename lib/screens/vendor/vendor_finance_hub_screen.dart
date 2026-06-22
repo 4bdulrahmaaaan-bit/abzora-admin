@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/vendor/theme/vendor_theme.dart';
 import '../../core/vendor/widgets/premium_vendor_card.dart';
 import '../../core/vendor/widgets/vendor_metric_card.dart';
@@ -13,6 +13,7 @@ import 'finance_settlements_tab.dart';
 import 'finance_payouts_tab.dart';
 import 'finance_tax_center_tab.dart';
 import 'finance_earnings_analytics_tab.dart';
+import '../../widgets/lazy_indexed_tab_view.dart';
 
 class VendorFinanceHubScreen extends StatelessWidget {
   const VendorFinanceHubScreen({super.key, this.storeId});
@@ -41,14 +42,24 @@ class VendorFinanceHubScreen extends StatelessWidget {
             ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            _FinanceOverviewTab(storeId: storeId),
-            FinanceSettlementsTab(storeId: storeId),
-            FinancePayoutsTab(storeId: storeId),
-            FinanceTaxCenterTab(storeId: storeId),
-            FinanceEarningsAnalyticsTab(storeId: storeId),
-          ],
+        body: LazyIndexedTabView(
+          length: 5,
+          itemBuilder: (context, index) {
+            switch (index) {
+              case 0:
+                return _FinanceOverviewTab(storeId: storeId);
+              case 1:
+                return FinanceSettlementsTab(storeId: storeId);
+              case 2:
+                return FinancePayoutsTab(storeId: storeId);
+              case 3:
+                return FinanceTaxCenterTab(storeId: storeId);
+              case 4:
+                return FinanceEarningsAnalyticsTab(storeId: storeId);
+              default:
+                return const SizedBox.shrink();
+            }
+          },
         ),
       ),
     );
@@ -103,7 +114,7 @@ class _FinanceOverviewTabState extends State<_FinanceOverviewTab> {
     }
   }
 
-  String _money(double value) => NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(value);
+  String _money(double value) => NumberFormat.currency(locale: 'en_IN', symbol: 'â‚¹', decimalDigits: 0).format(value);
 
   @override
   Widget build(BuildContext context) {
@@ -371,3 +382,5 @@ class _FinanceOverviewTabState extends State<_FinanceOverviewTab> {
     );
   }
 }
+
+

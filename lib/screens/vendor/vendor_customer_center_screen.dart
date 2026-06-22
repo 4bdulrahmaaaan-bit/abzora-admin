@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../core/vendor/theme/vendor_theme.dart';
 import 'vendor_reviews_center_screen.dart';
 import 'vendor_returns_center_screen.dart';
 import 'vendor_support_center_screen.dart';
+import '../../widgets/lazy_indexed_tab_view.dart';
 
 class VendorCustomerCenterScreen extends StatelessWidget {
   const VendorCustomerCenterScreen({super.key});
@@ -28,12 +29,20 @@ class VendorCustomerCenterScreen extends StatelessWidget {
             ],
           ),
         ),
-        body: const TabBarView(
-          children: [
-            VendorReviewsCenterScreen(),
-            VendorReturnsCenterScreen(),
-            VendorSupportCenterScreen(),
-          ],
+        body: LazyIndexedTabView(
+          length: 3,
+          itemBuilder: (context, index) {
+            switch (index) {
+              case 0:
+                return const VendorReviewsCenterScreen();
+              case 1:
+                return const VendorReturnsCenterScreen();
+              case 2:
+                return const VendorSupportCenterScreen();
+              default:
+                return const SizedBox.shrink();
+            }
+          },
         ),
       ),
     );

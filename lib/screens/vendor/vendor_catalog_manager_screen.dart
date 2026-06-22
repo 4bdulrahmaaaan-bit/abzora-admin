@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../core/vendor/theme/vendor_theme.dart';
 import 'product_management.dart';
 import 'inventory_center_screen.dart';
 import 'pricing_management_screen.dart';
 import 'catalog_bulk_edit_tab.dart';
+import '../../widgets/lazy_indexed_tab_view.dart';
 
 class VendorCatalogManagerScreen extends StatelessWidget {
   final String storeId;
@@ -31,14 +32,22 @@ class VendorCatalogManagerScreen extends StatelessWidget {
             ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            // Embedded existing screens as modules
-            ProductManagementScreen(storeId: storeId),
-            InventoryCenterScreen(storeId: storeId),
-            PricingManagementScreen(storeId: storeId),
-            CatalogBulkEditTab(storeId: storeId),
-          ],
+        body: LazyIndexedTabView(
+          length: 4,
+          itemBuilder: (context, index) {
+            switch (index) {
+              case 0:
+                return ProductManagementScreen(storeId: storeId);
+              case 1:
+                return InventoryCenterScreen(storeId: storeId);
+              case 2:
+                return PricingManagementScreen(storeId: storeId);
+              case 3:
+                return CatalogBulkEditTab(storeId: storeId);
+              default:
+                return const SizedBox.shrink();
+            }
+          },
         ),
       ),
     );

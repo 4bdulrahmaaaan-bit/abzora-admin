@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -46,13 +46,15 @@ class _VendorDashboardState extends State<VendorDashboard> {
   Future<Store?>? _storeFuture;
   Future<List<OrderModel>>? _ordersFuture;
   Future<VendorAnalytics>? _analyticsFuture;
+  Future<int>? _unreadCountFuture;
+  Future<Map<String, dynamic>>? _healthFuture;
   String? _boundActorId;
   String? _boundStoreId;
 
   String _money(double amount) {
     return NumberFormat.currency(
       locale: 'en_IN',
-      symbol: '₹',
+      symbol: 'â‚¹',
       decimalDigits: 0,
     ).format(amount);
   }
@@ -61,6 +63,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
     if (_boundActorId == actor.id && _storeFuture != null) return;
     _boundActorId = actor.id;
     _storeFuture = _loadStore(actor);
+    _unreadCountFuture = VendorNotificationApi().getUnreadCount();
   }
 
   Future<Store?> _loadStore(AppUser actor) async {
@@ -82,6 +85,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
     _boundStoreId = store.id;
     _ordersFuture = _db.getVendorOrders(store.id, actor: actor).first;
     _analyticsFuture = _db.getVendorAnalytics(store.id, actor: actor);
+    _healthFuture = BusinessHealthApi().getHealth();
   }
 
   Future<void> _refresh(AppUser actor) async {
@@ -91,6 +95,8 @@ class _VendorDashboardState extends State<VendorDashboard> {
       _storeFuture = null;
       _ordersFuture = null;
       _analyticsFuture = null;
+      _unreadCountFuture = null;
+      _healthFuture = null;
     });
     _ensureFutures(actor);
     final store = await _storeFuture;
@@ -138,7 +144,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
               actions: [
                 IconButton(
                   icon: FutureBuilder<int>(
-                    future: VendorNotificationApi().getUnreadCount(),
+                    future: _unreadCountFuture,
                     builder: (context, snapshot) {
                       final count = snapshot.data ?? 0;
                       if (count == 0) return const Icon(Icons.notifications_outlined);
@@ -665,7 +671,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
     List<Product> products,
   ) {
     return FutureBuilder<Map<String, dynamic>>(
-      future: BusinessHealthApi().getHealth(),
+      future: _healthFuture,
       builder: (context, snapshot) {
         int score = 70;
         if (store.bannerImageUrl.isNotEmpty) score += 10;
@@ -823,3 +829,4 @@ class _PipelineStep extends StatelessWidget {
     );
   }
 }
+
