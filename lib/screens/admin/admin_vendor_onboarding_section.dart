@@ -133,7 +133,7 @@ class _AdminVendorOnboardingSectionState
           const SizedBox(height: 24),
           _buildFilters(),
           const SizedBox(height: 16),
-          Expanded(child: _buildDataTable(filtered)),
+          _buildDataTable(filtered),
         ],
       ),
     );
@@ -257,8 +257,20 @@ class _AdminVendorOnboardingSectionState
   }
 
   Widget _buildDataTable(List<VendorKycRequest> requests) {
-    return ListView.builder(
+    if (requests.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Text('No vendor onboarding requests match this filter.'),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: requests.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final req = requests[index];
         return Card(
@@ -289,7 +301,6 @@ class _AdminVendorOnboardingSectionState
       },
     );
   }
-
   void _showDetailDrawer(VendorKycRequest req) {
     showModalBottomSheet(
       context: context,
@@ -385,3 +396,5 @@ class _AdminVendorOnboardingSectionState
     );
   }
 }
+
+

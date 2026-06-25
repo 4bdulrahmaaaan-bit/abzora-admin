@@ -115,7 +115,7 @@ class _AdminRiderOnboardingSectionState
           const SizedBox(height: 24),
           _buildFilters(),
           const SizedBox(height: 16),
-          Expanded(child: _buildDataTable(filtered)),
+          _buildDataTable(filtered),
         ],
       ),
     );
@@ -231,8 +231,20 @@ class _AdminRiderOnboardingSectionState
   }
 
   Widget _buildDataTable(List<RiderKycRequest> requests) {
-    return ListView.builder(
+    if (requests.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Text('No rider onboarding requests match this filter.'),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: requests.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final req = requests[index];
         return Card(
@@ -263,7 +275,6 @@ class _AdminRiderOnboardingSectionState
       },
     );
   }
-
   void _showDetailDrawer(RiderKycRequest req) {
     showModalBottomSheet(
       context: context,
@@ -318,3 +329,5 @@ class _AdminRiderOnboardingSectionState
     );
   }
 }
+
+
