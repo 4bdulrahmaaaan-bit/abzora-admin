@@ -77,7 +77,6 @@ import 'services/notification_service.dart';
 import 'theme.dart';
 import 'widgets/offline_widgets.dart';
 import 'widgets/safe_widget.dart';
-import 'widgets/global_skeletons.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 enum AbzioAppMode { unified, customer, operations, vendor, rider }
@@ -457,16 +456,25 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
 
   String? _routingError;
 
+  bool _isLaunchReady(AuthProvider auth) {
+    if (!auth.isInitialized) {
+      return false;
+    }
+
+    final user = auth.user;
+    if (user == null) {
+      return true;
+    }
+
+    return auth.profileLoaded && auth.vendorPermissionsResolved;
+  }
+
   Future<void> _navigateToResolvedRoute(AuthProvider auth) async {
     if (!mounted || _didRoute) {
       return;
     }
 
-    final isLaunchReady =
-        auth.isInitialized &&
-        auth.profileLoaded &&
-        auth.vendorPermissionsResolved;
-    if (!isLaunchReady) {
+    if (!_isLaunchReady(auth)) {
       return;
     }
 
@@ -631,10 +639,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       );
     }
 
-    final isLaunchReady =
-        auth.isInitialized &&
-        auth.profileLoaded &&
-        auth.vendorPermissionsResolved;
+    final isLaunchReady = _isLaunchReady(auth);
 
     if (isLaunchReady && !_didScheduleRoute) {
       debugPrint('[BOOT] 6 Launch ready');
@@ -646,7 +651,39 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
 
     return const Scaffold(
       backgroundColor: Color(0xFFF9F7F2),
-      body: SafeArea(child: GlobalHomeSkeleton()),
+      body: SafeArea(child: _LaunchLoadingView()),
+    );
+  }
+}
+
+class _LaunchLoadingView extends StatelessWidget {
+  const _LaunchLoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 34,
+            height: 34,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.6,
+              color: Color(0xFFB68A2A),
+            ),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Loading vendor workspace',
+            style: TextStyle(
+              color: Color(0xFF3B3224),
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1246,7 +1283,7 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
             darkTheme: AbzioTheme.darkTheme,
             home: const Scaffold(
               backgroundColor: Color(0xFFF9F7F2),
-              body: SafeArea(child: GlobalHomeSkeleton()),
+              body: SafeArea(child: _LaunchLoadingView()),
             ),
           );
         }
@@ -1299,3 +1336,4 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
     );
   }
 }
+
