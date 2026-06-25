@@ -761,7 +761,7 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
         final aadhaarOcr = await _onboarding.extractKycFields(
           documentType: 'aadhaar',
           recognizedText: (_draft.aadhaarOcr['recognizedText'] ?? _draft.aadhaarOcr['rawText'] ?? '').toString(),
-          text: '  ',
+          text: '${_draft.ownerName.text.trim()} ${_draft.phone.text.trim()} ${_draft.address.text.trim()}',
           documentUrl: _draft.aadhaarUrl!,
         );
         _draft.aadhaarOcr = <String, dynamic>{
@@ -773,7 +773,7 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
         final panOcr = await _onboarding.extractKycFields(
           documentType: 'pan',
           recognizedText: (_draft.panOcr['recognizedText'] ?? _draft.panOcr['rawText'] ?? '').toString(),
-          text: ' ',
+          text: '${_draft.ownerName.text.trim()} ${_draft.email.text.trim()}',
           documentUrl: _draft.panUrl!,
         );
         _draft.panOcr = <String, dynamic>{

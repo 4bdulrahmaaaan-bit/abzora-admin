@@ -125,8 +125,8 @@ class LaunchReadinessStep extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _buildReviewRow(context, 'KYC Score', '${kycConfidence.toStringAsFixed(1)}%', () => onJumpToStep(4), isWarning: kycConfidence < 70),
-            _buildReviewRow(context, 'Aadhaar', aadhaarOcr['aadhaarNumber']?.toString() ?? 'Pending', () => onJumpToStep(4)),
-            _buildReviewRow(context, 'PAN', panOcr['panNumber']?.toString() ?? 'Pending', () => onJumpToStep(4)),
+            _buildReviewRow(context, 'Aadhaar', _resolveAadhaarDisplay(aadhaarOcr), () => onJumpToStep(4)),
+            _buildReviewRow(context, 'PAN', _resolvePanDisplay(panOcr), () => onJumpToStep(4)),
 
             if (kycProcessed && kycConfidence < 70)
               Padding(
@@ -185,6 +185,24 @@ class LaunchReadinessStep extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _resolveAadhaarDisplay(Map<String, dynamic> data) {
+    final direct = data['aadhaarNumber']?.toString().trim() ?? '';
+    if (direct.isNotEmpty) return direct;
+    final recognized = data['recognizedText']?.toString() ?? data['rawText']?.toString() ?? '';
+    final match = RegExp(r'\\b\\d{12}\\b').firstMatch(recognized.replaceAll(RegExp(r'\\s+'), ''));
+    if (match != null) return match.group(0)!;
+    return recognized.trim().isNotEmpty ? recognized.trim() : 'Pending';
+  }
+
+  String _resolvePanDisplay(Map<String, dynamic> data) {
+    final direct = data['panNumber']?.toString().trim().toUpperCase() ?? '';
+    if (direct.isNotEmpty) return direct;
+    final recognized = (data['recognizedText']?.toString() ?? data['rawText']?.toString() ?? '').toUpperCase();
+    final match = RegExp(r'\\b[A-Z]{5}\\d{4}[A-Z]\\b').firstMatch(recognized);
+    if (match != null) return match.group(0)!;
+    return recognized.trim().isNotEmpty ? recognized.trim() : 'Pending';
   }
 
   Widget _buildCard({required BuildContext context, required String title, required List<Widget> children}) {
