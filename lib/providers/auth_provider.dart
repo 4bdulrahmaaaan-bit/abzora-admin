@@ -599,8 +599,10 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
       return;
     }
     await _refreshAuthToken(forceRefresh: false);
+    if (_backendCommerce.isConfigured) {
+      await refreshProfileFromBackendIfPossible();
+    }
   }
-
   Future<void> _clearLocalUserCache(String? userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();

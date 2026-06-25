@@ -554,6 +554,17 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
         _draft.kycProcessed = false;
         _saveDraft();
       });
+
+      final isKycDocument =
+          uploadType.toLowerCase().contains('aadhaar') || uploadType.toLowerCase().contains('pan');
+      final hasAllRequiredKycDocs =
+          _draft.ownerPhotoUrl != null &&
+          _draft.storePhotoUrl != null &&
+          _draft.aadhaarUrl != null &&
+          _draft.panUrl != null;
+      if (isKycDocument && hasAllRequiredKycDocs && !_draft.isProcessingKyc) {
+        unawaited(_processKycDocs());
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -746,19 +757,29 @@ class _VendorOnboardingFlowScreenState extends State<VendorOnboardingFlowScreen>
     setState(() => _draft.isProcessingKyc = true);
 
     try {
-      if (_draft.aadhaarOcr.isEmpty && _draft.aadhaarUrl != null) {
-        _draft.aadhaarOcr = await _onboarding.extractKycFields(
+      if (_draft.aadhaarUrl != null) {
+        final aadhaarOcr = await _onboarding.extractKycFields(
           documentType: 'aadhaar',
-          text: '${_draft.ownerName.text.trim()} ${_draft.phone.text.trim()} ${_draft.address.text.trim()}',
+          recognizedText: (_draft.aadhaarOcr['recognizedText'] ?? _draft.aadhaarOcr['rawText'] ?? '').toString(),
+          text: '  ',
           documentUrl: _draft.aadhaarUrl!,
         );
+        _draft.aadhaarOcr = <String, dynamic>{
+          ..._draft.aadhaarOcr,
+          ...aadhaarOcr,
+        };
       }
-      if (_draft.panOcr.isEmpty && _draft.panUrl != null) {
-        _draft.panOcr = await _onboarding.extractKycFields(
+      if (_draft.panUrl != null) {
+        final panOcr = await _onboarding.extractKycFields(
           documentType: 'pan',
-          text: '${_draft.ownerName.text.trim()} ${_draft.email.text.trim()}',
+          recognizedText: (_draft.panOcr['recognizedText'] ?? _draft.panOcr['rawText'] ?? '').toString(),
+          text: ' ',
           documentUrl: _draft.panUrl!,
         );
+        _draft.panOcr = <String, dynamic>{
+          ..._draft.panOcr,
+          ...panOcr,
+        };
       }
       _draft.vendorVerification = await _onboarding.verifyVendorKyc(
         ownerName: _draft.ownerName.text.trim(),

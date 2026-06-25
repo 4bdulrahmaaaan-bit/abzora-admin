@@ -595,7 +595,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                   color: const Color(0xFF111111),
                                 ),
                                 decoration: const InputDecoration(
-                                  hintText: '9876543210',
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.zero,
                                 ),
@@ -1002,7 +1001,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: inputTextColor,
                     ),
                     decoration: const InputDecoration(
-                      hintText: '9876543210',
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -1273,3 +1271,5 @@ class _BenefitRow extends StatelessWidget {
     );
   }
 }
+
+

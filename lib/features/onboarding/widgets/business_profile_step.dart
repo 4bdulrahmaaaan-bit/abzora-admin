@@ -63,7 +63,6 @@ class _BusinessProfileStepState extends State<BusinessProfileStep> {
               widget.phoneController, 
               'Phone', 
               icon: Icons.phone_outlined, 
-              hint: '9876543210', 
               readOnly: true,
               trailing: const Icon(Icons.verified, color: VendorTheme.onboardingSuccess, size: 20),
             ),
@@ -276,3 +275,6 @@ class _BusinessProfileStepState extends State<BusinessProfileStep> {
     );
   }
 }
+
+
+

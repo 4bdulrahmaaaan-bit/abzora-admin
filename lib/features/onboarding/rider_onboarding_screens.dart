@@ -499,7 +499,6 @@ class _RiderAuthBannerScreenState extends State<RiderAuthBannerScreen> {
                           fontWeight: FontWeight.w800,
                         ),
                         counterText: '',
-                        hintText: 'Enter 10 digit mobile number',
                         hintStyle: const TextStyle(color: Color(0xFF9A958B)),
                         filled: true,
                         fillColor: const Color(0xFFFAF8F2),
@@ -1628,5 +1627,7 @@ class _RiderOnboardingFlowScreenState
     );
   }
 }
+
+
 
 

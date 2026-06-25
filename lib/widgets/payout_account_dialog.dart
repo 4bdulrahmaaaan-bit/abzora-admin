@@ -279,7 +279,7 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
                       ),
                       ButtonSegment<String>(
                         value: 'bank_account',
-                        label: Text('Bank'),
+                        label: Text('BANK'),
                         icon: Icon(Icons.account_balance_outlined),
                       ),
                     ],
@@ -295,12 +295,12 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
                     controller: _accountHolderController,
                     textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
-                      labelText: 'Account holder name',
-                      hintText: 'Abdul Rahman',
+                      labelText: 'ACCOUNT HOLDER NAME',
+                      hintText: 'ABDUL RAHMAN',
                     ),
                     validator: (value) {
                       if ((value ?? '').trim().isEmpty) {
-                        return 'Enter account holder name.';
+                        return 'ENTER ACCOUNT HOLDER NAME.';
                       }
                       return null;
                     },
@@ -311,15 +311,15 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
                       controller: _upiController,
                       decoration: const InputDecoration(
                         labelText: 'UPI ID',
-                        hintText: 'name@bank',
+                        hintText: 'NAME@BANK',
                       ),
                       validator: (value) {
                         final text = (value ?? '').trim();
                         if (text.isEmpty) {
-                          return 'Enter UPI ID.';
+                          return 'ENTER UPI ID.';
                         }
                         if (!text.contains('@')) {
-                          return 'Enter a valid UPI ID.';
+                          return 'ENTER A VALID UPI ID.';
                         }
                         return null;
                       },
@@ -329,16 +329,16 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
                       controller: _bankAccountController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: 'Bank account number',
+                        labelText: 'BANK ACCOUNT NUMBER',
                         hintText: '1234567890',
                       ),
                       validator: (value) {
                         final text = (value ?? '').trim();
                         if (text.isEmpty) {
-                          return 'Enter bank account number.';
+                          return 'ENTER BANK ACCOUNT NUMBER.';
                         }
                         if (text.length < 8) {
-                          return 'Bank account number looks too short.';
+                          return 'BANK ACCOUNT NUMBER LOOKS TOO SHORT.';
                         }
                         return null;
                       },
@@ -348,16 +348,16 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
                       controller: _ifscController,
                       textCapitalization: TextCapitalization.characters,
                       decoration: const InputDecoration(
-                        labelText: 'IFSC code',
+                        labelText: 'IFSC CODE',
                         hintText: 'HDFC0001234',
                       ),
                       validator: (value) {
                         final text = (value ?? '').trim();
                         if (text.isEmpty) {
-                          return 'Enter IFSC code.';
+                          return 'ENTER IFSC CODE.';
                         }
                         if (text.length < 8) {
-                          return 'Enter a valid IFSC code.';
+                          return 'ENTER A VALID IFSC CODE.';
                         }
                         return null;
                       },
@@ -367,8 +367,8 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
                       controller: _bankNameController,
                       textCapitalization: TextCapitalization.words,
                       decoration: const InputDecoration(
-                        labelText: 'Bank name',
-                        hintText: 'HDFC Bank',
+                        labelText: 'BANK NAME',
+                        hintText: 'HDFC BANK',
                       ),
                     ),
                   ],
@@ -378,7 +378,7 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
                     child: ElevatedButton.icon(
                       onPressed: _submit,
                       icon: const Icon(Icons.verified_user_outlined),
-                      label: const Text('Save payout details'),
+                      label: const Text('SAVE PAYOUT DETAILS'),
                     ),
                   ),
                 ],
@@ -390,3 +390,6 @@ class _PayoutAccountSheetState extends State<_PayoutAccountSheet> {
     );
   }
 }
+
+
+
