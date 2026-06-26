@@ -181,7 +181,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
             store: store,
           );
 
-          if (status != VendorAccountStatus.approved || store == null) {
+          if (status != VendorAccountStatus.approved) {
             return Center(
               child: VendorEmptyState(
                 title: 'Set up your store',
@@ -202,6 +202,14 @@ class _VendorDashboardState extends State<VendorDashboard> {
             );
           }
 
+          if (store == null) {
+            return const Center(
+              child: AbzioLoadingView(
+                title: 'Loading Store',
+                subtitle: 'Linking approved vendor store...',
+              ),
+            );
+          }
           _ensureDashboardFutures(actor, store);
 
           return RefreshIndicator(

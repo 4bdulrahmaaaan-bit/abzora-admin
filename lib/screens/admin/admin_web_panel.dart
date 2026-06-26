@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -798,6 +798,41 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     await _load();
   }
 
+  Future<void> _deleteStore(Store store) async {
+    final vendorLabel = store.name.isEmpty ? 'vendor' : store.name;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Delete $vendorLabel?'),
+        content: const Text('Delete this vendor and all products linked to the store? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB42318)),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+    await _db.deleteStore(store.id, actor: _actor);
+    if (!mounted) {
+      return;
+    }
+    if (_activeVendorDrawerStore?.id == store.id) {
+      setState(() => _activeVendorDrawerStore = null);
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Deleted $vendorLabel.')),
+    );
+    await _load();
+  }
   Future<void> _toggleStoreActive(Store store) async {
     await _db.saveStore(
       store.copyWith(isActive: !store.isActive),
@@ -1682,7 +1717,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         : 0;
     final formatter = NumberFormat.currency(
       locale: 'en_IN',
-      symbol: '₹',
+      symbol: 'â‚¹',
       decimalDigits: 0,
     );
 
@@ -2277,7 +2312,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         buffer.write(',');
       }
     }
-    return '₹${buffer.toString()}';
+    return 'â‚¹${buffer.toString()}';
   }
 
   String _formatAiCost(double value) {
@@ -2307,7 +2342,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     if (parsed == null) {
       return value;
     }
-    return '${_formatDate(parsed)} · ${DateFormat('hh:mm a').format(parsed)}';
+    return '${_formatDate(parsed)} Â· ${DateFormat('hh:mm a').format(parsed)}';
   }
 
 
@@ -2843,7 +2878,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     );
   }
 
-  // ignore: unused_element — Superseded by AdminDashboardV2Section; retained for reference.
+  // ignore: unused_element â€” Superseded by AdminDashboardV2Section; retained for reference.
   Widget _buildDashboard() {
     if (!_dashboardLoaded && _analytics == null) {
       return const AbzioLoadingView(

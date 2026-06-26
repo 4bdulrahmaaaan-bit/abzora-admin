@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import '../app_shell.dart';
 import '../models/models.dart';
 
@@ -195,6 +195,7 @@ String routeForVendorUser(AppUser user) {
   final status = vendorOnboardingStatus(user);
   final resubmissionRequired = user.vendorOnboarding?['resubmissionRequired'] == true;
   final isActive = user.isActive;
+  final storeId = (user.storeId ?? '').trim();
 
   if (!isActive) {
     return '/vendor-status';
@@ -208,7 +209,7 @@ String routeForVendorUser(AppUser user) {
     return '/vendor-onboarding';
   }
 
-  if (hasApprovedVendorOnboarding(user)) {
+  if (hasApprovedVendorOnboarding(user) || storeId.isNotEmpty) {
     return '/vendor-dashboard';
   }
 
@@ -216,7 +217,7 @@ String routeForVendorUser(AppUser user) {
     return '/vendor-status';
   }
 
-  return hasVendorOperationsAccess(user) ? '/vendor-onboarding' : '/vendor-onboarding';
+  return '/vendor-onboarding';
 }
 
 String routeForRiderUser(AppUser user) {
@@ -227,48 +228,32 @@ String routeForRiderUser(AppUser user) {
   final isActive = user.isActive;
   final hasCompletedOnboarding = hasCompletedRiderOnboarding(user);
 
-  String resolvedRoute = '';
-
-  // 1. Suspension Gate
   if (approval == 'suspended' || onboardingStatus == 'suspended' || !isActive) {
-    resolvedRoute = '/rider-suspended';
+    return '/rider-suspended';
   }
-  // 2. Hard rejection gate
-  else if (approval == 'rejected' || onboardingStatus == 'rejected') {
-    resolvedRoute = '/rider-rejected';
+  if (approval == 'rejected' || onboardingStatus == 'rejected') {
+    return '/rider-rejected';
   }
-  // 3. Resubmission gate
-  else if (resubmissionRequired) {
-    resolvedRoute = '/rider-onboarding';
+  if (resubmissionRequired) {
+    return '/rider-onboarding';
   }
-  // 4. Onboarding Gate
-  else if (!hasCompletedOnboarding) {
-    resolvedRoute = '/rider-onboarding';
+  if (approval == 'approved' || approval == 'active') {
+    if (training != 'completed') {
+      return '/rider-training';
+    }
+    return '/rider-dashboard';
   }
-  // 5. Approval gate (handles pending, empty, unknown)
-  else if (approval != 'approved') {
-    resolvedRoute = '/rider-status';
+  if (!hasCompletedOnboarding) {
+    return '/rider-onboarding';
   }
-  // 6. Training gate (handles null, empty, unknown)
-  else if (training != 'completed') {
-    resolvedRoute = '/rider-training';
+  if (approval != 'approved') {
+    return '/rider-status';
   }
-  // 7. Activation gate
-  else {
-    resolvedRoute = '/rider-dashboard';
+  if (training != 'completed') {
+    return '/rider-training';
   }
 
-  debugPrint(
-    '\n[RIDER_ROUTE_GUARD]\n'
-    'userId=${user.id}\n'
-    'approval=${approval.isEmpty ? 'null' : approval}\n'
-    'training=${training.isEmpty ? 'null' : training}\n'
-    'onboarding=$hasCompletedOnboarding\n'
-    'active=$isActive\n'
-    'resolvedRoute=$resolvedRoute\n'
-  );
-
-  return resolvedRoute;
+  return '/rider-dashboard';
 }
 
 String routeForUserInMode(AppUser? user, AbzioAppMode mode) {
@@ -372,3 +357,4 @@ String? accessRestrictionMessage(AppUser? user, AbzioAppMode mode) {
 bool isBuildScopeRestrictionMessage(String message) {
   return message.startsWith('This build is for ');
 }
+

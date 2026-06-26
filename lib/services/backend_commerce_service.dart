@@ -1,4 +1,4 @@
-import '../models/banner_model.dart';
+﻿import '../models/banner_model.dart';
 import '../models/ar_try_on_models.dart';
 import '../models/cms_model.dart';
 import '../models/category_management_model.dart';
@@ -2518,6 +2518,10 @@ class BackendCommerceService {
         .toList();
   }
 
+  Future<void> deleteAdminStore(String storeId) async {
+    await _client.delete('/admin/vendors/$storeId', authenticated: true);
+  }
+
   Future<List<Product>> getAdminProducts() async {
     final payload = await _client.get('/admin/products', authenticated: true);
     final items = payload is List ? payload : const [];
@@ -4935,3 +4939,4 @@ class BackendCommerceService {
     }, map['id']?.toString() ?? '');
   }
 }
+

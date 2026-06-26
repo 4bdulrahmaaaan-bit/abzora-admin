@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -584,7 +584,7 @@ class DatabaseService {
         appliedCredits: 0,
         autoApplied: false,
         eligible: false,
-        message: 'Referral credits unlock on orders of ₹499 or more.',
+        message: 'Referral credits unlock on orders of â‚¹499 or more.',
       );
     }
 
@@ -620,7 +620,7 @@ class DatabaseService {
         autoApplied: false,
         eligible: true,
         message:
-            'You can keep your ₹${availableCredits.toStringAsFixed(0)} credits for a smaller order.',
+            'You can keep your â‚¹${availableCredits.toStringAsFixed(0)} credits for a smaller order.',
       );
     }
     return SmartCreditDecision(
@@ -629,8 +629,8 @@ class DatabaseService {
       autoApplied: autoApplied,
       eligible: true,
       message: autoApplied
-          ? '₹${applied.toStringAsFixed(0)} credits applied automatically'
-          : 'Use ₹${applied.toStringAsFixed(0)} credits?',
+          ? 'â‚¹${applied.toStringAsFixed(0)} credits applied automatically'
+          : 'Use â‚¹${applied.toStringAsFixed(0)} credits?',
     );
   }
 
@@ -1327,7 +1327,7 @@ class DatabaseService {
           id: 'growth-welcome-${now.millisecondsSinceEpoch}',
           title: 'Your first look deserves a reward',
           body:
-              'Use ${offer.code} on $leadingProductName and get ₹100 off your first eligible order.',
+              'Use ${offer.code} on $leadingProductName and get â‚¹100 off your first eligible order.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -1378,7 +1378,7 @@ class DatabaseService {
           id: 'growth-cart-${now.millisecondsSinceEpoch}',
           title: 'Your bag is waiting',
           body:
-              'Finish checkout with ${offer.code} and save ₹75 on picks like $leadingProductName.',
+              'Finish checkout with ${offer.code} and save â‚¹75 on picks like $leadingProductName.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -1431,7 +1431,7 @@ class DatabaseService {
           id: 'growth-winback-${now.millisecondsSinceEpoch}',
           title: 'New looks are waiting',
           body:
-              'Come back to Abianzo, explore $leadingProductName, and use ${offer.code} for ₹50 off.',
+              'Come back to Abianzo, explore $leadingProductName, and use ${offer.code} for â‚¹50 off.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -1486,7 +1486,7 @@ class DatabaseService {
           id: 'growth-referral-${now.millisecondsSinceEpoch}',
           title: 'VIP reward unlocked',
           body:
-              'Use ${vipOffer.code} on $leadingProductName for ₹30 off, then invite friends with $referralCode to reward both wardrobes.',
+              'Use ${vipOffer.code} on $leadingProductName for â‚¹30 off, then invite friends with $referralCode to reward both wardrobes.',
           type: 'growth',
           isRead: false,
           timestamp: now,
@@ -3678,9 +3678,9 @@ class DatabaseService {
     final normalizedOccasion = (occasion ?? '').trim().toLowerCase();
     final normalizedStyle = (style ?? '').trim().toLowerCase();
     final budgetCap = switch ((budget ?? '').trim().toLowerCase()) {
-      'under ₹999' || 'under_999' => 999.0,
-      'under ₹1999' || 'under_1999' => 1999.0,
-      'under ₹2999' || 'under_2999' => 2999.0,
+      'under â‚¹999' || 'under_999' => 999.0,
+      'under â‚¹1999' || 'under_1999' => 1999.0,
+      'under â‚¹2999' || 'under_2999' => 2999.0,
       _ => double.infinity,
     };
 
@@ -4774,7 +4774,7 @@ class DatabaseService {
     }
     if (walletCreditUsed > 75) {
       throw StateError(
-        'A maximum of ₹75 referral credit can be used per order.',
+        'A maximum of â‚¹75 referral credit can be used per order.',
       );
     }
     if (paymentMethod.toUpperCase() != 'COD' &&
@@ -6301,18 +6301,19 @@ class DatabaseService {
 
   Future<void> deleteStore(String storeId, {AppUser? actor}) async {
     if (_backendCommerce.isConfigured) {
-      throw StateError('Deleting stores is not supported in backend mode yet.');
+      await _backendCommerce.deleteAdminStore(storeId);
+      return;
     }
     if (actor != null) {
       _requireSuperAdmin(actor);
     }
-    await _ref('stores/$storeId').remove();
+    await _ref('stores/').remove();
     if (actor != null) {
       await logActivity(
         action: 'delete_store',
         targetType: 'store',
         targetId: storeId,
-        message: 'Deleted store $storeId.',
+        message: 'Deleted store .',
         actor: actor,
       );
     }
@@ -7582,7 +7583,7 @@ class DatabaseService {
             id: 'n-payout-${DateTime.now().millisecondsSinceEpoch}',
             title: 'Payout processed',
             body:
-                'Vendor payout of ₹${payout.amount.toInt()} has been processed.',
+                'Vendor payout of â‚¹${payout.amount.toInt()} has been processed.',
             type: 'payout',
             isRead: false,
             timestamp: DateTime.now(),
@@ -7647,7 +7648,7 @@ class DatabaseService {
       AppNotification(
         id: 'n-payout-${now.millisecondsSinceEpoch}',
         title: 'Payout processed',
-        body: 'Vendor payout of ₹${payout.amount.toInt()} has been processed.',
+        body: 'Vendor payout of â‚¹${payout.amount.toInt()} has been processed.',
         type: 'payout',
         isRead: false,
         timestamp: now,
@@ -9542,8 +9543,8 @@ class DatabaseService {
 
   String _aiFailureFallbackMessage({required bool offline}) {
     return offline
-        ? 'You’re offline. Showing basic help.'
-        : 'I\'m having trouble right now, but I can still help with basic things 👍';
+        ? 'Youâ€™re offline. Showing basic help.'
+        : 'I\'m having trouble right now, but I can still help with basic things ðŸ‘';
   }
 
   String _supportCacheKey(SupportChat chat, String prompt) {
@@ -11421,7 +11422,7 @@ class DatabaseService {
       action: 'adjust_wallet',
       targetType: 'store',
       targetId: storeId,
-      message: 'Adjusted wallet for $storeId by ₹${delta.toStringAsFixed(0)}.',
+      message: 'Adjusted wallet for $storeId by â‚¹${delta.toStringAsFixed(0)}.',
       actor: actor,
     );
   }

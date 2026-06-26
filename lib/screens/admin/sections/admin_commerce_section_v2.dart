@@ -1,4 +1,4 @@
-// ignore_for_file: invalid_use_of_protected_member
+﻿// ignore_for_file: invalid_use_of_protected_member
 
 part of '../admin_web_panel.dart';
 
@@ -809,7 +809,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Owner ${store.ownerId} • ${store.city.isEmpty ? 'Unknown city' : store.city}',
+                                    'Owner ${store.ownerId} â€¢ ${store.city.isEmpty ? 'Unknown city' : store.city}',
                                     style: GoogleFonts.inter(
                                       color: AbzioTheme.textSecondary,
                                     ),
@@ -856,7 +856,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Revenue ${_formatCurrency(revenue)} • Orders ${storeOrders.length} • Commission ${(store.commissionRate * 100).toStringAsFixed(0)}% • Payout ${_formatCurrency(store.walletBalance)}',
+                                    'Revenue ${_formatCurrency(revenue)} â€¢ Orders ${storeOrders.length} â€¢ Commission ${(store.commissionRate * 100).toStringAsFixed(0)}% â€¢ Payout ${_formatCurrency(store.walletBalance)}',
                                     style: GoogleFonts.inter(
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -929,6 +929,17 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                   child: Text(
                                     store.isActive ? 'Suspend' : 'Activate',
                                   ),
+                                ),
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFFB42318),
+                                    side: const BorderSide(
+                                      color: Color(0xFFB42318),
+                                    ),
+                                  ),
+                                  onPressed: () => _deleteStore(store),
+                                  icon: const Icon(Icons.delete_outline, size: 18),
+                                  label: const Text('Delete Vendor'),
                                 ),
                               ],
                             ),
@@ -1117,7 +1128,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '${rider.phone ?? rider.email} • ${rider.riderCity ?? rider.city ?? 'Unknown city'} • ${rider.riderVehicleType ?? 'Bike'} • ${2 + (performance / 35).floor()}y exp',
+                                        '${rider.phone ?? rider.email} â€¢ ${rider.riderCity ?? rider.city ?? 'Unknown city'} â€¢ ${rider.riderVehicleType ?? 'Bike'} â€¢ ${2 + (performance / 35).floor()}y exp',
                                         style: GoogleFonts.inter(
                                           color: AbzioTheme.textSecondary,
                                         ),
@@ -1917,7 +1928,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'SKU ${variant.sku.isEmpty ? 'Auto' : variant.sku} • Stock ${variant.stock} • ${variant.status.toUpperCase()}',
+                                    'SKU ${variant.sku.isEmpty ? 'Auto' : variant.sku} â€¢ Stock ${variant.stock} â€¢ ${variant.status.toUpperCase()}',
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
                                       color: AbzioTheme.textSecondary,
@@ -2220,7 +2231,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
             _SupportDetailRow(
               label: 'Payment',
               value:
-                  '${order.paymentMethod} • ${order.refundStatus.isEmpty ? 'No refund' : order.refundStatus}',
+                  '${order.paymentMethod} â€¢ ${order.refundStatus.isEmpty ? 'No refund' : order.refundStatus}',
             ),
             _SupportDetailRow(
               label: 'Rider',
