@@ -114,7 +114,7 @@ class _FinanceOverviewTabState extends State<_FinanceOverviewTab> {
     }
   }
 
-  String _money(double value) => NumberFormat.currency(locale: 'en_IN', symbol: 'â‚¹', decimalDigits: 0).format(value);
+  String _money(double value) => NumberFormat.currency(locale: 'en_IN', symbol: '\u20B9', decimalDigits: 0).format(value);
 
   @override
   Widget build(BuildContext context) {

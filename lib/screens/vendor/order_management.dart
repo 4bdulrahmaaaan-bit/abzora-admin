@@ -56,7 +56,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
     super.dispose();
   }
 
-  String _money(double amount) => 'â‚¹${amount.toStringAsFixed(0)}';
+  String _money(double amount) => '\u20B9${amount.toStringAsFixed(0)}';
 
   void _handleNewOrderArrival(int newCount) {
     final hasNewOrder = newCount > _lastNewOrdersCount;

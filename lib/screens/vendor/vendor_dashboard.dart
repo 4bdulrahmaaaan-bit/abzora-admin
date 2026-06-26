@@ -54,7 +54,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
   String _money(double amount) {
     return NumberFormat.currency(
       locale: 'en_IN',
-      symbol: 'â‚¹',
+      symbol: '\u20B9',
       decimalDigits: 0,
     ).format(amount);
   }

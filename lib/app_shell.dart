@@ -651,39 +651,7 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
 
     return const Scaffold(
       backgroundColor: Color(0xFFF9F7F2),
-      body: SafeArea(child: _LaunchLoadingView()),
-    );
-  }
-}
-
-class _LaunchLoadingView extends StatelessWidget {
-  const _LaunchLoadingView();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 34,
-            height: 34,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.6,
-              color: Color(0xFFB68A2A),
-            ),
-          ),
-          SizedBox(height: 16),
-          Text(
-            'Loading vendor workspace',
-            style: TextStyle(
-              color: Color(0xFF3B3224),
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+      body: SizedBox.expand(),
     );
   }
 }
@@ -1283,7 +1251,7 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
             darkTheme: AbzioTheme.darkTheme,
             home: const Scaffold(
               backgroundColor: Color(0xFFF9F7F2),
-              body: SafeArea(child: _LaunchLoadingView()),
+              body: SizedBox.expand(),
             ),
           );
         }
