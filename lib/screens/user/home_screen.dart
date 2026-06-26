@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -1795,7 +1795,7 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'Complete your profile for perfect fit Ã¢Å“Â¨',
+                                'Complete your profile for perfect fit ✨',
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.w800,
@@ -1803,7 +1803,7 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'WeÃ¢â‚¬â„¢ll use this to personalize your fit and delivery',
+                                'We'll use this to personalize your fit and delivery',
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: context.abzioSecondaryText,
@@ -2074,7 +2074,7 @@ Widget _aiStylistHighlight({required VoidCallback onTap}) {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Try AI Stylist Ã¢Å“Â¨',
+                    'Try AI Stylist ✨',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -2212,7 +2212,7 @@ class _AiStylistFloatingButton extends StatelessWidget {
                   ],
                 ),
                 child: Text(
-                  'Try AI Stylist for perfect outfit Ã°Å¸â€Â¥',
+                  'Try AI Stylist for perfect outfit 🔥',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -3631,7 +3631,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
   final DatabaseService _db = DatabaseService();
   final NumberFormat _currencyFormatter = NumberFormat.currency(
     locale: 'en_IN',
-    symbol: 'Ã¢â€šÂ¹',
+    symbol: '₹',
     decimalDigits: 0,
   );
 
@@ -3722,7 +3722,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
       return 'All';
     }
     if (value.startsWith('under_')) {
-      return value.replaceFirst('under_', 'Under Ã¢â€šÂ¹').replaceAll('_', '');
+      return value.replaceFirst('under_', 'Under ₹').replaceAll('_', '');
     }
     return '${value[0].toUpperCase()}${value.substring(1)}';
   }
@@ -3967,7 +3967,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
                       const SizedBox(height: 4),
                       Text(
                         outfit.bodyTypeLabel.isNotEmpty
-                            ? 'Perfect for your body type Ã‚Â· ${outfit.bodyTypeLabel}'
+                            ? 'Perfect for your body type · ${outfit.bodyTypeLabel}'
                             : 'Recommended for you',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -4322,7 +4322,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${items.length} picks Ã‚Â· ${_labelForFilter(outfit.occasion)} Ã‚Â· ${_labelForFilter(outfit.style)}',
+                                '${items.length} picks · ${_labelForFilter(outfit.occasion)} · ${_labelForFilter(outfit.style)}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(

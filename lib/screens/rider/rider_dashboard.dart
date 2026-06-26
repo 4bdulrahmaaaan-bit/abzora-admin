@@ -176,6 +176,10 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
   Future<int>? _unreadCountFuture;
   String? _boundActorId;
 
+  String _normalizedApprovalStatus(AppUser actor) {
+    return actor.riderApprovalStatus.trim().toLowerCase();
+  }
+
   void _ensureDashboardFuture(AppUser actor) {
     if (_boundActorId == actor.id && _dashboardFuture != null) {
       return;
@@ -215,7 +219,8 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
           ),
         ),
       );
-    } else if (actor.riderApprovalStatus != 'approved') {
+    } else if (_normalizedApprovalStatus(actor) != 'approved' &&
+        _normalizedApprovalStatus(actor) != 'active') {
       content = _PendingApprovalView(actor: actor);
     } else {
       _ensureDashboardFuture(actor);
@@ -1675,4 +1680,8 @@ class _EnterpriseActionGrid extends StatelessWidget {
     );
   }
 }
+
+
+
+
 

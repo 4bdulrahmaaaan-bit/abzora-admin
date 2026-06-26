@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -107,7 +107,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
       // route guards to fire prematurely with a null user and redirect
       // to /admin-login even when valid tokens exist.
       if (_isRestoringSession) {
-        debugPrint('[AUTH] authStateChanges fired during restore – deferring.');
+        debugPrint('[AUTH] authStateChanges fired during restore â€“ deferring.');
         return;
       }
       _bindLiveProfile(user);
@@ -198,6 +198,9 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
         left.storeId == right.storeId &&
         left.walletBalance == right.walletBalance &&
         mapEquals(left.roles, right.roles) &&
+        mapEquals(left.vendorOnboarding, right.vendorOnboarding) &&
+        mapEquals(left.riderOnboarding, right.riderOnboarding) &&
+        mapEquals(left.training, right.training) &&
         left.riderApprovalStatus == right.riderApprovalStatus &&
         left.riderVehicleType == right.riderVehicleType &&
         left.riderLicenseNumber == right.riderLicenseNumber &&
@@ -268,6 +271,9 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
       user.isActive,
       user.storeId ?? '',
       user.roles.toString(),
+      user.vendorOnboarding.toString(),
+      user.riderOnboarding.toString(),
+      user.training.toString(),
       user.riderApprovalStatus,
       user.riderVehicleType ?? '',
       user.riderLicenseNumber ?? '',
@@ -338,15 +344,15 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
         // 401 means tokens are genuinely invalid: existingUser stays null.
         if (e.statusCode != 401) {
           debugPrint(
-            '[AUTH] getCurrentAppUser transient error (${e.statusCode}) – falling back to snapshot.',
+            '[AUTH] getCurrentAppUser transient error (${e.statusCode}) â€“ falling back to snapshot.',
           );
         } else {
-          debugPrint('[AUTH] getCurrentAppUser 401 – session is invalid.');
+          debugPrint('[AUTH] getCurrentAppUser 401 â€“ session is invalid.');
         }
       } catch (e) {
-        // Network error, timeout, etc. – fall back to snapshot.
+        // Network error, timeout, etc. â€“ fall back to snapshot.
         debugPrint(
-          '[AUTH] getCurrentAppUser failed with non-api error – falling back to snapshot: $e',
+          '[AUTH] getCurrentAppUser failed with non-api error â€“ falling back to snapshot: $e',
         );
       }
 
@@ -800,3 +806,7 @@ class AuthProvider with ChangeNotifier, WidgetsBindingObserver {
     super.dispose();
   }
 }
+
+
+
+
