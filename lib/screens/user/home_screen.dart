@@ -1795,7 +1795,7 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'Complete your profile for perfect fit ✨',
+                                'Complete your profile for perfect fit \u2728',
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.w800,
@@ -1803,7 +1803,7 @@ class _ProfileSetupSheetState extends State<_ProfileSetupSheet>
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'We'll use this to personalize your fit and delivery',
+                                'We\'ll use this to personalize your fit and delivery',
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: context.abzioSecondaryText,
@@ -2074,7 +2074,7 @@ Widget _aiStylistHighlight({required VoidCallback onTap}) {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Try AI Stylist ✨',
+                    'Try AI Stylist \u2728',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -2212,7 +2212,7 @@ class _AiStylistFloatingButton extends StatelessWidget {
                   ],
                 ),
                 child: Text(
-                  'Try AI Stylist for perfect outfit 🔥',
+                  'Try AI Stylist for perfect outfit \uD83D\uDD25',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -3631,7 +3631,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
   final DatabaseService _db = DatabaseService();
   final NumberFormat _currencyFormatter = NumberFormat.currency(
     locale: 'en_IN',
-    symbol: '₹',
+    symbol: '\u20B9',
     decimalDigits: 0,
   );
 
@@ -3722,7 +3722,7 @@ class _AiOutfitSectionState extends State<_AiOutfitSection> {
       return 'All';
     }
     if (value.startsWith('under_')) {
-      return value.replaceFirst('under_', 'Under ₹').replaceAll('_', '');
+      return value.replaceFirst('under_', 'Under \u20B9').replaceAll('_', '');
     }
     return '${value[0].toUpperCase()}${value.substring(1)}';
   }
