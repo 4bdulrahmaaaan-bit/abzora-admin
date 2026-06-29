@@ -68,6 +68,16 @@ class LocationProvider with ChangeNotifier {
   String get displayCity => _resolvedAddress?.city.trim().isNotEmpty == true
       ? _resolvedAddress!.city
       : _activeLocation;
+  String get displayHeaderTitle {
+    final area = _resolvedAddress?.area.trim() ?? '';
+    final city = _resolvedAddress?.city.trim().isNotEmpty == true
+        ? _resolvedAddress!.city.trim()
+        : _activeLocation;
+    if (area.isNotEmpty && city.isNotEmpty && area.toLowerCase() != city.toLowerCase()) {
+      return '$area, $city';
+    }
+    return area.isNotEmpty ? area : city;
+  }
   String get displayPincode {
     final resolved = _resolvedAddress?.postalCode.trim() ?? '';
     if (resolved.isNotEmpty) {
