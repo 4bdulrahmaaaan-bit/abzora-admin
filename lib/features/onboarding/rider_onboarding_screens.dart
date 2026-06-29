@@ -108,9 +108,7 @@ class _RiderSplashScreenState extends State<RiderSplashScreen> {
       backgroundColor: Colors.black,
       body: const ColoredBox(
         color: Colors.black,
-        child: Center(
-          child: _RiderSplashLogo(),
-        ),
+        child: Center(child: _RiderSplashLogo()),
       ),
     );
   }
@@ -124,19 +122,19 @@ class _RiderSplashLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      _logoAsset,
-      width: 156,
-      height: 156,
-      fit: BoxFit.contain,
-      alignment: Alignment.center,
-      errorBuilder: (context, error, stackTrace) {
-        return const Icon(
-          Icons.delivery_dining_rounded,
-          size: 124,
-          color: RiderTheme.onboardingGold,
-        );
-      },
-    )
+          _logoAsset,
+          width: 156,
+          height: 156,
+          fit: BoxFit.contain,
+          alignment: Alignment.center,
+          errorBuilder: (context, error, stackTrace) {
+            return const Icon(
+              Icons.delivery_dining_rounded,
+              size: 124,
+              color: RiderTheme.onboardingGold,
+            );
+          },
+        )
         .animate()
         .fadeIn(
           duration: const Duration(milliseconds: 500),
@@ -687,7 +685,10 @@ class _RiderOnboardingFlowScreenState
 
   String _draftKeyForUser(String userId) => '$_draftKeyPrefix:$userId';
 
-  Future<void> _writeLocalDraft(String userId, Map<String, dynamic> data) async {
+  Future<void> _writeLocalDraft(
+    String userId,
+    Map<String, dynamic> data,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final payload = Map<String, dynamic>.from(data)
       ..['lastSavedAt'] = DateTime.now().toIso8601String();
@@ -717,25 +718,35 @@ class _RiderOnboardingFlowScreenState
     await prefs.remove(_draftKeyForUser(userId));
   }
 
-  Future<void> _pickAndUploadImage(String label, void Function(String url) onPicked) async {
+  Future<void> _pickAndUploadImage(
+    String label,
+    void Function(String url) onPicked,
+  ) async {
     final user = context.read<AuthProvider>().user;
     if (user == null) return;
-    
+
     final file = await ImagePicker().pickImage(
       source: ImageSource.gallery,
       imageQuality: 80,
       maxWidth: 1600,
     );
     if (file == null || !mounted) return;
-    
+
     setState(() => _submitting = true);
-    
+
     try {
       final String url;
       if (label == 'profile-photo') {
-        url = await _onboardingService.uploadRiderProfilePhoto(file: file, ownerId: user.id);
+        url = await _onboardingService.uploadRiderProfilePhoto(
+          file: file,
+          ownerId: user.id,
+        );
       } else {
-        url = await _onboardingService.uploadRiderDocument(file: file, ownerId: user.id, label: label);
+        url = await _onboardingService.uploadRiderDocument(
+          file: file,
+          ownerId: user.id,
+          label: label,
+        );
       }
       final normalizedLabel = label.trim().toLowerCase();
       final ocrBucket = _ocrBucketForLabel(normalizedLabel);
@@ -744,15 +755,12 @@ class _RiderOnboardingFlowScreenState
       final scanResult = shouldScan
           ? await _ocrService.scanImage(file: file, documentType: bucket!)
           : const <String, dynamic>{};
-      
+
       setState(() {
         onPicked(url);
         if (shouldScan) {
           final bucketKey = bucket!;
-          _documentOcr = {
-            ..._documentOcr,
-            bucketKey: scanResult,
-          };
+          _documentOcr = {..._documentOcr, bucketKey: scanResult};
         }
         _saveDraft(ref.read(riderSignupProvider));
       });
@@ -825,7 +833,7 @@ class _RiderOnboardingFlowScreenState
       case 0:
         return AppValidators.requiredField(model.fullName, 'Full name') ??
             AppValidators.email(model.email) ??
-            AppValidators.requiredField(model.city, 'City');
+            AppValidators.requiredField('Chennai', 'City');
       case 1:
         return AppValidators.vehicleNumber(model.vehicleNumber) ??
             AppValidators.requiredField(model.licenseNumber, 'License number');
@@ -863,7 +871,7 @@ class _RiderOnboardingFlowScreenState
         'email': model.email,
         'dob': model.dob?.toIso8601String(),
         'gender': model.gender,
-        'city': model.city,
+        'city': 'Chennai',
         'profilePhotoUrl': model.profilePhotoPath,
       },
       'vehicle': {
@@ -953,35 +961,43 @@ class _RiderOnboardingFlowScreenState
         phone: personal['phone'] ?? '',
         fullName: personal['fullName'] ?? '',
         email: personal['email'] ?? '',
-        dob: personal['dob'] != null ? DateTime.tryParse(personal['dob']) : null,
+        dob: personal['dob'] != null
+            ? DateTime.tryParse(personal['dob'])
+            : null,
         gender: personal['gender'] ?? 'Male',
-        city: personal['city'] ?? '',
+        city: 'Chennai',
         profilePhotoPath: personal['profilePhotoUrl'],
-        
+
         vehicleType: vType,
         vehicleNumber: vehicle['vehicleNumber'] ?? '',
         rcPath: vehicle['rcUrl'],
         insurancePath: vehicle['insuranceUrl'],
-        
+
         aadhaar: kyc['aadhaarNumber'] ?? '',
         pan: kyc['panNumber'] ?? '',
         licenseNumber: kyc['licenseNumber'] ?? '',
         licenseDocPath: kyc['licenseDocUrl'],
         selfiePath: kyc['selfieUrl'],
-        
+
         accountHolder: finance['accountHolder'] ?? '',
         bankName: finance['bankName'] ?? '',
         accountNumber: finance['accountNumber'] ?? '',
         ifsc: finance['ifsc'] ?? '',
         upi: finance['upi'] ?? '',
-        
+
         referral: preferences['referral'] ?? '',
         workType: wType,
         shift: preferences['shift'] ?? 'Morning',
-        zoneLat: preferences['zoneLat'] != null ? (preferences['zoneLat'] as num).toDouble() : null,
-        zoneLng: preferences['zoneLng'] != null ? (preferences['zoneLng'] as num).toDouble() : null,
-        zoneRadiusKm: preferences['zoneRadiusKm'] != null ? (preferences['zoneRadiusKm'] as num).toDouble() : 5,
-        
+        zoneLat: preferences['zoneLat'] != null
+            ? (preferences['zoneLat'] as num).toDouble()
+            : null,
+        zoneLng: preferences['zoneLng'] != null
+            ? (preferences['zoneLng'] as num).toDouble()
+            : null,
+        zoneRadiusKm: preferences['zoneRadiusKm'] != null
+            ? (preferences['zoneRadiusKm'] as num).toDouble()
+            : 5,
+
         acceptedTerms: policies['acceptedTerms'] ?? false,
         signature: policies['signature'] ?? '',
       );
@@ -1063,7 +1079,7 @@ class _RiderOnboardingFlowScreenState
     setState(() => _submitting = true);
     try {
       RiderTelemetry.event('rider_submit_started', data: {'userId': user.id});
-      
+
       final profileUrl = model.profilePhotoPath ?? '';
       final selfieUrl = model.selfiePath ?? '';
       final licenseUrl = model.licenseDocPath ?? '';
@@ -1071,7 +1087,11 @@ class _RiderOnboardingFlowScreenState
       final insuranceUrl = model.insurancePath ?? '';
       final combinedOcrText = _documentOcr.values
           .whereType<Map>()
-          .map((entry) => (entry['rawText'] ?? entry['recognizedText'] ?? '').toString().trim())
+          .map(
+            (entry) => (entry['rawText'] ?? entry['recognizedText'] ?? '')
+                .toString()
+                .trim(),
+          )
           .where((value) => value.isNotEmpty)
           .join(' ');
       final licenseOcr = Map<String, dynamic>.from(
@@ -1081,7 +1101,8 @@ class _RiderOnboardingFlowScreenState
       final ocrExtraction = await _withRetry(
         () => _onboardingService.extractKycFields(
           documentType: 'aadhaar_pan',
-          text: '${model.aadhaar} ${model.pan} ${model.fullName} $combinedOcrText',
+          text:
+              '${model.aadhaar} ${model.pan} ${model.fullName} $combinedOcrText',
           recognizedText: combinedOcrText,
           documentUrl: licenseUrl,
         ),
@@ -1124,7 +1145,7 @@ class _RiderOnboardingFlowScreenState
           name: model.fullName.trim(),
           phone: model.phone.trim(),
           vehicle: model.vehicleType.name,
-          city: model.city.trim(),
+          city: 'Chennai',
           kyc: KycDocuments(
             profilePhotoUrl: profileUrl,
             aadhaarUrl: '',
@@ -1268,14 +1289,26 @@ class _RiderOnboardingFlowScreenState
         backgroundColor: RiderTheme.onboardingBackground,
         leading: IconButton(
           onPressed: _back,
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: RiderTheme.onboardingPrimaryText),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: RiderTheme.onboardingPrimaryText,
+          ),
           tooltip: 'Back',
         ),
-        title: const Text('Rider Onboarding', style: TextStyle(color: RiderTheme.onboardingPrimaryText, fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Rider Onboarding',
+          style: TextStyle(
+            color: RiderTheme.onboardingPrimaryText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: RiderTheme.onboardingElevatedSurface, height: 1.0),
+          child: Container(
+            color: RiderTheme.onboardingElevatedSurface,
+            height: 1.0,
+          ),
         ),
       ),
       body: Stack(
@@ -1284,10 +1317,7 @@ class _RiderOnboardingFlowScreenState
           Column(
             children: [
               const SizedBox(height: 16),
-              RiderProgressTracker(
-                currentStep: _step,
-                totalSteps: 7,
-              ),
+              RiderProgressTracker(currentStep: _step, totalSteps: 7),
               const SizedBox(height: 16),
               Expanded(
                 child: PageView(
@@ -1308,7 +1338,11 @@ class _RiderOnboardingFlowScreenState
                 padding: const EdgeInsets.all(24),
                 decoration: const BoxDecoration(
                   color: RiderTheme.onboardingSurface,
-                  border: Border(top: BorderSide(color: RiderTheme.onboardingElevatedSurface)),
+                  border: Border(
+                    top: BorderSide(
+                      color: RiderTheme.onboardingElevatedSurface,
+                    ),
+                  ),
                 ),
                 child: SizedBox(
                   width: double.infinity,
@@ -1318,7 +1352,9 @@ class _RiderOnboardingFlowScreenState
                       backgroundColor: RiderTheme.onboardingGold,
                       foregroundColor: RiderTheme.onboardingBackground,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(RiderTheme.radiusSmall),
+                        borderRadius: BorderRadius.circular(
+                          RiderTheme.radiusSmall,
+                        ),
                       ),
                       elevation: 0,
                     ),
@@ -1326,10 +1362,22 @@ class _RiderOnboardingFlowScreenState
                         ? (_submitting ? null : () => _submitApplication(model))
                         : (canContinue ? _next : null),
                     child: _submitting
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: RiderTheme.onboardingBackground, strokeWidth: 2))
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: RiderTheme.onboardingBackground,
+                              strokeWidth: 2,
+                            ),
+                          )
                         : Text(
-                            _step == 6 ? 'Submit Application →' : 'Save & Continue →',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                            _step == 6
+                                ? 'Submit Application →'
+                                : 'Save & Continue →',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                   ),
                 ),
@@ -1353,15 +1401,18 @@ class _RiderOnboardingFlowScreenState
           _saveDraft(newModel);
         },
         onPickImage: () => _pickAndUploadImage('profile-photo', (url) {
-          ref.read(riderSignupProvider.notifier).update(model.copyWith(profilePhotoPath: url));
+          ref
+              .read(riderSignupProvider.notifier)
+              .update(model.copyWith(profilePhotoPath: url));
         }),
         inputDecorationBuilder: _onboardingInputDecoration,
-        visualCardBuilder: (label, description, url, onTap) => _buildRiderVisualCard(
-          label: label,
-          description: description,
-          imageUrl: url,
-          onTap: onTap,
-        ),
+        visualCardBuilder: (label, description, url, onTap) =>
+            _buildRiderVisualCard(
+              label: label,
+              description: description,
+              imageUrl: url,
+              onTap: onTap,
+            ),
         staggerColumnBuilder: _staggerColumn,
       ),
     );
@@ -1377,12 +1428,13 @@ class _RiderOnboardingFlowScreenState
           _saveDraft(newModel);
         },
         inputDecorationBuilder: _onboardingInputDecoration,
-        visualCardBuilder: (label, description, url, onPicked) => _buildRiderVisualCard(
-          label: label,
-          description: description,
-          imageUrl: url,
-          onTap: () => _pickAndUploadImage(label, onPicked),
-        ),
+        visualCardBuilder: (label, description, url, onPicked) =>
+            _buildRiderVisualCard(
+              label: label,
+              description: description,
+              imageUrl: url,
+              onTap: () => _pickAndUploadImage(label, onPicked),
+            ),
       ),
     );
   }
@@ -1396,12 +1448,13 @@ class _RiderOnboardingFlowScreenState
           ref.read(riderSignupProvider.notifier).update(newModel);
           _saveDraft(newModel);
         },
-        visualCardBuilder: (label, description, url, onPicked) => _buildRiderVisualCard(
-          label: label,
-          description: description,
-          imageUrl: url,
-          onTap: () => _pickAndUploadImage(label, onPicked),
-        ),
+        visualCardBuilder: (label, description, url, onPicked) =>
+            _buildRiderVisualCard(
+              label: label,
+              description: description,
+              imageUrl: url,
+              onTap: () => _pickAndUploadImage(label, onPicked),
+            ),
       ),
     );
   }
@@ -1419,7 +1472,9 @@ class _RiderOnboardingFlowScreenState
         ifscLookupLoading: _ifscLookupLoading,
         ifscLookupMessage: _ifscLookupMessage,
         onIfscChanged: (v) {
-          ref.read(riderSignupProvider.notifier).update(model.copyWith(ifsc: v));
+          ref
+              .read(riderSignupProvider.notifier)
+              .update(model.copyWith(ifsc: v));
           _lookupIfscIfReady(model, v);
         },
       ),
@@ -1457,9 +1512,7 @@ class _RiderOnboardingFlowScreenState
   Widget _reviewStep(RiderSignupModel model) {
     return _formCard(
       title: 'Application Review',
-      child: _staggerColumn([
-        ReviewStep(model: model),
-      ]),
+      child: _staggerColumn([ReviewStep(model: model)]),
     );
   }
 
@@ -1527,8 +1580,10 @@ class _RiderOnboardingFlowScreenState
     required VoidCallback onTap,
   }) {
     final bool done = imageUrl != null && imageUrl.isNotEmpty;
-    
-    final Color statusColor = done ? RiderTheme.onboardingSuccess : RiderTheme.onboardingWarning;
+
+    final Color statusColor = done
+        ? RiderTheme.onboardingSuccess
+        : RiderTheme.onboardingWarning;
     final String statusText = done ? 'Uploaded' : 'Required';
 
     return InkWell(
@@ -1558,8 +1613,16 @@ class _RiderOnboardingFlowScreenState
                     : null,
               ),
               child: done
-                  ? (imageUrl.startsWith('http') ? null : const Icon(Icons.check_circle, color: RiderTheme.onboardingSuccess))
-                  : const Icon(Icons.add_photo_alternate_outlined, color: RiderTheme.onboardingSecondaryText),
+                  ? (imageUrl.startsWith('http')
+                        ? null
+                        : const Icon(
+                            Icons.check_circle,
+                            color: RiderTheme.onboardingSuccess,
+                          ))
+                  : const Icon(
+                      Icons.add_photo_alternate_outlined,
+                      color: RiderTheme.onboardingSecondaryText,
+                    ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -1578,7 +1641,9 @@ class _RiderOnboardingFlowScreenState
                   Text(
                     description,
                     style: TextStyle(
-                      color: RiderTheme.onboardingPrimaryText.withValues(alpha: 0.6),
+                      color: RiderTheme.onboardingPrimaryText.withValues(
+                        alpha: 0.6,
+                      ),
                       fontSize: 12,
                       height: 1.3,
                     ),
@@ -1622,12 +1687,11 @@ class _RiderOnboardingFlowScreenState
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(RiderTheme.radiusSmall),
-        borderSide: const BorderSide(color: RiderTheme.onboardingGold, width: 1.5),
+        borderSide: const BorderSide(
+          color: RiderTheme.onboardingGold,
+          width: 1.5,
+        ),
       ),
     );
   }
 }
-
-
-
-

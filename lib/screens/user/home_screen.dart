@@ -1320,12 +1320,11 @@ class _HomeContentState extends State<HomeContent>
         final banners = context.select<BannerProvider, List<BannerModel>>(
           (bannerProvider) => bannerProvider.banners,
         );
-        final headerCopy = locationProvider.hasResolvedLocation
-            ? locationProvider.deliveryHeaderCopy('')
-            : const DeliveryHeaderCopy(
-                title: AbianzoText.locationLoggedOutTitle,
-                subtitle: AbianzoText.locationLoggedOutSubtitle,
-              );
+        final locationTitle = locationProvider.displayAddress;
+        final headerCopy = DeliveryHeaderCopy(
+          title: locationTitle.trim().isNotEmpty ? locationTitle : AbianzoText.locationLoggedOutTitle,
+          subtitle: '',
+        );
         final filteredProducts = _filterProductsForCategory(products);
         final trendingProducts = filteredProducts.take(4).toList();
         final justForYouProducts = filteredProducts.skip(4).take(4).toList();

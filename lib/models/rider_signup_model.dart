@@ -9,7 +9,7 @@ class RiderSignupModel {
     this.email = '',
     this.dob,
     this.gender = 'Male',
-    this.city = '',
+    this.city = 'Chennai',
     this.profilePhotoPath,
     this.vehicleType = VehicleType.bike,
     this.vehicleNumber = '',
@@ -186,7 +186,7 @@ class RiderSignupModel {
           ? null
           : DateTime.tryParse(json['dob'] as String),
       gender: (json['gender'] ?? 'Male') as String,
-      city: (json['city'] ?? '') as String,
+      city: 'Chennai',
       profilePhotoPath: json['profilePhotoPath'] as String?,
       vehicleType: parseVehicle(json['vehicleType'] as String?),
       vehicleNumber: (json['vehicleNumber'] ?? '') as String,

@@ -8,7 +8,8 @@ class ProfileStep extends StatelessWidget {
   final ValueChanged<RiderSignupModel> onUpdate;
   final VoidCallback onPickImage;
   final InputDecoration Function(String) inputDecorationBuilder;
-  final Widget Function(String, String, String?, VoidCallback) visualCardBuilder;
+  final Widget Function(String, String, String?, VoidCallback)
+  visualCardBuilder;
   final Widget Function(List<Widget>) staggerColumnBuilder;
 
   const ProfileStep({
@@ -48,18 +49,21 @@ class ProfileStep extends StatelessWidget {
       ),
       const SizedBox(height: 16),
       DropdownButtonFormField<String>(
-        initialValue: model.city.isEmpty ? null : model.city,
-        hint: const Text('Select City', style: TextStyle(color: RiderTheme.onboardingSecondaryText)),
+        initialValue: 'Chennai',
+        hint: const Text(
+          'Chennai only',
+          style: TextStyle(color: RiderTheme.onboardingSecondaryText),
+        ),
         dropdownColor: RiderTheme.onboardingElevatedSurface,
         style: const TextStyle(color: RiderTheme.onboardingPrimaryText),
-        icon: const Icon(Icons.arrow_drop_down_rounded, color: RiderTheme.onboardingSecondaryText),
+        icon: const Icon(
+          Icons.arrow_drop_down_rounded,
+          color: RiderTheme.onboardingSecondaryText,
+        ),
         items: const [
-          'Bengaluru',
-          'Mumbai',
-          'Delhi',
-          'Hyderabad',
-        ].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-        onChanged: (v) => onUpdate(model.copyWith(city: v ?? '')),
+          DropdownMenuItem(value: 'Chennai', child: Text('Chennai')),
+        ],
+        onChanged: (_) => onUpdate(model.copyWith(city: 'Chennai')),
         decoration: inputDecorationBuilder('Operating City'),
       ),
       const SizedBox(height: 24),
@@ -70,11 +74,16 @@ class ProfileStep extends StatelessWidget {
         onPickImage,
       ),
     ];
-    
+
     return staggerColumnBuilder(content);
   }
 
-  Widget _buildReadOnlyField({required String label, required String value, required IconData icon, required Color iconColor}) {
+  Widget _buildReadOnlyField({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color iconColor,
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
