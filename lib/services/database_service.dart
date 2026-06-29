@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -468,8 +468,7 @@ class DatabaseService {
         : (await _fetchDocument(
                 'products/${order.items.first.productId}',
                 (map, id) => Product.fromMap(map, id),
-              ))?.category ??
-              existing.favoriteCategory;
+              ))?.category ?? existing.favoriteCategory;
     final updated = existing.copyWith(
       orderCount: existing.orderCount + 1,
       totalSpend: existing.totalSpend + order.totalAmount,
@@ -774,13 +773,13 @@ class DatabaseService {
     if (fraudFlags.isNotEmpty) {
       final blockedRecord =
           (existing ??
-                  ReferralRecord(
-                    id: actor.id,
-                    referrerId: referrerId,
-                    referredUserId: actor.id,
-                    referralCode: referrer.referralCode ?? '',
-                    createdAt: nowIso,
-                  ))
+              ReferralRecord(
+                id: actor.id,
+                referrerId: referrerId,
+                referredUserId: actor.id,
+                referralCode: referrer.referralCode ?? '',
+                createdAt: nowIso,
+              ))
               .toMap()
             ..addAll({
               'status': 'blocked',
@@ -8706,8 +8705,7 @@ class DatabaseService {
               qualityApprovalRequired: true,
               supportsAlterations: true,
               alterationPolicy: 'Easy alteration policy',
-              metrics:
-                  existingStore?.customVendorProfile.metrics ??
+              metrics: existingStore?.customVendorProfile.metrics ??
                   const CustomVendorMetrics(),
             )
           : (existingStore?.customVendorProfile ?? const CustomVendorProfile()),
@@ -11440,7 +11438,6 @@ class DatabaseService {
         .where(
           (user) =>
               '${user.name} ${user.email} ${user.phone ?? ''} ${user.role}'
-                  .toLowerCase()
                   .contains(normalized),
         )
         .toList();

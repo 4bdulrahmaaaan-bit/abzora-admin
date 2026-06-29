@@ -2714,7 +2714,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
-          'â­ ${rating.toStringAsFixed(1)} ($reviewCount Reviews)',
+          '⭐ ${rating.toStringAsFixed(1)} ($reviewCount Reviews)',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: const Color(0xFF111111),
             fontWeight: FontWeight.w700,
@@ -3072,9 +3072,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             ),
           ),
           const SizedBox(height: 10),
-          _proofRow('ðŸ”¥', '$viewers people viewed this today'),
-          _proofRow('ðŸ›', '$orders orders delivered this week'),
-          _proofRow('â¤ï¸', 'Added to $wishlists wishlists'),
+          _proofRow('🔥', '$viewers people viewed this today'),
+          _proofRow('🛍', '$orders orders delivered this week'),
+          _proofRow('❤️', 'Added to $wishlists wishlists'),
         ],
       ),
     );
@@ -3502,7 +3502,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
                       children: [
-                        SizedBox(width: 34, child: Text('${entry.key}â˜…')),
+                        SizedBox(width: 34, child: Text('${entry.key}★')),
                         Expanded(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(999),
@@ -3997,7 +3997,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final pricing = _pricing;
     final description = product.description.trim();
     final accentColor = _effectiveAccentColor(product, images);
-    final suggestedSize = _selectedSize ??
+    final suggestedSize = _selectedSize ?
         (product.sizes.contains('M')
             ? 'M'
             : (product.sizes.isNotEmpty

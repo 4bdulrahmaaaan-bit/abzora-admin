@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1423,7 +1423,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           : initial?.name ?? '',
     );
     final hexController = TextEditingController(
-      text: duplicate ? '#C6A769' : initial?.hex ?? '#C6A769',
+      text: duplicate ? '' : initial?.hex ?? '#C6A769',
     );
     final skuController = TextEditingController(
       text: duplicate ? '' : initial?.sku ?? '',
@@ -1438,7 +1438,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       text: duplicate ? '' : (initial?.discountPrice?.toStringAsFixed(0) ?? ''),
     );
     final stockController = TextEditingController(
-      text: duplicate ? '0' : initial?.stock.toString() ?? '0',
+      text: duplicate ? '' : initial?.stock.toString() ?? '0',
     );
     final thumbnailController = TextEditingController(
       text: duplicate

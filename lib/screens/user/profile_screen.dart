@@ -1173,7 +1173,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             Expanded(
               child: _ProfileValueCell(
                 label: 'Wallet',
-                value: '?0',
+                value: '₹0',
                 icon: Icons.account_balance_wallet_outlined,
               ),
             ),

@@ -188,12 +188,13 @@ class LocationService {
       }
 
       final place = placemarks.first;
-      final name = _firstNonEmpty([
-        place.name,
-        place.street,
+      final streetLine = _firstNonEmpty([
+        place.subThoroughfare,
         place.thoroughfare,
+        place.street,
+        place.name,
       ]);
-      final area = _firstNonEmpty([
+      final localityLine = _firstNonEmpty([
         place.subLocality,
         place.locality,
         place.subAdministrativeArea,
@@ -209,15 +210,26 @@ class LocationService {
       ]);
       final postalCode = (place.postalCode ?? '').trim();
 
-      final parts = <String>[
-        if (name.isNotEmpty && name != area) name,
-        if (area.isNotEmpty) area,
-        if (city.isNotEmpty && city != area) city,
-      ];
+      final parts = <String>[];
+      if (streetLine.isNotEmpty) {
+        parts.add(streetLine);
+      }
+      if (localityLine.isNotEmpty && localityLine != streetLine) {
+        parts.add(localityLine);
+      }
+      if (city.isNotEmpty && city != localityLine) {
+        parts.add(city);
+      }
+      if (state.isNotEmpty && state != city) {
+        parts.add(state);
+      }
+      if (postalCode.isNotEmpty) {
+        parts.add(postalCode);
+      }
 
       return LocationAddress(
         address: parts.isEmpty ? 'Location detected' : parts.join(', '),
-        area: area,
+        area: localityLine,
         city: city,
         state: state,
         postalCode: postalCode,

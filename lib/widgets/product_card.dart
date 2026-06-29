@@ -579,18 +579,18 @@ String _deliveryLabel(Product product) {
       _boolFrom(delivery['tryAtHomeEligible']) ||
       _boolFrom(product.tryAtHomeAvailable);
   if (tryAtHome) {
-    return '?? Nearby Store';
+    return '📍 Nearby Store';
   }
   final eta =
       delivery['etaHours'] ?? delivery['eta'] ?? delivery['deliveryEta'];
   if (eta is num && eta > 0) {
     final hours = eta.round();
-    return hours == 1 ? '? 1-Hour Delivery' : '? $hours-Hour Delivery';
+    return hours == 1 ? '⚡ 1-Hour Delivery' : '⚡ $hours-Hour Delivery';
   }
   if (eta is String && eta.trim().isNotEmpty) {
     return eta.trim();
   }
-  return '?? Nearby Store';
+  return '📍 Nearby Store';
 }
 
 bool _boolFrom(dynamic value) {
@@ -610,7 +610,7 @@ bool _boolFrom(dynamic value) {
 String _currency(double value) {
   final formatter = NumberFormat.currency(
     locale: 'en_IN',
-    symbol: '?',
+    symbol: '\u20B9',
     decimalDigits: 0,
   );
   return formatter.format(value);

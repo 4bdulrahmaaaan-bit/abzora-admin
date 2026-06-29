@@ -1320,7 +1320,7 @@ class _HomeContentState extends State<HomeContent>
         final banners = context.select<BannerProvider, List<BannerModel>>(
           (bannerProvider) => bannerProvider.banners,
         );
-        final locationTitle = locationProvider.displayAddress;
+        final locationTitle = locationProvider.displayArea;
         final headerCopy = DeliveryHeaderCopy(
           title: locationTitle.trim().isNotEmpty ? locationTitle : AbianzoText.locationLoggedOutTitle,
           subtitle: '',
