@@ -649,9 +649,31 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       });
     }
 
-    return const Scaffold(
-      backgroundColor: Color(0xFFF9F7F2),
-      body: SizedBox.expand(),
+    String splashAsset;
+    switch (widget.mode) {
+      case AbzioAppMode.vendor:
+        splashAsset = 'assets/branding/abianzo_vendor_splash_1080x1920.png';
+        break;
+      case AbzioAppMode.rider:
+        splashAsset = 'assets/branding/abianzo_rider_splash_1080x1920.png';
+        break;
+      case AbzioAppMode.customer:
+      case AbzioAppMode.operations:
+      case AbzioAppMode.unified:
+      default:
+        splashAsset = 'assets/branding/abianzo_customer_splash_1080x1920.png';
+        break;
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F7F2),
+      body: SizedBox.expand(
+        child: Image.asset(
+          splashAsset,
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+        ),
+      ),
     );
   }
 }

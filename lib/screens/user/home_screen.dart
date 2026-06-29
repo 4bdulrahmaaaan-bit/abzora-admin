@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -23,6 +24,7 @@ import '../../services/database_service.dart';
 import '../../theme.dart';
 import '../../utils/soft_auth_gate.dart';
 import '../../widgets/global_skeletons.dart';
+import '../../widgets/banner_shimmer.dart';
 import '../../widgets/home_header.dart';
 import '../../widgets/product_card.dart';
 import '../../widgets/product_grid.dart';
@@ -3457,15 +3459,7 @@ class _HomeBannerState extends State<HomeBanner> {
 
         if (snapshot.connectionState == ConnectionState.waiting &&
             (snapshot.data == null || snapshot.data!.isEmpty)) {
-          return Container(
-            height: 360,
-            color: Colors.black,
-            alignment: Alignment.center,
-            child: const CircularProgressIndicator(
-              strokeWidth: 2.4,
-              color: Color(0xFFC8A96A),
-            ),
-          );
+          return const BannerShimmer(height: 360);
         }
 
         return Column(
@@ -3487,7 +3481,24 @@ class _HomeBannerState extends State<HomeBanner> {
                         curve: Curves.easeInOut,
                         builder: (context, value, child) =>
                             Transform.scale(scale: value, child: child),
-                        child: Image.network(slide.imageUrl, fit: BoxFit.cover),
+                        child: CachedNetworkImage(
+                          imageUrl: slide.imageUrl,
+                          fit: BoxFit.cover,
+                          fadeInDuration: Duration.zero,
+                          fadeOutDuration: Duration.zero,
+                          imageBuilder: (context, imageProvider) {
+                            return AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 250),
+                              child: Image(
+                                key: ValueKey(slide.imageUrl),
+                                image: imageProvider,
+                                fit: BoxFit.cover,
+                              ),
+                            );
+                          },
+                          placeholder: (context, url) => const BannerShimmer(height: 360),
+                          errorWidget: (context, url, error) => Container(color: const Color(0xFFFAFAF7)),
+                        ),
                       ),
                       Container(
                         decoration: BoxDecoration(

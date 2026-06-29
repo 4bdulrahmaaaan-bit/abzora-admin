@@ -17,7 +17,7 @@ class ShimmerBox extends StatelessWidget {
     this.borderRadius,
     this.baseColor,
     this.highlightColor,
-    this.period = const Duration(milliseconds: 1200),
+    this.period = const Duration(milliseconds: 1350),
   });
 
   @override
