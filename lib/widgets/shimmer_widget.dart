@@ -9,6 +9,7 @@ class ShimmerWidget extends StatelessWidget {
     this.radius = 16,
     this.baseColor,
     this.highlightColor,
+    this.period = const Duration(milliseconds: 1200),
     this.child,
   });
 
@@ -17,6 +18,7 @@ class ShimmerWidget extends StatelessWidget {
   final double radius;
   final Color? baseColor;
   final Color? highlightColor;
+  final Duration period;
   final Widget? child;
 
   @override
@@ -47,7 +49,7 @@ class ShimmerWidget extends StatelessWidget {
     return Shimmer.fromColors(
       baseColor: resolvedBaseColor,
       highlightColor: resolvedHighlightColor,
-      period: const Duration(milliseconds: 1200),
+      period: period,
       child: content,
     );
   }

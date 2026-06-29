@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../widgets/product_shimmer.dart';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -1488,22 +1489,26 @@ class _HomeContentState extends State<HomeContent>
                                 ),
                               ),
                             ),
-                          if (provider.isLoadingMore)
-                            const SliverToBoxAdapter(
-                              child: Padding(
-                                padding: EdgeInsets.only(bottom: 20),
-                                child: Center(
-                                  child: SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AbzioTheme.accentColor,
+                          SliverToBoxAdapter(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              child: provider.isLoadingMore
+                                  ? const Padding(
+                                      key: ValueKey('loading-more-products'),
+                                      padding: EdgeInsets.fromLTRB(16, 20, 16, 24),
+                                      child: ProductShimmer(
+                                        itemCount: 4,
+                                        shrinkWrap: true,
+                                        physics: NeverScrollableScrollPhysics(),
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(
+                                      key: ValueKey('loading-more-empty'),
                                     ),
-                                  ),
-                                ),
-                              ),
                             ),
+                          ),
                         ],
                       ),
                     ),
