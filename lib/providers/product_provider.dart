@@ -272,6 +272,7 @@ class ProductProvider with ChangeNotifier {
       }
     }
     if (newlyMatched.isEmpty) {
+      hasMore = false;
       try {
         final streamFallback = await _db.watchAllProducts().first.timeout(
           const Duration(seconds: 6),

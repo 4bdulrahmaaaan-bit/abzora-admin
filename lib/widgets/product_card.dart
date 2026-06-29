@@ -572,25 +572,25 @@ String _deliveryLabel(Product product) {
       _boolFrom(delivery['sameDayEligible']) ||
       _boolFrom(product.sameDayAvailable);
   if (sameDay) {
-    return '? Same Day';
+    return '\u26A1 Same Day';
   }
   final tryAtHome =
       _boolFrom(delivery['tryAtHomeAvailable']) ||
       _boolFrom(delivery['tryAtHomeEligible']) ||
       _boolFrom(product.tryAtHomeAvailable);
   if (tryAtHome) {
-    return '📍 Nearby Store';
+    return '\u{1F4CD} Nearby Store';
   }
   final eta =
       delivery['etaHours'] ?? delivery['eta'] ?? delivery['deliveryEta'];
   if (eta is num && eta > 0) {
     final hours = eta.round();
-    return hours == 1 ? '⚡ 1-Hour Delivery' : '⚡ $hours-Hour Delivery';
+    return hours == 1 ? '\u26A1 1-Hour Delivery' : '\u26A1 $hours-Hour Delivery';
   }
   if (eta is String && eta.trim().isNotEmpty) {
     return eta.trim();
   }
-  return '📍 Nearby Store';
+  return '\u{1F4CD} Nearby Store';
 }
 
 bool _boolFrom(dynamic value) {

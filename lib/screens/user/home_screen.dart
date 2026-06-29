@@ -61,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _restoreAiDiscoveryState();
   }
+
   Future<void> _restoreAiDiscoveryState() async {
     final prefs = await SharedPreferences.getInstance();
     final hasUsedAi = prefs.getBool(_hasUsedAiKey) ?? false;
@@ -1322,7 +1323,9 @@ class _HomeContentState extends State<HomeContent>
         );
         final locationTitle = locationProvider.displayArea;
         final headerCopy = DeliveryHeaderCopy(
-          title: locationTitle.trim().isNotEmpty ? locationTitle : AbianzoText.locationLoggedOutTitle,
+          title: locationTitle.trim().isNotEmpty
+              ? locationTitle
+              : AbianzoText.locationLoggedOutTitle,
           subtitle: '',
         );
         final filteredProducts = _filterProductsForCategory(products);
@@ -1493,10 +1496,17 @@ class _HomeContentState extends State<HomeContent>
                               duration: const Duration(milliseconds: 200),
                               switchInCurve: Curves.easeOutCubic,
                               switchOutCurve: Curves.easeInCubic,
-                              child: provider.isLoadingMore
+                              child:
+                                  provider.isLoadingMore &&
+                                      provider.hasMoreProducts
                                   ? const Padding(
                                       key: ValueKey('loading-more-products'),
-                                      padding: EdgeInsets.fromLTRB(16, 20, 16, 24),
+                                      padding: EdgeInsets.fromLTRB(
+                                        16,
+                                        20,
+                                        16,
+                                        24,
+                                      ),
                                       child: ProductShimmer(
                                         itemCount: 4,
                                         shrinkWrap: true,
@@ -2570,8 +2580,8 @@ class _CategorySectionState extends State<CategorySection> {
 
 class _CategoryRailData {
   const _CategoryRailData()
-      : categories = const [],
-        visuals = const HomeVisualConfigModel();
+    : categories = const [],
+      visuals = const HomeVisualConfigModel();
 
   final List<CategoryManagementModel> categories;
   final HomeVisualConfigModel visuals;
@@ -4778,10 +4788,3 @@ class _StoreSkeletonList extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
-
