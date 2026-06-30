@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../config/product_attribute_config.dart';
 
 import '../../constants/text_constants.dart';
 import '../../models/models.dart';
@@ -1188,10 +1189,18 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
   final TextEditingController _brandSearchController = TextEditingController();
   String _brandSearch = '';
 
+  String? _activeFilterKey;
+  final Map<String, Map<String, int>> _cachedCounts = {};
+
+  List<String> _orderedFilterKeys = [];
+  Map<String, String> _filterLabels = {};
+  Map<String, ProductAttributeFieldConfig> _activeFields = {};
+
   @override
   void initState() {
     super.initState();
     _draft = widget.initialFilter;
+    _resolveFilters();
   }
 
   @override
@@ -1200,9 +1209,189 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
     super.dispose();
   }
 
+  void _update(SearchFilter next) {
+    setState(() {
+      _cachedCounts.clear();
+      _draft = next;
+      _resolveFilters();
+    });
+  }
+
+  void _resolveFilters() {
+    final Set<String> keys = {};
+    _filterLabels = {};
+    _activeFields = {};
+
+    final baseLabels = {
+      'category': 'Category',
+      'gender': 'Gender',
+      'brand': 'Brand',
+      'price': 'Price',
+      'size': 'Size',
+      'color': 'Color',
+      'availability': 'Availability',
+      'rating': 'Rating',
+      'sort': 'Sort By',
+    };
+
+    final templateKeys = <String>[];
+    if (_draft.category != 'All' &&
+        productAttributeTemplates.containsKey(_draft.category.toLowerCase())) {
+      final template =
+          productAttributeTemplates[_draft.category.toLowerCase()]!;
+      for (final section in template.sections) {
+        templateKeys.addAll(section.fields);
+      }
+      _activeFields.addAll(template.fields);
+    } else {
+      for (final template in productAttributeTemplates.values) {
+        for (final section in template.sections) {
+          for (final f in section.fields) {
+            if (!templateKeys.contains(f)) templateKeys.add(f);
+          }
+        }
+        _activeFields.addAll(template.fields);
+      }
+    }
+
+    for (final k in ['category', 'gender', 'brand', 'price', 'size', 'color']) {
+      if (k == 'size' && templateKeys.contains('available_sizes')) continue;
+      keys.add(k);
+      _filterLabels[k] = baseLabels[k]!;
+    }
+
+    for (final k in templateKeys) {
+      keys.add(k);
+      _filterLabels[k] = _activeFields[k]?.label ?? k;
+    }
+
+    for (final k in ['availability', 'rating', 'sort']) {
+      keys.add(k);
+      _filterLabels[k] = baseLabels[k]!;
+    }
+
+    _orderedFilterKeys = keys.toList();
+
+    if (_activeFilterKey == null ||
+        !_orderedFilterKeys.contains(_activeFilterKey)) {
+      _activeFilterKey = _orderedFilterKeys.first;
+    }
+  }
+
+  int _getCountForOption(String filterKey, String optionValue) {
+    if (_cachedCounts.containsKey(filterKey) &&
+        _cachedCounts[filterKey]!.containsKey(optionValue)) {
+      return _cachedCounts[filterKey]![optionValue]!;
+    }
+
+    SearchFilter testFilter = _draft;
+    if (filterKey == 'category') {
+      testFilter = testFilter.copyWith(category: optionValue);
+    } else if (filterKey == 'gender') {
+      testFilter = testFilter.copyWith(gender: optionValue);
+    } else if (filterKey == 'brand') {
+      testFilter = testFilter.copyWith(brand: optionValue);
+    } else if (filterKey == 'size') {
+      testFilter = testFilter.copyWith(size: optionValue);
+    } else if (filterKey == 'color') {
+      testFilter = testFilter.copyWith(color: optionValue);
+    } else if (filterKey == 'rating') {
+      final rating = optionValue == 'All'
+          ? 0.0
+          : double.parse(optionValue.replaceAll('+', ''));
+      testFilter = testFilter.copyWith(minRating: rating);
+    } else {
+      final currentList = testFilter.attributeFilters[filterKey] ?? [];
+      final nextList = [...currentList];
+      if (!nextList.any((e) => e.toLowerCase() == optionValue.toLowerCase())) {
+        nextList.add(optionValue);
+      }
+      testFilter = testFilter.copyWith(
+        attributeFilters: {...testFilter.attributeFilters, filterKey: nextList},
+      );
+    }
+
+    final count = widget.previewCount(testFilter);
+    _cachedCounts.putIfAbsent(filterKey, () => {})[optionValue] = count;
+    return count;
+  }
+
+  int _getSelectedCountForFilter(String key) {
+    int count = 0;
+    if (key == 'category' && _draft.category != 'All') {
+      count = 1;
+    } else if (key == 'gender' && _draft.gender != 'All') {
+      count = 1;
+    } else if (key == 'brand' && _draft.brand != 'All') {
+      count = 1;
+    } else if (key == 'size' && _draft.size != 'All') {
+      count = 1;
+    } else if (key == 'color' && _draft.color != 'All') {
+      count = 1;
+    } else if (key == 'price') {
+      if (_draft.priceRange.start > 0 || _draft.priceRange.end < 10000) {
+        count = 1;
+      }
+    } else if (key == 'availability') {
+      if (_draft.sameDayAvailable) count++;
+      if (_draft.tryAtHomeAvailable) count++;
+    } else if (key == 'rating' && _draft.minRating > 0) {
+      count = 1;
+    } else if (key == 'sort' && _draft.sort != ProductSortOption.relevance) {
+      count = 1;
+    } else if (_draft.attributeFilters.containsKey(key)) {
+      count = _draft.attributeFilters[key]!.length;
+    } else if (_draft.attributeFlags.containsKey(key) &&
+        _draft.attributeFlags[key] == true) {
+      count = 1;
+    }
+    return count;
+  }
+
+  IconData _getIconForFilter(String key) {
+    switch (key) {
+      case 'category':
+        return Icons.category_rounded;
+      case 'gender':
+        return Icons.wc_rounded;
+      case 'brand':
+        return Icons.branding_watermark_rounded;
+      case 'price':
+        return Icons.payments_rounded;
+      case 'size':
+      case 'available_sizes':
+        return Icons.straighten_rounded;
+      case 'color':
+        return Icons.palette_rounded;
+      case 'material':
+      case 'fabric':
+        return Icons.texture_rounded;
+      case 'fit':
+        return Icons.accessibility_new_rounded;
+      case 'occasion':
+        return Icons.event_rounded;
+      case 'pattern':
+        return Icons.pattern_rounded;
+      case 'availability':
+        return Icons.inventory_2_rounded;
+      case 'rating':
+        return Icons.star_rounded;
+      case 'sort':
+        return Icons.sort_rounded;
+      case 'sleeve_length':
+      case 'sleeve_type':
+        return Icons.checkroom_rounded;
+      case 'neck_type':
+        return Icons.portrait_rounded;
+      default:
+        return Icons.tune_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final count = widget.previewCount(_draft);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5EF),
       appBar: AppBar(
@@ -1221,19 +1410,32 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
             ),
             const Spacer(),
             TextButton(
-              onPressed: () => setState(() => _draft = const SearchFilter()),
-              child: const Text('Reset'),
+              onPressed: () => _update(const SearchFilter()),
+              child: const Text(
+                'Reset',
+                style: TextStyle(color: Color(0xFF8C8273)),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(_draft),
-              child: const Text('Apply'),
+              child: const Text(
+                'Apply',
+                style: TextStyle(
+                  color: Color(0xFF17130F),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
       ),
       bottomNavigationBar: SafeArea(
         top: false,
-        child: Padding(
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Color(0xFFEDE3D3))),
+          ),
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
           child: SizedBox(
             height: 56,
@@ -1246,167 +1448,198 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              child: Text('Show $count Results'),
+              child: Text(
+                'Show $count Results',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
             ),
           ),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _filterSection(
-            'Category',
-            _chipSelector(_categories(), _draft.category, (value) {
-              _update(_draft.copyWith(category: value));
-            }),
-          ),
-          _filterSection(
-            'Gender',
-            _chipSelector(
-              const ['All', 'Men', 'Women', 'Unisex', 'Kids'],
-              _draft.gender,
-              (value) {
-                _update(_draft.copyWith(gender: value));
-              },
+          Container(
+            width: 110,
+            decoration: const BoxDecoration(
+              color: Color(0xFFF8F5EF),
+              border: Border(right: BorderSide(color: Color(0xFFEDE3D3))),
+            ),
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: _orderedFilterKeys.map((key) {
+                final isSelected = _activeFilterKey == key;
+                final selectedCount = _getSelectedCountForFilter(key);
+
+                return InkWell(
+                  onTap: () => setState(() => _activeFilterKey = key),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.white : Colors.transparent,
+                      border: Border(
+                        left: BorderSide(
+                          color: isSelected
+                              ? const Color(0xFFC6A769)
+                              : Colors.transparent,
+                          width: 4,
+                        ),
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 8,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Badge(
+                          isLabelVisible: selectedCount > 0,
+                          label: Text(selectedCount.toString()),
+                          backgroundColor: const Color(0xFFC6A769),
+                          textColor: Colors.white,
+                          child: Icon(
+                            _getIconForFilter(key),
+                            color: isSelected
+                                ? const Color(0xFF17130F)
+                                : const Color(0xFF8C8273),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _filterLabels[key]!,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.2,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? const Color(0xFF17130F)
+                                : const Color(0xFF8C8273),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
-          _filterSection('Brand', _brandSelector()),
-          _filterSection('Price', _priceSelector()),
-          _filterSection('Size', _sizeSelector()),
-          _filterSection('Color', _colorSelector()),
-          _filterSection(
-            'Material',
-            _attributeSelector('material', _materials()),
-          ),
-          _filterSection(
-            'Fit',
-            _attributeSelector('fit', const [
-              'Slim',
-              'Regular',
-              'Relaxed',
-              'Oversized',
-              'Tailored',
-            ]),
-          ),
-          _filterSection(
-            'Occasion',
-            _chipSelector(
-              const ['All', 'Wedding', 'Party', 'Work', 'Casual'],
-              _draft.occasion,
-              (value) {
-                _update(_draft.copyWith(occasion: value));
-              },
+          Expanded(
+            child: Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(16),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.05, 0),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  );
+                },
+                child: KeyedSubtree(
+                  key: ValueKey(_activeFilterKey),
+                  child: _buildActiveFilterContent(),
+                ),
+              ),
             ),
           ),
-          _filterSection(
-            'Pattern',
-            _attributeSelector('pattern', const [
-              'Solid',
-              'Printed',
-              'Striped',
-              'Embroidered',
-            ]),
-          ),
-          _filterSection(
-            'Sleeve Type',
-            _attributeSelector('sleeve_type', const [
-              'Sleeveless',
-              'Short Sleeve',
-              'Full Sleeve',
-            ]),
-          ),
-          _filterSection(
-            'Neck Type',
-            _attributeSelector('neck_type', const [
-              'Round',
-              'V Neck',
-              'Collar',
-              'Boat',
-            ]),
-          ),
-          _filterSection(
-            'Length',
-            _attributeSelector('length', const [
-              'Cropped',
-              'Regular',
-              'Longline',
-              'Floor',
-            ]),
-          ),
-          _filterSection('Fabric', _attributeSelector('fabric', _materials())),
-          _filterSection(
-            'Season',
-            _attributeSelector('season', const [
-              'Summer',
-              'Monsoon',
-              'Winter',
-              'Festive',
-            ]),
-          ),
-          _filterSection('Availability', _availabilitySelector()),
-          _filterSection(
-            'Delivery Time',
-            _chipSelector(
-              const ['All', 'Today', 'Tomorrow', '2-3 Days'],
-              _draft.deliveryTime,
-              (value) {
-                _update(_draft.copyWith(deliveryTime: value));
-              },
-            ),
-          ),
-          _filterSection(
-            'AR Try-On Available',
-            _flagSelector('ar_try_on_available', 'Show AR-ready styles'),
-          ),
-          _filterSection(
-            'Customizable',
-            _toggleRow('Customizable', _draft.customizable, (value) {
-              _update(_draft.copyWith(customizable: value));
-            }),
-          ),
-          _filterSection(
-            'Try At Home',
-            _toggleRow('Try at home', _draft.tryAtHomeAvailable, (value) {
-              _update(_draft.copyWith(tryAtHomeAvailable: value));
-            }),
-          ),
-          _filterSection(
-            'Store Distance',
-            _attributeSelector('store_distance', const [
-              'Under 2 km',
-              'Under 5 km',
-              'Under 10 km',
-            ]),
-          ),
-          _filterSection('Rating', _ratingSelector()),
-          _filterSection('Sort By', _sortSelector()),
         ],
       ),
     );
   }
 
-  Widget _filterSection(String title, Widget child) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEDE3D3)),
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          title: Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          children: [child],
+  Widget _buildActiveFilterContent() {
+    if (_activeFilterKey == null) return const SizedBox.shrink();
+    final key = _activeFilterKey!;
+
+    Widget content;
+    switch (key) {
+      case 'category':
+        content = _chipSelector(
+          _categories(),
+          _draft.category,
+          (value) => _update(_draft.copyWith(category: value)),
+          key,
+        );
+        break;
+      case 'gender':
+        content = _chipSelector(
+          const ['All', 'Men', 'Women', 'Unisex', 'Kids'],
+          _draft.gender,
+          (value) => _update(_draft.copyWith(gender: value)),
+          key,
+        );
+        break;
+      case 'brand':
+        content = _brandSelector();
+        break;
+      case 'price':
+        content = _priceSelector();
+        break;
+      case 'size':
+        content = _chipSelector(
+          const ['All', 'XS', 'S', 'M', 'L', 'XL', 'XXL'],
+          _draft.size,
+          (value) => _update(_draft.copyWith(size: value)),
+          key,
+        );
+        break;
+      case 'color':
+        content = _colorSelector();
+        break;
+      case 'availability':
+        content = _availabilitySelector();
+        break;
+      case 'rating':
+        content = _ratingSelector();
+        break;
+      case 'sort':
+        content = _sortSelector();
+        break;
+      default:
+        if (_activeFields.containsKey(key)) {
+          final field = _activeFields[key]!;
+          if (field.type == ProductAttributeFieldType.boolean) {
+            content = _flagSelector(key, field.label);
+          } else {
+            final options = field.options.isNotEmpty
+                ? field.options
+                : _getDynamicOptions(key);
+            content = _attributeSelector(key, options);
+          }
+        } else {
+          content = const SizedBox.shrink();
+        }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _filterLabels[key] ?? '',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
-      ),
+        const SizedBox(height: 16),
+        Expanded(child: content),
+      ],
     );
   }
 
@@ -1414,17 +1647,25 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
     List<String> values,
     String selected,
     ValueChanged<String> onChanged,
+    String filterKey,
   ) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: values.map((value) {
-        return _LuxuryChip(
-          label: value,
-          selected: selected.toLowerCase() == value.toLowerCase(),
-          onTap: () => onChanged(value),
-        );
-      }).toList(),
+    return SingleChildScrollView(
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: values.map((value) {
+          final isSelected = selected.toLowerCase() == value.toLowerCase();
+          final count = _getCountForOption(filterKey, value);
+
+          if (count == 0 && !isSelected) return const SizedBox.shrink();
+
+          return _LuxuryChip(
+            label: value == 'All' ? value : '$value ($count)',
+            selected: isSelected,
+            onTap: () => onChanged(value),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -1435,6 +1676,7 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
         )
         .toList();
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextField(
           controller: _brandSearchController,
@@ -1446,18 +1688,19 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
             fillColor: const Color(0xFFF8F5EF),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: Color(0xFFE8DDCC)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: Color(0xFFE8DDCC)),
+              borderSide: BorderSide.none,
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        _chipSelector(['All', ...brands.take(18)], _draft.brand, (value) {
-          _update(_draft.copyWith(brand: value));
-        }),
+        const SizedBox(height: 16),
+        Expanded(
+          child: _chipSelector(
+            ['All', ...brands],
+            _draft.brand,
+            (value) => _update(_draft.copyWith(brand: value)),
+            'brand',
+          ),
+        ),
       ],
     );
   }
@@ -1467,11 +1710,12 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '₹${_draft.priceRange.start.toInt()} - ₹${_draft.priceRange.end.toInt()}',
+          '₹{_draft.priceRange.start.toInt()} - ₹{_draft.priceRange.end.toInt()',
           style: Theme.of(
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
+        const SizedBox(height: 16),
         RangeSlider(
           values: _draft.priceRange,
           min: 0,
@@ -1481,20 +1725,6 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
           onChanged: (value) => _update(_draft.copyWith(priceRange: value)),
         ),
       ],
-    );
-  }
-
-  Widget _sizeSelector() {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: const ['All', 'XS', 'S', 'M', 'L', 'XL', 'XXL'].map((size) {
-        return _SizeChip(
-          label: size,
-          selected: _draft.size == size,
-          onTap: () => _update(_draft.copyWith(size: size)),
-        );
-      }).toList(),
     );
   }
 
@@ -1509,75 +1739,91 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
       'Blue': const Color(0xFF243C66),
       'Green': const Color(0xFF355C45),
     };
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: colors.entries.map((entry) {
-        final selected = _draft.color == entry.key;
-        return GestureDetector(
-          onTap: () => _update(_draft.copyWith(color: entry.key)),
-          child: Column(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: entry.value,
-                  border: Border.all(
-                    color: selected
-                        ? const Color(0xFF17130F)
-                        : const Color(0xFFD9CCB9),
-                    width: selected ? 2 : 1,
+    return SingleChildScrollView(
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: colors.entries.map((entry) {
+          final isSelected = _draft.color == entry.key;
+          final count = _getCountForOption('color', entry.key);
+
+          if (count == 0 && !isSelected) return const SizedBox.shrink();
+
+          return GestureDetector(
+            onTap: () => _update(_draft.copyWith(color: entry.key)),
+            child: Column(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: entry.value,
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF17130F)
+                          : const Color(0xFFD9CCB9),
+                      width: isSelected ? 2 : 1,
+                    ),
                   ),
+                  child: entry.key == 'All'
+                      ? const Icon(Icons.all_inclusive_rounded, size: 18)
+                      : null,
                 ),
-                child: entry.key == 'All'
-                    ? const Icon(Icons.all_inclusive_rounded, size: 18)
-                    : null,
-              ),
-              const SizedBox(height: 6),
-              Text(entry.key, style: Theme.of(context).textTheme.labelSmall),
-            ],
-          ),
-        );
-      }).toList(),
+                const SizedBox(height: 6),
+                Text(
+                  entry.key == 'All' ? entry.key : '${entry.key}\n({count})',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
   Widget _attributeSelector(String key, List<String> values) {
     final selected = _draft.attributeFilters[key] ?? const <String>[];
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: values.map((value) {
-        final isSelected = selected.any(
-          (item) => item.toLowerCase() == value.toLowerCase(),
-        );
-        return _LuxuryChip(
-          label: value,
-          selected: isSelected,
-          onTap: () {
-            final next = [...selected];
-            if (isSelected) {
-              next.removeWhere(
-                (item) => item.toLowerCase() == value.toLowerCase(),
+    return SingleChildScrollView(
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: values.map((value) {
+          final isSelected = selected.any(
+            (item) => item.toLowerCase() == value.toLowerCase(),
+          );
+          final count = _getCountForOption(key, value);
+
+          if (count == 0 && !isSelected) return const SizedBox.shrink();
+
+          return _LuxuryChip(
+            label: '$value ($count)',
+            selected: isSelected,
+            onTap: () {
+              final next = [...selected];
+              if (isSelected) {
+                next.removeWhere(
+                  (item) => item.toLowerCase() == value.toLowerCase(),
+                );
+              } else {
+                next.add(value);
+              }
+              _update(
+                _draft.copyWith(
+                  attributeFilters: {..._draft.attributeFilters, key: next},
+                ),
               );
-            } else {
-              next.add(value);
-            }
-            _update(
-              _draft.copyWith(
-                attributeFilters: {..._draft.attributeFilters, key: next},
-              ),
-            );
-          },
-        );
-      }).toList(),
+            },
+          );
+        }).toList(),
+      ),
     );
   }
 
   Widget _availabilitySelector() {
-    return Column(
+    return ListView(
       children: [
         _toggleRow('Same day delivery', _draft.sameDayAvailable, (value) {
           _update(_draft.copyWith(sameDayAvailable: value));
@@ -1591,11 +1837,17 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
 
   Widget _flagSelector(String key, String label) {
     final selected = _draft.attributeFlags[key] ?? false;
-    return _toggleRow(label, selected, (value) {
-      _update(
-        _draft.copyWith(attributeFlags: {..._draft.attributeFlags, key: value}),
-      );
-    });
+    return ListView(
+      children: [
+        _toggleRow(label, selected, (value) {
+          _update(
+            _draft.copyWith(
+              attributeFlags: {..._draft.attributeFlags, key: value},
+            ),
+          );
+        }),
+      ],
+    );
   }
 
   Widget _toggleRow(String label, bool value, ValueChanged<bool> onChanged) {
@@ -1623,6 +1875,7 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
             : double.parse(value.replaceAll('+', ''));
         _update(_draft.copyWith(minRating: rating));
       },
+      'rating',
     );
   }
 
@@ -1635,16 +1888,18 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
       ProductSortOption.popularity: 'Popularity',
       ProductSortOption.sameDayPriority: 'Fastest Delivery',
     };
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: labels.entries.map((entry) {
-        return _LuxuryChip(
-          label: entry.value,
-          selected: _draft.sort == entry.key,
-          onTap: () => _update(_draft.copyWith(sort: entry.key)),
-        );
-      }).toList(),
+    return SingleChildScrollView(
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: labels.entries.map((entry) {
+          return _LuxuryChip(
+            label: entry.value,
+            selected: _draft.sort == entry.key,
+            onTap: () => _update(_draft.copyWith(sort: entry.key)),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -1668,27 +1923,25 @@ class _SearchFilterModalState extends State<_SearchFilterModal> {
     return values;
   }
 
-  List<String> _materials() {
-    final values = <String>{
-      'Cotton',
-      'Linen',
-      'Silk',
-      'Wool',
-      'Leather',
-      'Denim',
-      'Chiffon',
-      'Satin',
-    };
-    values.addAll(
-      widget.allProducts
-          .map((product) => product.fabric ?? '')
-          .where((item) => item.trim().isNotEmpty),
-    );
-    return values.toList();
-  }
-
-  void _update(SearchFilter next) {
-    setState(() => _draft = next);
+  List<String> _getDynamicOptions(String key) {
+    final values = widget.allProducts
+        .expand<String>((p) {
+          if (p.attributes.containsKey(key)) {
+            final Object? val = p.attributes[key];
+            if (val is String) {
+              return [val];
+            }
+            if (val is List) {
+              return val.map((e) => e.toString()).toList();
+            }
+          }
+          return <String>[];
+        })
+        .where((s) => s.trim().isNotEmpty)
+        .toSet()
+        .toList();
+    values.sort();
+    return values;
   }
 }
 
@@ -1720,44 +1973,6 @@ class _LuxuryChip extends StatelessWidget {
         fontWeight: FontWeight.w600,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-    );
-  }
-}
-
-class _SizeChip extends StatelessWidget {
-  const _SizeChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 56,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF17130F) : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? const Color(0xFF17130F) : const Color(0xFFE2D7C5),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : const Color(0xFF3A3126),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
     );
   }
 }

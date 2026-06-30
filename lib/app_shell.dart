@@ -381,7 +381,9 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
     }
 
     String validatedRoute = route;
-    if (validatedRoute.startsWith('/rider') && user != null && hasRiderOperationsAccess(user)) {
+    if (validatedRoute.startsWith('/rider') &&
+        user != null &&
+        hasRiderOperationsAccess(user)) {
       validatedRoute = routeForRiderUser(user);
     }
 
@@ -401,10 +403,18 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
         }
         if (widget.mode == AbzioAppMode.rider && user != null) {
           final validatedOpsRoute = routeForRiderUser(user);
-          if (validatedOpsRoute == '/rider-onboarding') return const RiderOnboardingFlowScreen();
-          if (validatedOpsRoute == '/rider-status') return const RiderApplicationCenter();
-          if (validatedOpsRoute == '/rider-training') return const RiderTrainingModuleScreen();
-          if (validatedOpsRoute == '/rider-suspended') return const RiderSuspendedScreen();
+          if (validatedOpsRoute == '/rider-onboarding') {
+            return const RiderOnboardingFlowScreen();
+          }
+          if (validatedOpsRoute == '/rider-status') {
+            return const RiderApplicationCenter();
+          }
+          if (validatedOpsRoute == '/rider-training') {
+            return const RiderTrainingModuleScreen();
+          }
+          if (validatedOpsRoute == '/rider-suspended') {
+            return const RiderSuspendedScreen();
+          }
           return const RiderDashboard();
         }
         return const OpsShellScreen();
@@ -660,7 +670,6 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
       case AbzioAppMode.customer:
       case AbzioAppMode.operations:
       case AbzioAppMode.unified:
-      default:
         splashAsset = 'assets/branding/abianzo_customer_splash_1080x1920.png';
         break;
     }
@@ -916,7 +925,9 @@ class _VendorAuthBannerScreenState extends State<VendorAuthBannerScreen> {
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: List<Widget>.generate(_slides.length, (dot) {
+                          children: List<Widget>.generate(_slides.length, (
+                            dot,
+                          ) {
                             final active = dot == _index;
                             return AnimatedContainer(
                               duration: const Duration(milliseconds: 220),
@@ -964,7 +975,9 @@ class _VendorAuthBannerScreenState extends State<VendorAuthBannerScreen> {
                             ),
                             counterText: '',
                             hintText: 'Enter 10 digit mobile number',
-                            hintStyle: const TextStyle(color: Color(0xFF9A958B)),
+                            hintStyle: const TextStyle(
+                              color: Color(0xFF9A958B),
+                            ),
                             filled: true,
                             fillColor: const Color(0xFFFAF8F2),
                             enabledBorder: OutlineInputBorder(
@@ -1004,7 +1017,10 @@ class _VendorAuthBannerScreenState extends State<VendorAuthBannerScreen> {
                             child: Ink(
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [Color(0xFFD4AF37), Color(0xFFF5E7C1)],
+                                  colors: [
+                                    Color(0xFFD4AF37),
+                                    Color(0xFFF5E7C1),
+                                  ],
                                 ),
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -1045,10 +1061,11 @@ class _VendorAuthBannerScreenState extends State<VendorAuthBannerScreen> {
                                   ..onTap = () {
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
-                                        builder: (_) => const LegalPolicyHubScreen(
-                                          audience: LegalAudience.vendor,
-                                          title: 'Vendor Legal Center',
-                                        ),
+                                        builder: (_) =>
+                                            const LegalPolicyHubScreen(
+                                              audience: LegalAudience.vendor,
+                                              title: 'Vendor Legal Center',
+                                            ),
                                       ),
                                     );
                                   },
@@ -1116,17 +1133,11 @@ class _AdminRoute extends StatelessWidget {
     }
 
     if (user == null) {
-      return const LoginScreen(
-        mode: AbzioAppMode.unified,
-        adminEntry: true,
-      );
+      return const LoginScreen(mode: AbzioAppMode.unified, adminEntry: true);
     }
 
     if (!hasAdminAccess(user)) {
-      return const LoginScreen(
-        mode: AbzioAppMode.unified,
-        adminEntry: true,
-      );
+      return const LoginScreen(mode: AbzioAppMode.unified, adminEntry: true);
     }
 
     return const AdminWebPanel();
@@ -1282,7 +1293,9 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
         return ProviderScope(
           child: MultiProvider(
             providers: [
-              ChangeNotifierProvider(create: (_) => AuthProvider()..mode = widget.mode),
+              ChangeNotifierProvider(
+                create: (_) => AuthProvider()..mode = widget.mode,
+              ),
               ChangeNotifierProvider(create: (_) => BannerProvider()),
               ChangeNotifierProxyProvider<AuthProvider, CartProvider>(
                 create: (_) => CartProvider(),
@@ -1326,4 +1339,3 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
     );
   }
 }
-
