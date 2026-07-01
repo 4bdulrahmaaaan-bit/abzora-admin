@@ -1041,6 +1041,53 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     }
   }
 
+  Future<void> _handleAddToCartTap(Product product) async {
+    await _trackExperienceEvent(
+      'cta_click',
+      cta: 'ADD_TO_CART',
+      metadata: {'decisionType': _ctaDecisionType},
+    );
+    if (!mounted) {
+      return;
+    }
+    final selectedSize = (_selectedSize ?? '').trim();
+    if (selectedSize.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Select your size first to continue.')),
+        );
+      }
+      return;
+    }
+
+    final cart = context.read<CartProvider>();
+    final result = cart.addToCart(product, selectedSize);
+    if (result == CartAddResult.storeConflict) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Your bag already contains products from another store.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result == CartAddResult.updated
+                ? '${product.name} quantity updated in your bag.'
+                : '${product.name} added to your bag.',
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _handleTryHomeTap(Product product) async {
     await _trackExperienceEvent(
       'cta_click',
@@ -3693,6 +3740,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       ).showSnackBar(const SnackBar(content: Text('Select size first')));
     }
 
+    final supportsTryAtHome = product.tryAtHomeAvailable;
+
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFFFCFBF8),
@@ -3711,7 +3760,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     onPressed: hasSelectedSize
                         ? () {
                             HapticFeedback.lightImpact();
-                            _handleTryHomeTap(product);
+                            if (supportsTryAtHome) {
+                              _handleTryHomeTap(product);
+                            } else {
+                              _handleAddToCartTap(product);
+                            }
                           }
                         : showSelectSizeHint,
                     style: OutlinedButton.styleFrom(
@@ -3722,11 +3775,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                       foregroundColor: const Color(0xFF111111),
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                     ),
-                    child: const FittedBox(
+                    child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        'Try At Home',
-                        style: TextStyle(
+                        supportsTryAtHome ? 'Try At Home' : 'Add to Cart',
+                        style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.1,
                         ),
@@ -3761,11 +3814,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                     ),
-                    child: const FittedBox(
+                    child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        'Get It Today',
-                        style: TextStyle(
+                        supportsTryAtHome ? 'Get It Today' : 'Buy Now',
+                        style: const TextStyle(
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.12,
                         ),

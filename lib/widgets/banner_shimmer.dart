@@ -15,15 +15,13 @@ class BannerShimmer extends StatelessWidget {
       children: [
         SizedBox(
           height: height,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
+          child: PageView.builder(
+            controller: PageController(viewportFraction: 0.92),
             physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 4),
             itemCount: itemCount,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
-              return SizedBox(
-                width: MediaQuery.of(context).size.width * 0.86,
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
                   child: Stack(

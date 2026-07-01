@@ -140,19 +140,31 @@ class LocationProvider with ChangeNotifier {
       if (appliedSaved) {
         _recalculateNearbyStores();
         notifyListeners();
+        final area = _resolvedAddress?.area.trim() ?? '';
+        final city = _resolvedAddress?.city.trim() ?? '';
+        final isGenericArea = area.isEmpty || area.toLowerCase() == city.toLowerCase();
+
         final now = DateTime.now();
         final shouldAutoRefresh =
             _lastAutoGpsRefreshAt == null ||
-            now.difference(_lastAutoGpsRefreshAt!) >= _autoGpsRefreshInterval;
+            now.difference(_lastAutoGpsRefreshAt!) >= _autoGpsRefreshInterval ||
+            isGenericArea;
+            
         if (shouldAutoRefresh) {
           _lastAutoGpsRefreshAt = now;
-          unawaited(
-            refreshCurrentLocation(
-              user: _currentUser,
-              forceRefresh: false,
-              notifyAfter: true,
-            ),
-          );
+          unawaited(() async {
+            try {
+              final permission = await Geolocator.checkPermission();
+              if (permission == LocationPermission.whileInUse ||
+                  permission == LocationPermission.always) {
+                await refreshCurrentLocation(
+                  user: _currentUser,
+                  forceRefresh: isGenericArea,
+                  notifyAfter: true,
+                );
+              }
+            } catch (_) {}
+          }());
         }
         return;
       }

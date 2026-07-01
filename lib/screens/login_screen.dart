@@ -99,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'Partner Sign In';
       case AbzioAppMode.customer:
       case AbzioAppMode.unified:
-        return 'Sign in to Abianzo';
+        return 'Admin Portal Sign In';
     }
   }
 
@@ -113,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'Access your vendor or rider workspace';
       case AbzioAppMode.customer:
       case AbzioAppMode.unified:
-        return 'Access your AI Fit profile, AR try-ons, wishlist and orders.';
+        return 'Secure administrative portal for managing products, orders, vendors, customers, riders, analytics, and platform operations.';
     }
   }
 
@@ -416,7 +416,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: const Color(0xFF6B6B6B),
                               fontWeight: FontWeight.w500,
                             ),
-                            maxLines: 2,
+                            maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],

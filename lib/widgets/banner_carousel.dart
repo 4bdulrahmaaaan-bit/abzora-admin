@@ -238,18 +238,7 @@ class _BannerCard extends StatelessWidget {
                       fit: BoxFit.cover,
                       memCacheHeight: memCacheHeight,
                       memCacheWidth: memCacheWidth,
-                      fadeInDuration: Duration.zero,
-                      fadeOutDuration: Duration.zero,
-                      imageBuilder: (context, imageProvider) {
-                        return AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          child: Image(
-                            key: ValueKey(banner.imageUrl),
-                            image: imageProvider,
-                            fit: BoxFit.cover,
-                          ),
-                        );
-                      },
+                      fadeInDuration: const Duration(milliseconds: 250),
                       placeholder: (context, url) => const ShimmerBox(),
                       errorWidget: (context, url, error) => Container(
                         color: Theme.of(context).cardColor,

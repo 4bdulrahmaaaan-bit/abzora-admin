@@ -131,6 +131,7 @@ flutter:
     - assets/branding/abianzo_vendor_splash_1080x1920.png
     - assets/branding/abianzo_rider_splash_1080x1920.png
     - assets/branding/abianzo_customer_splash_1080x1920.png
+    - assets/branding/launch_image.png
     - assets/onboarding/
     - assets/legal/
     - assets/3d/
