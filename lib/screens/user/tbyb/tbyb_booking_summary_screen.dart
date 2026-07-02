@@ -46,7 +46,6 @@ class _TbybBookingSummaryScreenState extends State<TbybBookingSummaryScreen> {
 
     try {
       final paymentResult = await PaymentService().processCheckout(
-        context: context,
         userId: currentUser.id,
         name: currentUser.name.trim().isEmpty
             ? 'Abianzo Member'
@@ -400,3 +399,4 @@ class _DetailRow extends StatelessWidget {
     );
   }
 }
+

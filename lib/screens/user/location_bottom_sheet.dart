@@ -1,13 +1,4 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import '../../models/models.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/location_provider.dart';
-import '../../providers/product_provider.dart';
-import '../../services/database_service.dart';
-import '../../services/location_service.dart';
-import '../../theme.dart';
+﻿part of 'home_screen.dart';
 
 Future<void> showLocationBottomSheet(BuildContext context) {
   return showModalBottomSheet<void>(
@@ -760,3 +751,4 @@ class _InlinePrompt extends StatelessWidget {
     );
   }
 }
+

@@ -17,9 +17,6 @@ class LocationProvider with ChangeNotifier {
 
   static const double defaultRadiusKm = 10;
   static const List<double> radiusOptionsKm = [10, 25, 50];
-  static const Map<String, _ManualCity> _manualCities = {
-    'Chennai': _ManualCity('Chennai', 13.0827, 80.2707),
-  };
 
   final DatabaseService _db;
   final LocationService _locationService;
@@ -33,7 +30,7 @@ class LocationProvider with ChangeNotifier {
   LocationAddress? _resolvedAddress;
   LocationStatus? _status;
   String? _errorMessage;
-  String _activeLocation = 'Chennai';
+  String _activeLocation = '';
   double _radiusKm = defaultRadiusKm;
   bool _isLoading = false;
   bool _isManualLocation = false;
@@ -57,7 +54,7 @@ class LocationProvider with ChangeNotifier {
   bool get isUsingNearestFallback => _isUsingNearestFallback;
   bool get hasResolvedLocation =>
       _userPosition != null || _resolvedAddress != null;
-  List<String> get manualCities => _manualCities.keys.toList(growable: false);
+  List<String> get manualCities => const [];
   String get displayAddress =>
       _resolvedAddress?.address.trim().isNotEmpty == true
       ? _resolvedAddress!.address
@@ -67,17 +64,30 @@ class LocationProvider with ChangeNotifier {
       : _activeLocation;
   String get displayCity => _resolvedAddress?.city.trim().isNotEmpty == true
       ? _resolvedAddress!.city
+      : _currentUser?.city?.trim().isNotEmpty == true
+      ? _currentUser!.city!.trim()
       : _activeLocation;
+  String get displayState => _resolvedAddress?.state.trim().isNotEmpty == true
+      ? _resolvedAddress!.state
+      : '';
   String get displayHeaderTitle {
-    final area = _resolvedAddress?.area.trim() ?? '';
-    final city = _resolvedAddress?.city.trim().isNotEmpty == true
-        ? _resolvedAddress!.city.trim()
-        : _activeLocation;
-    if (area.isNotEmpty && city.isNotEmpty && area.toLowerCase() != city.toLowerCase()) {
+    final area = displayArea.trim();
+    final city = displayCity.trim();
+    final state = displayState.trim();
+    if (area.isNotEmpty &&
+        city.isNotEmpty &&
+        area.toLowerCase() != city.toLowerCase()) {
       return '$area, $city';
     }
-    return area.isNotEmpty ? area : city;
+    if (area.isNotEmpty) {
+      return area;
+    }
+    if (city.isNotEmpty) {
+      return city;
+    }
+    return state;
   }
+
   String get displayPincode {
     final resolved = _resolvedAddress?.postalCode.trim() ?? '';
     if (resolved.isNotEmpty) {
@@ -91,10 +101,13 @@ class LocationProvider with ChangeNotifier {
   String deliveryHeadline() {
     final locality = displayArea.trim();
     final city = displayCity.trim();
+    final state = displayState.trim();
     final destination = locality.isNotEmpty
         ? locality
         : city.isNotEmpty
         ? city
+        : state.isNotEmpty
+        ? state
         : _activeLocation;
     return 'Delivering to $destination';
   }
@@ -109,10 +122,13 @@ class LocationProvider with ChangeNotifier {
 
     final locality = displayArea.trim();
     final city = displayCity.trim();
+    final state = displayState.trim();
     final destination = locality.isNotEmpty
         ? locality
         : city.isNotEmpty
         ? city
+        : state.isNotEmpty
+        ? state
         : _activeLocation;
     return DeliveryHeaderCopy(title: destination, subtitle: '');
   }
@@ -142,14 +158,15 @@ class LocationProvider with ChangeNotifier {
         notifyListeners();
         final area = _resolvedAddress?.area.trim() ?? '';
         final city = _resolvedAddress?.city.trim() ?? '';
-        final isGenericArea = area.isEmpty || area.toLowerCase() == city.toLowerCase();
+        final isGenericArea =
+            area.isEmpty || area.toLowerCase() == city.toLowerCase();
 
         final now = DateTime.now();
         final shouldAutoRefresh =
             _lastAutoGpsRefreshAt == null ||
             now.difference(_lastAutoGpsRefreshAt!) >= _autoGpsRefreshInterval ||
             isGenericArea;
-            
+
         if (shouldAutoRefresh) {
           _lastAutoGpsRefreshAt = now;
           unawaited(() async {
@@ -203,26 +220,26 @@ class LocationProvider with ChangeNotifier {
   }
 
   Future<void> setManualLocation(String city, {AppUser? user}) async {
-    final selected = _manualCities[city];
-    if (selected == null) {
+    final trimmedCity = city.trim();
+    if (trimmedCity.isEmpty) {
       return;
     }
 
     _currentUser = user ?? _currentUser;
     _isManualLocation = true;
     _status = LocationStatus.manual;
-    _errorMessage = 'Using Chennai until GPS is available.';
-    _activeLocation = selected.city;
+    _errorMessage = 'Using your saved location until GPS is available.';
+    _activeLocation = trimmedCity;
     _resolvedAddress = LocationAddress(
-      address: selected.city,
-      area: selected.city,
-      city: selected.city,
-      state: 'Tamil Nadu',
+      address: trimmedCity,
+      area: trimmedCity,
+      city: trimmedCity,
+      state: '',
       postalCode: '',
     );
     _userPosition = Position(
-      longitude: selected.longitude,
-      latitude: selected.latitude,
+      longitude: 0,
+      latitude: 0,
       timestamp: DateTime.now(),
       accuracy: 5000,
       altitude: 0,
@@ -234,7 +251,7 @@ class LocationProvider with ChangeNotifier {
     );
     _recalculateNearbyStores();
     notifyListeners();
-    await _persistLocation(selected.city, _resolvedAddress!, _userPosition!);
+    await _persistLocation(trimmedCity, _resolvedAddress!, _userPosition!);
   }
 
   Future<void> refreshCurrentLocation({
@@ -276,16 +293,20 @@ class LocationProvider with ChangeNotifier {
       } else {
         final fallbackCity = _currentUser?.city?.trim().isNotEmpty == true
             ? _currentUser!.city!.trim()
-            : _activeLocation;
-        await setManualLocation(fallbackCity, user: _currentUser);
+            : '';
+        if (fallbackCity.isNotEmpty) {
+          await setManualLocation(fallbackCity, user: _currentUser);
+        }
         _errorMessage = result.message ?? _friendlyError(result.status);
       }
     } catch (error) {
       debugPrint('refreshCurrentLocation fallback engaged: $error');
       final fallbackCity = _currentUser?.city?.trim().isNotEmpty == true
           ? _currentUser!.city!.trim()
-          : _activeLocation;
-      await setManualLocation(fallbackCity, user: _currentUser);
+          : '';
+      if (fallbackCity.isNotEmpty) {
+        await setManualLocation(fallbackCity, user: _currentUser);
+      }
       _errorMessage = 'Using fallback location while GPS recovers.';
       _status = LocationStatus.manual;
     }
@@ -355,7 +376,7 @@ class LocationProvider with ChangeNotifier {
           : user.address!.trim(),
       area: user.area?.trim() ?? '',
       city: savedCity,
-      state: 'Tamil Nadu',
+      state: '',
       postalCode: '',
     );
     if (hasCoordinates) {
@@ -375,11 +396,9 @@ class LocationProvider with ChangeNotifier {
       _status = LocationStatus.success;
       _isManualLocation = false;
     } else {
-      final manual =
-          _manualCities[_activeLocation] ?? _manualCities.values.first;
       _userPosition = Position(
-        longitude: manual.longitude,
-        latitude: manual.latitude,
+        longitude: 0,
+        latitude: 0,
         timestamp: DateTime.now(),
         accuracy: 5000,
         altitude: 0,
@@ -408,10 +427,22 @@ class LocationProvider with ChangeNotifier {
     if (currentUser == null) {
       return;
     }
+    final trimmedCity = city.trim();
+    final trimmedArea = address?.area.trim() ?? '';
+    final previousCity = currentUser.city?.trim() ?? '';
+    final cityLooksLikeArea =
+        trimmedCity.isNotEmpty &&
+        trimmedArea.isNotEmpty &&
+        trimmedCity.toLowerCase() == trimmedArea.toLowerCase();
+    final resolvedCity = cityLooksLikeArea && previousCity.isNotEmpty
+        ? previousCity
+        : trimmedCity.isNotEmpty
+        ? trimmedCity
+        : previousCity;
     final updated = currentUser.copyWith(
       address: address?.address ?? currentUser.address,
       area: address?.area.isNotEmpty == true ? address!.area : currentUser.area,
-      city: city,
+      city: resolvedCity,
       latitude: position.latitude,
       longitude: position.longitude,
       deliveryRadiusKm: _radiusKm,
@@ -532,12 +563,4 @@ class DeliveryHeaderCopy {
   final String subtitle;
 
   const DeliveryHeaderCopy({required this.title, required this.subtitle});
-}
-
-class _ManualCity {
-  final String city;
-  final double latitude;
-  final double longitude;
-
-  const _ManualCity(this.city, this.latitude, this.longitude);
 }

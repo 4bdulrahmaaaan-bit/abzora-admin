@@ -97,6 +97,38 @@ class _AdminCouponsSectionState extends State<AdminCouponsSection> {
     );
   }
 
+  Future<void> _deleteCoupon(Map<String, dynamic> coupon) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete coupon'),
+        content: Text(
+          'Delete ${coupon['couponCode'] ?? ''}? This removes it from checkout immediately.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+
+    await AdminCouponsApi.deleteCoupon(coupon['_id']);
+    if (!mounted) {
+      return;
+    }
+    _fetchDashboard();
+    _fetchCoupons();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -274,9 +306,25 @@ class _AdminCouponsSectionState extends State<AdminCouponsSection> {
                                       ),
                                     ),
                                     DataCell(
-                                      IconButton(
-                                        icon: const Icon(Icons.edit, size: 18),
-                                        onPressed: () => _openEditDialog(c),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              size: 18,
+                                            ),
+                                            onPressed: () => _openEditDialog(c),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                              size: 18,
+                                            ),
+                                            color: Colors.redAccent,
+                                            onPressed: () => _deleteCoupon(c),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
@@ -375,11 +423,13 @@ class _CouponDialogState extends State<_CouponDialog> {
   late TextEditingController _minOrderController;
   late TextEditingController _maxDiscountController;
   late TextEditingController _usageLimitController;
+  late TextEditingController _eligibleUsersController;
 
   String _discountType = 'percentage';
   String _status = 'draft';
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 30));
+  bool _firstOrderOnly = false;
 
   bool _isSaving = false;
 
@@ -400,6 +450,9 @@ class _CouponDialogState extends State<_CouponDialog> {
     _usageLimitController = TextEditingController(
       text: c?['usageLimit']?.toString() ?? '',
     );
+    _eligibleUsersController = TextEditingController(
+      text: (c?['eligibleUserIds'] as List? ?? const []).join(', '),
+    );
 
     if (c != null) {
       _discountType = c['discountType'] ?? 'percentage';
@@ -408,7 +461,19 @@ class _CouponDialogState extends State<_CouponDialog> {
       _endDate =
           DateTime.tryParse(c['endDate'] ?? '') ??
           DateTime.now().add(const Duration(days: 30));
+      _firstOrderOnly = c['firstOrderOnly'] == true;
     }
+  }
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    _discountValueController.dispose();
+    _minOrderController.dispose();
+    _maxDiscountController.dispose();
+    _usageLimitController.dispose();
+    _eligibleUsersController.dispose();
+    super.dispose();
   }
 
   Future<void> _save() async {
@@ -431,6 +496,13 @@ class _CouponDialogState extends State<_CouponDialog> {
 
       final uLimit = int.tryParse(_usageLimitController.text);
       if (uLimit != null) payload['usageLimit'] = uLimit;
+      final eligibleUsers = _eligibleUsersController.text
+          .split(RegExp(r'[\n,]'))
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+      if (eligibleUsers.isNotEmpty) payload['eligibleUserIds'] = eligibleUsers;
+      payload['firstOrderOnly'] = _firstOrderOnly;
 
       if (widget.coupon != null) {
         await AdminCouponsApi.updateCoupon(widget.coupon!['_id'], payload);
@@ -455,7 +527,7 @@ class _CouponDialogState extends State<_CouponDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(
-        widget.coupon == null ? 'Create Global Coupon' : 'Edit Global Coupon',
+        widget.coupon == null ? 'Create Admin Coupon' : 'Edit Admin Coupon',
       ),
       content: SizedBox(
         width: 500,
@@ -509,6 +581,24 @@ class _CouponDialogState extends State<_CouponDialog> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _eligibleUsersController,
+                  decoration: const InputDecoration(
+                    labelText: 'Eligible User IDs (comma or newline separated)',
+                    border: OutlineInputBorder(),
+                  ),
+                  minLines: 2,
+                  maxLines: 4,
+                ),
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('First order only'),
+                  subtitle: const Text('Limit this coupon to customers with no prior orders.'),
+                  value: _firstOrderOnly,
+                  onChanged: (value) => setState(() => _firstOrderOnly = value),
                 ),
                 const SizedBox(height: 16),
                 Row(

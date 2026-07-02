@@ -1,4 +1,4 @@
-﻿import '../models/banner_model.dart';
+import '../models/banner_model.dart';
 import '../models/ar_try_on_models.dart';
 import '../models/cms_model.dart';
 import '../models/category_management_model.dart';
@@ -383,6 +383,35 @@ class BackendCommerceService {
       authenticated: true,
       body: {'code': code},
     );
+  }
+
+  Future<List<Coupon>> getAdminCoupons({double cartValue = 0}) async {
+    final query = cartValue > 0 ? '?cartValue=${cartValue.toStringAsFixed(2)}' : '';
+    final payload = await _client.get(
+      '/auth/coupons$query',
+      authenticated: true,
+    );
+    final items = payload is List ? payload : const [];
+    return items.whereType<Map>().map((item) {
+      final map = Map<String, dynamic>.from(item);
+      return Coupon.fromMap(map, map['id']?.toString() ?? '');
+    }).toList();
+  }
+
+  Future<Coupon?> validateAdminCoupon({
+    required String code,
+    required double cartValue,
+  }) async {
+    final payload = await _client.post(
+      '/auth/coupons/validate',
+      authenticated: true,
+      body: {'code': code, 'cartValue': cartValue},
+    );
+    if (payload == null) {
+      return null;
+    }
+    final map = Map<String, dynamic>.from(payload as Map);
+    return Coupon.fromMap(map, map['id']?.toString() ?? '');
   }
 
   Future<Map<String, dynamic>> recommendSize({
@@ -986,6 +1015,24 @@ class BackendCommerceService {
         ? payload
         : Map<String, dynamic>.from(payload as Map);
     return _productFromBackend(map);
+  }
+
+  Future<Map<String, dynamic>> getProductServiceability({
+    required String productId,
+    required double latitude,
+    required double longitude,
+    String pincode = '',
+  }) async {
+    final payload = await _client.get(
+      '/logistics/delivery/check',
+      queryParameters: {
+        'product_id': productId,
+        'lat': latitude.toString(),
+        'lng': longitude.toString(),
+        if (pincode.trim().isNotEmpty) 'pincode': pincode.trim(),
+      },
+    );
+    return Map<String, dynamic>.from(payload as Map);
   }
 
   Future<List<Product>> getVendorProducts({String? storeId}) async {
@@ -4307,6 +4354,14 @@ class BackendCommerceService {
     required String paymentMethod,
     required String shippingLabel,
     required String shippingAddress,
+    String deliveryType = '',
+    String deliveryProvider = '',
+    String trackingNumber = '',
+    String shipmentId = '',
+    String awbNumber = '',
+    double shippingCharge = 0,
+    String estimatedDeliveryDate = '',
+    String estimatedInstantDeliveryTime = '',
   }) async {
     final payload = await _client.post(
       '/orders',
@@ -4328,6 +4383,14 @@ class BackendCommerceService {
               },
             )
             .toList(),
+        'deliveryType': deliveryType,
+        'deliveryProvider': deliveryProvider,
+        'trackingNumber': trackingNumber,
+        'shipmentId': shipmentId,
+        'awbNumber': awbNumber,
+        'shippingCharge': shippingCharge,
+        'estimatedDeliveryDate': estimatedDeliveryDate,
+        'estimatedInstantDeliveryTime': estimatedInstantDeliveryTime,
       },
     );
     return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
@@ -4461,6 +4524,14 @@ class BackendCommerceService {
     int quantity = 1,
     String paymentMethod = 'COD',
     Map<String, String> shippingAddress = const {},
+    String deliveryType = '',
+    String deliveryProvider = '',
+    String trackingNumber = '',
+    String shipmentId = '',
+    String awbNumber = '',
+    double shippingCharge = 0,
+    String estimatedDeliveryDate = '',
+    String estimatedInstantDeliveryTime = '',
   }) async {
     final payload = await _client.post(
       '/orders/quick-checkout',
@@ -4481,6 +4552,14 @@ class BackendCommerceService {
           'state': shippingAddress['state'] ?? '',
           'pincode': shippingAddress['pincode'] ?? '',
         },
+        'deliveryType': deliveryType,
+        'deliveryProvider': deliveryProvider,
+        'trackingNumber': trackingNumber,
+        'shipmentId': shipmentId,
+        'awbNumber': awbNumber,
+        'shippingCharge': shippingCharge,
+        'estimatedDeliveryDate': estimatedDeliveryDate,
+        'estimatedInstantDeliveryTime': estimatedInstantDeliveryTime,
       },
     );
     return _orderFromBackend(Map<String, dynamic>.from(payload as Map));
@@ -4701,6 +4780,14 @@ class BackendCommerceService {
         map['deliveryStatus']?.toString(),
         map['orderStatus']?.toString(),
       ),
+      'deliveryType': map['deliveryType'] ?? 'COURIER_DELIVERY',
+      'deliveryProvider': map['deliveryProvider'] ?? map['assignedDeliveryPartner'] ?? 'Unassigned',
+      'trackingNumber': map['trackingNumber'] ?? map['trackingId'] ?? '',
+      'shipmentId': map['shipmentId'] ?? '',
+      'awbNumber': map['awbNumber'] ?? '',
+      'shippingCharge': map['shippingCharge'] ?? 0,
+      'estimatedDeliveryDate': map['estimatedDeliveryDate'] ?? '',
+      'estimatedInstantDeliveryTime': map['estimatedInstantDeliveryTime'] ?? '',
       'assignedDeliveryPartner': map['assignedDeliveryPartner'] ?? 'Unassigned',
       'invoiceNumber': map['id'] ?? '',
       'orderType': map['fulfillmentType'] == 'custom_tailoring'
@@ -4939,4 +5026,6 @@ class BackendCommerceService {
     }, map['id']?.toString() ?? '');
   }
 }
+
+
 

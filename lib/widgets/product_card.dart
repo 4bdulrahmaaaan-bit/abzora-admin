@@ -567,30 +567,31 @@ String _ratingLabel(double rating) {
 
 String _deliveryLabel(Product product) {
   final delivery = product.deliveryInfo;
-  final sameDay =
-      _boolFrom(delivery['sameDayAvailable']) ||
-      _boolFrom(delivery['sameDayEligible']) ||
-      _boolFrom(product.sameDayAvailable);
-  if (sameDay) {
-    return '\u26A1 Same Day';
+  if (_boolFrom(delivery['supportsTryAtHome'])) {
+    return 'Try At Home';
   }
-  final tryAtHome =
-      _boolFrom(delivery['tryAtHomeAvailable']) ||
-      _boolFrom(delivery['tryAtHomeEligible']) ||
-      _boolFrom(product.tryAtHomeAvailable);
-  if (tryAtHome) {
-    return '\u{1F4CD} Nearby Store';
+  if (_boolFrom(delivery['supportsInstantDelivery'])) {
+    final instantTime = delivery['estimatedInstantDeliveryTime']?.toString().trim() ?? '';
+    if (instantTime.isNotEmpty) {
+      return 'Get It Today - $instantTime';
+    }
+    return 'Get It Today';
   }
-  final eta =
-      delivery['etaHours'] ?? delivery['eta'] ?? delivery['deliveryEta'];
-  if (eta is num && eta > 0) {
-    final hours = eta.round();
-    return hours == 1 ? '\u26A1 1-Hour Delivery' : '\u26A1 $hours-Hour Delivery';
+  if (_boolFrom(delivery['supportsCourierDelivery'])) {
+    final eta = delivery['estimatedDeliveryDate']?.toString().trim() ?? '';
+    final partner = delivery['deliveryPartner']?.toString().trim() ?? '';
+    if (eta.isNotEmpty && partner.isNotEmpty) {
+      return 'Courier Delivery - $partner - $eta';
+    }
+    if (eta.isNotEmpty) {
+      return 'Courier Delivery - $eta';
+    }
+    if (partner.isNotEmpty) {
+      return 'Courier Delivery - $partner';
+    }
+    return 'Courier Delivery';
   }
-  if (eta is String && eta.trim().isNotEmpty) {
-    return eta.trim();
-  }
-  return '\u{1F4CD} Nearby Store';
+  return 'Check availability';
 }
 
 bool _boolFrom(dynamic value) {

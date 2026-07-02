@@ -67,7 +67,6 @@ class _TbybFinalBillScreenState extends State<TbybFinalBillScreen> {
         orderId = 'COD_PENDING';
       } else {
         final paymentResult = await PaymentService().processCheckout(
-          context: context,
           userId: currentUser.id,
           name: currentUser.name.trim().isEmpty
               ? 'Abianzo Member'
@@ -540,3 +539,4 @@ class _PaymentMethodTile extends StatelessWidget {
     );
   }
 }
+

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -20,8 +20,7 @@ class AddressScreen extends StatefulWidget {
 }
 
 class _AddressScreenState extends State<AddressScreen> {
-  static const String _fixedCity = 'Chennai';
-  static const String _fixedState = 'Tamil Nadu';
+  static const String _fixedState = '';
 
   final DatabaseService _database = DatabaseService();
   final LocationService _locationService = LocationService();
@@ -169,12 +168,8 @@ class _AddressScreenState extends State<AddressScreen> {
     _latitude = latitude;
     _longitude = longitude;
     _addressController.text = _cleanAddressLine(address.address);
-    _cityController.text = address.city.trim().isEmpty
-        ? _fixedCity
-        : address.city.trim();
-    _stateController.text = address.state.trim().isEmpty
-        ? _fixedState
-        : address.state.trim();
+    _cityController.text = address.city.trim();
+    _stateController.text = address.state.trim();
     _pincodeController.text = address.postalCode.trim();
     if (_localityController.text.trim().isEmpty &&
         address.area.trim().isNotEmpty) {
@@ -192,8 +187,8 @@ class _AddressScreenState extends State<AddressScreen> {
     _nameController.text = address.name;
     _phoneController.text = address.phone;
     _addressController.text = address.addressLine;
-    _cityController.text = address.city.isEmpty ? _fixedCity : address.city;
-    _stateController.text = address.state.isEmpty ? _fixedState : address.state;
+    _cityController.text = address.city;
+    _stateController.text = address.state;
     _pincodeController.text = address.pincode;
     _houseController.text = address.houseDetails;
     _landmarkController.text = address.landmark;
@@ -223,12 +218,8 @@ class _AddressScreenState extends State<AddressScreen> {
         final lookup = await _locationService.lookupByPincode(trimmed);
         if (!mounted) return;
         if (lookup != null) {
-          _cityController.text = lookup.city.trim().isEmpty
-              ? _fixedCity
-              : lookup.city.trim();
-          _stateController.text = lookup.state.trim().isEmpty
-              ? _fixedState
-              : lookup.state.trim();
+          _cityController.text = lookup.city.trim();
+          _stateController.text = lookup.state.trim();
         }
       } catch (_) {
         // Keep the user flow intact if lookup services are unavailable.
@@ -269,12 +260,8 @@ class _AddressScreenState extends State<AddressScreen> {
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
         addressLine: _addressController.text.trim(),
-        city: _cityController.text.trim().isEmpty
-            ? _fixedCity
-            : _cityController.text.trim(),
-        state: _stateController.text.trim().isEmpty
-            ? _fixedState
-            : _stateController.text.trim(),
+        city: _cityController.text.trim(),
+        state: _stateController.text.trim(),
         pincode: _pincodeController.text.trim(),
         houseDetails: _houseController.text.trim(),
         landmark: _landmarkController.text.trim(),
@@ -357,9 +344,12 @@ class _AddressScreenState extends State<AddressScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
-    final areaLabel = _cityController.text.trim().isEmpty
-        ? 'Chennai, Tamil Nadu'
-        : '${_cityController.text.trim()}, ${_stateController.text.trim().isEmpty ? _fixedState : _stateController.text.trim()}';
+    final areaLabel = _cityController.text.trim().isEmpty && _stateController.text.trim().isEmpty
+        ? 'Delivery area will be confirmed'
+        : [
+            _cityController.text.trim(),
+            _stateController.text.trim(),
+          ].where((value) => value.isNotEmpty).join(', ');
 
     return AbzioThemeScope.light(
       child: Scaffold(

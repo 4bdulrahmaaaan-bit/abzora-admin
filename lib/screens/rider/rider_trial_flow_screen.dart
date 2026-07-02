@@ -144,7 +144,6 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
         if (_paymentMethod == 'Online') {
           final paymentService = PaymentService();
           final result = await paymentService.processCheckout(
-            context: context,
             userId: _session.userId,
             name: _session.userName.isEmpty ? 'Customer' : _session.userName,
             amount: finalAmount,
@@ -777,3 +776,5 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
     );
   }
 }
+
+

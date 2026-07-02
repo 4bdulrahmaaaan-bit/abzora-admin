@@ -871,6 +871,16 @@ class DatabaseService {
     return offers;
   }
 
+  Future<List<Coupon>> getCouponsForCheckout({
+    required AppUser user,
+    required double cartValue,
+  }) async {
+    if (_backendCommerce.isConfigured) {
+      return _backendCommerce.getAdminCoupons(cartValue: cartValue);
+    }
+    return const [];
+  }
+
   String _couponCodePrefixForType(String type) {
     switch (type) {
       case 'new_user':
@@ -1014,7 +1024,7 @@ class DatabaseService {
     return offer;
   }
 
-  Future<GrowthOffer?> validateCouponForUser({
+  Future<Coupon?> validateCouponForUser({
     required AppUser user,
     required String code,
     required double cartValue,
@@ -1024,16 +1034,15 @@ class DatabaseService {
       return null;
     }
     if (_backendCommerce.isConfigured) {
-      return _backendCommerce.validateGrowthOffer(
+      return _backendCommerce.validateAdminCoupon(
         code: normalized,
         cartValue: cartValue,
       );
     }
-    final offers = await getGrowthOffersForUser(user);
-    for (final offer in offers) {
-      if (offer.code.toUpperCase() == normalized &&
-          _isGrowthOfferActiveForCart(offer, cartValue)) {
-        return offer;
+    final coupons = await getCouponsForCheckout(user: user, cartValue: cartValue);
+    for (final coupon in coupons) {
+      if (coupon.couponCode.toUpperCase() == normalized && coupon.isEligible != false) {
+        return coupon;
       }
     }
     return null;
@@ -1086,8 +1095,7 @@ class DatabaseService {
     final dynamicAdjustment = dynamicPrice - originalPrice;
     final maxDiscountCap = dynamicPrice * 0.30;
 
-    GrowthOffer? coupon;
-    double manualCouponAmount = 0;
+    Coupon? coupon;
     if ((couponCode ?? '').trim().isNotEmpty) {
       final normalizedCode = couponCode!.trim().toUpperCase();
       coupon = await validateCouponForUser(
@@ -1095,26 +1103,9 @@ class DatabaseService {
         code: normalizedCode,
         cartValue: dynamicPrice,
       );
-      if (coupon == null) {
-        if (normalizedCode == 'ABZORA10') {
-          manualCouponAmount = dynamicPrice * 0.10;
-        } else if (normalizedCode == 'ELITE20') {
-          manualCouponAmount = dynamicPrice * 0.20;
-        }
-      }
-    } else {
-      coupon = await getPersonalizedCouponForCheckout(
-        user: user,
-        cartValue: dynamicPrice,
-      );
-      if (coupon != null && !coupon.autoApply) {
-        coupon = null;
-      }
     }
 
-    var couponAmount = coupon == null
-        ? manualCouponAmount
-        : _effectiveOfferValue(coupon, dynamicPrice);
+    var couponAmount = coupon?.discountAmount ?? 0.0;
     final creditDecision = await getSmartCreditDecision(
       user: user,
       cartValue: dynamicPrice,
@@ -1145,7 +1136,7 @@ class DatabaseService {
       dynamicPrice: dynamicPrice,
       dynamicAdjustment: dynamicAdjustment,
       couponAmount: couponAmount,
-      couponCode: coupon?.code ?? (manualCouponAmount > 0 ? couponCode : null),
+      couponCode: coupon?.couponCode,
       creditsApplied: creditsApplied,
       discountedSubtotal: discountedSubtotal,
       taxAmount: taxAmount,
@@ -4759,6 +4750,14 @@ class DatabaseService {
     String? paymentReference,
     required String idempotencyKey,
     bool isPaymentVerified = false,
+    String deliveryType = '',
+    String deliveryProvider = '',
+    String trackingNumber = '',
+    String shipmentId = '',
+    String awbNumber = '',
+    double shippingCharge = 0,
+    String estimatedDeliveryDate = '',
+    String estimatedInstantDeliveryTime = '',
   }) async {
     if (_backendCommerce.isConfigured) {
       return _backendCommerce.createOrder(
@@ -4766,6 +4765,14 @@ class DatabaseService {
         paymentMethod: paymentMethod,
         shippingLabel: shippingLabel,
         shippingAddress: shippingAddress,
+        deliveryType: deliveryType,
+        deliveryProvider: deliveryProvider,
+        trackingNumber: trackingNumber,
+        shipmentId: shipmentId,
+        awbNumber: awbNumber,
+        shippingCharge: shippingCharge,
+        estimatedDeliveryDate: estimatedDeliveryDate,
+        estimatedInstantDeliveryTime: estimatedInstantDeliveryTime,
       );
     }
     if (walletCreditUsed < 0) {
@@ -4902,6 +4909,15 @@ class DatabaseService {
         paymentReference,
         orderId: orderId,
       );
+      final resolvedDeliveryType = deliveryType.trim().isEmpty
+          ? (hasCustom ? 'TRY_AT_HOME' : 'COURIER_DELIVERY')
+          : deliveryType.trim();
+      final resolvedDeliveryProvider = deliveryProvider.trim().isEmpty
+          ? (resolvedDeliveryType == 'TRY_AT_HOME' ? 'Local Rider' : 'Abianzo Dispatch')
+          : deliveryProvider.trim();
+      final resolvedShippingCharge = shippingCharge;
+      final resolvedEstimatedDeliveryDate = estimatedDeliveryDate.trim();
+      final resolvedEstimatedInstantDeliveryTime = estimatedInstantDeliveryTime.trim();
       final order = OrderModel(
         id: orderId,
         userId: actor.id,
@@ -4920,9 +4936,19 @@ class DatabaseService {
         vendorEarnings: vendorEarnings,
         payoutStatus: 'Pending',
         riderId: null,
-        trackingId: _buildTrackingId(entry.key),
+        trackingId: trackingNumber.trim().isNotEmpty
+            ? trackingNumber.trim()
+            : _buildTrackingId(entry.key),
         deliveryStatus: 'Placed',
-        assignedDeliveryPartner: 'Abianzo Dispatch',
+        deliveryType: resolvedDeliveryType,
+        deliveryProvider: resolvedDeliveryProvider,
+        trackingNumber: trackingNumber.trim(),
+        shipmentId: shipmentId.trim(),
+        awbNumber: awbNumber.trim(),
+        shippingCharge: resolvedShippingCharge,
+        estimatedDeliveryDate: resolvedEstimatedDeliveryDate,
+        estimatedInstantDeliveryTime: resolvedEstimatedInstantDeliveryTime,
+        assignedDeliveryPartner: resolvedDeliveryProvider,
         invoiceNumber: _buildInvoiceNumber(entry.key),
         orderType: hasCustom ? 'custom_tailoring' : 'marketplace',
         trackingTimestamps: {'Order Placed': createdAt.toIso8601String()},
@@ -11014,6 +11040,14 @@ class DatabaseService {
     int quantity = 1,
     String paymentMethod = 'COD',
     Map<String, String> shippingAddress = const {},
+    String deliveryType = '',
+    String deliveryProvider = '',
+    String trackingNumber = '',
+    String shipmentId = '',
+    String awbNumber = '',
+    double shippingCharge = 0,
+    String estimatedDeliveryDate = '',
+    String estimatedInstantDeliveryTime = '',
     required AppUser actor,
   }) async {
     if (_backendCommerce.isConfigured) {
@@ -11023,6 +11057,14 @@ class DatabaseService {
         quantity: quantity,
         paymentMethod: paymentMethod,
         shippingAddress: shippingAddress,
+        deliveryType: deliveryType,
+        deliveryProvider: deliveryProvider,
+        trackingNumber: trackingNumber,
+        shipmentId: shipmentId,
+        awbNumber: awbNumber,
+        shippingCharge: shippingCharge,
+        estimatedDeliveryDate: estimatedDeliveryDate,
+        estimatedInstantDeliveryTime: estimatedInstantDeliveryTime,
       );
     }
     final items = <OrderItem>[

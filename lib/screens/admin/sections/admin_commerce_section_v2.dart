@@ -3,6 +3,76 @@
 part of '../admin_web_panel.dart';
 
 extension _AdminCommerceSectionV2 on _AdminWebPanelState {
+  Widget _buildCourierOperationsPanel(List<OrderModel> courierOrders) {
+    final readyToShip = courierOrders.where((o) => o.deliveryStatus.toLowerCase().trim() == 'ready to ship').length;
+    final pickupScheduled = courierOrders.where((o) => o.deliveryStatus.toLowerCase().trim() == 'pickup scheduled').length;
+    final readyForPickup = courierOrders.where((o) => o.deliveryStatus.toLowerCase().trim() == 'ready for pickup').length;
+    final inTransit = courierOrders.where((o) {
+      final status = o.deliveryStatus.toLowerCase().trim();
+      return status == 'picked up' || status == 'out for delivery' || status == 'in transit';
+    }).length;
+    final delivered = courierOrders.where((o) => o.deliveryStatus.toLowerCase().trim() == 'delivered').length;
+    final returns = courierOrders.where((o) => o.returnStatus.toLowerCase().trim() != 'none').length;
+    final recent = courierOrders.take(3).toList();
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(AbzioTheme.spacing16, AbzioTheme.spacing16, AbzioTheme.spacing16, 0),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AbzioTheme.cardRadius),
+          border: Border.all(color: AbzioTheme.grey200),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 14, offset: const Offset(0, 6)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.local_shipping_outlined, color: AbzioTheme.accentColor),
+                const SizedBox(width: 8),
+                Text('Courier Operations', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700)),
+                const Spacer(),
+                Text('${courierOrders.length} courier order(s)', style: GoogleFonts.inter(color: AbzioTheme.grey600)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _MetricCard(title: 'Ready to Ship', value: '$readyToShip'),
+                _MetricCard(title: 'Pickup Scheduled', value: '$pickupScheduled'),
+                _MetricCard(title: 'Ready for Pickup', value: '$readyForPickup'),
+                _MetricCard(title: 'In Transit', value: '$inTransit'),
+                _MetricCard(title: 'Delivered', value: '$delivered'),
+                _MetricCard(title: 'Returns', value: '$returns'),
+              ],
+            ),
+            if (recent.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('Recent courier orders', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: recent.map((order) {
+                  final provider = order.deliveryProvider.trim().isEmpty ? 'Unassigned' : order.deliveryProvider.trim();
+                  final tracking = order.trackingNumber.trim().isEmpty ? 'No tracking yet' : order.trackingNumber.trim();
+                  return _StatusPill(label: '${order.deliveryType} - $provider - $tracking', color: const Color(0xFF5A78C9));
+                }).toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildOrdersStickyToolbar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -138,12 +208,12 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
             'High Risk',
           ], (v) => setState(() => _vendorStatusFilter = v)),
           const SizedBox(width: 8),
-          _ordersFilterMenu('City', _vendorCityFilter, const [
+          _ordersFilterMenu('Region', _vendorCityFilter, const [
             'All',
-            'Chennai',
-            'Bengaluru',
-            'Hyderabad',
-            'Mumbai',
+            'Metro',
+            'Tier 1',
+            'Tier 2',
+            'Other',
           ], (v) => setState(() => _vendorCityFilter = v)),
           const SizedBox(width: 8),
           _ordersFilterMenu('Revenue', _vendorRevenueFilter, const [
@@ -248,6 +318,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
       );
     }
     final base = _filteredOrders;
+    final courierOrders = base.where((order) => order.deliveryType == 'COURIER_DELIVERY').toList();
     final filtered = base.where((order) {
       if (_orderStatusFilter != 'All' &&
           order.status.toLowerCase() != _orderStatusFilter.toLowerCase()) {
@@ -329,6 +400,8 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+            _buildCourierOperationsPanel(courierOrders),
             const SizedBox(height: 16),
             _Panel(
               title: 'Fulfillment Queue',
@@ -809,7 +882,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Owner ${store.ownerId} • ${store.city.isEmpty ? 'Unknown city' : store.city}',
+                                    'Owner ${store.ownerId} â€¢ ${store.city.isEmpty ? 'Unknown city' : store.city}',
                                     style: GoogleFonts.inter(
                                       color: AbzioTheme.textSecondary,
                                     ),
@@ -856,7 +929,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Revenue ${_formatCurrency(revenue)} • Orders ${storeOrders.length} • Commission ${(store.commissionRate * 100).toStringAsFixed(0)}% • Payout ${_formatCurrency(store.walletBalance)}',
+                                    'Revenue ${_formatCurrency(revenue)} â€¢ Orders ${storeOrders.length} â€¢ Commission ${(store.commissionRate * 100).toStringAsFixed(0)}% â€¢ Payout ${_formatCurrency(store.walletBalance)}',
                                     style: GoogleFonts.inter(
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -1128,7 +1201,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '${rider.phone ?? rider.email} • ${rider.riderCity ?? rider.city ?? 'Unknown city'} • ${rider.riderVehicleType ?? 'Bike'} • ${2 + (performance / 35).floor()}y exp',
+                                        '${rider.phone ?? rider.email} â€¢ ${rider.riderCity ?? rider.city ?? 'Unknown city'} â€¢ ${rider.riderVehicleType ?? 'Bike'} â€¢ ${2 + (performance / 35).floor()}y exp',
                                         style: GoogleFonts.inter(
                                           color: AbzioTheme.textSecondary,
                                         ),
@@ -1928,7 +2001,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'SKU ${variant.sku.isEmpty ? 'Auto' : variant.sku} • Stock ${variant.stock} • ${variant.status.toUpperCase()}',
+                                    'SKU ${variant.sku.isEmpty ? 'Auto' : variant.sku} â€¢ Stock ${variant.stock} â€¢ ${variant.status.toUpperCase()}',
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
                                       color: AbzioTheme.textSecondary,
@@ -2231,7 +2304,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
             _SupportDetailRow(
               label: 'Payment',
               value:
-                  '${order.paymentMethod} • ${order.refundStatus.isEmpty ? 'No refund' : order.refundStatus}',
+                  '${order.paymentMethod} â€¢ ${order.refundStatus.isEmpty ? 'No refund' : order.refundStatus}',
             ),
             _SupportDetailRow(
               label: 'Rider',
@@ -2243,6 +2316,49 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                   ? 'Recalculating'
                   : order.deliveryPromise,
             ),
+            if (order.deliveryType == 'COURIER_DELIVERY') ...[
+              _SupportDetailRow(label: 'Delivery Type', value: order.deliveryType),
+              _SupportDetailRow(
+                label: 'Courier Provider',
+                value: order.deliveryProvider.trim().isEmpty
+                    ? 'Unassigned'
+                    : order.deliveryProvider.trim(),
+              ),
+              _SupportDetailRow(
+                label: 'Shipment Status',
+                value: order.deliveryStatus.trim().isEmpty
+                    ? 'Pending'
+                    : order.deliveryStatus.trim(),
+              ),
+              _SupportDetailRow(
+                label: 'Tracking Number',
+                value: order.trackingNumber.trim().isEmpty
+                    ? 'Not assigned'
+                    : order.trackingNumber.trim(),
+              ),
+              _SupportDetailRow(
+                label: 'Shipment ID',
+                value: order.shipmentId.trim().isEmpty
+                    ? 'Not assigned'
+                    : order.shipmentId.trim(),
+              ),
+              _SupportDetailRow(
+                label: 'AWB Number',
+                value: order.awbNumber.trim().isEmpty
+                    ? 'Not assigned'
+                    : order.awbNumber.trim(),
+              ),
+              _SupportDetailRow(
+                label: 'Shipping Charge',
+                value: _formatCurrency(order.shippingCharge),
+              ),
+              _SupportDetailRow(
+                label: 'Estimated Delivery',
+                value: order.estimatedDeliveryDate.trim().isEmpty
+                    ? 'Recalculating'
+                    : order.estimatedDeliveryDate.trim(),
+              ),
+            ],
             _SupportDetailRow(label: 'Address', value: order.shippingAddress),
             const SizedBox(height: 12),
             Text(
@@ -2638,5 +2754,8 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
     );
   }
 }
+
+
+
 
 

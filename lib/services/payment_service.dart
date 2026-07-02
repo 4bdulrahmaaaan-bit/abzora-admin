@@ -53,7 +53,6 @@ class PaymentService {
   }
 
   Future<PaymentCheckoutResult> processCheckout({
-    required BuildContext context,
     required String userId,
     String? backendOrderId,
     required String name,
@@ -544,3 +543,4 @@ class _RazorpayOrderPayload {
   final String currency;
   final int amountInPaise;
 }
+

@@ -56,6 +56,7 @@ class CartProvider with ChangeNotifier {
   String? _appliedCoupon;
   double _discountPercentage = 0.0;
   double _fixedDiscountAmount = 0.0;
+  double? _couponMaximumDiscount;
   DateTime? _lastInteractionAt;
   String? _syncedUserId;
   bool _syncingRemoteCart = false;
@@ -80,7 +81,13 @@ class CartProvider with ChangeNotifier {
     (sum, item) => sum + (item.product.tailoringExtraCost * item.quantity),
   );
   double get discountAmount =>
-      min(subtotal, (subtotal * _discountPercentage) + _fixedDiscountAmount);
+      min(
+        subtotal,
+        min(
+          (subtotal * _discountPercentage) + _fixedDiscountAmount,
+          _couponMaximumDiscount ?? double.infinity,
+        ),
+      );
   double get totalAmount => subtotal - discountAmount;
 
   String? get activeStoreId =>
@@ -281,31 +288,13 @@ class CartProvider with ChangeNotifier {
     String code, {
     double? discountPercentage,
     double? fixedDiscountAmount,
+    double? maximumDiscount,
   }) {
     if (discountPercentage != null || fixedDiscountAmount != null) {
       _appliedCoupon = code.toUpperCase();
       _discountPercentage = discountPercentage ?? 0.0;
       _fixedDiscountAmount = fixedDiscountAmount ?? 0.0;
-      _lastInteractionAt = DateTime.now();
-      unawaited(_track('coupon_applied'));
-      unawaited(_persistCart());
-      notifyListeners();
-      return true;
-    }
-    if (code.toUpperCase() == 'ELITE20') {
-      _appliedCoupon = code.toUpperCase();
-      _discountPercentage = 0.20;
-      _fixedDiscountAmount = 0.0;
-      _lastInteractionAt = DateTime.now();
-      unawaited(_track('coupon_applied'));
-      unawaited(_persistCart());
-      notifyListeners();
-      return true;
-    }
-    if (code.toUpperCase() == 'ABZORA10') {
-      _appliedCoupon = code.toUpperCase();
-      _discountPercentage = 0.10;
-      _fixedDiscountAmount = 0.0;
+      _couponMaximumDiscount = maximumDiscount;
       _lastInteractionAt = DateTime.now();
       unawaited(_track('coupon_applied'));
       unawaited(_persistCart());
@@ -319,6 +308,7 @@ class CartProvider with ChangeNotifier {
     _appliedCoupon = null;
     _discountPercentage = 0.0;
     _fixedDiscountAmount = 0.0;
+    _couponMaximumDiscount = null;
     _lastInteractionAt = DateTime.now();
     unawaited(_track('coupon_removed'));
     unawaited(_persistCart());
@@ -340,6 +330,7 @@ class CartProvider with ChangeNotifier {
     _appliedCoupon = null;
     _discountPercentage = 0.0;
     _fixedDiscountAmount = 0.0;
+    _couponMaximumDiscount = null;
     _lastInteractionAt = null;
     if (trackActivity) {
       unawaited(_track('cleared'));

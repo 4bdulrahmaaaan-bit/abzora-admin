@@ -707,7 +707,7 @@ class _VendorAuthBannerScreenState extends State<VendorAuthBannerScreen> {
     ),
     (
       title: 'FAST DELIVERY PARTNERS',
-      subtitle: 'Deliver premium products across Chennai',
+      subtitle: 'Deliver premium products across your area',
       imagePath: 'assets/onboarding/vendor_visual_0.jpg',
       textTopOffset: 0,
       zoomEnd: 1.035,

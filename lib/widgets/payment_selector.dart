@@ -20,7 +20,7 @@ class PaymentSelector extends StatelessWidget {
         _PaymentOptionCard(
           icon: Icons.qr_code_2_rounded,
           title: 'UPI',
-          subtitle: 'Google Pay, PhonePe, Paytm',
+          subtitle: 'Google Pay, PhonePe, Paytm, BHIM',
           badge: 'Recommended',
           value: 'UPI',
           selectedValue: selectedMethod,
@@ -29,8 +29,8 @@ class PaymentSelector extends StatelessWidget {
         const SizedBox(height: 12),
         _PaymentOptionCard(
           icon: Icons.credit_card_rounded,
-          title: 'Cards',
-          subtitle: 'Visa, Mastercard, RuPay',
+          title: 'Credit / Debit Card',
+          subtitle: 'Visa \u2022 Mastercard \u2022 RuPay',
           value: 'CARDS',
           selectedValue: selectedMethod,
           onTap: onChanged,
@@ -39,7 +39,7 @@ class PaymentSelector extends StatelessWidget {
         _PaymentOptionCard(
           icon: Icons.payments_outlined,
           title: 'Cash on Delivery',
-          subtitle: 'Pay when delivered',
+          subtitle: 'Pay when your order arrives.',
           value: 'COD',
           selectedValue: selectedMethod,
           onTap: onChanged,
@@ -84,22 +84,29 @@ class _PaymentOptionCard extends StatelessWidget {
           child: AnimatedContainer(
             duration: AbzioMotion.medium,
             curve: AbzioMotion.curve,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: selected ? AbzioTheme.accentColor : Colors.white,
+              gradient: selected
+                  ? const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFCDAE58), Color(0xFFB88D31)],
+                    )
+                  : null,
+              color: selected ? null : Colors.white,
               borderRadius: BorderRadius.circular(AbzioTheme.cardRadius),
               border: Border.all(
                 color: selected
-                    ? AbzioTheme.accentColor.withValues(alpha: 0.55)
-                    : context.abzioBorder,
+                    ? const Color(0xFFE1C97F)
+                    : const Color(0xFFE9E1D2),
               ),
               boxShadow: [
                 BoxShadow(
                   color: selected
-                      ? AbzioTheme.accentColor.withValues(alpha: 0.14)
-                      : Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 18,
-                  offset: const Offset(0, 10),
+                      ? const Color(0xFFB88D31).withValues(alpha: 0.16)
+                      : Colors.black.withValues(alpha: 0.04),
+                  blurRadius: selected ? 22 : 14,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
@@ -107,11 +114,11 @@ class _PaymentOptionCard extends StatelessWidget {
               children: [
                 Container(
                   width: 48,
-                  height: 56,
+                  height: 52,
                   decoration: BoxDecoration(
                     color: selected
-                        ? Colors.white.withValues(alpha: 0.18)
-                        : const Color(0xFFF7F0E1),
+                        ? Colors.white.withValues(alpha: 0.16)
+                        : const Color(0xFFF6F1E4),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Icon(
@@ -148,7 +155,7 @@ class _PaymentOptionCard extends StatelessWidget {
                                 color: selected
                                     ? Colors.white.withValues(alpha: 0.18)
                                     : AbzioTheme.accentColor.withValues(
-                                        alpha: 0.12,
+                                        alpha: 0.09,
                                       ),
                                 borderRadius: BorderRadius.circular(999),
                               ),
@@ -165,20 +172,20 @@ class _PaymentOptionCard extends StatelessWidget {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         subtitle,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: selected
-                              ? Colors.white.withValues(alpha: 0.88)
+                              ? Colors.white.withValues(alpha: 0.90)
                               : context.abzioSecondaryText,
-                          height: 1.35,
+                          height: 1.3,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Icon(
                   selected
                       ? Icons.check_circle_rounded

@@ -56,4 +56,11 @@ class AdminCouponsApi {
     );
     return Map<String, dynamic>.from(payload['data']);
   }
+
+  static Future<void> deleteCoupon(String id) async {
+    await const BackendApiClient().delete(
+      '/admin/coupons/$id',
+      authenticated: true,
+    );
+  }
 }

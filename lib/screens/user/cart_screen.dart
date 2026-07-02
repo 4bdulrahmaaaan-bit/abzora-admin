@@ -1,3 +1,4 @@
+// ignore_for_file: unused_element
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,11 +11,65 @@ import '../../providers/cart_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../services/database_service.dart';
+import '../../services/delivery_service.dart';
+import '../../models/delivery_serviceability.dart';
 import '../../theme.dart';
 import '../../utils/app_error_text.dart';
 import '../../utils/soft_auth_gate.dart';
 import '../../widgets/state_views.dart';
 import 'checkout_screen.dart';
+
+UserAddress? _cartAddressFromUser(AppUser? user) {
+  if (user == null) {
+    return null;
+  }
+  return UserAddress(
+    id: user.id,
+    userId: user.id,
+    name: user.name,
+    phone: user.phone ?? '',
+    addressLine: [
+      user.address?.trim() ?? '',
+      user.area?.trim() ?? '',
+      user.city?.trim() ?? '',
+    ].where((item) => item.isNotEmpty).join(', '),
+    city: user.city?.trim() ?? '',
+    state: '',
+    pincode: '',
+    houseDetails: '',
+    landmark: user.area?.trim() ?? '',
+    locality: user.area?.trim() ?? '',
+    latitude: user.latitude,
+    longitude: user.longitude,
+    createdAt: user.createdAt ?? DateTime.now().toIso8601String(),
+  );
+}
+
+String _cartServiceabilityLabel(ProductServiceability? serviceability) {
+  if (serviceability == null) {
+    return 'Select a delivery address to calculate delivery options.';
+  }
+  if (!serviceability.isDeliverable) {
+    return 'Not deliverable to selected address';
+  }
+  if (serviceability.supportsTryAtHome) {
+    return 'Try At Home - 15-minute Home Trial';
+  }
+  if (serviceability.supportsInstantDelivery) {
+    final eta = serviceability.estimatedInstantDeliveryTime.trim();
+    return eta.isEmpty ? 'Local Delivery - Today Delivery' : 'Local Delivery - $eta';
+  }
+  final eta = serviceability.estimatedDeliveryDate.trim();
+  final provider = serviceability.deliveryProvider.trim();
+  final charge = serviceability.shippingCharge > 0
+      ? 'Shipping ${NumberFormat.currency(locale: 'en_IN', symbol: 'Rs. ', decimalDigits: 0).format(serviceability.shippingCharge)}'
+      : 'Free shipping';
+  final parts = <String>['Courier Delivery'];
+  if (eta.isNotEmpty) parts.add(eta);
+  parts.add(charge);
+  if (provider.isNotEmpty) parts.add(provider);
+  return parts.join(' - ');
+}
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -26,6 +81,7 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen>
     with AutomaticKeepAliveClientMixin {
   final DatabaseService _database = DatabaseService();
+  final DeliveryService _deliveryService = DeliveryService();
   final NumberFormat _currency = NumberFormat.currency(
     locale: 'en_IN',
     symbol: '₹',
@@ -36,8 +92,6 @@ class _CartScreenState extends State<CartScreen>
   Future<List<Product>>? _dealsFuture;
   String? _anchorProductId;
   final Set<String> _animatingAddIds = <String>{};
-  int? _selectedDonation;
-  bool _offersExpanded = false;
   bool _openingCheckout = false;
 
   @override
@@ -158,13 +212,6 @@ class _CartScreenState extends State<CartScreen>
     ).showSnackBar(SnackBar(content: Text('Size updated to $size.')));
   }
 
-  String _deliveryEstimate(CartProvider cart) {
-    final baseDays = cart.hasCustomTailoring ? 6 : 3;
-    return DateFormat(
-      'EEE, dd MMM',
-    ).format(DateTime.now().add(Duration(days: baseDays)));
-  }
-
   String _addressLine(AppUser? user) {
     if (user == null) {
       return 'Add your delivery address to unlock faster checkout.';
@@ -208,6 +255,88 @@ class _CartScreenState extends State<CartScreen>
     return cart.totalAmount + _platformFee(cart) + _deliveryFee(cart);
   }
 
+  UserAddress? _selectedCartAddress(AppUser? user) => _cartAddressFromUser(user);
+
+  Future<ProductServiceability?> _cartServiceabilitySummary(
+    CartProvider cart,
+    AppUser? user,
+  ) async {
+    final address = _selectedCartAddress(user);
+    if (address == null || cart.items.isEmpty) {
+      return null;
+    }
+    ProductServiceability? tryAtHome;
+    ProductServiceability? localDelivery;
+    ProductServiceability? courierDelivery;
+    for (final item in cart.items) {
+      final serviceability = await _deliveryService.getServiceability(
+        product: item.product,
+        address: address,
+      );
+      if (!serviceability.isDeliverable) {
+        return serviceability;
+      }
+      if (serviceability.supportsTryAtHome) {
+        tryAtHome ??= serviceability;
+      }
+      if (serviceability.supportsInstantDelivery) {
+        localDelivery ??= serviceability;
+      }
+      if (serviceability.supportsCourierDelivery) {
+        courierDelivery ??= serviceability;
+      }
+    }
+    return tryAtHome ?? localDelivery ?? courierDelivery;
+  }
+
+  double _cartShippingCharge(ProductServiceability? serviceability) {
+    return serviceability?.shippingCharge ?? 0;
+  }
+
+  Future<String?> _cartCheckoutIssue(CartProvider cart, AppUser? user) async {
+    final address = _selectedCartAddress(user);
+    if (address == null) {
+      return 'Add your delivery address to unlock faster checkout.';
+    }
+    final supportedModes = <DeliveryMode>{};
+    for (final item in cart.items) {
+      final serviceability = await _deliveryService.getServiceability(
+        product: item.product,
+        address: address,
+      );
+      if (!serviceability.isDeliverable) {
+        final reason = serviceability.reason.trim();
+        return reason.isNotEmpty
+            ? reason
+            : 'Unable to determine delivery availability.';
+      }
+      supportedModes.add(serviceability.deliveryMode);
+    }
+    if (supportedModes.length > 1) {
+      return 'This item uses a different delivery method. Please complete your current cart before adding products with another delivery method.';
+    }
+    return null;
+  }
+
+  Future<void> _showMixedDeliveryDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Different delivery method'),
+        content: const Text(
+          'This item uses a different delivery method.\n\nPlease complete your current cart before adding products with another delivery method.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   Future<void> _openCheckout() async {
     final allowed = await SoftAuthGate.ensureAuthenticated(
       context,
@@ -216,6 +345,22 @@ class _CartScreenState extends State<CartScreen>
       promptStyle: AuthPromptStyle.fullScreen,
     );
     if (!allowed || !mounted) {
+      return;
+    }
+    final cart = context.read<CartProvider>();
+    final authUser = context.read<AuthProvider>().user;
+    final messenger = ScaffoldMessenger.of(context);
+    final checkoutIssue = await _cartCheckoutIssue(cart, authUser);
+    if (checkoutIssue != null) {
+      if (checkoutIssue.toLowerCase().contains('different delivery method')) {
+        await _showMixedDeliveryDialog();
+      } else {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(checkoutIssue),
+          ),
+        );
+      }
       return;
     }
     if (_openingCheckout || !mounted) {
@@ -268,10 +413,15 @@ class _CartScreenState extends State<CartScreen>
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 108),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      _AddressCard(
-                        user: auth.user,
-                        deliveryEstimate: _deliveryEstimate(cart),
-                        addressLine: _addressLine(auth.user),
+                      FutureBuilder<ProductServiceability?>(
+                        future: _cartServiceabilitySummary(cart, auth.user),
+                        builder: (context, snapshot) {
+                          return _AddressCard(
+                            user: auth.user,
+                            deliveryEstimate: _cartServiceabilityLabel(snapshot.data),
+                            addressLine: _addressLine(auth.user),
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
                       FutureBuilder<List<Product>>(
@@ -301,39 +451,43 @@ class _CartScreenState extends State<CartScreen>
                       ...cart.items.map(
                         (item) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: _CartLineItem(
-                            item: item,
-                            currency: _currency,
-                            onDecrease: () => cart.updateQuantity(
-                              item.product.id,
-                              item.size,
-                              -1,
-                            ),
-                            onIncrease: () => cart.updateQuantity(
-                              item.product.id,
-                              item.size,
-                              1,
-                            ),
-                            onRemove: () =>
-                                cart.removeFromCart(item.product.id, item.size),
-                            onMoveToWishlist: () => _moveToWishlist(item),
-                            onSelectSize: (size) =>
-                                _changeSize(cart, item, size),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _CartLineItem(
+                                item: item,
+                                currency: _currency,
+                                onDecrease: () => cart.updateQuantity(
+                                  item.product.id,
+                                  item.size,
+                                  -1,
+                                ),
+                                onIncrease: () => cart.updateQuantity(
+                                  item.product.id,
+                                  item.size,
+                                  1,
+                                ),
+                                onRemove: () =>
+                                    cart.removeFromCart(item.product.id, item.size),
+                                onMoveToWishlist: () => _moveToWishlist(item),
+                                onSelectSize: (size) =>
+                                    _changeSize(cart, item, size),
+                              ),
+                              const SizedBox(height: 8),
+                                      _CartServiceabilityRow(
+                                item: item,
+                                address: _selectedCartAddress(auth.user),
+                                deliveryService: _deliveryService,
+                              ),
+                            ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      _OffersSection(
-                        expanded: _offersExpanded,
-                        onToggle: () =>
-                            setState(() => _offersExpanded = !_offersExpanded),
+                      _PremiumCouponSummaryCard(
                         appliedCoupon: cart.appliedCoupon,
-                      ),
-                      const SizedBox(height: 12),
-                      _DonationSection(
-                        selectedAmount: _selectedDonation,
-                        onSelect: (value) =>
-                            setState(() => _selectedDonation = value),
+                        savingsAmount: totalSavings,
+                        onChangeCoupon: _openCheckout,
                       ),
                       const SizedBox(height: 12),
                       FutureBuilder<List<Product>>(
@@ -361,13 +515,18 @@ class _CartScreenState extends State<CartScreen>
                         },
                       ),
                       const SizedBox(height: 12),
-                      _PriceDetailsCard(
-                        currency: _currency,
-                        totalMrp: _originalMrp(cart),
-                        discount: _totalSavings(cart),
-                        deliveryFee: _deliveryFee(cart),
-                        platformFee: _platformFee(cart),
-                        totalAmount: totalAmount,
+                      FutureBuilder<ProductServiceability?>(
+                        future: _cartServiceabilitySummary(cart, auth.user),
+                        builder: (context, snapshot) {
+                          return _PriceDetailsCard(
+                            currency: _currency,
+                            totalMrp: _originalMrp(cart),
+                            discount: _totalSavings(cart),
+                            deliveryFee: _cartShippingCharge(snapshot.data),
+                            platformFee: _platformFee(cart),
+                            totalAmount: totalAmount,
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
                       _ReminderButton(
@@ -1103,6 +1262,55 @@ class _CartLineItem extends StatelessWidget {
   }
 }
 
+class _CartServiceabilityRow extends StatelessWidget {
+  const _CartServiceabilityRow({
+    required this.item,
+    required this.address,
+    required this.deliveryService,
+  });
+
+  final CartItem item;
+  final UserAddress? address;
+  final DeliveryService deliveryService;
+
+  @override
+  Widget build(BuildContext context) {
+    if (address == null) {
+      return const _BadgeChip(
+        label: 'Add delivery address to calculate serviceability',
+        icon: Icons.place_outlined,
+      );
+    }
+    return FutureBuilder<ProductServiceability>(
+      future: deliveryService.getServiceability(
+        product: item.product,
+        address: address!,
+      ),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const _BadgeChip(
+            label: 'Checking delivery options',
+            icon: Icons.hourglass_bottom_rounded,
+          );
+        }
+        final serviceability = snapshot.data!;
+        final label = serviceability.isDeliverable
+            ? _cartServiceabilityLabel(serviceability)
+            : 'Not deliverable to selected address';
+        return _BadgeChip(
+          label: label,
+          icon: serviceability.supportsTryAtHome
+              ? Icons.home_outlined
+              : serviceability.supportsCourierDelivery
+                  ? Icons.local_shipping_outlined
+                  : Icons.block_outlined,
+          danger: !serviceability.isDeliverable,
+        );
+      },
+    );
+  }
+}
+
 class _PillSelector extends StatelessWidget {
   const _PillSelector({required this.label, required this.onTap});
 
@@ -1293,207 +1501,149 @@ class _InlineAction extends StatelessWidget {
   }
 }
 
-class _OffersSection extends StatelessWidget {
-  const _OffersSection({
-    required this.expanded,
-    required this.onToggle,
+class _PremiumCouponSummaryCard extends StatelessWidget {
+  const _PremiumCouponSummaryCard({
     required this.appliedCoupon,
+    required this.savingsAmount,
+    required this.onChangeCoupon,
   });
 
-  final bool expanded;
-  final VoidCallback onToggle;
   final String? appliedCoupon;
+  final double savingsAmount;
+  final VoidCallback onChangeCoupon;
 
   @override
   Widget build(BuildContext context) {
-    return _BagCard(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: onToggle,
-            borderRadius: BorderRadius.circular(18),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8E6),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.local_offer_outlined,
-                    size: 18,
-                    color: Color(0xFFC8A95D),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Offers & Coupons',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: const Color(0xFF201F1B),
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        appliedCoupon == null
-                            ? 'Best offers ready for this bag'
-                            : 'Coupon $appliedCoupon is applied',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF6A655A),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                AnimatedRotation(
-                  turns: expanded ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 220),
-                  child: const Icon(Icons.keyboard_arrow_down_rounded),
-                ),
-              ],
-            ),
-          ),
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Column(
-                children: const [
-                  _OfferRow(
-                    title: '10% off with HDFC card',
-                    subtitle: 'Valid on orders above ₹2,999',
-                  ),
-                  SizedBox(height: 10),
-                  _OfferRow(
-                    title: 'Extra 5% on prepaid orders',
-                    subtitle: 'Applied automatically at payment',
-                  ),
-                  SizedBox(height: 10),
-                  _OfferRow(
-                    title: 'ABZORA10 available',
-                    subtitle: 'Use at checkout to save more on this bag',
-                  ),
-                ],
-              ),
-            ),
-            crossFadeState: expanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 220),
-          ),
-        ],
-      ),
+    final hasCoupon =
+        appliedCoupon != null && appliedCoupon!.trim().isNotEmpty;
+    final money = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+      decimalDigits: 0,
     );
-  }
-}
-
-class _OfferRow extends StatelessWidget {
-  const _OfferRow({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(
-          Icons.check_circle_rounded,
-          color: Color(0xFF1D8B4D),
-          size: 16,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF23211C),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 1),
-              Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF6A655A),
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DonationSection extends StatelessWidget {
-  const _DonationSection({
-    required this.selectedAmount,
-    required this.onSelect,
-  });
-
-  final int? selectedAmount;
-  final ValueChanged<int> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    const amounts = <int>[10, 20, 50, 100];
     return _BagCard(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Support social cause',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: const Color(0xFF201F1B),
-              fontWeight: FontWeight.w800,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7EFD8),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.local_offer_outlined,
+                  size: 18,
+                  color: Color(0xFFC8A95D),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasCoupon ? 'Applied Coupon' : 'Coupons',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: const Color(0xFF201F1B),
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      hasCoupon
+                          ? 'Your bag already has a coupon applied.'
+                          : 'Review savings before you checkout.',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF6A655A),
+                            fontSize: 12,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: onChangeCoupon,
+                child: Text(hasCoupon ? 'Change Coupon' : 'Review'),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Add a small donation to support community-led fashion education.',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6A655A)),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: amounts
-                .map(
-                  (amount) => ChoiceChip(
-                    label: Text('₹$amount'),
-                    selected: selectedAmount == amount,
-                    onSelected: (_) => onSelect(amount),
+          const SizedBox(height: 12),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: hasCoupon
+                ? Container(
+                    key: ValueKey<String>(appliedCoupon!),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBF3),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: const Color(0xFFC8A95D).withValues(alpha: 0.28),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: Color(0xFF1D8B4D),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$appliedCoupon Applied',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'You saved ${money.format(savingsAmount)}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Container(
+                    key: const ValueKey<String>('no-coupon'),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F5EE),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.auto_awesome_rounded,
+                          color: Color(0xFFC8A95D),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'No coupon applied yet. Review checkout offers for a better price.',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )
-                .toList(),
           ),
         ],
       ),

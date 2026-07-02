@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../constants/text_constants.dart';
+import '../providers/auth_provider.dart';
 import 'brand_logo.dart';
 import 'tap_scale.dart';
 
@@ -23,15 +25,28 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
   final bool isScrolled;
 
   @override
-  Size get preferredSize => const Size.fromHeight(82);
+  Size get preferredSize => const Size.fromHeight(80);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final recipientName = context.select<AuthProvider, String?>((auth) {
+      final name = auth.user?.name.trim() ?? '';
+      return name.isNotEmpty ? name : null;
+    });
+    final locationLine = locationTitle.trim();
+    final deliveryLine = _composeDeliveryLine(
+      recipientName: recipientName,
+      locationLine: locationLine,
+    );
+    final semanticsLabel = _composeSemanticsLabel(
+      recipientName: recipientName,
+      locationLine: locationLine,
+    );
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       decoration: BoxDecoration(
         color: const Color(0xFFF7F4ED),
         border: Border(
@@ -110,48 +125,100 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
             ],
           ),
           const SizedBox(height: 4),
-          TapScale(
-            scale: 0.985,
-            onTap: onLocationTap,
-            child: SizedBox(
-              width: double.infinity,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.location_on_outlined,
-                    size: 16,
-                    color: Color(0xFFC2A15E),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      locationTitle,
+          Semantics(
+            button: true,
+            label: semanticsLabel,
+            child: TapScale(
+              scale: 0.985,
+              onTap: onLocationTap,
+              child: SizedBox(
+                width: double.infinity,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 16,
+                      color: Color(0xFFC2A15E),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Deliver to',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 14,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w500,
-                        color: const Color(0xFF171411),
+                        color: const Color(0xFF7C7265),
                         height: 1.1,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    size: 16,
-                    color: const Color(
-                      0xFFC2A15E,
-                    ).withValues(alpha: isScrolled ? 0.9 : 0.72),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        child: Text(
+                          deliveryLine,
+                          key: ValueKey(deliveryLine),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF171411),
+                            height: 1.08,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 16,
+                      color: const Color(
+                        0xFFC2A15E,
+                      ).withValues(alpha: isScrolled ? 0.9 : 0.72),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _composeDeliveryLine({
+    required String? recipientName,
+    required String locationLine,
+  }) {
+    final recipient = recipientName?.trim() ?? '';
+    final location = locationLine.trim();
+    if (recipient.isNotEmpty && location.isNotEmpty) {
+      return '$recipient • $location';
+    }
+    if (recipient.isNotEmpty) {
+      return recipient;
+    }
+    return location;
+  }
+
+  String _composeSemanticsLabel({
+    required String? recipientName,
+    required String locationLine,
+  }) {
+    final recipient = recipientName?.trim() ?? '';
+    final location = locationLine.trim().replaceAll('•', ',');
+    if (recipient.isNotEmpty && location.isNotEmpty) {
+      return 'Delivering to $recipient, $location.';
+    }
+    if (location.isNotEmpty) {
+      return 'Delivering to $location.';
+    }
+    return 'Choose delivery location.';
   }
 }
 

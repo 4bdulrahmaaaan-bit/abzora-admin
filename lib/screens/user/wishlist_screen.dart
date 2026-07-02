@@ -406,16 +406,14 @@ class _WishlistScreenState extends State<WishlistScreen> {
     if (candidate.isEmpty || candidate == 'all') {
       return true;
     }
-    final promise =
-        product.deliveryInfo['deliveryPromise']?.toString().toLowerCase() ?? '';
     if (candidate.contains('today') || candidate.contains('same')) {
-      return product.sameDayAvailable || promise.contains('today');
+      return product.sameDayAvailable;
     }
     if (candidate.contains('tomorrow')) {
-      return promise.contains('tomorrow');
+      return false;
     }
     if (candidate.contains('2-3') || candidate.contains('2 to 3')) {
-      return promise.contains('2') || promise.contains('3');
+      return false;
     }
     if (candidate.contains('try at home')) {
       return product.tryAtHomeAvailable;
@@ -551,14 +549,6 @@ class _WishlistScreenState extends State<WishlistScreen> {
     if (product.sameDayAvailable) {
       return 'Same-Day Delivery';
     }
-    final promise =
-        product.deliveryInfo['deliveryPromise']?.toString().toLowerCase() ?? '';
-    if (promise.contains('today')) {
-      return 'Same-Day Delivery';
-    }
-    if (promise.contains('express')) {
-      return 'Express Delivery';
-    }
     return 'Standard Delivery';
   }
 
@@ -566,18 +556,14 @@ class _WishlistScreenState extends State<WishlistScreen> {
     if (product == null) {
       return false;
     }
-    return product.sameDayAvailable ||
-        product.tryAtHomeAvailable ||
-        _deliveryBucket(product) != 'Standard Delivery';
+    return product.sameDayAvailable || product.tryAtHomeAvailable;
   }
 
   bool _isExpressDelivery(Product? product) {
     if (product == null) {
       return false;
     }
-    final promise =
-        product.deliveryInfo['deliveryPromise']?.toString().toLowerCase() ?? '';
-    return promise.contains('express') || promise.contains('today');
+    return product.sameDayAvailable;
   }
 
   bool _storePickupAvailable(Product? product) {

@@ -45,7 +45,7 @@ class ProductProvider with ChangeNotifier {
   bool get isLoadingMore => _isLoadingMore;
   bool get isLocationLoading => _locationProvider?.isLocationLoading ?? false;
   bool get hasMoreProducts => _hasMoreProducts;
-  String get activeLocation => _locationProvider?.activeLocation ?? 'Chennai';
+  String get activeLocation => _locationProvider?.activeLocation ?? '';
   double get radiusKm =>
       _locationProvider?.radiusKm ?? LocationProvider.defaultRadiusKm;
   Position? get userPosition => _locationProvider?.userPosition;
@@ -620,13 +620,11 @@ class ProductProvider with ChangeNotifier {
   }
 
   bool _sameDayAvailable(Product product) {
-    return product.attributeBool('sameDayAvailable') ||
-        product.attributeBool('sameDayEligible');
+    return product.sameDayAvailable;
   }
 
   bool _tryAtHomeAvailable(Product product) {
-    return product.attributeBool('tryAtHomeAvailable') ||
-        product.attributeBool('tryAtHomeEligible');
+    return product.tryAtHomeAvailable;
   }
 
   bool _customizable(Product product) {
@@ -642,7 +640,7 @@ class ProductProvider with ChangeNotifier {
     if (raw == 'today' || raw == 'tomorrow' || raw == '2-3 days') {
       return raw;
     }
-    return _sameDayAvailable(product) ? 'today' : '2-3 days';
+    return product.sameDayAvailable ? 'today' : 'serviceability required';
   }
 
   String _fitConfidenceLabel(Product product) {
@@ -675,7 +673,7 @@ class ProductProvider with ChangeNotifier {
 
   int _relevanceScore(Product product) {
     var score = 0;
-    if (_sameDayAvailable(product)) score += 35;
+    if (product.sameDayAvailable) score += 35;
     if (_fitConfidenceLabel(product) == 'high') score += 20;
     score += (product.rating * 10).round();
     score += _popularityScore(product);

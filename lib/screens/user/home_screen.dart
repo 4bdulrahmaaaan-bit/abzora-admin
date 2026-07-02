@@ -1,5 +1,4 @@
 import 'dart:async';
-import '../../widgets/product_shimmer.dart';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -31,14 +30,17 @@ import '../../widgets/product_grid.dart';
 import '../../widgets/shimmer_box.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/tap_scale.dart';
+import '../../widgets/product_shimmer.dart';
 import 'ai_stylist_screen.dart';
-import 'location_bottom_sheet.dart';
+import '../../services/location_service.dart';
 import 'order_tracking_screen.dart';
 import 'product_detail_screen.dart';
 import 'profile_screen.dart';
 import 'search_screen.dart';
 import 'store_detail_screen.dart';
 import 'wishlist_screen.dart';
+
+part 'location_bottom_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -338,9 +340,9 @@ class CategoriesScreen extends StatefulWidget {
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
   String _selectedCategory = 'View All';
-  Future<_LuxuryCategoriesFeed>? _feedFuture;
 
-  @override
+  final _LuxuryCategoriesFeed _feed = _LuxuryCategoriesFeed.curated();
+
   @override
   Widget build(BuildContext context) {
     final background = const Color(0xFFF9F7F2);
@@ -351,68 +353,54 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         decoration: const BoxDecoration(color: Color(0xFFF9F7F2)),
         child: SafeArea(
           bottom: false,
-          child: FutureBuilder<_LuxuryCategoriesFeed>(
-            future: _feedFuture,
-            builder: (context, snapshot) {
-              final isLoading =
-                  snapshot.connectionState != ConnectionState.done ||
-                  !snapshot.hasData;
-              final feed = snapshot.data ?? _LuxuryCategoriesFeed.curated();
-
-              return Stack(
-                children: [
-                  Positioned(
-                    top: -80,
-                    right: -60,
-                    child: IgnorePointer(
-                      child: Container(
-                        width: 220,
-                        height: 220,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              const Color(0xFFD9C6A3).withValues(alpha: 0.16),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
+          child: Stack(
+            children: [
+              Positioned(
+                top: -80,
+                right: -60,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 220,
+                    height: 220,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          const Color(0xFFD9C6A3).withValues(alpha: 0.16),
+                          Colors.transparent,
+                        ],
                       ),
                     ),
                   ),
-                  Positioned(
-                    bottom: 120,
-                    left: -90,
-                    child: IgnorePointer(
-                      child: Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              const Color(0xFFB79A6C).withValues(alpha: 0.10),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
+                ),
+              ),
+              Positioned(
+                bottom: 120,
+                left: -90,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          const Color(0xFFB79A6C).withValues(alpha: 0.10),
+                          Colors.transparent,
+                        ],
                       ),
                     ),
                   ),
-                  isLoading
-                      ? _LuxuryCategoriesSkeleton(
-                          selectedCategory: _selectedCategory,
-                        )
-                      : _LuxuryCategoriesContent(
-                          feed: feed,
-                          selectedCategory: _selectedCategory,
-                          onCategorySelected: (category) {
-                            setState(() => _selectedCategory = category);
-                          },
-                        ),
-                ],
-              );
-            },
+                ),
+              ),
+              _LuxuryCategoriesContent(
+                feed: _feed,
+                selectedCategory: _selectedCategory,
+                onCategorySelected: (category) {
+                  setState(() => _selectedCategory = category);
+                },
+              ),
+            ],
           ),
         ),
       ),
@@ -902,124 +890,6 @@ class _LuxurySectionTitle extends StatelessWidget {
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: const Color(0xFF63594B),
             height: 1.45,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _LuxuryCategoriesSkeleton extends StatelessWidget {
-  const _LuxuryCategoriesSkeleton({required this.selectedCategory});
-
-  final String selectedCategory;
-
-  @override
-  Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final cardWidth = width >= 900
-        ? 260.0
-        : width >= 600
-        ? 238.0
-        : 214.0;
-
-    return ListView(
-      physics: const BouncingScrollPhysics(
-        parent: AlwaysScrollableScrollPhysics(),
-      ),
-      padding: const EdgeInsets.only(bottom: 24),
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
-          child: _LuxuryHeader(selectedCategory: selectedCategory),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _LuxurySectionTitle(
-                overline: 'Curated categories',
-                title: 'Explore the edit',
-                subtitle:
-                    'Only the categories that matter, presented with more breathing room.',
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
-                height: 324,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: 4,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 16),
-                  itemBuilder: (context, index) {
-                    return Container(
-                      width: cardWidth,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFFDF9),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFFE8DDCF)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 24,
-                            offset: const Offset(0, 12),
-                          ),
-                        ],
-                      ),
-                      child: const Column(
-                        children: [
-                          Expanded(
-                            child: ShimmerBox(
-                              width: double.infinity,
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(20),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 14),
-                          ShimmerBox(
-                            width: 120,
-                            height: 14,
-                            borderRadius: BorderRadius.all(Radius.circular(8)),
-                          ),
-                          SizedBox(height: 6),
-                          ShimmerBox(
-                            width: 32,
-                            height: 2,
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(999),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 30),
-              const _LuxurySectionTitle(
-                overline: 'Featured collections',
-                title: 'Editorial curation',
-                subtitle:
-                    'Luxury edits with a quieter, more considered point of view.',
-              ),
-              const SizedBox(height: 18),
-              Column(
-                children: List.generate(
-                  5,
-                  (index) => Padding(
-                    padding: EdgeInsets.only(bottom: index == 4 ? 0 : 16),
-                    child: const ShimmerCard(
-                      height: 176,
-                      padding: EdgeInsets.all(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       ],

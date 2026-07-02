@@ -1247,16 +1247,6 @@ class Product {
       final delivery = Map<String, dynamic>.from(
         map['deliveryInfo'] ?? const {},
       );
-      for (final key in const [
-        'sameDayAvailable',
-        'sameDayEligible',
-        'tryAtHomeAvailable',
-        'tryAtHomeEligible',
-      ]) {
-        if (map.containsKey(key)) {
-          delivery[key] = map[key];
-        }
-      }
       return delivery;
     })(),
     socialProof: Map<String, dynamic>.from(map['socialProof'] ?? const {}),
@@ -1339,17 +1329,11 @@ class Product {
   double get effectivePrice => dynamicPrice ?? price;
 
   bool get sameDayAvailable {
-    return deliveryInfo['sameDayEligible'] == true ||
-        deliveryInfo['sameDayAvailable'] == true ||
-        attributeBool('sameDayAvailable') ||
-        attributeBool('sameDayEligible');
+    return deliveryInfo['supportsInstantDelivery'] == true;
   }
 
   bool get tryAtHomeAvailable {
-    return deliveryInfo['tryAtHomeEligible'] == true ||
-        deliveryInfo['tryAtHomeAvailable'] == true ||
-        attributeBool('tryAtHomeAvailable') ||
-        attributeBool('tryAtHomeEligible');
+    return deliveryInfo['supportsTryAtHome'] == true;
   }
 
   bool get tryOnAvailable {
@@ -1686,6 +1670,14 @@ class OrderModel {
   final String? payoutId;
   final String trackingId;
   final String deliveryStatus;
+  final String deliveryType;
+  final String deliveryProvider;
+  final String trackingNumber;
+  final String shipmentId;
+  final String awbNumber;
+  final double shippingCharge;
+  final String estimatedDeliveryDate;
+  final String estimatedInstantDeliveryTime;
   final String assignedDeliveryPartner;
   final String invoiceNumber;
   final String orderType;
@@ -1758,6 +1750,14 @@ class OrderModel {
     this.payoutId,
     this.trackingId = '',
     this.deliveryStatus = 'Pending',
+    this.deliveryType = 'COURIER_DELIVERY',
+    this.deliveryProvider = 'Unassigned',
+    this.trackingNumber = '',
+    this.shipmentId = '',
+    this.awbNumber = '',
+    this.shippingCharge = 0,
+    this.estimatedDeliveryDate = '',
+    this.estimatedInstantDeliveryTime = '',
     this.assignedDeliveryPartner = 'Unassigned',
     this.invoiceNumber = '',
     this.orderType = 'marketplace',
@@ -1830,6 +1830,14 @@ class OrderModel {
     'payoutId': payoutId,
     'trackingId': trackingId,
     'deliveryStatus': deliveryStatus,
+    'deliveryType': deliveryType,
+    'deliveryProvider': deliveryProvider,
+    'trackingNumber': trackingNumber,
+    'shipmentId': shipmentId,
+    'awbNumber': awbNumber,
+    'shippingCharge': shippingCharge,
+    'estimatedDeliveryDate': estimatedDeliveryDate,
+    'estimatedInstantDeliveryTime': estimatedInstantDeliveryTime,
     'assignedDeliveryPartner': assignedDeliveryPartner,
     'invoiceNumber': invoiceNumber,
     'orderType': orderType,
@@ -1910,6 +1918,14 @@ class OrderModel {
     payoutId: map['payoutId'],
     trackingId: map['trackingId'] ?? '',
     deliveryStatus: map['deliveryStatus'] ?? 'Pending',
+    deliveryType: map['deliveryType'] ?? 'COURIER_DELIVERY',
+    deliveryProvider: map['deliveryProvider'] ?? map['assignedDeliveryPartner'] ?? 'Unassigned',
+    trackingNumber: map['trackingNumber'] ?? map['trackingId'] ?? '',
+    shipmentId: map['shipmentId'] ?? '',
+    awbNumber: map['awbNumber'] ?? '',
+    shippingCharge: ((map['shippingCharge'] ?? 0) as num).toDouble(),
+    estimatedDeliveryDate: map['estimatedDeliveryDate'] ?? '',
+    estimatedInstantDeliveryTime: map['estimatedInstantDeliveryTime'] ?? '',
     assignedDeliveryPartner: map['assignedDeliveryPartner'] ?? 'Unassigned',
     invoiceNumber: map['invoiceNumber'] ?? '',
     orderType: map['orderType'] ?? 'marketplace',
@@ -3013,6 +3029,101 @@ class GrowthOffer {
         metadata: Map<String, dynamic>.from(
           (map['metadata'] as Map?) ?? const {},
         ),
+      );
+}
+
+class Coupon {
+  final String id;
+  final String vendorId;
+  final String couponCode;
+  final String discountType;
+  final double discountValue;
+  final double minimumOrderValue;
+  final double? maximumDiscount;
+  final int? usageLimit;
+  final int usedCount;
+  final String status;
+  final String startDate;
+  final String endDate;
+  final List<String> eligibleUserIds;
+  final bool firstOrderOnly;
+  final double? discountAmount;
+  final bool? isEligible;
+  final String? eligibilityMessage;
+
+  const Coupon({
+    required this.id,
+    this.vendorId = 'ADMIN',
+    required this.couponCode,
+    required this.discountType,
+    required this.discountValue,
+    this.minimumOrderValue = 0,
+    this.maximumDiscount,
+    this.usageLimit,
+    this.usedCount = 0,
+    this.status = 'draft',
+    required this.startDate,
+    required this.endDate,
+    this.eligibleUserIds = const [],
+    this.firstOrderOnly = false,
+    this.discountAmount,
+    this.isEligible,
+    this.eligibilityMessage,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'vendorId': vendorId,
+    'couponCode': couponCode,
+    'discountType': discountType,
+    'discountValue': discountValue,
+    'minimumOrderValue': minimumOrderValue,
+    'maximumDiscount': maximumDiscount,
+    'usageLimit': usageLimit,
+    'usedCount': usedCount,
+    'status': status,
+    'startDate': startDate,
+    'endDate': endDate,
+    'eligibleUserIds': eligibleUserIds,
+    'firstOrderOnly': firstOrderOnly,
+    'discountAmount': discountAmount,
+    'isEligible': isEligible,
+    'eligibilityMessage': eligibilityMessage,
+  };
+
+  factory Coupon.fromMap(Map<String, dynamic> map, String id) => Coupon(
+        id: map['id']?.toString().trim().isNotEmpty == true
+            ? map['id'].toString().trim()
+            : id,
+        vendorId: map['vendorId']?.toString().trim().isNotEmpty == true
+            ? map['vendorId'].toString().trim()
+            : 'ADMIN',
+        couponCode: map['couponCode']?.toString().trim().toUpperCase() ?? '',
+        discountType: map['discountType']?.toString().trim() ?? 'percentage',
+        discountValue: ((map['discountValue'] ?? 0) as num).toDouble(),
+        minimumOrderValue: ((map['minimumOrderValue'] ?? 0) as num).toDouble(),
+        maximumDiscount: map['maximumDiscount'] == null
+            ? null
+            : (map['maximumDiscount'] as num).toDouble(),
+        usageLimit: map['usageLimit'] == null
+            ? null
+            : ((map['usageLimit'] as num).toInt()),
+        usedCount: ((map['usedCount'] ?? 0) as num).toInt(),
+        status: map['status']?.toString().trim().isNotEmpty == true
+            ? map['status'].toString().trim()
+            : 'draft',
+        startDate: map['startDate']?.toString() ?? '',
+        endDate: map['endDate']?.toString() ?? '',
+        eligibleUserIds: (map['eligibleUserIds'] as List? ?? const [])
+            .map((item) => item.toString().trim())
+            .where((item) => item.isNotEmpty)
+            .toList(),
+        firstOrderOnly: map['firstOrderOnly'] == true,
+        discountAmount: map['discountAmount'] == null
+            ? null
+            : (map['discountAmount'] as num).toDouble(),
+        isEligible: map['isEligible'] == null ? null : map['isEligible'] == true,
+        eligibilityMessage: map['eligibilityMessage']?.toString(),
       );
 }
 
@@ -5365,8 +5476,8 @@ class PlatformSettings {
     this.checkoutEnabled = true,
     this.marketplaceEnabled = true,
     this.riderDispatchEnabled = true,
-    this.cities = const {'Chennai': true},
-    this.regionVendorAvailability = const {'Chennai': true},
+    this.cities = const {},
+    this.regionVendorAvailability = const {},
     this.allowedAdminDevices = const ['web-chrome', 'windows-desktop'],
     this.adminIdleTimeoutMinutes = 10,
     this.adminPinEnabled = false,
@@ -5443,10 +5554,10 @@ class PlatformSettings {
         marketplaceEnabled: map['marketplaceEnabled'] ?? true,
         riderDispatchEnabled: map['riderDispatchEnabled'] ?? true,
         cities: Map<String, bool>.from(
-          map['cities'] ?? const {'Chennai': true},
+          map['cities'] ?? const {},
         ),
         regionVendorAvailability: Map<String, bool>.from(
-          map['regionVendorAvailability'] ?? const {'Chennai': true},
+          map['regionVendorAvailability'] ?? const {},
         ),
         allowedAdminDevices: List<String>.from(
           map['allowedAdminDevices'] ?? const ['web-chrome', 'windows-desktop'],
@@ -5922,3 +6033,4 @@ class CustomBrandProduct {
         category: map['category'] ?? '',
       );
 }
+

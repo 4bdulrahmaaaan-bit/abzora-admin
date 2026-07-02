@@ -231,8 +231,34 @@ class _VendorOrderPriorityCardState extends State<_VendorOrderPriorityCard> {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
+          if (order.deliveryType == 'COURIER_DELIVERY') ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _MetaPill(label: 'Courier Delivery', icon: Icons.local_shipping_outlined),
+                if (order.deliveryProvider.trim().isNotEmpty)
+                  _MetaPill(label: order.deliveryProvider.trim(), icon: Icons.directions_car_outlined),
+                if (order.deliveryStatus.trim().isNotEmpty)
+                  _MetaPill(label: order.deliveryStatus.trim(), icon: Icons.schedule_outlined),
+                if (order.trackingNumber.trim().isNotEmpty)
+                  _MetaPill(label: 'Tracking ${order.trackingNumber.trim()}', icon: Icons.route_outlined),
+                if (order.shipmentId.trim().isNotEmpty)
+                  _MetaPill(label: 'Shipment ${order.shipmentId.trim()}', icon: Icons.inventory_2_outlined),
+                if (order.awbNumber.trim().isNotEmpty)
+                  _MetaPill(label: 'AWB ${order.awbNumber.trim()}', icon: Icons.receipt_long_outlined),
+                if (order.estimatedDeliveryDate.trim().isNotEmpty)
+                  _MetaPill(label: 'ETA ${order.estimatedDeliveryDate.trim()}', icon: Icons.event_outlined),
+                if (order.shippingCharge > 0)
+                  _MetaPill(
+                    label: 'Shipping ${widget.formatCurrency(order.shippingCharge)}',
+                    icon: Icons.payments_outlined,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+          Row(            children: [
               Expanded(
                 child: Text(
                   widget.formatCurrency(order.totalAmount),
@@ -332,7 +358,9 @@ class _VendorOrderPriorityCardState extends State<_VendorOrderPriorityCard> {
             )
           else
             Text(
-              'Waiting for rider pickup',
+              order.deliveryType == 'COURIER_DELIVERY'
+                  ? 'Waiting for courier update'
+                  : 'Waiting for rider pickup',
               style: GoogleFonts.inter(
                 fontSize: 12,
                 color: const Color(0xFF8A847E),
@@ -379,6 +407,40 @@ class _VendorOrderPriorityCardState extends State<_VendorOrderPriorityCard> {
   }
 }
 
+class _MetaPill extends StatelessWidget {
+  const _MetaPill({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F4EA),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE3D7BC)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF8C6E2E)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF6F5723),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.label});
 
@@ -390,6 +452,9 @@ class _StatusBadge extends StatelessWidget {
       'Placed': const Color(0xFFF0B45D),
       'Confirmed': const Color(0xFF5A78C9),
       'Packed': const Color(0xFF7A68C7),
+      'Ready to ship': const Color(0xFF175CD3),
+      'Picked up': const Color(0xFF175CD3),
+      'Out for delivery': const Color(0xFF175CD3),
       'Ready for pickup': const Color(0xFF2FA36B),
       'Delivered': const Color(0xFF2FA36B),
     };
@@ -451,3 +516,5 @@ class _SwipeBackground extends StatelessWidget {
     );
   }
 }
+
+
