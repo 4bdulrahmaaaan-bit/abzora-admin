@@ -97,7 +97,7 @@ class _PromotionAnalyticsScreenState extends State<PromotionAnalyticsScreen> {
             _buildMetricsGrid(context),
             const SizedBox(height: VendorTheme.spacing24),
             Text(
-              'Top Performing Coupons',
+              'Top Store Coupons',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: VendorTheme.spacing16),

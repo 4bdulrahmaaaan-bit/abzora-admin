@@ -81,6 +81,94 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen>
     }
   }
 
+  Future<void> _openCreateCouponDialog() async {
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => _CouponDialog(
+        onSave: (payload) => _couponApi.createCoupon(payload),
+      ),
+    );
+    if (saved == true) {
+      await _fetchCoupons();
+    }
+  }
+
+  Future<void> _openEditCouponDialog(Map<String, dynamic> coupon) async {
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => _CouponDialog(
+        coupon: coupon,
+        onSave: (payload) => _couponApi.updateCoupon(
+          coupon['_id']?.toString() ?? coupon['id']?.toString() ?? '',
+          payload,
+        ),
+      ),
+    );
+    if (saved == true) {
+      await _fetchCoupons();
+    }
+  }
+
+  Future<void> _duplicateCoupon(Map<String, dynamic> coupon) async {
+    final duplicate = Map<String, dynamic>.from(coupon)
+      ..remove('_id')
+      ..remove('id')
+      ..['couponCode'] =
+          '${coupon['couponCode'] ?? ''}COPY${DateTime.now().millisecondsSinceEpoch % 10000}'
+      ..['status'] = 'draft'
+      ..['usedCount'] = 0
+      ..['startDate'] = DateTime.now().toIso8601String()
+      ..['endDate'] = DateTime.now().add(const Duration(days: 7)).toIso8601String();
+    await _couponApi.createCoupon(duplicate);
+    if (mounted) {
+      await _fetchCoupons();
+    }
+  }
+
+  Future<void> _setCouponStatus(Map<String, dynamic> coupon, String status) async {
+    final id = coupon['_id']?.toString() ?? coupon['id']?.toString() ?? '';
+    if (id.isEmpty) {
+      return;
+    }
+    await _couponApi.updateCouponStatus(id, status);
+    if (mounted) {
+      await _fetchCoupons();
+    }
+  }
+
+  Future<void> _deleteCoupon(Map<String, dynamic> coupon) async {
+    final id = coupon['_id']?.toString() ?? coupon['id']?.toString() ?? '';
+    if (id.isEmpty) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete coupon'),
+        content: Text(
+          'Delete ${coupon['couponCode'] ?? ''}? This removes it from vendor checkout immediately.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+    await _couponApi.deleteCoupon(id);
+    if (mounted) {
+      await _fetchCoupons();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,7 +187,7 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen>
           indicatorWeight: 3,
           tabs: const [
             Tab(text: 'Campaigns'),
-            Tab(text: 'Coupons'),
+            Tab(text: 'My Coupons'),
             Tab(text: 'Flash Sales'),
           ],
         ),
@@ -204,11 +292,12 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeaderCard(
-              title: 'Store Coupons',
+              title: 'My Coupons',
               subtitle:
                   'Create special discounts to reward loyal customers and drive conversions.',
               buttonText: 'Create Coupon',
               icon: Icons.local_activity_outlined,
+              onTap: _openCreateCouponDialog,
             ),
             const SizedBox(height: VendorTheme.spacing24),
             Text(
@@ -250,6 +339,7 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen>
                 return Padding(
                   padding: const EdgeInsets.only(bottom: VendorTheme.spacing12),
                   child: _buildCouponCard(
+                    coupon: c,
                     code: c['couponCode'] ?? '',
                     discount: discount,
                     usage: usage,
@@ -318,6 +408,7 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen>
     required String subtitle,
     required String buttonText,
     required IconData icon,
+    VoidCallback? onTap,
   }) {
     return PremiumVendorCard(
       padding: const EdgeInsets.all(VendorTheme.spacing24),
@@ -351,7 +442,7 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen>
                 const SizedBox(height: VendorTheme.spacing16),
                 VendorPrimaryButton(
                   label: buttonText,
-                  onTap: () {},
+                  onTap: onTap ?? () {},
                   isFullWidth: false,
                 ),
               ],
@@ -417,11 +508,18 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen>
   }
 
   Widget _buildCouponCard({
+    required Map<String, dynamic> coupon,
     required String code,
     required String discount,
     required String usage,
     required String expiry,
   }) {
+    final status = coupon['status']?.toString().toUpperCase() ?? 'DRAFT';
+    final badgeType = status == 'ACTIVE'
+        ? VendorBadgeType.success
+        : status == 'DISABLED'
+            ? VendorBadgeType.warning
+            : VendorBadgeType.info;
     return PremiumVendorCard(
       padding: const EdgeInsets.all(VendorTheme.spacing16),
       child: Row(
@@ -462,6 +560,8 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                VendorStatusBadge(label: status, type: badgeType),
+                const SizedBox(height: VendorTheme.spacing8),
                 Row(
                   children: [
                     Icon(
@@ -493,9 +593,287 @@ class _MarketingCenterScreenState extends State<MarketingCenterScreen>
               ],
             ),
           ),
-          IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              switch (value) {
+                case 'edit':
+                  _openEditCouponDialog(coupon);
+                  break;
+                case 'duplicate':
+                  _duplicateCoupon(coupon);
+                  break;
+                case 'activate':
+                  _setCouponStatus(coupon, 'active');
+                  break;
+                case 'pause':
+                  _setCouponStatus(coupon, 'disabled');
+                  break;
+                case 'delete':
+                  _deleteCoupon(coupon);
+                  break;
+              }
+            },
+            itemBuilder: (context) {
+              final status = coupon['status']?.toString().toLowerCase() ?? '';
+              final isActive = status == 'active';
+              return [
+                const PopupMenuItem<String>(
+                  value: 'edit',
+                  child: Text('Edit'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'duplicate',
+                  child: Text('Duplicate'),
+                ),
+                PopupMenuItem<String>(
+                  value: isActive ? 'pause' : 'activate',
+                  child: Text(isActive ? 'Pause Coupon' : 'Activate Coupon'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Text('Delete'),
+                ),
+              ];
+            },
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _CouponDialog extends StatefulWidget {
+  const _CouponDialog({
+    required this.onSave,
+    this.coupon,
+  });
+
+  final Map<String, dynamic>? coupon;
+  final Future<Map<String, dynamic>> Function(Map<String, dynamic> data) onSave;
+
+  @override
+  State<_CouponDialog> createState() => _CouponDialogState();
+}
+
+class _CouponDialogState extends State<_CouponDialog> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late final TextEditingController _codeController;
+  late final TextEditingController _discountValueController;
+  late final TextEditingController _minimumOrderController;
+  late final TextEditingController _maximumDiscountController;
+  late final TextEditingController _usageLimitController;
+  late final TextEditingController _startDateController;
+  late final TextEditingController _endDateController;
+  String _discountType = 'percentage';
+  String _status = 'draft';
+  bool _saving = false;
+  bool _firstOrderOnly = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final coupon = widget.coupon ?? const <String, dynamic>{};
+    final now = DateTime.now();
+    _codeController = TextEditingController(text: coupon['couponCode']?.toString() ?? '');
+    _discountValueController = TextEditingController(
+      text: coupon['discountValue']?.toString() ?? '',
+    );
+    _minimumOrderController = TextEditingController(
+      text: coupon['minimumOrderValue']?.toString() ?? '',
+    );
+    _maximumDiscountController = TextEditingController(
+      text: coupon['maximumDiscount']?.toString() ?? '',
+    );
+    _usageLimitController = TextEditingController(
+      text: coupon['usageLimit']?.toString() ?? '',
+    );
+    _startDateController = TextEditingController(
+      text: _dateText(DateTime.tryParse(coupon['startDate']?.toString() ?? '') ?? now),
+    );
+    _endDateController = TextEditingController(
+      text: _dateText(
+        DateTime.tryParse(coupon['endDate']?.toString() ?? '') ??
+            now.add(const Duration(days: 7)),
+      ),
+    );
+    _discountType = coupon['discountType']?.toString() ?? 'percentage';
+    _status = coupon['status']?.toString() ?? 'draft';
+    _firstOrderOnly = coupon['firstOrderOnly'] == true;
+  }
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    _discountValueController.dispose();
+    _minimumOrderController.dispose();
+    _maximumDiscountController.dispose();
+    _usageLimitController.dispose();
+    _startDateController.dispose();
+    _endDateController.dispose();
+    super.dispose();
+  }
+
+  String _dateText(DateTime date) {
+    final value = date.toIso8601String();
+    return value.length >= 10 ? value.substring(0, 10) : value;
+  }
+
+  Future<void> _pickDate(TextEditingController controller) async {
+    final initial = DateTime.tryParse(controller.text) ?? DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+    );
+    if (picked != null) {
+      controller.text = _dateText(picked);
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final payload = <String, dynamic>{
+        'couponCode': _codeController.text.trim().toUpperCase(),
+        'discountType': _discountType,
+        'discountValue': double.tryParse(_discountValueController.text.trim()) ?? 0,
+        'minimumOrderValue': double.tryParse(_minimumOrderController.text.trim()) ?? 0,
+        'maximumDiscount': _maximumDiscountController.text.trim().isEmpty
+            ? null
+            : double.tryParse(_maximumDiscountController.text.trim()),
+        'usageLimit': _usageLimitController.text.trim().isEmpty
+            ? null
+            : int.tryParse(_usageLimitController.text.trim()),
+        'startDate': _startDateController.text.trim(),
+        'endDate': _endDateController.text.trim(),
+        'status': _status,
+        'firstOrderOnly': _firstOrderOnly,
+      };
+      await widget.onSave(payload);
+      if (!mounted) {
+        return;
+      }
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+      setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.coupon == null ? 'Create Coupon' : 'Edit Coupon'),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _codeController,
+                decoration: const InputDecoration(labelText: 'Coupon Code'),
+                textCapitalization: TextCapitalization.characters,
+                validator: (value) =>
+                    (value == null || value.trim().isEmpty) ? 'Enter a code' : null,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _discountType,
+                decoration: const InputDecoration(labelText: 'Discount Type'),
+                items: const [
+                  DropdownMenuItem(value: 'percentage', child: Text('Percentage')),
+                  DropdownMenuItem(value: 'fixed', child: Text('Fixed Amount')),
+                ],
+                onChanged: (value) => setState(() => _discountType = value ?? 'percentage'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _discountValueController,
+                decoration: const InputDecoration(labelText: 'Discount Value'),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  final parsed = double.tryParse(value ?? '');
+                  if (parsed == null || parsed <= 0) {
+                    return 'Enter a discount value';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _minimumOrderController,
+                decoration: const InputDecoration(labelText: 'Minimum Order'),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _maximumDiscountController,
+                decoration: const InputDecoration(labelText: 'Maximum Discount'),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _usageLimitController,
+                decoration: const InputDecoration(labelText: 'Usage Limit'),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _startDateController,
+                readOnly: true,
+                onTap: () => _pickDate(_startDateController),
+                decoration: const InputDecoration(labelText: 'Start Date'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _endDateController,
+                readOnly: true,
+                onTap: () => _pickDate(_endDateController),
+                decoration: const InputDecoration(labelText: 'End Date'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _status,
+                decoration: const InputDecoration(labelText: 'Status'),
+                items: const [
+                  DropdownMenuItem(value: 'draft', child: Text('Draft')),
+                  DropdownMenuItem(value: 'active', child: Text('Active')),
+                  DropdownMenuItem(value: 'disabled', child: Text('Paused')),
+                ],
+                onChanged: (value) => setState(() => _status = value ?? 'draft'),
+              ),
+              const SizedBox(height: 12),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _firstOrderOnly,
+                onChanged: (value) => setState(() => _firstOrderOnly = value),
+                title: const Text('First order only'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: Text(_saving ? 'Saving...' : 'Save'),
+        ),
+      ],
     );
   }
 }

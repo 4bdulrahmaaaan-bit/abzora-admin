@@ -3127,6 +3127,20 @@ class Coupon {
       );
 }
 
+class CouponCatalogBundle {
+  final List<Coupon> platformCoupons;
+  final List<Coupon> storeCoupons;
+  final Coupon? bestCoupon;
+
+  const CouponCatalogBundle({
+    this.platformCoupons = const [],
+    this.storeCoupons = const [],
+    this.bestCoupon,
+  });
+
+  List<Coupon> get allCoupons => [...platformCoupons, ...storeCoupons];
+}
+
 class ReferralRecord {
   final String id;
   final String referrerId;

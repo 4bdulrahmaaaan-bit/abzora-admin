@@ -82,7 +82,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   bool _loadingCredits = false;
 
-  bool _loadingBestCoupon = false;
   bool _loadingCouponCatalog = false;
 
   bool _loadingPricing = false;
@@ -96,7 +95,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   SmartCreditDecision? _creditDecision;
 
   Coupon? _bestCoupon;
-  List<Coupon> _couponCatalog = const [];
+  List<Coupon> _platformCoupons = const [];
+  List<Coupon> _storeCoupons = const [];
 
   MasterPricingDecision? _pricingDecision;
 
@@ -126,7 +126,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       _loadAddresses();
       unawaited(_loadCouponCatalog());
-      unawaited(_loadBestCoupon());
       unawaited(_loadSmartCredits());
 
     });
@@ -401,7 +400,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
 
       setState(() {
-        _couponCatalog = const [];
+        _platformCoupons = const [];
+        _storeCoupons = const [];
+        _bestCoupon = null;
         _loadingCouponCatalog = false;
       });
       return;
@@ -410,9 +411,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _loadingCouponCatalog = true);
 
     try {
-      final coupons = await _database.getCouponsForCheckout(
+      final catalog = await _database.getCouponCatalogForCheckout(
         user: user,
         cartValue: _preCreditTotal(cart),
+        storeId: cart.activeStoreId,
       );
 
       if (!mounted) {
@@ -420,7 +422,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
 
       setState(() {
-        _couponCatalog = coupons.take(4).toList();
+        _platformCoupons = catalog.platformCoupons.take(4).toList();
+        _storeCoupons = catalog.storeCoupons.take(4).toList();
+        _bestCoupon = catalog.bestCoupon;
         _loadingCouponCatalog = false;
       });
     } catch (_) {
@@ -429,56 +433,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
 
       setState(() {
-        _couponCatalog = const [];
+        _platformCoupons = const [];
+        _storeCoupons = const [];
+        _bestCoupon = null;
         _loadingCouponCatalog = false;
       });
-    }
-  }
-
-  Future<void> _loadBestCoupon() async {
-    final user = context.read<AuthProvider>().user;
-
-    if (user == null) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _bestCoupon = null;
-        _loadingBestCoupon = false;
-      });
-      return;
-    }
-
-    setState(() => _loadingBestCoupon = true);
-
-    try {
-      final coupons = await _database.getCouponsForCheckout(
-        user: user,
-        cartValue: _preCreditTotal(context.read<CartProvider>()),
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _bestCoupon = coupons.isEmpty ? null : coupons.first;
-        _loadingBestCoupon = false;
-      });
-
-      unawaited(_loadMasterPricing());
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _bestCoupon = null;
-        _loadingBestCoupon = false;
-      });
-
-      unawaited(_loadMasterPricing());
     }
   }
 
@@ -1039,6 +998,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     var ok = false;
 
     final user = context.read<AuthProvider>().user;
+    final storeId = context.read<CartProvider>().activeStoreId;
 
     if (user != null) {
 
@@ -1046,6 +1006,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         user: user,
         code: rawCode,
         cartValue: _preCreditTotal(cart),
+        storeId: storeId,
       );
 
       if (coupon != null) {
@@ -1081,7 +1042,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     unawaited(_loadCouponCatalog());
     unawaited(_loadSmartCredits());
-    unawaited(_loadBestCoupon());
 
     unawaited(_loadMasterPricing());
 
@@ -2141,11 +2101,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                 child: _PremiumCouponExperience(
                   loadingCatalog: _loadingCouponCatalog,
-                  loadingBestCoupon: _loadingBestCoupon,
                   appliedCoupon: cart.appliedCoupon,
                   savingsAmount:
                       _pricingDecision?.couponAmount ?? cart.discountAmount,
-                  availableCoupons: _couponCatalog,
+                  platformCoupons: _platformCoupons,
+                  storeCoupons: _storeCoupons,
                   bestCoupon: _bestCoupon,
                   customCodeController: _couponController,
                   onApplyCode: (code) => _applyCoupon(cart, code: code),
@@ -2160,12 +2120,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     cart.removeCoupon();
                     unawaited(_loadCouponCatalog());
                     unawaited(_loadSmartCredits());
-                    unawaited(_loadBestCoupon());
                     unawaited(_loadMasterPricing());
                   },
                   onRefreshCoupons: () {
                     unawaited(_loadCouponCatalog());
-                    unawaited(_loadBestCoupon());
                   },
                 ),
 
@@ -4625,10 +4583,10 @@ class _PaymentOptionCard extends StatelessWidget {
 class _PremiumCouponExperience extends StatelessWidget {
   const _PremiumCouponExperience({
     required this.loadingCatalog,
-    required this.loadingBestCoupon,
     required this.appliedCoupon,
     required this.savingsAmount,
-    required this.availableCoupons,
+    required this.platformCoupons,
+    required this.storeCoupons,
     required this.bestCoupon,
     required this.customCodeController,
     required this.onApplyCode,
@@ -4638,10 +4596,10 @@ class _PremiumCouponExperience extends StatelessWidget {
   });
 
   final bool loadingCatalog;
-  final bool loadingBestCoupon;
   final String? appliedCoupon;
   final double savingsAmount;
-  final List<Coupon> availableCoupons;
+  final List<Coupon> platformCoupons;
+  final List<Coupon> storeCoupons;
   final Coupon? bestCoupon;
   final TextEditingController customCodeController;
   final Future<void> Function(String code) onApplyCode;
@@ -4653,7 +4611,7 @@ class _PremiumCouponExperience extends StatelessWidget {
   Widget build(BuildContext context) {
     final appliedCode = appliedCoupon?.trim().toUpperCase() ?? '';
     Coupon? appliedCouponData;
-    for (final coupon in availableCoupons) {
+    for (final coupon in [...platformCoupons, ...storeCoupons]) {
       if (coupon.couponCode.toUpperCase() == appliedCode) {
         appliedCouponData = coupon;
         break;
@@ -4673,7 +4631,7 @@ class _PremiumCouponExperience extends StatelessWidget {
     final Coupon recommendation = bestCoupon != null &&
             bestCoupon!.couponCode.toUpperCase() != appliedCode
         ? bestCoupon!
-        : availableCoupons.firstWhere(
+        : [...platformCoupons, ...storeCoupons].firstWhere(
             (coupon) => coupon.couponCode.toUpperCase() != appliedCode,
             orElse: () => Coupon(
               id: '',
@@ -4695,13 +4653,14 @@ class _PremiumCouponExperience extends StatelessWidget {
         key: ValueKey<String>(
           [
             appliedCode,
-            availableCoupons.map((coupon) => coupon.couponCode).join('|'),
+            platformCoupons.map((coupon) => coupon.couponCode).join('|'),
+            storeCoupons.map((coupon) => coupon.couponCode).join('|'),
             recommendation.couponCode,
           ].join('::'),
         ),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (loadingCatalog || loadingBestCoupon) ...[
+          if (loadingCatalog) ...[
             const _LoadingCard(),
             const SizedBox(height: 10),
           ],
@@ -4723,19 +4682,47 @@ class _PremiumCouponExperience extends StatelessWidget {
             const SizedBox(height: 10),
           ],
           _SectionLabelRow(
-            title: 'Available Coupons',
+            title: 'Abianzo Offers',
             actionLabel: 'Refresh',
             onAction: onRefreshCoupons,
           ),
           const SizedBox(height: 10),
-          if (availableCoupons.isEmpty)
+          if (platformCoupons.isEmpty)
             _PremiumEmptyCouponCard(
               loading: loadingCatalog,
               onRefresh: onRefreshCoupons,
             )
           else
             Column(
-              children: availableCoupons
+              children: platformCoupons
+                  .take(3)
+                  .map(
+                    (coupon) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _PremiumCouponCard(
+                        coupon: coupon,
+                        isApplied: coupon.couponCode.toUpperCase() == appliedCode,
+                        onApply: () => onApplyCode(coupon.couponCode),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          const SizedBox(height: 8),
+          _SectionLabelRow(
+            title: 'Store Offers',
+            actionLabel: 'Refresh',
+            onAction: onRefreshCoupons,
+          ),
+          const SizedBox(height: 10),
+          if (storeCoupons.isEmpty)
+            _PremiumEmptyCouponCard(
+              loading: loadingCatalog,
+              onRefresh: onRefreshCoupons,
+            )
+          else
+            Column(
+              children: storeCoupons
                   .take(3)
                   .map(
                     (coupon) => Padding(

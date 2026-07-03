@@ -2485,7 +2485,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       (AdminWebSection.inventory, Icons.inventory_2_outlined, 'Inventory'),
       (AdminWebSection.fraud, Icons.security_rounded, 'Fraud'),
       (AdminWebSection.notifications, Icons.campaign_rounded, 'Notifications'),
-      (AdminWebSection.coupons, Icons.local_offer_rounded, 'Coupons'),
+      (AdminWebSection.coupons, Icons.local_offer_rounded, 'Platform Coupons'),
       (AdminWebSection.disputes, Icons.gavel_rounded, 'Disputes'),
       (AdminWebSection.operations, Icons.emergency_outlined, 'Operations'),
       (AdminWebSection.banners, Icons.view_carousel_outlined, 'Banners'),

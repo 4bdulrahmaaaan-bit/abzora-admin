@@ -141,7 +141,7 @@ class _AdminCouponsSectionState extends State<AdminCouponsSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Coupons & Promotions Center',
+                  'Platform Coupons',
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w800,
                     fontSize: 28,
@@ -162,7 +162,7 @@ class _AdminCouponsSectionState extends State<AdminCouponsSection> {
             ElevatedButton.icon(
               onPressed: _openCreateDialog,
               icon: const Icon(Icons.add),
-              label: const Text('Create Global Coupon'),
+              label: const Text('Create Platform Coupon'),
             ),
           ],
         ),
@@ -241,7 +241,7 @@ class _AdminCouponsSectionState extends State<AdminCouponsSection> {
               : _coupons.isEmpty
               ? const AbzioEmptyCard(
                   title: 'No coupons found',
-                  subtitle: 'Create a global coupon to start.',
+                  subtitle: 'Create a platform coupon to start.',
                 )
               : Card(
                   child: Column(

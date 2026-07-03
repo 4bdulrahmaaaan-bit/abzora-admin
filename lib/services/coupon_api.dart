@@ -27,11 +27,30 @@ class CouponApi {
     return payload as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> updateCoupon(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final payload = await _backendApiClient.put(
+      '/vendor/coupons/$id',
+      authenticated: true,
+      body: data,
+    );
+    return payload as Map<String, dynamic>;
+  }
+
   Future<void> updateCouponStatus(String id, String status) async {
     await _backendApiClient.post(
       '/vendor/coupons/$id/status',
       authenticated: true,
       body: {'status': status, '_method': 'PATCH'},
+    );
+  }
+
+  Future<void> deleteCoupon(String id) async {
+    await _backendApiClient.delete(
+      '/vendor/coupons/$id',
+      authenticated: true,
     );
   }
 }

@@ -875,10 +875,24 @@ class DatabaseService {
     required AppUser user,
     required double cartValue,
   }) async {
+    return (await getCouponCatalogForCheckout(
+      user: user,
+      cartValue: cartValue,
+    )).allCoupons;
+  }
+
+  Future<CouponCatalogBundle> getCouponCatalogForCheckout({
+    required AppUser user,
+    required double cartValue,
+    String? storeId,
+  }) async {
     if (_backendCommerce.isConfigured) {
-      return _backendCommerce.getAdminCoupons(cartValue: cartValue);
+      return _backendCommerce.getCouponCatalog(
+        cartValue: cartValue,
+        storeId: storeId,
+      );
     }
-    return const [];
+    return const CouponCatalogBundle();
   }
 
   String _couponCodePrefixForType(String type) {
@@ -902,141 +916,21 @@ class DatabaseService {
     return '$prefix$suffix';
   }
 
-  bool _isGrowthOfferActiveForCart(GrowthOffer offer, double cartValue) {
-    if (offer.isClaimed) {
-      return false;
-    }
-    final expiresAt = DateTime.tryParse(offer.expiresAt ?? '');
-    if (expiresAt != null && expiresAt.isBefore(DateTime.now())) {
-      return false;
-    }
-    return cartValue >= offer.minOrderValue;
-  }
-
-  double _effectiveOfferValue(GrowthOffer offer, double cartValue) {
-    final percentValue = cartValue * (offer.discountPercent / 100);
-    return max(offer.discountAmount, percentValue);
-  }
-
-  Future<GrowthOffer?> _findExistingEligibleCoupon({
-    required AppUser user,
-    required double cartValue,
-  }) async {
-    final offers = await getGrowthOffersForUser(user);
-    final eligible =
-        offers
-            .where((offer) => _isGrowthOfferActiveForCart(offer, cartValue))
-            .toList()
-          ..sort(
-            (a, b) => _effectiveOfferValue(
-              b,
-              cartValue,
-            ).compareTo(_effectiveOfferValue(a, cartValue)),
-          );
-    return eligible.isEmpty ? null : eligible.first;
-  }
-
-  Future<GrowthOffer?> getPersonalizedCouponForCheckout({
-    required AppUser user,
-    required double cartValue,
-  }) async {
-    if (cartValue <= 0) {
-      return null;
-    }
-
-    final existing = await _findExistingEligibleCoupon(
-      user: user,
-      cartValue: cartValue,
-    );
-    if (existing != null) {
-      return existing;
-    }
-
-    final summary = await getUserActivitySummary(user.id);
-    final now = DateTime.now();
-    final lastOrderAt = DateTime.tryParse(summary.lastOrderAt ?? '');
-    final daysSinceLastOrder = lastOrderAt == null
-        ? 999
-        : now.difference(lastOrderAt).inDays;
-    final isNewUser = summary.orderCount == 0 || summary.segment == 'new';
-    final isHighValueUser =
-        summary.orderCount >= 5 || summary.totalSpend >= 15000;
-
-    String? type;
-    String title = '';
-    String subtitle = '';
-    double discountAmount = 0;
-    double minOrderValue = 499;
-    bool autoApply = false;
-
-    if (isNewUser) {
-      type = 'new_user';
-      title = 'Special offer for you';
-      subtitle = 'Your first Abianzo order unlocks a premium welcome coupon.';
-      discountAmount = 100;
-      autoApply = cartValue >= 499;
-    } else if (summary.cartAbandoned) {
-      type = 'cart_recovery';
-      title = 'Your bag deserves a comeback';
-      subtitle = 'Complete this order soon and use a focused recovery reward.';
-      discountAmount = 75;
-      autoApply = cartValue >= 499;
-    } else if (daysSinceLastOrder > 7) {
-      type = 'winback';
-      title = 'A little welcome back reward';
-      subtitle = 'We saved a lighter offer to bring you back in style.';
-      discountAmount = 50;
-      autoApply = false;
-    } else if (isHighValueUser) {
-      type = 'high_value';
-      title = 'Private offer for a valued member';
-      subtitle = 'A small premium nudge for your next elevated checkout.';
-      discountAmount = 30;
-      autoApply = false;
-    }
-
-    if (type == null) {
-      return null;
-    }
-
-    final offer = GrowthOffer(
-      id: 'offer-coupon-${now.millisecondsSinceEpoch}',
-      userId: user.id,
-      type: type,
-      title: title,
-      subtitle: subtitle,
-      code: _generatePersonalizedCouponCode(type),
-      discountPercent: 0,
-      discountAmount: min(75, discountAmount),
-      minOrderValue: minOrderValue,
-      autoApply: autoApply,
-      createdAt: now.toIso8601String(),
-      expiresAt: now
-          .add(Duration(hours: type == 'new_user' ? 48 : 24))
-          .toIso8601String(),
-      metadata: {
-        'engine': 'ai_coupon',
-        'cartValue': cartValue,
-        'userType': isNewUser ? 'new' : 'repeat',
-      },
-    );
-    await _saveGrowthOffer(offer);
-    return offer;
-  }
-
   Future<Coupon?> validateCouponForUser({
     required AppUser user,
     required String code,
     required double cartValue,
+    String? storeId,
   }) async {
     final normalized = code.trim().toUpperCase();
     if (normalized.isEmpty) {
       return null;
     }
     if (_backendCommerce.isConfigured) {
-      return _backendCommerce.validateAdminCoupon(
+      return _backendCommerce.validateCouponForCheckout(
         code: normalized,
         cartValue: cartValue,
+        storeId: storeId,
       );
     }
     final coupons = await getCouponsForCheckout(user: user, cartValue: cartValue);

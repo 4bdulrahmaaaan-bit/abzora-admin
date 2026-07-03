@@ -414,6 +414,78 @@ class BackendCommerceService {
     return Coupon.fromMap(map, map['id']?.toString() ?? '');
   }
 
+  Future<Coupon?> validateCouponForCheckout({
+    required String code,
+    required double cartValue,
+    String? storeId,
+  }) async {
+    final body = <String, dynamic>{
+      'code': code,
+      'cartValue': cartValue,
+      if ((storeId ?? '').trim().isNotEmpty) 'storeId': storeId!.trim(),
+    };
+    final payload = await _client.post(
+      '/auth/coupons/validate',
+      authenticated: true,
+      body: body,
+    );
+    if (payload == null) {
+      return null;
+    }
+    final map = Map<String, dynamic>.from(payload as Map);
+    return Coupon.fromMap(map, map['id']?.toString() ?? '');
+  }
+
+  Future<CouponCatalogBundle> getCouponCatalog({
+    double cartValue = 0,
+    String? storeId,
+  }) async {
+    final queryParams = <String, String>{};
+    if (cartValue > 0) {
+      queryParams['cartValue'] = cartValue.toStringAsFixed(2);
+    }
+    if ((storeId ?? '').trim().isNotEmpty) {
+      queryParams['storeId'] = storeId!.trim();
+    }
+    final query = queryParams.isEmpty
+        ? ''
+        : '?${Uri(queryParameters: queryParams).query}';
+    final payload = await _client.get(
+      '/auth/coupons/catalog$query',
+      authenticated: true,
+    );
+    final map = payload is Map<String, dynamic>
+        ? payload
+        : Map<String, dynamic>.from(payload as Map);
+    final data = Map<String, dynamic>.from(map['data'] as Map? ?? const {});
+    final platformCoupons = (data['platformCoupons'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) {
+          final couponMap = Map<String, dynamic>.from(item);
+          return Coupon.fromMap(couponMap, couponMap['id']?.toString() ?? '');
+        })
+        .toList();
+    final storeCoupons = (data['storeCoupons'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) {
+          final couponMap = Map<String, dynamic>.from(item);
+          return Coupon.fromMap(couponMap, couponMap['id']?.toString() ?? '');
+        })
+        .toList();
+    final bestCouponMap = data['bestCoupon'];
+    final bestCoupon = bestCouponMap is Map
+        ? Coupon.fromMap(
+            Map<String, dynamic>.from(bestCouponMap),
+            bestCouponMap['id']?.toString() ?? '',
+          )
+        : null;
+    return CouponCatalogBundle(
+      platformCoupons: platformCoupons,
+      storeCoupons: storeCoupons,
+      bestCoupon: bestCoupon,
+    );
+  }
+
   Future<Map<String, dynamic>> recommendSize({
     required double heightCm,
     required double weightKg,
