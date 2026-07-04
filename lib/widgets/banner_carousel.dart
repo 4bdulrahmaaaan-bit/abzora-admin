@@ -184,6 +184,8 @@ class _BannerCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        splashColor: Colors.white.withValues(alpha: 0.06),
+        highlightColor: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.zero,
         child: ClipRect(
           child: Stack(
@@ -219,77 +221,6 @@ class _BannerCard extends StatelessWidget {
                     ),
                   );
                 },
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomLeft,
-                      end: Alignment.topRight,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.82),
-                        Colors.black.withValues(alpha: 0.28),
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.55, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 18,
-                right: 18,
-                bottom: 18,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            banner.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.05,
-                                ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            banner.subtitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.86),
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: onTap,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AbzioTheme.accentColor,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Text(banner.ctaText),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),

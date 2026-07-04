@@ -21,18 +21,21 @@ class DeliveryService {
   }) async {
     try {
       if (_backend.isConfigured &&
-          address.latitude != null &&
-          address.longitude != null) {
+          (address.latitude != null ||
+              address.longitude != null ||
+              address.pincode.trim().isNotEmpty)) {
         final payload = await _backend.getProductServiceability(
           productId: product.id,
-          latitude: address.latitude!,
-          longitude: address.longitude!,
+          latitude: address.latitude,
+          longitude: address.longitude,
           pincode: address.pincode,
         );
         return ProductServiceability.fromMap(payload);
       }
     } catch (_) {
-      // Keep serviceability deterministic: never guess from product flags.
+      // Surface true delivery API failures so the UI can show Retry instead
+      // of incorrectly treating the product as unavailable.
+      rethrow;
     }
 
     return ProductServiceability(

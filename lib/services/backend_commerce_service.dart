@@ -690,11 +690,13 @@ class BackendCommerceService {
       authenticated: includeInactive,
     );
     final items = payload is List ? payload : const [];
-    return items
+    final banners = items
         .whereType<Map>()
         .map((item) => BannerModel.fromMap(Map<String, dynamic>.from(item)))
-        .toList()
-      ..sort((left, right) => left.order.compareTo(right.order));
+        .where((banner) => includeInactive || banner.active)
+        .toList();
+    banners.sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
+    return banners;
   }
 
   Future<BannerModel> createBanner(BannerModel banner) async {
@@ -1091,18 +1093,19 @@ class BackendCommerceService {
 
   Future<Map<String, dynamic>> getProductServiceability({
     required String productId,
-    required double latitude,
-    required double longitude,
+    double? latitude,
+    double? longitude,
     String pincode = '',
   }) async {
+    final queryParameters = <String, String>{
+      'product_id': productId,
+      if (latitude != null) 'lat': latitude.toString(),
+      if (longitude != null) 'lng': longitude.toString(),
+      if (pincode.trim().isNotEmpty) 'pincode': pincode.trim(),
+    };
     final payload = await _client.get(
       '/logistics/delivery/check',
-      queryParameters: {
-        'product_id': productId,
-        'lat': latitude.toString(),
-        'lng': longitude.toString(),
-        if (pincode.trim().isNotEmpty) 'pincode': pincode.trim(),
-      },
+      queryParameters: queryParameters,
     );
     return Map<String, dynamic>.from(payload as Map);
   }

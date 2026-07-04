@@ -716,13 +716,12 @@ class BannerFormModal extends StatefulWidget {
 class _BannerFormModalState extends State<BannerFormModal> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final _subtitleController = TextEditingController();
-  final _ctaController = TextEditingController();
-  final _redirectIdController = TextEditingController();
+  final _targetIdController = TextEditingController();
+  final _deeplinkController = TextEditingController();
   final _orderController = TextEditingController();
   final _picker = ImagePicker();
 
-  String _redirectType = 'store';
+  String _targetType = 'category';
   bool _isActive = true;
   XFile? _pickedImage;
   Uint8List? _pickedPreview;
@@ -733,14 +732,12 @@ class _BannerFormModalState extends State<BannerFormModal> {
     final banner = widget.initialBanner;
     if (banner != null) {
       _titleController.text = banner.title;
-      _subtitleController.text = banner.subtitle;
-      _ctaController.text = banner.ctaText;
-      _redirectIdController.text = banner.redirectId;
-      _orderController.text = banner.order.toString();
-      _redirectType = banner.redirectType;
-      _isActive = banner.isActive;
+      _targetIdController.text = banner.targetId;
+      _deeplinkController.text = banner.deeplink;
+      _orderController.text = banner.sortOrder.toString();
+      _targetType = banner.targetType;
+      _isActive = banner.active;
     } else {
-      _ctaController.text = 'Shop Now';
       _orderController.text = '0';
     }
   }
@@ -748,9 +745,8 @@ class _BannerFormModalState extends State<BannerFormModal> {
   @override
   void dispose() {
     _titleController.dispose();
-    _subtitleController.dispose();
-    _ctaController.dispose();
-    _redirectIdController.dispose();
+    _targetIdController.dispose();
+    _deeplinkController.dispose();
     _orderController.dispose();
     super.dispose();
   }
@@ -791,14 +787,11 @@ class _BannerFormModalState extends State<BannerFormModal> {
           id: widget.initialBanner?.id ?? '',
           imageUrl: widget.initialBanner?.imageUrl ?? '',
           title: _titleController.text.trim(),
-          subtitle: _subtitleController.text.trim(),
-          ctaText: _ctaController.text.trim().isEmpty
-              ? 'Shop Now'
-              : _ctaController.text.trim(),
-          redirectType: _redirectType,
-          redirectId: _redirectIdController.text.trim(),
-          order: int.tryParse(_orderController.text.trim()) ?? 0,
-          isActive: _isActive,
+          targetType: _targetType,
+          targetId: _targetIdController.text.trim(),
+          deeplink: _deeplinkController.text.trim(),
+          sortOrder: int.tryParse(_orderController.text.trim()) ?? 0,
+          active: _isActive,
         ),
         imageFile: _pickedImage,
       ),
@@ -884,7 +877,7 @@ class _BannerFormModalState extends State<BannerFormModal> {
                 TextFormField(
                   controller: _titleController,
                   decoration: const InputDecoration(
-                    labelText: 'Title',
+                    labelText: 'Title (admin only)',
                     hintText: 'Top-rated stores around you',
                   ),
                   validator: (value) => value == null || value.trim().isEmpty
@@ -892,23 +885,14 @@ class _BannerFormModalState extends State<BannerFormModal> {
                       : null,
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _subtitleController,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Subtitle',
-                    hintText: 'Handpicked fashion destinations',
-                  ),
-                ),
-                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
                       child: TextFormField(
-                        controller: _ctaController,
+                        controller: _targetIdController,
                         decoration: const InputDecoration(
-                          labelText: 'CTA text',
-                          hintText: 'Shop Now',
+                          labelText: 'Destination ID',
+                          hintText: 'Category, collection, brand, product, campaign id',
                         ),
                       ),
                     ),
@@ -925,30 +909,55 @@ class _BannerFormModalState extends State<BannerFormModal> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  initialValue: _redirectType,
-                  decoration: const InputDecoration(labelText: 'Redirect type'),
+                  initialValue: _targetType,
+                  decoration: const InputDecoration(
+                    labelText: 'Destination type',
+                  ),
                   items: const [
-                    DropdownMenuItem(value: 'product', child: Text('product')),
-                    DropdownMenuItem(value: 'store', child: Text('store')),
                     DropdownMenuItem(
                       value: 'category',
-                      child: Text('category'),
+                      child: Text('Category'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'collection',
+                      child: Text('Collection'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'brand',
+                      child: Text('Brand'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'product_listing',
+                      child: Text('Product Listing'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'campaign',
+                      child: Text('Campaign'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'product',
+                      child: Text('Single Product'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'custom_deep_link',
+                      child: Text('Custom Deep Link'),
                     ),
                   ],
                   onChanged: (value) {
                     if (value == null) {
                       return;
                     }
-                    setState(() => _redirectType = value);
+                    setState(() => _targetType = value);
                   },
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
-                  controller: _redirectIdController,
+                  controller: _deeplinkController,
                   decoration: const InputDecoration(
-                    labelText: 'Redirect ID',
-                    hintText: 'Product/store/category ID',
+                    labelText: 'Custom deep link',
+                    hintText: '/route or app destination',
                   ),
+                  enabled: _targetType == 'custom_deep_link',
                 ),
                 const SizedBox(height: 12),
                 SwitchListTile.adaptive(

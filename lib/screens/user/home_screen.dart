@@ -20,6 +20,7 @@ import '../../providers/location_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../services/backend_api_client.dart';
 import '../../services/database_service.dart';
+import '../../services/image_url_service.dart';
 import '../../theme.dart';
 import '../../utils/soft_auth_gate.dart';
 import '../../widgets/global_skeletons.dart';
@@ -1406,10 +1407,24 @@ class _HomeContentState extends State<HomeContent>
     required List<NearbyStore> stores,
     required String selectedLocation,
   }) {
-    switch (banner.redirectType) {
+    final targetType = _normalizeBannerTargetType(banner.targetType);
+    final targetId = banner.targetId.trim();
+    final deeplink = banner.deeplink.trim();
+
+    if (targetType == 'custom_deep_link' && deeplink.isNotEmpty) {
+      _openBannerDeepLink(
+        deeplink,
+        products: products,
+        selectedLocation: selectedLocation,
+      );
+      return;
+    }
+
+    switch (targetType) {
       case 'product':
+      case 'single_product':
         final product = products.cast<Product?>().firstWhere(
-          (item) => item?.id == banner.redirectId,
+          (item) => item?.id == targetId,
           orElse: () => null,
         );
         if (product != null) {
@@ -1421,22 +1436,11 @@ class _HomeContentState extends State<HomeContent>
           );
           return;
         }
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => SearchScreen(
-              allProducts: products,
-              selectedLocation: selectedLocation,
-              initialQuery: banner.redirectId,
-            ),
-          ),
-        );
+        _showBannerDestinationUnavailableMessage();
         return;
       case 'store':
         final store = stores.cast<NearbyStore?>().firstWhere(
-          (item) => banner.redirectId.isNotEmpty
-              ? item?.store.id == banner.redirectId
-              : true,
+          (item) => item?.store.id == targetId,
           orElse: () => null,
         );
         if (store != null) {
@@ -1447,22 +1451,67 @@ class _HomeContentState extends State<HomeContent>
             ),
           );
         } else {
-          showLocationBottomSheet(context);
+          _showBannerDestinationUnavailableMessage();
         }
         return;
-      case 'category':
+      case 'collection':
+      case 'brand':
+      case 'campaign':
+      case 'sale_campaign':
+      case 'product_listing':
       default:
+        if (targetId.isEmpty && deeplink.isEmpty) {
+          _showBannerDestinationUnavailableMessage();
+          return;
+        }
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => SearchScreen(
               allProducts: products,
               selectedLocation: selectedLocation,
-              initialQuery: banner.redirectId,
+              initialQuery: targetId.isNotEmpty ? targetId : deeplink,
             ),
           ),
         );
     }
+  }
+
+  String _normalizeBannerTargetType(String targetType) {
+    return targetType
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s-]+'), '_');
+  }
+
+  void _openBannerDeepLink(
+    String deeplink, {
+    required List<Product> products,
+    required String selectedLocation,
+  }) {
+    if (deeplink.startsWith('/')) {
+      Navigator.pushNamed(context, deeplink);
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SearchScreen(
+          allProducts: products,
+          selectedLocation: selectedLocation,
+          initialQuery: deeplink,
+        ),
+      ),
+    );
+  }
+
+  void _showBannerDestinationUnavailableMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text('This campaign is no longer available.'),
+      ),
+    );
   }
 
   Widget _buildStoresSection(
@@ -3219,6 +3268,7 @@ class _HomeBannerState extends State<HomeBanner> {
   late final Future<List<BannerModel>> _bannersFuture;
   Timer? _autoSlideTimer;
   int _autoSlideCount = 0;
+  String? _lastPrecachedImageUrl;
 
   int _currentIndex = 0;
 
@@ -3302,8 +3352,10 @@ class _HomeBannerState extends State<HomeBanner> {
       final banners = items
           .whereType<Map>()
           .map((item) => BannerModel.fromMap(Map<String, dynamic>.from(item)))
-          .where((banner) => banner.imageUrl.trim().isNotEmpty)
+          .where((banner) =>
+              banner.imageUrl.trim().isNotEmpty && banner.active)
           .toList();
+      banners.sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
       if (banners.isNotEmpty) {
         return banners;
       }
@@ -3313,6 +3365,28 @@ class _HomeBannerState extends State<HomeBanner> {
     return widget.fallbackBanners.isNotEmpty
         ? widget.fallbackBanners
         : _staticFallbackBanners;
+  }
+
+  void _precacheFirstBanner(List<BannerModel> banners) {
+    if (!mounted || banners.isEmpty) {
+      return;
+    }
+    final firstUrl = banners.first.imageUrl.trim();
+    if (firstUrl.isEmpty || firstUrl == _lastPrecachedImageUrl) {
+      return;
+    }
+    _lastPrecachedImageUrl = firstUrl;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final optimizedUrl = ImageUrlService.optimizeForDelivery(
+        firstUrl,
+        width: 1200,
+        quality: 'good',
+      );
+      precacheImage(CachedNetworkImageProvider(optimizedUrl), context);
+    });
   }
 
   @override
@@ -3325,6 +3399,7 @@ class _HomeBannerState extends State<HomeBanner> {
                   ? widget.fallbackBanners
                   : _staticFallbackBanners)
             : snapshot.data!;
+        _precacheFirstBanner(slides);
         _ensureAutoSlide(slides.length);
 
         if (snapshot.connectionState == ConnectionState.waiting &&
@@ -3338,134 +3413,47 @@ class _HomeBannerState extends State<HomeBanner> {
               height: 360,
               child: PageView.builder(
                 controller: _pageController,
+                padEnds: false,
                 itemCount: slides.length,
                 onPageChanged: (index) => setState(() => _currentIndex = index),
                 itemBuilder: (context, index) {
                   final slide = slides[index];
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: 1, end: 1.03),
-                        duration: const Duration(seconds: 14),
-                        curve: Curves.easeInOut,
-                        builder: (context, value, child) =>
-                            Transform.scale(scale: value, child: child),
-                        child: CachedNetworkImage(
-                          imageUrl: slide.imageUrl,
-                          fit: BoxFit.cover,
-                          fadeInDuration: Duration.zero,
-                          fadeOutDuration: Duration.zero,
-                          imageBuilder: (context, imageProvider) {
-                            return AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 250),
-                              child: Image(
-                                key: ValueKey(slide.imageUrl),
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => widget.onBannerTap(slide),
+                      splashColor: Colors.white.withValues(alpha: 0.05),
+                      highlightColor: Colors.white.withValues(alpha: 0.02),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CachedNetworkImage(
+                            imageUrl: slide.imageUrl,
+                            fit: BoxFit.cover,
+                            fadeInDuration: const Duration(milliseconds: 250),
+                            fadeOutDuration: Duration.zero,
+                            imageBuilder: (context, imageProvider) {
+                              return Image(
                                 image: imageProvider,
                                 fit: BoxFit.cover,
-                              ),
-                            );
-                          },
-                          placeholder: (context, url) => const BannerShimmer(height: 360),
-                          errorWidget: (context, url, error) => Container(color: const Color(0xFFFAFAF7)),
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.16),
-                              Colors.black.withValues(alpha: 0.22),
-                              Colors.black.withValues(alpha: 0.78),
-                            ],
+                                width: double.infinity,
+                                height: double.infinity,
+                              );
+                            },
+                            placeholder: (context, url) =>
+                                const BannerShimmer(height: 360),
+                            errorWidget: (context, url, error) => Container(
+                              color: const Color(0xFFFAFAF7),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.92),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: const Text(
-                                'NEW SEASON',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.6,
-                                  color: Color(0xFF1A1A1A),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            Text(
-                              slide.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    fontSize: 28,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1.08,
-                                  ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              slide.subtitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.86),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                            const SizedBox(height: 16),
-                            FilledButton(
-                              onPressed: () => widget.onBannerTap(slide),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFFC6A769),
-                                foregroundColor: const Color(0xFF111111),
-                                visualDensity: VisualDensity.compact,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                              ),
-                              child: Text(
-                                slide.ctaText.isEmpty
-                                    ? 'Shop Now'
-                                    : slide.ctaText,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(

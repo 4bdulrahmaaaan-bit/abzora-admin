@@ -4,51 +4,63 @@ class BannerModel {
   final String title;
   final String subtitle;
   final String ctaText;
-  final String redirectType;
-  final String redirectId;
-  final int order;
-  final bool isActive;
+  final String targetType;
+  final String targetId;
+  final String deeplink;
+  final int sortOrder;
+  final bool active;
 
   const BannerModel({
     this.id = '',
     required this.imageUrl,
     required this.title,
-    required this.subtitle,
-    required this.ctaText,
-    required this.redirectType,
-    required this.redirectId,
-    this.order = 0,
-    this.isActive = true,
-  });
+    this.subtitle = '',
+    this.ctaText = '',
+    String? targetType,
+    String? targetId,
+    this.deeplink = '',
+    int? sortOrder,
+    bool? active,
+    String? redirectType,
+    String? redirectId,
+    int? order,
+    bool? isActive,
+  })  : targetType = targetType ?? redirectType ?? 'category',
+        targetId = targetId ?? redirectId ?? '',
+        sortOrder = sortOrder ?? order ?? 0,
+        active = active ?? isActive ?? true;
 
-  factory BannerModel.fromMap(Map<String, dynamic> map) {
-    return BannerModel(
-      id: map['id']?.toString() ?? map['_id']?.toString() ?? '',
-      imageUrl: map['image']?.toString() ?? map['imageUrl']?.toString() ?? '',
-      title: map['title']?.toString() ?? '',
-      subtitle: map['subtitle']?.toString() ?? '',
-      ctaText: map['ctaText']?.toString() ?? 'View Stores',
-      redirectType: map['redirectType']?.toString() ?? 'store',
-      redirectId: map['redirectId']?.toString() ?? '',
-      order: int.tryParse(map['order']?.toString() ?? '') ?? 0,
-      isActive: map['isActive'] != false,
-    );
-  }
+  String get redirectType => targetType;
+  String get redirectId => targetId;
+  int get order => sortOrder;
+  bool get isActive => active;
 
-  Map<String, dynamic> toMap() {
-    return {
-      if (id.isNotEmpty) 'id': id,
-      'imageUrl': imageUrl,
-      'image': imageUrl,
-      'title': title,
-      'subtitle': subtitle,
-      'ctaText': ctaText,
-      'redirectType': redirectType,
-      'redirectId': redirectId,
-      'order': order,
-      'isActive': isActive,
-    };
-  }
+  String get subtitleLabel => subtitle;
+  String get ctaTextLabel => ctaText;
+
+  String get targetTypeLabel => targetType;
+
+  String get destinationLabel => targetId;
+
+  String get deeplinkLabel => deeplink;
+
+  String get titleLabel => title;
+
+  String get bannerTitle => title;
+
+  String get bannerSubtitle => subtitle;
+
+  String get bannerCtaText => ctaText;
+
+  String get bannerTargetType => targetType;
+
+  String get bannerTargetId => targetId;
+
+  String get bannerDeeplink => deeplink;
+
+  int get bannerSortOrder => sortOrder;
+
+  bool get bannerActive => active;
 
   BannerModel copyWith({
     String? id,
@@ -56,6 +68,11 @@ class BannerModel {
     String? title,
     String? subtitle,
     String? ctaText,
+    String? targetType,
+    String? targetId,
+    String? deeplink,
+    int? sortOrder,
+    bool? active,
     String? redirectType,
     String? redirectId,
     int? order,
@@ -67,11 +84,59 @@ class BannerModel {
       title: title ?? this.title,
       subtitle: subtitle ?? this.subtitle,
       ctaText: ctaText ?? this.ctaText,
-      redirectType: redirectType ?? this.redirectType,
-      redirectId: redirectId ?? this.redirectId,
-      order: order ?? this.order,
-      isActive: isActive ?? this.isActive,
+      targetType: targetType ?? redirectType ?? this.targetType,
+      targetId: targetId ?? redirectId ?? this.targetId,
+      deeplink: deeplink ?? this.deeplink,
+      sortOrder: sortOrder ?? order ?? this.sortOrder,
+      active: active ?? isActive ?? this.active,
     );
+  }
+
+  factory BannerModel.fromMap(Map<String, dynamic> map) {
+    final canonicalTargetType =
+        map['targetType']?.toString() ?? map['redirectType']?.toString();
+    final canonicalTargetId =
+        map['targetId']?.toString() ?? map['redirectId']?.toString();
+    final canonicalSortOrder =
+        int.tryParse(map['sortOrder']?.toString() ?? '') ??
+        int.tryParse(map['order']?.toString() ?? '') ??
+        0;
+    final canonicalActive =
+        map['active'] is bool ? map['active'] as bool : map['isActive'] != false;
+    return BannerModel(
+      id: map['id']?.toString() ?? map['_id']?.toString() ?? '',
+      imageUrl: map['image']?.toString() ?? map['imageUrl']?.toString() ?? '',
+      title: map['title']?.toString() ?? '',
+      subtitle: map['subtitle']?.toString() ?? '',
+      ctaText: map['ctaText']?.toString() ?? '',
+      targetType: canonicalTargetType?.isNotEmpty == true
+          ? canonicalTargetType
+          : 'category',
+      targetId: canonicalTargetId ?? '',
+      deeplink: map['deeplink']?.toString() ?? '',
+      sortOrder: canonicalSortOrder,
+      active: canonicalActive,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      if (id.isNotEmpty) 'id': id,
+      'imageUrl': imageUrl,
+      'image': imageUrl,
+      'title': title,
+      'subtitle': subtitle,
+      'ctaText': ctaText,
+      'targetType': targetType,
+      'targetId': targetId,
+      'deeplink': deeplink,
+      'sortOrder': sortOrder,
+      'active': active,
+      'redirectType': targetType,
+      'redirectId': targetId,
+      'order': sortOrder,
+      'isActive': active,
+    };
   }
 }
 

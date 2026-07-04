@@ -37,6 +37,14 @@ import 'order_success_screen.dart';
 import 'tbyb/tbyb_product_selection_screen.dart';
 import 'store_detail_screen.dart';
 
+enum _DeliveryAvailabilityState {
+  idle,
+  loading,
+  ready,
+  noAddress,
+  error,
+}
+
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
 
@@ -61,6 +69,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   late final AnimationController _cartFlightController;
   late final AnimationController _cartPulseController;
   late final Animation<double> _cartPulseScale;
+  late final AuthProvider _authProvider;
   int _imageIndex = 0;
   int _selectedColorIndex = 0;
   final GlobalKey _cartIconKey = GlobalKey();
@@ -69,9 +78,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   final Size _cartFlightSize = const Size(88, 112);
   final bool _showCartFlight = false;
   final DeliveryService _deliveryService = DeliveryService();
+  final DatabaseService _addressBook = DatabaseService();
+  UserAddress? _deliveryAddress;
   ProductServiceability? _serviceability;
   String _serviceabilityCacheKey = '';
-  String _lastServiceabilityAddressKey = '';
+  String _deliveryAddressKey = '';
+  _DeliveryAvailabilityState _deliveryAvailabilityState =
+      _DeliveryAvailabilityState.idle;
+  String? _deliveryAvailabilityError;
   String _ctaDecisionType = 'BUY_NOW_PRIORITY';
   int _decisionFitConfidence = 88;
   String _experienceDecisionId = '';
@@ -89,6 +103,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   @override
   void initState() {
     super.initState();
+    _authProvider = context.read<AuthProvider>();
+    _authProvider.addListener(_handleAuthChanged);
     _experienceSessionId =
         'pdp-${DateTime.now().millisecondsSinceEpoch}-${widget.product.id}';
     _imageController = PageController();
@@ -120,10 +136,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       Future.microtask(() => _resolveAccentColor(widget.product.images));
     }
     Future.microtask(_loadData);
+    Future.microtask(_bootstrapDeliveryContext);
   }
 
   @override
   void dispose() {
+    _authProvider.removeListener(_handleAuthChanged);
     _countdownTimer?.cancel();
     _liveProductRefreshTimer?.cancel();
     _imageController.dispose();
@@ -134,29 +152,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
   @override
   bool get wantKeepAlive => true;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final address = _serviceabilityAddressSnapshot();
-    final addressKey = address == null
-        ? ''
-        : _serviceabilityCacheSignature(_product, address);
-    if (addressKey == _lastServiceabilityAddressKey) {
-      return;
-    }
-    _lastServiceabilityAddressKey = addressKey;
-    if (address == null) {
-      if (_serviceability != null || _serviceabilityCacheKey.isNotEmpty) {
-        setState(() {
-          _serviceability = null;
-          _serviceabilityCacheKey = '';
-        });
-      }
-      return;
-    }
-    unawaited(_refreshServiceability(force: true));
-  }
 
   Future<void> _loadData() async {
     final currentUser = context.read<AuthProvider>().user;
@@ -180,7 +175,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       ),
     );
     unawaited(_loadCtaDecision());
-    unawaited(_refreshServiceability());
   }
 
   void _startLiveProductRefresh() {
@@ -350,33 +344,164 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
   Product get _product => _resolvedProduct ?? widget.product;
 
-  AppUser? _currentUser() => context.read<AuthProvider>().user;
+  void _handleAuthChanged() {
+    if (!mounted) {
+      return;
+    }
+    unawaited(_bootstrapDeliveryContext(force: true));
+  }
 
-  UserAddress? _serviceabilityAddressSnapshot() {
-    final user = _currentUser();
+  Future<void> _bootstrapDeliveryContext({bool force = false}) async {
+    if (!mounted) {
+      return;
+    }
+    final user = _authProvider.user;
+    if (user == null) {
+      final profileAddress = _fallbackAddressFromUser(user);
+      if (_deliveryAvailabilityState != _DeliveryAvailabilityState.noAddress ||
+          _deliveryAddress != null ||
+          _serviceability != null ||
+          _deliveryAvailabilityError != null) {
+        setState(() {
+          _deliveryAddress = null;
+          _deliveryAddressKey = '';
+          _serviceability = null;
+          _serviceabilityCacheKey = '';
+          _deliveryAvailabilityState = _DeliveryAvailabilityState.noAddress;
+          _deliveryAvailabilityError = null;
+        });
+      }
+      if (profileAddress == null) {
+        return;
+      }
+      return;
+    }
+
+    if (_deliveryAvailabilityState != _DeliveryAvailabilityState.loading) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _deliveryAvailabilityState = _DeliveryAvailabilityState.loading;
+        _deliveryAvailabilityError = null;
+      });
+    }
+
+    UserAddress? resolvedAddress;
+    try {
+      final savedAddresses = await _addressBook.getUserAddresses(user.id);
+      resolvedAddress = _resolveDefaultDeliveryAddress(user, savedAddresses);
+    } catch (error) {
+      debugPrint('PDP saved address load failed: $error');
+      resolvedAddress = _fallbackAddressFromUser(user);
+    }
+
+    if (!mounted) {
+      return;
+    }
+    if (resolvedAddress == null) {
+      setState(() {
+        _deliveryAddress = null;
+        _deliveryAddressKey = '';
+        _serviceability = null;
+        _serviceabilityCacheKey = '';
+        _deliveryAvailabilityState = _DeliveryAvailabilityState.noAddress;
+        _deliveryAvailabilityError = null;
+      });
+      return;
+    }
+
+    final signature = _deliveryAddressSignature(resolvedAddress);
+    final changed = force || signature != _deliveryAddressKey;
+    if (changed) {
+      setState(() {
+        _deliveryAddress = resolvedAddress;
+        _deliveryAddressKey = signature;
+        _deliveryAvailabilityState = _DeliveryAvailabilityState.loading;
+        _deliveryAvailabilityError = null;
+      });
+    }
+    await _refreshServiceability(force: true);
+  }
+
+  UserAddress? _resolveDefaultDeliveryAddress(
+    AppUser user,
+    List<UserAddress> addresses,
+  ) {
+    if (addresses.isNotEmpty) {
+      final preferred = addresses.firstWhere(
+        (address) => address.type.trim().toLowerCase() == 'home',
+        orElse: () => addresses.first,
+      );
+      if (preferred.pincode.trim().isNotEmpty ||
+          preferred.latitude != null ||
+          preferred.longitude != null) {
+        return preferred;
+      }
+      for (final address in addresses) {
+        if (address.pincode.trim().isNotEmpty ||
+            address.latitude != null ||
+            address.longitude != null) {
+          return address;
+        }
+      }
+      return _fallbackAddressFromUser(user);
+    }
+    return _fallbackAddressFromUser(user);
+  }
+
+  UserAddress? _fallbackAddressFromUser(AppUser? user) {
     if (user == null) {
       return null;
     }
-    final addressLine = [
-      user.address?.trim() ?? '',
-      user.area?.trim() ?? '',
-    ].where((item) => item.isNotEmpty).join(', ');
+    final addressLine = user.address?.trim() ?? '';
+    final pincodeMatch = RegExp(r'\b\d{6}\b').firstMatch(addressLine);
+    if (pincodeMatch == null && user.latitude == null && user.longitude == null) {
+      return null;
+    }
     return UserAddress(
-      id: user.id,
+      id: 'profile-address',
       userId: user.id,
-      name: user.name,
+      name: user.name.trim().isEmpty ? 'Abianzo Member' : user.name.trim(),
       phone: user.phone ?? '',
-      addressLine: addressLine.isEmpty ? user.address?.trim() ?? '' : addressLine,
-      city: user.city?.trim() ?? '',
+      addressLine: addressLine,
+      city: user.city?.trim().isNotEmpty == true
+          ? user.city!.trim()
+          : (user.area?.trim().isNotEmpty == true ? user.area!.trim() : ''),
       state: '',
-      pincode: '',
+      pincode: pincodeMatch?.group(0) ?? '',
       houseDetails: '',
       landmark: user.area?.trim() ?? '',
       locality: user.area?.trim() ?? '',
       latitude: user.latitude,
       longitude: user.longitude,
-      createdAt: user.createdAt ?? DateTime.now().toIso8601String(),
+      type: 'home',
+      createdAt:
+          user.locationUpdatedAt ?? user.createdAt ?? DateTime.now().toIso8601String(),
     );
+  }
+
+  String _deliveryAddressSignature(UserAddress address) {
+    return [
+      address.id,
+      address.userId,
+      address.addressLine.trim(),
+      address.locality.trim(),
+      address.city.trim(),
+      address.pincode.trim(),
+      address.latitude?.toStringAsFixed(5) ?? 'na',
+      address.longitude?.toStringAsFixed(5) ?? 'na',
+    ].join('|');
+  }
+
+  AppUser? _currentUser() => context.read<AuthProvider>().user;
+
+  UserAddress? _serviceabilityAddressSnapshot() {
+    final address = _deliveryAddress;
+    if (address != null) {
+      return address;
+    }
+    return _fallbackAddressFromUser(_currentUser());
   }
 
   String _serviceabilityCacheSignature(Product product, UserAddress address) {
@@ -441,9 +566,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   String _serviceabilityEtaLabel() {
+    final state = _deliveryAvailabilityState;
+    if (state == _DeliveryAvailabilityState.noAddress) {
+      return 'Set delivery location';
+    }
+    if (state == _DeliveryAvailabilityState.loading) {
+      return 'Checking delivery...';
+    }
+    if (state == _DeliveryAvailabilityState.error) {
+      return 'Unable to check delivery';
+    }
     final serviceability = _serviceability;
     if (serviceability == null) {
-      return 'Checking';
+      return 'Set delivery location';
     }
     if (!serviceability.isDeliverable) {
       return 'Unavailable';
@@ -468,9 +603,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       ).format(value);
 
   String _serviceabilityHeadline() {
+    final state = _deliveryAvailabilityState;
+    if (state == _DeliveryAvailabilityState.noAddress) {
+      return 'Set delivery location';
+    }
+    if (state == _DeliveryAvailabilityState.loading) {
+      return 'Checking delivery...';
+    }
+    if (state == _DeliveryAvailabilityState.error) {
+      return 'Unable to check delivery';
+    }
     final serviceability = _serviceability;
     if (serviceability == null) {
-      return 'Checking delivery availability';
+      return 'Set delivery location';
     }
     if (!serviceability.isDeliverable) {
       return 'Currently unavailable for your location';
@@ -482,9 +627,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   String _serviceabilityDetails() {
+    final state = _deliveryAvailabilityState;
+    if (state == _DeliveryAvailabilityState.noAddress) {
+      return 'Choose a delivery location to check availability.';
+    }
+    if (state == _DeliveryAvailabilityState.loading) {
+      return 'Checking delivery...';
+    }
+    if (state == _DeliveryAvailabilityState.error) {
+      return 'Unable to check delivery. Tap Retry.';
+    }
     final serviceability = _serviceability;
     if (serviceability == null) {
-      return 'Fetching delivery options...';
+      return 'Choose a delivery location to check availability.';
     }
     if (!serviceability.isDeliverable) {
       return 'Currently unavailable for your location.';
@@ -517,6 +672,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       setState(() {
         _serviceability = null;
         _serviceabilityCacheKey = '';
+        _deliveryAvailabilityState = _DeliveryAvailabilityState.noAddress;
+        _deliveryAvailabilityError = null;
       });
       return;
     }
@@ -525,27 +682,47 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     if (!force && _serviceabilityCacheKey == cacheKey && _serviceability != null) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _deliveryAvailabilityState = _DeliveryAvailabilityState.loading;
+      _deliveryAvailabilityError = null;
+    });
     try {
       final serviceability = await _deliveryService.getServiceability(
         product: product,
         address: address,
-      );
+      ).timeout(const Duration(seconds: 8));
       if (!mounted) {
         return;
       }
       setState(() {
         _serviceability = serviceability;
         _serviceabilityCacheKey = cacheKey;
+        _deliveryAvailabilityState = _DeliveryAvailabilityState.ready;
+        _deliveryAvailabilityError = null;
       });
-    } catch (_) {
+    } on TimeoutException catch (error) {
       if (!mounted) {
         return;
       }
       setState(() {
         _serviceability = null;
         _serviceabilityCacheKey = cacheKey;
+        _deliveryAvailabilityState = _DeliveryAvailabilityState.error;
+        _deliveryAvailabilityError = error.message ?? 'timeout';
       });
-    } finally {
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _serviceability = null;
+        _serviceabilityCacheKey = cacheKey;
+        _deliveryAvailabilityState = _DeliveryAvailabilityState.error;
+        _deliveryAvailabilityError = error.toString();
+      });
     }
   }
 
@@ -1474,8 +1651,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   String _bottomLeftCtaLabel() {
-    if (_serviceability == null) {
+    final state = _deliveryAvailabilityState;
+    if (state == _DeliveryAvailabilityState.loading) {
       return 'Checking';
+    }
+    if (state == _DeliveryAvailabilityState.noAddress) {
+      return _isProductInStock ? 'Add to Cart' : 'Notify Me';
+    }
+    if (state == _DeliveryAvailabilityState.error) {
+      return _isProductInStock ? 'Add to Cart' : 'Notify Me';
     }
     if (_isProductInStock) {
       return _canTryAtHome ? 'Try At Home' : 'Add to Cart';
@@ -1484,8 +1668,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   String _bottomRightCtaLabel() {
-    if (_serviceability == null) {
+    final state = _deliveryAvailabilityState;
+    if (state == _DeliveryAvailabilityState.loading) {
       return 'Checking';
+    }
+    if (state == _DeliveryAvailabilityState.noAddress) {
+      return 'Set Location';
+    }
+    if (state == _DeliveryAvailabilityState.error) {
+      return 'Retry';
     }
     if (_isProductInStock) {
       return _canTryAtHome ? 'Get It Today' : 'Buy Now';
@@ -1494,8 +1685,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   VoidCallback? _bottomLeftCtaAction(Product product) {
-    if (_serviceability == null) {
+    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.loading) {
       return null;
+    }
+    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.noAddress ||
+        _deliveryAvailabilityState == _DeliveryAvailabilityState.error) {
+      if (!_isProductInStock) {
+        return () {
+          HapticFeedback.lightImpact();
+          _handleNotifyMeTap(product);
+        };
+      }
+      return () {
+        HapticFeedback.lightImpact();
+        _openDeliveryAddressSheet();
+      };
     }
     if (_isProductInStock) {
       return _canTryAtHome
@@ -1515,8 +1719,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   VoidCallback? _bottomRightCtaAction(Product product) {
-    if (_serviceability == null) {
+    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.loading) {
       return null;
+    }
+    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.noAddress) {
+      return () {
+        HapticFeedback.lightImpact();
+        _openDeliveryAddressSheet();
+      };
+    }
+    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.error) {
+      return () {
+        HapticFeedback.lightImpact();
+        unawaited(_refreshServiceability(force: true));
+      };
     }
     if (_isProductInStock) {
       return () {
@@ -2324,17 +2540,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     BuildContext context,
   ) {
     final serviceability = _serviceability;
-    final address = _serviceabilityAddressSnapshot();
-    final addressLine = address?.locality.trim().isNotEmpty == true
-        ? address!.locality.trim()
-        : address?.city.trim().isNotEmpty == true
-        ? address!.city.trim()
-        : '';
     final deliveryLine = _serviceabilityDetails();
     final eta = _serviceabilityEtaLabel();
+    final headline = _serviceabilityHeadline();
+    final buttonLabel = switch (_deliveryAvailabilityState) {
+      _DeliveryAvailabilityState.error => 'Retry',
+      _DeliveryAvailabilityState.noAddress => 'Set Location',
+      _DeliveryAvailabilityState.loading => 'Checking',
+      _ => 'Change',
+    };
     final arrival = serviceability?.isDeliverable == true &&
             _isSameDayDeliveryAvailable
         ? 'Today'
+        : _deliveryAvailabilityState == _DeliveryAvailabilityState.noAddress
+        ? 'Choose location'
+        : _deliveryAvailabilityState == _DeliveryAvailabilityState.error
+        ? 'Tap Retry'
         : serviceability?.estimatedDeliveryDate.trim().isNotEmpty == true
         ? serviceability!.estimatedDeliveryDate.trim()
         : eta;
@@ -2369,9 +2590,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    addressLine.isNotEmpty
-                        ? 'Deliver to $addressLine'
-                        : 'Deliver to your location',
+                    headline,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -2381,14 +2600,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   ),
                 ),
                 TextButton(
-                  onPressed: _openDeliveryAddressSheet,
+                  onPressed: _deliveryAvailabilityState ==
+                          _DeliveryAvailabilityState.error
+                      ? () => unawaited(_refreshServiceability(force: true))
+                      : _openDeliveryAddressSheet,
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFFC8A96A),
                     padding: EdgeInsets.zero,
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Change address'),
+                  child: Text(buttonLabel),
                 ),
               ],
             ),
@@ -2527,8 +2749,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   const SizedBox(height: 4),
                   Text(
                     distanceLabel.isNotEmpty
-                        ? 'â­ ${rating.toStringAsFixed(1)} â€¢ $distanceLabel'
-                        : 'â­ ${rating.toStringAsFixed(1)}',
+                        ? '⭐ ${rating.toStringAsFixed(1)} • $distanceLabel'
+                        : '⭐ ${rating.toStringAsFixed(1)}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: const Color(0xFF7D756A),
                       fontWeight: FontWeight.w600,
@@ -3139,7 +3361,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 const SizedBox(height: 4),
                 Text(
                   distanceLabel.isNotEmpty
-                      ? '${rating.toStringAsFixed(1)} Rating â€¢ $distanceLabel'
+                      ? '${rating.toStringAsFixed(1)} Rating • $distanceLabel'
                       : '${rating.toStringAsFixed(1)} Rating',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: const Color(0xFF666666),
@@ -3198,14 +3420,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
-          'â­ ${rating.toStringAsFixed(1)} ($reviewCount Reviews)',
+          '⭐ ${rating.toStringAsFixed(1)} ($reviewCount Reviews)',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: const Color(0xFF111111),
             fontWeight: FontWeight.w700,
           ),
         ),
         Text(
-          'â€¢ ${NumberFormat.compact(locale: 'en_IN').format(purchases)} purchases',
+          '• ${NumberFormat.compact(locale: 'en_IN').format(purchases)} purchases',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: const Color(0xFF666666),
             fontWeight: FontWeight.w600,
@@ -3267,7 +3489,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   Widget _buildPriceBlock(BuildContext context) {
     final formatter = NumberFormat.currency(
       locale: 'en_IN',
-      symbol: 'â‚¹',
+      symbol: '₹',
       decimalDigits: 0,
     );
     final current = _activePrice;
@@ -3335,6 +3557,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   ) {
     final deliverySubtext = _serviceabilityDetails();
     final urgencyLabel = _serviceabilityEtaLabel();
+    final buttonLabel = switch (_deliveryAvailabilityState) {
+      _DeliveryAvailabilityState.error => 'Retry',
+      _DeliveryAvailabilityState.noAddress => 'Set Location',
+      _DeliveryAvailabilityState.loading => 'Checking',
+      _ => 'Change',
+    };
     return InkWell(
       onTap: _openDeliveryAddressSheet,
       borderRadius: BorderRadius.circular(20),
@@ -3374,14 +3602,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   ),
                 ),
                 TextButton(
-                  onPressed: _openDeliveryAddressSheet,
+                  onPressed: _deliveryAvailabilityState ==
+                          _DeliveryAvailabilityState.error
+                      ? () => unawaited(_refreshServiceability(force: true))
+                      : _openDeliveryAddressSheet,
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFFC9A86A),
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Change'),
+                  child: Text(buttonLabel),
                 ),
               ],
             ),
@@ -3554,9 +3785,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             ),
           ),
           const SizedBox(height: 10),
-          _proofRow('ðŸ”¥', '$viewers people viewed this today'),
-          _proofRow('ðŸ›', '$orders orders delivered this week'),
-          _proofRow('â¤ï¸', 'Added to $wishlists wishlists'),
+          _proofRow('🔥', '$viewers people viewed this today'),
+          _proofRow('🛍', '$orders orders delivered this week'),
+          _proofRow('❤️', 'Added to $wishlists wishlists'),
         ],
       ),
     );
@@ -3665,7 +3896,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     }
     final formatter = NumberFormat.currency(
       locale: 'en_IN',
-      symbol: 'â‚¹',
+      symbol: '₹',
       decimalDigits: 0,
     );
     return Column(
@@ -3986,7 +4217,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
                       children: [
-                        SizedBox(width: 34, child: Text('${entry.key}â˜…')),
+                        SizedBox(width: 34, child: Text('${entry.key}★')),
                         Expanded(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(999),
@@ -6707,7 +6938,7 @@ class _PerfectFitExperienceSheetState
             children: [
               _SelectionRowCard(
                 title: _slot,
-                subtitle: 'â‚¹99 Trial Booking Fee. Adjusted on purchase.',
+                subtitle: '₹99 Trial Booking Fee. Adjusted on purchase.',
                 selected: true,
                 onTap: () {},
               ),
