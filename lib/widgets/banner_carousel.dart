@@ -47,7 +47,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
   void initState() {
     super.initState();
     _pageController = PageController(
-      viewportFraction: 0.92,
+      viewportFraction: 1.0,
       initialPage: _initialPage,
     );
     _scheduleAutoScroll();
@@ -130,30 +130,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
               controller: _pageController,
               itemBuilder: (context, index) {
                 final banner = widget.banners[index % widget.banners.length];
-                return AnimatedBuilder(
-                  animation: _pageController,
-                  builder: (context, child) {
-                    var scale = 1.0;
-                    if (_pageController.position.hasContentDimensions) {
-                      final page =
-                          _pageController.page ??
-                          _pageController.initialPage.toDouble();
-                      final distance = (page - index).abs().clamp(0.0, 1.0);
-                      scale = 1 - (distance * 0.06);
-                    }
-
-                    return Transform.scale(
-                      scale: scale,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: _BannerCard(
-                    banner: banner,
-                    onTap: () => widget.onBannerTap(banner),
-                  ),
+                return _BannerCard(
+                  banner: banner,
+                  onTap: () => widget.onBannerTap(banner),
                 );
               },
               onPageChanged: (index) {
@@ -205,127 +184,114 @@ class _BannerCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.10),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
+        borderRadius: BorderRadius.zero,
+        child: ClipRect(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final dpr = MediaQuery.of(context).devicePixelRatio;
+                  final targetHeight = constraints.maxHeight;
+                  final targetWidth = constraints.maxWidth;
+                  final memCacheHeight = (targetHeight * dpr).round();
+                  final memCacheWidth = (targetWidth * dpr).round();
+                  return CachedNetworkImage(
+                    imageUrl: ImageUrlService.optimizeForDelivery(
+                      banner.imageUrl,
+                      width: memCacheWidth,
+                      quality: 'good',
+                    ),
+                    fit: BoxFit.cover,
+                    memCacheHeight: memCacheHeight,
+                    memCacheWidth: memCacheWidth,
+                    fadeInDuration: const Duration(milliseconds: 250),
+                    placeholder: (context, url) => const ShimmerBox(),
+                    errorWidget: (context, url, error) => Container(
+                      color: Theme.of(context).cardColor,
+                      alignment: Alignment.center,
+                      child: Text(
+                        banner.title,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  );
+                },
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final dpr = MediaQuery.of(context).devicePixelRatio;
-                    final targetHeight = constraints.maxHeight;
-                    final targetWidth = constraints.maxWidth;
-                    final memCacheHeight = (targetHeight * dpr).round();
-                    final memCacheWidth = (targetWidth * dpr).round();
-                    return CachedNetworkImage(
-                      imageUrl: ImageUrlService.optimizeForDelivery(
-                        banner.imageUrl,
-                        width: memCacheWidth,
-                        quality: 'good',
-                      ),
-                      fit: BoxFit.cover,
-                      memCacheHeight: memCacheHeight,
-                      memCacheWidth: memCacheWidth,
-                      fadeInDuration: const Duration(milliseconds: 250),
-                      placeholder: (context, url) => const ShimmerBox(),
-                      errorWidget: (context, url, error) => Container(
-                        color: Theme.of(context).cardColor,
-                        alignment: Alignment.center,
-                        child: Text(
-                          banner.title,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomLeft,
-                        end: Alignment.topRight,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.82),
-                          Colors.black.withValues(alpha: 0.28),
-                          Colors.transparent,
-                        ],
-                        stops: const [0.0, 0.55, 1.0],
-                      ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomLeft,
+                      end: Alignment.topRight,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.82),
+                        Colors.black.withValues(alpha: 0.28),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.55, 1.0],
                     ),
                   ),
                 ),
-                Positioned(
-                  left: 18,
-                  right: 18,
-                  bottom: 18,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              banner.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1.05,
-                                  ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              banner.subtitle,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.86),
-                                  ),
-                            ),
-                          ],
+              ),
+              Positioned(
+                left: 18,
+                right: 18,
+                bottom: 18,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            banner.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.05,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            banner.subtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.86),
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: onTap,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AbzioTheme.accentColor,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: onTap,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AbzioTheme.accentColor,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: Text(banner.ctaText),
-                      ),
-                    ],
-                  ),
+                      child: Text(banner.ctaText),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

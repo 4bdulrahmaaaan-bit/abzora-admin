@@ -1297,11 +1297,16 @@ class _AbzioBootstrapAppState extends State<AbzioBootstrapApp> {
               ChangeNotifierProvider(
                 create: (_) => NetworkProvider()..initialize(),
               ),
-              ChangeNotifierProxyProvider<LocationProvider, ProductProvider>(
+              ChangeNotifierProxyProvider2<
+                AuthProvider,
+                LocationProvider,
+                ProductProvider
+              >(
                 create: (_) => ProductProvider(),
-                update: (_, locationProvider, productProvider) {
+                update: (_, authProvider, locationProvider, productProvider) {
                   final provider = productProvider ?? ProductProvider();
                   provider.attachLocationProvider(locationProvider);
+                  unawaited(provider.applySavedUserLocation(authProvider.user));
                   return provider;
                 },
               ),

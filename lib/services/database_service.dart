@@ -11502,6 +11502,33 @@ class DatabaseService {
     );
   }
 
+  Future<void> notifyStockAvailability({
+    required AppUser user,
+    required Product product,
+  }) async {
+    final message =
+        'We will notify you when ${product.name} is back in stock.';
+    _addNotification(
+      AppNotification(
+        id: 'stock-alert-${product.id}-${DateTime.now().millisecondsSinceEpoch}',
+        title: 'Stock alert enabled',
+        body: message,
+        type: 'stock_alert',
+        isRead: false,
+        timestamp: DateTime.now(),
+        audienceRole: 'user',
+        userId: user.id,
+      ),
+    );
+    await logActivity(
+      action: 'notify_stock_availability',
+      targetType: 'product',
+      targetId: product.id,
+      message: message,
+      actor: user,
+    );
+  }
+
   Future<void> runVendorMigration({required AppUser actor}) async {
     _requireSuperAdmin(actor);
 

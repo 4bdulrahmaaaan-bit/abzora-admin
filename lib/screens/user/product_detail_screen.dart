@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
 
@@ -71,6 +71,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   final DeliveryService _deliveryService = DeliveryService();
   ProductServiceability? _serviceability;
   String _serviceabilityCacheKey = '';
+  String _lastServiceabilityAddressKey = '';
   String _ctaDecisionType = 'BUY_NOW_PRIORITY';
   int _decisionFitConfidence = 88;
   String _experienceDecisionId = '';
@@ -133,6 +134,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
   @override
   bool get wantKeepAlive => true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final address = _serviceabilityAddressSnapshot();
+    final addressKey = address == null
+        ? ''
+        : _serviceabilityCacheSignature(_product, address);
+    if (addressKey == _lastServiceabilityAddressKey) {
+      return;
+    }
+    _lastServiceabilityAddressKey = addressKey;
+    if (address == null) {
+      if (_serviceability != null || _serviceabilityCacheKey.isNotEmpty) {
+        setState(() {
+          _serviceability = null;
+          _serviceabilityCacheKey = '';
+        });
+      }
+      return;
+    }
+    unawaited(_refreshServiceability(force: true));
+  }
 
   Future<void> _loadData() async {
     final currentUser = context.read<AuthProvider>().user;
@@ -375,56 +399,102 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   bool get _supportsCourierDeliveryMode =>
       _serviceability?.supportsCourierDelivery == true;
 
-  bool get _supportsInstantDeliveryMode =>
-      _serviceability?.supportsInstantDelivery == true;
-
   bool get _isDeliverableLocation => _serviceability?.isDeliverable == true;
+
+  bool get _isProductInStock => _activeVariantStock > 0;
+
+  bool get _canTryAtHome =>
+      _isProductInStock && _supportsTryAtHomeMode && _isDeliverableLocation;
+
+  bool get _isSameDayDeliveryAvailable {
+    final serviceability = _serviceability;
+    if (serviceability == null || !serviceability.isDeliverable) {
+      return false;
+    }
+    return serviceability.supportsTryAtHome ||
+        serviceability.supportsInstantDelivery ||
+        serviceability.deliveryMode == DeliveryMode.localDelivery;
+  }
+
+  String _serviceabilityOrderWithinLabel() {
+    final serviceability = _serviceability;
+    if (serviceability == null || !serviceability.isDeliverable) {
+      return '';
+    }
+    final etaLabel = serviceability.etaLabel.trim();
+    if (etaLabel.isNotEmpty) {
+      return 'Order within $etaLabel';
+    }
+    final minutes = serviceability.etaMinutes;
+    if (minutes <= 0) {
+      return 'Order within 1 hr';
+    }
+    if (minutes < 60) {
+      return 'Order within $minutes mins';
+    }
+    final hours = minutes ~/ 60;
+    final remainder = minutes % 60;
+    if (remainder == 0) {
+      return 'Order within $hours hrs';
+    }
+    return 'Order within $hours hrs $remainder mins';
+  }
+
+  String _serviceabilityEtaLabel() {
+    final serviceability = _serviceability;
+    if (serviceability == null) {
+      return 'Checking';
+    }
+    if (!serviceability.isDeliverable) {
+      return 'Unavailable';
+    }
+    if (_isSameDayDeliveryAvailable) {
+      return 'Today';
+    }
+    final eta = serviceability.estimatedDeliveryDate.trim();
+    if (eta.isNotEmpty) {
+      return eta;
+    }
+    if (serviceability.etaLabel.trim().isNotEmpty) {
+      return serviceability.etaLabel.trim();
+    }
+    return 'Soon';
+  }
 
   String _currency(double value) => NumberFormat.currency(
         locale: 'en_IN',
-        symbol: '?',
+        symbol: '\u20B9',
         decimalDigits: 0,
       ).format(value);
 
   String _serviceabilityHeadline() {
     final serviceability = _serviceability;
     if (serviceability == null) {
-      return 'Unable to determine delivery availability.';
+      return 'Checking delivery availability';
     }
     if (!serviceability.isDeliverable) {
-      return 'Not available for your location';
+      return 'Currently unavailable for your location';
     }
-    if (serviceability.supportsTryAtHome) {
-      return 'Try At Home Available';
+    if (_isSameDayDeliveryAvailable) {
+      return 'Same-day delivery available';
     }
-    if (serviceability.supportsInstantDelivery) {
-      return 'Estimated Delivery';
-    }
-    return 'Courier Delivery';
+    return 'Delivery available';
   }
 
   String _serviceabilityDetails() {
     final serviceability = _serviceability;
     if (serviceability == null) {
-      return 'Unable to determine delivery availability.';
+      return 'Fetching delivery options...';
     }
     if (!serviceability.isDeliverable) {
       return 'Currently unavailable for your location.';
     }
-    if (serviceability.supportsTryAtHome) {
-      return '15-Minute Home Trial ? Today Delivery';
-    }
-    if (serviceability.supportsInstantDelivery) {
-      final instantTime = serviceability.estimatedInstantDeliveryTime.trim();
-      final deliveryDate = serviceability.estimatedDeliveryDate.trim();
-      final charge = serviceability.shippingCharge > 0
-          ? 'Shipping ${_currency(serviceability.shippingCharge)}'
-          : 'Free shipping';
-      return [
-        if (instantTime.isNotEmpty) 'Estimated in $instantTime',
-        if (deliveryDate.isNotEmpty) 'Deliver by $deliveryDate',
-        charge,
-      ].join(' ? ');
+    if (_isSameDayDeliveryAvailable) {
+      final orderWithin = _serviceabilityOrderWithinLabel();
+      final etaLabel = _serviceabilityEtaLabel();
+      return orderWithin.isNotEmpty
+          ? '$orderWithin • ETA $etaLabel'
+          : 'ETA $etaLabel';
     }
     final deliveryDate = serviceability.estimatedDeliveryDate.trim();
     final charge = serviceability.shippingCharge > 0
@@ -435,7 +505,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       charge,
       if (serviceability.deliveryPartner.trim().isNotEmpty)
         serviceability.deliveryPartner.trim(),
-    ].join(' ? ');
+    ].join(' • ');
   }
 
   Future<void> _refreshServiceability({bool force = false}) async {
@@ -915,30 +985,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     await _loadData();
   }
 
-  String _resolveDeliverySummary(AuthProvider auth) {
+  String _resolveDeliverySummary() {
     return _serviceabilityHeadline();
-  }
-
-  String _resolveDeliverySubtext(AuthProvider auth) {
-    return _serviceabilityDetails();
-  }
-
-  String _resolveDeliveryEtaLabel(int urgencyHoursLeft) {
-    final totalMinutes = _countdownMinutesLeft > 0
-        ? _countdownMinutesLeft
-        : urgencyHoursLeft * 60;
-    if (totalMinutes <= 0) {
-      return 'Estimated arrival today';
-    }
-    final hours = totalMinutes ~/ 60;
-    final minutes = totalMinutes % 60;
-    if (hours <= 0) {
-      return 'Order within $minutes mins';
-    }
-    if (minutes == 0) {
-      return 'Order within $hours hrs';
-    }
-    return 'Order within $hours hrs $minutes mins';
   }
 
   Future<void> _openDeliveryAddressSheet() async {
@@ -988,7 +1036,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 const SizedBox(height: 8),
                 Text(
                   hasAddress
-                      ? _resolveDeliverySummary(auth)
+                      ? _resolveDeliverySummary()
                       : 'No delivery address added yet.',
                   style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFF6B655C),
@@ -1065,16 +1113,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       return area;
     }
     return 'your city';
-  }
-
-  int _sameDayHoursLeft() {
-    final now = DateTime.now();
-    final cutoff = DateTime(now.year, now.month, now.day, 21);
-    if (!now.isBefore(cutoff)) {
-      return 0;
-    }
-    final mins = cutoff.difference(now).inMinutes;
-    return mins <= 0 ? 0 : (mins / 60).ceil();
   }
 
   _CtaDecisionSnapshot _resolveLocalCtaDecision({
@@ -1356,20 +1394,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   Future<void> _handleNotifyMeTap(Product product) async {
-
-    final allowed = await SoftAuthGate.ensureAuthenticated(context, intentLabel: 'Notify Me');
+    final allowed = await SoftAuthGate.ensureAuthenticated(
+      context,
+      intentLabel: 'Notify Me',
+    );
     if (!allowed || !mounted) {
       return;
     }
     try {
-      await context.read<WishlistProvider>().addToWishlist(product);
+      final currentUser = _currentUser();
+      if (currentUser == null) {
+        return;
+      }
+      await _db.notifyStockAvailability(
+        user: currentUser,
+        product: product,
+      );
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "${product.name} added to your wishlist. We'll notify you when delivery opens up.",
+            'Stock alert enabled for ${product.name}.',
           ),
         ),
       );
@@ -1378,7 +1425,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppErrorText.from(error))),
+        const SnackBar(
+          content: Text('Could not enable stock alerts. Please try again.'),
+        ),
       );
     }
   }
@@ -1422,6 +1471,63 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       metadata: {'decisionType': _ctaDecisionType},
     );
     await _openPerfectFitExperience(product);
+  }
+
+  String _bottomLeftCtaLabel() {
+    if (_serviceability == null) {
+      return 'Checking';
+    }
+    if (_isProductInStock) {
+      return _canTryAtHome ? 'Try At Home' : 'Add to Cart';
+    }
+    return 'Notify Me';
+  }
+
+  String _bottomRightCtaLabel() {
+    if (_serviceability == null) {
+      return 'Checking';
+    }
+    if (_isProductInStock) {
+      return _canTryAtHome ? 'Get It Today' : 'Buy Now';
+    }
+    return 'Change Delivery Address';
+  }
+
+  VoidCallback? _bottomLeftCtaAction(Product product) {
+    if (_serviceability == null) {
+      return null;
+    }
+    if (_isProductInStock) {
+      return _canTryAtHome
+          ? () {
+              HapticFeedback.lightImpact();
+              _handleTryHomeTap(product);
+            }
+          : () {
+              HapticFeedback.lightImpact();
+              _handleAddToCartTap(product);
+            };
+    }
+    return () {
+      HapticFeedback.lightImpact();
+      _handleNotifyMeTap(product);
+    };
+  }
+
+  VoidCallback? _bottomRightCtaAction(Product product) {
+    if (_serviceability == null) {
+      return null;
+    }
+    if (_isProductInStock) {
+      return () {
+        HapticFeedback.lightImpact();
+        _handleBuyNowTap(product);
+      };
+    }
+    return () {
+      HapticFeedback.lightImpact();
+      _openDeliveryAddressSheet();
+    };
   }
 
   Future<void> _openPerfectFitExperience(Product product) async {
@@ -2216,18 +2322,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
   Widget _buildDeliverySection(
     BuildContext context,
-    AuthProvider auth,
-    int urgencyHoursLeft,
-    String estimatedDelivery,
   ) {
-    final city = _sameDayCity(auth);
-    final addressText = auth.user?.address?.trim() ?? '';
-    final cityText = auth.user?.city?.trim() ?? '';
-    final address = addressText.isNotEmpty
-        ? addressText
-        : (cityText.isNotEmpty ? cityText : city);
-    final deliveryLine = _resolveDeliverySubtext(auth);
-    final eta = _resolveDeliveryEtaLabel(urgencyHoursLeft);
+    final serviceability = _serviceability;
+    final address = _serviceabilityAddressSnapshot();
+    final addressLine = address?.locality.trim().isNotEmpty == true
+        ? address!.locality.trim()
+        : address?.city.trim().isNotEmpty == true
+        ? address!.city.trim()
+        : '';
+    final deliveryLine = _serviceabilityDetails();
+    final eta = _serviceabilityEtaLabel();
+    final arrival = serviceability?.isDeliverable == true &&
+            _isSameDayDeliveryAvailable
+        ? 'Today'
+        : serviceability?.estimatedDeliveryDate.trim().isNotEmpty == true
+        ? serviceability!.estimatedDeliveryDate.trim()
+        : eta;
     return InkWell(
       onTap: _openDeliveryAddressSheet,
       borderRadius: BorderRadius.circular(20),
@@ -2259,9 +2369,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    address.isNotEmpty
-                        ? 'Deliver to $address'
-                        : 'Deliver to $city',
+                    addressLine.isNotEmpty
+                        ? 'Deliver to $addressLine'
+                        : 'Deliver to your location',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -2309,7 +2419,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             ),
             const SizedBox(height: 4),
             Text(
-              'Estimated arrival: $estimatedDelivery',
+              'Estimated arrival: $arrival',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: const Color(0xFF7A7367),
                 fontWeight: FontWeight.w600,
@@ -2417,8 +2527,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   const SizedBox(height: 4),
                   Text(
                     distanceLabel.isNotEmpty
-                        ? '⭐ ${rating.toStringAsFixed(1)} • $distanceLabel'
-                        : '⭐ ${rating.toStringAsFixed(1)}',
+                        ? 'â­ ${rating.toStringAsFixed(1)} â€¢ $distanceLabel'
+                        : 'â­ ${rating.toStringAsFixed(1)}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: const Color(0xFF7D756A),
                       fontWeight: FontWeight.w600,
@@ -2643,7 +2753,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         if (_hasMultipleColors) const SizedBox(height: 12),
         _buildHighlights(context),
         if (_product.highlights.isNotEmpty) const SizedBox(height: 12),
-        _buildDeliveryConfidenceCardV2(context, urgencyHoursLeft),
+        _buildDeliveryConfidenceCardV2(context),
         const SizedBox(height: 14),
         _buildWhyShopThisProductSection(context),
         const SizedBox(height: 14),
@@ -3029,7 +3139,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 const SizedBox(height: 4),
                 Text(
                   distanceLabel.isNotEmpty
-                      ? '${rating.toStringAsFixed(1)} Rating • $distanceLabel'
+                      ? '${rating.toStringAsFixed(1)} Rating â€¢ $distanceLabel'
                       : '${rating.toStringAsFixed(1)} Rating',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: const Color(0xFF666666),
@@ -3088,14 +3198,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
-          '⭐ ${rating.toStringAsFixed(1)} ($reviewCount Reviews)',
+          'â­ ${rating.toStringAsFixed(1)} ($reviewCount Reviews)',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: const Color(0xFF111111),
             fontWeight: FontWeight.w700,
           ),
         ),
         Text(
-          '• ${NumberFormat.compact(locale: 'en_IN').format(purchases)} purchases',
+          'â€¢ ${NumberFormat.compact(locale: 'en_IN').format(purchases)} purchases',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: const Color(0xFF666666),
             fontWeight: FontWeight.w600,
@@ -3157,7 +3267,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   Widget _buildPriceBlock(BuildContext context) {
     final formatter = NumberFormat.currency(
       locale: 'en_IN',
-      symbol: '₹',
+      symbol: 'â‚¹',
       decimalDigits: 0,
     );
     final current = _activePrice;
@@ -3222,11 +3332,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
   Widget _buildDeliveryConfidenceCardV2(
     BuildContext context,
-    int urgencyHoursLeft,
   ) {
-    final auth = context.read<AuthProvider>();
-    final deliverySubtext = _resolveDeliverySubtext(auth);
-    final urgencyLabel = _resolveDeliveryEtaLabel(urgencyHoursLeft);
+    final deliverySubtext = _serviceabilityDetails();
+    final urgencyLabel = _serviceabilityEtaLabel();
     return InkWell(
       onTap: _openDeliveryAddressSheet,
       borderRadius: BorderRadius.circular(20),
@@ -3258,7 +3366,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _resolveDeliverySummary(auth),
+                    _serviceabilityHeadline(),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: const Color(0xFF111111),
                       fontWeight: FontWeight.w800,
@@ -3298,8 +3406,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               spacing: 8,
               runSpacing: 8,
               children: const [
-                _ValueChip(label: 'Estimated arrival today'),
-                _ValueChip(label: 'Nearby boutique delivery'),
+                _ValueChip(label: 'Backend serviceability'),
+                _ValueChip(label: 'Selected address'),
               ],
             ),
           ],
@@ -3446,9 +3554,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             ),
           ),
           const SizedBox(height: 10),
-          _proofRow('🔥', '$viewers people viewed this today'),
-          _proofRow('🛍', '$orders orders delivered this week'),
-          _proofRow('❤️', 'Added to $wishlists wishlists'),
+          _proofRow('ðŸ”¥', '$viewers people viewed this today'),
+          _proofRow('ðŸ›', '$orders orders delivered this week'),
+          _proofRow('â¤ï¸', 'Added to $wishlists wishlists'),
         ],
       ),
     );
@@ -3557,7 +3665,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     }
     final formatter = NumberFormat.currency(
       locale: 'en_IN',
-      symbol: '₹',
+      symbol: 'â‚¹',
       decimalDigits: 0,
     );
     return Column(
@@ -3878,7 +3986,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
                       children: [
-                        SizedBox(width: 34, child: Text('${entry.key}★')),
+                        SizedBox(width: 34, child: Text('${entry.key}â˜…')),
                         Expanded(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(999),
@@ -4056,25 +4164,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   Widget _buildBottomActionBar(BuildContext context, Product product) {
-    final isInCart = context.select<CartProvider, bool>(
-      (cart) => cart.items.any((item) => item.product.id == product.id),
-    );
-    final hasSelectedSize =
-        _selectedSize != null && _selectedSize!.trim().isNotEmpty;
-    final canAddToBag = isInCart || hasSelectedSize;
-    void showSelectSizeHint() {
-      HapticFeedback.selectionClick();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Select size first')));
-    }
-
-    final supportsTryAtHome = _supportsTryAtHomeMode;
-    final supportsInstantDelivery = _supportsInstantDeliveryMode;
-    final unavailable = !_isDeliverableLocation;
-    final deliveryUnknown =
-        _serviceability?.reason.trim() == 'Unable to determine delivery availability.';
-
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFFFCFBF8),
@@ -4090,21 +4179,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 child: SizedBox(
                   height: 56,
                   child: OutlinedButton(
-                    onPressed: unavailable
-                        ? () {
-                            HapticFeedback.lightImpact();
-                            _handleNotifyMeTap(product);
-                          }
-                        : hasSelectedSize
-                            ? () {
-                                HapticFeedback.lightImpact();
-                                if (supportsTryAtHome) {
-                                  _handleTryHomeTap(product);
-                                } else {
-                                  _handleAddToCartTap(product);
-                                }
-                              }
-                            : showSelectSizeHint,
+                    onPressed: _bottomLeftCtaAction(product),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFFC9A86A)),
                       shape: RoundedRectangleBorder(
@@ -4116,11 +4191,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        unavailable
-                            ? (deliveryUnknown ? 'Retry' : 'Notify Me')
-                            : supportsTryAtHome
-                                ? 'Try At Home'
-                                : 'Add to Cart',
+                        _bottomLeftCtaLabel(),
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.1,
@@ -4136,22 +4207,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 child: SizedBox(
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: unavailable
-                        ? () {
-                            HapticFeedback.lightImpact();
-                            _openDeliveryAddressSheet();
-                          }
-                        : (isInCart
-                            ? () {
-                                HapticFeedback.lightImpact();
-                                _handleBuyNowTap(product);
-                              }
-                            : (canAddToBag
-                                  ? () {
-                                      HapticFeedback.lightImpact();
-                                      _handleBuyNowTap(product);
-                                    }
-                                  : showSelectSizeHint)),
+                    onPressed: _bottomRightCtaAction(product),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFC9A86A),
                       foregroundColor: const Color(0xFF111111),
@@ -4164,11 +4220,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        unavailable
-                            ? 'Change Delivery Address'
-                            : supportsTryAtHome || supportsInstantDelivery
-                                ? 'Get It Today'
-                                : 'Buy Now',
+                        _bottomRightCtaLabel(),
                         style: const TextStyle(
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.12,
@@ -4254,10 +4306,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   ? _activeSizes[_activeSizes.length ~/ 2]
                   : null));
     final fixedHeaderHeight = MediaQuery.of(context).padding.top + 46;
-    final urgencyHoursLeft = _sameDayHoursLeft();
-    final estimatedDelivery = DateFormat(
-      'EEE, dd MMM',
-    ).format(DateTime.now().add(const Duration(days: 3)));
 
     ReviewModel? myReview;
     for (final review in _reviews) {
@@ -4285,7 +4333,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     product,
                     images,
                     pricing,
-                    _resolveDeliverySummary(auth),
+                    _resolveDeliverySummary(),
                     suggestedSize ?? 'M',
                     isWishlisted,
                     isWishlistPending,
@@ -4319,9 +4367,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           const SizedBox(height: 16),
                           _buildDeliverySection(
                             context,
-                            auth,
-                            urgencyHoursLeft,
-                            estimatedDelivery,
                           ),
                           const SizedBox(height: 12),
                           _buildStyleServicesSection(
@@ -4414,14 +4459,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 auth.user!.address.trim(),
                 auth.user!.city.trim(),
               ].where((part) => part.isNotEmpty).join(', ').trim();
-    final deliverySummary =
-        deliveryAddress.isEmpty
-            ? 'Add your address for delivery updates'
-            : deliveryAddress;
-    final estimatedDelivery =
-        DateFormat('EEE, dd MMM').format(
-          DateTime.now().add(const Duration(days: 3)),
-        );
     ReviewModel? myReview;
     for (final review in _reviews) {
       if (auth.user != null && review.userId == auth.user!.id) {
@@ -5043,7 +5080,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Same-Day Delivery',
+                                        _serviceabilityHeadline(),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: Theme.of(context)
@@ -5057,7 +5094,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                       Row(
                                         children: [
                                           Text(
-                                            'Arrives today • Order within 10 hrs',
+                                            _serviceabilityDetails(),
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .bodyMedium
@@ -5071,10 +5108,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                                       ),
                                     ],
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                TextButton(
-                                  onPressed: () {},
+                              ),
+                              const SizedBox(width: 8),
+                              TextButton(
+                                  onPressed: _openDeliveryAddressSheet,
                                   style: TextButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     minimumSize: Size.zero,
@@ -5431,28 +5468,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           ),
                           const SizedBox(height: 12),
                           SizedBox(
-                            height: 56, child: ElevatedButton(
-                              onPressed: _isDeliverableLocation
-                                  ? () => _handleAddToCartTap(product)
-                                  : (deliveryUnknown
-                                      ? () => _refreshServiceability(force: true)
-                                      : () => _handleNotifyMeTap(product)),
-                              child: Text(
-                                _isDeliverableLocation
-                                    ? 'Add to Cart'
-                                    : (deliveryUnknown ? 'Retry' : 'Notify Me'),
-                              ),
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: _bottomLeftCtaAction(product),
+                              child: Text(_bottomLeftCtaLabel()),
                             ),
                           ),
                           const SizedBox(height: 8),
                           SizedBox(
-                            height: 56, child: OutlinedButton(
-                              onPressed: _isDeliverableLocation ? () => _handleBuyNowTap(product) : _openDeliveryAddressSheet,
-                              child: Text(
-                                _isDeliverableLocation
-                                    ? (_supportsTryAtHomeMode || _supportsInstantDeliveryMode ? 'Get It Today' : 'Buy Now')
-                                    : 'Change Delivery Address',
-                              ),
+                            height: 56,
+                            child: OutlinedButton(
+                              onPressed: _bottomRightCtaAction(product),
+                              child: Text(_bottomRightCtaLabel()),
                             ),
                           ),
                         ],
@@ -5472,30 +5499,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                               children: [
                                 Expanded(
                                   child: SizedBox(
-                                    height: 56, child: ElevatedButton(
-                                      onPressed: _isDeliverableLocation
-                                  ? () => _handleAddToCartTap(product)
-                                  : (deliveryUnknown
-                                      ? () => _refreshServiceability(force: true)
-                                      : () => _handleNotifyMeTap(product)),
-                                      child: Text(
-                                        _isDeliverableLocation
-                                    ? 'Add to Cart'
-                                    : (deliveryUnknown ? 'Retry' : 'Notify Me'),
-                                      ),
+                                    height: 56,
+                                    child: ElevatedButton(
+                                      onPressed: _bottomLeftCtaAction(product),
+                                      child: Text(_bottomLeftCtaLabel()),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: SizedBox(
-                                    height: 56, child: OutlinedButton(
-                                      onPressed: _isDeliverableLocation ? () => _handleBuyNowTap(product) : _openDeliveryAddressSheet,
-                                      child: Text(
-                                        _isDeliverableLocation
-                                            ? (_supportsTryAtHomeMode || _supportsInstantDeliveryMode ? 'Get It Today' : 'Buy Now')
-                                            : 'Change Delivery Address',
-                                      ),
+                                    height: 56,
+                                    child: OutlinedButton(
+                                      onPressed: _bottomRightCtaAction(product),
+                                      child: Text(_bottomRightCtaLabel()),
                                     ),
                                   ),
                                 ),
@@ -5582,7 +5599,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         SnackBar(
           behavior: SnackBarBehavior.floating,
           content: Text(
-            wasWishlisted ? 'Removed from Wishlist' : 'Added to Wishlist',
+            wasWishlisted
+                ? 'Removed from your wishlist'
+                : 'Added to your wishlist',
           ),
           duration: const Duration(milliseconds: 1300),
         ),
@@ -5807,7 +5826,9 @@ class _ProductImageViewerScreenState extends State<_ProductImageViewerScreen> {
         SnackBar(
           behavior: SnackBarBehavior.floating,
           content: Text(
-            wasWishlisted ? 'Removed from Wishlist' : 'Added to Wishlist',
+            wasWishlisted
+                ? 'Removed from your wishlist'
+                : 'Added to your wishlist',
           ),
           duration: const Duration(milliseconds: 1300),
         ),
@@ -6686,7 +6707,7 @@ class _PerfectFitExperienceSheetState
             children: [
               _SelectionRowCard(
                 title: _slot,
-                subtitle: '₹99 Trial Booking Fee. Adjusted on purchase.',
+                subtitle: 'â‚¹99 Trial Booking Fee. Adjusted on purchase.',
                 selected: true,
                 onTap: () {},
               ),

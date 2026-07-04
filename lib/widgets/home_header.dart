@@ -164,11 +164,11 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                           key: ValueKey(deliveryLine),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 15.5,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 12.5,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF171411),
-                            height: 1.08,
+                            height: 1.1,
                           ),
                         ),
                       ),

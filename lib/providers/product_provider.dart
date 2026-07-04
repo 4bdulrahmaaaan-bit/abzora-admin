@@ -21,6 +21,7 @@ class ProductProvider with ChangeNotifier {
 
   LocationProvider? _locationProvider;
   AppUser? _currentUser;
+  String? _lastAppliedSavedLocationSignature;
 
   List<Store> _allStores = [];
   List<Product> _trendingProducts = [];
@@ -203,6 +204,11 @@ class ProductProvider with ChangeNotifier {
   }
 
   Future<void> applySavedUserLocation(AppUser? user) async {
+    final signature = _savedLocationSignature(user);
+    if (signature == _lastAppliedSavedLocationSignature) {
+      return;
+    }
+    _lastAppliedSavedLocationSignature = signature;
     _currentUser = user;
     if (_locationProvider == null) {
       return;
@@ -213,6 +219,21 @@ class ProductProvider with ChangeNotifier {
       forceRefresh: false,
     );
     await _reloadProductsForLocation();
+  }
+
+  String _savedLocationSignature(AppUser? user) {
+    if (user == null) {
+      return 'guest';
+    }
+    return [
+      user.id,
+      user.address ?? '',
+      user.area ?? '',
+      user.city ?? '',
+      user.latitude?.toStringAsFixed(5) ?? 'na',
+      user.longitude?.toStringAsFixed(5) ?? 'na',
+      user.locationUpdatedAt ?? '',
+    ].join('|');
   }
 
   Future<void> loadMoreLocationProducts() async {

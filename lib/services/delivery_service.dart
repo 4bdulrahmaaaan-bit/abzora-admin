@@ -7,33 +7,12 @@ class DeliveryService {
     : _backend = backendCommerceService ?? BackendCommerceService();
 
   final BackendCommerceService _backend;
-  static final Map<String, Future<ProductServiceability>> _futureCache = {};
-
-  String _cacheKey({required Product product, required UserAddress address}) {
-    final lat = address.latitude?.toStringAsFixed(5) ?? 'na';
-    final lng = address.longitude?.toStringAsFixed(5) ?? 'na';
-    return [
-      product.id,
-      product.colorVariants.isNotEmpty ? product.colorVariants.first.variantId : '',
-      lat,
-      lng,
-      address.pincode.trim(),
-    ].join('|');
-  }
 
   Future<ProductServiceability> getServiceability({
     required Product product,
     required UserAddress address,
   }) {
-    final key = _cacheKey(product: product, address: address);
-    return _futureCache.putIfAbsent(
-      key,
-      () => _resolveServiceability(product: product, address: address),
-    );
-  }
-
-  void invalidateForProduct(String productId) {
-    _futureCache.removeWhere((key, _) => key.startsWith('$productId|'));
+    return _resolveServiceability(product: product, address: address);
   }
 
   Future<ProductServiceability> _resolveServiceability({

@@ -16,63 +16,56 @@ class BannerShimmer extends StatelessWidget {
         SizedBox(
           height: height,
           child: PageView.builder(
-            controller: PageController(viewportFraction: 0.92),
+            controller: PageController(viewportFraction: 1.0),
             physics: const NeverScrollableScrollPhysics(),
             itemCount: itemCount,
             itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      const ShimmerWidget(radius: 20),
-                      Positioned(
-                        left: 18,
-                        right: 18,
-                        bottom: 18,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const ShimmerWidget(
-                              width: 140,
-                              height: 14,
-                              radius: 99,
-                            ),
-                            const SizedBox(height: 14),
-                            const ShimmerWidget(
-                              width: 220,
-                              height: 24,
-                              radius: 10,
-                            ),
-                            const SizedBox(height: 10),
-                            const ShimmerWidget(
-                              width: 180,
-                              height: 14,
-                              radius: 10,
-                            ),
-                            const SizedBox(height: 16),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Container(
-                                width: 110,
-                                height: 46,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  color: AbzioTheme.accentColor.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                ),
-                                child: const ShimmerWidget(radius: 16),
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  const ShimmerWidget(radius: 0),
+                  Positioned(
+                    left: 18,
+                    right: 18,
+                    bottom: 18,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const ShimmerWidget(
+                          width: 140,
+                          height: 14,
+                          radius: 99,
+                        ),
+                        const SizedBox(height: 14),
+                        const ShimmerWidget(
+                          width: 220,
+                          height: 24,
+                          radius: 10,
+                        ),
+                        const SizedBox(height: 10),
+                        const ShimmerWidget(
+                          width: 180,
+                          height: 14,
+                          radius: 10,
+                        ),
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            width: 110,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: AbzioTheme.accentColor.withValues(
+                                alpha: 0.15,
                               ),
                             ),
-                          ],
+                            child: const ShimmerWidget(radius: 0),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
               );
             },
           ),
