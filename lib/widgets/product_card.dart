@@ -6,8 +6,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
+import '../models/delivery_serviceability.dart';
 import '../providers/auth_provider.dart';
 import '../providers/wishlist_provider.dart';
+import '../services/delivery_service.dart';
 import '../utils/soft_auth_gate.dart';
 import 'animated_wishlist_button.dart';
 import 'shimmer_box.dart';
@@ -19,19 +21,45 @@ class ProductCard extends StatefulWidget {
     this.onTap,
     this.storeLabel,
     this.badgeLabel,
+    this.deliveryAddress,
   });
 
   final Product product;
   final VoidCallback? onTap;
   final String? storeLabel;
   final String? badgeLabel;
+  final UserAddress? deliveryAddress;
 
   @override
   State<ProductCard> createState() => _ProductCardState();
 }
 
 class _ProductCardState extends State<ProductCard> {
+  static final Map<String, String> _deliveryLabelCache = <String, String>{};
+  static final Map<String, Future<String>> _deliveryLabelFlightCache =
+      <String, Future<String>>{};
+  static final DeliveryService _deliveryService = DeliveryService();
+
   bool _pressed = false;
+  String _deliveryLabel = '';
+  String _deliveryContextSignature = '';
+  int _deliveryResolveSerial = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshDeliveryLabel();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProductCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_productSignature(oldWidget.product) != _productSignature(widget.product) ||
+        _addressSignature(oldWidget.deliveryAddress) !=
+            _addressSignature(widget.deliveryAddress)) {
+      _refreshDeliveryLabel();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +71,9 @@ class _ProductCardState extends State<ProductCard> {
     final hasArTryOn = product.tryOnAvailable;
     final theme = Theme.of(context);
     final ratingOverlayLabel = _ratingLabel(product.rating);
-    final deliveryLabel = _deliveryLabel(product);
+    final deliveryLabel = _deliveryLabel.isNotEmpty
+        ? _deliveryLabel
+        : _deliveryFallbackLabel(product);
     final badgeLabel = widget.badgeLabel?.trim() ?? '';
 
     return Consumer<WishlistProvider>(
@@ -336,6 +366,158 @@ class _ProductCardState extends State<ProductCard> {
       },
     );
   }
+
+  Future<void> _refreshDeliveryLabel() async {
+    final product = widget.product;
+    final address = widget.deliveryAddress;
+    final fallback = _deliveryFallbackLabel(product);
+    final signature = _deliveryContextSignatureFor(product.id, address);
+
+    _deliveryContextSignature = signature;
+    if (address == null) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _deliveryLabel = fallback);
+      return;
+    }
+
+    final cachedLabel = _deliveryLabelCache[signature];
+    if (cachedLabel != null) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _deliveryLabel = cachedLabel);
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+    setState(() => _deliveryLabel = fallback);
+
+    final labelFuture = _deliveryLabelFlightCache.putIfAbsent(signature, () {
+      return _resolveDeliveryLabel(product, address, fallback, signature);
+    });
+    final serial = ++_deliveryResolveSerial;
+    final label = await labelFuture;
+    if (!mounted ||
+        serial != _deliveryResolveSerial ||
+        _deliveryContextSignature != signature) {
+      return;
+    }
+    setState(() => _deliveryLabel = label);
+  }
+
+  Future<String> _resolveDeliveryLabel(
+    Product product,
+    UserAddress address,
+    String fallback,
+    String signature,
+  ) async {
+    try {
+      final serviceability = await _deliveryService.getServiceability(
+        product: product,
+        address: address,
+      );
+      final resolved = _labelForServiceability(
+        serviceability,
+        fallback: fallback,
+      );
+      _deliveryLabelCache[signature] = resolved;
+      return resolved;
+    } catch (_) {
+      _deliveryLabelCache[signature] = fallback;
+      return fallback;
+    } finally {
+      _deliveryLabelFlightCache.remove(signature);
+    }
+  }
+
+  String _deliveryFallbackLabel(Product product) {
+    final delivery = product.deliveryInfo;
+    if (_boolFrom(delivery['supportsTryAtHome'])) {
+      return 'Try At Home';
+    }
+    if (_boolFrom(delivery['supportsInstantDelivery'])) {
+      final instantTime =
+          delivery['estimatedInstantDeliveryTime']?.toString().trim() ?? '';
+      if (instantTime.isNotEmpty) {
+        return 'Get It Today - $instantTime';
+      }
+      return 'Get It Today';
+    }
+    if (_boolFrom(delivery['supportsCourierDelivery'])) {
+      final eta = delivery['estimatedDeliveryDate']?.toString().trim() ?? '';
+      final partner = delivery['deliveryPartner']?.toString().trim() ?? '';
+      if (eta.isNotEmpty && partner.isNotEmpty) {
+        return 'Courier Delivery - $partner - $eta';
+      }
+      if (eta.isNotEmpty) {
+        return 'Courier Delivery - $eta';
+      }
+      if (partner.isNotEmpty) {
+        return 'Courier Delivery - $partner';
+      }
+      return 'Courier Delivery';
+    }
+    return 'Check availability';
+  }
+
+  String _labelForServiceability(
+    ProductServiceability serviceability, {
+    required String fallback,
+  }) {
+    if (serviceability.canTryAtHome) {
+      return 'Try At Home';
+    }
+    if (serviceability.canGetItToday) {
+      return 'Get It Today';
+    }
+    if (serviceability.canCourier) {
+      return 'Courier Delivery';
+    }
+    if (serviceability.isDeliverable) {
+      return 'Delivery available';
+    }
+    if (fallback.trim().isNotEmpty && fallback != 'Check availability') {
+      return fallback;
+    }
+    return 'Unavailable for your location';
+  }
+
+  String _deliveryContextSignatureFor(String productId, UserAddress? address) {
+    if (address == null) {
+      return '$productId|none';
+    }
+    return [
+      productId,
+      address.id,
+      address.userId,
+      address.addressLine.trim(),
+      address.locality.trim(),
+      address.city.trim(),
+      address.state.trim(),
+      address.pincode.trim(),
+      address.latitude?.toStringAsFixed(5) ?? 'na',
+      address.longitude?.toStringAsFixed(5) ?? 'na',
+    ].join('|');
+  }
+
+  String _addressSignature(UserAddress? address) {
+    if (address == null) {
+      return 'none';
+    }
+    return _deliveryContextSignatureFor('', address);
+  }
+
+  String _productSignature(Product product) {
+    return [
+      product.id,
+      product.stock.toString(),
+      product.deliveryInfo.toString(),
+    ].join('|');
+  }
 }
 
 class _ProductFallbackImage extends StatelessWidget {
@@ -561,35 +743,6 @@ String _displayName(Product product) {
 String _ratingLabel(double rating) {
   final safeRating = rating > 0 ? rating : 4.7;
   return safeRating.toStringAsFixed(1);
-}
-
-String _deliveryLabel(Product product) {
-  final delivery = product.deliveryInfo;
-  if (_boolFrom(delivery['supportsTryAtHome'])) {
-    return 'Try At Home';
-  }
-  if (_boolFrom(delivery['supportsInstantDelivery'])) {
-    final instantTime = delivery['estimatedInstantDeliveryTime']?.toString().trim() ?? '';
-    if (instantTime.isNotEmpty) {
-      return 'Get It Today - $instantTime';
-    }
-    return 'Get It Today';
-  }
-  if (_boolFrom(delivery['supportsCourierDelivery'])) {
-    final eta = delivery['estimatedDeliveryDate']?.toString().trim() ?? '';
-    final partner = delivery['deliveryPartner']?.toString().trim() ?? '';
-    if (eta.isNotEmpty && partner.isNotEmpty) {
-      return 'Courier Delivery - $partner - $eta';
-    }
-    if (eta.isNotEmpty) {
-      return 'Courier Delivery - $eta';
-    }
-    if (partner.isNotEmpty) {
-      return 'Courier Delivery - $partner';
-    }
-    return 'Courier Delivery';
-  }
-  return 'Check availability';
 }
 
 bool _boolFrom(dynamic value) {

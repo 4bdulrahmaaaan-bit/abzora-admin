@@ -83,6 +83,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   ProductServiceability? _serviceability;
   String _serviceabilityCacheKey = '';
   String _deliveryAddressKey = '';
+  int _serviceabilityRequestSerial = 0;
   _DeliveryAvailabilityState _deliveryAvailabilityState =
       _DeliveryAvailabilityState.idle;
   String? _deliveryAvailabilityError;
@@ -573,9 +574,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     if (state == _DeliveryAvailabilityState.loading) {
       return 'Checking delivery...';
     }
-    if (state == _DeliveryAvailabilityState.error) {
-      return 'Unable to check delivery';
-    }
     final serviceability = _serviceability;
     if (serviceability == null) {
       return 'Set delivery location';
@@ -610,9 +608,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     if (state == _DeliveryAvailabilityState.loading) {
       return 'Checking delivery...';
     }
-    if (state == _DeliveryAvailabilityState.error) {
-      return 'Unable to check delivery';
-    }
     final serviceability = _serviceability;
     if (serviceability == null) {
       return 'Set delivery location';
@@ -633,9 +628,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     }
     if (state == _DeliveryAvailabilityState.loading) {
       return 'Checking delivery...';
-    }
-    if (state == _DeliveryAvailabilityState.error) {
-      return 'Unable to check delivery. Tap Retry.';
     }
     final serviceability = _serviceability;
     if (serviceability == null) {
@@ -682,6 +674,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     if (!force && _serviceabilityCacheKey == cacheKey && _serviceability != null) {
       return;
     }
+    final requestSerial = ++_serviceabilityRequestSerial;
     if (!mounted) {
       return;
     }
@@ -693,8 +686,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       final serviceability = await _deliveryService.getServiceability(
         product: product,
         address: address,
-      ).timeout(const Duration(seconds: 8));
-      if (!mounted) {
+      ).timeout(const Duration(seconds: 15));
+      if (!mounted || requestSerial != _serviceabilityRequestSerial) {
         return;
       }
       setState(() {
@@ -704,23 +697,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         _deliveryAvailabilityError = null;
       });
     } on TimeoutException catch (error) {
-      if (!mounted) {
+      if (!mounted || requestSerial != _serviceabilityRequestSerial) {
         return;
       }
+      final hadExistingServiceability = _serviceability != null;
       setState(() {
-        _serviceability = null;
         _serviceabilityCacheKey = cacheKey;
-        _deliveryAvailabilityState = _DeliveryAvailabilityState.error;
+        _deliveryAvailabilityState = hadExistingServiceability
+            ? _DeliveryAvailabilityState.ready
+            : _DeliveryAvailabilityState.error;
         _deliveryAvailabilityError = error.message ?? 'timeout';
       });
     } catch (error) {
-      if (!mounted) {
+      if (!mounted || requestSerial != _serviceabilityRequestSerial) {
         return;
       }
+      final hadExistingServiceability = _serviceability != null;
       setState(() {
-        _serviceability = null;
         _serviceabilityCacheKey = cacheKey;
-        _deliveryAvailabilityState = _DeliveryAvailabilityState.error;
+        _deliveryAvailabilityState = hadExistingServiceability
+            ? _DeliveryAvailabilityState.ready
+            : _DeliveryAvailabilityState.error;
         _deliveryAvailabilityError = error.toString();
       });
     }

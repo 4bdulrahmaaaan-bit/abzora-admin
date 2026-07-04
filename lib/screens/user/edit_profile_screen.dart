@@ -131,6 +131,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         backgroundColor: const Color(0xFFFFFBF5),
         appBar: AppBar(title: const Text('Edit Profile')),
         body: SafeArea(
+          top: false,
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: 1),
             duration: const Duration(milliseconds: 380),
@@ -145,7 +146,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               );
             },
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -194,9 +195,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(28),
@@ -302,7 +303,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 16),
                         Text(
                           'Your Abianzo profile',
                           style: Theme.of(context).textTheme.titleLarge
@@ -318,7 +319,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 height: 1.45,
                               ),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
@@ -343,7 +344,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 16),
                   _sectionCard(
                     context,
                     title: 'Personal Details',
@@ -353,7 +354,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _fieldLabel('FULL NAME'),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         _inputCard(
                           context,
                           focusNode: _nameFocusNode,
@@ -376,9 +377,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 16),
                         _fieldLabel('PHONE NUMBER'),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         _inputCard(
                           context,
                           child: TextField(
@@ -399,7 +400,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
                   _sectionCard(
                     context,
                     title: 'Delivery Location',
@@ -409,7 +410,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _fieldLabel('LOCATION'),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         _inputCard(
                           context,
                           focusNode: _addressFocusNode,
@@ -426,11 +427,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
-                            vertical: 12,
+                            vertical: 6,
                           ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF8EB),
@@ -474,7 +475,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 10),
                         OutlinedButton.icon(
                           onPressed: auth.isUpdatingProfile
                               ? null
@@ -507,13 +508,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   TapScale(
                     onTap: auth.isUpdatingProfile ? null : _save,
                     child: ElevatedButton(
                       onPressed: auth.isUpdatingProfile ? null : _save,
                       style: ElevatedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(58),
+                        minimumSize: const Size.fromHeight(56),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(18),
                         ),
@@ -530,7 +531,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                         child: Container(
                           alignment: Alignment.center,
-                          constraints: const BoxConstraints(minHeight: 58),
+                          constraints: const BoxConstraints(minHeight: 56),
                           child: auth.isUpdatingProfile
                               ? const SizedBox(
                                   width: 20,
@@ -547,7 +548,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
                   TextButton(
                     onPressed: auth.isUpdatingProfile
                         ? null
@@ -599,7 +600,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               height: 1.35,
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           child,
         ],
       ),

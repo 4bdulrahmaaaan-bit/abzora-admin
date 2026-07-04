@@ -1164,6 +1164,45 @@ class _HomeContentState extends State<HomeContent>
     return filtered.isEmpty ? products : filtered;
   }
 
+  UserAddress? _deliveryAddressForCards(
+    LocationProvider locationProvider,
+    AppUser? user,
+  ) {
+    final pincode = locationProvider.displayPincode.trim();
+    final city = locationProvider.displayCity.trim();
+    final area = locationProvider.displayArea.trim();
+    final state = locationProvider.displayState.trim();
+    final addressLine = locationProvider.displayAddress.trim();
+    final hasCoordinates = locationProvider.userPosition != null;
+    if (pincode.isEmpty && city.isEmpty && area.isEmpty && !hasCoordinates) {
+      return null;
+    }
+
+    final resolvedName = user?.name.trim().isNotEmpty == true
+        ? user!.name.trim()
+        : 'Selected delivery address';
+    final resolvedAddress = addressLine.isNotEmpty
+        ? addressLine
+        : [area, city, state]
+            .where((part) => part.trim().isNotEmpty)
+            .join(', ');
+
+    return UserAddress(
+      id: 'home-delivery-context',
+      userId: user?.id ?? '',
+      name: resolvedName,
+      phone: user?.phone ?? '',
+      addressLine: resolvedAddress,
+      city: city,
+      state: state,
+      pincode: pincode,
+      locality: area,
+      latitude: locationProvider.userPosition?.latitude,
+      longitude: locationProvider.userPosition?.longitude,
+      createdAt: DateTime.now().toIso8601String(),
+    );
+  }
+
   String _selectedCategoryTitle() {
     final normalized = _selectedCategory.trim().toLowerCase();
     if (normalized.isEmpty || normalized == 'view all') {
@@ -1195,6 +1234,10 @@ class _HomeContentState extends State<HomeContent>
           (bannerProvider) => bannerProvider.banners,
         );
         final locationTitle = locationProvider.displayHeaderTitle;
+        final deliveryAddress = _deliveryAddressForCards(
+          locationProvider,
+          auth.user,
+        );
         final headerCopy = DeliveryHeaderCopy(
           title: locationTitle.trim().isNotEmpty
               ? locationTitle
@@ -1215,6 +1258,7 @@ class _HomeContentState extends State<HomeContent>
           provider: provider,
           stores: stores,
           products: filteredProducts,
+          deliveryAddress: deliveryAddress,
         );
 
         return SafeArea(
@@ -1519,6 +1563,7 @@ class _HomeContentState extends State<HomeContent>
     required ProductProvider provider,
     required List<NearbyStore> stores,
     required List<Product> products,
+    required UserAddress? deliveryAddress,
   }) {
     final fallbackProducts = products.take(4).toList();
     return Column(
@@ -1536,6 +1581,7 @@ class _HomeContentState extends State<HomeContent>
             context,
             provider: provider,
             products: fallbackProducts,
+            deliveryAddress: deliveryAddress,
           )
         else
           SizedBox(
@@ -2963,6 +3009,7 @@ Widget _storesFallbackSection(
   BuildContext context, {
   required ProductProvider provider,
   required List<Product> products,
+  required UserAddress? deliveryAddress,
 }) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -3056,6 +3103,7 @@ Widget _storesFallbackSection(
               width: 150,
               child: ProductCard(
                 product: products[index],
+                deliveryAddress: deliveryAddress,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(

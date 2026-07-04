@@ -142,42 +142,47 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                       color: Color(0xFFC2A15E),
                     ),
                     const SizedBox(width: 6),
-                    Expanded(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 220),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        child: Text.rich(
-                          TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Deliver to ',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF7C7265),
-                                  height: 1.1,
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 220),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          child: Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Deliver to ',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF7C7265),
+                                    height: 1.1,
+                                  ),
                                 ),
-                              ),
-                              TextSpan(
-                                text: deliveryLine,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF171411),
-                                  height: 1.1,
+                                TextSpan(
+                                  text: deliveryLine,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF171411),
+                                    height: 1.1,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          key: ValueKey(deliveryLine),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF7C7265),
-                            height: 1.1,
+                              ],
+                            ),
+                            key: ValueKey(deliveryLine),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.left,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF7C7265),
+                              height: 1.1,
+                            ),
                           ),
                         ),
                       ),

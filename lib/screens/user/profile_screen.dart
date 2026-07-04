@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -344,14 +344,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                           user: user,
                           name: name,
                           phone: phone,
-                          city: city,
-                          address: address,
                           profileImageProvider: _cachedProfileImageProvider,
                         ),
                       ),
                       const SizedBox(height: 14),
-                      _reveal(0.03, _buildPremiumEliteCard(context)),
-                      const SizedBox(height: 18),
                       _reveal(0.04, _buildValueStrip(context, user)),
                       const SizedBox(height: 24),
                       _reveal(
@@ -417,7 +413,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                             .trim()
                                             .isNotEmpty)
                                           memory.lastConversationSummary.trim(),
-                                      ].join(' • ');
+                                      ].join(' â€¢ ');
                                 final supportSubtitle = unreadCount > 0
                                     ? '$unreadCount new assistant repl${unreadCount == 1 ? 'y' : 'ies'}'
                                     : openChats > 0
@@ -446,7 +442,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       _reveal(
                         0.22,
                         _sectionTitle(
-                          eyebrow: 'Profile • Fit Profile',
+                          eyebrow: 'Profile â€¢ Fit Profile',
                           title: 'Your Fit Profile',
                           subtitle:
                               'Personalized sizing recommendations for better shopping.',
@@ -458,7 +454,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       _reveal(
                         0.32,
                         _sectionTitle(
-                          eyebrow: 'Account • Essentials',
+                          eyebrow: 'Account â€¢ Essentials',
                           title: 'Shopping Essentials',
                           subtitle:
                               'Manage delivery locations and payment preferences.',
@@ -895,8 +891,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     required AppUser? user,
     required String name,
     required String phone,
-    required String city,
-    required String address,
     ImageProvider<Object>? profileImageProvider,
   }) {
     final completionScore = _profileCompletion(user);
@@ -904,7 +898,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     final cachedImageProvider = profileImageProvider;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
@@ -1010,28 +1004,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                         color: context.abzioSecondaryText,
                         fontSize: 13,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on_outlined,
-                          size: 16,
-                          color: AbzioTheme.accentColor,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            city,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -1323,7 +1295,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         final bodyProfile = styleSnapshot?.bodyProfile;
 
         final subtitle = bodyProfile != null
-            ? '${bodyProfile.recommendedSize.isNotEmpty ? bodyProfile.recommendedSize : 'M'} Fit • Updated ${_relativeScanTime(bodyProfile.updatedAt)}'
+            ? '${bodyProfile.recommendedSize.isNotEmpty ? bodyProfile.recommendedSize : 'M'} Fit â€¢ Updated ${_relativeScanTime(bodyProfile.updatedAt)}'
             : 'View and manage your saved measurements';
 
         return Container(
@@ -1717,82 +1689,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildPremiumEliteCard(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      decoration: BoxDecoration(
-        color: const Color(0xFFC6A769),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFC6A769).withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'ABIANZO ELITE',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2.0,
-                  ),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  '• Priority delivery',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '• Exclusive drops',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '• Bonus rewards',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: const Text(
-              'Join Elite →',
-              style: TextStyle(
-                color: Color(0xFFC6A769),
-                fontWeight: FontWeight.w800,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _minimalDivider(BuildContext context) {
     return Padding(
@@ -2002,7 +1898,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     final whole = value == value.roundToDouble();
     return NumberFormat.currency(
       locale: 'en_IN',
-      symbol: '₹',
+      symbol: 'â‚¹',
       decimalDigits: whole ? 0 : 2,
     ).format(value);
   }
