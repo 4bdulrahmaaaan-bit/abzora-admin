@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/auth_provider.dart';
 import '../providers/wishlist_provider.dart';
-import '../utils/app_error_text.dart';
 import '../utils/soft_auth_gate.dart';
 import 'animated_wishlist_button.dart';
 import 'shimmer_box.dart';
@@ -215,17 +214,15 @@ class _ProductCardState extends State<ProductCard> {
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
-                                            SnackBar(
-                                              behavior:
-                                                  SnackBarBehavior.floating,
-                                              content: Text(
-                                                wasWishlisted
-                                                    ? 'Removed from Wishlist'
-                                                    : 'Added to Wishlist',
-                                              ),
-                                              duration: const Duration(
-                                                milliseconds: 1300,
-                                              ),
+                                            _wishlistSnackBar(
+                                              wasWishlisted
+                                                  ? 'Removed from wishlist'
+                                                  : 'Added to wishlist',
+                                              backgroundColor:
+                                                  const Color(0xFF15110D),
+                                              icon: wasWishlisted
+                                                  ? Icons.favorite_border_rounded
+                                                  : Icons.favorite_rounded,
                                             ),
                                           );
                                         } catch (error) {
@@ -261,10 +258,11 @@ class _ProductCardState extends State<ProductCard> {
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                AppErrorText.from(error),
-                                              ),
+                                            _wishlistSnackBar(
+                                              "Couldn't update wishlist. Please try again.",
+                                              backgroundColor:
+                                                  const Color(0xFF2A1918),
+                                              icon: Icons.error_outline_rounded,
                                             ),
                                           );
                                         }
@@ -647,4 +645,39 @@ bool _isAuthSessionError(Object error) {
       message.contains('session expired') ||
       message.contains('sign in again') ||
       message.contains('too many authentication requests');
+}
+
+SnackBar _wishlistSnackBar(
+  String message, {
+  required Color backgroundColor,
+  required IconData icon,
+}) {
+  return SnackBar(
+    behavior: SnackBarBehavior.floating,
+    backgroundColor: backgroundColor,
+    margin: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(18),
+      side: BorderSide(
+        color: Colors.white.withValues(alpha: 0.08),
+      ),
+    ),
+    duration: const Duration(milliseconds: 1300),
+    content: Row(
+      children: [
+        Icon(icon, color: const Color(0xFFC8A44D), size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            message,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }

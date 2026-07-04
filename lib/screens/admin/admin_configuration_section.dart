@@ -221,7 +221,7 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection>
             Tab(text: 'Marketplace'),
             Tab(text: 'TBYB'),
             Tab(text: 'Fraud Engine'),
-            Tab(text: 'Coupons'),
+            Tab(text: 'Platform Coupons'),
             Tab(text: 'Notifications'),
             Tab(text: 'Audit History'),
           ],
@@ -453,7 +453,7 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection>
                 children: [
                   Expanded(
                     child: _buildTextField(
-                      'Global Coupon Cap',
+                      'Platform Coupon Cap',
                       _couponGlobalController,
                     ),
                   ),

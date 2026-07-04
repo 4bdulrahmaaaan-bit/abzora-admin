@@ -16,7 +16,6 @@ class WishlistProvider with ChangeNotifier {
   String? _userId;
   final Map<String, WishlistItem> _cache = {};
   final Set<String> _pendingProductIds = {};
-  final Map<String, Timer> _toggleDebounce = {};
   bool _isLoading = false;
 
   List<WishlistItem> get items {
@@ -72,6 +71,9 @@ class WishlistProvider with ChangeNotifier {
 
   Future<void> addToWishlist(Product product) async {
     final userId = _requireUserId();
+    if (_pendingProductIds.contains(product.id)) {
+      return;
+    }
     if (_cache.containsKey(product.id)) {
       return;
     }
@@ -98,6 +100,9 @@ class WishlistProvider with ChangeNotifier {
 
   Future<void> removeFromWishlist(String productId) async {
     final userId = _requireUserId();
+    if (_pendingProductIds.contains(productId)) {
+      return;
+    }
     final existing = _cache[productId];
     _pendingProductIds.add(productId);
     _cache.remove(productId);
@@ -119,13 +124,9 @@ class WishlistProvider with ChangeNotifier {
   }
 
   Future<void> toggleWishlist(Product product) async {
-    if (_toggleDebounce.containsKey(product.id)) {
+    if (_pendingProductIds.contains(product.id)) {
       return;
     }
-    _toggleDebounce[product.id] = Timer(
-      const Duration(milliseconds: 280),
-      () => _toggleDebounce.remove(product.id),
-    );
     if (isWishlisted(product.id)) {
       await removeFromWishlist(product.id);
     } else {
@@ -157,9 +158,6 @@ class WishlistProvider with ChangeNotifier {
   @override
   void dispose() {
     _subscription?.cancel();
-    for (final timer in _toggleDebounce.values) {
-      timer.cancel();
-    }
     super.dispose();
   }
 }

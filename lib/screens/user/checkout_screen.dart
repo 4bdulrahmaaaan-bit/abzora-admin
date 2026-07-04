@@ -1939,7 +1939,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     }
 
-    return 'Place Order ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ $amount';
+    return 'Place Order - $amount';
 
   }
 
@@ -2530,9 +2530,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                   _isCodAvailable(cart)
 
-                      ? '100% secure payments ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ COD available'
+                      ? '100% secure payments - COD available'
 
-                      : '100% secure payments ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ Fast delivery',
+                      : '100% secure payments - Fast delivery',
 
                   maxLines: 1,
 
@@ -2914,7 +2914,7 @@ class _CompactAddressCard extends StatelessWidget {
 
               Text(
 
-                '${address!.name} ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ ${address!.phone}',
+                '${address!.name} - ${address!.phone}',
 
                 maxLines: 1,
 

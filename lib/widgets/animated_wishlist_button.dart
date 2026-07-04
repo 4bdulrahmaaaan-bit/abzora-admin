@@ -32,7 +32,9 @@ class AnimatedWishlistButton extends StatefulWidget {
 class _AnimatedWishlistButtonState extends State<AnimatedWishlistButton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  late final AnimationController _pulseController;
   late final Animation<double> _scale;
+  late final Animation<double> _pulseScale;
   bool _intentActive = false;
 
   @override
@@ -84,11 +86,47 @@ class _AnimatedWishlistButtonState extends State<AnimatedWishlistButton>
               weight: 35,
             ),
           ]).animate(_controller);
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
+    _pulseScale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1,
+          end: 1.18,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 45,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1.18,
+          end: 0.98,
+        ).chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 25,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.98,
+          end: 1,
+        ).chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 30,
+      ),
+    ]).animate(_pulseController);
+  }
+
+  @override
+  void didUpdateWidget(covariant AnimatedWishlistButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isSelected && widget.isSelected) {
+      _pulseController.forward(from: 0);
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -130,9 +168,12 @@ class _AnimatedWishlistButtonState extends State<AnimatedWishlistButton>
         onTap: _handleTap,
         customBorder: const CircleBorder(),
         child: AnimatedBuilder(
-          animation: _scale,
+          animation: Listenable.merge([_scale, _pulseScale]),
           builder: (context, child) {
-            return Transform.scale(scale: _scale.value, child: child);
+            return Transform.scale(
+              scale: _scale.value * _pulseScale.value,
+              child: child,
+            );
           },
           child: SizedBox(
             width: widget.size,
@@ -178,36 +219,30 @@ class _AnimatedWishlistButtonState extends State<AnimatedWishlistButton>
                   width: widget.size,
                   height: widget.size,
                   child: Center(
-                    child: widget.isLoading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 180),
-                            transitionBuilder: (child, animation) {
-                              return ScaleTransition(
-                                scale: animation,
-                                child: child,
-                              );
-                            },
-                            child: Icon(
-                              widget.isSelected
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              key: ValueKey<bool>(widget.isSelected),
-                              color: iconColor,
-                              size: widget.iconSize,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black.withValues(alpha: 0.28),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
-                            ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      transitionBuilder: (child, animation) {
+                        return ScaleTransition(
+                          scale: animation,
+                          child: child,
+                        );
+                      },
+                      child: Icon(
+                        widget.isSelected
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        key: ValueKey<bool>(widget.isSelected),
+                        color: iconColor,
+                        size: widget.iconSize,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.28),
+                            blurRadius: 6,
+                            offset: const Offset(0, 1),
                           ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
