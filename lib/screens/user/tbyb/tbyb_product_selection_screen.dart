@@ -8,7 +8,14 @@ import '../../../models/models.dart';
 import '../../../models/trial_session.dart';
 
 class TbybProductSelectionScreen extends StatefulWidget {
-  const TbybProductSelectionScreen({super.key});
+  const TbybProductSelectionScreen({
+    super.key,
+    this.initialProduct,
+    this.initialSize = '',
+  });
+
+  final Product? initialProduct;
+  final String initialSize;
 
   @override
   State<TbybProductSelectionScreen> createState() =>
@@ -17,6 +24,39 @@ class TbybProductSelectionScreen extends StatefulWidget {
 
 class _TbybProductSelectionScreenState
     extends State<TbybProductSelectionScreen> {
+  bool _seededInitialProduct = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_seededInitialProduct) {
+      return;
+    }
+    final product = widget.initialProduct;
+    if (product == null) {
+      return;
+    }
+    _seededInitialProduct = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final trialCart = context.read<TrialCartProvider>();
+      final size = widget.initialSize.trim().isNotEmpty
+          ? widget.initialSize.trim()
+          : (product.sizes.isNotEmpty ? product.sizes.first : 'M');
+      if (!trialCart.items.any(
+        (item) => item.productId == product.id && item.recommendedSize == size,
+      )) {
+        try {
+          trialCart.addItem(product, size);
+        } catch (_) {
+          // Keep the selection screen usable even if the product cannot be re-added.
+        }
+      }
+    });
+  }
+
   void _onContinue() {
     final trialCart = context.read<TrialCartProvider>();
     if (trialCart.isEmpty) {

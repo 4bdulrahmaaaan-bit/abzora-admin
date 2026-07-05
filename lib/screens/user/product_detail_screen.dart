@@ -13,7 +13,6 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
-import '../../providers/trial_cart_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../models/mediapipe_try_on_payload.dart';
 import '../../models/ar_try_on_models.dart';
@@ -1779,30 +1778,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       return;
     }
 
-    final trialCart = context.read<TrialCartProvider>();
     final size = (_selectedSize ?? 'M').trim();
 
     try {
-      trialCart.addItem(product, size);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: const Text('Added to Trial Cart'),
-          action: SnackBarAction(
-            label: 'VIEW CART',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const TbybProductSelectionScreen(),
-                ),
-              );
-            },
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).clearSnackBars();
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => TbybProductSelectionScreen(
+            initialProduct: product,
+            initialSize: size,
           ),
-          duration: const Duration(seconds: 4),
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           content: Text(e.toString()),

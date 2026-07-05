@@ -480,14 +480,14 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
                       MediaQuery.of(context).padding.bottom + 16,
                     ),
                     color: Colors.white,
-                    child: FilledButton(
+                  child: FilledButton(
                       onPressed: _startTrial,
                       style: FilledButton.styleFrom(
                         minimumSize: const Size.fromHeight(56),
                         backgroundColor: Colors.blue.shade600,
                       ),
                       child: const Text(
-                        'Start Trial',
+                        'Start Trial Session',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -574,7 +574,7 @@ class _RiderTrialFlowScreenState extends State<RiderTrialFlowScreen> {
     return FilledButton.icon(
       onPressed: _markArrived,
       icon: const Icon(Icons.location_on),
-      label: const Text('Mark Arrived'),
+      label: const Text('Mark Arrived at Customer'),
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(56),
         backgroundColor: Colors.green.shade600,

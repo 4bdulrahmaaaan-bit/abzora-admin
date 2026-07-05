@@ -84,7 +84,7 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
                     case 1:
                       return _buildTrialList(
                         _assignedTrials,
-                        'No upcoming trials assigned to you.',
+                        'No assigned trials yet.',
                       );
                     case 2:
                       return _buildTrialList(
@@ -148,7 +148,7 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
                     Text(
                       isActive
                           ? 'Active Trial'
-                          : (isCompleted ? 'Completed' : 'Upcoming Trial'),
+                          : (isCompleted ? 'Completed' : 'Assigned Trial'),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: isActive
@@ -199,7 +199,7 @@ class _RiderTrialsScreenState extends State<RiderTrialsScreen> {
                     child: Text(
                       isCompleted
                           ? 'View Details'
-                          : (isActive ? 'Manage Trial' : 'Start Trip'),
+                          : (isActive ? 'Manage Trial' : 'Open Trial'),
                     ),
                   ),
                 ),
