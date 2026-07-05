@@ -1898,7 +1898,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     final whole = value == value.roundToDouble();
     return NumberFormat.currency(
       locale: 'en_IN',
-      symbol: 'â‚¹',
+      symbol: '₹',
       decimalDigits: whole ? 0 : 2,
     ).format(value);
   }

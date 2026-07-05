@@ -1,6 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import '../../../models/models.dart';
 import '../../../config/product_attribute_config.dart';
+import '../../../models/models.dart';
 
 class ProductFormController extends ChangeNotifier {
   final String storeId;
@@ -34,6 +36,8 @@ class ProductFormController extends ChangeNotifier {
   // Variants
   final List<ProductColorVariant> colorVariants = [];
 
+  final Map<String, dynamic> _vendorMeta = {};
+
   // Details (Attributes)
   final descriptionController = TextEditingController();
   final Map<String, TextEditingController> attributeControllers = {};
@@ -44,7 +48,7 @@ class ProductFormController extends ChangeNotifier {
   bool freeReturns = true;
   bool tryBeforeYouBuy = false;
   bool expressDelivery = false;
-  String etaDropdown = '3–5 Days';
+  String etaDropdown = '3-5 Days';
 
   // Advanced / AI Settings
   final glbModelController = TextEditingController();
@@ -64,7 +68,6 @@ class ProductFormController extends ChangeNotifier {
       _initDefaultAttributes();
     }
 
-    // Listeners for live pricing updates
     mrpController.addListener(notifyListeners);
     sellingPriceController.addListener(notifyListeners);
   }
@@ -82,10 +85,9 @@ class ProductFormController extends ChangeNotifier {
 
   void updateCategory(String category) {
     selectedCategory = category;
-    selectedSubcategory = ''; // Reset
+    selectedSubcategory = '';
     _initDefaultAttributes();
 
-    // Auto-gen sizes based on config
     sizeQuantities.clear();
     final template = getProductAttributeTemplate(
       selectedCategory,
@@ -117,34 +119,82 @@ class ProductFormController extends ChangeNotifier {
     brandController.text = product.brand;
     mrpController.text = product.originalPrice?.toStringAsFixed(0) ?? '';
     sellingPriceController.text = product.price.toStringAsFixed(0);
-    skuController.text = product.id; // Just fallback
+    skuController.text = product.id;
     stockController.text = product.stock.toString();
     imageUrls.addAll(product.images);
     colorVariants.addAll(product.colorVariants);
     descriptionController.text = product.description;
+    _vendorMeta
+      ..clear()
+      ..addAll(product.vendorMeta);
 
     selectedCategory = product.category;
     selectedSubcategory = product.subcategory;
     status = product.status;
 
-    // Load sizes
     for (final size in product.sizes) {
-      sizeQuantities[size] = product.stock; // Simplify
+      sizeQuantities[size] = product.stock;
     }
 
-    // Load AI Assets
     glbModelController.text = product.model3d ?? '';
     assetBundleUrlController.text = product.assetBundleUrl ?? '';
     rigProfileController.text = product.rigProfile ?? '';
     materialProfileController.text = product.materialProfile ?? '';
+    collectionController.text = _readVendorString(product, 'collection');
+    barcodeController.text = _readVendorString(product, 'barcode');
+    lowStockThresholdController.text = _readVendorString(
+      product,
+      'lowStockThreshold',
+      fallback: '5',
+    );
+    taxIncluded = _readVendorBool(product, 'taxIncluded', fallback: true);
+    sameDayDelivery = _readVendorBool(
+      product,
+      'sameDayDelivery',
+      fallback: product.deliveryInfo['sameDayEligible'] == true,
+    );
+    cashOnDelivery = _readVendorBool(
+      product,
+      'cashOnDelivery',
+      fallback: product.deliveryInfo['cashOnDelivery'] == true,
+    );
+    freeReturns = _readVendorBool(
+      product,
+      'freeReturns',
+      fallback: product.deliveryInfo['freeReturns'] != false,
+    );
+    tryBeforeYouBuy = _readVendorBool(
+      product,
+      'tryBeforeYouBuy',
+      fallback: false,
+    );
+    expressDelivery = _readVendorBool(
+      product,
+      'expressDelivery',
+      fallback: false,
+    );
+    etaDropdown = _readVendorString(
+      product,
+      'etaLabel',
+      fallback: product.deliveryInfo['etaLabel']?.toString().trim().isNotEmpty == true
+          ? product.deliveryInfo['etaLabel'].toString().trim()
+          : etaDropdown,
+    );
 
     _initDefaultAttributes();
+    for (final entry in product.attributes.entries) {
+      final controller = attributeControllers[entry.key];
+      if (controller != null) {
+        controller.text = entry.value;
+      }
+    }
     for (final attr in product.structuredAttributes) {
       final key = attr['key']?.toString() ?? '';
       if (attributeControllers.containsKey(key)) {
         attributeControllers[key]?.text = attr['value']?.toString() ?? '';
       }
     }
+    _restoreSizeQuantities(product);
   }
 
   void toggleTaxIncluded(bool? value) {
@@ -183,11 +233,26 @@ class ProductFormController extends ChangeNotifier {
     }
   }
 
+  Map<String, dynamic> buildVendorMeta() {
+    final meta = Map<String, dynamic>.from(_vendorMeta);
+    meta['collection'] = collectionController.text.trim();
+    meta['barcode'] = barcodeController.text.trim();
+    meta['lowStockThreshold'] =
+        int.tryParse(lowStockThresholdController.text.trim()) ?? 5;
+    meta['taxIncluded'] = taxIncluded;
+    meta['sameDayDelivery'] = sameDayDelivery;
+    meta['cashOnDelivery'] = cashOnDelivery;
+    meta['freeReturns'] = freeReturns;
+    meta['tryBeforeYouBuy'] = tryBeforeYouBuy;
+    meta['expressDelivery'] = expressDelivery;
+    meta['etaLabel'] = etaDropdown.trim();
+    meta['sizeQuantities'] = jsonEncode(sizeQuantities);
+    return meta;
+  }
+
   void generateSku() {
     final prefix = selectedCategory.isNotEmpty
-        ? selectedCategory
-              .substring(0, min(3, selectedCategory.length))
-              .toUpperCase()
+        ? selectedCategory.substring(0, min(3, selectedCategory.length)).toUpperCase()
         : 'PRD';
     skuController.text =
         '$prefix-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
@@ -219,6 +284,88 @@ class ProductFormController extends ChangeNotifier {
 
   void forceNotify() {
     notifyListeners();
+  }
+
+  String _readVendorString(
+    Product product,
+    String key, {
+    String fallback = '',
+  }) {
+    final candidates = <dynamic>[
+      product.vendorMeta[key],
+      product.vendorMeta['vendor_$key'],
+      product.attributes[key],
+      product.attributes['vendor_$key'],
+    ];
+    for (final candidate in candidates) {
+      final value = candidate?.toString().trim() ?? '';
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+    return fallback;
+  }
+
+  bool _readVendorBool(
+    Product product,
+    String key, {
+    required bool fallback,
+  }) {
+    final candidates = <dynamic>[
+      product.vendorMeta[key],
+      product.vendorMeta['vendor_$key'],
+      product.attributes[key],
+      product.attributes['vendor_$key'],
+    ];
+    for (final candidate in candidates) {
+      if (candidate is bool) {
+        return candidate;
+      }
+      final value = candidate?.toString().trim().toLowerCase() ?? '';
+      if (['true', '1', 'yes'].contains(value)) {
+        return true;
+      }
+      if (['false', '0', 'no'].contains(value)) {
+        return false;
+      }
+    }
+    return fallback;
+  }
+
+  void _restoreSizeQuantities(Product product) {
+    final raw = _readVendorString(
+      product,
+      'sizeQuantities',
+      fallback: '',
+    );
+    if (raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          sizeQuantities
+            ..clear()
+            ..addEntries(
+              decoded.entries
+                  .map((entry) {
+                    final key = entry.key.toString().trim();
+                    final qty = entry.value is num
+                        ? (entry.value as num).toInt()
+                        : int.tryParse(entry.value?.toString() ?? '') ?? 0;
+                    return MapEntry(key, qty);
+                  })
+                  .where((entry) => entry.key.isNotEmpty),
+            );
+        }
+      } catch (_) {
+        // Fall through to size-based defaults.
+      }
+    }
+
+    if (sizeQuantities.isEmpty) {
+      for (final size in product.sizes) {
+        sizeQuantities[size] = product.stock;
+      }
+    }
   }
 
   @override

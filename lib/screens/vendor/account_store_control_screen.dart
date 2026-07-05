@@ -29,32 +29,71 @@ class _AccountStoreControlScreenState extends State<AccountStoreControlScreen> {
 
   Future<void> _loadData() async {
     final actor = context.read<AuthProvider>().user;
-    if (actor == null) return;
-    try {
-      final db = DatabaseService();
-      final storeId = actor.storeId;
-      final futures = await Future.wait([
-        if (storeId != null) db.getStore(storeId) else db.getStoreByOwner(actor.id),
-        db.getVendorWallet(actor: actor),
-        BusinessHealthApi().getHealth(),
-        db.getVendorPayoutProfile(actor: actor),
-      ]);
+    if (actor == null) {
       if (mounted) {
-        setState(() {
-          _store = futures[0] as Store?;
-          _wallet = futures[1] as WalletSummary?;
-          _health = futures[2] as Map<String, dynamic>?;
-          _payoutProfile = futures[3] as PayoutProfileSummary?;
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      return;
     }
+
+    final db = DatabaseService();
+    final storeId = actor.storeId;
+
+    Store? store;
+    WalletSummary? wallet;
+    Map<String, dynamic>? health;
+    PayoutProfileSummary? payoutProfile;
+
+    try {
+      store = storeId != null
+          ? await db.getStore(storeId)
+          : await db.getStoreByOwner(actor.id);
+    } catch (error) {
+      debugPrint('AccountControl: failed to load store: $error');
+    }
+
+    try {
+      wallet = await db.getVendorWallet(actor: actor);
+    } catch (error) {
+      debugPrint('AccountControl: failed to load wallet: $error');
+    }
+
+    try {
+      health = await BusinessHealthApi().getHealth();
+    } catch (error) {
+      debugPrint('AccountControl: failed to load health: $error');
+    }
+
+    try {
+      payoutProfile = await db.getVendorPayoutProfile(actor: actor);
+    } catch (error) {
+      debugPrint('AccountControl: failed to load payout profile: $error');
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _store = store;
+      _wallet = wallet;
+      _health = health;
+      _payoutProfile = payoutProfile;
+      _isLoading = false;
+    });
   }
 
   String _money(double value) => NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(value);
 
+  int _healthScore() {
+    final score = _health?['score'];
+    if (score is num) {
+      return score.round();
+    }
+    return 70;
+  }
+
+  bool get _isHealthy => _healthScore() >= 60;
   @override
   Widget build(BuildContext context) {
     const bg = Color(0xFFF8F3E9);
@@ -155,14 +194,14 @@ class _AccountStoreControlScreenState extends State<AccountStoreControlScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '${_health?['score'] ?? 70}% Healthy',
+                  '${_healthScore()}% Healthy',
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
-                    value: (_health?['score'] ?? 70) / 100.0,
+                    value: _healthScore() / 100.0,
                     minHeight: 10,
                     valueColor: const AlwaysStoppedAnimation(Color(0xFF4BAA54)),
                     backgroundColor: const Color(0xFFF0E8D8),
@@ -232,13 +271,13 @@ class _AccountStoreControlScreenState extends State<AccountStoreControlScreen> {
                     'Medium',
                     const Color(0xFFB27A1D),
                   ),
-                if (_health != null && _health!['score'] < 60)
+                if (!_isHealthy)
                   _alertRow(
                     'Low store health score',
                     'Medium',
                     const Color(0xFFB27A1D),
                   ),
-                if (_payoutProfile?.isConfigured == true && (_wallet?.pendingAmount ?? 0) == 0 && (_health?['score'] ?? 100) >= 60)
+                if (_payoutProfile?.isConfigured == true && (_wallet?.pendingAmount ?? 0) == 0 && _isHealthy)
                   Text('No alerts right now.', style: GoogleFonts.inter()),
               ],
             ),
@@ -430,3 +469,4 @@ class _AccountStoreControlScreenState extends State<AccountStoreControlScreen> {
     );
   }
 }
+

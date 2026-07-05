@@ -12,7 +12,7 @@ class ProductDeliverySection extends StatefulWidget {
 }
 
 class _ProductDeliverySectionState extends State<ProductDeliverySection> {
-  final _etaOptions = ['Same Day', '1 Day', '2 Days', '3–5 Days', '1 Week'];
+  final _etaOptions = ['Same Day', '1 Day', '2 Days', '3-5 Days', '1 Week'];
 
   @override
   Widget build(BuildContext context) {
@@ -46,8 +46,7 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
                 icon: Icons.bolt_rounded,
                 isActive: controller.sameDayDelivery,
                 onToggle: () => setState(
-                  () =>
-                      controller.sameDayDelivery = !controller.sameDayDelivery,
+                  () => controller.sameDayDelivery = !controller.sameDayDelivery,
                 ),
               ),
               _buildToggleChip(
@@ -71,8 +70,7 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
                 icon: Icons.checkroom_outlined,
                 isActive: controller.tryBeforeYouBuy,
                 onToggle: () => setState(
-                  () =>
-                      controller.tryBeforeYouBuy = !controller.tryBeforeYouBuy,
+                  () => controller.tryBeforeYouBuy = !controller.tryBeforeYouBuy,
                 ),
               ),
               _buildToggleChip(
@@ -80,8 +78,7 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
                 icon: Icons.rocket_launch_outlined,
                 isActive: controller.expressDelivery,
                 onToggle: () => setState(
-                  () =>
-                      controller.expressDelivery = !controller.expressDelivery,
+                  () => controller.expressDelivery = !controller.expressDelivery,
                 ),
               ),
             ],
@@ -180,9 +177,7 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
             Icon(
               isActive ? Icons.check_circle_rounded : icon,
               size: 16,
-              color: isActive
-                  ? const Color(0xFF16A34A)
-                  : AbzioTheme.textSecondary,
+              color: isActive ? const Color(0xFF16A34A) : AbzioTheme.textSecondary,
             ),
             const SizedBox(width: 8),
             Text(
@@ -190,9 +185,7 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
               style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive
-                    ? const Color(0xFF16A34A)
-                    : AbzioTheme.textPrimary,
+                color: isActive ? const Color(0xFF16A34A) : AbzioTheme.textPrimary,
               ),
             ),
           ],

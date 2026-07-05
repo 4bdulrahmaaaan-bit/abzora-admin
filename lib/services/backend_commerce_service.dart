@@ -4682,6 +4682,7 @@ class BackendCommerceService {
       'isActive': product.isActive,
       'atelier': product.atelier,
       'garmentConfig': product.garmentConfig,
+      'vendorMeta': product.vendorMeta,
     };
   }
 
@@ -4791,6 +4792,7 @@ class BackendCommerceService {
       'arAsset': map['arAsset'] ?? const {},
       'atelier': map['atelier'] ?? const {},
       'garmentConfig': map['garmentConfig'] ?? const {},
+      'vendorMeta': map['vendorMeta'] ?? const {},
       'customizations': map['customizations'] ?? const {},
       'measurements': map['measurements'] ?? const {},
       'addons': map['addons'] ?? const [],

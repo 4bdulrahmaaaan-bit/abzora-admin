@@ -949,6 +949,7 @@ class Product {
   final List<String> addons;
   final Map<String, dynamic> atelier;
   final Map<String, dynamic> garmentConfig;
+  final Map<String, dynamic> vendorMeta;
   final String? measurementProfileLabel;
   final DateTime? neededBy;
   final String? tailoringDeliveryMode;
@@ -1005,6 +1006,7 @@ class Product {
     this.addons = const [],
     this.atelier = const {},
     this.garmentConfig = const {},
+    this.vendorMeta = const {},
     this.measurementProfileLabel,
     this.neededBy,
     this.tailoringDeliveryMode,
@@ -1064,6 +1066,7 @@ class Product {
     List<String>? addons,
     Map<String, dynamic>? atelier,
     Map<String, dynamic>? garmentConfig,
+    Map<String, dynamic>? vendorMeta,
     String? measurementProfileLabel,
     DateTime? neededBy,
     String? tailoringDeliveryMode,
@@ -1122,6 +1125,7 @@ class Product {
       addons: addons ?? this.addons,
       atelier: atelier ?? this.atelier,
       garmentConfig: garmentConfig ?? this.garmentConfig,
+      vendorMeta: vendorMeta ?? this.vendorMeta,
       measurementProfileLabel:
           measurementProfileLabel ?? this.measurementProfileLabel,
       neededBy: neededBy ?? this.neededBy,
@@ -1180,6 +1184,7 @@ class Product {
     'addons': addons,
     'atelier': atelier,
     'garmentConfig': garmentConfig,
+    'vendorMeta': vendorMeta,
     'measurementProfileLabel': measurementProfileLabel,
     'neededBy': neededBy?.toIso8601String(),
     'tailoringDeliveryMode': tailoringDeliveryMode,
@@ -1318,6 +1323,7 @@ class Product {
     addons: List<String>.from(map['addons'] ?? const []),
     atelier: Map<String, dynamic>.from(map['atelier'] ?? const {}),
     garmentConfig: Map<String, dynamic>.from(map['garmentConfig'] ?? const {}),
+    vendorMeta: Map<String, dynamic>.from(map['vendorMeta'] ?? const {}),
     measurementProfileLabel: map['measurementProfileLabel'],
     neededBy: map['neededBy'] != null
         ? DateTime.tryParse(map['neededBy'])

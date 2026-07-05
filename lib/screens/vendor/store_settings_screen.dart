@@ -15,6 +15,8 @@ import '../../utils/app_error_text.dart';
 import '../../features/legal/account_deletion_request_screen.dart';
 import '../../features/legal/legal_policy_hub_screen.dart';
 import '../../features/legal/legal_document_registry.dart';
+import '../../features/onboarding/vendor_onboarding_flow_screen.dart';
+import '../../widgets/payout_account_dialog.dart';
 
 class StoreSettingsScreen extends StatefulWidget {
   final Store store;
@@ -205,6 +207,56 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
     }
   }
 
+  Future<void> _openVendorOnboarding(int initialStep) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VendorOnboardingFlowScreen(initialStep: initialStep),
+      ),
+    );
+  }
+
+  Future<void> _managePayoutAccount() async {
+    final actor = context.read<AuthProvider>().user;
+    if (actor == null) {
+      return;
+    }
+    final formValue = await showPayoutAccountDialog(
+      context: context,
+      title: 'Vendor payout account',
+      initialValue: _payoutProfile ?? const PayoutProfileSummary.empty(),
+    );
+    if (formValue == null || !mounted) {
+      return;
+    }
+    try {
+      final updatedProfile = await DatabaseService().saveVendorPayoutProfile(
+        actor: actor,
+        methodType: formValue.methodType,
+        accountHolderName: formValue.accountHolderName,
+        upiId: formValue.upiId,
+        bankAccountNumber: formValue.bankAccountNumber,
+        bankIfsc: formValue.bankIfsc,
+        bankName: formValue.bankName,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _payoutProfile = updatedProfile;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payout details saved successfully.')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppErrorText.from(error))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -255,13 +307,13 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
             _buildLegalListTile(
               title: 'GSTIN & PAN Details',
               subtitle: 'Manage tax compliance and verification',
-              onTap: () {},
+              onTap: () => _openVendorOnboarding(4),
             ),
             const SizedBox(height: VendorTheme.spacing12),
             _buildLegalListTile(
               title: 'Business Type',
               subtitle: 'Sole Proprietorship, LLP, Pvt Ltd, etc.',
-              onTap: () {},
+              onTap: () => _openVendorOnboarding(0),
             ),
             const SizedBox(height: VendorTheme.spacing32),
             _buildSectionHeader('Financial Settings', Icons.account_balance_outlined),
@@ -271,7 +323,7 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
               subtitle: _payoutProfile != null && _payoutProfile!.isConfigured && _payoutProfile!.bankAccountNumber.length >= 4
                   ? '${_payoutProfile!.bankName} **** ${_payoutProfile!.bankAccountNumber.substring(_payoutProfile!.bankAccountNumber.length - 4)}'
                   : 'Not configured',
-              onTap: () {},
+              onTap: _managePayoutAccount,
             ),
             const SizedBox(height: VendorTheme.spacing12),
             _buildLegalListTile(
@@ -279,7 +331,7 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
               subtitle: _payoutProfile != null && _payoutProfile!.isConfigured
                   ? _payoutProfile!.methodType
                   : 'Not set',
-              onTap: () {},
+              onTap: _managePayoutAccount,
             ),
             const SizedBox(height: VendorTheme.spacing32),
             _buildSectionHeader('Notifications', Icons.notifications_active_outlined),

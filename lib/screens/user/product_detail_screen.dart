@@ -523,6 +523,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       selectedVariantId,
       address.latitude?.toStringAsFixed(5) ?? 'na',
       address.longitude?.toStringAsFixed(5) ?? 'na',
+      address.city.trim(),
+      address.state.trim(),
       address.pincode.trim(),
     ].join('|');
   }

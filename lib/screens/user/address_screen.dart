@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/location_service.dart';
 import '../../utils/app_error_text.dart';
+import '../../utils/phone_number_utils.dart';
 import '../../widgets/abzio_motion.dart';
 import '../../theme.dart';
 import '../../widgets/address_form_widget.dart';
@@ -85,7 +86,7 @@ class _AddressScreenState extends State<AddressScreen> {
     }
     final phone = (user.phone ?? '').trim();
     if (phone.isNotEmpty && _phoneController.text.trim().isEmpty) {
-      _phoneController.text = phone;
+      _phoneController.text = normalizeIndianMobileNumber(phone);
     }
     final address = (user.address ?? '').trim();
     if (address.isNotEmpty && _addressController.text.trim().isEmpty) {
@@ -185,7 +186,7 @@ class _AddressScreenState extends State<AddressScreen> {
 
   void _applySavedAddress(UserAddress address) {
     _nameController.text = address.name;
-    _phoneController.text = address.phone;
+    _phoneController.text = normalizeIndianMobileNumber(address.phone);
     _addressController.text = address.addressLine;
     _cityController.text = address.city;
     _stateController.text = address.state;
@@ -258,7 +259,7 @@ class _AddressScreenState extends State<AddressScreen> {
         id: '',
         userId: user.id,
         name: _nameController.text.trim(),
-        phone: _phoneController.text.trim(),
+        phone: normalizeIndianMobileNumber(_phoneController.text.trim()),
         addressLine: _addressController.text.trim(),
         city: _cityController.text.trim(),
         state: _stateController.text.trim(),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../theme.dart';
 import 'abzio_motion.dart';
+import '../utils/phone_number_utils.dart';
 
 class AddressFormWidget extends StatelessWidget {
   const AddressFormWidget({
@@ -89,15 +90,15 @@ class AddressFormWidget extends StatelessWidget {
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
             inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(10),
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s()-]')),
+              LengthLimitingTextInputFormatter(15),
             ],
             validator: (value) {
               final trimmed = (value ?? '').trim();
               if (trimmed.isEmpty) {
                 return 'Mobile number is required';
               }
-              if (!RegExp(r'^\d{10}$').hasMatch(trimmed)) {
+              if (!isValidIndianMobileNumber(trimmed)) {
                 return 'Enter a valid 10-digit number';
               }
               return null;

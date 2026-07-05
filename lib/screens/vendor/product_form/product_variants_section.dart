@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme.dart';
@@ -127,7 +127,7 @@ class ProductVariantsSection extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Images: ${variant.images.length} • Sizes: ${variant.sizes.join(', ')} • Stock: $vStock',
+                              'Images: ${variant.images.length} \u2022 Sizes: ${variant.sizes.join(', ')} \u2022 Stock: $vStock',
                               style: GoogleFonts.inter(
                                 fontSize: 13,
                                 color: AbzioTheme.textSecondary,
@@ -190,3 +190,6 @@ class ProductVariantsSection extends StatelessWidget {
     }
   }
 }
+
+
+

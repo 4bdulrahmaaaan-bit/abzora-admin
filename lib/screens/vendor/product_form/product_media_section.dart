@@ -3,10 +3,19 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../theme.dart';
+import '../../../services/storage_service.dart';
 import 'product_form_controller.dart';
 
-class ProductMediaSection extends StatelessWidget {
+class ProductMediaSection extends StatefulWidget {
   const ProductMediaSection({super.key});
+
+  @override
+  State<ProductMediaSection> createState() => _ProductMediaSectionState();
+}
+
+class _ProductMediaSectionState extends State<ProductMediaSection> {
+  final StorageService _storage = StorageService();
+  bool _uploading = false;
 
   Future<void> _pickImages(
     BuildContext context,
@@ -14,11 +23,35 @@ class ProductMediaSection extends StatelessWidget {
   ) async {
     final picker = ImagePicker();
     final List<XFile> images = await picker.pickMultiImage();
-    if (images.isNotEmpty) {
-      // In a real app, you would upload to storage here
-      // For this UI, we just simulate adding the path
+    if (images.isEmpty || _uploading) {
+      return;
+    }
+
+    setState(() => _uploading = true);
+    try {
       for (final image in images) {
-        controller.addImage(image.path);
+        final uploadedUrl = await _storage.uploadPickedImage(
+          file: image,
+          folder: 'product_images',
+          ownerId: controller.storeId,
+          fileName: 'product_${DateTime.now().millisecondsSinceEpoch}',
+        );
+        controller.addImage(uploadedUrl);
+      }
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Image upload failed: $error'),
+          backgroundColor: const Color(0xFFC03C2E),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _uploading = false);
       }
     }
   }
@@ -50,10 +83,18 @@ class ProductMediaSection extends StatelessWidget {
               ),
               if (controller.imageUrls.isNotEmpty)
                 TextButton.icon(
-                  onPressed: () => _pickImages(context, controller),
-                  icon: const Icon(Icons.add_photo_alternate_rounded, size: 18),
+                  onPressed: _uploading
+                      ? null
+                      : () => _pickImages(context, controller),
+                  icon: _uploading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.add_photo_alternate_rounded, size: 18),
                   label: Text(
-                    'Add More',
+                    _uploading ? 'Uploading...' : 'Add More',
                     style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -70,7 +111,7 @@ class ProductMediaSection extends StatelessWidget {
           const SizedBox(height: 24),
           if (controller.imageUrls.isEmpty)
             GestureDetector(
-              onTap: () => _pickImages(context, controller),
+              onTap: _uploading ? null : () => _pickImages(context, controller),
               child: Container(
                 width: double.infinity,
                 height: 200,
@@ -85,14 +126,22 @@ class ProductMediaSection extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.cloud_upload_outlined,
-                      size: 48,
-                      color: AbzioTheme.textSecondary,
-                    ),
+                    _uploading
+                        ? const SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: CircularProgressIndicator(
+                              color: AbzioTheme.accentColor,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.cloud_upload_outlined,
+                            size: 48,
+                            color: AbzioTheme.textSecondary,
+                          ),
                     const SizedBox(height: 12),
                     Text(
-                      'Tap to Upload Images',
+                      _uploading ? 'Uploading to Cloudinary...' : 'Tap to Upload Images',
                       style: GoogleFonts.inter(
                         fontWeight: FontWeight.w600,
                         color: AbzioTheme.textPrimary,

@@ -135,6 +135,7 @@ class _AddProductScreenContentState extends State<_AddProductScreenContent> {
         assetBundleUrl: controller.assetBundleUrlController.text,
         rigProfile: controller.rigProfileController.text,
         materialProfile: controller.materialProfileController.text,
+        vendorMeta: controller.buildVendorMeta(),
         structuredAttributes: controller.attributeControllers.entries
             .map((e) => {'key': e.key, 'value': e.value.text})
             .toList(),
