@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
+import '../../providers/auth_provider.dart';
 
 import '../../services/database_service.dart';
 import '../../widgets/state_views.dart';
@@ -125,6 +127,56 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
       ),
     );
     await _loadProducts();
+  }
+
+  Future<void> _deleteProduct(Product product) async {
+    final actor = context.read<AuthProvider>().user;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete product?'),
+        content: Text(
+          'Delete "${product.name}" from your catalog? This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB42318),
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+
+    try {
+      await _db.deleteProduct(
+        product.id,
+        actor: actor,
+      );
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${product.name} deleted.')),
+      );
+      await _loadProducts();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
   }
 
   void _toggleSelection(String id) {
@@ -467,10 +519,27 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
               ),
               Column(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    onPressed: () => _openProductEditor(product: p),
-                    tooltip: 'Edit',
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ActionIconButton(
+                        icon: Icons.edit_outlined,
+                        label: 'Edit',
+                        backgroundColor: VendorTheme.primary.withValues(
+                          alpha: 0.08,
+                        ),
+                        foregroundColor: VendorTheme.primary,
+                        onPressed: () => _openProductEditor(product: p),
+                      ),
+                      const SizedBox(width: 8),
+                      _ActionIconButton(
+                        icon: Icons.delete_outline,
+                        label: 'Delete',
+                        backgroundColor: const Color(0xFFFFE9E7),
+                        foregroundColor: const Color(0xFFB42318),
+                        onPressed: () => _deleteProduct(p),
+                      ),
+                    ],
                   ),
                   VendorStatusBadge(
                     label: p.status == ProductStatus.active
@@ -556,6 +625,42 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
           onTap: _page + 1 < _pageCount ? () => setState(() => _page++) : null,
         ),
       ],
+    );
+  }
+}
+
+class _ActionIconButton extends StatelessWidget {
+  const _ActionIconButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    required this.backgroundColor,
+    required this.foregroundColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final Color backgroundColor;
+  final Color foregroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: label,
+      child: Material(
+        color: backgroundColor,
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: Icon(icon, size: 20, color: foregroundColor),
+          ),
+        ),
+      ),
     );
   }
 }

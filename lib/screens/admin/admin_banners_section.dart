@@ -714,6 +714,8 @@ class BannerFormModal extends StatefulWidget {
 }
 
 class _BannerFormModalState extends State<BannerFormModal> {
+  static const double _customerHeroAspectRatio = 390 / 360;
+
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _targetIdController = TextEditingController();
@@ -769,6 +771,94 @@ class _BannerFormModalState extends State<BannerFormModal> {
     });
   }
 
+  bool get _hasImage =>
+      _pickedPreview != null ||
+      (widget.initialBanner?.imageUrl.trim().isNotEmpty ?? false);
+
+  ImageProvider? _previewImageProvider() {
+    if (_pickedPreview != null) {
+      return MemoryImage(_pickedPreview!);
+    }
+    final imageUrl = widget.initialBanner?.imageUrl.trim() ?? '';
+    if (imageUrl.isEmpty) {
+      return null;
+    }
+    return NetworkImage(imageUrl);
+  }
+
+  void _showFullPreview() {
+    final imageProvider = _previewImageProvider();
+    if (imageProvider == null) {
+      return;
+    }
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.all(20),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 760),
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Customer banner preview',
+                      style: GoogleFonts.inter(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              AspectRatio(
+                aspectRatio: _customerHeroAspectRatio,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: InteractiveViewer(
+                    minScale: 1,
+                    maxScale: 3,
+                    child: Image(
+                      image: imageProvider,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const _UploadPlaceholder(hasImage: true),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'This frame matches the customer home hero. Use the preview to check crop, scale, and composition before saving.',
+                style: GoogleFonts.inter(
+                  color: Colors.white.withValues(alpha: 0.75),
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _submit() {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -800,8 +890,7 @@ class _BannerFormModalState extends State<BannerFormModal> {
 
   @override
   Widget build(BuildContext context) {
-    final currentImage = widget.initialBanner?.imageUrl ?? '';
-    final hasPreview = _pickedPreview != null;
+    final previewImage = _previewImageProvider();
 
     return AlertDialog(
       title: Text(widget.initialBanner == null ? 'Add banner' : 'Edit banner'),
@@ -823,27 +912,103 @@ class _BannerFormModalState extends State<BannerFormModal> {
                 ),
                 const SizedBox(height: 10),
                 InkWell(
-                  onTap: _pickImage,
-                  borderRadius: BorderRadius.circular(18),
-                  child: Ink(
-                    height: 176,
+                  onTap: _hasImage ? _showFullPreview : _pickImage,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: AbzioTheme.grey200),
                       color: const Color(0xFFF8F8F8),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: hasPreview
-                          ? Image.memory(_pickedPreview!, fit: BoxFit.cover)
-                          : currentImage.isNotEmpty
-                          ? Image.network(
-                              currentImage,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  _UploadPlaceholder(hasImage: false),
-                            )
-                          : const _UploadPlaceholder(hasImage: false),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AspectRatio(
+                          aspectRatio: _customerHeroAspectRatio,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: previewImage != null
+                                ? Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      Image(
+                                        image: previewImage,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const _UploadPlaceholder(
+                                                  hasImage: true,
+                                                ),
+                                      ),
+                                      Positioned(
+                                        left: 12,
+                                        top: 12,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.42,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              999,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Customer frame',
+                                            style: GoogleFonts.inter(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        right: 12,
+                                        bottom: 12,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.42,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              999,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Tap to preview',
+                                            style: GoogleFonts.inter(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : const _UploadPlaceholder(hasImage: false),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Matches the customer home banner frame. Use a wide image so cover-cropping still feels premium.',
+                          style: GoogleFonts.inter(
+                            color: AbzioTheme.textSecondary,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -853,11 +1018,13 @@ class _BannerFormModalState extends State<BannerFormModal> {
                     OutlinedButton.icon(
                       onPressed: _pickImage,
                       icon: const Icon(Icons.upload_outlined),
-                      label: Text(
-                        hasPreview || currentImage.isNotEmpty
-                            ? 'Replace image'
-                            : 'Upload image',
-                      ),
+                      label: Text(_hasImage ? 'Replace image' : 'Upload image'),
+                    ),
+                    const SizedBox(width: 12),
+                    TextButton.icon(
+                      onPressed: _hasImage ? _showFullPreview : null,
+                      icon: const Icon(Icons.visibility_outlined),
+                      label: const Text('Preview'),
                     ),
                     if (_pickedImage != null) ...[
                       const SizedBox(width: 12),
@@ -892,7 +1059,8 @@ class _BannerFormModalState extends State<BannerFormModal> {
                         controller: _targetIdController,
                         decoration: const InputDecoration(
                           labelText: 'Destination ID',
-                          hintText: 'Category, collection, brand, product, campaign id',
+                          hintText:
+                              'Category, collection, brand, product, campaign id',
                         ),
                       ),
                     ),
@@ -922,10 +1090,7 @@ class _BannerFormModalState extends State<BannerFormModal> {
                       value: 'collection',
                       child: Text('Collection'),
                     ),
-                    DropdownMenuItem(
-                      value: 'brand',
-                      child: Text('Brand'),
-                    ),
+                    DropdownMenuItem(value: 'brand', child: Text('Brand')),
                     DropdownMenuItem(
                       value: 'product_listing',
                       child: Text('Product Listing'),

@@ -155,7 +155,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   // didChangeDependencies will retry once auth finishes.
   bool _pendingLoadAfterAuth = false;
   String? _loadError;
-  final Set<String> _dataWarnings = <String>{};
+  final Map<AdminWebSection, Set<String>> _dataWarningsBySection =
+      <AdminWebSection, Set<String>>{};
 
   String _userRoleFilter = 'All';
   String _vendorStatusFilter = 'All';
@@ -178,6 +179,20 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   String _pricingDemandLevel = 'normal';
   String _productWorkspaceMode = 'catalog';
   String? _selectedVariantProductId;
+
+  Set<String> _warningsFor(AdminWebSection section) {
+    return _dataWarningsBySection[section] ?? const <String>{};
+  }
+
+  void _clearWarningsFor(AdminWebSection section) {
+    _dataWarningsBySection.remove(section);
+  }
+
+  void _addWarningFor(AdminWebSection section, String message) {
+    _dataWarningsBySection
+        .putIfAbsent(section, () => <String>{})
+        .add(message);
+  }
 
   int _vendorPage = 0;
   int _userPage = 0;
@@ -301,6 +316,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     setState(() {
       _tab = section;
       _loadError = null;
+      _clearWarningsFor(section);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
@@ -397,22 +413,23 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     if (actor == null) {
       return;
     }
+    final section = _tab;
     if (!mounted) {
       return;
     }
     setState(() {
       _loading = true;
       _loadError = null;
-      _dataWarnings.clear();
+      _clearWarningsFor(section);
     });
     try {
-      await _ensureSectionLoaded(_tab, force: true);
+      await _ensureSectionLoaded(section, force: true);
     } catch (error) {
       if (!mounted) {
         return;
       }
       setState(() {
-        _dataWarnings.add(AppErrorText.from(error));
+        _addWarningFor(section, AppErrorText.from(error));
       });
     } finally {
       if (mounted) {
@@ -519,7 +536,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
           weeklySales: const [],
         );
         _dashboardLoaded = true;
-        _dataWarnings.add(
+        _addWarningFor(
+          AdminWebSection.dashboard,
           'Dashboard metrics are temporarily unavailable. Showing a fallback view.',
         );
       });
@@ -966,7 +984,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     try {
       return await _db.getOpsAlerts(actor: actor, limit: 60);
     } catch (_) {
-      _dataWarnings.add('Live alert queue is temporarily unavailable.');
+      _addWarningFor(
+        AdminWebSection.operations,
+        'Live alert queue is temporarily unavailable.',
+      );
       return const <OpsAlertItem>[];
     }
   }
@@ -975,7 +996,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     try {
       return await _db.getOpsLogs(actor: actor, limit: 120);
     } catch (_) {
-      _dataWarnings.add('Operations audit stream is temporarily unavailable.');
+      _addWarningFor(
+        AdminWebSection.operations,
+        'Operations audit stream is temporarily unavailable.',
+      );
       return const <OpsActionLogEntry>[];
     }
   }
@@ -984,7 +1008,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     try {
       return await _db.getOpsMetrics(actor: actor, type: 'hourly', limit: 24);
     } catch (_) {
-      _dataWarnings.add('Live ops metrics are temporarily unavailable.');
+      _addWarningFor(
+        AdminWebSection.operations,
+        'Live ops metrics are temporarily unavailable.',
+      );
       return const <OpsMetricSnapshot>[];
     }
   }
@@ -993,7 +1020,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     try {
       return await _db.getOpsLive(actor: actor);
     } catch (_) {
-      _dataWarnings.add('Live dispatch snapshot is temporarily unavailable.');
+      _addWarningFor(
+        AdminWebSection.operations,
+        'Live dispatch snapshot is temporarily unavailable.',
+      );
       return const OpsLiveSnapshot();
     }
   }
@@ -1002,7 +1032,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     try {
       return await _db.getDispatchSlaOverview(actor: actor);
     } catch (_) {
-      _dataWarnings.add('Dispatch SLA overview is temporarily unavailable.');
+      _addWarningFor(
+        AdminWebSection.operations,
+        'Dispatch SLA overview is temporarily unavailable.',
+      );
       return const {};
     }
   }
@@ -1011,7 +1044,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
     try {
       return await _db.getDispatchBatches(actor: actor);
     } catch (_) {
-      _dataWarnings.add('Dispatch batches are temporarily unavailable.');
+      _addWarningFor(
+        AdminWebSection.operations,
+        'Dispatch batches are temporarily unavailable.',
+      );
       return const [];
     }
   }
@@ -2416,7 +2452,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
                                     _tab == AdminWebSection.riders)
                                   const SizedBox(height: 64),
                                 _buildHeader(context),
-                                if (_dataWarnings.isNotEmpty) ...[
+                                if (_warningsFor(_tab).isNotEmpty) ...[
                                   const SizedBox(height: 14),
                                   _buildDataWarningsBanner(),
                                 ],
@@ -2831,6 +2867,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   }
 
   Widget _buildDataWarningsBanner() {
+    final warnings = _warningsFor(_tab);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -2849,7 +2886,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
             ),
           ),
           const SizedBox(height: 6),
-          ..._dataWarnings.map(
+          ...warnings.map(
             (warning) => Padding(
               padding: const EdgeInsets.only(bottom: 3),
               child: Text(

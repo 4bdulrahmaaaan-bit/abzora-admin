@@ -14,6 +14,7 @@ class BannerProvider with ChangeNotifier {
   final BackendCommerceService _commerce;
 
   List<BannerModel> _banners = const [];
+  List<BannerModel> _lastSuccessfulBanners = const [];
   int _activeIndex = 0;
   bool _isLoading = false;
 
@@ -45,14 +46,22 @@ class BannerProvider with ChangeNotifier {
       final visibleBanners = banners
           .where((banner) => banner.imageUrl.trim().isNotEmpty)
           .toList(growable: false);
-      _banners = List<BannerModel>.unmodifiable(visibleBanners);
-      if (_banners.isEmpty) {
-        _activeIndex = 0;
-      } else {
+      if (visibleBanners.isNotEmpty) {
+        _lastSuccessfulBanners = List<BannerModel>.unmodifiable(visibleBanners);
+        _banners = _lastSuccessfulBanners;
         _activeIndex = _activeIndex.clamp(0, _banners.length - 1);
+      } else if (_banners.isEmpty && _lastSuccessfulBanners.isNotEmpty) {
+        _banners = _lastSuccessfulBanners;
+        _activeIndex = _activeIndex.clamp(0, _banners.length - 1);
+      } else if (_banners.isEmpty) {
+        _banners = const [];
+        _activeIndex = 0;
       }
     } catch (_) {
-      if (_banners.isEmpty) {
+      if (_banners.isEmpty && _lastSuccessfulBanners.isNotEmpty) {
+        _banners = _lastSuccessfulBanners;
+        _activeIndex = _activeIndex.clamp(0, _banners.length - 1);
+      } else if (_banners.isEmpty) {
         _banners = const [];
         _activeIndex = 0;
       }

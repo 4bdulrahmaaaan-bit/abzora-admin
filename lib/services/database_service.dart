@@ -6172,6 +6172,13 @@ class DatabaseService {
         logoUrl: store.logoUrl,
         bannerImageUrl: store.bannerImageUrl,
         tagline: store.tagline,
+        address: store.address,
+        city: store.city,
+        latitude: store.latitude,
+        longitude: store.longitude,
+        category: store.category,
+        vendorType: store.vendorType,
+        customVendorProfile: store.customVendorProfile,
       );
     } else {
       resolvedStore = Store(

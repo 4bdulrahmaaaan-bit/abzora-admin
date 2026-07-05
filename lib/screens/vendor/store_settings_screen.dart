@@ -35,6 +35,7 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
   late final TextEditingController _logoController;
   late final TextEditingController _bannerController;
   bool _saving = false;
+  bool _storeRefreshed = false;
   final _picker = ImagePicker();
   PayoutProfileSummary? _payoutProfile;
   bool _payoutFetched = false;
@@ -59,6 +60,10 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
     _descriptionController.addListener(_updateCompletion);
     _logoController.addListener(_updateCompletion);
     _bannerController.addListener(_updateCompletion);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshStoreAddress();
+    });
   }
 
   @override
@@ -74,6 +79,32 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
           if (mounted) setState(() => _payoutProfile = profile);
         }).catchError((_) {});
       }
+    }
+  }
+
+  Future<void> _refreshStoreAddress() async {
+    if (_storeRefreshed || !mounted) {
+      return;
+    }
+    _storeRefreshed = true;
+
+    try {
+      final latestStore =
+          await DatabaseService().getStoreByOwner(widget.store.ownerId) ??
+          widget.store;
+      final resolvedAddress = latestStore.address.trim().isNotEmpty
+          ? latestStore.address.trim()
+          : latestStore.city.trim();
+      if (!mounted || resolvedAddress.isEmpty) {
+        return;
+      }
+      if (_addressController.text.trim() != resolvedAddress) {
+        setState(() {
+          _addressController.text = resolvedAddress;
+        });
+      }
+    } catch (_) {
+      // Keep the passed-in store value if refresh fails.
     }
   }
 

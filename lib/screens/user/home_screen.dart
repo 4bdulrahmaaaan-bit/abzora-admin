@@ -1057,6 +1057,7 @@ class _HomeContentState extends State<HomeContent>
   bool _isHeaderScrolled = false;
   Timer? _loadMoreThrottle;
   String _selectedCategory = 'View All';
+  bool _requestedBannerRetry = false;
 
   @override
   void initState() {
@@ -1081,6 +1082,35 @@ class _HomeContentState extends State<HomeContent>
           }
           context.read<ProductProvider>().loadMoreLocationProducts();
         });
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final bannerProvider = context.read<BannerProvider>();
+    if (_requestedBannerRetry || bannerProvider.isLoading || bannerProvider.banners.isNotEmpty) {
+      if (bannerProvider.banners.isNotEmpty) {
+        _requestedBannerRetry = false;
+      }
+      return;
+    }
+    _requestedBannerRetry = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        return;
+      }
+      final provider = context.read<BannerProvider>();
+      if (provider.isLoading || provider.banners.isNotEmpty) {
+        return;
+      }
+      await provider.loadBanners(forceRefresh: true);
+      if (!mounted) {
+        return;
+      }
+      if (provider.banners.isNotEmpty) {
+        _requestedBannerRetry = false;
       }
     });
   }

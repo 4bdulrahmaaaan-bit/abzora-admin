@@ -241,7 +241,8 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
                     spacing: 10,
                     runSpacing: 10,
                     children: _presetColors.map((color) {
-                      final isSelected = color.value == _selectedColor.value;
+                      final isSelected =
+                          color.toARGB32() == _selectedColor.toARGB32();
                       return GestureDetector(
                         onTap: () {
                           setState(() {
@@ -392,8 +393,12 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
   }
 
   String _colorToHex(Color color) {
-    final value = color.value.toRadixString(16).padLeft(8, '0').toUpperCase();
+    final value = color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase();
     return '#${value.substring(2)}';
+  }
+
+  int _channelToInt(double component) {
+    return (component * 255.0).round().clamp(0, 255);
   }
 
   Future<Color?> _showColorPickerSheet(BuildContext context) async {
@@ -466,7 +471,8 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
                           spacing: 12,
                           runSpacing: 12,
                           children: _presetColors.map((color) {
-                            final selected = color.value == tempColor.value;
+                            final selected =
+                                color.toARGB32() == tempColor.toARGB32();
                             return GestureDetector(
                               onTap: () => update(color),
                               child: Container(
@@ -504,40 +510,40 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
                         const SizedBox(height: 12),
                         _buildColorSlider(
                           label: 'Red',
-                          value: tempColor.red.toDouble(),
+                          value: tempColor.r * 255.0,
                           color: Colors.red,
                           onChanged: (value) => update(
                             Color.fromARGB(
-                              tempColor.alpha,
-                              value.round(),
-                              tempColor.green,
-                              tempColor.blue,
+                              _channelToInt(tempColor.a),
+                              _channelToInt(value / 255.0),
+                              _channelToInt(tempColor.g),
+                              _channelToInt(tempColor.b),
                             ),
                           ),
                         ),
                         _buildColorSlider(
                           label: 'Green',
-                          value: tempColor.green.toDouble(),
+                          value: tempColor.g * 255.0,
                           color: Colors.green,
                           onChanged: (value) => update(
                             Color.fromARGB(
-                              tempColor.alpha,
-                              tempColor.red,
-                              value.round(),
-                              tempColor.blue,
+                              _channelToInt(tempColor.a),
+                              _channelToInt(tempColor.r),
+                              _channelToInt(value / 255.0),
+                              _channelToInt(tempColor.b),
                             ),
                           ),
                         ),
                         _buildColorSlider(
                           label: 'Blue',
-                          value: tempColor.blue.toDouble(),
+                          value: tempColor.b * 255.0,
                           color: Colors.blue,
                           onChanged: (value) => update(
                             Color.fromARGB(
-                              tempColor.alpha,
-                              tempColor.red,
-                              tempColor.green,
-                              value.round(),
+                              _channelToInt(tempColor.a),
+                              _channelToInt(tempColor.r),
+                              _channelToInt(tempColor.g),
+                              _channelToInt(value / 255.0),
                             ),
                           ),
                         ),
