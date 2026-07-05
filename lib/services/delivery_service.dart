@@ -23,12 +23,15 @@ class DeliveryService {
       if (_backend.isConfigured &&
           (address.latitude != null ||
               address.longitude != null ||
-              address.pincode.trim().isNotEmpty)) {
+              address.pincode.trim().isNotEmpty ||
+              address.city.trim().isNotEmpty)) {
         final payload = await _backend.getProductServiceability(
           productId: product.id,
           latitude: address.latitude,
           longitude: address.longitude,
           pincode: address.pincode,
+          city: address.city,
+          state: address.state,
         );
         return ProductServiceability.fromMap(payload);
       }

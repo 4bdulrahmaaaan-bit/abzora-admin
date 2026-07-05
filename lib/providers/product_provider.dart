@@ -261,36 +261,29 @@ class ProductProvider with ChangeNotifier {
   Future<void> _loadNextPageInternal({required bool resetSearch}) async {
     final targetStoreIds = _activeNearbyStoreIds();
     final newlyMatched = <Product>[];
-    var guard = 0;
     var hasMore = _hasMoreProducts;
-    while (newlyMatched.length < 12 && hasMore && guard < 5) {
-      guard += 1;
-      try {
-        final page = await _db.getProductsPage(
-          limit: 25,
-          startAfterKey: _lastProductKey,
-          userLatitude: userPosition?.latitude,
-          userLongitude: userPosition?.longitude,
-          radiusKm: radiusKm,
-        );
-        _lastProductKey = page.lastKey;
-        hasMore = page.hasMore;
-        final filteredMatches = targetStoreIds.isEmpty
-            ? page.items
-            : page.items
-                  .where((product) => targetStoreIds.contains(product.storeId))
-                  .toList();
-        final pageMatches = filteredMatches.isEmpty
-            ? page.items
-            : filteredMatches;
-        newlyMatched.addAll(pageMatches);
-        if (page.items.isEmpty) {
-          hasMore = false;
-        }
-      } catch (error) {
-        debugPrint('Products page load failed in loop: $error');
-        break;
+    try {
+      final page = await _db.getProductsPage(
+        limit: 25,
+        startAfterKey: _lastProductKey,
+        userLatitude: userPosition?.latitude,
+        userLongitude: userPosition?.longitude,
+        radiusKm: radiusKm,
+      );
+      _lastProductKey = page.lastKey;
+      hasMore = page.hasMore;
+      final filteredMatches = targetStoreIds.isEmpty
+          ? page.items
+          : page.items
+                .where((product) => targetStoreIds.contains(product.storeId))
+                .toList();
+      final pageMatches = filteredMatches.isEmpty ? page.items : filteredMatches;
+      newlyMatched.addAll(pageMatches);
+      if (page.items.isEmpty) {
+        hasMore = false;
       }
+    } catch (error) {
+      debugPrint('Products page load failed: $error');
     }
     if (newlyMatched.isEmpty) {
       hasMore = false;

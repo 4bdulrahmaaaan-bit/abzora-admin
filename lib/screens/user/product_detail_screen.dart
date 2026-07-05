@@ -359,6 +359,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final user = _authProvider.user;
     if (user == null) {
       final profileAddress = _fallbackAddressFromUser(user);
+      if (profileAddress == null) {
+        setState(() {
+          _deliveryAddress = null;
+          _deliveryAddressKey = '';
+          _serviceability = null;
+          _serviceabilityCacheKey = '';
+          _deliveryAvailabilityState = _DeliveryAvailabilityState.noAddress;
+          _deliveryAvailabilityError = null;
+        });
+        return;
+      }
       if (_deliveryAvailabilityState != _DeliveryAvailabilityState.noAddress ||
           _deliveryAddress != null ||
           _serviceability != null ||
@@ -371,9 +382,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           _deliveryAvailabilityState = _DeliveryAvailabilityState.noAddress;
           _deliveryAvailabilityError = null;
         });
-      }
-      if (profileAddress == null) {
-        return;
       }
       return;
     }
@@ -574,6 +582,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     if (state == _DeliveryAvailabilityState.loading) {
       return 'Checking delivery...';
     }
+    if (state == _DeliveryAvailabilityState.error) {
+      return 'Tap Retry';
+    }
     final serviceability = _serviceability;
     if (serviceability == null) {
       return 'Set delivery location';
@@ -608,6 +619,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     if (state == _DeliveryAvailabilityState.loading) {
       return 'Checking delivery...';
     }
+    if (state == _DeliveryAvailabilityState.error) {
+      return 'Unable to check delivery';
+    }
     final serviceability = _serviceability;
     if (serviceability == null) {
       return 'Set delivery location';
@@ -628,6 +642,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     }
     if (state == _DeliveryAvailabilityState.loading) {
       return 'Checking delivery...';
+    }
+    if (state == _DeliveryAvailabilityState.error) {
+      return 'Unable to check delivery. Tap Retry.';
     }
     final serviceability = _serviceability;
     if (serviceability == null) {

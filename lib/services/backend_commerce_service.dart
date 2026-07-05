@@ -1096,12 +1096,16 @@ class BackendCommerceService {
     double? latitude,
     double? longitude,
     String pincode = '',
+    String city = '',
+    String state = '',
   }) async {
     final queryParameters = <String, String>{
       'product_id': productId,
       if (latitude != null) 'lat': latitude.toString(),
       if (longitude != null) 'lng': longitude.toString(),
       if (pincode.trim().isNotEmpty) 'pincode': pincode.trim(),
+      if (city.trim().isNotEmpty) 'city': city.trim(),
+      if (state.trim().isNotEmpty) 'state': state.trim(),
     };
     final payload = await _client.get(
       '/logistics/delivery/check',

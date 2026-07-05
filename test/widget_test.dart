@@ -14,7 +14,7 @@ import 'package:abzio/providers/theme_provider.dart';
 
 class _TestBannerProvider extends BannerProvider {
   @override
-  Future<void> loadBanners() async {
+  Future<void> loadBanners({bool forceRefresh = false}) async {
     // Keep smoke tests timer-free and deterministic.
   }
 }

@@ -203,75 +203,94 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _handleSystemBack() {
+    if (_currentIndex != 0) {
+      setState(() {
+        _currentIndex = 0;
+        _isNavVisible = true;
+        _scrollDeltaAccumulator = 0;
+        _lastScrollOffset = 0;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     final navHeight =
         60.0 + (bottomInset > 0 ? bottomInset.clamp(0.0, 6.0) : 0.0);
     return AbzioThemeScope.light(
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[Color(0xFFF9F8F5), Color(0xFFF1EEE8)],
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && _currentIndex != 0) {
+            _handleSystemBack();
+          }
+        },
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[Color(0xFFF9F8F5), Color(0xFFF1EEE8)],
+            ),
           ),
-        ),
-        child: Scaffold(
-          extendBody: false,
-          backgroundColor: Colors.transparent,
-          body: IndexedStack(index: _currentIndex, children: _screens()),
-          bottomNavigationBar: AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.topCenter,
-            child: _isNavVisible
-                ? DecoratedBox(
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFCFBF8),
-                      border: Border(
-                        top: BorderSide(color: Color(0xFFE6DFD1), width: 1),
-                      ),
-                    ),
-                    child: SizedBox(
-                      height: navHeight,
-                      width: double.infinity,
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          bottom: bottomInset > 0 ? 4 : 0,
-                        ),
-                        child: Row(
-                          children: [
-                            _buildBottomNavItem(
-                              index: 0,
-                              icon: Icons.home_outlined,
-                              selectedIcon: Icons.home_rounded,
-                              label: 'Home',
-                            ),
-                            _buildBottomNavItem(
-                              index: 1,
-                              icon: Icons.category_outlined,
-                              selectedIcon: Icons.category_rounded,
-                              label: AbianzoText.customNavLabel,
-                            ),
-                            _buildBottomNavItem(
-                              index: 2,
-                              icon: Icons.receipt_long_outlined,
-                              selectedIcon: Icons.receipt_long_rounded,
-                              label: 'Orders',
-                            ),
-                            _buildBottomNavItem(
-                              index: 3,
-                              icon: Icons.person_outline_rounded,
-                              selectedIcon: Icons.person_rounded,
-                              label: 'Profile',
-                            ),
-                          ],
+          child: Scaffold(
+            extendBody: false,
+            backgroundColor: Colors.transparent,
+            body: IndexedStack(index: _currentIndex, children: _screens()),
+            bottomNavigationBar: AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: _isNavVisible
+                  ? DecoratedBox(
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFCFBF8),
+                        border: Border(
+                          top: BorderSide(color: Color(0xFFE6DFD1), width: 1),
                         ),
                       ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
+                      child: SizedBox(
+                        height: navHeight,
+                        width: double.infinity,
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            bottom: bottomInset > 0 ? 4 : 0,
+                          ),
+                          child: Row(
+                            children: [
+                              _buildBottomNavItem(
+                                index: 0,
+                                icon: Icons.home_outlined,
+                                selectedIcon: Icons.home_rounded,
+                                label: 'Home',
+                              ),
+                              _buildBottomNavItem(
+                                index: 1,
+                                icon: Icons.category_outlined,
+                                selectedIcon: Icons.category_rounded,
+                                label: AbianzoText.customNavLabel,
+                              ),
+                              _buildBottomNavItem(
+                                index: 2,
+                                icon: Icons.receipt_long_outlined,
+                                selectedIcon: Icons.receipt_long_rounded,
+                                label: 'Orders',
+                              ),
+                              _buildBottomNavItem(
+                                index: 3,
+                                icon: Icons.person_outline_rounded,
+                                selectedIcon: Icons.person_rounded,
+                                label: 'Profile',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ),
         ),
       ),
@@ -1233,6 +1252,9 @@ class _HomeContentState extends State<HomeContent>
         final banners = context.select<BannerProvider, List<BannerModel>>(
           (bannerProvider) => bannerProvider.banners,
         );
+        final bannerLoading = context.select<BannerProvider, bool>(
+          (bannerProvider) => bannerProvider.isLoading,
+        );
         final locationTitle = locationProvider.displayHeaderTitle;
         final deliveryAddress = _deliveryAddressForCards(
           locationProvider,
@@ -1299,10 +1321,15 @@ class _HomeContentState extends State<HomeContent>
             body: provider.isLoading && products.isEmpty
                 ? const GlobalHomeSkeleton()
                 : RefreshIndicator(
-                    onRefresh: () => provider.fetchHomeData(
-                      forceLocationRefresh: true,
-                      user: auth.user,
-                    ),
+                    onRefresh: () async {
+                      await context.read<BannerProvider>().loadBanners(
+                        forceRefresh: true,
+                      );
+                      await provider.fetchHomeData(
+                        forceLocationRefresh: true,
+                        user: auth.user,
+                      );
+                    },
                     color: AbzioTheme.accentColor,
                     child: SafeArea(
                       top: false,
@@ -1316,6 +1343,7 @@ class _HomeContentState extends State<HomeContent>
                           SliverToBoxAdapter(
                             child: HomeBanner(
                               fallbackBanners: banners,
+                              isLoading: bannerLoading,
                               onBannerTap: (banner) => _handleBannerTap(
                                 banner,
                                 products: products,
@@ -3300,10 +3328,12 @@ class HomeBanner extends StatefulWidget {
   const HomeBanner({
     super.key,
     required this.fallbackBanners,
+    required this.isLoading,
     required this.onBannerTap,
   });
 
   final List<BannerModel> fallbackBanners;
+  final bool isLoading;
   final ValueChanged<BannerModel> onBannerTap;
 
   @override
@@ -3311,49 +3341,16 @@ class HomeBanner extends StatefulWidget {
 }
 
 class _HomeBannerState extends State<HomeBanner> {
-  final BackendApiClient _apiClient = const BackendApiClient();
   final PageController _pageController = PageController();
-  late final Future<List<BannerModel>> _bannersFuture;
   Timer? _autoSlideTimer;
   int _autoSlideCount = 0;
   String? _lastPrecachedImageUrl;
 
   int _currentIndex = 0;
 
-  static const List<BannerModel> _staticFallbackBanners = [
-    BannerModel(
-      imageUrl:
-          'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=1200',
-      title: 'Top-rated stores around you',
-      subtitle: 'Handpicked fashion destinations',
-      ctaText: 'View Stores',
-      redirectType: 'store',
-      redirectId: '',
-    ),
-    BannerModel(
-      imageUrl:
-          'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=1200',
-      title: 'Wedding edits worth arriving for',
-      subtitle: 'Handpicked fashion destinations',
-      ctaText: 'Discover',
-      redirectType: 'category',
-      redirectId: 'Wedding',
-    ),
-    BannerModel(
-      imageUrl:
-          'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=1200',
-      title: 'Top-rated stores around you',
-      subtitle: 'Handpicked fashion destinations',
-      ctaText: 'View Stores',
-      redirectType: 'store',
-      redirectId: '',
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
-    _bannersFuture = fetchBanners();
   }
 
   @override
@@ -3361,6 +3358,17 @@ class _HomeBannerState extends State<HomeBanner> {
     _autoSlideTimer?.cancel();
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.fallbackBanners.length != widget.fallbackBanners.length) {
+      _currentIndex = 0;
+      if (widget.fallbackBanners.isNotEmpty) {
+        context.read<BannerProvider>().setActiveIndex(0);
+      }
+    }
   }
 
   void _ensureAutoSlide(int slideCount) {
@@ -3388,33 +3396,6 @@ class _HomeBannerState extends State<HomeBanner> {
     });
   }
 
-  Future<List<BannerModel>> fetchBanners() async {
-    try {
-      if (!_apiClient.isConfigured) {
-        return widget.fallbackBanners.isNotEmpty
-            ? widget.fallbackBanners
-            : _staticFallbackBanners;
-      }
-      final payload = await _apiClient.get('/banners');
-      final items = payload is List ? payload : const [];
-      final banners = items
-          .whereType<Map>()
-          .map((item) => BannerModel.fromMap(Map<String, dynamic>.from(item)))
-          .where((banner) =>
-              banner.imageUrl.trim().isNotEmpty && banner.active)
-          .toList();
-      banners.sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
-      if (banners.isNotEmpty) {
-        return banners;
-      }
-    } catch (_) {
-      // Fall through to provider/static fallback.
-    }
-    return widget.fallbackBanners.isNotEmpty
-        ? widget.fallbackBanners
-        : _staticFallbackBanners;
-  }
-
   void _precacheFirstBanner(List<BannerModel> banners) {
     if (!mounted || banners.isEmpty) {
       return;
@@ -3439,90 +3420,85 @@ class _HomeBannerState extends State<HomeBanner> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<BannerModel>>(
-      future: _bannersFuture,
-      builder: (context, snapshot) {
-        final slides = snapshot.data == null || snapshot.data!.isEmpty
-            ? (widget.fallbackBanners.isNotEmpty
-                  ? widget.fallbackBanners
-                  : _staticFallbackBanners)
-            : snapshot.data!;
-        _precacheFirstBanner(slides);
-        _ensureAutoSlide(slides.length);
+    final slides = widget.fallbackBanners
+        .where((banner) => banner.imageUrl.trim().isNotEmpty && banner.active)
+        .toList(growable: false);
 
-        if (snapshot.connectionState == ConnectionState.waiting &&
-            (snapshot.data == null || snapshot.data!.isEmpty)) {
-          return const BannerShimmer(height: 360);
-        }
+    if (slides.isEmpty) {
+      return widget.isLoading
+          ? const BannerShimmer(height: 360)
+          : const SizedBox.shrink();
+    }
 
-        return Column(
-          children: [
-            SizedBox(
-              height: 360,
-              child: PageView.builder(
-                controller: _pageController,
-                padEnds: false,
-                itemCount: slides.length,
-                onPageChanged: (index) => setState(() => _currentIndex = index),
-                itemBuilder: (context, index) {
-                  final slide = slides[index];
-                  return Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => widget.onBannerTap(slide),
-                      splashColor: Colors.white.withValues(alpha: 0.05),
-                      highlightColor: Colors.white.withValues(alpha: 0.02),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          CachedNetworkImage(
-                            imageUrl: slide.imageUrl,
+    _precacheFirstBanner(slides);
+    _ensureAutoSlide(slides.length);
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 360,
+          child: PageView.builder(
+            controller: _pageController,
+            padEnds: false,
+            itemCount: slides.length,
+            onPageChanged: (index) => setState(() => _currentIndex = index),
+            itemBuilder: (context, index) {
+              final slide = slides[index];
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => widget.onBannerTap(slide),
+                  splashColor: Colors.white.withValues(alpha: 0.05),
+                  highlightColor: Colors.white.withValues(alpha: 0.02),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CachedNetworkImage(
+                        imageUrl: slide.imageUrl,
+                        fit: BoxFit.cover,
+                        fadeInDuration: const Duration(milliseconds: 250),
+                        fadeOutDuration: Duration.zero,
+                        imageBuilder: (context, imageProvider) {
+                          return Image(
+                            image: imageProvider,
                             fit: BoxFit.cover,
-                            fadeInDuration: const Duration(milliseconds: 250),
-                            fadeOutDuration: Duration.zero,
-                            imageBuilder: (context, imageProvider) {
-                              return Image(
-                                image: imageProvider,
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                height: double.infinity,
-                              );
-                            },
-                            placeholder: (context, url) =>
-                                const BannerShimmer(height: 360),
-                            errorWidget: (context, url, error) => Container(
-                              color: const Color(0xFFFAFAF7),
-                            ),
-                          ),
-                        ],
+                            width: double.infinity,
+                            height: double.infinity,
+                          );
+                        },
+                        placeholder: (context, url) =>
+                            const BannerShimmer(height: 360),
+                        errorWidget: (context, url, error) => Container(
+                          color: const Color(0xFFFAFAF7),
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                slides.length,
-                (index) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 240),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: _currentIndex == index ? 18 : 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: _currentIndex == index
-                        ? const Color(0xFFC8A96A)
-                        : const Color(0xFFD5D0C6),
-                    borderRadius: BorderRadius.circular(999),
+                    ],
                   ),
                 ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            slides.length,
+            (index) => AnimatedContainer(
+              duration: const Duration(milliseconds: 240),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: _currentIndex == index ? 18 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: _currentIndex == index
+                    ? const Color(0xFFC8A96A)
+                    : const Color(0xFFD5D0C6),
+                borderRadius: BorderRadius.circular(999),
               ),
             ),
-          ],
-        );
-      },
+          ),
+        ),
+      ],
     );
   }
 }

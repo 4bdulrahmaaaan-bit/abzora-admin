@@ -1,51 +1,17 @@
-﻿import 'package:flutter/foundation.dart';
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 
 import '../models/banner_model.dart';
+import '../services/backend_commerce_service.dart';
 
 class BannerProvider with ChangeNotifier {
-  BannerProvider() {
-    _banners = List<BannerModel>.unmodifiable(_seedBanners);
-    _isLoading = false;
+  BannerProvider({BackendCommerceService? commerce})
+    : _commerce = commerce ?? BackendCommerceService() {
+    unawaited(loadBanners());
   }
 
-  static const List<BannerModel> _seedBanners = [
-    BannerModel(
-      imageUrl:
-          'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1400&q=80',
-      title: 'Elevate Your Style',
-      subtitle: 'Premium looks near you',
-      ctaText: 'Shop Now',
-      redirectType: 'category',
-      redirectId: 'Men',
-    ),
-    BannerModel(
-      imageUrl:
-          'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1400&q=80',
-      title: 'Wedding edits worth arriving for',
-      subtitle: 'Celebrate every moment in statement silhouettes',
-      ctaText: 'Discover',
-      redirectType: 'category',
-      redirectId: 'Wedding',
-    ),
-    BannerModel(
-      imageUrl:
-          'https://images.unsplash.com/photo-1523398002811-999ca8dec234?w=1400&q=80',
-      title: 'Top-rated stores around you',
-      subtitle: 'Handpicked fashion destinations from your city',
-      ctaText: 'View Stores',
-      redirectType: 'store',
-      redirectId: '',
-    ),
-    BannerModel(
-      imageUrl:
-          'https://images.unsplash.com/photo-1445205170230-053b83016050?w=1400&q=80',
-      title: 'Custom fits, made for you',
-      subtitle: 'Precision tailoring with a premium finish',
-      ctaText: 'Start Custom Order',
-      redirectType: 'category',
-      redirectId: 'Custom Clothing',
-    ),
-  ];
+  final BackendCommerceService _commerce;
 
   List<BannerModel> _banners = const [];
   int _activeIndex = 0;
@@ -55,16 +21,45 @@ class BannerProvider with ChangeNotifier {
   int get activeIndex => _activeIndex;
   bool get isLoading => _isLoading;
 
-  Future<void> loadBanners() async {
-    if (_banners.isNotEmpty) {
+  Future<void> loadBanners({bool forceRefresh = false}) async {
+    if (_isLoading) {
       return;
     }
+    if (!forceRefresh && _banners.isNotEmpty) {
+      return;
+    }
+
     _isLoading = true;
     notifyListeners();
-    _banners = List<BannerModel>.unmodifiable(_seedBanners);
-    _activeIndex = 0;
-    _isLoading = false;
-    notifyListeners();
+
+    try {
+      if (!_commerce.isConfigured) {
+        if (_banners.isEmpty) {
+          _banners = const [];
+          _activeIndex = 0;
+        }
+        return;
+      }
+
+      final banners = await _commerce.getBanners();
+      final visibleBanners = banners
+          .where((banner) => banner.imageUrl.trim().isNotEmpty)
+          .toList(growable: false);
+      _banners = List<BannerModel>.unmodifiable(visibleBanners);
+      if (_banners.isEmpty) {
+        _activeIndex = 0;
+      } else {
+        _activeIndex = _activeIndex.clamp(0, _banners.length - 1);
+      }
+    } catch (_) {
+      if (_banners.isEmpty) {
+        _banners = const [];
+        _activeIndex = 0;
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   void setActiveIndex(int index) {

@@ -413,7 +413,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                             .trim()
                                             .isNotEmpty)
                                           memory.lastConversationSummary.trim(),
-                                      ].join(' â€¢ ');
+                                      ].join(' • ');
                                 final supportSubtitle = unreadCount > 0
                                     ? '$unreadCount new assistant repl${unreadCount == 1 ? 'y' : 'ies'}'
                                     : openChats > 0
@@ -442,7 +442,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       _reveal(
                         0.22,
                         _sectionTitle(
-                          eyebrow: 'Profile â€¢ Fit Profile',
+                          eyebrow: 'Profile • Fit Profile',
                           title: 'Your Fit Profile',
                           subtitle:
                               'Personalized sizing recommendations for better shopping.',
@@ -454,7 +454,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       _reveal(
                         0.32,
                         _sectionTitle(
-                          eyebrow: 'Account â€¢ Essentials',
+                          eyebrow: 'Account • Essentials',
                           title: 'Shopping Essentials',
                           subtitle:
                               'Manage delivery locations and payment preferences.',
@@ -1295,7 +1295,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         final bodyProfile = styleSnapshot?.bodyProfile;
 
         final subtitle = bodyProfile != null
-            ? '${bodyProfile.recommendedSize.isNotEmpty ? bodyProfile.recommendedSize : 'M'} Fit â€¢ Updated ${_relativeScanTime(bodyProfile.updatedAt)}'
+            ? '${bodyProfile.recommendedSize.isNotEmpty ? bodyProfile.recommendedSize : 'M'} Fit • Updated ${_relativeScanTime(bodyProfile.updatedAt)}'
             : 'View and manage your saved measurements';
 
         return Container(
