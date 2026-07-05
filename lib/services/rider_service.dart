@@ -232,6 +232,10 @@ class RiderService {
     return stops;
   }
 
+  Future<Store?> getStore(String storeId) {
+    return _db.getStore(storeId);
+  }
+
   Future<void> submitRiderApplication({
     required AppUser user,
     required String name,

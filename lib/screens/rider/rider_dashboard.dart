@@ -1,6 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
@@ -43,7 +45,7 @@ class RiderDashboard extends StatelessWidget {
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(
-            labelText: 'Amount (â‚¹)',
+            labelText: 'Amount (₹)',
             hintText: '200',
           ),
         ),
@@ -175,6 +177,9 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
   Future<RiderDashboardSnapshot>? _dashboardFuture;
   Future<int>? _unreadCountFuture;
   String? _boundActorId;
+  Timer? _pollTimer;
+  Set<String> _knownAvailableDeliveryIds = <String>{};
+  bool _hasSeededDeliveryIds = false;
 
   String _normalizedApprovalStatus(AppUser actor) {
     return actor.riderApprovalStatus.trim().toLowerCase();
@@ -187,14 +192,73 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
     _boundActorId = actor.id;
     _dashboardFuture = _service.loadDashboardSnapshot(actor);
     _unreadCountFuture = RiderNotificationApi.getUnreadCount();
+    _startPolling(actor);
+  }
+
+  void _startPolling(AppUser actor) {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (!mounted) {
+        return;
+      }
+      _pollDashboard(actor);
+    });
+  }
+
+  Future<void> _pollDashboard(AppUser actor) async {
+    try {
+      final snapshot = await _service.loadDashboardSnapshot(actor);
+      if (!mounted) {
+        return;
+      }
+      final currentIds = snapshot.availableDeliveries.map((order) => order.id).toSet();
+      if (_hasSeededDeliveryIds) {
+        final freshCount = currentIds.difference(_knownAvailableDeliveryIds).length;
+        if (freshCount > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text(
+                freshCount == 1
+                    ? '1 new delivery is available for pickup.'
+                    : '$freshCount new deliveries are available for pickup.',
+              ),
+            ),
+          );
+        }
+      } else {
+        _hasSeededDeliveryIds = true;
+      }
+      _knownAvailableDeliveryIds = currentIds;
+      setState(() {
+        _dashboardFuture = Future.value(snapshot);
+        _unreadCountFuture = RiderNotificationApi.getUnreadCount();
+      });
+    } catch (_) {
+      // Keep the last successful snapshot visible. The dashboard already shows
+      // retry-friendly state when manual refresh is used.
+    }
   }
 
   Future<void> _refreshDashboard(AppUser actor) async {
+    final snapshot = await _service.loadDashboardSnapshot(actor);
+    if (!mounted) {
+      return;
+    }
+    _hasSeededDeliveryIds = true;
+    _knownAvailableDeliveryIds = snapshot.availableDeliveries
+        .map((order) => order.id)
+        .toSet();
     setState(() {
-      _dashboardFuture = _service.loadDashboardSnapshot(actor);
+      _dashboardFuture = Future.value(snapshot);
       _unreadCountFuture = RiderNotificationApi.getUnreadCount();
     });
-    await _dashboardFuture;
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -289,7 +353,7 @@ class _RiderDashboardContentState extends State<RiderDashboardContent> {
                 _RouteLaunchCard(taskCount: data.tasks.length),
                 const SizedBox(height: 24),
 
-                // â”€â”€â”€ ENTERPRISE ACTION GRID â”€â”€â”€
+                // ─── ENTERPRISE ACTION GRID ───
                 Text(
                   'OPERATIONS',
                   style: Theme.of(context).textTheme.labelMedium,
@@ -801,7 +865,7 @@ class _RiderHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${rider.riderVehicleType ?? 'Bike'} â€¢ ${rider.riderCity ?? rider.city ?? 'City not set'}',
+            '${rider.riderVehicleType ?? 'Bike'} • ${rider.riderCity ?? rider.city ?? 'City not set'}',
             style: GoogleFonts.inter(color: const Color(0xFF666666)),
           ),
         ],
@@ -865,7 +929,7 @@ class _RiderRealtimeStats extends StatelessWidget {
   final double earningsToday;
   final double pendingPayout;
 
-  String _money(double amount) => 'â‚¹${amount.toStringAsFixed(0)}';
+  String _money(double amount) => '₹${amount.toStringAsFixed(0)}';
 
   @override
   Widget build(BuildContext context) {
@@ -920,7 +984,7 @@ class _RiderWalletCard extends StatelessWidget {
   final VoidCallback onWithdraw;
   final VoidCallback onManagePayoutAccount;
 
-  String _money(double amount) => 'â‚¹${amount.toStringAsFixed(0)}';
+  String _money(double amount) => '₹${amount.toStringAsFixed(0)}';
 
   @override
   Widget build(BuildContext context) {
@@ -1209,12 +1273,52 @@ class _AvailableDeliveryCardState extends State<_AvailableDeliveryCard> {
       if (!mounted) {
         return;
       }
+      final store = await widget.service.getStore(widget.order.storeId);
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           behavior: SnackBarBehavior.floating,
           content: Text('Delivery accepted and moved to your assigned orders.'),
         ),
       );
+      if (store != null) {
+        final lat = store.latitude;
+        final lng = store.longitude;
+        final Uri uri;
+        if (lat != null && lng != null) {
+          uri = Uri.parse(
+            'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving',
+          );
+        } else {
+          final query = [store.name, store.address, store.city]
+              .where((part) => part.trim().isNotEmpty)
+              .join(', ');
+          uri = Uri.parse(
+            'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(query.isEmpty ? store.name : query)}',
+          );
+        }
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        if (!launched && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text('Unable to open vendor navigation.'),
+            ),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Vendor location is not available yet.'),
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _accepting = false);
@@ -1261,7 +1365,7 @@ class _AvailableDeliveryCardState extends State<_AvailableDeliveryCard> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${widget.order.items.length} item(s) â€¢ â‚¹${widget.order.totalAmount.toInt()}',
+            '${widget.order.items.length} item(s) • ₹${widget.order.totalAmount.toInt()}',
             style: GoogleFonts.inter(
               fontSize: 12,
               color: const Color(0xFF666666),
@@ -1607,7 +1711,7 @@ class _TbybStat extends StatelessWidget {
   }
 }
 
-// â”€â”€ Enterprise Action Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Enterprise Action Grid ────────────────────────────────────────────────────
 
 class _GridAction {
   const _GridAction({
@@ -1680,6 +1784,7 @@ class _EnterpriseActionGrid extends StatelessWidget {
     );
   }
 }
+
 
 
 

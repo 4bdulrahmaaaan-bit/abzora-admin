@@ -22,20 +22,25 @@ class TrialHomeApi {
     String? bookingPaymentId,
     String? bookingOrderId,
   }) async {
+    final body = <String, dynamic>{
+      'items': items,
+      'addressLabel': addressLabel,
+      'deliverySlot': deliverySlot,
+      'deliveryWindowLabel': deliveryWindowLabel,
+      'trialFee': trialFee,
+      'trialDurationMinutes': trialDurationMinutes,
+      'bookingFeePaid': bookingFeePaid,
+    };
+    if (bookingPaymentId != null) {
+      body['bookingPaymentId'] = bookingPaymentId;
+    }
+    if (bookingOrderId != null) {
+      body['bookingOrderId'] = bookingOrderId;
+    }
     final payload = await _client.post(
       '/trial-home/book',
       authenticated: true,
-      body: {
-        'items': items,
-        'addressLabel': addressLabel,
-        'deliverySlot': deliverySlot,
-        'deliveryWindowLabel': deliveryWindowLabel,
-        'trialFee': trialFee,
-        'trialDurationMinutes': trialDurationMinutes,
-        'bookingFeePaid': bookingFeePaid,
-        'bookingPaymentId': ?bookingPaymentId,
-        'bookingOrderId': ?bookingOrderId,
-      },
+      body: body,
     );
     final session = TrialSession.fromMap(
       Map<String, dynamic>.from(payload as Map),
@@ -184,6 +189,22 @@ class TrialHomeApi {
     String? finalOrderId,
     double? finalAmount,
   }) async {
+    final body = <String, dynamic>{
+      'keptItems': keptItems,
+      'returnedItems': returnedItems,
+      'orderId': orderId,
+      'paymentStatus': paymentStatus,
+      'paymentMethod': paymentMethod,
+    };
+    if (finalPaymentId != null) {
+      body['finalPaymentId'] = finalPaymentId;
+    }
+    if (finalOrderId != null) {
+      body['finalOrderId'] = finalOrderId;
+    }
+    if (finalAmount != null) {
+      body['finalAmount'] = finalAmount;
+    }
     final currentSession = await getTrialById(id);
     TrialStatusGuard.validateTransition(
       currentSession.status,
@@ -193,16 +214,7 @@ class TrialHomeApi {
     final payload = await _client.post(
       '/trial-home/$id/convert-to-order',
       authenticated: true,
-      body: {
-        'keptItems': keptItems,
-        'returnedItems': returnedItems,
-        'orderId': orderId,
-        'paymentStatus': paymentStatus,
-        'paymentMethod': paymentMethod,
-        'finalPaymentId': ?finalPaymentId,
-        'finalOrderId': ?finalOrderId,
-        'finalAmount': ?finalAmount,
-      },
+      body: body,
     );
     final session = TrialSession.fromMap(
       Map<String, dynamic>.from(payload as Map),
