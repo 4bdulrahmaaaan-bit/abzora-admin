@@ -20,25 +20,34 @@ class DeliveryService {
     required UserAddress address,
   }) async {
     final resolvedCity = _resolveCity(address);
+    final resolvedLocality = address.locality.trim();
     try {
       if (_backend.isConfigured &&
           (address.latitude != null ||
               address.longitude != null ||
               address.pincode.trim().isNotEmpty ||
-              resolvedCity.isNotEmpty)) {
+              resolvedCity.isNotEmpty ||
+              resolvedLocality.isNotEmpty ||
+              address.state.trim().isNotEmpty)) {
         final payload = await _backend.getProductServiceability(
           productId: product.id,
           latitude: address.latitude,
           longitude: address.longitude,
           pincode: address.pincode,
+          locality: resolvedLocality,
           city: resolvedCity,
           state: address.state,
         );
         return ProductServiceability.fromMap(payload);
       }
     } catch (_) {
-      // Fall back to a deterministic local decision so the PDP never gets
-      // stuck on Retry for a serviceable saved address.
+      if (_backend.isConfigured) {
+        rethrow;
+      }
+    }
+
+    if (_backend.isConfigured) {
+      throw StateError('Delivery availability could not be resolved.');
     }
 
     final hasAddressSignal =
@@ -46,6 +55,7 @@ class DeliveryService {
         address.longitude != null ||
         address.pincode.trim().isNotEmpty ||
         resolvedCity.isNotEmpty ||
+        resolvedLocality.isNotEmpty ||
         address.state.trim().isNotEmpty;
     final supportsTryAtHome = product.tryAtHomeAvailable;
     final supportsInstantDelivery = product.sameDayAvailable;

@@ -1096,6 +1096,7 @@ class BackendCommerceService {
     double? latitude,
     double? longitude,
     String pincode = '',
+    String locality = '',
     String city = '',
     String state = '',
   }) async {
@@ -1104,6 +1105,7 @@ class BackendCommerceService {
       if (latitude != null) 'lat': latitude.toString(),
       if (longitude != null) 'lng': longitude.toString(),
       if (pincode.trim().isNotEmpty) 'pincode': pincode.trim(),
+      if (locality.trim().isNotEmpty) 'locality': locality.trim(),
       if (city.trim().isNotEmpty) 'city': city.trim(),
       if (state.trim().isNotEmpty) 'state': state.trim(),
     };
