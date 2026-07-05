@@ -4650,6 +4650,12 @@ class BackendCommerceService {
     Product product, {
     required bool includeStoreId,
   }) {
+    final tryBeforeYouBuy =
+        product.vendorMeta['tryBeforeYouBuy'] == true ||
+        product.deliveryInfo['tryBeforeYouBuy'] == true ||
+        product.deliveryInfo['tryAtHomeEligible'] == true ||
+        product.deliveryInfo['tryAtHomeAvailable'] == true ||
+        product.deliveryInfo['supportsTryAtHome'] == true;
     return {
       if (includeStoreId) 'storeId': product.storeId,
       'name': product.name,
@@ -4685,6 +4691,9 @@ class BackendCommerceService {
       'atelier': product.atelier,
       'garmentConfig': product.garmentConfig,
       'vendorMeta': product.vendorMeta,
+      'trialHome': {
+        'trialEnabled': tryBeforeYouBuy,
+      },
     };
   }
 

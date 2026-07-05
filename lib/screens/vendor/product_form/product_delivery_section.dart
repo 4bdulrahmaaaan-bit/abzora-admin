@@ -45,41 +45,31 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
                 label: 'Same Day',
                 icon: Icons.bolt_rounded,
                 isActive: controller.sameDayDelivery,
-                onToggle: () => setState(
-                  () => controller.sameDayDelivery = !controller.sameDayDelivery,
-                ),
+                onToggle: controller.toggleSameDayDelivery,
               ),
               _buildToggleChip(
                 label: 'COD',
                 icon: Icons.payments_outlined,
                 isActive: controller.cashOnDelivery,
-                onToggle: () => setState(
-                  () => controller.cashOnDelivery = !controller.cashOnDelivery,
-                ),
+                onToggle: controller.toggleCashOnDelivery,
               ),
               _buildToggleChip(
                 label: 'Free Returns',
                 icon: Icons.assignment_return_outlined,
                 isActive: controller.freeReturns,
-                onToggle: () => setState(
-                  () => controller.freeReturns = !controller.freeReturns,
-                ),
+                onToggle: controller.toggleFreeReturns,
               ),
               _buildToggleChip(
                 label: 'Try Before You Buy',
                 icon: Icons.checkroom_outlined,
                 isActive: controller.tryBeforeYouBuy,
-                onToggle: () => setState(
-                  () => controller.tryBeforeYouBuy = !controller.tryBeforeYouBuy,
-                ),
+                onToggle: controller.toggleTryBeforeYouBuy,
               ),
               _buildToggleChip(
                 label: 'Express Delivery',
                 icon: Icons.rocket_launch_outlined,
                 isActive: controller.expressDelivery,
-                onToggle: () => setState(
-                  () => controller.expressDelivery = !controller.expressDelivery,
-                ),
+                onToggle: controller.toggleExpressDelivery,
               ),
             ],
           ),
@@ -99,7 +89,7 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
                 initialValue: controller.etaDropdown,
                 onChanged: (val) {
                   if (val != null) {
-                    setState(() => controller.etaDropdown = val);
+                    controller.updateEtaDropdown(val);
                   }
                 },
                 icon: const Icon(

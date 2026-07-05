@@ -166,7 +166,11 @@ class ProductFormController extends ChangeNotifier {
     tryBeforeYouBuy = _readVendorBool(
       product,
       'tryBeforeYouBuy',
-      fallback: false,
+      fallback:
+          product.deliveryInfo['supportsTryAtHome'] == true ||
+          product.deliveryInfo['tryAtHomeEligible'] == true ||
+          product.deliveryInfo['tryAtHomeAvailable'] == true ||
+          product.deliveryInfo['tryBeforeYouBuy'] == true,
     );
     expressDelivery = _readVendorBool(
       product,
@@ -202,6 +206,46 @@ class ProductFormController extends ChangeNotifier {
       taxIncluded = value;
       notifyListeners();
     }
+  }
+
+  void toggleSameDayDelivery() {
+    sameDayDelivery = !sameDayDelivery;
+    if (sameDayDelivery && etaDropdown == '3-5 Days') {
+      etaDropdown = 'Same Day';
+    }
+    notifyListeners();
+  }
+
+  void toggleCashOnDelivery() {
+    cashOnDelivery = !cashOnDelivery;
+    notifyListeners();
+  }
+
+  void toggleFreeReturns() {
+    freeReturns = !freeReturns;
+    notifyListeners();
+  }
+
+  void toggleTryBeforeYouBuy() {
+    tryBeforeYouBuy = !tryBeforeYouBuy;
+    if (tryBeforeYouBuy) {
+      sameDayDelivery = true;
+      etaDropdown = 'Same Day';
+    }
+    notifyListeners();
+  }
+
+  void toggleExpressDelivery() {
+    expressDelivery = !expressDelivery;
+    notifyListeners();
+  }
+
+  void updateEtaDropdown(String value) {
+    etaDropdown = value;
+    if (value.toLowerCase().contains('same')) {
+      sameDayDelivery = true;
+    }
+    notifyListeners();
   }
 
   void addImage(String url) {
