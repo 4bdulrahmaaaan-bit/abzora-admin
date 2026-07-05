@@ -1753,7 +1753,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         : 0;
     final formatter = NumberFormat.currency(
       locale: 'en_IN',
-      symbol: 'â‚¹',
+      symbol: '₹',
       decimalDigits: 0,
     );
 
@@ -2348,7 +2348,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         buffer.write(',');
       }
     }
-    return 'â‚¹${buffer.toString()}';
+    return '₹${buffer.toString()}';
   }
 
   String _formatAiCost(double value) {

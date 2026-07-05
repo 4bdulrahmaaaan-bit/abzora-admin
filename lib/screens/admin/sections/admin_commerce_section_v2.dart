@@ -876,13 +876,17 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                 children: [
                                   Text(
                                     store.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Owner ${store.ownerId} â€¢ ${store.city.isEmpty ? 'Unknown city' : store.city}',
+                                    'Owner ${store.ownerId} | ${store.city.isEmpty ? 'Unknown city' : store.city}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.inter(
                                       color: AbzioTheme.textSecondary,
                                     ),
@@ -929,7 +933,9 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Revenue ${_formatCurrency(revenue)} â€¢ Orders ${storeOrders.length} â€¢ Commission ${(store.commissionRate * 100).toStringAsFixed(0)}% â€¢ Payout ${_formatCurrency(store.walletBalance)}',
+                                    'Revenue ${_formatCurrency(revenue)} | Orders ${storeOrders.length} | Commission ${(store.commissionRate * 100).toStringAsFixed(0)}% | Payout ${_formatCurrency(store.walletBalance)}',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.inter(
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -937,6 +943,8 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                   const SizedBox(height: 4),
                                   Text(
                                     'Health Score: ${health.toStringAsFixed(0)} | Rating ${store.rating.toStringAsFixed(1)} | Cancellation ${cancelRate.toStringAsFixed(1)}%',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.inter(
                                       color: AbzioTheme.textSecondary,
                                     ),
@@ -945,76 +953,85 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () => setState(
-                                    () => _activeVendorDrawerStore = store,
-                                  ),
-                                  child: const Text('View Vendor'),
-                                ),
-                                OutlinedButton(
-                                  onPressed: () => _toggleFeatured(store),
-                                  child: Text(
-                                    store.isFeatured ? 'Unfeature' : 'Feature',
-                                  ),
-                                ),
-                                OutlinedButton(
-                                  onPressed: () => _adjustCommission(store),
-                                  child: const Text('Commission'),
-                                ),
-                                OutlinedButton(
-                                  onPressed: () => ScaffoldMessenger.of(context)
-                                      .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Assign manager to ${store.name}',
+                            Flexible(
+                              child: Align(
+                                alignment: Alignment.topRight,
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  alignment: WrapAlignment.end,
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: () => setState(
+                                        () => _activeVendorDrawerStore = store,
+                                      ),
+                                      child: const Text('View Vendor'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () => _toggleFeatured(store),
+                                      child: Text(
+                                        store.isFeatured ? 'Unfeature' : 'Feature',
+                                      ),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () => _adjustCommission(store),
+                                      child: const Text('Commission'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () => ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Assign manager to ${store.name}',
+                                              ),
+                                            ),
                                           ),
+                                      child: const Text('Assign Manager'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () => ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Analytics opened for ${store.name}',
+                                              ),
+                                            ),
+                                          ),
+                                      child: const Text('Open Analytics'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () => _processPayout(store),
+                                      child: const Text('Mark payout paid'),
+                                    ),
+                                    OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFFB42318),
+                                        side: const BorderSide(
+                                          color: Color(0xFFB42318),
                                         ),
                                       ),
-                                  child: const Text('Assign Manager'),
-                                ),
-                                OutlinedButton(
-                                  onPressed: () => ScaffoldMessenger.of(context)
-                                      .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Analytics opened for ${store.name}',
-                                          ),
+                                      onPressed: () => _toggleStoreActive(store),
+                                      child: Text(
+                                        store.isActive ? 'Suspend' : 'Activate',
+                                      ),
+                                    ),
+                                    OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFFB42318),
+                                        side: const BorderSide(
+                                          color: Color(0xFFB42318),
                                         ),
                                       ),
-                                  child: const Text('Open Analytics'),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () => _processPayout(store),
-                                  child: const Text('Mark payout paid'),
-                                ),
-                                OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFFB42318),
-                                    side: const BorderSide(
-                                      color: Color(0xFFB42318),
+                                      onPressed: () => _deleteStore(store),
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        size: 18,
+                                      ),
+                                      label: const Text('Delete Vendor'),
                                     ),
-                                  ),
-                                  onPressed: () => _toggleStoreActive(store),
-                                  child: Text(
-                                    store.isActive ? 'Suspend' : 'Activate',
-                                  ),
+                                  ],
                                 ),
-                                OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFFB42318),
-                                    side: const BorderSide(
-                                      color: Color(0xFFB42318),
-                                    ),
-                                  ),
-                                  onPressed: () => _deleteStore(store),
-                                  icon: const Icon(Icons.delete_outline, size: 18),
-                                  label: const Text('Delete Vendor'),
-                                ),
-                              ],
+                              ),
                             ),
                           ],
                         ),
@@ -1201,7 +1218,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '${rider.phone ?? rider.email} â€¢ ${rider.riderCity ?? rider.city ?? 'Unknown city'} â€¢ ${rider.riderVehicleType ?? 'Bike'} â€¢ ${2 + (performance / 35).floor()}y exp',
+                                        '${rider.phone ?? rider.email} | ${rider.riderCity ?? rider.city ?? 'Unknown city'} | ${rider.riderVehicleType ?? 'Bike'} | ${2 + (performance / 35).floor()}y exp',
                                         style: GoogleFonts.inter(
                                           color: AbzioTheme.textSecondary,
                                         ),
@@ -2001,7 +2018,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'SKU ${variant.sku.isEmpty ? 'Auto' : variant.sku} â€¢ Stock ${variant.stock} â€¢ ${variant.status.toUpperCase()}',
+                                    'SKU ${variant.sku.isEmpty ? 'Auto' : variant.sku} | Stock ${variant.stock} | ${variant.status.toUpperCase()}',
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
                                       color: AbzioTheme.textSecondary,
@@ -2304,7 +2321,7 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
             _SupportDetailRow(
               label: 'Payment',
               value:
-                  '${order.paymentMethod} â€¢ ${order.refundStatus.isEmpty ? 'No refund' : order.refundStatus}',
+                  '${order.paymentMethod} | ${order.refundStatus.isEmpty ? 'No refund' : order.refundStatus}',
             ),
             _SupportDetailRow(
               label: 'Rider',
