@@ -5479,6 +5479,7 @@ class PlatformSettings {
   final bool checkoutEnabled;
   final bool marketplaceEnabled;
   final bool riderDispatchEnabled;
+  final bool enableLocalRiderDelivery;
   final Map<String, bool> cities;
   final Map<String, bool> regionVendorAvailability;
   final List<String> allowedAdminDevices;
@@ -5496,6 +5497,7 @@ class PlatformSettings {
     this.checkoutEnabled = true,
     this.marketplaceEnabled = true,
     this.riderDispatchEnabled = true,
+    this.enableLocalRiderDelivery = false,
     this.cities = const {},
     this.regionVendorAvailability = const {},
     this.allowedAdminDevices = const ['web-chrome', 'windows-desktop'],
@@ -5514,6 +5516,7 @@ class PlatformSettings {
     'checkoutEnabled': checkoutEnabled,
     'marketplaceEnabled': marketplaceEnabled,
     'riderDispatchEnabled': riderDispatchEnabled,
+    'enableLocalRiderDelivery': enableLocalRiderDelivery,
     'cities': cities,
     'regionVendorAvailability': regionVendorAvailability,
     'allowedAdminDevices': allowedAdminDevices,
@@ -5532,6 +5535,7 @@ class PlatformSettings {
     bool? checkoutEnabled,
     bool? marketplaceEnabled,
     bool? riderDispatchEnabled,
+    bool? enableLocalRiderDelivery,
     Map<String, bool>? cities,
     Map<String, bool>? regionVendorAvailability,
     List<String>? allowedAdminDevices,
@@ -5550,6 +5554,8 @@ class PlatformSettings {
       checkoutEnabled: checkoutEnabled ?? this.checkoutEnabled,
       marketplaceEnabled: marketplaceEnabled ?? this.marketplaceEnabled,
       riderDispatchEnabled: riderDispatchEnabled ?? this.riderDispatchEnabled,
+      enableLocalRiderDelivery:
+          enableLocalRiderDelivery ?? this.enableLocalRiderDelivery,
       cities: cities ?? this.cities,
       regionVendorAvailability:
           regionVendorAvailability ?? this.regionVendorAvailability,
@@ -5573,6 +5579,7 @@ class PlatformSettings {
         checkoutEnabled: map['checkoutEnabled'] ?? true,
         marketplaceEnabled: map['marketplaceEnabled'] ?? true,
         riderDispatchEnabled: map['riderDispatchEnabled'] ?? true,
+        enableLocalRiderDelivery: map['enableLocalRiderDelivery'] ?? false,
         cities: Map<String, bool>.from(
           map['cities'] ?? const {},
         ),

@@ -1,4 +1,7 @@
 class AppConfig {
+  static const bool enableLocalRiderDelivery = false;
+  static const bool useShiprocket = true;
+
   static const String backendBaseUrl = String.fromEnvironment(
     'BACKEND_BASE_URL',
     defaultValue: 'https://abzora-backend.onrender.com',
