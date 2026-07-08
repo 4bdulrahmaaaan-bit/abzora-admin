@@ -1,3 +1,4 @@
+import '../services/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -358,7 +359,7 @@ class _VendorOrderPriorityCardState extends State<_VendorOrderPriorityCard> {
             )
           else
             Text(
-              order.deliveryType == 'COURIER_DELIVERY'
+              order.deliveryType == 'COURIER_DELIVERY' || !AppConfig.enableLocalRiderDelivery
                   ? 'Waiting for courier update'
                   : 'Waiting for rider pickup',
               style: GoogleFonts.inter(

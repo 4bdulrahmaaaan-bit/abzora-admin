@@ -1,3 +1,4 @@
+import '../../services/app_config.dart';
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -225,7 +226,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
                         return _buildOrderList(
                           readyOrders,
                           'No ready orders',
-                          'Orders ready for rider pickup appear here.',
+                          AppConfig.enableLocalRiderDelivery ? 'Orders ready for rider pickup appear here.' : 'Orders ready for courier pickup appear here.',
                           null,
                         );
                       case 3:
