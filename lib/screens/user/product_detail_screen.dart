@@ -1668,16 +1668,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   String _bottomLeftCtaLabel() {
     final state = _deliveryAvailabilityState;
     if (state == _DeliveryAvailabilityState.loading) {
-      return 'Checking';
-    }
-    if (state == _DeliveryAvailabilityState.noAddress) {
-      return _isProductInStock ? 'Add to Cart' : 'Notify Me';
+      return '';
     }
     if (state == _DeliveryAvailabilityState.error) {
-      return _isProductInStock ? 'Add to Cart' : 'Notify Me';
+      return 'Retry';
+    }
+    if (state == _DeliveryAvailabilityState.noAddress) {
+      return 'Change Delivery Address';
     }
     if (_isProductInStock) {
-      return _canTryAtHome ? 'Try At Home' : 'Add to Cart';
+      if (AppConfig.enableLocalRiderDelivery && _canTryAtHome) {
+        return 'Try At Home';
+      }
+      return 'Add to Cart';
     }
     return 'Notify Me';
   }
@@ -1685,47 +1688,50 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   String _bottomRightCtaLabel() {
     final state = _deliveryAvailabilityState;
     if (state == _DeliveryAvailabilityState.loading) {
-      return 'Checking';
-    }
-    if (state == _DeliveryAvailabilityState.noAddress) {
-      return 'Set Location';
+      return '';
     }
     if (state == _DeliveryAvailabilityState.error) {
-      return 'Retry';
+      return 'Change Delivery Address';
+    }
+    if (state == _DeliveryAvailabilityState.noAddress) {
+      return 'Notify Me';
     }
     if (_isProductInStock) {
-      return _canTryAtHome ? 'Get It Today' : 'Buy Now';
+      if (AppConfig.enableLocalRiderDelivery && _canTryAtHome) {
+        return 'Get It Today';
+      }
+      return 'Buy Now';
     }
-    return 'Change Delivery Address';
+    return 'Check Other Locations';
   }
 
   VoidCallback? _bottomLeftCtaAction(Product product) {
     if (_deliveryAvailabilityState == _DeliveryAvailabilityState.loading) {
       return null;
     }
-    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.noAddress ||
-        _deliveryAvailabilityState == _DeliveryAvailabilityState.error) {
-      if (!_isProductInStock) {
-        return () {
-          HapticFeedback.lightImpact();
-          _handleNotifyMeTap(product);
-        };
-      }
+    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.error) {
+      return () {
+        HapticFeedback.lightImpact();
+        unawaited(_refreshServiceability(force: true));
+      };
+    }
+    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.noAddress) {
       return () {
         HapticFeedback.lightImpact();
         _openDeliveryAddressSheet();
       };
     }
     if (_isProductInStock) {
-      return _canTryAtHome
-          ? () {
-              HapticFeedback.lightImpact();
-              _handleTryHomeTap(product);
-            }
-          : () {
-              HapticFeedback.lightImpact();
-              _handleAddToCartTap(product);
-            };
+      if (AppConfig.enableLocalRiderDelivery && _canTryAtHome) {
+        return () {
+          HapticFeedback.lightImpact();
+          _handleTryHomeTap(product);
+        };
+      }
+      return () {
+        HapticFeedback.lightImpact();
+        _handleAddToCartTap(product);
+      };
     }
     return () {
       HapticFeedback.lightImpact();
