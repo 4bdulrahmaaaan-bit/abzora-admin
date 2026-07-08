@@ -1,5 +1,5 @@
 import 'package:abzio/services/app_config.dart';
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
 
