@@ -1,4 +1,3 @@
-import 'package:abzio/services/app_config.dart';
 import '../models/models.dart';
 import '../models/delivery_serviceability.dart';
 import 'backend_commerce_service.dart';
