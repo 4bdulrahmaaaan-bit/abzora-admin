@@ -2513,7 +2513,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
   Widget _buildSidebar(BuildContext context) {
     final items = <(AdminWebSection, IconData, String)>[
       (AdminWebSection.dashboard, Icons.dashboard_outlined, 'Dashboard'),
-      (AdminWebSection.trials, Icons.dry_cleaning_outlined, 'Trials'),
+      if (AppConfig.enableLocalRiderDelivery)
+        (AdminWebSection.trials, Icons.dry_cleaning_outlined, 'Trials'),
       (
         AdminWebSection.finance,
         Icons.account_balance_wallet_outlined,

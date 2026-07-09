@@ -89,11 +89,12 @@ class AdminDashboardV2Section extends StatelessWidget {
               value: '$liveOrdersCount',
               icon: Icons.shopping_bag_outlined,
             ),
-            AdminStatCard(
-              title: 'Active Trials',
-              value: '$activeTrialsCount',
-              icon: Icons.dry_cleaning_outlined,
-            ),
+            if (AppConfig.enableLocalRiderDelivery)
+              AdminStatCard(
+                title: 'Active Trials',
+                value: '$activeTrialsCount',
+                icon: Icons.dry_cleaning_outlined,
+              ),
             if (AppConfig.enableLocalRiderDelivery)
               AdminStatCard(
                 title: 'Online Riders',
