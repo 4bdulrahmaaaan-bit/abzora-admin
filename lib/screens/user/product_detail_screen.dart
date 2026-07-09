@@ -33,6 +33,7 @@ import 'address_screen.dart';
 import 'ai_stylist_screen.dart';
 import 'abianzo_ar_screen.dart';
 import 'size_recommendation_screen.dart';
+import 'checkout_screen.dart';
 import 'order_success_screen.dart';
 import 'tbyb/tbyb_product_selection_screen.dart';
 import 'store_detail_screen.dart';
@@ -1453,95 +1454,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     Product product,
     String selectedSize,
   ) async {
-    final allowed = await SoftAuthGate.ensureAuthenticated(context, intentLabel: 'Courier Buy Now');
+    final allowed = await SoftAuthGate.ensureAuthenticated(
+      context,
+      intentLabel: 'Courier Buy Now',
+    );
     if (!allowed || !mounted) {
       return;
     }
-    final currentUser = _currentUser();
-    final shippingAddress = _serviceabilityAddressSnapshot();
-    if (currentUser == null || shippingAddress == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Add a delivery address to continue checkout.'),
-          ),
-        );
-      }
+
+    final added = await _addToCartWithDeliveryValidation(product, selectedSize);
+    if (!added) {
       return;
     }
-    final shippingLabel = shippingAddress.name.trim().isEmpty
-        ? currentUser.name.trim()
-        : shippingAddress.name.trim();
-    OrderModel order;
-    try {
-      order = await _db.quickCheckoutOrder(
-        actor: currentUser,
-        productId: product.id,
-        size: selectedSize,
-        quantity: 1,
-        paymentMethod: 'RAZORPAY',
-        shippingAddress: {
-          'name': shippingAddress.name,
-          'phone': shippingAddress.phone,
-          'addressLine1': shippingAddress.addressLine,
-          'addressLine2': shippingAddress.landmark,
-          'city': shippingAddress.city,
-          'state': shippingAddress.state,
-          'pincode': shippingAddress.pincode,
-        },
-        deliveryType: 'COURIER_DELIVERY',
-        deliveryProvider: _serviceability?.deliveryProvider ?? '',
-        trackingNumber: '',
-        shipmentId: '',
-        awbNumber: '',
-        shippingCharge: _serviceability?.shippingCharge ?? 0,
-        estimatedDeliveryDate: _serviceability?.estimatedDeliveryDate ?? '',
-        estimatedInstantDeliveryTime:
-            _serviceability?.estimatedInstantDeliveryTime ?? '',
+
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const CheckoutScreen()),
       );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to place order: ${e.toString().replaceAll('Exception: ', '')}')),
-        );
-      }
-      return;
     }
-    if (!mounted) {
-      return;
-    }
-    final paymentResult = await PaymentService().processCheckout(
-      userId: currentUser.id,
-      backendOrderId: order.id,
-      name: shippingLabel.isEmpty ? currentUser.name : shippingLabel,
-      amount: (order.totalAmount > 0 ? order.totalAmount : product.price).toDouble(),
-      email: currentUser.email.isEmpty ? 'guest@abianzo.app' : currentUser.email,
-      contact: currentUser.phone ?? shippingAddress.phone,
-      description: 'Courier delivery checkout',
-    );
-    if (!paymentResult.success) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment was not completed.')),
-        );
-      }
-      return;
-    }
-    if (!mounted) {
-      return;
-    }
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => OrderSuccessScreen(
-          orderId: order.invoiceNumber.isEmpty ? order.id : order.invoiceNumber,
-          estimatedDelivery: order.estimatedDeliveryDate.isNotEmpty
-              ? DateTime.tryParse(order.estimatedDeliveryDate) ??
-                  DateTime.now().add(const Duration(days: 3))
-              : DateTime.now().add(const Duration(days: 3)),
-          paymentMethod: 'RAZORPAY',
-        ),
-      ),
-    );
   }
 
   Future<bool> _showMixedDeliveryDialog() async {
