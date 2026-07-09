@@ -599,7 +599,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     }
     final eta = serviceability.estimatedDeliveryDate.trim();
     if (eta.isNotEmpty) {
-      return eta;
+      try {
+        final parsed = DateTime.parse(eta);
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final deliveryDay = DateTime(parsed.year, parsed.month, parsed.day);
+        final diff = deliveryDay.difference(today).inDays;
+        if (diff == 0) {
+          return 'Today';
+        } else if (diff == 1) {
+          return 'Tomorrow';
+        } else if (diff > 1 && diff <= 14) {
+          return 'In $diff days';
+        } else {
+          return DateFormat('MMM d').format(parsed);
+        }
+      } catch (_) {
+        return eta;
+      }
     }
     if (serviceability.etaLabel.trim().isNotEmpty) {
       return serviceability.etaLabel.trim();
