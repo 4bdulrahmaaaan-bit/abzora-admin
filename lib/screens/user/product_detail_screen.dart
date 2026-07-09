@@ -679,7 +679,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           ? '$orderWithin • ETA $etaLabel'
           : 'ETA $etaLabel';
     }
-    final deliveryDate = serviceability.estimatedDeliveryDate.trim();
+    final deliveryDate = _serviceabilityEtaLabel();
     final charge = serviceability.shippingCharge > 0
         ? 'Shipping ${_currency(serviceability.shippingCharge)}'
         : 'Free shipping';
@@ -2591,8 +2591,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         ? 'Choose location'
         : _deliveryAvailabilityState == _DeliveryAvailabilityState.error
         ? 'Tap Retry'
-        : serviceability?.estimatedDeliveryDate.trim().isNotEmpty == true
-        ? serviceability!.estimatedDeliveryDate.trim()
         : eta;
     return InkWell(
       onTap: _openDeliveryAddressSheet,
