@@ -350,7 +350,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     if (!mounted) {
       return;
     }
-    unawaited(_bootstrapDeliveryContext(force: true));
+    unawaited(_bootstrapDeliveryContext(force: false));
   }
 
   Future<void> _bootstrapDeliveryContext({bool force = false}) async {
@@ -430,8 +430,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         _deliveryAvailabilityState = _DeliveryAvailabilityState.loading;
         _deliveryAvailabilityError = null;
       });
+      await _refreshServiceability(force: true);
+    } else {
+      await _refreshServiceability(force: false);
     }
-    await _refreshServiceability(force: true);
   }
 
   UserAddress? _resolveDefaultDeliveryAddress(
