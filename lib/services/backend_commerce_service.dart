@@ -1110,7 +1110,7 @@ class BackendCommerceService {
       if (state.trim().isNotEmpty) 'state': state.trim(),
     };
     final payload = await _client.get(
-      '/logistics/delivery/check',
+      '/delivery/check',
       queryParameters: queryParameters,
     );
     return Map<String, dynamic>.from(payload as Map);
