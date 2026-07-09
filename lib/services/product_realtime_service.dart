@@ -61,12 +61,24 @@ class ProductRealtimeService {
     return products;
   }
 
-  Future<List<Product>> fetchAll() async {
-    final snapshot = await _productsRef.get().timeout(
-      const Duration(seconds: 10),
-      onTimeout: () => throw TimeoutException('Products request timed out.'),
-    );
-    return productsFromPayload(snapshot.value);
+  Future<List<Product>>? _inflightFetchAll;
+
+  Future<List<Product>> fetchAll() {
+    if (_inflightFetchAll != null) {
+      return _inflightFetchAll!;
+    }
+    _inflightFetchAll = () async {
+      try {
+        final snapshot = await _productsRef.get().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () => throw TimeoutException('Products request timed out.'),
+        );
+        return productsFromPayload(snapshot.value);
+      } finally {
+        _inflightFetchAll = null;
+      }
+    }();
+    return _inflightFetchAll!;
   }
 
   Future<ProductPageResult> fetchPage({
