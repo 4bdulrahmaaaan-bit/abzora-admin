@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../../../services/app_config.dart';
 import '../../../theme.dart';
 import 'product_form_controller.dart';
 
@@ -41,6 +42,7 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
             spacing: 12,
             runSpacing: 12,
             children: [
+              if (AppConfig.enableLocalRiderDelivery)
               _buildToggleChip(
                 label: 'Same Day',
                 icon: Icons.bolt_rounded,
@@ -59,6 +61,7 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
                 isActive: controller.freeReturns,
                 onToggle: controller.toggleFreeReturns,
               ),
+              if (AppConfig.enableLocalRiderDelivery)
               _buildToggleChip(
                 label: 'Try Before You Buy',
                 icon: Icons.checkroom_outlined,
