@@ -7,6 +7,7 @@ import 'dart:convert';
 
 import '../../../theme.dart';
 import 'api/admin_inventory_api.dart';
+import '../../services/app_config.dart';
 
 class AdminInventorySection extends StatefulWidget {
   const AdminInventorySection({super.key});
@@ -429,16 +430,16 @@ class _AdminInventorySectionState extends State<AdminInventorySection>
                           scrollDirection: Axis.horizontal,
                           child: SingleChildScrollView(
                             child: DataTable(
-                              columns: const [
-                                DataColumn(label: Text('SKU')),
-                                DataColumn(label: Text('Name')),
-                                DataColumn(label: Text('Vendor')),
-                                DataColumn(label: Text('Available')),
-                                DataColumn(label: Text('Reserved')),
+                              columns: [
+                                const DataColumn(label: Text('SKU')),
+                                const DataColumn(label: Text('Name')),
+                                const DataColumn(label: Text('Vendor')),
+                                const DataColumn(label: Text('Available')),
+                                const DataColumn(label: Text('Reserved')),
                                 if (AppConfig.enableLocalRiderDelivery)
-                                  DataColumn(label: Text('Trial Rsvd')),
-                                DataColumn(label: Text('Status')),
-                                DataColumn(label: Text('Actions')),
+                                  const DataColumn(label: Text('Trial Rsvd')),
+                                const DataColumn(label: Text('Status')),
+                                const DataColumn(label: Text('Actions')),
                               ],
                               rows: _products.map((p) {
                                 final inv = p['inventory'] ?? {};

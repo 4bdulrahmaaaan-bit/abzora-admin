@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/vendor/theme/vendor_theme.dart';
+import '../../services/app_config.dart';
 import '../../core/vendor/widgets/premium_vendor_card.dart';
 import '../../core/vendor/widgets/vendor_metric_card.dart';
 import '../../core/vendor/widgets/vendor_status_badge.dart';
@@ -196,6 +197,7 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
                 icon: Icons.thumb_up_alt_outlined,
                 trend: 0,
               ),
+            ),
             if (AppConfig.enableLocalRiderDelivery) ...[
               const SizedBox(width: VendorTheme.spacing16),
               Expanded(

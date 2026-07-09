@@ -5,6 +5,7 @@ import '../../core/vendor/widgets/vendor_metric_card.dart';
 import '../../core/vendor/widgets/vendor_status_badge.dart';
 import '../../services/returns_api.dart';
 import '../../services/return_analytics_api.dart';
+import '../../services/app_config.dart';
 
 class VendorReturnsCenterScreen extends StatefulWidget {
   const VendorReturnsCenterScreen({super.key});
