@@ -125,11 +125,12 @@ class _AdminInventorySectionState extends State<AdminInventorySection>
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: trialReservedCtrl,
-                decoration: const InputDecoration(labelText: 'Trial Reserved'),
-                keyboardType: TextInputType.number,
-              ),
+              if (AppConfig.enableLocalRiderDelivery)
+                TextField(
+                  controller: trialReservedCtrl,
+                  decoration: const InputDecoration(labelText: 'Trial Reserved'),
+                  keyboardType: TextInputType.number,
+                ),
             ],
           ),
           actions: [
@@ -295,11 +296,12 @@ class _AdminInventorySectionState extends State<AdminInventorySection>
                 Colors.orange.shade50,
               ),
               const SizedBox(width: 16),
-              _buildMetricCard(
-                'Trial Reserved',
-                '${_kpis['trialReservedInventory'] ?? 0}',
-                Colors.purple.shade50,
-              ),
+              if (AppConfig.enableLocalRiderDelivery)
+                _buildMetricCard(
+                  'Trial Reserved',
+                  '${_kpis['trialReservedInventory'] ?? 0}',
+                  Colors.purple.shade50,
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -433,7 +435,8 @@ class _AdminInventorySectionState extends State<AdminInventorySection>
                                 DataColumn(label: Text('Vendor')),
                                 DataColumn(label: Text('Available')),
                                 DataColumn(label: Text('Reserved')),
-                                DataColumn(label: Text('Trial Rsvd')),
+                                if (AppConfig.enableLocalRiderDelivery)
+                                  DataColumn(label: Text('Trial Rsvd')),
                                 DataColumn(label: Text('Status')),
                                 DataColumn(label: Text('Actions')),
                               ],
@@ -453,9 +456,10 @@ class _AdminInventorySectionState extends State<AdminInventorySection>
                                       ),
                                     ),
                                     DataCell(Text('${inv['reserved'] ?? 0}')),
-                                    DataCell(
-                                      Text('${inv['trialReserved'] ?? 0}'),
-                                    ),
+                                    if (AppConfig.enableLocalRiderDelivery)
+                                      DataCell(
+                                        Text('${inv['trialReserved'] ?? 0}'),
+                                      ),
                                     DataCell(
                                       Chip(label: Text(p['status'] ?? '')),
                                     ),

@@ -95,11 +95,12 @@ class _AdminAnalyticsSectionState extends State<AdminAnalyticsSection> {
                 '${overview['totalOrders'] ?? 0}',
                 Colors.orange.shade50,
               ),
-              _buildMetricCard(
-                'Active Trials',
-                '${overview['totalTrials'] ?? 0}',
-                Colors.purple.shade50,
-              ),
+              if (AppConfig.enableLocalRiderDelivery)
+                _buildMetricCard(
+                  'Active Trials',
+                  '${overview['totalTrials'] ?? 0}',
+                  Colors.purple.shade50,
+                ),
               _buildMetricCard(
                 'Active Vendors',
                 '${overview['activeVendors'] ?? 0}',

@@ -396,13 +396,14 @@ class _ExecutiveOperationsWidget extends StatelessWidget {
                   icon: Icons.local_shipping_outlined,
                   onTap: () => onNavigate?.call('orders'),
                 ),
-                _buildActionItem(
-                  context,
-                  title: 'Trials Attention',
-                  count: analytics.trialsRequiringAttention,
-                  icon: Icons.checkroom_outlined,
-                  onTap: () => onNavigate?.call('trials'),
-                ),
+                if (AppConfig.enableLocalRiderDelivery)
+                  _buildActionItem(
+                    context,
+                    title: 'Trials Attention',
+                    count: analytics.trialsRequiringAttention,
+                    icon: Icons.checkroom_outlined,
+                    onTap: () => onNavigate?.call('trials'),
+                  ),
                 _buildActionItem(
                   context,
                   title: 'Vendors Attention',

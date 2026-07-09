@@ -82,7 +82,15 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
       case 'inventory':
         final products = _asMapList(response['data']);
         return [
-          ['Product', 'Vendor', 'Status', 'Available', 'Reserved', 'Trial Reserved', 'Updated At'],
+          [
+            'Product',
+            'Vendor',
+            'Status',
+            'Available',
+            'Reserved',
+            if (AppConfig.enableLocalRiderDelivery) 'Trial Reserved',
+            'Updated At',
+          ],
           ...products.map(
             (item) => [
               _text(item['name']),
@@ -90,7 +98,8 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
               _text(item['status'], 'Unknown'),
               _text(item['inventory'] is Map ? (item['inventory'] as Map)['available'] : item['available']),
               _text(item['inventory'] is Map ? (item['inventory'] as Map)['reserved'] : item['reserved']),
-              _text(item['inventory'] is Map ? (item['inventory'] as Map)['trialReserved'] : item['trialReserved']),
+              if (AppConfig.enableLocalRiderDelivery)
+                _text(item['inventory'] is Map ? (item['inventory'] as Map)['trialReserved'] : item['trialReserved']),
               _text(item['updatedAt']),
             ],
           ),
@@ -110,16 +119,17 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
               _text(item['rejectionReason']),
             ],
           ),
-          ...riders.map(
-            (item) => [
-              'Rider',
-              _text(item['requestId'] ?? item['_id'] ?? item['id']),
-              _text(item['name']),
-              _text(item['status'], 'submitted'),
-              _text(item['createdAt']),
-              _text(item['rejectionReason']),
-            ],
-          ),
+          if (AppConfig.enableLocalRiderDelivery)
+            ...riders.map(
+              (item) => [
+                'Rider',
+                _text(item['requestId'] ?? item['_id'] ?? item['id']),
+                _text(item['personalInfo'] is Map ? (item['personalInfo'] as Map)['fullName'] : item['fullName']),
+                _text(item['status'], 'submitted'),
+                _text(item['createdAt']),
+                _text(item['rejectionReason']),
+              ],
+            ),
         ];
       case 'riders':
         final riders = _asMapList(response['data']);

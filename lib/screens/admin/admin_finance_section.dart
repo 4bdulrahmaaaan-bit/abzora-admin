@@ -295,11 +295,12 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection>
                 '₹${_dashboardStats['platformCommission'] ?? 0}',
                 Colors.orange.shade50,
               ),
-              _buildMetricCard(
-                'Trial Revenue',
-                '₹${_dashboardStats['trialRevenue'] ?? 0}',
-                Colors.purple.shade50,
-              ),
+              if (AppConfig.enableLocalRiderDelivery)
+                _buildMetricCard(
+                  'Trial Revenue',
+                  '₹${_dashboardStats['trialRevenue'] ?? 0}',
+                  Colors.purple.shade50,
+                ),
               _buildMetricCard(
                 'Refund Exposure',
                 '₹${_dashboardStats['refundExposure'] ?? 0}',
