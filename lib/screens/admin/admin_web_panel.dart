@@ -15,6 +15,7 @@ import '../../utils/app_error_text.dart';
 import '../../utils/app_mode_routes.dart';
 import '../../widgets/brand_logo.dart';
 import '../../widgets/state_views.dart';
+import '../../services/app_config.dart';
 import 'admin_ar_moderation_section.dart';
 import 'admin_banners_section.dart';
 import 'admin_cms_section.dart';
@@ -2532,8 +2533,10 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       (AdminWebSection.orders, Icons.receipt_long_outlined, 'Orders'),
       (AdminWebSection.vendors, Icons.storefront_outlined, 'Vendors'),
       (AdminWebSection.vendorOnboarding, Icons.storefront, 'Vendor Onboarding'),
-      (AdminWebSection.riders, Icons.delivery_dining_outlined, 'Riders'),
-      (AdminWebSection.riderOnboarding, Icons.two_wheeler, 'Rider Onboarding'),
+      if (AppConfig.enableLocalRiderDelivery)
+        (AdminWebSection.riders, Icons.delivery_dining_outlined, 'Riders'),
+      if (AppConfig.enableLocalRiderDelivery)
+        (AdminWebSection.riderOnboarding, Icons.two_wheeler, 'Rider Onboarding'),
       (
         AdminWebSection.onboardingAnalytics,
         Icons.analytics_outlined,

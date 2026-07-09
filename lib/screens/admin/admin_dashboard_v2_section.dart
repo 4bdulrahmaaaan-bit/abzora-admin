@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../models/models.dart';
 import '../../../theme.dart';
 import '../../../widgets/state_views.dart';
+import '../../../services/app_config.dart';
 import 'widgets/admin_stat_card.dart';
 
 class AdminDashboardV2Section extends StatelessWidget {
@@ -93,11 +94,12 @@ class AdminDashboardV2Section extends StatelessWidget {
               value: '$activeTrialsCount',
               icon: Icons.dry_cleaning_outlined,
             ),
-            AdminStatCard(
-              title: 'Online Riders',
-              value: '$activeRiderCount',
-              icon: Icons.delivery_dining_outlined,
-            ),
+            if (AppConfig.enableLocalRiderDelivery)
+              AdminStatCard(
+                title: 'Online Riders',
+                value: '$activeRiderCount',
+                icon: Icons.delivery_dining_outlined,
+              ),
             AdminStatCard(
               title: 'Active Vendors',
               value: '$activeVendorsCount',
@@ -204,11 +206,12 @@ class AdminDashboardV2Section extends StatelessWidget {
                         icon: Icons.storefront_rounded,
                         onTap: () {},
                       ),
-                      _QuickActionTile(
-                        title: 'Approve Rider',
-                        icon: Icons.motorcycle_rounded,
-                        onTap: () {},
-                      ),
+                      if (AppConfig.enableLocalRiderDelivery)
+                        _QuickActionTile(
+                          title: 'Approve Rider',
+                          icon: Icons.motorcycle_rounded,
+                          onTap: () {},
+                        ),
                       _QuickActionTile(
                         title: 'Broadcast Notification',
                         icon: Icons.campaign_rounded,
@@ -434,13 +437,14 @@ class _ExecutiveOperationsWidget extends StatelessWidget {
                   icon: Icons.account_balance_wallet_outlined,
                   onTap: () => onNavigate?.call('finance'),
                 ),
-                _buildActionItem(
-                  context,
-                  title: 'Rider Payouts',
-                  count: analytics.pendingRiderSettlements,
-                  icon: Icons.account_balance_wallet_outlined,
-                  onTap: () => onNavigate?.call('finance'),
-                ),
+                if (AppConfig.enableLocalRiderDelivery)
+                  _buildActionItem(
+                    context,
+                    title: 'Rider Payouts',
+                    count: analytics.pendingRiderSettlements,
+                    icon: Icons.account_balance_wallet_outlined,
+                    onTap: () => onNavigate?.call('finance'),
+                  ),
                 _buildActionItem(
                   context,
                   title: 'Low Stock',
