@@ -90,6 +90,9 @@ class _LoginScreenState extends State<LoginScreen> {
   bool get _isPartnerLogin => !widget.adminEntry && isPartnerMode(widget.mode);
 
   String get _headline {
+    if (widget.adminEntry) {
+      return 'Admin Portal Sign In';
+    }
     switch (widget.mode) {
       case AbzioAppMode.vendor:
         return 'Vendor Sign In';
@@ -99,11 +102,14 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'Partner Sign In';
       case AbzioAppMode.customer:
       case AbzioAppMode.unified:
-        return 'Admin Portal Sign In';
+        return 'Sign In';
     }
   }
 
   String get _subheading {
+    if (widget.adminEntry) {
+      return 'Secure administrative portal for managing products, orders, vendors, customers, riders, analytics, and platform operations.';
+    }
     switch (widget.mode) {
       case AbzioAppMode.vendor:
         return 'Manage your store, orders, and payouts';
@@ -113,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'Access your vendor or rider workspace';
       case AbzioAppMode.customer:
       case AbzioAppMode.unified:
-        return 'Secure administrative portal for managing products, orders, vendors, customers, riders, analytics, and platform operations.';
+        return 'Sign in to access your account, orders, and wishlist';
     }
   }
 

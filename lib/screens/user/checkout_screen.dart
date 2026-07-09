@@ -2952,31 +2952,8 @@ class _CompactAddressCard extends StatelessWidget {
               ),
 
             ],
-
           ),
-
         ),
-
-        const SizedBox(width: 8),
-
-        TextButton(
-
-          onPressed: onChange,
-
-          style: TextButton.styleFrom(
-
-            minimumSize: Size.zero,
-
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-
-          ),
-
-          child: const Text('Change'),
-
-        ),
-
       ],
 
     );

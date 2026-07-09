@@ -351,10 +351,11 @@ class _ProductCardState extends State<ProductCard> {
                           discountPercent: pricing.discountPercent,
                         ),
                         const SizedBox(height: 8),
-                        _ServiceBadge(
-                          label: deliveryLabel,
-                          icon: Icons.local_shipping_rounded,
-                        ),
+                        if (deliveryLabel.isNotEmpty)
+                          _ServiceBadge(
+                            label: deliveryLabel,
+                            icon: Icons.local_shipping_rounded,
+                          ),
                       ],
                     ),
                   ),
@@ -436,9 +437,6 @@ class _ProductCardState extends State<ProductCard> {
 
   String _deliveryFallbackLabel(Product product) {
     final delivery = product.deliveryInfo;
-    if (_boolFrom(delivery['supportsTryAtHome'])) {
-      return 'Try At Home';
-    }
     if (_boolFrom(delivery['supportsInstantDelivery'])) {
       final instantTime =
           delivery['estimatedInstantDeliveryTime']?.toString().trim() ?? '';
@@ -461,16 +459,13 @@ class _ProductCardState extends State<ProductCard> {
       }
       return 'Courier Delivery';
     }
-    return 'Check availability';
+    return '';
   }
 
   String _labelForServiceability(
     ProductServiceability serviceability, {
     required String fallback,
   }) {
-    if (serviceability.canTryAtHome) {
-      return 'Try At Home';
-    }
     if (serviceability.canGetItToday) {
       return 'Get It Today';
     }
@@ -483,7 +478,7 @@ class _ProductCardState extends State<ProductCard> {
     if (fallback.trim().isNotEmpty && fallback != 'Check availability') {
       return fallback;
     }
-    return 'Unavailable for your location';
+    return '';
   }
 
   String _deliveryContextSignatureFor(String productId, UserAddress? address) {

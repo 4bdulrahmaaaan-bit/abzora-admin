@@ -680,12 +680,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           : 'ETA $etaLabel';
     }
     final deliveryDate = _serviceabilityEtaLabel();
-    final charge = serviceability.shippingCharge > 0
-        ? 'Shipping ${_currency(serviceability.shippingCharge)}'
-        : 'Free shipping';
     return [
       if (deliveryDate.isNotEmpty) 'Estimated delivery $deliveryDate',
-      charge,
       if (serviceability.deliveryPartner.trim().isNotEmpty)
         serviceability.deliveryPartner.trim(),
     ].join(' • ');
@@ -1476,31 +1472,41 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final shippingLabel = shippingAddress.name.trim().isEmpty
         ? currentUser.name.trim()
         : shippingAddress.name.trim();
-    final order = await _db.quickCheckoutOrder(
-      actor: currentUser,
-      productId: product.id,
-      size: selectedSize,
-      quantity: 1,
-      paymentMethod: 'RAZORPAY',
-      shippingAddress: {
-        'name': shippingAddress.name,
-        'phone': shippingAddress.phone,
-        'addressLine1': shippingAddress.addressLine,
-        'addressLine2': shippingAddress.landmark,
-        'city': shippingAddress.city,
-        'state': shippingAddress.state,
-        'pincode': shippingAddress.pincode,
-      },
-      deliveryType: 'COURIER_DELIVERY',
-      deliveryProvider: _serviceability?.deliveryProvider ?? '',
-      trackingNumber: '',
-      shipmentId: '',
-      awbNumber: '',
-      shippingCharge: _serviceability?.shippingCharge ?? 0,
-      estimatedDeliveryDate: _serviceability?.estimatedDeliveryDate ?? '',
-      estimatedInstantDeliveryTime:
-          _serviceability?.estimatedInstantDeliveryTime ?? '',
-    );
+    OrderModel order;
+    try {
+      order = await _db.quickCheckoutOrder(
+        actor: currentUser,
+        productId: product.id,
+        size: selectedSize,
+        quantity: 1,
+        paymentMethod: 'RAZORPAY',
+        shippingAddress: {
+          'name': shippingAddress.name,
+          'phone': shippingAddress.phone,
+          'addressLine1': shippingAddress.addressLine,
+          'addressLine2': shippingAddress.landmark,
+          'city': shippingAddress.city,
+          'state': shippingAddress.state,
+          'pincode': shippingAddress.pincode,
+        },
+        deliveryType: 'COURIER_DELIVERY',
+        deliveryProvider: _serviceability?.deliveryProvider ?? '',
+        trackingNumber: '',
+        shipmentId: '',
+        awbNumber: '',
+        shippingCharge: _serviceability?.shippingCharge ?? 0,
+        estimatedDeliveryDate: _serviceability?.estimatedDeliveryDate ?? '',
+        estimatedInstantDeliveryTime:
+            _serviceability?.estimatedInstantDeliveryTime ?? '',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to place order: ${e.toString().replaceAll('Exception: ', '')}')),
+        );
+      }
+      return;
+    }
     if (!mounted) {
       return;
     }
@@ -1691,9 +1697,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     if (state == _DeliveryAvailabilityState.error) {
       return 'Retry';
     }
-    if (state == _DeliveryAvailabilityState.noAddress) {
-      return 'Change Delivery Address';
-    }
     if (_isProductInStock) {
       if (AppConfig.enableLocalRiderDelivery && _canTryAtHome) {
         return 'Try At Home';
@@ -1710,9 +1713,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     }
     if (state == _DeliveryAvailabilityState.error) {
       return 'Change Delivery Address';
-    }
-    if (state == _DeliveryAvailabilityState.noAddress) {
-      return 'Notify Me';
     }
     if (_isProductInStock) {
       if (AppConfig.enableLocalRiderDelivery && _canTryAtHome) {
@@ -1731,12 +1731,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       return () {
         HapticFeedback.lightImpact();
         unawaited(_refreshServiceability(force: true));
-      };
-    }
-    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.noAddress) {
-      return () {
-        HapticFeedback.lightImpact();
-        _openDeliveryAddressSheet();
       };
     }
     if (_isProductInStock) {
@@ -1760,12 +1754,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   VoidCallback? _bottomRightCtaAction(Product product) {
     if (_deliveryAvailabilityState == _DeliveryAvailabilityState.loading) {
       return null;
-    }
-    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.noAddress) {
-      return () {
-        HapticFeedback.lightImpact();
-        _openDeliveryAddressSheet();
-      };
     }
     if (_deliveryAvailabilityState == _DeliveryAvailabilityState.error) {
       return () {

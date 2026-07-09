@@ -29,6 +29,8 @@ class WishlistService {
       authenticated: true,
       body: {'productId': product.id},
     );
+    _cache = const [];
+    _lastFetch = null;
   }
 
   Future<void> removeFromWishlist({
@@ -36,6 +38,8 @@ class WishlistService {
     required String productId,
   }) async {
     await _backendApiClient.delete('/wishlist/$productId', authenticated: true);
+    _cache = const [];
+    _lastFetch = null;
   }
 
   Future<List<WishlistItem>> _fetchBackendWishlist({bool force = false}) async {
