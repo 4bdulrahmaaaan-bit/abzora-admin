@@ -666,7 +666,11 @@ class _AppLaunchGateState extends State<_AppLaunchGate> {
           width: 450,
           height: 450,
           child: Image.asset(
-            'assets/branding/launch_image.png',
+            widget.mode == AbzioAppMode.vendor
+                ? 'assets/branding/abianzo_vendor_splash_1080x1920.png'
+                : widget.mode == AbzioAppMode.rider
+                    ? 'assets/branding/abianzo_rider_splash_1080x1920.png'
+                    : 'assets/branding/launch_image.png',
             fit: BoxFit.contain,
           ),
         ),
