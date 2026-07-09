@@ -36,20 +36,22 @@ class RoleSelectionScreen extends StatelessWidget {
               Navigator.of(context).pushNamed('/vendor-onboarding');
             },
           ),
-          const SizedBox(height: 16),
-          _PartnerOptionCard(
-            title: 'Become Rider',
-            subtitle:
-                'Accept deliveries, complete pickups, and manage live drop-offs efficiently.',
-            icon: Icons.delivery_dining_outlined,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const RiderOnboardingFlowScreen(),
-                ),
-              );
-            },
-          ),
+          if (AppConfig.enableLocalRiderDelivery) ...[
+            const SizedBox(height: 16),
+            _PartnerOptionCard(
+              title: 'Become Rider',
+              subtitle:
+                  'Accept deliveries, complete pickups, and manage live drop-offs efficiently.',
+              icon: Icons.delivery_dining_outlined,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const RiderOnboardingFlowScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
         ],
       ),
     );

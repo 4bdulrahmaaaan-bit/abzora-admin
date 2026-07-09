@@ -177,30 +177,32 @@ class _VendorReturnsCenterScreenState extends State<VendorReturnsCenterScreen>
             ),
           ],
         ),
-        const SizedBox(height: VendorTheme.spacing16),
-        Row(
-          children: [
-            Expanded(
-              child: VendorMetricCard(
-                title: 'TBYB Returns',
-                value:
-                    '${(tbyb['trialReturnRate']?.toDouble() ?? 0.0).toStringAsFixed(1)}%',
-                icon: Icons.assignment_return_outlined,
-                trend: 0,
+        if (AppConfig.enableLocalRiderDelivery) ...[
+          const SizedBox(height: VendorTheme.spacing16),
+          Row(
+            children: [
+              Expanded(
+                child: VendorMetricCard(
+                  title: 'TBYB Returns',
+                  value:
+                      '${(tbyb['trialReturnRate']?.toDouble() ?? 0.0).toStringAsFixed(1)}%',
+                  icon: Icons.assignment_return_outlined,
+                  trend: 0,
+                ),
               ),
-            ),
-            const SizedBox(width: VendorTheme.spacing16),
-            Expanded(
-              child: VendorMetricCard(
-                title: 'Avg Trial Days',
-                value: (tbyb['avgTrialDaysUsed']?.toDouble() ?? 0.0)
-                    .toStringAsFixed(1),
-                icon: Icons.timelapse_outlined,
-                trend: 0,
+              const SizedBox(width: VendorTheme.spacing16),
+              Expanded(
+                child: VendorMetricCard(
+                  title: 'Avg Trial Days',
+                  value: (tbyb['avgTrialDaysUsed']?.toDouble() ?? 0.0)
+                      .toStringAsFixed(1),
+                  icon: Icons.timelapse_outlined,
+                  trend: 0,
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ],
     );
   }

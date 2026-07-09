@@ -196,16 +196,17 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
                 icon: Icons.thumb_up_alt_outlined,
                 trend: 0,
               ),
-            ),
-            const SizedBox(width: VendorTheme.spacing16),
-            Expanded(
-              child: VendorMetricCard(
-                title: 'TBYB Reviews',
-                value: (tbyb['trialReviews'] ?? 0).toString(),
-                icon: Icons.checkroom_outlined,
-                trend: 0,
+            if (AppConfig.enableLocalRiderDelivery) ...[
+              const SizedBox(width: VendorTheme.spacing16),
+              Expanded(
+                child: VendorMetricCard(
+                  title: 'TBYB Reviews',
+                  value: (tbyb['trialReviews'] ?? 0).toString(),
+                  icon: Icons.checkroom_outlined,
+                  trend: 0,
+                ),
               ),
-            ),
+            ],
           ],
         ),
         const SizedBox(height: VendorTheme.spacing24),
@@ -247,7 +248,7 @@ class _VendorReviewsCenterScreenState extends State<VendorReviewsCenterScreen> {
                   );
                 }),
               ),
-              if (isTrial)
+              if (AppConfig.enableLocalRiderDelivery && isTrial)
                 VendorStatusBadge(
                   label: 'TBYB: ${outcome ?? 'Unknown'}',
                   type: VendorBadgeType.info,
