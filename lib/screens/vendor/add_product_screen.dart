@@ -1,3 +1,4 @@
+import '../../services/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -140,15 +141,15 @@ class _AddProductScreenContentState extends State<_AddProductScreenContent> {
             .map((e) => {'key': e.key, 'value': e.value.text})
             .toList(),
         deliveryInfo: {
-          'sameDayEligible': controller.sameDayDelivery,
-          'supportsInstantDelivery': controller.sameDayDelivery,
+          'sameDayEligible': AppConfig.enableLocalRiderDelivery ? controller.sameDayDelivery : false,
+          'supportsInstantDelivery': AppConfig.enableLocalRiderDelivery ? controller.sameDayDelivery : false,
           'codEligible': controller.cashOnDelivery,
           'cashOnDelivery': controller.cashOnDelivery,
           'freeReturns': controller.freeReturns,
-          'tryBeforeYouBuy': controller.tryBeforeYouBuy,
-          'tryAtHomeEligible': controller.tryBeforeYouBuy,
-          'tryAtHomeAvailable': controller.tryBeforeYouBuy,
-          'supportsTryAtHome': controller.tryBeforeYouBuy,
+          'tryBeforeYouBuy': AppConfig.enableLocalRiderDelivery ? controller.tryBeforeYouBuy : false,
+          'tryAtHomeEligible': AppConfig.enableLocalRiderDelivery ? controller.tryBeforeYouBuy : false,
+          'tryAtHomeAvailable': AppConfig.enableLocalRiderDelivery ? controller.tryBeforeYouBuy : false,
+          'supportsTryAtHome': AppConfig.enableLocalRiderDelivery ? controller.tryBeforeYouBuy : false,
           'expressDelivery': controller.expressDelivery,
           'etaLabel': controller.etaDropdown,
         },

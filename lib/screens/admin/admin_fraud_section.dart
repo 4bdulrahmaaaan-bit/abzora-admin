@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../theme.dart';
+import '../../services/app_config.dart';
 import '../../../widgets/state_views.dart';
 import 'widgets/admin_stat_card.dart';
 import 'api/admin_fraud_api.dart';
@@ -122,7 +123,7 @@ class _AdminFraudSectionState extends State<AdminFraudSection> {
 
   Widget _buildDashboardGrid() {
     return GridView.count(
-      crossAxisCount: 5,
+      crossAxisCount: AppConfig.enableLocalRiderDelivery ? 5 : 4,
       shrinkWrap: true,
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
@@ -147,12 +148,13 @@ class _AdminFraudSectionState extends State<AdminFraudSection> {
           icon: Icons.store_mall_directory,
           trendUp: false,
         ),
-        AdminStatCard(
-          title: 'Flagged Riders',
-          value: '${_dashboard['flaggedRiders'] ?? 0}',
-          icon: Icons.delivery_dining,
-          trendUp: false,
-        ),
+        if (AppConfig.enableLocalRiderDelivery)
+          AdminStatCard(
+            title: 'Flagged Riders',
+            value: '${_dashboard['flaggedRiders'] ?? 0}',
+            icon: Icons.delivery_dining,
+            trendUp: false,
+          ),
         AdminStatCard(
           title: 'Flagged Orders',
           value: '${_dashboard['flaggedOrders'] ?? 0}',
@@ -200,7 +202,8 @@ class _AdminFraudSectionState extends State<AdminFraudSection> {
                     _buildTabBtn('Highest Risk', 'highestRisk'),
                     _buildTabBtn('Customers', 'customers'),
                     _buildTabBtn('Vendors', 'vendors'),
-                    _buildTabBtn('Riders', 'riders'),
+                    if (AppConfig.enableLocalRiderDelivery)
+                      _buildTabBtn('Riders', 'riders'),
                     _buildTabBtn('Orders', 'orders'),
                   ],
                 ),

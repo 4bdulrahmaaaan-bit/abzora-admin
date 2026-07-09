@@ -80,55 +80,57 @@ class _ProductDeliverySectionState extends State<ProductDeliverySection> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Estimated Delivery Time (Standard)',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600,
-                  color: AbzioTheme.textSecondary.withValues(alpha: 0.8),
-                ),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: controller.etaDropdown,
-                onChanged: (val) {
-                  if (val != null) {
-                    controller.updateEtaDropdown(val);
-                  }
-                },
-                icon: const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: AbzioTheme.textSecondary,
-                ),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: const Color(0xFFF9FAFB),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AbzioTheme.lightBorder),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AbzioTheme.lightBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AbzioTheme.accentColor),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
+              if (AppConfig.enableLocalRiderDelivery) ...[
+                Text(
+                  'Estimated Delivery Time (Standard)',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                    color: AbzioTheme.textSecondary.withValues(alpha: 0.8),
                   ),
                 ),
-                items: _etaOptions.map((item) {
-                  return DropdownMenuItem(
-                    value: item,
-                    child: Text(
-                      item,
-                      style: GoogleFonts.inter(color: AbzioTheme.textPrimary),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: controller.etaDropdown,
+                  onChanged: (val) {
+                    if (val != null) {
+                      controller.updateEtaDropdown(val);
+                    }
+                  },
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AbzioTheme.textSecondary,
+                  ),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: const Color(0xFFF9FAFB),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: AbzioTheme.lightBorder),
                     ),
-                  );
-                }).toList(),
-              ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: AbzioTheme.lightBorder),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: AbzioTheme.accentColor),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                  items: _etaOptions.map((item) {
+                    return DropdownMenuItem(
+                      value: item,
+                      child: Text(
+                        item,
+                        style: GoogleFonts.inter(color: AbzioTheme.textPrimary),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
           ),
         ],

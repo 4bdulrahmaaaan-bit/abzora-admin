@@ -417,12 +417,13 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            OutlinedButton(
-                              onPressed: _selectedOrderIds.isEmpty
-                                  ? null
-                                  : () => _bulkOrderStatus('Assigned'),
-                              child: const Text('assign riders'),
-                            ),
+                            if (AppConfig.enableLocalRiderDelivery)
+                              OutlinedButton(
+                                onPressed: _selectedOrderIds.isEmpty
+                                    ? null
+                                    : () => _bulkOrderStatus('Assigned'),
+                                child: const Text('assign riders'),
+                              ),
                             OutlinedButton(
                               onPressed: _selectedOrderIds.isEmpty
                                   ? null
@@ -600,22 +601,24 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                       width: 220,
                                       child: Column(
                                         children: [
-                                          SizedBox(
-                                            width: double.infinity,
-                                            child: ElevatedButton.icon(
-                                              onPressed: () =>
-                                                  _assignRider(order),
-                                              icon: const Icon(
-                                                Icons.person_add_alt_1_outlined,
-                                              ),
-                                              label: Text(
-                                                order.riderId == null
-                                                    ? 'Assign Rider'
-                                                    : 'Reassign Rider',
+                                          if (AppConfig.enableLocalRiderDelivery) ...[
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: ElevatedButton.icon(
+                                                onPressed: () =>
+                                                    _assignRider(order),
+                                                icon: const Icon(
+                                                  Icons.person_add_alt_1_outlined,
+                                                ),
+                                                label: Text(
+                                                  order.riderId == null
+                                                      ? 'Assign Rider'
+                                                      : 'Reassign Rider',
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 8),
+                                            const SizedBox(height: 8),
+                                          ],
                                           PopupMenuButton<String>(
                                             onSelected: (value) =>
                                                 _handleOrderQuickAction(
@@ -639,10 +642,11 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                                                 value: 'vendor',
                                                 child: Text('Contact Vendor'),
                                               ),
-                                              PopupMenuItem(
-                                                value: 'rider',
-                                                child: Text('Contact Rider'),
-                                              ),
+                                              if (AppConfig.enableLocalRiderDelivery)
+                                                PopupMenuItem(
+                                                  value: 'rider',
+                                                  child: Text('Contact Rider'),
+                                                ),
                                               PopupMenuItem(
                                                 value: 'timeline',
                                                 child: Text('View Timeline'),

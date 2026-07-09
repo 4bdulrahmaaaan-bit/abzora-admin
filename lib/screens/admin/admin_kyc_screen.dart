@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
+import '../../services/app_config.dart';
 import '../../services/onboarding_service.dart';
 import '../../core/utils/vendor_kyc_policy.dart';
 import '../../widgets/kyc_detail_view.dart';
@@ -950,7 +951,9 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                     ),
                     SizedBox(height: 6),
                     Text(
-                      'Review vendor and rider verification with fewer clicks and clearer evidence.',
+                      AppConfig.enableLocalRiderDelivery
+                          ? 'Review vendor and rider verification with fewer clicks and clearer evidence.'
+                          : 'Review vendor verification with fewer clicks and clearer evidence.',
                       style: TextStyle(color: Color(0xFF676767), height: 1.45),
                     ),
                   ],
@@ -983,7 +986,8 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
             children: [
               _tabChip(KycRequestFilterTab.all, 'All'),
               _tabChip(KycRequestFilterTab.vendor, 'Vendor'),
-              _tabChip(KycRequestFilterTab.rider, 'Rider'),
+              if (AppConfig.enableLocalRiderDelivery)
+                _tabChip(KycRequestFilterTab.rider, 'Rider'),
               _tabChip(KycRequestFilterTab.pending, 'Pending'),
               _tabChip(KycRequestFilterTab.approved, 'Approved'),
               _tabChip(KycRequestFilterTab.rejected, 'Rejected'),

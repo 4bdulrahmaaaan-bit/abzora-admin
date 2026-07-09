@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import 'dart:convert';
 
 import '../../../theme.dart';
+import '../../services/app_config.dart';
 import 'api/admin_kyc_api.dart';
 
 class AdminKycSection extends StatefulWidget {
@@ -33,7 +34,10 @@ class _AdminKycSectionState extends State<AdminKycSection>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: AppConfig.enableLocalRiderDelivery ? 3 : 2,
+      vsync: this,
+    );
     _tabController.addListener(_handleTabChange);
     _fetchDashboard();
     _fetchApps();
@@ -49,7 +53,7 @@ class _AdminKycSectionState extends State<AdminKycSection>
           _appsPage = 1;
         });
         _fetchApps();
-      } else if (_tabController.index == 2) {
+      } else if (AppConfig.enableLocalRiderDelivery && _tabController.index == 2) {
         setState(() {
           _appTypeFilter = 'Rider';
           _appsPage = 1;
@@ -309,7 +313,9 @@ class _AdminKycSectionState extends State<AdminKycSection>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Document verification and compliance operations for vendors and riders.',
+                  AppConfig.enableLocalRiderDelivery
+                      ? 'Document verification and compliance operations for vendors and riders.'
+                      : 'Document verification and compliance operations for vendors.',
                   style: GoogleFonts.inter(
                     color: AbzioTheme.textSecondary,
                     fontSize: 14,
@@ -326,10 +332,11 @@ class _AdminKycSectionState extends State<AdminKycSection>
           labelColor: Theme.of(context).colorScheme.primary,
           unselectedLabelColor: Colors.grey,
           isScrollable: true,
-          tabs: const [
-            Tab(text: 'Overview & KPIs'),
-            Tab(text: 'Vendor KYC'),
-            Tab(text: 'Rider KYC'),
+          tabs: [
+            const Tab(text: 'Overview & KPIs'),
+            const Tab(text: 'Vendor KYC'),
+            if (AppConfig.enableLocalRiderDelivery)
+              const Tab(text: 'Rider KYC'),
           ],
         ),
         const SizedBox(height: 24),
@@ -339,7 +346,8 @@ class _AdminKycSectionState extends State<AdminKycSection>
             children: [
               _buildDashboardTab(),
               _buildAppsTab('Vendor'),
-              _buildAppsTab('Rider'),
+              if (AppConfig.enableLocalRiderDelivery)
+                _buildAppsTab('Rider'),
             ],
           ),
         ),

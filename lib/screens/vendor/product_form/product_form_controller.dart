@@ -1,3 +1,4 @@
+import '../../../services/app_config.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -284,10 +285,10 @@ class ProductFormController extends ChangeNotifier {
     meta['lowStockThreshold'] =
         int.tryParse(lowStockThresholdController.text.trim()) ?? 5;
     meta['taxIncluded'] = taxIncluded;
-    meta['sameDayDelivery'] = sameDayDelivery;
+    meta['sameDayDelivery'] = AppConfig.enableLocalRiderDelivery ? sameDayDelivery : false;
     meta['cashOnDelivery'] = cashOnDelivery;
     meta['freeReturns'] = freeReturns;
-    meta['tryBeforeYouBuy'] = tryBeforeYouBuy;
+    meta['tryBeforeYouBuy'] = AppConfig.enableLocalRiderDelivery ? tryBeforeYouBuy : false;
     meta['expressDelivery'] = expressDelivery;
     meta['etaLabel'] = etaDropdown.trim();
     meta['sizeQuantities'] = jsonEncode(sizeQuantities);

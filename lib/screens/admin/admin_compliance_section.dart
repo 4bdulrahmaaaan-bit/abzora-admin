@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:share_plus/share_plus.dart';
 
 import '../../services/backend_api_client.dart';
+import '../../services/app_config.dart';
 
 class AdminComplianceSection extends StatefulWidget {
   const AdminComplianceSection({super.key});
@@ -18,10 +19,12 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
   bool _isExporting = false;
   final BackendApiClient _api = const BackendApiClient();
 
-  final List<Map<String, String>> _exportModules = [
+  List<Map<String, String>> get _exportModules => [
     {
       'title': 'Financial Settlements',
-      'description': 'Export all vendor and rider settlements',
+      'description': AppConfig.enableLocalRiderDelivery 
+          ? 'Export all vendor and rider settlements' 
+          : 'Export all vendor settlements',
       'id': 'settlements',
     },
     {
@@ -31,14 +34,17 @@ class _AdminComplianceSectionState extends State<AdminComplianceSection> {
     },
     {
       'title': 'KYC Compliance Logs',
-      'description': 'Export vendor and rider KYC status reports',
+      'description': AppConfig.enableLocalRiderDelivery 
+          ? 'Export vendor and rider KYC status reports' 
+          : 'Export vendor KYC status reports',
       'id': 'kyc',
     },
-    {
-      'title': 'Rider Intelligence Data',
-      'description': 'Export rider performance and location logs',
-      'id': 'riders',
-    },
+    if (AppConfig.enableLocalRiderDelivery)
+      {
+        'title': 'Rider Intelligence Data',
+        'description': 'Export rider performance and location logs',
+        'id': 'riders',
+      },
     {
       'title': 'Business Analytics',
       'description': 'Export global platform metrics and growth stats',

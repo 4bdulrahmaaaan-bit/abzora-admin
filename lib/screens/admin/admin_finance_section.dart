@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:convert';
 
+import '../../services/app_config.dart';
 import '../../providers/auth_provider.dart';
 import '../../../theme.dart';
 import '../../../widgets/state_views.dart';
@@ -45,7 +46,10 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(
+      length: AppConfig.enableLocalRiderDelivery ? 5 : 4,
+      vsync: this,
+    );
     _tabController.addListener(_handleTabChange);
     _fetchDashboard();
     _fetchSettlements();
@@ -55,15 +59,16 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection>
 
   void _handleTabChange() {
     if (_tabController.indexIsChanging) {
-      if (_tabController.index == 1) {
+      final index = _tabController.index;
+      if (index == 1) {
         setState(() => _settlementTypeFilter = 'Vendor');
         _fetchSettlements();
-      } else if (_tabController.index == 2) {
+      } else if (AppConfig.enableLocalRiderDelivery && index == 2) {
         setState(() => _settlementTypeFilter = 'Rider');
         _fetchSettlements();
-      } else if (_tabController.index == 3) {
+      } else if ((AppConfig.enableLocalRiderDelivery && index == 3) || (!AppConfig.enableLocalRiderDelivery && index == 2)) {
         _fetchRefunds();
-      } else if (_tabController.index == 4) {
+      } else if ((AppConfig.enableLocalRiderDelivery && index == 4) || (!AppConfig.enableLocalRiderDelivery && index == 3)) {
         _fetchReports();
       }
     }
@@ -232,12 +237,13 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection>
           labelColor: Theme.of(context).colorScheme.primary,
           unselectedLabelColor: Colors.grey,
           isScrollable: true,
-          tabs: const [
-            Tab(text: 'Overview'),
-            Tab(text: 'Vendor Settlements'),
-            Tab(text: 'Rider Settlements'),
-            Tab(text: 'Refund Ledger'),
-            Tab(text: 'Reports & Exports'),
+          tabs: [
+            const Tab(text: 'Overview'),
+            const Tab(text: 'Vendor Settlements'),
+            if (AppConfig.enableLocalRiderDelivery)
+              const Tab(text: 'Rider Settlements'),
+            const Tab(text: 'Refund Ledger'),
+            const Tab(text: 'Reports & Exports'),
           ],
         ),
         const SizedBox(height: 24),
@@ -247,7 +253,8 @@ class _AdminFinanceSectionState extends State<AdminFinanceSection>
             children: [
               _buildOverviewTab(),
               _buildSettlementsTab('Vendor'),
-              _buildSettlementsTab('Rider'),
+              if (AppConfig.enableLocalRiderDelivery)
+                _buildSettlementsTab('Rider'),
               _buildRefundsTab(),
               _buildReportsTab(),
             ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../services/app_config.dart';
 import '../../../models/models.dart';
 import '../../../theme.dart';
 import '../../../widgets/state_views.dart';
@@ -268,7 +269,8 @@ class _AdminDisputesSectionState extends State<AdminDisputesSection> {
                                 DataColumn(label: Text('Status')),
                                 DataColumn(label: Text('Customer')),
                                 DataColumn(label: Text('Vendor')),
-                                DataColumn(label: Text('Rider')),
+                                if (AppConfig.enableLocalRiderDelivery)
+                                  DataColumn(label: Text('Rider')),
                                 DataColumn(label: Text('Created')),
                               ],
                               rows: _disputes.map((dispute) {
@@ -317,13 +319,14 @@ class _AdminDisputesSectionState extends State<AdminDisputesSection> {
                                             : dispute.storeId,
                                       ),
                                     ),
-                                    DataCell(
-                                      Text(
-                                        dispute.riderId.isEmpty
-                                            ? '-'
-                                            : dispute.riderId,
+                                    if (AppConfig.enableLocalRiderDelivery)
+                                      DataCell(
+                                        Text(
+                                          dispute.riderId.isEmpty
+                                              ? '-'
+                                              : dispute.riderId,
+                                        ),
                                       ),
-                                    ),
                                     DataCell(
                                       Text(
                                         dispute.createdAt.toString().split(
@@ -495,7 +498,8 @@ class _DisputeDetailsDialogState extends State<_DisputeDetailsDialog> {
                     ),
                     Text('Customer: ${_dispute.userId}'),
                     Text('Vendor: ${_dispute.storeId}'),
-                    Text('Rider: ${_dispute.riderId}'),
+                    if (AppConfig.enableLocalRiderDelivery)
+                      Text('Rider: ${_dispute.riderId}'),
                     Text('Order: ${_dispute.orderId}'),
                     const Divider(),
                     const Text(
