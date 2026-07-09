@@ -2018,7 +2018,7 @@ class DatabaseService {
           debugPrint(
             'Backend realtime products empty, attempting local fallback stream.',
           );
-          final localProducts = (await _productService.fetchAll())
+          final localProducts = (await _getAllProductsWithBackend())
               .map(_decorateProduct)
               .toList();
           return localProducts;
@@ -2795,10 +2795,39 @@ class DatabaseService {
           .map(_decorateProduct)
           .toList();
     }
-    final products = (await _productService.fetchAll())
+    final products = (await _getAllProductsWithBackend())
         .map(_decorateProduct)
         .toList();
     return products.where((product) => product.storeId == storeId).toList();
+  }
+
+  Future<List<Product>> _getAllProductsWithBackend() async {
+    if (_backendCommerce.isConfigured) {
+      try {
+        final products = await _backendCommerce.getProducts(queryParameters: {'limit': '1000'});
+        return products;
+      } catch (e) {
+        debugPrint('Backend fetch failed for all products: $e');
+      }
+    }
+    return await _productService.fetchAll();
+  }
+
+  Future<List<Product>> getTrendingProducts() async {
+    if (_backendCommerce.isConfigured) {
+      try {
+        final products = await _backendCommerce.getProducts(
+          queryParameters: {'limit': '10', 'sort': 'trending'},
+        );
+        return products.map(_decorateProduct).toList();
+      } catch (e) {
+        debugPrint('Backend fetch failed for trending products: $e');
+      }
+    }
+    final products = (await _getAllProductsWithBackend())
+        .map(_decorateProduct)
+        .toList();
+    return products.take(10).toList();
   }
 
   Future<Product?> getProductById(
@@ -2826,7 +2855,7 @@ class DatabaseService {
         debugPrint('Backend product fetch failed for $normalizedId: $error');
       }
     }
-    final products = (await _productService.fetchAll()).map(_decorateProduct);
+    final products = (await _getAllProductsWithBackend()).map(_decorateProduct);
     for (final product in products) {
       if (product.id == normalizedId) {
         return product;
@@ -2836,7 +2865,7 @@ class DatabaseService {
   }
 
   Future<List<Product>> getTrendingProducts() async {
-    final products = (await _productService.fetchAll())
+    final products = (await _getAllProductsWithBackend())
         .map(_decorateProduct)
         .toList();
     return products.take(10).toList();
@@ -2847,7 +2876,7 @@ class DatabaseService {
     String? category,
   }) async {
     final products =
-        (await _productService.fetchAll())
+        (await _getAllProductsWithBackend())
             .map(_decorateProduct)
             .where((product) => product.isActive && product.stock > 0)
             .where(
@@ -3217,7 +3246,7 @@ class DatabaseService {
   }
 
   Future<void> refreshDynamicPricingForCatalog() async {
-    final products = (await _productService.fetchAll())
+    final products = (await _getAllProductsWithBackend())
         .map(_decorateProduct)
         .toList();
     final orders = await getAllOrders();
@@ -3295,7 +3324,7 @@ class DatabaseService {
   }
 
   Future<List<Product>> searchProducts(SearchFilter filter) async {
-    final products = (await _productService.fetchAll())
+    final products = (await _getAllProductsWithBackend())
         .map(_decorateProduct)
         .where(
           (product) =>
@@ -3434,7 +3463,7 @@ class DatabaseService {
     if (curatedIds.isNotEmpty) {
       final catalog = _backendCommerce.isConfigured
           ? await _backendCommerce.getProducts()
-          : (await _productService.fetchAll()).map(_decorateProduct).toList();
+          : (await _getAllProductsWithBackend()).map(_decorateProduct).toList();
       final byId = {for (final item in catalog) item.id: item};
       final curated = <Product>[];
       for (final id in curatedIds) {
@@ -3474,7 +3503,7 @@ class DatabaseService {
     }
     final products = _backendCommerce.isConfigured
         ? await _backendCommerce.getProducts()
-        : (await _productService.fetchAll()).map(_decorateProduct).toList();
+        : (await _getAllProductsWithBackend()).map(_decorateProduct).toList();
     return products
         .where(
           (candidate) =>
@@ -3513,7 +3542,7 @@ class DatabaseService {
 
     final catalog = _backendCommerce.isConfigured
         ? await _backendCommerce.getProducts()
-        : (await _productService.fetchAll()).map(_decorateProduct).toList();
+        : (await _getAllProductsWithBackend()).map(_decorateProduct).toList();
     return _fallbackOutfitsFromCatalog(
       catalog,
       user: user,
@@ -4320,7 +4349,7 @@ class DatabaseService {
     }
     _requireStoreAccess(actor, updatedProduct.storeId);
     if (actor != null && !isSuperAdmin(actor)) {
-      final existing = (await _productService.fetchAll())
+      final existing = (await _getAllProductsWithBackend())
           .map(_decorateProduct)
           .cast<Product?>()
           .firstWhere(
@@ -4413,7 +4442,7 @@ class DatabaseService {
       await _backendCommerce.deleteProduct(productId);
       return;
     }
-    final allProducts = (await _productService.fetchAll())
+    final allProducts = (await _getAllProductsWithBackend())
         .map(_decorateProduct)
         .toList();
     final product = allProducts.cast<Product?>().firstWhere(
@@ -4445,7 +4474,7 @@ class DatabaseService {
       await _backendCommerce.generateProductArAsset(productId);
       return;
     }
-    final allProducts = (await _productService.fetchAll())
+    final allProducts = (await _getAllProductsWithBackend())
         .map(_decorateProduct)
         .toList();
     final product = allProducts.cast<Product?>().firstWhere(
@@ -4697,7 +4726,7 @@ class DatabaseService {
     }
     final liveProducts = <String, Product>{};
     final liveStores = <String, Store>{};
-    final allProducts = await _productService.fetchAll();
+    final allProducts = await _getAllProductsWithBackend();
     for (final product in allProducts) {
       liveProducts[product.id] = product;
     }
@@ -6261,7 +6290,7 @@ class DatabaseService {
       }
       return getProductsByStore(actor.storeId!, includeInactive: true);
     }
-    return (await _productService.fetchAll()).map(_decorateProduct).toList();
+    return (await _getAllProductsWithBackend()).map(_decorateProduct).toList();
   }
 
   Future<List<OrderModel>> getAllOrders({AppUser? actor}) async {
