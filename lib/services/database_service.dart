@@ -2864,12 +2864,6 @@ class DatabaseService {
     return null;
   }
 
-  Future<List<Product>> getTrendingProducts() async {
-    final products = (await _getAllProductsWithBackend())
-        .map(_decorateProduct)
-        .toList();
-    return products.take(10).toList();
-  }
 
   Future<List<Product>> getStylistCatalog({
     int limit = 60,
