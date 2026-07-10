@@ -585,7 +585,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       return 'Set delivery location';
     }
     if (state == _DeliveryAvailabilityState.loading) {
-      return 'Checking delivery...';
+      return '';
     }
     if (state == _DeliveryAvailabilityState.error) {
       return 'Tap Retry';
@@ -627,11 +627,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     return 'Soon';
   }
 
-  String _currency(double value) => NumberFormat.currency(
-        locale: 'en_IN',
-        symbol: '\u20B9',
-        decimalDigits: 0,
-      ).format(value);
+
 
   String _serviceabilityHeadline() {
     final state = _deliveryAvailabilityState;
@@ -639,7 +635,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       return 'Set delivery location';
     }
     if (state == _DeliveryAvailabilityState.loading) {
-      return 'Checking delivery...';
+      return '';
     }
     if (state == _DeliveryAvailabilityState.error) {
       return 'Unable to check delivery';
@@ -663,7 +659,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       return 'Choose a delivery location to check availability.';
     }
     if (state == _DeliveryAvailabilityState.loading) {
-      return 'Checking delivery...';
+      return '';
     }
     if (state == _DeliveryAvailabilityState.error) {
       return 'Unable to check delivery. Tap Retry.';
@@ -1656,9 +1652,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   VoidCallback? _bottomLeftCtaAction(Product product) {
-    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.loading) {
-      return null;
-    }
     if (_deliveryAvailabilityState == _DeliveryAvailabilityState.error) {
       return () {
         HapticFeedback.lightImpact();
@@ -1684,9 +1677,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   VoidCallback? _bottomRightCtaAction(Product product) {
-    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.loading) {
-      return null;
-    }
     if (_deliveryAvailabilityState == _DeliveryAvailabilityState.error) {
       return () {
         HapticFeedback.lightImpact();

@@ -2802,15 +2802,22 @@ class DatabaseService {
   }
 
   Future<List<Product>> _getAllProductsWithBackend() async {
+    final List<Product> allProducts = [];
     if (_backendCommerce.isConfigured) {
       try {
         final products = await _backendCommerce.getProducts(queryParameters: {'limit': '1000'});
-        return products;
+        allProducts.addAll(products);
       } catch (e) {
         debugPrint('Backend fetch failed for all products: $e');
       }
     }
-    return await _productService.fetchAll();
+    try {
+      final firebaseProducts = await _productService.fetchAll();
+      allProducts.addAll(firebaseProducts);
+    } catch (e) {
+      debugPrint('Firebase fetch failed for all products: $e');
+    }
+    return allProducts;
   }
 
   Future<List<Product>> getTrendingProducts() async {
@@ -2855,11 +2862,15 @@ class DatabaseService {
         debugPrint('Backend product fetch failed for $normalizedId: $error');
       }
     }
-    final products = (await _getAllProductsWithBackend()).map(_decorateProduct);
-    for (final product in products) {
-      if (product.id == normalizedId) {
-        return product;
+    try {
+      final products = (await _getAllProductsWithBackend()).map(_decorateProduct);
+      for (final product in products) {
+        if (product.id == normalizedId) {
+          return product;
+        }
       }
+    } catch (error) {
+      debugPrint('Fallback fetch failed for $normalizedId: $error');
     }
     return null;
   }

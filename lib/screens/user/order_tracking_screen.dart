@@ -468,10 +468,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   }
 
   Future<void> _openOrderDetails(OrderModel order, AppUser user) async {
-    if (_isFastDeliveryEligible(order)) {
-      await Navigator.of(context).pushNamed('/fast-tracking', arguments: order);
-      return;
-    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => _OrderDetailsPage(
@@ -490,32 +486,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  bool _isFastDeliveryEligible(OrderModel order) {
-    if (_isAtelierOrder(order)) {
-      return false;
-    }
-    final deliveryPromise = order.deliveryPromise.trim().toLowerCase();
-    if (order.sameDayOrder ||
-        deliveryPromise == 'same_day' ||
-        deliveryPromise == 'one_day' ||
-        deliveryPromise == '1_day' ||
-        deliveryPromise == 'fast_delivery') {
-      return true;
-    }
-    final status =
-        (order.deliveryStatus.isNotEmpty ? order.deliveryStatus : order.status)
-            .trim()
-            .toLowerCase();
-    if (status == 'cancelled') {
-      return false;
-    }
-    final ageHours = DateTime.now().difference(order.timestamp).inHours;
-    if (ageHours > 48) {
-      return false;
-    }
-    return order.orderType != 'custom_tailoring' &&
-        order.fulfillmentType != 'custom_tailoring';
-  }
 }
 
 enum _OrderFilter {

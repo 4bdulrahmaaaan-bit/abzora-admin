@@ -25,6 +25,7 @@ import '../../theme.dart';
 import '../../utils/soft_auth_gate.dart';
 import '../../widgets/global_skeletons.dart';
 import '../../widgets/banner_shimmer.dart';
+import '../../widgets/shimmer_widget.dart';
 import '../../widgets/home_header.dart';
 import '../../widgets/product_card.dart';
 import '../../widgets/product_grid.dart';
@@ -3456,7 +3457,7 @@ class _HomeBannerState extends State<HomeBanner> {
 
     if (slides.isEmpty) {
       return widget.isLoading
-          ? const BannerShimmer(height: 360)
+          ? const BannerShimmer(aspectRatio: 16 / 9)
           : const SizedBox.shrink();
     }
 
@@ -3465,8 +3466,8 @@ class _HomeBannerState extends State<HomeBanner> {
 
     return Column(
       children: [
-        SizedBox(
-          height: 360,
+        AspectRatio(
+          aspectRatio: 16 / 9,
           child: PageView.builder(
             controller: _pageController,
             padEnds: false,
@@ -3497,7 +3498,7 @@ class _HomeBannerState extends State<HomeBanner> {
                           );
                         },
                         placeholder: (context, url) =>
-                            const BannerShimmer(height: 360),
+                            const ShimmerWidget(radius: 0),
                         errorWidget: (context, url, error) => Container(
                           color: const Color(0xFFFAFAF7),
                         ),

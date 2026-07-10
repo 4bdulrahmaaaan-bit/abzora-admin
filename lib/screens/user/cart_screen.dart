@@ -1289,7 +1289,7 @@ class _CartServiceabilityRow extends StatelessWidget {
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const _BadgeChip(
-            label: 'Checking delivery options',
+            label: '',
             icon: Icons.hourglass_bottom_rounded,
           );
         }

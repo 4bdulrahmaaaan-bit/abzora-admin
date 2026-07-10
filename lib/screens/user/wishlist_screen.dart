@@ -151,8 +151,13 @@ class _WishlistScreenState extends State<WishlistScreen> {
     }
     final entries = await Future.wait(
       items.map((item) async {
-        final product = await _database.getProductById(item.productId);
-        return _WishlistEntry(item: item, product: product);
+        try {
+          final product = await _database.getProductById(item.productId);
+          return _WishlistEntry(item: item, product: product);
+        } catch (e) {
+          debugPrint('Failed to hydrate wishlist item ${item.productId}: $e');
+          return _WishlistEntry(item: item, product: null);
+        }
       }),
     );
     return entries;

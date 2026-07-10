@@ -714,7 +714,7 @@ class BannerFormModal extends StatefulWidget {
 }
 
 class _BannerFormModalState extends State<BannerFormModal> {
-  static const double _customerHeroAspectRatio = 390 / 360;
+  static const double _customerHeroAspectRatio = 16 / 9;
 
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
