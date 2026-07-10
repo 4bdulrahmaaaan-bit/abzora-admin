@@ -1,4 +1,4 @@
-﻿part of 'home_screen.dart';
+part of 'home_screen.dart';
 
 Future<void> showLocationBottomSheet(BuildContext context) {
   return showModalBottomSheet<void>(
@@ -55,6 +55,10 @@ class _LocationBottomSheetState extends State<_LocationBottomSheet> {
       });
       return;
     }
+
+    // Run deduplication first (idempotent — safe every open).
+    // Fire-and-forget: don't block the UI on it.
+    _database.deduplicateUserAddresses(user.id).ignore();
 
     try {
       final addresses = await _database.getUserAddresses(user.id);
@@ -525,7 +529,7 @@ class _DeliveryCard extends StatelessWidget {
   }
 }
 
-class _SavedAddressCard extends StatelessWidget {
+class _SavedAddressCard extends StatefulWidget {
   const _SavedAddressCard({
     required this.address,
     required this.isBusy,
@@ -537,14 +541,42 @@ class _SavedAddressCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<_SavedAddressCard> createState() => _SavedAddressCardState();
+}
+
+class _SavedAddressCardState extends State<_SavedAddressCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    final title = _formatTitle(address);
-    final subtitle = _formatSubtitle(address);
+    final address = widget.address;
+
+    // Tag pill — fall back to 'HOME' for legacy entries with empty type.
+    final tagLabel = switch (address.type.trim().toLowerCase()) {
+      'office' => 'OFFICE',
+      'other'  => 'OTHER',
+      _        => 'HOME',
+    };
+
+    // Row 1: Name + pincode (bold) + tag pill.
+    // Row 2: full address text, expandable on tap if truncated.
+    final fullAddress = [
+      address.houseDetails,
+      address.addressLine,
+      address.locality,
+      address.city,
+      address.state,
+      address.pincode,
+    ].where((s) => s.trim().isNotEmpty).join(', ');
+
+    final displayName = address.name.trim().isNotEmpty
+        ? address.name.trim()
+        : 'Saved Address';
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isBusy ? null : onTap,
+        onTap: widget.isBusy ? null : widget.onTap,
         borderRadius: BorderRadius.circular(20),
         child: Ink(
           padding: const EdgeInsets.all(15),
@@ -556,42 +588,123 @@ class _SavedAddressCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AbzioTheme.accentColor.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.home_outlined,
-                  color: AbzioTheme.accentColor,
+              // Left pin icon
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AbzioTheme.accentColor.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.location_on_rounded,
+                    size: 18,
+                    color: AbzioTheme.accentColor,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
+              // Content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF161616),
-                      ),
+                    // Row 1: Name + pincode + tag pill
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: displayName,
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF161616),
+                                    fontSize: 13.5,
+                                  ),
+                                ),
+                                if (address.pincode.trim().isNotEmpty) ...[
+                                  const TextSpan(text: '  '),
+                                  TextSpan(
+                                    text: address.pincode.trim(),
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF161616),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Tag pill
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AbzioTheme.accentColor.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: AbzioTheme.accentColor.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Text(
+                            tagLabel,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: AbzioTheme.accentColor,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: context.abzioSecondaryText,
-                        height: 1.4,
+                    const SizedBox(height: 5),
+                    // Row 2: full address, expandable
+                    if (fullAddress.isNotEmpty)
+                      GestureDetector(
+                        onTap: () => setState(() => _expanded = !_expanded),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              fullAddress,
+                              maxLines: _expanded ? null : 2,
+                              overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: context.abzioSecondaryText,
+                                height: 1.4,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                            if (!_expanded && fullAddress.length > 80)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  'Show more',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AbzioTheme.accentColor.withValues(alpha: 0.85),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
-              if (isBusy) ...[
+              // Busy spinner
+              if (widget.isBusy) ...[
                 const SizedBox(width: 12),
                 const SizedBox(
                   width: 18,
@@ -607,31 +720,6 @@ class _SavedAddressCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatTitle(UserAddress address) {
-    final locality = address.locality.trim().isNotEmpty
-        ? address.locality.trim()
-        : address.city.trim();
-    return locality.isEmpty ? 'Saved address' : locality;
-  }
-
-  String _formatSubtitle(UserAddress address) {
-    final city = address.city.trim();
-    final pincode = address.pincode.trim();
-    if (city.isNotEmpty || pincode.isNotEmpty) {
-      return [
-        if (city.isNotEmpty) city,
-        if (pincode.isNotEmpty) pincode,
-      ].join(' • ');
-    }
-    final addressLine = address.addressLine.trim();
-    if (addressLine.isNotEmpty) {
-      return addressLine;
-    }
-    return address.landmark.trim().isNotEmpty
-        ? address.landmark.trim()
-        : 'Saved address';
   }
 }
 

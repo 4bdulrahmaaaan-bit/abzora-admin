@@ -511,11 +511,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           icon: Icons.local_shipping_outlined,
                           label: 'Track orders easily',
                         ),
-                        const SizedBox(height: 10),
-                        const _BenefitRow(
-                          icon: Icons.refresh_rounded,
-                          label: 'Resume AR Try-On sessions',
-                        ),
                         const SizedBox(height: 26),
                       ],
                       Text(
@@ -663,59 +658,59 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      Text.rich(
+                        TextSpan(
+                          text: 'By continuing, you agree to our ',
+                          children: [
+                            TextSpan(
+                              text: 'Terms & Conditions',
+                              style: const TextStyle(
+                                color: Color(0xFF8A6A16),
+                                fontWeight: FontWeight.w800,
+                                decoration: TextDecoration.underline,
+                              ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const LegalConsentScreen(
+                                        audience: LegalAudience.customer,
+                                      ),
+                                    ),
+                                  );
+                                },
+                            ),
+                            const TextSpan(text: ' and '),
+                            TextSpan(
+                              text: 'Privacy Policy',
+                              style: const TextStyle(
+                                color: Color(0xFF8A6A16),
+                                fontWeight: FontWeight.w800,
+                                decoration: TextDecoration.underline,
+                              ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const LegalPolicyHubScreen(
+                                        audience: LegalAudience.customer,
+                                        title: 'Privacy Policy',
+                                      ),
+                                    ),
+                                  );
+                                },
+                            ),
+                          ],
+                        ),
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: 12.5,
+                          color: const Color(0xFF716B5E),
+                          fontWeight: FontWeight.w500,
+                          height: 1.35,
+                        ),
+                      ),
                     ],
-                    Text.rich(
-                      TextSpan(
-                        text: 'By continuing, you agree to our ',
-                        children: [
-                          TextSpan(
-                            text: 'Terms & Conditions',
-                            style: const TextStyle(
-                              color: Color(0xFF8A6A16),
-                              fontWeight: FontWeight.w800,
-                              decoration: TextDecoration.underline,
-                            ),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const LegalConsentScreen(
-                                      audience: LegalAudience.customer,
-                                    ),
-                                  ),
-                                );
-                              },
-                          ),
-                          const TextSpan(text: ' and '),
-                          TextSpan(
-                            text: 'Privacy Policy',
-                            style: const TextStyle(
-                              color: Color(0xFF8A6A16),
-                              fontWeight: FontWeight.w800,
-                              decoration: TextDecoration.underline,
-                            ),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const LegalPolicyHubScreen(
-                                      audience: LegalAudience.customer,
-                                      title: 'Privacy Policy',
-                                    ),
-                                  ),
-                                );
-                              },
-                          ),
-                        ],
-                      ),
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        fontSize: 12.5,
-                        color: const Color(0xFF716B5E),
-                        fontWeight: FontWeight.w500,
-                        height: 1.35,
-                      ),
-                    ),
                   ],
                 ),
               ),

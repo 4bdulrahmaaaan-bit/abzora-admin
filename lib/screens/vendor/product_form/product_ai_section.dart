@@ -76,7 +76,7 @@ class _ProductAiSectionState extends State<ProductAiSection> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'These fields are for technical integration with Abianzo AR Try-On engine. Leave blank if you are not uploading 3D assets.',
+                      'These fields are for technical integration with Abianzo 3D engine. Leave blank if you are not uploading 3D assets.',
                       style: GoogleFonts.inter(
                         fontSize: 13,
                         color: const Color(0xFF92400E),

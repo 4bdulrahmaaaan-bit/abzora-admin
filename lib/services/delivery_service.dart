@@ -15,6 +15,31 @@ class DeliveryService {
     return _resolveServiceability(product: product, address: address);
   }
 
+  static String getMaxDeliveryEstimate(List<ProductServiceability> serviceabilities) {
+    if (serviceabilities.isEmpty) return '';
+    if (serviceabilities.any((s) => !s.isDeliverable)) return 'Not Deliverable';
+
+    DateTime maxDate = DateTime.now();
+    String? maxDateLabel;
+
+    for (final serviceability in serviceabilities) {
+      if (serviceability.estimatedDeliveryDate.isEmpty) continue;
+      final parsed = DateTime.tryParse(serviceability.estimatedDeliveryDate);
+      if (parsed != null && parsed.isAfter(maxDate)) {
+        maxDate = parsed;
+        maxDateLabel = serviceability.estimatedDeliveryDate;
+      }
+    }
+
+    if (maxDateLabel != null) {
+      return maxDateLabel;
+    }
+    
+    // If we only have relative strings like '2-4 days', just use a fallback or the first non-empty.
+    final firstValid = serviceabilities.firstWhere((s) => s.estimatedDeliveryDate.isNotEmpty, orElse: () => serviceabilities.first);
+    return firstValid.estimatedDeliveryDate;
+  }
+
   Future<ProductServiceability> _resolveServiceability({
     required Product product,
     required UserAddress address,
@@ -91,13 +116,9 @@ class DeliveryService {
       shippingCharge: supportsCourierDelivery ? 40 : 0,
       deliveryPartner: supportsTryAtHome || supportsInstantDelivery
           ? 'Local Rider'
-          : supportsCourierDelivery
-          ? 'Shiprocket'
           : '',
       deliveryProvider: supportsTryAtHome || supportsInstantDelivery
           ? 'Local Rider'
-          : supportsCourierDelivery
-          ? 'Shiprocket'
           : '',
       deliveryMode: fallbackMode,
       serviceZoneId: '',

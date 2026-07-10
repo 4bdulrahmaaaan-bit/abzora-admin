@@ -18,9 +18,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final ImagePicker _picker = ImagePicker();
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
-  late final TextEditingController _addressController;
   final FocusNode _nameFocusNode = FocusNode();
-  final FocusNode _addressFocusNode = FocusNode();
   String? _nameError;
 
   @override
@@ -29,23 +27,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final user = context.read<AuthProvider>().user;
     _nameController = TextEditingController(text: user?.name ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
-    _addressController = TextEditingController(text: user?.address ?? '');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _addressController.dispose();
     _nameFocusNode.dispose();
-    _addressFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final auth = context.read<AuthProvider>();
     final trimmedName = _nameController.text.trim();
-    final trimmedAddress = _addressController.text.trim();
     if (trimmedName.isEmpty) {
       setState(() {
         _nameError = 'Name cannot be empty';
@@ -56,7 +50,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _nameError = null;
     });
 
-    await auth.saveProfile(name: trimmedName, address: trimmedAddress);
+    await auth.saveProfile(name: trimmedName, address: auth.user?.address ?? '');
 
     if (!mounted) {
       return;
@@ -124,7 +118,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
     final profileImageUrl = user?.profileImageUrl?.trim() ?? '';
-    final hasLocation = _addressController.text.trim().isNotEmpty;
+    final hasLocation = user?.address?.trim().isNotEmpty ?? false;
 
     return AbzioThemeScope.light(
       child: Scaffold(
@@ -150,201 +144,162 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    height: 150,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(32),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFFFFF8E5),
-                          AbzioTheme.accentColor.withValues(alpha: 0.18),
-                          const Color(0xFFFFFCF6),
-                        ],
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          top: -18,
-                          right: -12,
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AbzioTheme.accentColor.withValues(
-                                alpha: 0.08,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: -28,
-                          left: -14,
-                          child: Container(
-                            width: 140,
-                            height: 140,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withValues(alpha: 0.42),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(28),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFFFFFEFB),
-                          Color(0xFFFFFBF1),
-                          Color(0xFFFFF7EA),
-                        ],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 24,
-                          offset: const Offset(0, 14),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0.92, end: 1),
-                          duration: const Duration(milliseconds: 420),
-                          curve: Curves.easeOutBack,
-                          builder: (context, value, child) =>
-                              Transform.scale(scale: value, child: child),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                width: 112,
-                                height: 112,
-                                padding: const EdgeInsets.all(3),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AbzioTheme.accentColor.withValues(
-                                        alpha: 0.28,
-                                      ),
-                                      AbzioTheme.accentColor.withValues(
-                                        alpha: 0.08,
-                                      ),
-                                    ],
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AbzioTheme.accentColor.withValues(
-                                        alpha: 0.16,
-                                      ),
-                                      blurRadius: 24,
-                                      offset: const Offset(0, 10),
-                                    ),
-                                  ],
-                                ),
-                                child: CircleAvatar(
-                                  radius: 52,
-                                  backgroundColor: Colors.white,
-                                  backgroundImage: profileImageUrl.isEmpty
-                                      ? null
-                                      : NetworkImage(profileImageUrl),
-                                  child: profileImageUrl.isEmpty
-                                      ? const BrandLogo(
-                                          size: 92,
-                                          radius: 52,
-                                          padding: EdgeInsets.all(8),
-                                        )
-                                      : null,
-                                ),
-                              ),
-                              Positioned(
-                                right: 4,
-                                bottom: 4,
-                                child: TapScale(
-                                  onTap: auth.isUpdatingProfile
-                                      ? null
-                                      : _openImageActions,
-                                  child: Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: AbzioTheme.accentColor,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AbzioTheme.accentColor
-                                              .withValues(alpha: 0.28),
-                                          blurRadius: 16,
-                                          offset: const Offset(0, 6),
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Icon(
-                                      Icons.camera_alt_outlined,
-                                      size: 18,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.topCenter,
+                    children: [
+                      Container(
+                        height: 160,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(32),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              const Color(0xFFFFF8E5),
+                              AbzioTheme.accentColor.withValues(alpha: 0.18),
+                              const Color(0xFFFFFCF6),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Your Abianzo profile',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Refine your details for smoother delivery, better recommendations, and a more personal luxury experience.',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: context.abzioSecondaryText,
-                                height: 1.45,
-                              ),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          alignment: WrapAlignment.center,
+                        child: Stack(
                           children: [
-                            _statusChip(
-                              context,
-                              icon: Icons.verified_user_outlined,
-                              label: 'Trusted account',
+                            Positioned(
+                              top: -18,
+                              right: -12,
+                              child: Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AbzioTheme.accentColor.withValues(
+                                    alpha: 0.08,
+                                  ),
+                                ),
+                              ),
                             ),
-                            _statusChip(
-                              context,
-                              icon: hasLocation
-                                  ? Icons.location_on_outlined
-                                  : Icons.location_searching_outlined,
-                              label: hasLocation
-                                  ? 'Location ready'
-                                  : 'Add location',
+                            Positioned(
+                              bottom: -28,
+                              left: -14,
+                              child: Container(
+                                width: 140,
+                                height: 140,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withValues(alpha: 0.42),
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 105),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 110,
+                              height: 110,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                border: Border.all(color: Colors.white, width: 6),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.08),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 55,
+                                    backgroundColor: const Color(0xFFF9F9F9),
+                                    backgroundImage: profileImageUrl.isEmpty
+                                        ? null
+                                        : NetworkImage(profileImageUrl),
+                                    child: profileImageUrl.isEmpty
+                                        ? const BrandLogo(
+                                            size: 70,
+                                            radius: 55,
+                                            padding: EdgeInsets.all(8),
+                                          )
+                                        : null,
+                                  ),
+                                  Positioned(
+                                    right: -2,
+                                    bottom: -2,
+                                    child: TapScale(
+                                      onTap: auth.isUpdatingProfile
+                                          ? null
+                                          : _openImageActions,
+                                      child: Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: AbzioTheme.accentColor,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.white, width: 2),
+                                        ),
+                                        child: const Icon(
+                                          Icons.camera_alt_outlined,
+                                          size: 16,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Your Abianzo profile',
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Refine your details for smoother delivery, better recommendations, and a more personal luxury experience.',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: context.abzioSecondaryText,
+                                    height: 1.45,
+                                  ),
+                            ),
+                            const SizedBox(height: 20),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              alignment: WrapAlignment.center,
+                              children: [
+                                _statusChip(
+                                  context,
+                                  icon: Icons.verified_user_outlined,
+                                  label: 'Trusted account',
+                                ),
+                                _statusChip(
+                                  context,
+                                  icon: hasLocation
+                                      ? Icons.location_on_outlined
+                                      : Icons.location_searching_outlined,
+                                  label: hasLocation
+                                      ? 'Location ready'
+                                      : 'Add location',
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   _sectionCard(
                     context,
                     title: 'Personal Details',
@@ -353,10 +308,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _fieldLabel('FULL NAME'),
-                        const SizedBox(height: 8),
                         _inputCard(
                           context,
+                          label: 'Name',
                           focusNode: _nameFocusNode,
                           child: TextField(
                             controller: _nameController,
@@ -370,28 +324,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               }
                             },
                             decoration: InputDecoration(
-                              labelText: 'Name',
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
                               hintText: 'Abianzo Member',
                               errorText: _nameError,
                               border: InputBorder.none,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        _fieldLabel('PHONE NUMBER'),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 24),
                         _inputCard(
                           context,
+                          label: 'Phone',
+                          disabled: true,
                           child: TextField(
                             controller: _phoneController,
                             enabled: false,
                             decoration: const InputDecoration(
-                              labelText: 'Phone',
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
                               border: InputBorder.none,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 16),
                         Text(
                           'Phone number is verified through OTP and cannot be edited here.',
                           style: Theme.of(context).textTheme.bodySmall
@@ -400,115 +356,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  _sectionCard(
-                    context,
-                    title: 'Delivery Location',
-                    subtitle:
-                        'Use your live location for faster, more accurate delivery.',
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _fieldLabel('LOCATION'),
-                        const SizedBox(height: 8),
-                        _inputCard(
-                          context,
-                          focusNode: _addressFocusNode,
-                          child: TextField(
-                            controller: _addressController,
-                            focusNode: _addressFocusNode,
-                            textInputAction: TextInputAction.done,
-                            maxLines: 3,
-                            decoration: const InputDecoration(
-                              labelText: 'Location',
-                              hintText: 'Set your delivery location',
-                              prefixIcon: Icon(Icons.location_on_outlined),
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFF8EB),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AbzioTheme.accentColor.withValues(
-                                alpha: 0.18,
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 34,
-                                height: 34,
-                                decoration: BoxDecoration(
-                                  color: AbzioTheme.accentColor.withValues(
-                                    alpha: 0.14,
-                                  ),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.auto_awesome_outlined,
-                                  size: 18,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  hasLocation
-                                      ? 'Current location captured and ready for premium delivery experiences.'
-                                      : 'Use GPS once to auto-fill your address with minimal effort.',
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: context.abzioSecondaryText,
-                                        height: 1.35,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        OutlinedButton.icon(
-                          onPressed: auth.isUpdatingProfile
-                              ? null
-                              : () async {
-                                  await auth.fillAddressFromGps(
-                                    fallbackName:
-                                        _nameController.text.trim().isEmpty
-                                        ? 'Abianzo Member'
-                                        : _nameController.text.trim(),
-                                  );
-                                  if (!mounted) {
-                                    return;
-                                  }
-                                  final refreshed = auth.user;
-                                  _addressController.text =
-                                      refreshed?.address ?? '';
-                                  _nameController.text =
-                                      refreshed?.name ?? _nameController.text;
-                                  setState(() {});
-                                },
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(52),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          icon: const Icon(Icons.my_location_rounded),
-                          label: const Text('Use Current Location'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   TapScale(
                     onTap: auth.isUpdatingProfile ? null : _save,
                     child: ElevatedButton(
@@ -613,10 +461,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required String label,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.86),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: AbzioTheme.accentColor.withValues(alpha: 0.14),
         ),
@@ -639,36 +488,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _fieldLabel(String label) {
-    return Text(
-      label,
-      style: const TextStyle(
-        color: AbzioTheme.accentColor,
-        fontSize: 11,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 1.3,
-      ),
-    );
-  }
-
   Widget _inputCard(
     BuildContext context, {
+    required String label,
     FocusNode? focusNode,
+    bool disabled = false,
     required Widget child,
   }) {
     final focused = focusNode?.hasFocus ?? false;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: disabled ? const Color(0xFFF9F9F9) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: focused ? AbzioTheme.accentColor : context.abzioBorder,
+          color: disabled
+              ? const Color(0xFFE5E5E5)
+              : focused ? AbzioTheme.accentColor : context.abzioBorder,
           width: focused ? 1.4 : 1,
         ),
-        boxShadow: [
+        boxShadow: disabled ? null : [
           BoxShadow(
             color: (focused ? AbzioTheme.accentColor : Colors.black).withValues(
               alpha: focused ? 0.10 : 0.03,
@@ -678,7 +521,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ],
       ),
-      child: child,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: disabled ? const Color(0xFFAAAAAA) : (focused ? AbzioTheme.accentColor : const Color(0xFF888888)),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          child,
+        ],
+      ),
     );
   }
 }

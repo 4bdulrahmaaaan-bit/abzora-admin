@@ -1484,7 +1484,7 @@ class _HomeContentState extends State<HomeContent>
                                         24,
                                       ),
                                       child: ProductShimmer(
-                                        itemCount: 4,
+                                        itemCount: 2,
                                         shrinkWrap: true,
                                         physics: NeverScrollableScrollPhysics(),
                                       ),

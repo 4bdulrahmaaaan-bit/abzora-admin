@@ -28,8 +28,8 @@ import '../../utils/local_file_image.dart';
 import '../../utils/soft_auth_gate.dart';
 import '../../widgets/animated_wishlist_button.dart';
 import '../../widgets/tap_scale.dart';
+import '../../widgets/location_selection_sheet.dart';
 import '../../widgets/state_views.dart';
-import 'address_screen.dart';
 import 'ai_stylist_screen.dart';
 import 'abianzo_ar_screen.dart';
 import 'size_recommendation_screen.dart';
@@ -387,15 +387,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
       return;
     }
 
-    if (_deliveryAvailabilityState != _DeliveryAvailabilityState.loading) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _deliveryAvailabilityState = _DeliveryAvailabilityState.loading;
-        _deliveryAvailabilityError = null;
-      });
-    }
+
 
     UserAddress? resolvedAddress;
     try {
@@ -679,11 +671,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           : 'ETA $etaLabel';
     }
     final deliveryDate = _serviceabilityEtaLabel();
-    return [
-      if (deliveryDate.isNotEmpty) 'Estimated delivery $deliveryDate',
-      if (serviceability.deliveryPartner.trim().isNotEmpty)
-        serviceability.deliveryPartner.trim(),
-    ].join(' • ');
+    if (deliveryDate.isEmpty) return 'Courier Delivery';
+    
+    if (deliveryDate == 'Today' || deliveryDate == 'Tomorrow' || deliveryDate.startsWith('In ')) {
+      return 'Arrives $deliveryDate';
+    }
+    return 'Arrives by $deliveryDate';
   }
 
   Future<void> _refreshServiceability({bool force = false}) async {
@@ -703,6 +696,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final product = _product;
     final cacheKey = _serviceabilityCacheSignature(product, address);
     if (!force && _serviceabilityCacheKey == cacheKey && _serviceability != null) {
+      if (mounted && _deliveryAvailabilityState != _DeliveryAvailabilityState.ready) {
+        setState(() {
+          _deliveryAvailabilityState = _DeliveryAvailabilityState.ready;
+          _deliveryAvailabilityError = null;
+        });
+      }
       return;
     }
     final requestSerial = ++_serviceabilityRequestSerial;
@@ -1195,117 +1194,40 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   Future<void> _openDeliveryAddressSheet() async {
-    final auth = context.read<AuthProvider>();
-    final hasAddress = (auth.user?.address ?? '').trim().isNotEmpty;
-
-    final changed = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return SafeArea(
-          top: false,
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFFFDFBF7),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            padding: EdgeInsets.fromLTRB(
-              20,
-              16,
-              20,
-              MediaQuery.of(sheetContext).viewInsets.bottom + 20,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD9D0C2),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Delivery address',
-                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF111111),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  hasAddress
-                      ? _resolveDeliverySummary()
-                      : 'No delivery address added yet.',
-                  style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF6B655C),
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () async {
-                      Navigator.of(sheetContext).pop();
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AddressScreen(),
-                        ),
-                      );
-                      if (!mounted) {
-                        return;
-                      }
-                      setState(() {});
-                      unawaited(_refreshServiceability(force: true));
-                    },
-                    icon: Icon(
-                      hasAddress
-                          ? Icons.edit_location_alt_outlined
-                          : Icons.add_location_alt_outlined,
-                    ),
-                    label: Text(hasAddress ? 'Change address' : 'Add address'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFC8A96A),
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(sheetContext).pop(false),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      side: const BorderSide(color: Color(0xFFE4DACA)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    final result = await LocationSelectionSheet.show(
+      context,
+      product: widget.product,
     );
+    if (!mounted || result == null) return;
 
-    if (changed == true && mounted) {
-      setState(() {});
+    if (result is UserAddress) {
+      setState(() {
+        _deliveryAddress = result;
+        _deliveryAddressKey = _deliveryAddressSignature(result);
+      });
+    } else if (result is String) {
+      // Pincode only
+      final dummyAddress = UserAddress(
+        id: '',
+        userId: '',
+        name: '',
+        phone: '',
+        addressLine: '',
+        city: '',
+        state: '',
+        pincode: result,
+        houseDetails: '',
+        landmark: '',
+        locality: '',
+        type: 'home',
+        createdAt: '',
+      );
+      setState(() {
+        _deliveryAddress = dummyAddress;
+        _deliveryAddressKey = _deliveryAddressSignature(dummyAddress);
+      });
     }
+    unawaited(_refreshServiceability(force: true));
   }
 
   String _sameDayCity(AuthProvider auth) {
@@ -1619,9 +1541,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
   String _bottomLeftCtaLabel() {
     final state = _deliveryAvailabilityState;
-    if (state == _DeliveryAvailabilityState.loading) {
-      return '';
-    }
     if (state == _DeliveryAvailabilityState.error) {
       return 'Retry';
     }
@@ -1636,9 +1555,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
 
   String _bottomRightCtaLabel() {
     final state = _deliveryAvailabilityState;
-    if (state == _DeliveryAvailabilityState.loading) {
-      return '';
-    }
     if (state == _DeliveryAvailabilityState.error) {
       return 'Change Delivery Address';
     }
@@ -1652,6 +1568,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   VoidCallback? _bottomLeftCtaAction(Product product) {
+    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.loading) {
+      return null;
+    }
     if (_deliveryAvailabilityState == _DeliveryAvailabilityState.error) {
       return () {
         HapticFeedback.lightImpact();
@@ -1677,6 +1596,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   VoidCallback? _bottomRightCtaAction(Product product) {
+    if (_deliveryAvailabilityState == _DeliveryAvailabilityState.loading) {
+      return null;
+    }
     if (_deliveryAvailabilityState == _DeliveryAvailabilityState.error) {
       return () {
         HapticFeedback.lightImpact();
@@ -3443,12 +3365,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          formatter.format(current),
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            color: const Color(0xFF111111),
-            fontWeight: FontWeight.w800,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              formatter.format(current),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: const Color(0xFF111111),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1D8B4D).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFF1D8B4D).withValues(alpha: 0.3)),
+              ),
+              child: const Text(
+                'Free delivery over ₹999',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1D8B4D),
+                ),
+              ),
+            ),
+          ],
         ),
         if (original != null && original > current) ...[
           const SizedBox(height: 4),

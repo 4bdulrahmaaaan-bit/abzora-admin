@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/location_selection_sheet.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/wishlist_provider.dart';
@@ -45,7 +46,7 @@ UserAddress? _cartAddressFromUser(AppUser? user) {
   );
 }
 
-String _cartServiceabilityLabel(ProductServiceability? serviceability) {
+String _cartServiceabilityLabel(CartProvider cart, ProductServiceability? serviceability) {
   if (serviceability == null) {
     return 'Select a delivery address to calculate delivery options.';
   }
@@ -60,15 +61,21 @@ String _cartServiceabilityLabel(ProductServiceability? serviceability) {
     return eta.isEmpty ? 'Local Delivery - Today Delivery' : 'Local Delivery - $eta';
   }
   final eta = serviceability.estimatedDeliveryDate.trim();
-  final provider = serviceability.deliveryProvider.trim();
-  final charge = serviceability.shippingCharge > 0
-      ? 'Shipping ${NumberFormat.currency(locale: 'en_IN', symbol: 'Rs. ', decimalDigits: 0).format(serviceability.shippingCharge)}'
-      : 'Free shipping';
-  final parts = <String>['Courier Delivery'];
-  if (eta.isNotEmpty) parts.add(eta);
-  parts.add(charge);
-  if (provider.isNotEmpty) parts.add(provider);
-  return parts.join(' - ');
+  String displayEta = eta;
+  try {
+    if (eta.contains('-') && eta.length >= 10) {
+      final parsed = DateTime.parse(eta);
+      displayEta = DateFormat('MMM d').format(parsed);
+    }
+  } catch (_) {}
+
+  final freeDeliverySuffix = cart.totalAmount >= 999 ? ' • Free Delivery' : '';
+
+  if (displayEta.isEmpty) return 'Courier Delivery$freeDeliverySuffix';
+  if (displayEta == 'Today' || displayEta == 'Tomorrow' || displayEta.startsWith('In ')) {
+    return 'Arrives $displayEta$freeDeliverySuffix';
+  }
+  return 'Arrives by $displayEta$freeDeliverySuffix';
 }
 
 class CartScreen extends StatefulWidget {
@@ -93,6 +100,7 @@ class _CartScreenState extends State<CartScreen>
   String? _anchorProductId;
   final Set<String> _animatingAddIds = <String>{};
   bool _openingCheckout = false;
+  UserAddress? _guestDeliveryAddress;
 
   @override
   void didChangeDependencies() {
@@ -102,6 +110,32 @@ class _CartScreenState extends State<CartScreen>
 
   @override
   bool get wantKeepAlive => true;
+
+  Future<void> _showAddressSheet() async {
+    final result = await LocationSelectionSheet.show(context);
+    if (!mounted || result == null) return;
+    
+    if (result is UserAddress) {
+      setState(() => _guestDeliveryAddress = result);
+    } else if (result is String) {
+      final dummyAddress = UserAddress(
+        id: '',
+        userId: '',
+        name: '',
+        phone: '',
+        addressLine: '',
+        city: '',
+        state: '',
+        pincode: result,
+        houseDetails: '',
+        landmark: '',
+        locality: '',
+        type: 'home',
+        createdAt: '',
+      );
+      setState(() => _guestDeliveryAddress = dummyAddress);
+    }
+  }
 
   void _ensureRecommendations(CartProvider cart) {
     if (cart.items.isEmpty) {
@@ -211,21 +245,26 @@ class _CartScreenState extends State<CartScreen>
       context,
     ).showSnackBar(SnackBar(content: Text('Size updated to $size.')));
   }
-
-  String _addressLine(AppUser? user) {
-    if (user == null) {
-      return 'Add your delivery address to unlock faster checkout.';
+  String _addressLine(AppUser? user, UserAddress? guestAddress) {
+    if (user != null) {
+      final address = _cartAddressFromUser(user);
+      if (address != null) {
+        final parts = [
+          address.houseDetails,
+          address.addressLine,
+          address.locality,
+          address.city,
+          address.state,
+          address.pincode,
+        ].where((s) => s.trim().isNotEmpty).toList();
+        return parts.join(', ');
+      }
+      return 'No saved address';
+    } else if (guestAddress != null && guestAddress.pincode.isNotEmpty) {
+      return guestAddress.pincode;
     }
-    final parts = <String>[
-      user.address?.trim() ?? '',
-      user.area?.trim() ?? '',
-      user.city?.trim() ?? '',
-    ].where((element) => element.isNotEmpty).toList();
-    return parts.isEmpty
-        ? 'Add your delivery address to continue.'
-        : parts.join(', ');
+    return 'Select a location to see exact delivery date';
   }
-
   double _originalMrp(CartProvider cart) {
     return cart.items.fold<double>(0, (sum, item) {
       final original =
@@ -255,7 +294,7 @@ class _CartScreenState extends State<CartScreen>
     return cart.totalAmount + _platformFee(cart) + _deliveryFee(cart);
   }
 
-  UserAddress? _selectedCartAddress(AppUser? user) => _cartAddressFromUser(user);
+  UserAddress? _selectedCartAddress(AppUser? user) => user != null ? _cartAddressFromUser(user) : _guestDeliveryAddress;
 
   Future<ProductServiceability?> _cartServiceabilitySummary(
     CartProvider cart,
@@ -289,7 +328,10 @@ class _CartScreenState extends State<CartScreen>
     return tryAtHome ?? localDelivery ?? courierDelivery;
   }
 
-  double _cartShippingCharge(ProductServiceability? serviceability) {
+  double _cartShippingCharge(CartProvider cart, ProductServiceability? serviceability) {
+    if (cart.totalAmount >= 999) {
+      return 0;
+    }
     return serviceability?.shippingCharge ?? 0;
   }
 
@@ -418,8 +460,9 @@ class _CartScreenState extends State<CartScreen>
                         builder: (context, snapshot) {
                           return _AddressCard(
                             user: auth.user,
-                            deliveryEstimate: _cartServiceabilityLabel(snapshot.data),
-                            addressLine: _addressLine(auth.user),
+                            deliveryEstimate: _cartServiceabilityLabel(cart, snapshot.data),
+                            addressLine: _addressLine(auth.user, _guestDeliveryAddress),
+                            onChange: _showAddressSheet,
                           );
                         },
                       ),
@@ -518,13 +561,35 @@ class _CartScreenState extends State<CartScreen>
                       FutureBuilder<ProductServiceability?>(
                         future: _cartServiceabilitySummary(cart, auth.user),
                         builder: (context, snapshot) {
-                          return _PriceDetailsCard(
-                            currency: _currency,
-                            totalMrp: _originalMrp(cart),
-                            discount: _totalSavings(cart),
-                            deliveryFee: _cartShippingCharge(snapshot.data),
-                            platformFee: _platformFee(cart),
-                            totalAmount: totalAmount,
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (cart.totalAmount < 999)
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE8F5E9),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'Add ${_currency.format(999 - cart.totalAmount)} more to get free delivery!',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: const Color(0xFF1D8B4D),
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              _PriceDetailsCard(
+                                currency: _currency,
+                                totalMrp: _originalMrp(cart),
+                                discount: _totalSavings(cart),
+                                deliveryFee: _cartShippingCharge(cart, snapshot.data),
+                                platformFee: _platformFee(cart),
+                                totalAmount: totalAmount,
+                              ),
+                            ],
                           );
                         },
                       ),
@@ -769,11 +834,13 @@ class _AddressCard extends StatelessWidget {
     required this.user,
     required this.deliveryEstimate,
     required this.addressLine,
+    required this.onChange,
   });
 
   final AppUser? user;
   final String deliveryEstimate;
   final String addressLine;
+  final VoidCallback onChange;
 
   @override
   Widget build(BuildContext context) {
@@ -827,7 +894,7 @@ class _AddressCard extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/address'),
+                onPressed: onChange,
                 style: TextButton.styleFrom(
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -857,8 +924,8 @@ class _AddressCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Delivery by $deliveryEstimate',
-                    maxLines: 1,
+                    deliveryEstimate,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: const Color(0xFF2D2B26),
@@ -1294,8 +1361,9 @@ class _CartServiceabilityRow extends StatelessWidget {
           );
         }
         final serviceability = snapshot.data!;
+        final cart = Provider.of<CartProvider>(context, listen: false);
         final label = serviceability.isDeliverable
-            ? _cartServiceabilityLabel(serviceability)
+            ? _cartServiceabilityLabel(cart, serviceability)
             : 'Not deliverable to selected address';
         return _BadgeChip(
           label: label,
@@ -1842,14 +1910,14 @@ class _PriceDetailsCard extends StatelessWidget {
             valueColor: const Color(0xFF1D8B4D),
           ),
           const SizedBox(height: 6),
-          _PriceLine(
-            label: 'Delivery Fee',
-            value: deliveryFee == 0 ? 'Free' : currency.format(deliveryFee),
-            valueColor: deliveryFee == 0
-                ? const Color(0xFF1D8B4D)
-                : const Color(0xFF201F1B),
-          ),
-          const SizedBox(height: 6),
+          if (deliveryFee > 0) ...[
+            _PriceLine(
+              label: 'Delivery Fee',
+              value: currency.format(deliveryFee),
+              valueColor: const Color(0xFF201F1B),
+            ),
+            const SizedBox(height: 6),
+          ],
           _PriceLine(
             label: 'Platform Fee',
             value: currency.format(platformFee),
@@ -1858,10 +1926,47 @@ class _PriceDetailsCard extends StatelessWidget {
             padding: EdgeInsets.symmetric(vertical: 10),
             child: Divider(height: 1),
           ),
-          _PriceLine(
-            label: 'Total Amount',
-            value: currency.format(totalAmount),
-            emphasize: true,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total Amount',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF111111),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Row(
+                children: [
+                  if (deliveryFee == 0) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1D8B4D).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFF1D8B4D).withValues(alpha: 0.3)),
+                      ),
+                      child: const Text(
+                        'Free Delivery',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1D8B4D),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    currency.format(totalAmount),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF111111),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -1874,23 +1979,16 @@ class _PriceLine extends StatelessWidget {
     required this.label,
     required this.value,
     this.valueColor,
-    this.emphasize = false,
   });
 
   final String label;
   final String value;
   final Color? valueColor;
-  final bool emphasize;
 
   @override
   Widget build(BuildContext context) {
-    final style = emphasize
-        ? Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: const Color(0xFF201F1B),
-            fontWeight: FontWeight.w800,
-          )
-        : Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: const Color(0xFF4F4B43),
+    final style = Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: valueColor ?? const Color(0xFF6B6960),
             fontWeight: FontWeight.w600,
           );
     return Row(

@@ -42,9 +42,7 @@ import '../../theme.dart';
 import '../../utils/app_error_text.dart';
 
 import '../../widgets/state_views.dart';
-
-import 'address_screen.dart';
-
+import '../../widgets/location_selection_sheet.dart';
 import 'order_success_screen.dart';
 
 
@@ -90,8 +88,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _paymentMethod = 'COD';
 
   UserAddress? _selectedAddress;
-
-  List<UserAddress> _savedAddresses = const [];
 
   SmartCreditDecision? _creditDecision;
 
@@ -221,8 +217,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       setState(() {
 
-        _savedAddresses = allAddresses;
-
         _selectedAddress = _resolveSelectedAddress(allAddresses);
 
         _loadingAddresses = false;
@@ -239,8 +233,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
 
       setState(() {
-
-        _savedAddresses = const [];
 
         _selectedAddress ??= _fallbackAddressFromUser(user);
 
@@ -673,200 +665,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
 
   Future<void> _showAddressSheet() async {
-
-    final selected = await showModalBottomSheet<Object?>(
-
-      context: context,
-
-      isScrollControlled: true,
-
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
-      shape: const RoundedRectangleBorder(
-
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-
-      ),
-
-      builder: (sheetContext) {
-
-        return SafeArea(
-
-          child: Padding(
-
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-
-            child: Column(
-
-              mainAxisSize: MainAxisSize.min,
-
-              crossAxisAlignment: CrossAxisAlignment.start,
-
-              children: [
-
-                Center(
-
-                  child: Container(
-
-                    width: 44,
-
-                    height: 4,
-
-                    decoration: BoxDecoration(
-
-                      color: context.abzioBorder,
-
-                      borderRadius: BorderRadius.circular(999),
-
-                    ),
-
-                  ),
-
-                ),
-
-                const SizedBox(height: 18),
-
-                Text(
-
-                  'Choose delivery address',
-
-                  style: Theme.of(context).textTheme.titleLarge,
-
-                ),
-
-                const SizedBox(height: 6),
-
-                Text(
-
-                  'Select the address for this order or add a new one.',
-
-                  style: Theme.of(context).textTheme.bodyMedium,
-
-                ),
-
-                const SizedBox(height: 18),
-
-                if (_savedAddresses.isEmpty)
-
-                  Container(
-
-                    padding: const EdgeInsets.all(16),
-
-                    decoration: BoxDecoration(
-
-                      color: Theme.of(context).cardColor,
-
-                      borderRadius: BorderRadius.circular(18),
-
-                      border: Border.all(color: context.abzioBorder),
-
-                    ),
-
-                    child: Text(
-
-                      'No saved addresses yet. Add one to continue.',
-
-                      style: Theme.of(context).textTheme.bodyMedium,
-
-                    ),
-
-                  )
-
-                else
-
-                  ..._savedAddresses.map(
-
-                    (address) => Padding(
-
-                      padding: const EdgeInsets.only(bottom: 12),
-
-                      child: _AddressOptionTile(
-
-                        address: address,
-
-                        selected: _selectedAddress?.id == address.id,
-
-                        onTap: () => Navigator.of(sheetContext).pop(address),
-
-                      ),
-
-                    ),
-
-                  ),
-
-                const SizedBox(height: 8),
-
-                SizedBox(
-
-                  width: double.infinity,
-
-                  child: OutlinedButton.icon(
-
-                    onPressed: () => Navigator.of(sheetContext).pop('add'),
-
-                    icon: const Icon(Icons.add_rounded),
-
-                    label: const Text('Add new address'),
-
-                  ),
-
-                ),
-
-              ],
-
-            ),
-
-          ),
-
-        );
-
-      },
-
-    );
-
-
-
-    if (!mounted) {
-
-      return;
-
-    }
-
-
-
-    if (selected is UserAddress) {
-
-      setState(() => _selectedAddress = selected);
+    final result = await LocationSelectionSheet.show(context);
+    if (!mounted || result == null) return;
+
+    if (result is UserAddress) {
+      setState(() => _selectedAddress = result);
       unawaited(_refreshCheckoutServiceability(context.read<CartProvider>(), force: true));
-
-      return;
-
     }
-
-
-
-    if (selected != 'add') {
-
-      return;
-
-    }
-
-
-
-    await Navigator.of(
-
-      context,
-
-    ).push(MaterialPageRoute(builder: (_) => const AddressScreen()));
-
-    if (!mounted) {
-
-      return;
-
-    }
-
-    await _loadAddresses();
-
   }
 
 
@@ -1318,7 +1123,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final payableAmount = _totalAmount(cart, checkoutServiceability);
       final deliveryType = checkoutServiceability.deliveryMode.name.toUpperCase();
       final deliveryProvider = checkoutServiceability.deliveryProvider.trim();
-      final shippingCharge = checkoutServiceability.shippingCharge;
+      final shippingCharge = cart.totalAmount >= 999 ? 0.0 : checkoutServiceability.shippingCharge;
       final estimatedDeliveryDate = checkoutServiceability.estimatedDeliveryDate.trim();
       final estimatedInstantDeliveryTime =
           checkoutServiceability.estimatedInstantDeliveryTime.trim();
@@ -1727,24 +1532,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   String _composeFullAddress(UserAddress address) {
 
-    return [
-
+    final rawParts = [
       if (address.houseDetails.trim().isNotEmpty) address.houseDetails.trim(),
-
       if (address.addressLine.trim().isNotEmpty) address.addressLine.trim(),
-
       if (address.landmark.trim().isNotEmpty) address.landmark.trim(),
-
       if (address.locality.trim().isNotEmpty) address.locality.trim(),
-
       if (address.city.trim().isNotEmpty) address.city.trim(),
-
       if (address.state.trim().isNotEmpty) address.state.trim(),
-
       if (address.pincode.trim().isNotEmpty) address.pincode.trim(),
+    ];
 
-    ].join(', ');
+    final allTokens = rawParts
+        .expand((p) => p.split(','))
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
 
+    return allTokens.toSet().join(', ');
   }
 
 
@@ -1834,10 +1638,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final resolvedServiceability = serviceability ?? _checkoutServiceabilitySnapshot;
 
     final shippingAmount =
-
         resolvedServiceability?.isDeliverable == true
-            ? (resolvedServiceability?.shippingCharge ?? 0)
-            : 0;
+            ? (cart.totalAmount >= 999 ? 0.0 : (resolvedServiceability?.shippingCharge ?? 0).toDouble())
+            : 0.0;
 
     if (decision != null) {
 
@@ -1956,7 +1759,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       locale: 'en_IN',
 
-      symbol: '?',
+      symbol: '\u20B9',
 
       decimalDigits: 0,
 
@@ -2202,7 +2005,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                         tax: _taxAmount(cart),
 
-                        shippingCharge: _checkoutServiceabilitySnapshot?.shippingCharge ?? 0,
+                        shippingCharge: cart.totalAmount >= 999 ? 0.0 : (_checkoutServiceabilitySnapshot?.shippingCharge ?? 0).toDouble(),
 
                         customCharge: cart.customTailoringCharges,
 
@@ -4660,59 +4463,42 @@ class _PremiumCouponExperience extends StatelessWidget {
             const SizedBox(height: 10),
           ],
           _SectionLabelRow(
-            title: 'Abianzo Offers',
+            title: 'Offers & Coupons',
             actionLabel: 'Refresh',
             onAction: onRefreshCoupons,
           ),
           const SizedBox(height: 10),
-          if (platformCoupons.isEmpty)
+          if (platformCoupons.isEmpty && storeCoupons.isEmpty)
             _PremiumEmptyCouponCard(
               loading: loadingCatalog,
               onRefresh: onRefreshCoupons,
             )
           else
             Column(
-              children: platformCoupons
-                  .take(3)
-                  .map(
-                    (coupon) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _PremiumCouponCard(
-                        coupon: coupon,
-                        isApplied: coupon.couponCode.toUpperCase() == appliedCode,
-                        onApply: () => onApplyCode(coupon.couponCode),
+              children: [
+                ...platformCoupons.take(3).map(
+                      (coupon) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _PremiumCouponCard(
+                          coupon: coupon,
+                          isApplied: coupon.couponCode.toUpperCase() == appliedCode,
+                          sourceLabel: 'Abianzo',
+                          onApply: () => onApplyCode(coupon.couponCode),
+                        ),
                       ),
                     ),
-                  )
-                  .toList(),
-            ),
-          const SizedBox(height: 8),
-          _SectionLabelRow(
-            title: 'Store Offers',
-            actionLabel: 'Refresh',
-            onAction: onRefreshCoupons,
-          ),
-          const SizedBox(height: 10),
-          if (storeCoupons.isEmpty)
-            _PremiumEmptyCouponCard(
-              loading: loadingCatalog,
-              onRefresh: onRefreshCoupons,
-            )
-          else
-            Column(
-              children: storeCoupons
-                  .take(3)
-                  .map(
-                    (coupon) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _PremiumCouponCard(
-                        coupon: coupon,
-                        isApplied: coupon.couponCode.toUpperCase() == appliedCode,
-                        onApply: () => onApplyCode(coupon.couponCode),
+                ...storeCoupons.take(3).map(
+                      (coupon) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _PremiumCouponCard(
+                          coupon: coupon,
+                          isApplied: coupon.couponCode.toUpperCase() == appliedCode,
+                          sourceLabel: 'Store',
+                          onApply: () => onApplyCode(coupon.couponCode),
+                        ),
                       ),
                     ),
-                  )
-                  .toList(),
+              ],
             ),
           const SizedBox(height: 4),
           _CouponEntryCard(
@@ -4760,11 +4546,13 @@ class _PremiumCouponCard extends StatelessWidget {
     required this.coupon,
     required this.onApply,
     required this.isApplied,
+    required this.sourceLabel,
   });
 
   final Coupon coupon;
   final VoidCallback onApply;
   final bool isApplied;
+  final String sourceLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -4833,12 +4621,29 @@ class _PremiumCouponCard extends StatelessWidget {
                             ),
                       ),
                     ),
-                    if (isApplied)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1EDE4),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        sourceLabel,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF8A7B61),
+                        ),
+                      ),
+                    ),
+                    if (isApplied) ...[
+                      const SizedBox(width: 6),
                       const Icon(
                         Icons.check_circle_rounded,
                         size: 18,
                         color: Color(0xFF1D8B4D),
                       ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -5682,132 +5487,3 @@ class _LoadingCard extends StatelessWidget {
   }
 
 }
-
-
-
-class _AddressOptionTile extends StatelessWidget {
-
-  const _AddressOptionTile({
-
-    required this.address,
-
-    required this.selected,
-
-    required this.onTap,
-
-  });
-
-
-
-  final UserAddress address;
-
-  final bool selected;
-
-  final VoidCallback onTap;
-
-
-
-  @override
-
-  Widget build(BuildContext context) {
-
-    return InkWell(
-
-      borderRadius: BorderRadius.circular(18),
-
-      onTap: onTap,
-
-      child: Container(
-
-        padding: const EdgeInsets.all(14),
-
-        decoration: BoxDecoration(
-
-          color: Theme.of(context).cardColor,
-
-          borderRadius: BorderRadius.circular(18),
-
-          border: Border.all(
-
-            color: selected ? AbzioTheme.accentColor : context.abzioBorder,
-
-            width: selected ? 1.5 : 1,
-
-          ),
-
-        ),
-
-        child: Row(
-
-          crossAxisAlignment: CrossAxisAlignment.start,
-
-          children: [
-
-            Expanded(
-
-              child: Column(
-
-                crossAxisAlignment: CrossAxisAlignment.start,
-
-                children: [
-
-                  Text(
-
-                    address.name,
-
-                    style: Theme.of(context).textTheme.titleMedium,
-
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  Text(
-
-                    [
-
-                      if (address.locality.trim().isNotEmpty)
-
-                        address.locality.trim(),
-
-                      if (address.city.trim().isNotEmpty) address.city.trim(),
-
-                      if (address.pincode.trim().isNotEmpty)
-
-                        address.pincode.trim(),
-
-                    ].join(', '),
-
-                    style: Theme.of(context).textTheme.bodyMedium,
-
-                  ),
-
-                ],
-
-              ),
-
-            ),
-
-            Icon(
-
-              selected ? Icons.check_circle_rounded : Icons.circle_outlined,
-
-              color: selected
-
-                  ? AbzioTheme.accentColor
-
-                  : context.abzioSecondaryText,
-
-            ),
-
-          ],
-
-        ),
-
-      ),
-
-    );
-
-  }
-
-}
-

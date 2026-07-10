@@ -5,7 +5,7 @@ import 'shimmer_box.dart';
 class ProductShimmer extends StatelessWidget {
   const ProductShimmer({
     super.key,
-    this.itemCount = 4,
+    this.itemCount = 2,
     this.shrinkWrap = false,
     this.physics,
   });
@@ -18,22 +18,18 @@ class ProductShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final isCompact = width <= 380;
-        final aspectRatio = isCompact ? 0.50 : 0.54;
-
         return GridView.builder(
           shrinkWrap: shrinkWrap,
           physics: physics ?? const NeverScrollableScrollPhysics(),
           addAutomaticKeepAlives: false,
           addRepaintBoundaries: true,
           padding: EdgeInsets.zero,
-          itemCount: itemCount,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
+          itemCount: itemCount == 4 ? 2 : itemCount, // Default to 2 if it was the old default
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 1,
             mainAxisSpacing: 20,
             crossAxisSpacing: 14,
-            childAspectRatio: aspectRatio,
+            childAspectRatio: 1.2,
           ),
           itemBuilder: (context, index) {
             return Container(

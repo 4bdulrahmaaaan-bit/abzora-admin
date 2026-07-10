@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +9,7 @@ import '../../services/database_service.dart';
 import '../../services/location_service.dart';
 import '../../utils/app_error_text.dart';
 import '../../utils/phone_number_utils.dart';
+import '../../utils/soft_auth_gate.dart';
 import '../../widgets/abzio_motion.dart';
 import '../../theme.dart';
 import '../../widgets/address_form_widget.dart';
@@ -58,6 +59,7 @@ class _AddressScreenState extends State<AddressScreen> {
   double? _longitude;
   Timer? _pincodeDebounce;
   bool _prefilledFromProfile = false;
+  bool? _isDeliverable;
 
   @override
   void initState() {
@@ -208,22 +210,31 @@ class _AddressScreenState extends State<AddressScreen> {
   void _lookupPincode(String pincode) {
     final trimmed = pincode.trim();
     if (!RegExp(r'^\d{6}$').hasMatch(trimmed)) {
+      if (_isDeliverable != null) {
+        setState(() => _isDeliverable = null);
+      }
       return;
     }
 
     _pincodeDebounce?.cancel();
     _pincodeDebounce = Timer(const Duration(milliseconds: 280), () async {
       if (!mounted) return;
-      setState(() => _isPincodeLookupLoading = true);
+      setState(() {
+        _isPincodeLookupLoading = true;
+        _isDeliverable = null;
+      });
       try {
         final lookup = await _locationService.lookupByPincode(trimmed);
         if (!mounted) return;
         if (lookup != null) {
           _cityController.text = lookup.city.trim();
           _stateController.text = lookup.state.trim();
+          _isDeliverable = true;
+        } else {
+          _isDeliverable = false;
         }
       } catch (_) {
-        // Keep the user flow intact if lookup services are unavailable.
+        _isDeliverable = false;
       } finally {
         if (mounted) {
           setState(() => _isPincodeLookupLoading = false);
@@ -242,18 +253,29 @@ class _AddressScreenState extends State<AddressScreen> {
 
   Future<void> _saveAddress() async {
     if (_isSaving) return;
-    final valid = _formKey.currentState?.validate() ?? false;
-    if (!valid) return;
+    // Synchronous lock to prevent double-taps bypassing setState delay
+    _isSaving = true;
 
-    final user = context.read<AuthProvider>().user;
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to save your address.')),
-      );
+    final valid = _formKey.currentState?.validate() ?? false;
+    if (!valid) {
+      _isSaving = false;
       return;
     }
 
-    setState(() => _isSaving = true);
+    final user = context.read<AuthProvider>().user;
+    if (user == null) {
+      _isSaving = false;
+      final allowed = await SoftAuthGate.ensureAuthenticated(
+        context,
+        intentLabel: 'Add Address',
+      );
+      if (allowed && mounted) {
+        // Form will rebuild to show full form.
+      }
+      return;
+    }
+
+    setState(() {});
     try {
       final address = UserAddress(
         id: '',
@@ -387,7 +409,7 @@ class _AddressScreenState extends State<AddressScreen> {
                           height: 22,
                           child: CircularProgressIndicator(strokeWidth: 2.4),
                         )
-                      : const Text('Save Address'),
+                      : Text(user == null ? 'Login to Continue' : 'Save Address'),
                 ),
               ),
             ),
@@ -412,26 +434,29 @@ class _AddressScreenState extends State<AddressScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  user == null
-                      ? 'Sign in to personalize delivery and tailoring across devices.'
-                      : 'Used for delivery and personalized tailoring.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: context.abzioSecondaryText,
-                    height: 1.45,
+                if (user != null) ...[
+                  Text(
+                    'Used for delivery and personalized tailoring.',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: context.abzioSecondaryText,
+                      height: 1.45,
+                    ),
                   ),
-                ),
-                const SizedBox(height: AbzioTheme.sectionGap),
+                  const SizedBox(height: AbzioTheme.sectionGap),
+                ],
                 _LocationCard(
                   isLoading: _isGpsLoading || _isAutoFilling,
                   onTap: _useCurrentLocation,
                 ),
                 const SizedBox(height: AbzioTheme.sectionGap),
-                _ServiceAreaCard(
-                  cityStateLabel: areaLabel,
-                  isLoading: _isPincodeLookupLoading,
-                ),
-                const SizedBox(height: AbzioTheme.sectionGap),
+                if (_pincodeController.text.length == 6 || _isPincodeLookupLoading) ...[
+                  _ServiceAreaCard(
+                    cityStateLabel: areaLabel,
+                    isLoading: _isPincodeLookupLoading,
+                    isDeliverable: _isDeliverable,
+                  ),
+                  const SizedBox(height: AbzioTheme.sectionGap),
+                ],
                 AddressFormWidget(
                   formKey: _formKey,
                   nameController: _nameController,
@@ -453,6 +478,7 @@ class _AddressScreenState extends State<AddressScreen> {
                   isPincodeLookupLoading: _isPincodeLookupLoading,
                   nameAutoFilled: _nameAutoFilled,
                   addressAutoFilled: _addressAutoFilled,
+                  showFullForm: user != null,
                   onToggleExpanded: () =>
                       setState(() => _isExpanded = !_isExpanded),
                   onAddressTypeChanged: (value) =>
@@ -581,20 +607,30 @@ class _ServiceAreaCard extends StatelessWidget {
   const _ServiceAreaCard({
     required this.cityStateLabel,
     required this.isLoading,
+    required this.isDeliverable,
   });
 
   final String cityStateLabel;
   final bool isLoading;
+  final bool? isDeliverable;
 
   @override
   Widget build(BuildContext context) {
+    final deliverable = isDeliverable ?? true;
+    final bgColor = deliverable ? const Color(0xFFEAF5E9) : const Color(0xFFFFF4F2);
+    final borderColor = deliverable ? const Color(0xFFBFE0C3) : const Color(0xFFFFD9D2);
+    final iconColor = deliverable ? const Color(0xFF2F7A3D) : const Color(0xFFD93A30);
+    final iconBgColor = deliverable ? const Color(0xFF2F7A3D).withValues(alpha: 0.12) : const Color(0xFFD93A30).withValues(alpha: 0.12);
+    final titleColor = deliverable ? const Color(0xFF2F7A3D) : const Color(0xFFD93A30);
+    final subtitleColor = deliverable ? const Color(0xFF315438) : const Color(0xFF5C2B29);
+
     return Container(
       height: 88,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF5E9),
+        color: bgColor,
         borderRadius: BorderRadius.circular(AbzioTheme.cardRadius),
-        border: Border.all(color: const Color(0xFFBFE0C3)),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         children: [
@@ -602,10 +638,10 @@ class _ServiceAreaCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFF2F7A3D).withValues(alpha: 0.12),
+              color: iconBgColor,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.verified_rounded, color: Color(0xFF2F7A3D)),
+            child: Icon(deliverable ? Icons.verified_rounded : Icons.error_outline_rounded, color: iconColor),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -614,44 +650,48 @@ class _ServiceAreaCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Delivery Available',
+                  deliverable ? 'Delivery Available' : 'Not available in your area',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: const Color(0xFF2F7A3D),
+                    color: titleColor,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  cityStateLabel,
+                  deliverable ? cityStateLabel : 'Try a different pincode',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF315438),
+                    color: subtitleColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                isLoading ? 'Checking...' : 'Estimated delivery:',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: const Color(0xFF52715A)),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '2-4 business days',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF315438),
-                  fontWeight: FontWeight.w800,
+          if (deliverable) ...[
+            const SizedBox(width: 12),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  isLoading ? 'Checking...' : 'Estimated delivery:',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: subtitleColor.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(height: 2),
+                Text(
+                  isLoading ? '--' : '2-4 days',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: titleColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

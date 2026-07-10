@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/models.dart';
-import '../../models/mediapipe_try_on_payload.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/location_provider.dart';
@@ -20,8 +19,8 @@ import '../../utils/soft_auth_gate.dart';
 import '../../widgets/global_skeletons.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/tap_scale.dart';
+import '../../widgets/delivery_location_bar.dart';
 import 'package:geolocator/geolocator.dart';
-import 'abianzo_ar_screen.dart';
 import 'search_screen.dart';
 import 'product_detail_screen.dart';
 import 'cart_screen.dart';
@@ -1174,9 +1173,9 @@ class _WishlistScreenState extends State<WishlistScreen> {
           builder: (context, wishlist, child) {
             final count = wishlist.items.length;
             return Text(
-              'Wishlist${count > 0 ? ' ($count)' : ''}',
+              'My Wishlist${count > 0 ? ' • $count items' : ''}',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontSize: 20,
+                fontSize: 18,
                 height: 1.0,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF111111),
@@ -1184,6 +1183,95 @@ class _WishlistScreenState extends State<WishlistScreen> {
             );
           },
         ),
+        actions: [
+          Consumer<CartProvider>(
+            builder: (context, cart, child) {
+              final count = cart.items.length;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_bag_outlined),
+                    color: const Color(0xFF151515),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CartScreen()),
+                      );
+                    },
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF9A3D32),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          count.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      bottomNavigationBar: Consumer<CartProvider>(
+        builder: (context, cart, child) {
+          if (cart.items.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          return SafeArea(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: Color(0xFFE8DDCC))),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x0F000000),
+                    blurRadius: 10,
+                    offset: Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: FilledButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  );
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF17130F),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  'View Bag (${cart.items.length})',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
       body: FutureBuilder<List<_WishlistEntry>>(
         future: _entriesFuture,
@@ -1220,11 +1308,22 @@ class _WishlistScreenState extends State<WishlistScreen> {
                 parent: BouncingScrollPhysics(),
               ),
               slivers: [
+                const SliverToBoxAdapter(
+                  child: DeliveryLocationBar(
+                    backgroundColor: Colors.transparent,
+                    padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+                  ),
+                ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-                  sliver: SliverList.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                  sliver: SliverGrid.builder(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 310,
+                    ),
                     itemCount: entries.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 18),
                     itemBuilder: (context, index) {
                       final entry = entries[index];
                       return _WishlistProductCard(
@@ -1482,23 +1581,13 @@ class _WishlistProductCard extends StatelessWidget {
 
     final selectedSize = displayProduct.sizes.isNotEmpty
         ? displayProduct.sizes.first
-        : '';
-    final stockLabel = displayProduct.stock <= 0
-        ? 'Out of stock'
-        : displayProduct.isLimitedStock
-        ? 'Only ${displayProduct.stock} left'
-        : 'In stock';
-    final stockColor = displayProduct.stock <= 0
-        ? const Color(0xFF9A3D32)
-        : displayProduct.isLimitedStock
-        ? const Color(0xFF9A6A16)
-        : const Color(0xFF2F7A3D);
+        : 'M';
 
     return RepaintBoundary(
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(12),
           onTap: () {
             Navigator.push(
               context,
@@ -1510,172 +1599,205 @@ class _WishlistProductCard extends StatelessWidget {
           child: Ink(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFE8DDCC)),
               boxShadow: const [
                 BoxShadow(
-                  color: Color(0x120E0904),
-                  blurRadius: 24,
-                  offset: Offset(0, 12),
+                  color: Color(0x0A000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
                 ),
               ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(22),
-                        child: SizedBox(
-                          height: 340,
-                          width: double.infinity,
-                          child: imageUrl.isEmpty
-                              ? const _WishlistImageFallback()
-                              : Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) =>
-                                      const _WishlistImageFallback(),
-                                ),
-                        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      child: AspectRatio(
+                        aspectRatio: 3 / 4,
+                        child: imageUrl.isEmpty
+                            ? const _WishlistImageFallback()
+                            : Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) =>
+                                    const _WishlistImageFallback(),
+                              ),
                       ),
+                    ),
+                    if (displayProduct.rating > 0)
                       Positioned(
                         top: 8,
-                        right: 8,
-                        child: IconButton(
-                          tooltip: 'Remove from wishlist',
-                          constraints: const BoxConstraints(
-                            minWidth: 48,
-                            minHeight: 48,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(999),
                           ),
-                          padding: EdgeInsets.zero,
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            foregroundColor: const Color(0xFFC8A44D),
-                            tapTargetSize: MaterialTapTargetSize.padded,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.star_rounded, size: 12, color: Color(0xFF8D6A2E)),
+                              const SizedBox(width: 3),
+                              Text(
+                                displayProduct.rating.toStringAsFixed(1),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF17130F),
+                                ),
+                              ),
+                            ],
                           ),
-                          icon: const Icon(
-                            Icons.delete_outline_rounded,
-                            size: 22,
-                          ),
-                          onPressed: () =>
-                              _confirmRemove(context, displayProduct),
                         ),
                       ),
-                      if (displayProduct.sameDayAvailable)
-                        const Positioned(
-                          left: 10,
-                          bottom: 10,
-                          child: _WishlistBadge(
-                            icon: Icons.local_shipping_outlined,
-                            label: 'Same-day delivery',
-                          ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: IconButton(
+                        tooltip: 'Remove from wishlist',
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        padding: EdgeInsets.zero,
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.9),
+                          foregroundColor: const Color(0xFFC8A44D),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    brand.toUpperCase(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: const Color(0xFF8D6A2E),
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
+                        icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                        onPressed: () => _confirmRemove(context, displayProduct),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    displayProduct.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: const Color(0xFF17130F),
-                      fontWeight: FontWeight.w800,
-                      height: 1.18,
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: Consumer<CartProvider>(
+                        builder: (context, cart, child) {
+                          final inBag = cart.items.any((item) => item.product.id == displayProduct.id);
+                          final disabled = displayProduct.stock <= 0;
+                          return InkWell(
+                            onTap: disabled ? null : () {
+                              if (inBag) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const CartScreen()),
+                                );
+                              } else {
+                                final result = cart.addToCart(displayProduct, selectedSize);
+                                if (result == CartAddResult.storeConflict && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Your bag already contains products from another store.')),
+                                  );
+                                } else if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Added to Bag')),
+                                  );
+                                }
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(999),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: disabled ? const Color(0xFFD8D0C5) : const Color(0xFF17130F),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                inBag ? 'GO TO BAG' : 'ADD',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Column(
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        brand.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: const Color(0xFF8D6A2E),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        displayProduct.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF17130F),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
                       if (_discountPercent > 0) ...[
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
                           children: [
                             Text(
                               _formatPrice(_effectivePrice),
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    color: const Color(0xFF17130F),
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: const Color(0xFF17130F),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                              ),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _formatPrice(_originalPrice!),
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: const Color(0xFF8B8277),
-                                    decoration: TextDecoration.lineThrough,
-                                  ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '$_discountPercent% OFF',
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(
-                                    color: const Color(0xFF2F7A3D),
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                _formatPrice(_originalPrice!),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: const Color(0xFF8B8277),
+                                  fontSize: 10,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$_discountPercent% OFF',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: const Color(0xFF2F7A3D),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ] else ...[
                         Text(
                           _formatPrice(_effectivePrice),
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: const Color(0xFF17130F),
-                                fontWeight: FontWeight.w900,
-                              ),
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: const Color(0xFF17130F),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _WishlistMetaPill(label: stockLabel, color: stockColor),
-                      if (displayProduct.rating > 0)
-                        _WishlistMetaPill(
-                          label: displayProduct.rating.toStringAsFixed(1),
-                          color: const Color(0xFF8D6A2E),
-                          icon: Icons.star_rounded,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (selectedSize.isNotEmpty) ...[
-                    Text(
-                      'Size: $selectedSize',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF111111),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  _WishlistBagButton(
-                    product: displayProduct,
-                    selectedSize: selectedSize,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1743,46 +1865,7 @@ class _WishlistBadge extends StatelessWidget {
   }
 }
 
-class _WishlistMetaPill extends StatelessWidget {
-  const _WishlistMetaPill({
-    required this.label,
-    required this.color,
-    this.icon,
-  });
 
-  final String label;
-  final Color color;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _WishlistTile extends StatelessWidget {
   const _WishlistTile({required this.item, required this.product});
@@ -1837,73 +1920,15 @@ class _WishlistTile extends StatelessWidget {
     return '';
   }
 
-  MediaPipeTryOnPayload _buildCompatibilityMediaPipePayload(Product product) {
-    final model3d = _firstNonBlankString(<Object?>[
-      product.model3d,
-      product.arAsset['model3d'],
-      product.arAsset['model3dUrl'],
-      product.arAsset['modelUrl'],
-      product.attributeText('model3d'),
-      product.attributeText('model3dUrl'),
-    ]);
-    final overlayAssetUrl = product.arAsset.isNotEmpty
-        ? (product.arAsset['processedImage']?.toString().trim().isNotEmpty ==
-                  true
-              ? product.arAsset['processedImage'].toString().trim()
-              : product.arAsset['transparentImage']?.toString().trim() ?? '')
-        : '';
-    final garmentConfig = Map<String, dynamic>.from(
-      product.arAsset['garmentConfig'] as Map? ?? const <String, dynamic>{},
-    );
-    return MediaPipeTryOnPayload(
-      productId: product.id,
-      name: product.name,
-      category: product.category.isEmpty ? 'shirt' : product.category,
-      templateId: 'compat_template',
-      template: const <String, dynamic>{},
-      garmentConfig: garmentConfig,
-      alignmentConfig: const <String, dynamic>{},
-      model3dUrl: model3d,
-      assetBundleUrl: '',
-      rigProfile: '',
-      materialProfile: '',
-      overlayAssetUrl: overlayAssetUrl,
-      measurements: const <String, double>{},
-    );
-  }
-
   Future<void> _openTryLive(BuildContext context, Product product) async {
-    if (!product.tryOnAvailable) {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ProductDetailScreen(product: product),
-        ),
-      );
-      return;
-    }
-
-    final payload = _buildCompatibilityMediaPipePayload(product);
-    if (!context.mounted) {
-      return;
-    }
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AbianzoArScreen(
-          payload: payload,
-          onError: (message) {
-            if (!context.mounted) {
-              return;
-            }
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(message)));
-          },
-        ),
+        builder: (_) => ProductDetailScreen(product: product),
       ),
     );
   }
+
 
   Future<void> _addToBag(BuildContext context, Product product) async {
     final selectedSize = product.sizes.isNotEmpty ? product.sizes.first : 'M';

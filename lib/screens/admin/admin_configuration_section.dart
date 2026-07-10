@@ -98,7 +98,7 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection>
   void _populateControllers() {
     _commissionController.text =
         _config['commissionPercent']?.toString() ?? '15';
-    _deliveryFeeController.text = _config['deliveryFee']?.toString() ?? '40';
+    _deliveryFeeController.text = _config['deliveryFee']?.toString() ?? '0';
     _returnFeeController.text = _config['returnFee']?.toString() ?? '20';
     _serviceFeeController.text = _config['serviceFee']?.toString() ?? '10';
 
@@ -132,7 +132,7 @@ class _AdminConfigurationSectionState extends State<AdminConfigurationSection>
 
     final payload = {
       'commissionPercent': double.tryParse(_commissionController.text) ?? 15.0,
-      'deliveryFee': double.tryParse(_deliveryFeeController.text) ?? 40.0,
+      'deliveryFee': double.tryParse(_deliveryFeeController.text) ?? 0.0,
       'returnFee': double.tryParse(_returnFeeController.text) ?? 20.0,
       'serviceFee': double.tryParse(_serviceFeeController.text) ?? 10.0,
 

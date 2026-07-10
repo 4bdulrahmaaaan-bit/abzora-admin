@@ -202,7 +202,7 @@ class ShimmerProfileHeader extends StatelessWidget {
 }
 
 class ShimmerProductGrid extends StatelessWidget {
-  const ShimmerProductGrid({super.key, this.itemCount = 4});
+  const ShimmerProductGrid({super.key, this.itemCount = 2});
 
   final int itemCount;
 

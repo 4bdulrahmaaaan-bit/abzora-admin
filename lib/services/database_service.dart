@@ -5835,6 +5835,30 @@ class DatabaseService {
       type: address.type,
       createdAt: address.createdAt,
     );
+
+    // Deduplication: skip insert if an identical entry already exists.
+    // Key = normalised pincode + normalised addressLine.
+    // If both addressLines are empty, fall back to city comparison.
+    final String newPin = resolved.pincode.trim().toLowerCase();
+    final String newLine = resolved.addressLine.trim().toLowerCase();
+    final String newCity = resolved.city.trim().toLowerCase();
+    try {
+      final existing = await getUserAddresses(resolved.userId);
+      final isDuplicate = existing.any((a) {
+        final aPin = a.pincode.trim().toLowerCase();
+        final aLine = a.addressLine.trim().toLowerCase();
+        final aCity = a.city.trim().toLowerCase();
+        if (aPin != newPin) return false;
+        if (newLine.isNotEmpty || aLine.isNotEmpty) {
+          return aLine == newLine;
+        }
+        return aCity == newCity;
+      });
+      if (isDuplicate) return;
+    } catch (_) {
+      // If lookup fails, allow the write to proceed to avoid silent data loss.
+    }
+
     if (_backendCommerce.isConfigured) {
       await _backendCommerce.saveUserAddress(resolved);
       return;
@@ -5843,6 +5867,38 @@ class DatabaseService {
       'users/${resolved.userId}/addresses/${resolved.id}',
     ).set(resolved.toMap());
   }
+
+  /// Removes duplicate saved addresses for [userId], keeping the oldest entry
+  /// per (pincode + addressLine) key. Safe to call on every sheet open —
+  /// idempotent: if there are no duplicates, nothing is deleted.
+  ///
+  /// If the active delivery reference pointed to a removed duplicate, the
+  /// caller should fall back to the first remaining address (oldest kept entry).
+  Future<void> deduplicateUserAddresses(String userId) async {
+    try {
+      final addresses = await getUserAddresses(userId);
+      // Sort oldest-first so we keep the earliest entry.
+      final sorted = [...addresses]
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+      final seen = <String>{};
+      for (final addr in sorted) {
+        final pin = addr.pincode.trim().toLowerCase();
+        final line = addr.addressLine.trim().toLowerCase();
+        final city = addr.city.trim().toLowerCase();
+        final key = line.isNotEmpty ? '$pin|$line' : '$pin|$city';
+        if (seen.contains(key)) {
+          // Duplicate — delete it.
+          await deleteUserAddress(userId, addr.id);
+        } else {
+          seen.add(key);
+        }
+      }
+    } catch (_) {
+      // Non-fatal: dedup failure should never break the UI.
+    }
+  }
+
 
   Future<void> deleteUserAddress(String userId, String addressId) async {
     if (_backendCommerce.isConfigured) {

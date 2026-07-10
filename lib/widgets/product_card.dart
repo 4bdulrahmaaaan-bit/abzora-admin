@@ -68,13 +68,11 @@ class _ProductCardState extends State<ProductCard> {
     final brandLabel = _brandName(product);
     final imageUrl = product.images.isEmpty ? '' : product.images.first;
     final pricing = _pricingFor(product);
-    final hasArTryOn = product.tryOnAvailable;
     final theme = Theme.of(context);
     final ratingOverlayLabel = _ratingLabel(product.rating);
     final deliveryLabel = _deliveryLabel.isNotEmpty
         ? _deliveryLabel
         : _deliveryFallbackLabel(product);
-    final badgeLabel = widget.badgeLabel?.trim() ?? '';
 
     return Consumer<WishlistProvider>(
       builder: (context, wishlist, child) {
@@ -161,23 +159,6 @@ class _ProductCardState extends State<ProductCard> {
                                               ),
                                         ),
                                       ),
-                                if (hasArTryOn)
-                                  Positioned.fill(
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
-                                          colors: [
-                                            Colors.transparent,
-                                            Colors.black.withValues(
-                                              alpha: 0.16,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
                                 Positioned(
                                   left: 8,
                                   top: 8,
@@ -300,16 +281,6 @@ class _ProductCardState extends State<ProductCard> {
                                     ),
                                   ),
                                 ),
-                                if (hasArTryOn)
-                                  Positioned(
-                                    left: 10,
-                                    bottom: 10,
-                                    child: _GlassTryOnPill(
-                                      label: badgeLabel.isNotEmpty
-                                          ? badgeLabel.toUpperCase()
-                                          : 'TRY ON',
-                                    ),
-                                  ),
                               ],
                             ),
                           ),
@@ -447,17 +418,22 @@ class _ProductCardState extends State<ProductCard> {
     }
     if (_boolFrom(delivery['supportsCourierDelivery'])) {
       final eta = delivery['estimatedDeliveryDate']?.toString().trim() ?? '';
-      final partner = delivery['deliveryPartner']?.toString().trim() ?? '';
-      if (eta.isNotEmpty && partner.isNotEmpty) {
-        return 'Courier Delivery - $partner - $eta';
+      String displayEta = eta;
+      try {
+        if (eta.contains('-') && eta.length >= 10) {
+          final parsed = DateTime.parse(eta);
+          displayEta = DateFormat('MMM d').format(parsed);
+        }
+      } catch (_) {}
+
+      if (displayEta.isEmpty) {
+        return 'Courier Delivery';
       }
-      if (eta.isNotEmpty) {
-        return 'Courier Delivery - $eta';
+      
+      if (displayEta == 'Today' || displayEta == 'Tomorrow' || displayEta.startsWith('In ')) {
+        return 'Arrives $displayEta';
       }
-      if (partner.isNotEmpty) {
-        return 'Courier Delivery - $partner';
-      }
-      return 'Courier Delivery';
+      return 'Arrives by $displayEta';
     }
     return '';
   }
@@ -612,51 +588,6 @@ class _GlassRatingPill extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                   letterSpacing: 0,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GlassTryOnPill extends StatelessWidget {
-  const _GlassTryOnPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          height: 32,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.45),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.camera_alt_rounded,
-                size: 14,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                  letterSpacing: 0.3,
                 ),
               ),
             ],

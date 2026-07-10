@@ -30,6 +30,7 @@ class AddressFormWidget extends StatelessWidget {
     required this.addressAutoFilled,
     required this.onToggleExpanded,
     required this.onAddressTypeChanged,
+    this.showFullForm = true,
   });
 
   final GlobalKey<FormState> formKey;
@@ -54,6 +55,7 @@ class AddressFormWidget extends StatelessWidget {
   final bool addressAutoFilled;
   final VoidCallback onToggleExpanded;
   final ValueChanged<String> onAddressTypeChanged;
+  final bool showFullForm;
 
   @override
   Widget build(BuildContext context) {
@@ -64,65 +66,67 @@ class AddressFormWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _floatingField(
-            context,
-            controller: nameController,
-            focusNode: nameFocusNode,
-            label: 'Full Name',
-            hintText: 'Recipient name',
-            icon: Icons.person_outline_rounded,
-            textInputAction: TextInputAction.next,
-            validator: (value) {
-              if ((value ?? '').trim().isEmpty) return 'Full name is required';
-              if ((value ?? '').trim().length < 2) return 'Enter a valid name';
-              return null;
-            },
-            onFieldSubmitted: (_) => phoneFocusNode.requestFocus(),
-          ),
-          const SizedBox(height: 12),
-          _floatingField(
-            context,
-            controller: phoneController,
-            focusNode: phoneFocusNode,
-            label: 'Mobile Number',
-            hintText: '10-digit mobile number',
-            icon: Icons.phone_outlined,
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s()-]')),
-              LengthLimitingTextInputFormatter(15),
-            ],
-            validator: (value) {
-              final trimmed = (value ?? '').trim();
-              if (trimmed.isEmpty) {
-                return 'Mobile number is required';
-              }
-              if (!isValidIndianMobileNumber(trimmed)) {
-                return 'Enter a valid 10-digit number';
-              }
-              return null;
-            },
-            onFieldSubmitted: (_) => addressFocusNode.requestFocus(),
-          ),
-          const SizedBox(height: 12),
-          _floatingField(
-            context,
-            controller: addressController,
-            focusNode: addressFocusNode,
-            label: 'Address',
-            hintText: 'House, street, apartment',
-            icon: Icons.home_outlined,
-            textInputAction: TextInputAction.next,
-            minLines: 2,
-            maxLines: 2,
-            validator: (value) {
-              if ((value ?? '').trim().isEmpty) return 'Address is required';
-              return null;
-            },
-            onFieldSubmitted: (_) => pincodeFocusNode.requestFocus(),
-          ),
-          const SizedBox(height: 12),
+          if (showFullForm) ...[
+            _floatingField(
+              context,
+              controller: nameController,
+              focusNode: nameFocusNode,
+              label: 'Full Name',
+              hintText: 'Recipient name',
+              icon: Icons.person_outline_rounded,
+              textInputAction: TextInputAction.next,
+              validator: (value) {
+                if ((value ?? '').trim().isEmpty) return 'Full name is required';
+                if ((value ?? '').trim().length < 2) return 'Enter a valid name';
+                return null;
+              },
+              onFieldSubmitted: (_) => phoneFocusNode.requestFocus(),
+            ),
+            const SizedBox(height: 12),
+            _floatingField(
+              context,
+              controller: phoneController,
+              focusNode: phoneFocusNode,
+              label: 'Mobile Number',
+              hintText: '10-digit mobile number',
+              icon: Icons.phone_outlined,
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s()-]')),
+                LengthLimitingTextInputFormatter(15),
+              ],
+              validator: (value) {
+                final trimmed = (value ?? '').trim();
+                if (trimmed.isEmpty) {
+                  return 'Mobile number is required';
+                }
+                if (!isValidIndianMobileNumber(trimmed)) {
+                  return 'Enter a valid 10-digit number';
+                }
+                return null;
+              },
+              onFieldSubmitted: (_) => addressFocusNode.requestFocus(),
+            ),
+            const SizedBox(height: 12),
+            _floatingField(
+              context,
+              controller: addressController,
+              focusNode: addressFocusNode,
+              label: 'Address',
+              hintText: 'House, street, apartment',
+              icon: Icons.home_outlined,
+              textInputAction: TextInputAction.next,
+              minLines: 2,
+              maxLines: 2,
+              validator: (value) {
+                if ((value ?? '').trim().isEmpty) return 'Address is required';
+                return null;
+              },
+              onFieldSubmitted: (_) => pincodeFocusNode.requestFocus(),
+            ),
+            const SizedBox(height: 12),
+          ],
           Row(
             children: [
               Expanded(
@@ -151,115 +155,119 @@ class AddressFormWidget extends StatelessWidget {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
-              SizedBox(
-                height: AbzioTheme.fieldHeight,
-                child: TextButton(
-                  onPressed: onToggleExpanded,
-                  child: Text(isExpanded ? 'Hide details' : 'Add details'),
-                ),
-              ),
-            ],
-          ),
-          AnimatedCrossFade(
-            crossFadeState: isExpanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            duration: AbzioMotion.medium,
-            firstChild: const SizedBox.shrink(),
-            secondChild: Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Column(
-                children: [
-                  _floatingField(
-                    context,
-                    controller: houseController,
-                    focusNode: houseFocusNode,
-                    label: 'House / Flat',
-                    hintText: 'Apartment, floor, building',
-                    icon: Icons.apartment_outlined,
-                    textInputAction: TextInputAction.next,
-                    validator: (_) => null,
-                    onFieldSubmitted: (_) => localityFocusNode.requestFocus(),
+              if (showFullForm) ...[
+                const SizedBox(width: 12),
+                SizedBox(
+                  height: AbzioTheme.fieldHeight,
+                  child: TextButton(
+                    onPressed: onToggleExpanded,
+                    child: Text(isExpanded ? 'Hide details' : 'Add details'),
                   ),
-                  const SizedBox(height: 12),
-                  _floatingField(
-                    context,
-                    controller: localityController,
-                    focusNode: localityFocusNode,
-                    label: 'Locality',
-                    hintText: 'Area, neighborhood',
-                    icon: Icons.location_city_outlined,
-                    textInputAction: TextInputAction.next,
-                    validator: (_) => null,
-                    onFieldSubmitted: (_) => landmarkFocusNode.requestFocus(),
-                  ),
-                  const SizedBox(height: 12),
-                  _floatingField(
-                    context,
-                    controller: landmarkController,
-                    focusNode: landmarkFocusNode,
-                    label: 'Landmark',
-                    hintText: 'Nearby landmark',
-                    icon: Icons.place_outlined,
-                    textInputAction: TextInputAction.done,
-                    validator: (_) => null,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AbzioTheme.spacing20),
-          Text(
-            'Address Type',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<String>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(
-                  value: 'home',
-                  icon: Icon(Icons.home_outlined),
-                  label: Text('Home'),
-                ),
-                ButtonSegment(
-                  value: 'office',
-                  icon: Icon(Icons.business_center_outlined),
-                  label: Text('Office'),
-                ),
-                ButtonSegment(
-                  value: 'other',
-                  icon: Icon(Icons.bookmark_border_rounded),
-                  label: Text('Other'),
                 ),
               ],
-              selected: {addressType},
-              onSelectionChanged: (values) {
-                final value = values.isNotEmpty ? values.first : null;
-                if (value != null) {
-                  onAddressTypeChanged(value);
-                }
-              },
-              style: ButtonStyle(
-                padding: const WidgetStatePropertyAll(
-                  EdgeInsets.symmetric(vertical: 16),
+            ],
+          ),
+          if (showFullForm) ...[
+            AnimatedCrossFade(
+              crossFadeState: isExpanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              duration: AbzioMotion.medium,
+              firstChild: const SizedBox.shrink(),
+              secondChild: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Column(
+                  children: [
+                    _floatingField(
+                      context,
+                      controller: houseController,
+                      focusNode: houseFocusNode,
+                      label: 'House / Flat',
+                      hintText: 'Apartment, floor, building',
+                      icon: Icons.apartment_outlined,
+                      textInputAction: TextInputAction.next,
+                      validator: (_) => null,
+                      onFieldSubmitted: (_) => localityFocusNode.requestFocus(),
+                    ),
+                    const SizedBox(height: 12),
+                    _floatingField(
+                      context,
+                      controller: localityController,
+                      focusNode: localityFocusNode,
+                      label: 'Locality',
+                      hintText: 'Area, neighborhood',
+                      icon: Icons.location_city_outlined,
+                      textInputAction: TextInputAction.next,
+                      validator: (_) => null,
+                      onFieldSubmitted: (_) => landmarkFocusNode.requestFocus(),
+                    ),
+                    const SizedBox(height: 12),
+                    _floatingField(
+                      context,
+                      controller: landmarkController,
+                      focusNode: landmarkFocusNode,
+                      label: 'Landmark',
+                      hintText: 'Nearby landmark',
+                      icon: Icons.place_outlined,
+                      textInputAction: TextInputAction.done,
+                      validator: (_) => null,
+                    ),
+                  ],
                 ),
-                minimumSize: const WidgetStatePropertyAll(Size.fromHeight(56)),
-                visualDensity: VisualDensity.standard,
-                shape: WidgetStatePropertyAll(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            const SizedBox(height: AbzioTheme.spacing20),
+            Text(
+              'Address Type',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(
+                    value: 'home',
+                    icon: Icon(Icons.home_outlined),
+                    label: Text('Home'),
+                  ),
+                  ButtonSegment(
+                    value: 'office',
+                    icon: Icon(Icons.business_center_outlined),
+                    label: Text('Office'),
+                  ),
+                  ButtonSegment(
+                    value: 'other',
+                    icon: Icon(Icons.bookmark_border_rounded),
+                    label: Text('Other'),
+                  ),
+                ],
+                selected: {addressType},
+                onSelectionChanged: (values) {
+                  final value = values.isNotEmpty ? values.first : null;
+                  if (value != null) {
+                    onAddressTypeChanged(value);
+                  }
+                },
+                style: ButtonStyle(
+                  padding: const WidgetStatePropertyAll(
+                    EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  minimumSize: const WidgetStatePropertyAll(Size.fromHeight(56)),
+                  visualDensity: VisualDensity.standard,
+                  shape: WidgetStatePropertyAll(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
+          ],
           if (isPincodeLookupLoading) ...[
             const SizedBox(height: 12),
             Row(

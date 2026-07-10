@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -624,7 +624,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Sign in to access AI Fit, AR Try-On history, wishlist and orders.',
+                  'Sign in to access AI Fit, wishlist and orders.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFF6A5E4E),
@@ -752,12 +752,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                   title: 'AI Fit',
                   subtitle:
                       'Personalized sizing recommendations powered by AI.',
-                ),
-                SizedBox(height: 12),
-                _GuestFeatureCard(
-                  icon: Icons.view_in_ar_rounded,
-                  title: 'AR Try-On',
-                  subtitle: 'See styles on yourself before buying.',
                 ),
                 SizedBox(height: 12),
                 _GuestFeatureCard(
