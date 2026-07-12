@@ -253,7 +253,7 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
       if (result.imageFile != null) {
         final imageUrl = await _storage.uploadPickedImage(
           file: result.imageFile!,
-          folder: 'home_category_visuals',
+          folder: 'homepage_banners/category',
           ownerId: ownerId,
           fileName: 'category_${DateTime.now().millisecondsSinceEpoch}',
         );
@@ -325,7 +325,7 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
       if (result.imageFile != null) {
         final imageUrl = await _storage.uploadPickedImage(
           file: result.imageFile!,
-          folder: 'home_promo_blocks',
+          folder: 'homepage_banners/promo',
           ownerId: ownerId,
           fileName: 'promo_${DateTime.now().millisecondsSinceEpoch}',
         );
