@@ -19,6 +19,7 @@ import '../../providers/banner_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../services/backend_api_client.dart';
+import '../../services/backend_commerce_service.dart';
 import '../../services/database_service.dart';
 import '../../services/image_url_service.dart';
 import '../../theme.dart';
@@ -27,14 +28,13 @@ import '../../widgets/global_skeletons.dart';
 import '../../widgets/banner_shimmer.dart';
 import '../../widgets/shimmer_widget.dart';
 import '../../widgets/home_header.dart';
-import '../../widgets/product_card.dart';
 import '../../widgets/product_grid.dart';
 import '../../widgets/shimmer_box.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/tap_scale.dart';
 import '../../widgets/product_shimmer.dart';
+import '../../widgets/location_selection_sheet.dart';
 import 'ai_stylist_screen.dart';
-import '../../services/location_service.dart';
 import 'order_tracking_screen.dart';
 import 'product_detail_screen.dart';
 import 'profile_screen.dart';
@@ -42,7 +42,57 @@ import 'search_screen.dart';
 import 'store_detail_screen.dart';
 import 'wishlist_screen.dart';
 
-part 'location_bottom_sheet.dart';
+Future<void> showLocationBottomSheet(BuildContext context) async {
+  final result = await LocationSelectionSheet.show(context);
+  if (result == null || !context.mounted) return;
+
+  final auth = context.read<AuthProvider>();
+  final product = context.read<ProductProvider>();
+  final location = context.read<LocationProvider>();
+
+  if (result is UserAddress) {
+    final combinedAddress = [
+      if (result.houseDetails.trim().isNotEmpty) result.houseDetails.trim(),
+      if (result.addressLine.trim().isNotEmpty) result.addressLine.trim(),
+      if (result.locality.trim().isNotEmpty) result.locality.trim(),
+      if (result.city.trim().isNotEmpty) result.city.trim(),
+      if (result.state.trim().isNotEmpty) result.state.trim(),
+      if (result.pincode.trim().isNotEmpty) result.pincode.trim(),
+    ].join(', ');
+
+    await auth.saveProfile(
+      name: result.name,
+      address: combinedAddress,
+      area: result.locality.isNotEmpty ? result.locality : result.city,
+      city: result.city,
+      latitude: result.latitude,
+      longitude: result.longitude,
+    );
+
+    final selectedNeighborhood = location.manualCities.contains(result.locality)
+        ? result.locality
+        : location.manualCities.contains(result.city)
+        ? result.city
+        : '';
+    if (selectedNeighborhood.isNotEmpty) {
+      await product.setManualLocation(selectedNeighborhood);
+    } else {
+      await product.fetchHomeData(user: auth.user, forceLocationRefresh: true);
+    }
+  } else if (result is String) {
+    await auth.saveProfile(
+      name: auth.user?.name ?? '',
+      address: result,
+      area: '',
+      city: '',
+    );
+    await product.fetchHomeData(user: auth.user, forceLocationRefresh: true);
+  }
+
+  if (context.mounted) {
+    await auth.refreshCurrentUser();
+  }
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1091,7 +1141,9 @@ class _HomeContentState extends State<HomeContent>
   void didChangeDependencies() {
     super.didChangeDependencies();
     final bannerProvider = context.read<BannerProvider>();
-    if (_requestedBannerRetry || bannerProvider.isLoading || bannerProvider.banners.isNotEmpty) {
+    if (_requestedBannerRetry ||
+        bannerProvider.isLoading ||
+        bannerProvider.banners.isNotEmpty) {
       if (bannerProvider.banners.isNotEmpty) {
         _requestedBannerRetry = false;
       }
@@ -1214,45 +1266,6 @@ class _HomeContentState extends State<HomeContent>
     return filtered.isEmpty ? products : filtered;
   }
 
-  UserAddress? _deliveryAddressForCards(
-    LocationProvider locationProvider,
-    AppUser? user,
-  ) {
-    final pincode = locationProvider.displayPincode.trim();
-    final city = locationProvider.displayCity.trim();
-    final area = locationProvider.displayArea.trim();
-    final state = locationProvider.displayState.trim();
-    final addressLine = locationProvider.displayAddress.trim();
-    final hasCoordinates = locationProvider.userPosition != null;
-    if (pincode.isEmpty && city.isEmpty && area.isEmpty && !hasCoordinates) {
-      return null;
-    }
-
-    final resolvedName = user?.name.trim().isNotEmpty == true
-        ? user!.name.trim()
-        : 'Selected delivery address';
-    final resolvedAddress = addressLine.isNotEmpty
-        ? addressLine
-        : [area, city, state]
-            .where((part) => part.trim().isNotEmpty)
-            .join(', ');
-
-    return UserAddress(
-      id: 'home-delivery-context',
-      userId: user?.id ?? '',
-      name: resolvedName,
-      phone: user?.phone ?? '',
-      addressLine: resolvedAddress,
-      city: city,
-      state: state,
-      pincode: pincode,
-      locality: area,
-      latitude: locationProvider.userPosition?.latitude,
-      longitude: locationProvider.userPosition?.longitude,
-      createdAt: DateTime.now().toIso8601String(),
-    );
-  }
-
   String _selectedCategoryTitle() {
     final normalized = _selectedCategory.trim().toLowerCase();
     if (normalized.isEmpty || normalized == 'view all') {
@@ -1287,10 +1300,6 @@ class _HomeContentState extends State<HomeContent>
           (bannerProvider) => bannerProvider.isLoading,
         );
         final locationTitle = locationProvider.displayHeaderTitle;
-        final deliveryAddress = _deliveryAddressForCards(
-          locationProvider,
-          auth.user,
-        );
         final headerCopy = DeliveryHeaderCopy(
           title: locationTitle.trim().isNotEmpty
               ? locationTitle
@@ -1306,14 +1315,6 @@ class _HomeContentState extends State<HomeContent>
         final justForYouSubtitle = _selectedCategory == 'View All'
             ? 'Based on your style'
             : 'More $_selectedCategory inspired finds';
-        final storesSection = _buildStoresSection(
-          context,
-          provider: provider,
-          stores: stores,
-          products: filteredProducts,
-          deliveryAddress: deliveryAddress,
-        );
-
         return SafeArea(
           top: true,
           bottom: false,
@@ -1445,11 +1446,65 @@ class _HomeContentState extends State<HomeContent>
                                         subtitle: _selectedCategorySubtitle(),
                                       ),
                                       const SizedBox(height: 18),
+                                      HomePromoBannerSlot(
+                                        slot: 1,
+                                        fallbackCopy: const PromoBannerCopy(
+                                          eyebrow: 'MENSWEAR DROP',
+                                          title: 'ELEVATED STREETWEAR',
+                                          subtitle:
+                                              'Discover the latest in premium streetwear and oversized fits.',
+                                          cta: 'Shop Streetwear',
+                                        ),
+                                        onTapBlock: (block) {
+                                          if (block != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => SearchScreen(
+                                                  allProducts: products,
+                                                  selectedLocation:
+                                                      provider.activeLocation,
+                                                  initialQuery:
+                                                      block.redirectId,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                      const SizedBox(height: 24),
                                       _productSection(
                                         context,
                                         title: AbianzoText.trendingNearYouTitle,
                                         subtitle: trendingSubtitle,
                                         products: trendingProducts,
+                                      ),
+                                      const SizedBox(height: 24),
+                                      HomePromoBannerSlot(
+                                        slot: 2,
+                                        fallbackCopy: const PromoBannerCopy(
+                                          eyebrow: 'WOMENSWEAR CURATION',
+                                          title: 'THE SUMMER EDIT',
+                                          subtitle:
+                                              'Breezy dresses and resort-ready essentials for the season.',
+                                          cta: 'Shop Summer',
+                                        ),
+                                        onTapBlock: (block) {
+                                          if (block != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => SearchScreen(
+                                                  allProducts: products,
+                                                  selectedLocation:
+                                                      provider.activeLocation,
+                                                  initialQuery:
+                                                      block.redirectId,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
                                       ),
                                       const SizedBox(height: 24),
                                       _productSection(
@@ -1460,8 +1515,6 @@ class _HomeContentState extends State<HomeContent>
                                             ? trendingProducts
                                             : justForYouProducts,
                                       ),
-                                      const SizedBox(height: 24),
-                                      storesSection,
                                     ],
                                   ),
                                 ),
@@ -1581,10 +1634,7 @@ class _HomeContentState extends State<HomeContent>
   }
 
   String _normalizeBannerTargetType(String targetType) {
-    return targetType
-        .trim()
-        .toLowerCase()
-        .replaceAll(RegExp(r'[\s-]+'), '_');
+    return targetType.trim().toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_');
   }
 
   void _openBannerDeepLink(
@@ -1614,54 +1664,6 @@ class _HomeContentState extends State<HomeContent>
         behavior: SnackBarBehavior.floating,
         content: Text('This campaign is no longer available.'),
       ),
-    );
-  }
-
-  Widget _buildStoresSection(
-    BuildContext context, {
-    required ProductProvider provider,
-    required List<NearbyStore> stores,
-    required List<Product> products,
-    required UserAddress? deliveryAddress,
-  }) {
-    final fallbackProducts = products.take(4).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader(
-          title: AbianzoText.storesNearYou,
-          subtitle: AbianzoText.locationSubtext,
-        ),
-        const SizedBox(height: 12),
-        if (provider.isLocationLoading)
-          const _StoreSkeletonList()
-        else if (stores.isEmpty)
-          _storesFallbackSection(
-            context,
-            provider: provider,
-            products: fallbackProducts,
-            deliveryAddress: deliveryAddress,
-          )
-        else
-          SizedBox(
-            height: 108,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: stores.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 12),
-              itemBuilder: (context, index) => _storeCard(
-                nearby: stores[index],
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        StoreDetailScreen(store: stores[index].store),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
     );
   }
 }
@@ -2319,315 +2321,85 @@ class CategorySection extends StatefulWidget {
 }
 
 class _CategorySectionState extends State<CategorySection> {
-  late final Future<_CategoryRailData> _categoryRailFuture;
+  late Future<List<CategoryManagementModel>> _categoriesFuture;
 
   @override
   void initState() {
     super.initState();
-    _categoryRailFuture = Future.value(const _CategoryRailData());
+    _categoriesFuture = _fetchCategories();
   }
 
-  List<_CategoryStripItem> _itemsForTab(_CategoryRailData data, String tab) {
-    final remoteImagesByLabel = <String, String>{
-      for (final visual in data.visuals.categoryVisuals)
-        if (visual.isActive && visual.imageUrl.trim().isNotEmpty)
-          visual.label.trim().toLowerCase(): visual.imageUrl.trim(),
-      for (final category in data.categories)
-        if (category.isActive &&
-            category.showOnHome &&
-            (category.image.trim().isNotEmpty ||
-                category.bannerImage.trim().isNotEmpty))
-          category.name.trim().toLowerCase(): category.image.trim().isNotEmpty
-              ? category.image.trim()
-              : category.bannerImage.trim(),
-    };
-
-    final fallbacks = <String, List<String>>{
-      'Men': ['Shirts', 'T-Shirts', 'Jeans', 'Footwear', 'Watches'],
-      'Women': ['Dresses', 'Ethnic', 'Heels', 'Bags', 'Beauty'],
-      'Kids': ['Boys', 'Girls', 'Infants', 'School', 'Footwear'],
-      'Wedding': ['Bride', 'Groom', 'Jewellery', 'Footwear', 'Accessories'],
-      'Luxury': ['Designer Wear', 'Watches', 'Bags', 'Jewellery', 'Beauty'],
-    };
-    const defaultImages = <String, String>{
-      'Shirts':
-          'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=900',
-      'T-Shirts':
-          'https://images.unsplash.com/photo-1523398002811-999ca8dec234?auto=format&fit=crop&q=80&w=900',
-      'Jeans':
-          'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=900',
-      'Footwear':
-          'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=900',
-      'Watches':
-          'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&q=80&w=900',
-      'Dresses':
-          'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=900',
-      'Ethnic':
-          'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&q=80&w=900',
-      'Heels':
-          'https://images.unsplash.com/photo-1515347619252-60a4bf4fff4f?auto=format&fit=crop&q=80&w=900',
-      'Bags':
-          'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=900',
-      'Beauty':
-          'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=900',
-      'Jewellery':
-          'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&q=80&w=900',
-      'Boys':
-          'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=900',
-      'Girls':
-          'https://images.unsplash.com/photo-1450297166380-c1f5a7b3f9f1?auto=format&fit=crop&q=80&w=900',
-      'Infants':
-          'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=80&w=900',
-      'School':
-          'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&q=80&w=900',
-      'Bride':
-          'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=900',
-      'Groom':
-          'https://images.unsplash.com/photo-1515169067868-5387ec356754?auto=format&fit=crop&q=80&w=900',
-      'Accessories':
-          'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=900',
-      'Designer Wear':
-          'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=900',
-      'Designer':
-          'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=900',
-      'Premium Watches':
-          'https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=900',
-      'Fine Jewellery':
-          'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&q=80&w=900',
-    };
-
-    final labels = fallbacks[tab] ?? fallbacks['Men']!;
-    return labels
-        .map(
-          (label) => _CategoryStripItem(
-            label: label,
-            imageUrl:
-                remoteImagesByLabel[label.toLowerCase()] ??
-                defaultImages[label] ??
-                defaultImages['Shirts']!,
-          ),
-        )
-        .toList(growable: false);
+  @override
+  void didUpdateWidget(CategorySection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_resolveHomeCategoryTab(oldWidget.selectedCategory) !=
+        _resolveHomeCategoryTab(widget.selectedCategory)) {
+      _categoriesFuture = _fetchCategories();
+    }
   }
 
-  List<_CategoryCollectionStripItem> _collectionsForTab(String tab) {
-    const fallback = <_CategoryCollectionStripItem>[
-      _CategoryCollectionStripItem(
-        label: 'Explore',
-        imageUrl:
-            'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=900',
-      ),
-      _CategoryCollectionStripItem(
-        label: 'Essentials',
-        imageUrl:
-            'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=900',
-      ),
-      _CategoryCollectionStripItem(
-        label: 'Editors',
-        imageUrl:
-            'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=900',
-      ),
-      _CategoryCollectionStripItem(
-        label: 'New In',
-        imageUrl:
-            'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=900',
-      ),
-    ];
-
-    final map = <String, List<_CategoryCollectionStripItem>>{
-      'Men': [
-        _CategoryCollectionStripItem(
-          label: 'Shirts',
-          imageUrl:
-              'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Jeans',
-          imageUrl:
-              'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Sneakers',
-          imageUrl:
-              'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Watches',
-          imageUrl:
-              'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&q=80&w=900',
-        ),
-      ],
-      'Women': [
-        _CategoryCollectionStripItem(
-          label: 'Dresses',
-          imageUrl:
-              'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Bags',
-          imageUrl:
-              'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Beauty',
-          imageUrl:
-              'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Heels',
-          imageUrl:
-              'https://images.unsplash.com/photo-1515347619252-60a4bf4fff4f?auto=format&fit=crop&q=80&w=900',
-        ),
-      ],
-      'Kids': [
-        _CategoryCollectionStripItem(
-          label: 'Boys',
-          imageUrl:
-              'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Girls',
-          imageUrl:
-              'https://images.unsplash.com/photo-1450297166380-c1f5a7b3f9f1?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Footwear',
-          imageUrl:
-              'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Toys',
-          imageUrl:
-              'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=80&w=900',
-        ),
-      ],
-      'Wedding': [
-        _CategoryCollectionStripItem(
-          label: 'Bridewear',
-          imageUrl:
-              'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Sherwani',
-          imageUrl:
-              'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Jewellery',
-          imageUrl:
-              'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Accessories',
-          imageUrl:
-              'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=900',
-        ),
-      ],
-      'Luxury': [
-        _CategoryCollectionStripItem(
-          label: 'Designer',
-          imageUrl:
-              'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Watches',
-          imageUrl:
-              'https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Beauty',
-          imageUrl:
-              'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=900',
-        ),
-        _CategoryCollectionStripItem(
-          label: 'Handbags',
-          imageUrl:
-              'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=900',
-        ),
-      ],
-    };
-
-    return map[tab] ?? fallback;
+  Future<List<CategoryManagementModel>> _fetchCategories() async {
+    final parentTab = _resolveHomeCategoryTab(widget.selectedCategory);
+    return BackendCommerceService().getHomeCategories(tabType: parentTab);
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<_CategoryRailData>(
-      future: _categoryRailFuture,
+    return FutureBuilder<List<CategoryManagementModel>>(
+      future: _categoriesFuture,
       builder: (context, snapshot) {
-        final data = snapshot.data ?? const _CategoryRailData();
+        final items = snapshot.data ?? [];
+        if (items.isEmpty) {
+          return const SizedBox(height: 108);
+        }
         final parentTab = _resolveHomeCategoryTab(widget.selectedCategory);
-        final items = _itemsForTab(data, parentTab);
-        final collections = _collectionsForTab(parentTab);
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              child: SizedBox(
-                key: ValueKey<String>(parentTab),
-                height: 108,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.zero,
-                  itemCount: items.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 16),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return _CategoryStripTile(
-                      item: item,
-                      isSelected:
-                          widget.selectedCategory.toLowerCase() ==
-                          item.label.toLowerCase(),
-                      onTap: () {
-                        widget.onCategorySelected(item.label);
-                      },
-                    );
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          child: SizedBox(
+            key: ValueKey<String>(parentTab),
+            height: 108,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.zero,
+              itemCount: items.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 16),
+              itemBuilder: (context, index) {
+                final category = items[index];
+                final imageUrl = category.image.trim().isNotEmpty
+                    ? category.image.trim()
+                    : category.bannerImage.trim();
+                return _CategoryStripTile(
+                  label: category.name,
+                  imageUrl: imageUrl,
+                  isSelected:
+                      widget.selectedCategory.toLowerCase() ==
+                      category.name.toLowerCase(),
+                  onTap: () {
+                    widget.onCategorySelected(category.name);
                   },
-                ),
-              ),
+                );
+              },
             ),
-            const SizedBox(height: 8),
-            _CategoryCollectionStrip(
-              title: _collectionTitleForTab(parentTab),
-              subtitle: _collectionSubtitleForTab(parentTab),
-              items: collections,
-            ),
-          ],
+          ),
         );
       },
     );
   }
 }
 
-class _CategoryRailData {
-  const _CategoryRailData()
-    : categories = const [],
-      visuals = const HomeVisualConfigModel();
-
-  final List<CategoryManagementModel> categories;
-  final HomeVisualConfigModel visuals;
-}
-
-class _CategoryStripItem {
-  const _CategoryStripItem({required this.label, required this.imageUrl});
-
-  final String label;
-  final String imageUrl;
-}
-
 class _CategoryStripTile extends StatelessWidget {
   const _CategoryStripTile({
-    required this.item,
+    required this.label,
+    required this.imageUrl,
     required this.isSelected,
     required this.onTap,
   });
 
-  final _CategoryStripItem item;
+  final String label;
+  final String imageUrl;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -2641,54 +2413,28 @@ class _CategoryStripTile extends StatelessWidget {
         child: Column(
           children: [
             SizedBox(
-              width: 88,
-              height: 88,
+              width: 76,
+              height: 76,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(38),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
                     AbzioNetworkImage(
-                      imageUrl: item.imageUrl,
-                      fallbackLabel: item.label,
+                      imageUrl: imageUrl,
+                      fallbackLabel: label,
                       fit: BoxFit.cover,
                     ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.22),
-                          ],
+                    if (isSelected)
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(38),
+                          border: Border.all(
+                            color: const Color(0xFFC8A86B),
+                            width: 2,
+                          ),
                         ),
-                        borderRadius: BorderRadius.circular(24),
-                        border: isSelected
-                            ? Border.all(
-                                color: const Color(0xFFC8A86B),
-                                width: 2,
-                              )
-                            : null,
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFFC8A86B,
-                                  ).withValues(alpha: 0.16),
-                                  blurRadius: 18,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ]
-                            : [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -2697,7 +2443,7 @@ class _CategoryStripTile extends StatelessWidget {
             SizedBox(
               height: 17,
               child: Text(
-                item.label,
+                label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
@@ -2757,166 +2503,6 @@ String _resolveHomeCategoryTab(String value) {
     'handbags': 'Luxury',
   };
   return mapped[normalized] ?? 'Men';
-}
-
-String _collectionTitleForTab(String tab) {
-  return switch (tab) {
-    'Men' => 'Essentials for Everyday',
-    'Women' => 'Trending Women\'s Picks',
-    'Kids' => 'Playful Premium Picks',
-    'Wedding' => 'Wedding Season Edits',
-    'Luxury' => 'Curated Luxury',
-    _ => 'Essentials for Everyday',
-  };
-}
-
-String _collectionSubtitleForTab(String tab) {
-  return switch (tab) {
-    'Men' => 'Tailored, refined, and easy to shop.',
-    'Women' => 'Elevated edits with a fashion-first lens.',
-    'Kids' => 'Lifestyle picks for every little moment.',
-    'Wedding' => 'Ceremony-ready pieces with quiet drama.',
-    'Luxury' => 'Minimal, modern, and distinctly premium.',
-    _ => 'Tailored, refined, and easy to shop.',
-  };
-}
-
-class _CategoryCollectionStripItem {
-  const _CategoryCollectionStripItem({
-    required this.label,
-    required this.imageUrl,
-  });
-
-  final String label;
-  final String imageUrl;
-}
-
-class _CategoryCollectionStrip extends StatelessWidget {
-  const _CategoryCollectionStrip({
-    required this.title,
-    required this.subtitle,
-    required this.items,
-  });
-
-  final String title;
-  final String subtitle;
-  final List<_CategoryCollectionStripItem> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF111111),
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          subtitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontSize: 12,
-            color: const Color(0xFF6D6254),
-            height: 1.2,
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 104,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.zero,
-            itemCount: items.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return _CategoryCollectionCard(item: item);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CategoryCollectionCard extends StatelessWidget {
-  const _CategoryCollectionCard({required this.item});
-
-  final _CategoryCollectionStripItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 140,
-      child: TapScale(
-        scale: 0.99,
-        onTap: () {},
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              AbzioNetworkImage(
-                imageUrl: item.imageUrl,
-                fallbackLabel: item.label,
-                fit: BoxFit.cover,
-              ),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.46),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 10,
-                right: 10,
-                bottom: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.28),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.12),
-                    ),
-                  ),
-                  child: Text(
-                    item.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _CategoryTabsHeaderDelegate extends SliverPersistentHeaderDelegate {
@@ -3039,143 +2625,31 @@ Widget _sectionHeader({required String title, required String subtitle}) {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          title,
+          title.toUpperCase(),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 19,
-            color: const Color(0xFF111111),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+            letterSpacing: 1.2,
+            color: const Color(0xFF282C3F),
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: context.abzioSecondaryText,
-            fontSize: 13,
-            height: 1.4,
+        if (subtitle.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF7E818C),
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
           ),
-        ),
+        ],
       ],
     ),
-  );
-}
-
-Widget _storesFallbackSection(
-  BuildContext context, {
-  required ProductProvider provider,
-  required List<Product> products,
-  required UserAddress? deliveryAddress,
-}) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE8DCC2)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 14,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9F7F2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.storefront_rounded,
-                color: Color(0xFF111111),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Top sellers delivering to you',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF111111),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    provider.radiusKm < 25
-                        ? 'No nearby stores yet. We found popular online picks instead.'
-                        : 'Explore online stores and trending fashion that ships to your location.',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF666666),
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () => provider.radiusKm < 25
-                  ? provider.setRadiusKm(25)
-                  : showLocationBottomSheet(context),
-              child: Text(
-                provider.radiusKm < 25 ? 'Expand' : 'Refine',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF666666),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      if (products.isNotEmpty) ...[
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 228,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: products.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
-            itemBuilder: (context, index) => SizedBox(
-              width: 150,
-              child: ProductCard(
-                product: products[index],
-                deliveryAddress: deliveryAddress,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        ProductDetailScreen(product: products[index]),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    ],
   );
 }
 
@@ -3499,9 +2973,8 @@ class _HomeBannerState extends State<HomeBanner> {
                         },
                         placeholder: (context, url) =>
                             const ShimmerWidget(radius: 0),
-                        errorWidget: (context, url, error) => Container(
-                          color: const Color(0xFFFAFAF7),
-                        ),
+                        errorWidget: (context, url, error) =>
+                            Container(color: const Color(0xFFFAFAF7)),
                       ),
                     ],
                   ),
@@ -4470,12 +3943,14 @@ class HomePromoBannerSlot extends StatefulWidget {
     super.key,
     required this.slot,
     required this.fallbackCopy,
-    required this.onTap,
+    this.onTap,
+    this.onTapBlock,
   });
 
   final int slot;
   final PromoBannerCopy fallbackCopy;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final void Function(HomePromoBlockModel? block)? onTapBlock;
 
   @override
   State<HomePromoBannerSlot> createState() => _HomePromoBannerSlotState();
@@ -4536,7 +4011,13 @@ class _HomePromoBannerSlotState extends State<HomePromoBannerSlot> {
         return _promoBanner(
           copy: copy,
           imageUrl: block?.imageUrl,
-          onTap: widget.onTap,
+          onTap: () {
+            if (widget.onTapBlock != null) {
+              widget.onTapBlock!(block);
+            } else if (widget.onTap != null) {
+              widget.onTap!();
+            }
+          },
         );
       },
     );
@@ -4570,145 +4051,4 @@ Widget _productSection(
       ),
     ],
   );
-}
-
-Widget _storeCard({required NearbyStore nearby, required VoidCallback onTap}) {
-  final store = nearby.store;
-  final image = store.logoUrl.isNotEmpty
-      ? store.logoUrl
-      : (store.imageUrl.isNotEmpty ? store.imageUrl : store.bannerImageUrl);
-  return Builder(
-    builder: (context) => TapScale(
-      onTap: onTap,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: 172,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE8DCC2)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 14,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF9F7F2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: image.isEmpty
-                    ? const Icon(Icons.storefront_outlined, size: 18)
-                    : AbzioNetworkImage(
-                        imageUrl: image,
-                        fallbackLabel: store.name,
-                        fit: BoxFit.cover,
-                      ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      store.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF111111),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      store.tagline.trim().isEmpty
-                          ? '${nearby.distanceKm.toStringAsFixed(1)} km away'
-                          : store.tagline.trim(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF666666),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  'Expand',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF666666),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-class _StoreSkeletonList extends StatelessWidget {
-  const _StoreSkeletonList();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AbianzoText.storesLoading,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: context.abzioSecondaryText),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 108,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: 3,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
-            itemBuilder: (context, index) => Container(
-              width: 164,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE6E6E6)),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(height: 16, child: ShimmerBox()),
-                  SizedBox(height: 8),
-                  SizedBox(height: 12, child: ShimmerBox()),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }

@@ -1172,8 +1172,9 @@ class _WishlistScreenState extends State<WishlistScreen> {
         title: Consumer<WishlistProvider>(
           builder: (context, wishlist, child) {
             final count = wishlist.items.length;
+            final countText = count == 1 ? '1 item' : '$count items';
             return Text(
-              'My Wishlist${count > 0 ? ' • $count items' : ''}',
+              'My Wishlist${count > 0 ? ' • $countText' : ''}',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: 18,
                 height: 1.0,
@@ -1315,14 +1316,15 @@ class _WishlistScreenState extends State<WishlistScreen> {
                   ),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                   sliver: SliverGrid.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      mainAxisExtent: 310,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          mainAxisExtent: 360,
+                        ),
                     itemCount: entries.length,
                     itemBuilder: (context, index) {
                       final entry = entries[index];
@@ -1615,7 +1617,9 @@ class _WishlistProductCard extends StatelessWidget {
                 Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
                       child: AspectRatio(
                         aspectRatio: 3 / 4,
                         child: imageUrl.isEmpty
@@ -1633,25 +1637,18 @@ class _WishlistProductCard extends StatelessWidget {
                         top: 8,
                         left: 8,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: const Color(0xFFFFFDF9),
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.star_rounded, size: 12, color: Color(0xFF8D6A2E)),
-                              const SizedBox(width: 3),
-                              Text(
-                                displayProduct.rating.toStringAsFixed(1),
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF17130F),
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            '★ ${displayProduct.rating.toStringAsFixed(1)}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
                           ),
                         ),
                       ),
@@ -1660,14 +1657,21 @@ class _WishlistProductCard extends StatelessWidget {
                       right: 4,
                       child: IconButton(
                         tooltip: 'Remove from wishlist',
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
                         padding: EdgeInsets.zero,
                         style: IconButton.styleFrom(
                           backgroundColor: Colors.white.withValues(alpha: 0.9),
                           foregroundColor: const Color(0xFFC8A44D),
                         ),
-                        icon: const Icon(Icons.delete_outline_rounded, size: 16),
-                        onPressed: () => _confirmRemove(context, displayProduct),
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 16,
+                        ),
+                        onPressed: () =>
+                            _confirmRemove(context, displayProduct),
                       ),
                     ),
                     Positioned(
@@ -1675,33 +1679,59 @@ class _WishlistProductCard extends StatelessWidget {
                       right: 8,
                       child: Consumer<CartProvider>(
                         builder: (context, cart, child) {
-                          final inBag = cart.items.any((item) => item.product.id == displayProduct.id);
+                          final inBag = cart.items.any(
+                            (item) => item.product.id == displayProduct.id,
+                          );
                           final disabled = displayProduct.stock <= 0;
                           return InkWell(
-                            onTap: disabled ? null : () {
-                              if (inBag) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const CartScreen()),
-                                );
-                              } else {
-                                final result = cart.addToCart(displayProduct, selectedSize);
-                                if (result == CartAddResult.storeConflict && context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Your bag already contains products from another store.')),
-                                  );
-                                } else if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Added to Bag')),
-                                  );
-                                }
-                              }
-                            },
+                            onTap: disabled
+                                ? null
+                                : () {
+                                    if (inBag) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const CartScreen(),
+                                        ),
+                                      );
+                                    } else {
+                                      final result = cart.addToCart(
+                                        displayProduct,
+                                        selectedSize,
+                                      );
+                                      if (result ==
+                                              CartAddResult.storeConflict &&
+                                          context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Your bag already contains products from another store.',
+                                            ),
+                                          ),
+                                        );
+                                      } else if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Added to Bag'),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
                             borderRadius: BorderRadius.circular(999),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
-                                color: disabled ? const Color(0xFFD8D0C5) : const Color(0xFF17130F),
+                                color: disabled
+                                    ? const Color(0xFFD8D0C5)
+                                    : const Color(0xFF17130F),
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: Text(
@@ -1720,7 +1750,7 @@ class _WishlistProductCard extends StatelessWidget {
                   ],
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1729,71 +1759,173 @@ class _WishlistProductCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: const Color(0xFF8D6A2E),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 11,
-                          letterSpacing: 0.8,
+                          color: const Color(0xFFB08D2B),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
                         displayProduct.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF17130F),
+                          color: Colors.black,
                           fontWeight: FontWeight.w500,
                           fontSize: 13,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       if (_discountPercent > 0) ...[
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 4,
+                          runSpacing: 4,
                           children: [
                             Text(
                               _formatPrice(_effectivePrice),
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: const Color(0xFF17130F),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13,
-                              ),
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                             ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                _formatPrice(_originalPrice!),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: const Color(0xFF8B8277),
-                                  fontSize: 10,
-                                  decoration: TextDecoration.lineThrough,
-                                ),
-                              ),
+                            Text(
+                              _formatPrice(_originalPrice!),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                            ),
+                            Text(
+                              '$_discountPercent% OFF',
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: Colors.green,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$_discountPercent% OFF',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: const Color(0xFF2F7A3D),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                          ),
                         ),
                       ] else ...[
                         Text(
                           _formatPrice(_effectivePrice),
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: const Color(0xFF17130F),
-                            fontWeight: FontWeight.w900,
-                            fontSize: 13,
-                          ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
                         ),
                       ],
+                    ],
+                  ),
+                ),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFEDE6D8),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      InkWell(
+                        onTap: () => _confirmRemove(context, displayProduct),
+                        borderRadius: BorderRadius.circular(16),
+                        child: const SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: Center(
+                            child: Icon(
+                              Icons.delete_outline_rounded,
+                              size: 18,
+                              color: Color(0xFF8A8272),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Consumer<CartProvider>(
+                        builder: (context, cart, child) {
+                          final disabled = displayProduct.stock <= 0;
+                          return InkWell(
+                            onTap: disabled
+                                ? null
+                                : () {
+                                    final inBag = cart.items.any(
+                                      (item) =>
+                                          item.product.id == displayProduct.id,
+                                    );
+                                    if (inBag) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const CartScreen(),
+                                        ),
+                                      );
+                                    } else {
+                                      final result = cart.addToCart(
+                                        displayProduct,
+                                        selectedSize,
+                                      );
+                                      if (result ==
+                                              CartAddResult.storeConflict &&
+                                          context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Your bag already contains products from another store.',
+                                            ),
+                                          ),
+                                        );
+                                      } else if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Added to Bag'),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                            borderRadius: BorderRadius.circular(16),
+                            child: const SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: Center(
+                                child: Icon(
+                                  Icons.shopping_bag_outlined,
+                                  size: 18,
+                                  color: Color(0xFF8A8272),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      InkWell(
+                        onTap: () {},
+                        borderRadius: BorderRadius.circular(16),
+                        child: const SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: Center(
+                            child: Icon(
+                              Icons.share_outlined,
+                              size: 18,
+                              color: Color(0xFF8A8272),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1865,8 +1997,6 @@ class _WishlistBadge extends StatelessWidget {
   }
 }
 
-
-
 class _WishlistTile extends StatelessWidget {
   const _WishlistTile({required this.item, required this.product});
 
@@ -1923,12 +2053,9 @@ class _WishlistTile extends StatelessWidget {
   Future<void> _openTryLive(BuildContext context, Product product) async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => ProductDetailScreen(product: product),
-      ),
+      MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)),
     );
   }
-
 
   Future<void> _addToBag(BuildContext context, Product product) async {
     final selectedSize = product.sizes.isNotEmpty ? product.sizes.first : 'M';

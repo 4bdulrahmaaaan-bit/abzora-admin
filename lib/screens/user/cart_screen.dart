@@ -1303,29 +1303,189 @@ class _CartLineItem extends StatelessWidget {
     }
     final selected = await showModalBottomSheet<String>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: product.sizes
-                .map(
-                  (size) => ChoiceChip(
-                    label: Text(size),
-                    selected: size == item.size,
-                    onSelected: (_) => Navigator.pop(context, size),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: const Color.fromRGBO(0, 0, 0, 0.4),
+      builder: (context) => _SizeSelectionSheet(
+        product: product,
+        currentSize: item.size,
+      ),
+    );
+    if (selected != null && selected != item.size) {
+      onSelectSize(selected);
+    }
+  }
+}
+
+class _SizeSelectionSheet extends StatefulWidget {
+  const _SizeSelectionSheet({
+    required this.product,
+    required this.currentSize,
+  });
+
+  final Product product;
+  final String currentSize;
+
+  @override
+  State<_SizeSelectionSheet> createState() => _SizeSelectionSheetState();
+}
+
+class _SizeSelectionSheetState extends State<_SizeSelectionSheet> {
+  late String _selectedSize;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedSize = widget.currentSize;
+  }
+  
+  int? _getStockForSize(String size) {
+    for (final cv in widget.product.colorVariants) {
+      for (final szStock in cv.sizeStocks) {
+        if (szStock.sizeName == size) return szStock.stockQuantity;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 8, bottom: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD8D0C0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            
+            // Header row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Select Size',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
-                )
-                .toList(),
-          ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.centerRight,
+                      child: const Icon(
+                        Icons.close,
+                        size: 24,
+                        color: Color(0xFF8A8272),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const Divider(height: 1, thickness: 1, color: Color(0xFFEDE6D8)),
+            
+            // Size options
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: widget.product.sizes.map((size) {
+                    final isSelected = size == _selectedSize;
+                    final stock = _getStockForSize(size);
+                    
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedSize = size;
+                              });
+                              // Return selected size after brief delay
+                              Future.delayed(const Duration(milliseconds: 300), () {
+                                if (context.mounted) {
+                                  Navigator.pop(context, size);
+                                }
+                              });
+                            },
+                            child: Container(
+                              constraints: const BoxConstraints(minWidth: 56, minHeight: 48),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF1C1A16) : Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                                border: isSelected ? null : Border.all(color: const Color(0xFFEDE6D8), width: 1.5),
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isSelected)
+                                    const Padding(
+                                      padding: EdgeInsets.only(right: 6),
+                                      child: Icon(Icons.check, size: 14, color: Colors.white),
+                                    ),
+                                  Text(
+                                    size,
+                                    style: TextStyle(
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      color: isSelected ? Colors.white : Colors.black,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (stock != null && stock > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                '$stock left',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF8A8272),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
-    if (selected != null) {
-      onSelectSize(selected);
-    }
   }
 }
 

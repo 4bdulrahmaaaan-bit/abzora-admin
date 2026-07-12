@@ -12,6 +12,7 @@ import '../../utils/app_error_text.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/tracking_step_widget.dart';
 import '../../widgets/tracking_timeline.dart';
+import '../../widgets/price_breakdown_card.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
   const OrderTrackingScreen({super.key});
@@ -1429,17 +1430,20 @@ class _OrderDetailsPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _sectionTitle(context, 'Total Order Price'),
-                      ),
-                      Text(
-                        '₹${order.totalAmount.toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
-                      ),
-                    ],
+                  _sectionTitle(context, 'Price Details'),
+                  const SizedBox(height: 12),
+                  PriceBreakdownCard(
+                    originalSubtotal: order.subtotal,
+                    dynamicSubtotal: order.subtotal,
+                    discount: order.discountAmount,
+                    tax: order.taxAmount,
+                    taxRate: order.taxRate,
+                    shippingCharge: order.shippingCharge,
+                    customCharge: order.atelierTailoringCharge + order.atelierCustomizationCharge,
+                    walletCredit: order.walletCreditUsed,
+                    total: order.totalAmount,
+                    formatter: NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0),
+                    isLegacyOrder: order.taxAmount <= 0 && order.taxRate <= 0,
                   ),
                   const SizedBox(height: 12),
                   _detailRow(

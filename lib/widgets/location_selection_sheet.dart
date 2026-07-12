@@ -10,6 +10,7 @@ import '../services/location_service.dart';
 import '../services/delivery_service.dart';
 import 'address_form_widget.dart';
 import '../utils/phone_number_utils.dart';
+import '../screens/user/map_location_picker_screen.dart';
 
 class LocationSelectionSheet extends StatefulWidget {
   const LocationSelectionSheet({
@@ -310,21 +311,72 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet> {
     return _pincodeController.text.length == 6 && _isDeliverable;
   }
 
+  bool _isUsingCurrentLocation = false;
+
   Future<void> _useCurrentLocation() async {
-    final result = await _locationService.getCurrentLocation();
-    if (result.status == LocationStatus.success && result.address != null) {
-      final postalCode = result.address!.postalCode.trim();
-      if (postalCode.isNotEmpty) {
-        _pincodeController.text = postalCode;
-        _onPincodeChanged(postalCode);
+    if (_isUsingCurrentLocation) return;
+    setState(() => _isUsingCurrentLocation = true);
+    try {
+      final result = await _locationService.getCurrentLocation();
+      if (result.status == LocationStatus.success && result.address != null) {
+        final postalCode = result.address!.postalCode.trim();
+        if (postalCode.isNotEmpty) {
+          _pincodeController.text = postalCode;
+          _onPincodeChanged(postalCode);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not determine pincode for your location.')),
+            );
+          }
+        }
+      } else if (result.status == LocationStatus.permissionDeniedForever || result.status == LocationStatus.serviceDisabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(result.message ?? 'Location access is unavailable.'),
+            action: SnackBarAction(
+              label: 'Settings',
+              onPressed: () async {
+                if (result.status == LocationStatus.serviceDisabled) {
+                  await _locationService.openSystemLocationSettings();
+                } else {
+                  await _locationService.openSystemAppSettings();
+                }
+              },
+            ),
+          ));
+        }
+      } else if (result.status != LocationStatus.success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result.message ?? 'Unable to fetch your location right now.')),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUsingCurrentLocation = false);
       }
     }
   }
 
-  void _searchLocation() {
-    // We will hook this up later to the map picker.
-    // The requirement says: "opens the existing Google Maps-based location picker"
-    // To be implemented.
+  Future<void> _searchLocation() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MapLocationPickerScreen()),
+    );
+    
+    if (result is LocationAddress && mounted) {
+      final postalCode = result.postalCode.trim();
+      if (postalCode.isNotEmpty) {
+        _pincodeController.text = postalCode;
+        _onPincodeChanged(postalCode);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not determine pincode from selected location.')),
+        );
+      }
+    }
   }
 
   @override
@@ -422,7 +474,7 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet> {
                     ),
                     const SizedBox(height: 16),
                     InkWell(
-                      onTap: _useCurrentLocation,
+                      onTap: _isUsingCurrentLocation ? null : _useCurrentLocation,
                       child: Row(
                         children: [
                           const Icon(Icons.my_location, size: 18, color: Colors.black),
@@ -432,11 +484,18 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet> {
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w500,
                               fontSize: 15,
-                              color: Colors.black,
+                              color: _isUsingCurrentLocation ? Colors.grey : Colors.black,
                             ),
                           ),
                           const Spacer(),
-                          const Icon(Icons.chevron_right, size: 14, color: Colors.grey),
+                          if (_isUsingCurrentLocation)
+                            const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          else
+                            const Icon(Icons.chevron_right, size: 14, color: Colors.grey),
                         ],
                       ),
                     ),
@@ -585,14 +644,18 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet> {
                             _        => 'HOME',
                           };
 
-                          final fullAddress = [
-                            address.houseDetails,
-                            address.addressLine,
-                            address.locality,
-                            address.city,
-                            address.state,
-                            address.pincode,
-                          ].where((s) => s.trim().isNotEmpty).join(', ');
+                          final rawAddressParts = [
+                            address.houseDetails.trim(),
+                            address.addressLine.trim(),
+                            address.locality.trim(),
+                            address.city.trim(),
+                            address.state.trim(),
+                            address.pincode.trim(),
+                          ].where((s) => s.isNotEmpty).toList();
+
+                          final seen = <String>{};
+                          final deduped = rawAddressParts.where((s) => seen.add(s.toLowerCase())).toList();
+                          final fullAddress = deduped.join(', ');
 
                           final displayName = address.name.trim().isNotEmpty
                               ? address.name.trim()

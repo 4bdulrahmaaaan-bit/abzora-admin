@@ -18,7 +18,6 @@ class CategoryManagementModel {
     required this.createdAt,
     required this.updatedAt,
     required this.deletedAt,
-    required this.subcategories,
   });
 
   final String id;
@@ -39,22 +38,10 @@ class CategoryManagementModel {
   final String createdAt;
   final String updatedAt;
   final String deletedAt;
-  final List<SubcategoryManagementModel> subcategories;
 
   bool get hasParent => parentId.trim().isNotEmpty;
 
   factory CategoryManagementModel.fromMap(Map<String, dynamic> map) {
-    final subcategories =
-        ((map['subcategories'] as List?) ?? const [])
-            .whereType<Map>()
-            .map(
-              (item) => SubcategoryManagementModel.fromMap(
-                Map<String, dynamic>.from(item),
-              ),
-            )
-            .toList()
-          ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
-
     return CategoryManagementModel(
       id: map['id']?.toString() ?? '',
       name: map['name']?.toString() ?? '',
@@ -82,7 +69,6 @@ class CategoryManagementModel {
       createdAt: map['createdAt']?.toString() ?? '',
       updatedAt: map['updatedAt']?.toString() ?? '',
       deletedAt: map['deletedAt']?.toString() ?? '',
-      subcategories: subcategories,
     );
   }
 
@@ -127,7 +113,6 @@ class CategoryManagementModel {
     String? createdAt,
     String? updatedAt,
     String? deletedAt,
-    List<SubcategoryManagementModel>? subcategories,
   }) {
     return CategoryManagementModel(
       id: id ?? this.id,
@@ -148,70 +133,6 @@ class CategoryManagementModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
-      subcategories: subcategories ?? this.subcategories,
-    );
-  }
-}
-
-class SubcategoryManagementModel {
-  const SubcategoryManagementModel({
-    required this.id,
-    required this.name,
-    required this.slug,
-    required this.image,
-    required this.sortOrder,
-    required this.isActive,
-  });
-
-  final String id;
-  final String name;
-  final String slug;
-  final String image;
-  final int sortOrder;
-  final bool isActive;
-
-  factory SubcategoryManagementModel.fromMap(Map<String, dynamic> map) {
-    return SubcategoryManagementModel(
-      id: map['id']?.toString() ?? '',
-      name: map['name']?.toString() ?? '',
-      slug: map['slug']?.toString() ?? '',
-      image: map['image']?.toString() ?? map['icon']?.toString() ?? '',
-      sortOrder:
-          int.tryParse(
-            map['sortOrder']?.toString() ?? map['order']?.toString() ?? '',
-          ) ??
-          0,
-      isActive: map['isActive'] != false,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'slug': slug,
-      'image': image,
-      'icon': image,
-      'sortOrder': sortOrder,
-      'order': sortOrder,
-      'isActive': isActive,
-    };
-  }
-
-  SubcategoryManagementModel copyWith({
-    String? id,
-    String? name,
-    String? slug,
-    String? image,
-    int? sortOrder,
-    bool? isActive,
-  }) {
-    return SubcategoryManagementModel(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      slug: slug ?? this.slug,
-      image: image ?? this.image,
-      sortOrder: sortOrder ?? this.sortOrder,
-      isActive: isActive ?? this.isActive,
     );
   }
 }

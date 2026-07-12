@@ -276,6 +276,7 @@ extension _AdminSettingsPricingArSectionV2 on _AdminWebPanelState {
     final discounts = _pricingConfig.discounts;
     final rider = _pricingConfig.riderPayouts;
     final rules = _pricingConfig.dynamicRules;
+    final taxConfig = _pricingConfig.taxConfig;
     final simulationOutputs = Map<String, dynamic>.from(
       _lastPricingSimulation['outputs'] as Map? ?? const {},
     );
@@ -679,6 +680,41 @@ extension _AdminSettingsPricingArSectionV2 on _AdminWebPanelState {
           ],
         ),
         const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _Panel(
+                title: 'Tax configuration',
+                subtitle: 'Manage GST rates and inclusive tax settings.',
+                child: Column(
+                  children: [
+                    _pricingMetricTile(
+                      title: 'Default GST Rate',
+                      value:
+                          '${_pricingValue(taxConfig, 'defaultGstRate', 5).toStringAsFixed(1)}%',
+                      subtitle: 'Base tax rate applied to all taxable items.',
+                      onEdit: () => _editPricingNumber(
+                        title: 'Default GST Rate',
+                        endpoint: '/admin/pricing/tax',
+                        fieldKey: 'defaultGstRate',
+                        currentValue: _pricingValue(
+                          taxConfig,
+                          'defaultGstRate',
+                          5,
+                        ),
+                        min: 0,
+                        max: 100,
+                        percent: false,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
         _Panel(
           title: 'Pricing simulation',
           subtitle:
@@ -863,4 +899,3 @@ extension _AdminSettingsPricingArSectionV2 on _AdminWebPanelState {
     );
   }
 }
-

@@ -42,6 +42,7 @@ import '../../theme.dart';
 import '../../utils/app_error_text.dart';
 
 import '../../widgets/state_views.dart';
+import '../../widgets/price_breakdown_card.dart';
 import '../../widgets/location_selection_sheet.dart';
 import 'order_success_screen.dart';
 
@@ -1987,7 +1988,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                     ? const _LoadingCard()
 
-                    : _PriceBreakdownCard(
+                    : PriceBreakdownCard(
 
                         originalSubtotal:
 
@@ -2014,6 +2015,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         total: total,
 
                         formatter: currency,
+
+                        taxRate: 5,
 
                       ),
 
@@ -5153,286 +5156,7 @@ class _ReferralCreditCard extends StatelessWidget {
 
 
 
-class _PriceBreakdownCard extends StatelessWidget {
 
-  const _PriceBreakdownCard({
-
-    required this.originalSubtotal,
-
-    required this.dynamicSubtotal,
-
-    required this.discount,
-
-    required this.tax,
-
-    required this.shippingCharge,
-
-    required this.customCharge,
-
-    required this.walletCredit,
-
-    required this.total,
-
-    required this.formatter,
-
-  });
-
-
-
-  final double originalSubtotal;
-
-  final double dynamicSubtotal;
-
-  final double discount;
-
-  final double tax;
-
-  final double shippingCharge;
-  final double customCharge;
-
-  final double walletCredit;
-
-  final double total;
-
-  final NumberFormat formatter;
-
-
-
-  @override
-
-  Widget build(BuildContext context) {
-
-    return Container(
-
-      padding: const EdgeInsets.all(12),
-
-      decoration: BoxDecoration(
-
-        color: Theme.of(context).cardColor,
-
-        borderRadius: BorderRadius.circular(16),
-
-        border: Border.all(color: context.abzioBorder),
-
-      ),
-
-      child: Column(
-
-        children: [
-
-          _PriceLine(
-
-            label: 'Base Price',
-
-            value: formatter.format(originalSubtotal),
-
-          ),
-
-          if ((dynamicSubtotal - originalSubtotal).abs() > 0.01) ...[
-
-            const SizedBox(height: 6),
-
-            _PriceLine(
-
-              label: 'Dynamic Price',
-
-              value: formatter.format(dynamicSubtotal),
-
-              valueColor: dynamicSubtotal < originalSubtotal
-
-                  ? const Color(0xFF218B5B)
-
-                  : null,
-
-            ),
-
-          ],
-
-          if ((dynamicSubtotal - originalSubtotal).abs() <= 0.01) ...[
-
-            const SizedBox(height: 6),
-
-            _PriceLine(
-
-              label: 'Subtotal',
-
-              value: formatter.format(dynamicSubtotal),
-
-            ),
-
-          ],
-
-          const SizedBox(height: 6),
-
-          _PriceLine(label: 'Delivery fee', value: shippingCharge > 0 ? formatter.format(shippingCharge) : 'Free'),
-
-          if (customCharge > 0) ...[
-
-            const SizedBox(height: 6),
-
-            _PriceLine(
-
-              label: 'Custom fit service',
-
-              value: formatter.format(customCharge),
-
-            ),
-
-          ],
-
-          if (discount > 0) ...[
-
-            const SizedBox(height: 6),
-
-            _PriceLine(
-
-              label: 'Discount',
-
-              value: '- ${formatter.format(discount)}',
-
-              valueColor: const Color(0xFF218B5B),
-
-            ),
-
-          ],
-
-          if (walletCredit > 0) ...[
-
-            const SizedBox(height: 6),
-
-            _PriceLine(
-
-              label: 'Abianzo Credits',
-
-              value: '- ${formatter.format(walletCredit)}',
-
-              valueColor: const Color(0xFF218B5B),
-
-            ),
-
-          ],
-
-          const SizedBox(height: 6),
-
-          _PriceLine(label: 'Taxes', value: formatter.format(tax)),
-
-          const Padding(
-
-            padding: EdgeInsets.symmetric(vertical: 10),
-
-            child: Divider(height: 1),
-
-          ),
-
-          _PriceLine(
-
-            label: 'Total amount',
-
-            value: formatter.format(total),
-
-            isTotal: true,
-
-          ),
-
-        ],
-
-      ),
-
-    );
-
-  }
-
-}
-
-
-
-class _PriceLine extends StatelessWidget {
-
-  const _PriceLine({
-
-    required this.label,
-
-    required this.value,
-
-    this.valueColor,
-
-    this.isTotal = false,
-
-  });
-
-
-
-  final String label;
-
-  final String value;
-
-  final Color? valueColor;
-
-  final bool isTotal;
-
-
-
-  @override
-
-  Widget build(BuildContext context) {
-
-    final style = isTotal
-
-        ? Theme.of(
-
-            context,
-
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)
-
-        : Theme.of(
-
-            context,
-
-          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
-
-    return Row(
-
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
-      children: [
-
-        Expanded(
-
-          child: Text(
-
-            label,
-
-            maxLines: 1,
-
-            overflow: TextOverflow.ellipsis,
-
-            style: style,
-
-          ),
-
-        ),
-
-        const SizedBox(width: 12),
-
-        Text(
-
-          value,
-
-          maxLines: 1,
-
-          overflow: TextOverflow.ellipsis,
-
-          style: style?.copyWith(color: valueColor),
-
-        ),
-
-      ],
-
-    );
-
-  }
-
-}
 
 
 

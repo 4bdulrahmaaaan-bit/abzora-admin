@@ -1670,6 +1670,8 @@ class OrderModel {
   final double extraCharges;
   final double subtotal;
   final double taxAmount;
+  final double taxRate;
+  final double discountAmount;
   final double platformCommission;
   final double vendorEarnings;
   final String payoutStatus;
@@ -1750,6 +1752,8 @@ class OrderModel {
     this.extraCharges = 0,
     this.subtotal = 0,
     this.taxAmount = 0,
+    this.taxRate = 0,
+    this.discountAmount = 0,
     this.platformCommission = 0,
     this.vendorEarnings = 0,
     this.payoutStatus = 'Pending',
@@ -1830,6 +1834,8 @@ class OrderModel {
     'extraCharges': extraCharges,
     'subtotal': subtotal,
     'taxAmount': taxAmount,
+    'taxRate': taxRate,
+    'discountAmount': discountAmount,
     'platformCommission': platformCommission,
     'vendorEarnings': vendorEarnings,
     'payoutStatus': payoutStatus,
@@ -1918,6 +1924,8 @@ class OrderModel {
     extraCharges: (map['extraCharges'] ?? 0.0).toDouble(),
     subtotal: (map['subtotal'] ?? 0.0).toDouble(),
     taxAmount: (map['taxAmount'] ?? 0.0).toDouble(),
+    taxRate: (map['taxRate'] ?? 0.0).toDouble(),
+    discountAmount: (map['discountAmount'] ?? 0.0).toDouble(),
     platformCommission: (map['platformCommission'] ?? 0.0).toDouble(),
     vendorEarnings: (map['vendorEarnings'] ?? 0.0).toDouble(),
     payoutStatus: map['payoutStatus'] ?? 'Pending',
@@ -1925,7 +1933,10 @@ class OrderModel {
     trackingId: map['trackingId'] ?? '',
     deliveryStatus: map['deliveryStatus'] ?? 'Pending',
     deliveryType: map['deliveryType'] ?? 'COURIER_DELIVERY',
-    deliveryProvider: map['deliveryProvider'] ?? map['assignedDeliveryPartner'] ?? 'Unassigned',
+    deliveryProvider:
+        map['deliveryProvider'] ??
+        map['assignedDeliveryPartner'] ??
+        'Unassigned',
     trackingNumber: map['trackingNumber'] ?? map['trackingId'] ?? '',
     shipmentId: map['shipmentId'] ?? '',
     awbNumber: map['awbNumber'] ?? '',
@@ -3098,39 +3109,39 @@ class Coupon {
   };
 
   factory Coupon.fromMap(Map<String, dynamic> map, String id) => Coupon(
-        id: map['id']?.toString().trim().isNotEmpty == true
-            ? map['id'].toString().trim()
-            : id,
-        vendorId: map['vendorId']?.toString().trim().isNotEmpty == true
-            ? map['vendorId'].toString().trim()
-            : 'ADMIN',
-        couponCode: map['couponCode']?.toString().trim().toUpperCase() ?? '',
-        discountType: map['discountType']?.toString().trim() ?? 'percentage',
-        discountValue: ((map['discountValue'] ?? 0) as num).toDouble(),
-        minimumOrderValue: ((map['minimumOrderValue'] ?? 0) as num).toDouble(),
-        maximumDiscount: map['maximumDiscount'] == null
-            ? null
-            : (map['maximumDiscount'] as num).toDouble(),
-        usageLimit: map['usageLimit'] == null
-            ? null
-            : ((map['usageLimit'] as num).toInt()),
-        usedCount: ((map['usedCount'] ?? 0) as num).toInt(),
-        status: map['status']?.toString().trim().isNotEmpty == true
-            ? map['status'].toString().trim()
-            : 'draft',
-        startDate: map['startDate']?.toString() ?? '',
-        endDate: map['endDate']?.toString() ?? '',
-        eligibleUserIds: (map['eligibleUserIds'] as List? ?? const [])
-            .map((item) => item.toString().trim())
-            .where((item) => item.isNotEmpty)
-            .toList(),
-        firstOrderOnly: map['firstOrderOnly'] == true,
-        discountAmount: map['discountAmount'] == null
-            ? null
-            : (map['discountAmount'] as num).toDouble(),
-        isEligible: map['isEligible'] == null ? null : map['isEligible'] == true,
-        eligibilityMessage: map['eligibilityMessage']?.toString(),
-      );
+    id: map['id']?.toString().trim().isNotEmpty == true
+        ? map['id'].toString().trim()
+        : id,
+    vendorId: map['vendorId']?.toString().trim().isNotEmpty == true
+        ? map['vendorId'].toString().trim()
+        : 'ADMIN',
+    couponCode: map['couponCode']?.toString().trim().toUpperCase() ?? '',
+    discountType: map['discountType']?.toString().trim() ?? 'percentage',
+    discountValue: ((map['discountValue'] ?? 0) as num).toDouble(),
+    minimumOrderValue: ((map['minimumOrderValue'] ?? 0) as num).toDouble(),
+    maximumDiscount: map['maximumDiscount'] == null
+        ? null
+        : (map['maximumDiscount'] as num).toDouble(),
+    usageLimit: map['usageLimit'] == null
+        ? null
+        : ((map['usageLimit'] as num).toInt()),
+    usedCount: ((map['usedCount'] ?? 0) as num).toInt(),
+    status: map['status']?.toString().trim().isNotEmpty == true
+        ? map['status'].toString().trim()
+        : 'draft',
+    startDate: map['startDate']?.toString() ?? '',
+    endDate: map['endDate']?.toString() ?? '',
+    eligibleUserIds: (map['eligibleUserIds'] as List? ?? const [])
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty)
+        .toList(),
+    firstOrderOnly: map['firstOrderOnly'] == true,
+    discountAmount: map['discountAmount'] == null
+        ? null
+        : (map['discountAmount'] as num).toDouble(),
+    isEligible: map['isEligible'] == null ? null : map['isEligible'] == true,
+    eligibilityMessage: map['eligibilityMessage']?.toString(),
+  );
 }
 
 class CouponCatalogBundle {
@@ -4706,7 +4717,9 @@ class PayoutRecoveryJobSummary {
         lastCheckedAt: map['lastCheckedAt']?.toString() ?? '',
         resolvedAt: map['resolvedAt']?.toString() ?? '',
         failureReason: map['failureReason']?.toString() ?? '',
-        metadata: Map<String, dynamic>.from(map['metadata'] as Map? ?? const {}),
+        metadata: Map<String, dynamic>.from(
+          map['metadata'] as Map? ?? const {},
+        ),
         createdAt: map['createdAt']?.toString() ?? '',
         updatedAt: map['updatedAt']?.toString() ?? '',
       );
@@ -5580,9 +5593,7 @@ class PlatformSettings {
         marketplaceEnabled: map['marketplaceEnabled'] ?? true,
         riderDispatchEnabled: map['riderDispatchEnabled'] ?? true,
         enableLocalRiderDelivery: map['enableLocalRiderDelivery'] ?? false,
-        cities: Map<String, bool>.from(
-          map['cities'] ?? const {},
-        ),
+        cities: Map<String, bool>.from(map['cities'] ?? const {}),
         regionVendorAvailability: Map<String, bool>.from(
           map['regionVendorAvailability'] ?? const {},
         ),
@@ -5660,6 +5671,7 @@ class PricingConfigModel {
   final Map<String, dynamic> discounts;
   final Map<String, dynamic> riderPayouts;
   final Map<String, dynamic> dynamicRules;
+  final Map<String, dynamic> taxConfig;
   final DateTime? updatedAt;
   final String updatedBy;
   final String updateSource;
@@ -5672,6 +5684,7 @@ class PricingConfigModel {
     this.discounts = const {},
     this.riderPayouts = const {},
     this.dynamicRules = const {},
+    this.taxConfig = const {},
     this.updatedAt,
     this.updatedBy = '',
     this.updateSource = '',
@@ -5685,6 +5698,7 @@ class PricingConfigModel {
     Map<String, dynamic>? discounts,
     Map<String, dynamic>? riderPayouts,
     Map<String, dynamic>? dynamicRules,
+    Map<String, dynamic>? taxConfig,
     DateTime? updatedAt,
     String? updatedBy,
     String? updateSource,
@@ -5697,6 +5711,7 @@ class PricingConfigModel {
       discounts: discounts ?? this.discounts,
       riderPayouts: riderPayouts ?? this.riderPayouts,
       dynamicRules: dynamicRules ?? this.dynamicRules,
+      taxConfig: taxConfig ?? this.taxConfig,
       updatedAt: updatedAt ?? this.updatedAt,
       updatedBy: updatedBy ?? this.updatedBy,
       updateSource: updateSource ?? this.updateSource,
@@ -5723,6 +5738,9 @@ class PricingConfigModel {
       ),
       dynamicRules: Map<String, dynamic>.from(
         map['dynamicRules'] as Map? ?? const {},
+      ),
+      taxConfig: Map<String, dynamic>.from(
+        map['taxConfig'] as Map? ?? const {},
       ),
       updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? ''),
       updatedBy: map['updatedBy']?.toString() ?? '',
@@ -6060,4 +6078,3 @@ class CustomBrandProduct {
         category: map['category'] ?? '',
       );
 }
-

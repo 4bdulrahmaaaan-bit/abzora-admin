@@ -386,7 +386,9 @@ class BackendCommerceService {
   }
 
   Future<List<Coupon>> getAdminCoupons({double cartValue = 0}) async {
-    final query = cartValue > 0 ? '?cartValue=${cartValue.toStringAsFixed(2)}' : '';
+    final query = cartValue > 0
+        ? '?cartValue=${cartValue.toStringAsFixed(2)}'
+        : '';
     final payload = await _client.get(
       '/auth/coupons$query',
       authenticated: true,
@@ -1007,44 +1009,6 @@ class BackendCommerceService {
           ),
         )
         .toList();
-  }
-
-  Future<SubcategoryManagementModel> addSubcategory({
-    required String categoryId,
-    required SubcategoryManagementModel subcategory,
-  }) async {
-    final payload = await _client.post(
-      '/api/categories/$categoryId/subcategories',
-      authenticated: true,
-      body: subcategory.toMap(),
-    );
-    return SubcategoryManagementModel.fromMap(
-      Map<String, dynamic>.from(payload as Map),
-    );
-  }
-
-  Future<SubcategoryManagementModel> updateSubcategory({
-    required String categoryId,
-    required SubcategoryManagementModel subcategory,
-  }) async {
-    final payload = await _client.put(
-      '/api/categories/$categoryId/subcategories/${subcategory.id}',
-      authenticated: true,
-      body: subcategory.toMap(),
-    );
-    return SubcategoryManagementModel.fromMap(
-      Map<String, dynamic>.from(payload as Map),
-    );
-  }
-
-  Future<void> deleteSubcategory({
-    required String categoryId,
-    required String subcategoryId,
-  }) async {
-    await _client.delete(
-      '/api/categories/$categoryId/subcategories/$subcategoryId',
-      authenticated: true,
-    );
   }
 
   Future<List<Product>> getProducts({
@@ -4691,9 +4655,7 @@ class BackendCommerceService {
       'atelier': product.atelier,
       'garmentConfig': product.garmentConfig,
       'vendorMeta': product.vendorMeta,
-      'trialHome': {
-        'trialEnabled': tryBeforeYouBuy,
-      },
+      'trialHome': {'trialEnabled': tryBeforeYouBuy},
     };
   }
 
@@ -4864,6 +4826,8 @@ class BackendCommerceService {
           map['totalAmount'] ??
           0,
       'taxAmount': map['taxAmount'] ?? 0,
+      'taxRate': map['taxRate'] ?? 0,
+      'discountAmount': map['discountAmount'] ?? 0,
       'platformCommission': map['platformCommission'] ?? 0,
       'vendorEarnings': map['vendorEarnings'] ?? 0,
       'payoutStatus': map['payoutStatus'] ?? 'Pending',
@@ -4873,7 +4837,10 @@ class BackendCommerceService {
         map['orderStatus']?.toString(),
       ),
       'deliveryType': map['deliveryType'] ?? 'COURIER_DELIVERY',
-      'deliveryProvider': map['deliveryProvider'] ?? map['assignedDeliveryPartner'] ?? 'Unassigned',
+      'deliveryProvider':
+          map['deliveryProvider'] ??
+          map['assignedDeliveryPartner'] ??
+          'Unassigned',
       'trackingNumber': map['trackingNumber'] ?? map['trackingId'] ?? '',
       'shipmentId': map['shipmentId'] ?? '',
       'awbNumber': map['awbNumber'] ?? '',
@@ -5118,6 +5085,3 @@ class BackendCommerceService {
     }, map['id']?.toString() ?? '');
   }
 }
-
-
-

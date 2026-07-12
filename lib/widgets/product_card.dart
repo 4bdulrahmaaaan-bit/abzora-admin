@@ -54,7 +54,8 @@ class _ProductCardState extends State<ProductCard> {
   @override
   void didUpdateWidget(covariant ProductCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_productSignature(oldWidget.product) != _productSignature(widget.product) ||
+    if (_productSignature(oldWidget.product) !=
+            _productSignature(widget.product) ||
         _addressSignature(oldWidget.deliveryAddress) !=
             _addressSignature(widget.deliveryAddress)) {
       _refreshDeliveryLabel();
@@ -94,241 +95,234 @@ class _ProductCardState extends State<ProductCard> {
                   }
                   setState(() => _pressed = value);
                 },
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(8),
                 child: Ink(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFFFFF),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: const Color(0xFFB89A57).withValues(alpha: 0.18),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.028),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 9,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                imageUrl.isEmpty
-                                    ? AnimatedScale(
-                                        scale: _pressed ? 1.03 : 1,
-                                        duration: const Duration(
-                                          milliseconds: 180,
-                                        ),
-                                        curve: Curves.easeOutCubic,
-                                        child: _ProductFallbackImage(
-                                          label: displayName,
-                                          theme: theme,
-                                        ),
-                                      )
-                                    : AnimatedScale(
-                                        scale: _pressed ? 1.03 : 1,
-                                        duration: const Duration(
-                                          milliseconds: 180,
-                                        ),
-                                        curve: Curves.easeOutCubic,
-                                        child: CachedNetworkImage(
-                                          imageUrl: imageUrl,
-                                          fit: BoxFit.cover,
-                                          fadeInDuration: const Duration(
-                                            milliseconds: 260,
-                                          ),
-                                          placeholder: (context, url) =>
-                                              const ShimmerBox(
-                                                borderRadius: BorderRadius.all(
-                                                  Radius.circular(20),
-                                                ),
-                                              ),
-                                          errorWidget: (context, url, error) =>
-                                              _ProductFallbackImage(
-                                                label: displayName,
-                                                theme: theme,
-                                              ),
-                                        ),
+                  decoration: const BoxDecoration(color: Colors.transparent),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.all(
+                            Radius.circular(8),
+                          ),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              imageUrl.isEmpty
+                                  ? AnimatedScale(
+                                      scale: _pressed ? 1.03 : 1,
+                                      duration: const Duration(
+                                        milliseconds: 180,
                                       ),
-                                Positioned(
-                                  left: 8,
-                                  top: 8,
-                                  child: _GlassRatingPill(
-                                    label: ratingOverlayLabel,
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.12,
-                                          ),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 4),
+                                      curve: Curves.easeOutCubic,
+                                      child: _ProductFallbackImage(
+                                        label: displayName,
+                                        theme: theme,
+                                      ),
+                                    )
+                                  : AnimatedScale(
+                                      scale: _pressed ? 1.03 : 1,
+                                      duration: const Duration(
+                                        milliseconds: 180,
+                                      ),
+                                      curve: Curves.easeOutCubic,
+                                      child: CachedNetworkImage(
+                                        imageUrl: imageUrl,
+                                        fit: BoxFit.cover,
+                                        fadeInDuration: const Duration(
+                                          milliseconds: 260,
                                         ),
-                                      ],
+                                        placeholder: (context, url) =>
+                                            const ShimmerBox(
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(20),
+                                              ),
+                                            ),
+                                        errorWidget: (context, url, error) =>
+                                            _ProductFallbackImage(
+                                              label: displayName,
+                                              theme: theme,
+                                            ),
+                                      ),
                                     ),
-                                    child: AnimatedWishlistButton(
-                                      isSelected: isWishlisted,
-                                      isLoading: isPending,
-                                      usePremiumIntentAnimation: true,
-                                      size: 32,
-                                      iconSize: 18,
-                                      backgroundColor: null,
-                                      selectedColor: const Color(0xFFC8A44D),
-                                      unselectedColor: Colors.white,
-                                      onTap: () async {
-                                        final isAllowed =
-                                            await SoftAuthGate.ensureAuthenticated(
-                                              context,
-                                              intentLabel: 'Save to wishlist',
-                                              trigger:
-                                                  AuthPromptTrigger.wishlist,
-                                              productId: product.id,
-                                              productPreview:
-                                                  AuthPromptProductPreview(
-                                                    name: product.name,
-                                                    imageUrl:
-                                                        product.images.isEmpty
-                                                        ? null
-                                                        : product.images.first,
-                                                  ),
-                                              promptStyle:
-                                                  AuthPromptStyle.softSheet,
-                                            );
-                                        if (!isAllowed || !context.mounted) {
+                              Positioned(
+                                left: 8,
+                                top: 8,
+                                child: _GlassRatingPill(
+                                  label: ratingOverlayLabel,
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: AnimatedWishlistButton(
+                                    isSelected: isWishlisted,
+                                    isLoading: isPending,
+                                    usePremiumIntentAnimation: true,
+                                    size: 32,
+                                    iconSize: 18,
+                                    backgroundColor: null,
+                                    selectedColor: const Color(0xFFC8A44D),
+                                    unselectedColor: Colors.white,
+                                    onTap: () async {
+                                      final isAllowed =
+                                          await SoftAuthGate.ensureAuthenticated(
+                                            context,
+                                            intentLabel: 'Save to wishlist',
+                                            trigger: AuthPromptTrigger.wishlist,
+                                            productId: product.id,
+                                            productPreview:
+                                                AuthPromptProductPreview(
+                                                  name: product.name,
+                                                  imageUrl:
+                                                      product.images.isEmpty
+                                                      ? null
+                                                      : product.images.first,
+                                                ),
+                                            promptStyle:
+                                                AuthPromptStyle.softSheet,
+                                          );
+                                      if (!isAllowed || !context.mounted) {
+                                        return;
+                                      }
+                                      try {
+                                        final wasWishlisted = wishlist
+                                            .isWishlisted(product.id);
+                                        await wishlist.toggleWishlist(product);
+                                        if (!context.mounted) {
                                           return;
                                         }
-                                        try {
-                                          final wasWishlisted = wishlist
-                                              .isWishlisted(product.id);
-                                          await wishlist.toggleWishlist(
-                                            product,
-                                          );
-                                          if (!context.mounted) {
-                                            return;
-                                          }
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            _wishlistSnackBar(
-                                              wasWishlisted
-                                                  ? 'Removed from wishlist'
-                                                  : 'Added to wishlist',
-                                              backgroundColor:
-                                                  const Color(0xFF15110D),
-                                              icon: wasWishlisted
-                                                  ? Icons.favorite_border_rounded
-                                                  : Icons.favorite_rounded,
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          _wishlistSnackBar(
+                                            wasWishlisted
+                                                ? 'Removed from wishlist'
+                                                : 'Added to wishlist',
+                                            backgroundColor: const Color(
+                                              0xFF15110D,
                                             ),
-                                          );
-                                        } catch (error) {
-                                          if (!context.mounted) {
-                                            return;
-                                          }
-                                          if (_isAuthSessionError(error)) {
-                                            await context
-                                                .read<AuthProvider>()
-                                                .logout();
-                                            if (!context.mounted) {
-                                              return;
-                                            }
-                                            await SoftAuthGate.ensureAuthenticated(
-                                              context,
-                                              intentLabel: 'Save to wishlist',
-                                              trigger:
-                                                  AuthPromptTrigger.wishlist,
-                                              productId: product.id,
-                                              productPreview:
-                                                  AuthPromptProductPreview(
-                                                    name: product.name,
-                                                    imageUrl:
-                                                        product.images.isEmpty
-                                                        ? null
-                                                        : product.images.first,
-                                                  ),
-                                              promptStyle:
-                                                  AuthPromptStyle.softSheet,
-                                            );
-                                            return;
-                                          }
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            _wishlistSnackBar(
-                                              "Couldn't update wishlist. Please try again.",
-                                              backgroundColor:
-                                                  const Color(0xFF2A1918),
-                                              icon: Icons.error_outline_rounded,
-                                            ),
-                                          );
+                                            icon: wasWishlisted
+                                                ? Icons.favorite_border_rounded
+                                                : Icons.favorite_rounded,
+                                          ),
+                                        );
+                                      } catch (error) {
+                                        if (!context.mounted) {
+                                          return;
                                         }
-                                      },
-                                    ),
+                                        if (_isAuthSessionError(error)) {
+                                          await context
+                                              .read<AuthProvider>()
+                                              .logout();
+                                          if (!context.mounted) {
+                                            return;
+                                          }
+                                          await SoftAuthGate.ensureAuthenticated(
+                                            context,
+                                            intentLabel: 'Save to wishlist',
+                                            trigger: AuthPromptTrigger.wishlist,
+                                            productId: product.id,
+                                            productPreview:
+                                                AuthPromptProductPreview(
+                                                  name: product.name,
+                                                  imageUrl:
+                                                      product.images.isEmpty
+                                                      ? null
+                                                      : product.images.first,
+                                                ),
+                                            promptStyle:
+                                                AuthPromptStyle.softSheet,
+                                          );
+                                          return;
+                                        }
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          _wishlistSnackBar(
+                                            "Couldn't update wishlist. Please try again.",
+                                            backgroundColor: const Color(
+                                              0xFF2A1918,
+                                            ),
+                                            icon: Icons.error_outline_rounded,
+                                          ),
+                                        );
+                                      }
+                                    },
                                   ),
                                 ),
-                              ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (brandLabel.isNotEmpty)
+                              Text(
+                                brandLabel.toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 12,
+                                  color: const Color(
+                                    0xFF535766,
+                                  ), // Myntra-like grey
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            const SizedBox(height: 4),
+                            Text(
+                              displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontSize: 14,
+                                color: const Color(0xFF282C3F),
+                                height: 1.2,
+                                fontWeight: FontWeight.w400,
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        if (brandLabel.isNotEmpty)
-                          Text(
-                            brandLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontSize: 12,
-                              color: const Color(0xFF766B5D),
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.02,
+                            const SizedBox(height: 6),
+                            _PriceBlock(
+                              currentPriceLabel: _currency(
+                                product.effectivePrice,
+                              ),
+                              originalPriceLabel: pricing.originalPrice == null
+                                  ? null
+                                  : _currency(pricing.originalPrice!),
+                              discountPercent: pricing.discountPercent,
                             ),
-                          )
-                        else
-                          const SizedBox(height: 12),
-                        const SizedBox(height: 4),
-                        Text(
-                          displayName,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 17,
-                            color: const Color(0xFF14110E),
-                            height: 1.16,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.05,
-                          ),
+                            if (deliveryLabel.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              _ServiceBadge(
+                                label: deliveryLabel,
+                                icon: Icons.local_shipping_rounded,
+                              ),
+                            ],
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        _PriceBlock(
-                          currentPriceLabel: _currency(product.effectivePrice),
-                          originalPriceLabel: pricing.originalPrice == null
-                              ? null
-                              : _currency(pricing.originalPrice!),
-                          discountPercent: pricing.discountPercent,
-                        ),
-                        const SizedBox(height: 8),
-                        if (deliveryLabel.isNotEmpty)
-                          _ServiceBadge(
-                            label: deliveryLabel,
-                            icon: Icons.local_shipping_rounded,
-                          ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -429,8 +423,10 @@ class _ProductCardState extends State<ProductCard> {
       if (displayEta.isEmpty) {
         return 'Courier Delivery';
       }
-      
-      if (displayEta == 'Today' || displayEta == 'Tomorrow' || displayEta.startsWith('In ')) {
+
+      if (displayEta == 'Today' ||
+          displayEta == 'Tomorrow' ||
+          displayEta.startsWith('In ')) {
         return 'Arrives $displayEta';
       }
       return 'Arrives by $displayEta';
@@ -618,27 +614,28 @@ class _PriceBlock extends StatelessWidget {
       children: [
         Text(
           currentPriceLabel,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontSize: 21,
-            height: 1.0,
-            color: const Color(0xFF111111),
-            fontWeight: FontWeight.w800,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontSize: 15,
+            color: const Color(0xFF282C3F),
+            fontWeight: FontWeight.w700,
           ),
         ),
         if (originalPriceLabel != null)
           Text(
             originalPriceLabel!,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF9C9C9C),
+              fontSize: 13,
+              color: const Color(0xFF7E818C),
               decoration: TextDecoration.lineThrough,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
             ),
           ),
         if (discountPercent > 0)
           Text(
             '$discountPercent% OFF',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0xFFC2A15E),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontSize: 13,
+              color: const Color(0xFFFF905A), // Ajio/Myntra style sale orange
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -738,9 +735,7 @@ SnackBar _wishlistSnackBar(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(18),
-      side: BorderSide(
-        color: Colors.white.withValues(alpha: 0.08),
-      ),
+      side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
     ),
     duration: const Duration(milliseconds: 1300),
     content: Row(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'product_shimmer.dart';
 import 'shimmer_box.dart';
 
 class ShimmerWrapper extends StatelessWidget {
@@ -330,13 +331,40 @@ class GlobalHomeSkeleton extends StatelessWidget {
           SizedBox(height: 12),
           ShimmerBannerBlock(),
           SizedBox(height: 12),
-          ShimmerCard(height: 108),
-          SizedBox(height: 12),
           ShimmerCategoryRow(),
+          SizedBox(height: 24),
+          // "Trending Near You" shimmer section
+          ShimmerCard(height: 32),
           SizedBox(height: 12),
-          ShimmerBannerBlock(),
+          SizedBox(
+            height: 320,
+            child: ProductShimmer(
+              itemCount: 3,
+              scrollDirection: Axis.horizontal,
+            ),
+          ),
+          SizedBox(height: 24),
+          // "Just For You" shimmer section
+          ShimmerCard(height: 32),
           SizedBox(height: 12),
-          ShimmerProductGrid(),
+          SizedBox(
+            height: 320,
+            child: ProductShimmer(
+              itemCount: 3,
+              scrollDirection: Axis.horizontal,
+            ),
+          ),
+          SizedBox(height: 24),
+          // "Stores near you" shimmer section
+          ShimmerCard(height: 32),
+          SizedBox(height: 12),
+          SizedBox(
+            height: 320,
+            child: ProductShimmer(
+              itemCount: 3,
+              scrollDirection: Axis.horizontal,
+            ),
+          ),
         ],
       ),
     );

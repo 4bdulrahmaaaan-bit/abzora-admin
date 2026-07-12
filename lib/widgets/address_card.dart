@@ -135,14 +135,17 @@ class AddressCard extends StatelessWidget {
   }
 
   static String _fullAddress(UserAddress address) {
-    return [
-      if (address.houseDetails.trim().isNotEmpty) address.houseDetails.trim(),
-      if (address.addressLine.trim().isNotEmpty) address.addressLine.trim(),
-      if (address.landmark.trim().isNotEmpty) address.landmark.trim(),
-      if (address.locality.trim().isNotEmpty) address.locality.trim(),
-      if (address.city.trim().isNotEmpty) address.city.trim(),
-      if (address.state.trim().isNotEmpty) address.state.trim(),
-      if (address.pincode.trim().isNotEmpty) address.pincode.trim(),
-    ].join(', ');
+    final rawAddressParts = [
+      address.houseDetails.trim(),
+      address.addressLine.trim(),
+      address.landmark.trim(),
+      address.locality.trim(),
+      address.city.trim(),
+      address.state.trim(),
+      address.pincode.trim(),
+    ].where((s) => s.isNotEmpty).toList();
+
+    final seen = <String>{};
+    return rawAddressParts.where((s) => seen.add(s.toLowerCase())).join(', ');
   }
 }

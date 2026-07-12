@@ -1450,7 +1450,6 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
           createdAt: widget.initialCategory?.createdAt ?? '',
           updatedAt: widget.initialCategory?.updatedAt ?? '',
           deletedAt: widget.initialCategory?.deletedAt ?? '',
-          subcategories: widget.initialCategory?.subcategories ?? const [],
         ),
         imageFile: _pickedImage,
         bannerFile: _pickedBanner,
