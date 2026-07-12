@@ -272,6 +272,12 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
       await _saveHomeVisualConfig(
         _homeVisualConfig.copyWith(categoryVisuals: visuals),
       );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
+      }
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -344,6 +350,12 @@ class _AdminBannersSectionState extends State<AdminBannersSection> {
       await _saveHomeVisualConfig(
         _homeVisualConfig.copyWith(promoBlocks: promoBlocks),
       );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
+      }
     } finally {
       if (mounted) {
         setState(() => _saving = false);
