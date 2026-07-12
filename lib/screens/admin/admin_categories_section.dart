@@ -176,14 +176,14 @@ class _AdminCategoriesSectionState extends State<AdminCategoriesSection> {
       if (result.imageFile != null) {
         final imageUrl = await _uploadPickedImage(
           result.imageFile!,
-          folder: 'category_icons/default',
+          folder: 'category_icons',
         );
         category = category.copyWith(image: imageUrl);
       }
       if (result.bannerFile != null) {
         final bannerUrl = await _uploadPickedImage(
           result.bannerFile!,
-          folder: 'category_icons/default',
+          folder: 'category_icons',
         );
         category = category.copyWith(bannerImage: bannerUrl);
       }
