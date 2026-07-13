@@ -2464,9 +2464,9 @@ class _CategoryStripTile extends StatelessWidget {
 String _resolveHomeCategoryTab(String value) {
   final normalized = value.trim().toLowerCase();
   if (normalized.isEmpty) {
-    return 'Men';
+    return 'All';
   }
-  const directTabs = <String>['men', 'women', 'kids', 'wedding', 'luxury'];
+  const directTabs = <String>['all', 'men', 'women', 'kids'];
   if (directTabs.contains(normalized)) {
     return normalized.substring(0, 1).toUpperCase() + normalized.substring(1);
   }
@@ -2502,7 +2502,7 @@ String _resolveHomeCategoryTab(String value) {
     'custom made': 'Luxury',
     'handbags': 'Luxury',
   };
-  return mapped[normalized] ?? 'Men';
+  return mapped[normalized] ?? 'All';
 }
 
 class _CategoryTabsHeaderDelegate extends SliverPersistentHeaderDelegate {
@@ -2552,13 +2552,7 @@ class _CategoryTabsBar extends StatelessWidget {
   final String selectedTab;
   final ValueChanged<String> onCategorySelected;
 
-  static const List<String> _tabs = <String>[
-    'Men',
-    'Women',
-    'Kids',
-    'Wedding',
-    'Luxury',
-  ];
+  static const List<String> _tabs = <String>['All', 'Men', 'Women', 'Kids'];
 
   @override
   Widget build(BuildContext context) {
