@@ -30,7 +30,6 @@ class _AddressScreenState extends State<AddressScreen> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _addressController = TextEditingController();
   final TextEditingController _pincodeController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _stateController = TextEditingController();
@@ -40,20 +39,16 @@ class _AddressScreenState extends State<AddressScreen> {
 
   final FocusNode _nameFocusNode = FocusNode();
   final FocusNode _phoneFocusNode = FocusNode();
-  final FocusNode _addressFocusNode = FocusNode();
   final FocusNode _pincodeFocusNode = FocusNode();
   final FocusNode _houseFocusNode = FocusNode();
   final FocusNode _landmarkFocusNode = FocusNode();
   final FocusNode _localityFocusNode = FocusNode();
 
-  List<UserAddress> _savedAddresses = const [];
   bool _isSaving = false;
   bool _isGpsLoading = false;
   bool _isAutoFilling = false;
   bool _isPincodeLookupLoading = false;
   bool _nameAutoFilled = false;
-  bool _addressAutoFilled = false;
-  bool _isExpanded = false;
   String _addressType = 'home';
   double? _latitude;
   double? _longitude;
@@ -64,7 +59,6 @@ class _AddressScreenState extends State<AddressScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSavedAddresses();
   }
 
   @override
@@ -90,32 +84,12 @@ class _AddressScreenState extends State<AddressScreen> {
     if (phone.isNotEmpty && _phoneController.text.trim().isEmpty) {
       _phoneController.text = normalizeIndianMobileNumber(phone);
     }
-    final address = (user.address ?? '').trim();
-    if (address.isNotEmpty && _addressController.text.trim().isEmpty) {
-      _addressController.text = address;
-      _addressAutoFilled = true;
-    }
     final city = (user.city ?? '').trim();
     if (city.isNotEmpty && _cityController.text.trim().isEmpty) {
       _cityController.text = city;
     }
     if (_stateController.text.trim().isEmpty) {
       _stateController.text = _fixedState;
-    }
-  }
-
-  Future<void> _loadSavedAddresses() async {
-    final user = context.read<AuthProvider>().user;
-    if (user == null) {
-      return;
-    }
-
-    try {
-      final addresses = await _database.getUserAddresses(user.id);
-      if (!mounted) return;
-      setState(() => _savedAddresses = addresses);
-    } catch (_) {
-      return;
     }
   }
 
@@ -170,40 +144,18 @@ class _AddressScreenState extends State<AddressScreen> {
   }) {
     _latitude = latitude;
     _longitude = longitude;
-    _addressController.text = _cleanAddressLine(address.address);
     _cityController.text = address.city.trim();
     _stateController.text = address.state.trim();
     _pincodeController.text = address.postalCode.trim();
-    if (_localityController.text.trim().isEmpty &&
-        address.area.trim().isNotEmpty) {
-      _localityController.text = address.area.trim();
+    
+    final area = address.area.trim();
+    if (area.isNotEmpty) {
+      _localityController.text = area;
+    } else {
+      _localityController.text = _cleanAddressLine(address.address);
     }
-    if (markAutoFilled) {
-      _addressAutoFilled = true;
-      _isExpanded = true;
-    }
+    
     _lookupPincode(_pincodeController.text.trim());
-    setState(() {});
-  }
-
-  void _applySavedAddress(UserAddress address) {
-    _nameController.text = address.name;
-    _phoneController.text = normalizeIndianMobileNumber(address.phone);
-    _addressController.text = address.addressLine;
-    _cityController.text = address.city;
-    _stateController.text = address.state;
-    _pincodeController.text = address.pincode;
-    _houseController.text = address.houseDetails;
-    _landmarkController.text = address.landmark;
-    _localityController.text = address.locality;
-    _latitude = address.latitude;
-    _longitude = address.longitude;
-    _addressType = address.type;
-    _isExpanded =
-        address.houseDetails.isNotEmpty ||
-        address.landmark.isNotEmpty ||
-        address.locality.isNotEmpty;
-    _lookupPincode(address.pincode);
     setState(() {});
   }
 
@@ -282,7 +234,11 @@ class _AddressScreenState extends State<AddressScreen> {
         userId: user.id,
         name: _nameController.text.trim(),
         phone: normalizeIndianMobileNumber(_phoneController.text.trim()),
-        addressLine: _addressController.text.trim(),
+        addressLine: [
+          _houseController.text.trim(),
+          _localityController.text.trim(),
+          _landmarkController.text.trim(),
+        ].where((v) => v.isNotEmpty).join(', '),
         city: _cityController.text.trim(),
         state: _stateController.text.trim(),
         pincode: _pincodeController.text.trim(),
@@ -310,7 +266,6 @@ class _AddressScreenState extends State<AddressScreen> {
         address: fullAddress,
         city: address.city,
       );
-      await _loadSavedAddresses();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Address saved successfully')),
@@ -330,24 +285,11 @@ class _AddressScreenState extends State<AddressScreen> {
     }
   }
 
-  Future<void> _deleteAddress(UserAddress address) async {
-    try {
-      await _database.deleteUserAddress(address.userId, address.id);
-      await _loadSavedAddresses();
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
-    }
-  }
-
   @override
   void dispose() {
     _pincodeDebounce?.cancel();
     _nameController.dispose();
     _phoneController.dispose();
-    _addressController.dispose();
     _pincodeController.dispose();
     _cityController.dispose();
     _stateController.dispose();
@@ -356,7 +298,6 @@ class _AddressScreenState extends State<AddressScreen> {
     _localityController.dispose();
     _nameFocusNode.dispose();
     _phoneFocusNode.dispose();
-    _addressFocusNode.dispose();
     _pincodeFocusNode.dispose();
     _houseFocusNode.dispose();
     _landmarkFocusNode.dispose();
@@ -427,23 +368,6 @@ class _AddressScreenState extends State<AddressScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Add Address',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (user != null) ...[
-                  Text(
-                    'Used for delivery and personalized tailoring.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: context.abzioSecondaryText,
-                      height: 1.45,
-                    ),
-                  ),
-                  const SizedBox(height: AbzioTheme.sectionGap),
-                ],
                 _LocationCard(
                   isLoading: _isGpsLoading || _isAutoFilling,
                   onTap: _useCurrentLocation,
@@ -461,49 +385,23 @@ class _AddressScreenState extends State<AddressScreen> {
                   formKey: _formKey,
                   nameController: _nameController,
                   phoneController: _phoneController,
-                  addressController: _addressController,
                   pincodeController: _pincodeController,
                   houseController: _houseController,
                   landmarkController: _landmarkController,
                   localityController: _localityController,
                   nameFocusNode: _nameFocusNode,
                   phoneFocusNode: _phoneFocusNode,
-                  addressFocusNode: _addressFocusNode,
                   pincodeFocusNode: _pincodeFocusNode,
                   houseFocusNode: _houseFocusNode,
                   landmarkFocusNode: _landmarkFocusNode,
                   localityFocusNode: _localityFocusNode,
                   addressType: _addressType,
-                  isExpanded: _isExpanded,
                   isPincodeLookupLoading: _isPincodeLookupLoading,
                   nameAutoFilled: _nameAutoFilled,
-                  addressAutoFilled: _addressAutoFilled,
-                  showFullForm: user != null,
-                  onToggleExpanded: () =>
-                      setState(() => _isExpanded = !_isExpanded),
                   onAddressTypeChanged: (value) =>
                       setState(() => _addressType = value),
                 ),
-                if (_savedAddresses.isNotEmpty) ...[
-                  const SizedBox(height: AbzioTheme.sectionGap),
-                  Text(
-                    'Saved addresses',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ..._savedAddresses.map(
-                    (address) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _SavedAddressCard(
-                        address: address,
-                        onUse: () => _applySavedAddress(address),
-                        onDelete: () => _deleteAddress(address),
-                      ),
-                    ),
-                  ),
-                ],
+
                 const SizedBox(height: 20),
               ],
             ),
@@ -698,98 +596,3 @@ class _ServiceAreaCard extends StatelessWidget {
   }
 }
 
-class _SavedAddressCard extends StatelessWidget {
-  const _SavedAddressCard({
-    required this.address,
-    required this.onUse,
-    required this.onDelete,
-  });
-
-  final UserAddress address;
-  final VoidCallback onUse;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final addressTypeLabel = switch (address.type) {
-      'office' => 'Office',
-      'other' => 'Other',
-      _ => 'Home',
-    };
-
-    final subtitle = [
-      address.addressLine,
-      address.locality,
-      address.city,
-      address.state,
-      address.pincode,
-    ].where((value) => value.trim().isNotEmpty).join(', ');
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AbzioTheme.cardRadius),
-        border: Border.all(color: context.abzioBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF7F1E2),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  addressTypeLabel,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: const Color(0xFF8D6C22),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: onDelete,
-                icon: Icon(
-                  Icons.delete_outline_rounded,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                tooltip: 'Delete address',
-              ),
-            ],
-          ),
-          Text(
-            address.name,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF161616),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: context.abzioSecondaryText,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton(
-              onPressed: onUse,
-              child: const Text('Use this address'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -1340,14 +1339,6 @@ class _ProfileScreenState extends State<ProfileScreen>
             onTap: () => _editAddress(context),
             minimal: true,
           ),
-          _minimalDivider(context),
-          _buildListItem(
-            icon: Icons.credit_card_outlined,
-            title: 'Payment Methods',
-            subtitle: 'Secure cards and UPI options',
-            onTap: () => _showPaymentMethodsSheet(context),
-            minimal: true,
-          ),
         ],
       ),
     );
@@ -2123,302 +2114,15 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  void _showPaymentMethodsSheet(BuildContext context) {
+  void _showComingSoon(BuildContext context, {required String title, required String message}) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AbzioTheme.cardColor,
       barrierColor: Colors.black.withValues(alpha: 0.24),
       isScrollControlled: true,
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.75,
       ),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SafeArea(
-                top: false,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.96),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.10),
-                        blurRadius: 32,
-                        offset: const Offset(0, -10),
-                      ),
-                    ],
-                  ),
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 42,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: context.abzioBorder,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          Text(
-                            'Add Payment Method',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Choose how you want to pay',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: context.abzioSecondaryText,
-                                  height: 1.45,
-                                ),
-                          ),
-                          const SizedBox(height: 18),
-                          _paymentActionTile(
-                            context,
-                            icon: Icons.credit_card_rounded,
-                            title: 'Credit / Debit Card',
-                            subtitle: 'Visa, Mastercard, RuPay',
-                            onTap: () {
-                              Navigator.pop(sheetContext);
-                              Navigator.pushNamed(context, '/add-card');
-                            },
-                          ),
-                          const SizedBox(height: 14),
-                          _paymentActionTile(
-                            context,
-                            icon: Icons.qr_code_2_rounded,
-                            title: 'UPI',
-                            subtitle: 'Google Pay, PhonePe, Paytm',
-                            badge: 'Fastest',
-                            recommended: true,
-                            onTap: () {
-                              Navigator.pop(sheetContext);
-                              Navigator.pushNamed(context, '/payments');
-                            },
-                          ),
-                          const SizedBox(height: 14),
-                          _paymentActionTile(
-                            context,
-                            icon: Icons.payments_outlined,
-                            title: 'Cash on Delivery',
-                            subtitle: 'Pay when order arrives',
-                            onTap: () {
-                              Navigator.pop(sheetContext);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  behavior: SnackBarBehavior.floating,
-                                  content: Text(
-                                    'Cash on Delivery is available on eligible orders.',
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 18),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFFCF4),
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: AbzioTheme.accentColor.withValues(
-                                  alpha: 0.12,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.lock_outline_rounded,
-                                  color: AbzioTheme.accentColor,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    '100% secure payments',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(fontWeight: FontWeight.w700),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(sheetContext);
-                                Navigator.pushNamed(context, '/payments');
-                              },
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                              ),
-                              child: const Text('Continue'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _paymentActionTile(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    String? badge,
-    bool recommended = false,
-  }) {
-    return TapScale(
-      onTap: onTap,
-      scale: 0.95,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Ink(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: recommended
-                    ? AbzioTheme.accentColor.withValues(alpha: 0.20)
-                    : context.abzioBorder,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 14,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: AbzioTheme.accentColor.withValues(alpha: 0.14),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: AbzioTheme.accentColor),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              title,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w800),
-                            ),
-                          ),
-                          if (badge != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AbzioTheme.accentColor.withValues(
-                                  alpha: 0.14,
-                                ),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                badge,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      color: AbzioTheme.textPrimary,
-                                    ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: context.abzioSecondaryText,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 16,
-                  color: AbzioTheme.accentColor,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showComingSoon(
-    BuildContext context, {
-    required String title,
-    required String message,
-  }) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AbzioTheme.cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -2428,12 +2132,14 @@ class _ProfileScreenState extends State<ProfileScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 44,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AbzioTheme.grey300,
-                borderRadius: BorderRadius.circular(999),
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AbzioTheme.grey300,
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
             ),
             const SizedBox(height: 16),

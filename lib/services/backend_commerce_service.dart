@@ -4848,7 +4848,9 @@ class BackendCommerceService {
       'estimatedDeliveryDate': map['estimatedDeliveryDate'] ?? '',
       'estimatedInstantDeliveryTime': map['estimatedInstantDeliveryTime'] ?? '',
       'assignedDeliveryPartner': map['assignedDeliveryPartner'] ?? 'Unassigned',
-      'invoiceNumber': map['id'] ?? '',
+      'invoiceNumber': map['invoiceNumber'] ?? '',
+      'invoiceId': map['invoiceId'] ?? '',
+      'invoicePdfUrl': map['invoicePdfUrl'] ?? '',
       'orderType': map['fulfillmentType'] == 'custom_tailoring'
           ? 'custom_tailoring'
           : 'marketplace',

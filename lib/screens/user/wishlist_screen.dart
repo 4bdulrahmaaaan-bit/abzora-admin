@@ -1835,67 +1835,18 @@ class _WishlistProductCard extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      InkWell(
-                        onTap: () => _confirmRemove(context, displayProduct),
-                        borderRadius: BorderRadius.circular(16),
-                        child: const SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Center(
-                            child: Icon(
-                              Icons.delete_outline_rounded,
-                              size: 18,
-                              color: Color(0xFF8A8272),
-                            ),
-                          ),
-                        ),
-                      ),
                       Consumer<CartProvider>(
                         builder: (context, cart, child) {
                           final disabled = displayProduct.stock <= 0;
                           return InkWell(
                             onTap: disabled
                                 ? null
-                                : () {
-                                    final inBag = cart.items.any(
-                                      (item) =>
-                                          item.product.id == displayProduct.id,
-                                    );
-                                    if (inBag) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => const CartScreen(),
-                                        ),
-                                      );
-                                    } else {
-                                      final result = cart.addToCart(
-                                        displayProduct,
-                                        selectedSize,
-                                      );
-                                      if (result ==
-                                              CartAddResult.storeConflict &&
-                                          context.mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Your bag already contains products from another store.',
-                                            ),
-                                          ),
-                                        );
-                                      } else if (context.mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Added to Bag'),
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
+                                : () => _handleMoveToBag(
+                                      context,
+                                      displayProduct,
+                                      selectedSize,
+                                      null,
+                                    ),
                             borderRadius: BorderRadius.circular(16),
                             child: const SizedBox(
                               width: 32,
@@ -4628,40 +4579,22 @@ class _WishlistBagButton extends StatefulWidget {
 class _WishlistBagButtonState extends State<_WishlistBagButton> {
   bool _justAdded = false;
 
-  void _handleTap(BuildContext context, bool inBag) {
-    if (inBag) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const CartScreen()),
-      );
-      return;
-    }
-
-    final cart = context.read<CartProvider>();
-    final size = widget.selectedSize.isNotEmpty ? widget.selectedSize : 'M';
-    final result = cart.addToCart(widget.product, size);
-
-    if (result == CartAddResult.storeConflict && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Your bag already contains products from another store.',
-          ),
-        ),
-      );
-    } else if ((result == CartAddResult.added ||
-            result == CartAddResult.updated) &&
-        mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Added to Bag')));
-      setState(() => _justAdded = true);
-      Future.delayed(const Duration(milliseconds: 800), () {
+  Future<void> _handleTap(BuildContext context) async {
+    await _handleMoveToBag(
+      context,
+      widget.product,
+      widget.selectedSize,
+      () {
         if (mounted) {
-          setState(() => _justAdded = false);
+          setState(() => _justAdded = true);
+          Future.delayed(const Duration(milliseconds: 800), () {
+            if (mounted) {
+              setState(() => _justAdded = false);
+            }
+          });
         }
-      });
-    }
+      },
+    );
   }
 
   @override
@@ -4683,7 +4616,7 @@ class _WishlistBagButtonState extends State<_WishlistBagButton> {
       width: double.infinity,
       height: 56,
       child: FilledButton(
-        onPressed: disabled ? null : () => _handleTap(context, inBag),
+        onPressed: disabled ? null : () => _handleTap(context),
         style: FilledButton.styleFrom(
           backgroundColor: const Color(0xFF17130F),
           foregroundColor: Colors.white,
@@ -5073,5 +5006,120 @@ extension<_T> on Set<_T> {
       next.add(value);
     }
     return next;
+  }
+}
+
+Future<void> _handleMoveToBag(
+  BuildContext context,
+  Product product,
+  String initialSize,
+  VoidCallback? onAdded,
+) async {
+  final cart = context.read<CartProvider>();
+  final wishlist = context.read<WishlistProvider>();
+
+  final inBag = cart.items.any((item) => item.product.id == product.id);
+  if (inBag) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CartScreen()),
+    );
+    return;
+  }
+
+  String selectedSize = initialSize;
+  if (selectedSize.isEmpty && product.sizes.isNotEmpty) {
+    final pickedSize = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _WishlistSizeSelectionSheet(product: product),
+    );
+    if (pickedSize == null || pickedSize.isEmpty) {
+      return;
+    }
+    selectedSize = pickedSize;
+  } else if (selectedSize.isEmpty) {
+    selectedSize = 'OS';
+  }
+
+  final result = cart.addToCart(product, selectedSize);
+
+  if (result == CartAddResult.storeConflict && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Your bag already contains products from another store.'),
+      ),
+    );
+  } else if ((result == CartAddResult.added ||
+          result == CartAddResult.updated) &&
+      context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Added to Bag')),
+    );
+    if (onAdded != null) {
+      onAdded();
+    }
+    wishlist.removeFromWishlist(product.id);
+  }
+}
+
+class _WishlistSizeSelectionSheet extends StatelessWidget {
+  const _WishlistSizeSelectionSheet({required this.product});
+
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Select Size',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: product.sizes.map((size) {
+                return InkWell(
+                  onTap: () => Navigator.pop(context, size),
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFFE5E5E5)),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Text(
+                      size,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
   }
 }

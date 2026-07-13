@@ -59,7 +59,6 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet> {
   final _localityFocusNode = FocusNode();
 
   String _addressType = 'home';
-  bool _isExpanded = false;
 
   List<UserAddress> _savedAddresses = [];
   String? _selectedAddressId;
@@ -606,25 +605,19 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet> {
                         formKey: _formKey,
                         nameController: _nameController,
                         phoneController: _phoneController,
-                        addressController: _addressController,
                         pincodeController: _inlinePincodeController,
                         houseController: _houseController,
                         landmarkController: _landmarkController,
                         localityController: _localityController,
                         nameFocusNode: _nameFocusNode,
                         phoneFocusNode: _phoneFocusNode,
-                        addressFocusNode: _addressFocusNode,
                         pincodeFocusNode: _inlinePincodeFocusNode,
                         houseFocusNode: _houseFocusNode,
                         landmarkFocusNode: _landmarkFocusNode,
                         localityFocusNode: _localityFocusNode,
                         addressType: _addressType,
-                        isExpanded: _isExpanded,
                         isPincodeLookupLoading: false,
                         nameAutoFilled: false,
-                        addressAutoFilled: false,
-                        showFullForm: true,
-                        onToggleExpanded: () => setState(() => _isExpanded = !_isExpanded),
                         onAddressTypeChanged: (v) => setState(() => _addressType = v),
                       )
                     else

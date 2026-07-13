@@ -2380,6 +2380,27 @@ extension _AdminCommerceSectionV2 on _AdminWebPanelState {
                     : order.estimatedDeliveryDate.trim(),
               ),
             ],
+            if (order.invoiceNumber.isNotEmpty)
+              _SupportDetailRow(label: 'Invoice No.', value: order.invoiceNumber),
+            if (order.invoicePdfUrl.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text('Invoice:', style: TextStyle(fontWeight: FontWeight.bold, color: AbzioTheme.grey600)),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () async {
+                      final uri = Uri.parse(order.invoicePdfUrl);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                    icon: const Icon(Icons.picture_as_pdf, size: 16),
+                    label: const Text('View PDF'),
+                  ),
+                ],
+              ),
+            ],
             _SupportDetailRow(label: 'Address', value: order.shippingAddress),
             const SizedBox(height: 12),
             Text(

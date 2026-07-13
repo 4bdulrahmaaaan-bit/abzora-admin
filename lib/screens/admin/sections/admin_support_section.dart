@@ -11,6 +11,8 @@ class AdminSupportSection extends StatelessWidget {
     required this.resolvedCount,
     required this.chats,
     required this.selectedChat,
+    required this.selectedStatus,
+    required this.onStatusSelected,
     required this.buildSidebar,
     required this.buildQueue,
     required this.buildWorkspace,
@@ -24,6 +26,8 @@ class AdminSupportSection extends StatelessWidget {
   final int resolvedCount;
   final List<SupportChat> chats;
   final SupportChat? selectedChat;
+  final String selectedStatus;
+  final ValueChanged<String> onStatusSelected;
   final Widget Function({bool compact}) buildSidebar;
   final Widget Function(
     List<SupportChat> chats,
@@ -63,21 +67,21 @@ class AdminSupportSection extends StatelessWidget {
             ),
             _SupportSegmentChip(
               label: 'Unread replies',
-              selected: false,
+              selected: selectedStatus == 'waiting',
               count: unreadTotal,
-              onTap: () {},
+              onTap: () => onStatusSelected('waiting'),
             ),
             _SupportSegmentChip(
               label: 'Active',
-              selected: false,
+              selected: selectedStatus == 'open',
               count: activeCount,
-              onTap: () {},
+              onTap: () => onStatusSelected('open'),
             ),
             _SupportSegmentChip(
               label: 'Resolved',
-              selected: false,
+              selected: selectedStatus == 'closed',
               count: resolvedCount,
-              onTap: () {},
+              onTap: () => onStatusSelected('closed'),
             ),
           ],
         ),

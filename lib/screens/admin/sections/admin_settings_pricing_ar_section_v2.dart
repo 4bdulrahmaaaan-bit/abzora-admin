@@ -272,10 +272,7 @@ extension _AdminSettingsPricingArSectionV2 on _AdminWebPanelState {
   Widget _buildPricingControlPanel() {
     final commission = _pricingConfig.commission;
     final delivery = _pricingConfig.deliveryFees;
-    final trial = _pricingConfig.trialPricing;
     final discounts = _pricingConfig.discounts;
-    final rider = _pricingConfig.riderPayouts;
-    final rules = _pricingConfig.dynamicRules;
     final taxConfig = _pricingConfig.taxConfig;
     final simulationOutputs = Map<String, dynamic>.from(
       _lastPricingSimulation['outputs'] as Map? ?? const {},

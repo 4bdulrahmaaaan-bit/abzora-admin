@@ -82,7 +82,6 @@ class ProductProvider with ChangeNotifier {
     _isLoading = true;
     _lastProductKey = null;
     _hasMoreProducts = true;
-    _locationProducts = [];
     notifyListeners();
 
     try {
@@ -252,7 +251,6 @@ class ProductProvider with ChangeNotifier {
 
   Future<void> _reloadProductsForLocation() async {
     _lastProductKey = null;
-    _locationProducts = [];
     _hasMoreProducts = true;
     await _loadNextPageInternal(resetSearch: true);
     notifyListeners();
@@ -307,7 +305,7 @@ class ProductProvider with ChangeNotifier {
     }
 
     _hasMoreProducts = hasMore;
-    final merged = _mergeUniqueProducts(_locationProducts, newlyMatched);
+    final merged = _mergeUniqueProducts(resetSearch ? [] : _locationProducts, newlyMatched);
     _locationProducts = _withDistanceLabels(await _safePersonalize(merged));
     _trendingProducts = _withDistanceLabels(
       _locationProducts.take(10).toList(),

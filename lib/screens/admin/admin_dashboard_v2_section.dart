@@ -205,7 +205,7 @@ class AdminDashboardV2Section extends StatelessWidget {
                       _QuickActionTile(
                         title: 'Approve Vendor',
                         icon: Icons.storefront_rounded,
-                        onTap: () {},
+                        onTap: () => onNavigate?.call('vendorOnboarding'),
                       ),
                       if (AppConfig.enableLocalRiderDelivery)
                         _QuickActionTile(
@@ -216,17 +216,17 @@ class AdminDashboardV2Section extends StatelessWidget {
                       _QuickActionTile(
                         title: 'Broadcast Notification',
                         icon: Icons.campaign_rounded,
-                        onTap: () {},
+                        onTap: () => onNavigate?.call('notifications'),
                       ),
                       _QuickActionTile(
                         title: 'Create Coupon',
                         icon: Icons.local_offer_rounded,
-                        onTap: () {},
+                        onTap: () => onNavigate?.call('coupons'),
                       ),
                       _QuickActionTile(
                         title: 'Review Fraud Alerts',
                         icon: Icons.security_rounded,
-                        onTap: () {},
+                        onTap: () => onNavigate?.call('fraud'),
                       ),
                     ],
                   ),

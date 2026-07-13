@@ -1123,7 +1123,7 @@ class _HomeContentState extends State<HomeContent>
         setState(() => _isHeaderScrolled = shouldCompressHeader);
       }
       final max = _scrollController.position.maxScrollExtent;
-      if (_scrollController.position.pixels > max - 380) {
+      if (max > 0 && _scrollController.position.pixels > max - 380) {
         if (_loadMoreThrottle?.isActive ?? false) {
           return;
         }
@@ -1406,24 +1406,7 @@ class _HomeContentState extends State<HomeContent>
                               ),
                             ),
                           ),
-                          if (products.isEmpty)
-                            SliverPadding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              sliver: SliverToBoxAdapter(
-                                child: AbzioEmptyCard(
-                                  title: AbianzoText.homeEmptyTitle,
-                                  subtitle: AbianzoText.homeEmptySubtitle,
-                                  ctaLabel: AbianzoText.homeEmptyCta,
-                                  onTap: () => provider.fetchHomeData(
-                                    forceLocationRefresh: true,
-                                    user: auth.user,
-                                  ),
-                                ),
-                              ),
-                            )
-                          else
+
                             SliverToBoxAdapter(
                               child: Padding(
                                 padding: const EdgeInsets.fromLTRB(

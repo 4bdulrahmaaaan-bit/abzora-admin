@@ -10,7 +10,6 @@ import '../../services/database_service.dart';
 import '../../utils/app_error_text.dart';
 import '../../theme.dart';
 import '../../widgets/abzio_motion.dart';
-import '../../widgets/payment_selector.dart';
 import 'address_screen.dart';
 import 'body_scan_screen.dart';
 
@@ -35,17 +34,14 @@ class _ProfileCompletionFlowScreenState
 
   bool _loading = true;
   bool _savingFit = false;
-  bool _savingPayment = false;
   bool _addressDone = false;
   bool _fitDone = false;
-  bool _paymentDone = false;
   bool _scanUsed = false;
   bool _openingScan = false;
   MeasurementProfile? _scanProfile;
   BodyProfile? _savedBodyProfile;
   String _bodyType = 'Regular';
   String _fitPreference = 'Regular';
-  String? _paymentMethod;
   int _step = 0;
 
   static const _bodyTypes = ['Slim', 'Regular', 'Athletic', 'Broad'];
@@ -99,27 +95,15 @@ class _ProfileCompletionFlowScreenState
                 return null;
               },
             ),
-        _database
-            .getPreferredPaymentMethod(user.id)
-            .timeout(
-              const Duration(seconds: 5),
-              onTimeout: () {
-                debugPrint('Profile completion payment status timed out.');
-                return null;
-              },
-            ),
       ]);
       if (!mounted) return;
 
       final addresses = results[0] as List<UserAddress>;
       final bodyProfile = results[1] as BodyProfile?;
-      final paymentMethod = results[2] as String?;
 
       setState(() {
         _addressDone = addresses.isNotEmpty;
         _fitDone = bodyProfile != null;
-        _paymentDone = paymentMethod != null;
-        _paymentMethod = paymentMethod;
         _savedBodyProfile = bodyProfile;
         if (bodyProfile != null) {
           _heightController.text = bodyProfile.heightCm.toStringAsFixed(0);
@@ -132,10 +116,8 @@ class _ProfileCompletionFlowScreenState
           _step = 0;
         } else if (!_fitDone) {
           _step = 1;
-        } else if (!_paymentDone) {
-          _step = 2;
         } else {
-          _step = 3;
+          _step = 2;
         }
         _loading = false;
       });
@@ -266,40 +248,6 @@ class _ProfileCompletionFlowScreenState
     }
   }
 
-  Future<void> _savePaymentPreference(String method) async {
-    if (_savingPayment) return;
-    final user = context.read<AuthProvider>().user;
-    if (user == null) return;
-
-    setState(() {
-      _paymentMethod = method;
-      _savingPayment = true;
-    });
-
-    try {
-      await _database.savePreferredPaymentMethod(user.id, method);
-      if (!mounted) return;
-      setState(() {
-        _paymentDone = true;
-        _savingPayment = false;
-        _step = 3;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Payment preference saved')));
-    } catch (error, stackTrace) {
-      if (!mounted) return;
-      debugPrint(
-        'ProfileCompletionFlow: save payment preference failed: $error',
-      );
-      debugPrintStack(stackTrace: stackTrace);
-      setState(() => _savingPayment = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(AppErrorText.from(error))));
-    }
-  }
-
   void _startExploring() {
     Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
   }
@@ -339,11 +287,10 @@ class _ProfileCompletionFlowScreenState
                         progress: _progress,
                         addressDone: _addressDone,
                         fitDone: _fitDone,
-                        paymentDone: _paymentDone,
                         step: _step,
                       ),
                       const SizedBox(height: 20),
-                      if (_step >= 3)
+                      if (_step >= 2)
                         _CompletionScreen(onStartExploring: _startExploring)
                       else ...[
                         if (_step <= 0) ...[
@@ -399,16 +346,6 @@ class _ProfileCompletionFlowScreenState
                             scanBusy: _openingScan,
                           ),
                         ],
-                        if (_step >= 2) ...[
-                          const SizedBox(height: 14),
-                          _PaymentStepCard(
-                            selectedMethod: _paymentMethod,
-                            saving: _savingPayment,
-                            onChanged: (value) =>
-                                setState(() => _paymentMethod = value),
-                            onSave: _savePaymentPreference,
-                          ),
-                        ],
                       ],
                     ],
                   ),
@@ -422,8 +359,7 @@ class _ProfileCompletionFlowScreenState
     var value = 0.0;
     if (_addressDone) value += 1;
     if (_fitDone) value += 1;
-    if (_paymentDone) value += 1;
-    return value / 3.0;
+    return value / 2.0;
   }
 }
 
@@ -432,14 +368,12 @@ class _ProgressHeader extends StatelessWidget {
     required this.progress,
     required this.addressDone,
     required this.fitDone,
-    required this.paymentDone,
     required this.step,
   });
 
   final double progress;
   final bool addressDone;
   final bool fitDone;
-  final bool paymentDone;
   final int step;
 
   @override
@@ -508,14 +442,6 @@ class _ProgressHeader extends StatelessWidget {
                   label: 'Fit Profile',
                   complete: fitDone,
                   active: step == 1,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _ProgressStepPill(
-                  label: 'Payment',
-                  complete: paymentDone,
-                  active: step == 2,
                 ),
               ),
             ],
@@ -1110,79 +1036,6 @@ class _FitSummaryCard extends StatelessWidget {
   }
 }
 
-class _PaymentStepCard extends StatelessWidget {
-  const _PaymentStepCard({
-    required this.selectedMethod,
-    required this.onChanged,
-    required this.onSave,
-    required this.saving,
-  });
-
-  final String? selectedMethod;
-  final ValueChanged<String> onChanged;
-  final ValueChanged<String> onSave;
-  final bool saving;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SectionShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _StepPill(label: 'Step 3', complete: selectedMethod != null),
-              const Spacer(),
-              if (selectedMethod != null)
-                Text(
-                  selectedMethod!,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AbzioTheme.accentColor,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Payment Preference',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Choose how you want to pay. You can change this anytime from Profile.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: context.abzioSecondaryText,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 16),
-          PaymentSelector(selectedMethod: selectedMethod, onChanged: onChanged),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: saving
-                  ? null
-                  : selectedMethod == null
-                  ? null
-                  : () => onSave(selectedMethod!),
-              child: saving
-                  ? const CircularProgressIndicator()
-                  : const Text('Save Payment Preference'),
-            ),
-          ),
-          const SizedBox(height: 10),
-          _SecurityFooter(),
-        ],
-      ),
-    );
-  }
-}
-
 class _CompletionScreen extends StatelessWidget {
   const _CompletionScreen({required this.onStartExploring});
 
@@ -1216,7 +1069,7 @@ class _CompletionScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Address Added\nFit Profile Saved\nPayment Preference Set',
+            'Address Added\nFit Profile Saved',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: context.abzioSecondaryText,
               height: 1.55,
@@ -1287,49 +1140,6 @@ class _StepPill extends StatelessWidget {
           color: complete ? const Color(0xFF2F7A3D) : AbzioTheme.textPrimary,
           fontWeight: FontWeight.w800,
         ),
-      ),
-    );
-  }
-}
-
-class _SecurityFooter extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF3),
-        borderRadius: BorderRadius.circular(AbzioTheme.cardRadius),
-        border: Border.all(
-          color: AbzioTheme.accentColor.withValues(alpha: 0.12),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AbzioTheme.accentColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.lock_outline_rounded,
-              color: AbzioTheme.accentColor,
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Payments secured by Razorpay',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
       ),
     );
   }

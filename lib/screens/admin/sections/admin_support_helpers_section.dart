@@ -26,6 +26,8 @@ extension _AdminSupportHelpersSection on _AdminWebPanelState {
       resolvedCount: _supportChatCount(status: 'closed'),
       chats: chats,
       selectedChat: selected,
+      selectedStatus: _supportStatusFilter,
+      onStatusSelected: (status) => setState(() => _supportStatusFilter = status),
       buildSidebar: ({bool compact = false}) =>
           _buildSupportSidebar(compact: compact),
       buildQueue:

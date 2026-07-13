@@ -1,6 +1,7 @@
 import '../services/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
 
@@ -367,6 +368,52 @@ class _VendorOrderPriorityCardState extends State<_VendorOrderPriorityCard> {
                 color: const Color(0xFF8A847E),
               ),
             ),
+          const SizedBox(height: 12),
+          if (order.invoicePdfUrl.isNotEmpty) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Invoice No: ${order.invoiceNumber}',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF65615C),
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () async {
+                    final uri = Uri.parse(order.invoicePdfUrl);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: const Icon(Icons.download, size: 16),
+                  label: const Text('Download PDF'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    foregroundColor: const Color(0xFFC8A96A),
+                    textStyle: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Text(
+              'Generating Invoice...',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: const Color(0xFF8A847E),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -374,7 +421,6 @@ class _VendorOrderPriorityCardState extends State<_VendorOrderPriorityCard> {
     if (!canSwipeAccept && !canSwipeReject) {
       return card;
     }
-
     return Dismissible(
       key: ValueKey('order-${order.id}'),
       direction: canSwipeReject

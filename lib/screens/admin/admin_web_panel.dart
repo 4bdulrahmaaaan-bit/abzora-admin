@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/models.dart';
+import '../../services/backend_api_client.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/onboarding_service.dart';
@@ -49,6 +51,7 @@ part 'sections/admin_commerce_section_v2.dart';
 part 'sections/admin_operations_kyc_section_v2.dart';
 part 'sections/admin_support_helpers_section.dart';
 part 'sections/admin_settings_pricing_ar_section_v2.dart';
+part 'sections/admin_invoices_section.dart';
 
 enum AdminWebSection {
   dashboard,
@@ -66,6 +69,7 @@ enum AdminWebSection {
   kyc,
   support,
   orders,
+  invoices,
   vendors,
   riders,
   users,
@@ -499,6 +503,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       case AdminWebSection.backups:
       case AdminWebSection.compliance:
       case AdminWebSection.security:
+      case AdminWebSection.invoices:
         break;
     }
   }
@@ -2532,6 +2537,7 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
       (AdminWebSection.kyc, Icons.verified_user_outlined, 'KYC Requests'),
       (AdminWebSection.support, Icons.support_agent_rounded, 'Support'),
       (AdminWebSection.orders, Icons.receipt_long_outlined, 'Orders'),
+      (AdminWebSection.invoices, Icons.request_quote_outlined, 'Invoices'),
       (AdminWebSection.vendors, Icons.storefront_outlined, 'Vendors'),
       (AdminWebSection.vendorOnboarding, Icons.storefront, 'Vendor Onboarding'),
       if (AppConfig.enableLocalRiderDelivery)
@@ -2835,6 +2841,8 @@ class _AdminWebPanelState extends State<AdminWebPanel> {
         return _buildSupport();
       case AdminWebSection.orders:
         return _buildOrders();
+      case AdminWebSection.invoices:
+        return const AdminInvoicesSection();
       case AdminWebSection.vendors:
         return _buildVendors();
       case AdminWebSection.riders:

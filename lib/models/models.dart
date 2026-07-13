@@ -1688,6 +1688,8 @@ class OrderModel {
   final String estimatedInstantDeliveryTime;
   final String assignedDeliveryPartner;
   final String invoiceNumber;
+  final String invoiceId;
+  final String invoicePdfUrl;
   final String orderType;
   final bool sameDayOrder;
   final String deliveryPromise;
@@ -1770,6 +1772,8 @@ class OrderModel {
     this.estimatedInstantDeliveryTime = '',
     this.assignedDeliveryPartner = 'Unassigned',
     this.invoiceNumber = '',
+    this.invoiceId = '',
+    this.invoicePdfUrl = '',
     this.orderType = 'marketplace',
     this.sameDayOrder = false,
     this.deliveryPromise = '',
@@ -1852,6 +1856,8 @@ class OrderModel {
     'estimatedInstantDeliveryTime': estimatedInstantDeliveryTime,
     'assignedDeliveryPartner': assignedDeliveryPartner,
     'invoiceNumber': invoiceNumber,
+    'invoiceId': invoiceId,
+    'invoicePdfUrl': invoicePdfUrl,
     'orderType': orderType,
     'sameDayOrder': sameDayOrder,
     'deliveryPromise': deliveryPromise,
@@ -1945,6 +1951,8 @@ class OrderModel {
     estimatedInstantDeliveryTime: map['estimatedInstantDeliveryTime'] ?? '',
     assignedDeliveryPartner: map['assignedDeliveryPartner'] ?? 'Unassigned',
     invoiceNumber: map['invoiceNumber'] ?? '',
+    invoiceId: map['invoiceId'] ?? '',
+    invoicePdfUrl: map['invoicePdfUrl'] ?? '',
     orderType: map['orderType'] ?? 'marketplace',
     sameDayOrder: map['sameDayOrder'] == true,
     deliveryPromise: map['deliveryPromise']?.toString() ?? '',

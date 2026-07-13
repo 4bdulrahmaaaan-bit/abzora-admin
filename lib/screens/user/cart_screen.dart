@@ -2414,6 +2414,7 @@ class _BagFooterState extends State<_BagFooter>
                     shadowColor: Colors.transparent,
                     foregroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(46),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -2432,11 +2433,17 @@ class _BagFooterState extends State<_BagFooter>
                         child: const Icon(Icons.shopping_bag_rounded, size: 18),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'PROCEED TO CHECKOUT',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.2,
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: const Text(
+                            'PROCEED TO CHECKOUT',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.1,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
                       ),
                     ],

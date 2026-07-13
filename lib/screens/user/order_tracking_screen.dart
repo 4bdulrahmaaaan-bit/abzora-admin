@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
@@ -1657,6 +1660,8 @@ class _OrderDetailsPage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _ProductSummaryCard(order: order),
+            const SizedBox(height: 12),
+            _InvoiceCard(order: order),
             if (recommendedProducts.isNotEmpty) ...[
               const SizedBox(height: 12),
               _SectionCard(
@@ -3317,6 +3322,100 @@ class _OrderListCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _InvoiceCard extends StatelessWidget {
+  const _InvoiceCard({required this.order});
+
+  final OrderModel order;
+
+  Future<void> _launchPdf() async {
+    if (order.invoicePdfUrl.isEmpty) return;
+    final uri = Uri.parse(order.invoicePdfUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _sharePdf() {
+    if (order.invoicePdfUrl.isEmpty) return;
+    Share.share('Here is the invoice for my order: ${order.invoicePdfUrl}');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isGenerating = order.invoicePdfUrl.isEmpty;
+
+    return _SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.receipt_long, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Invoice',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (isGenerating) ...[
+            Row(
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Generating Invoice...',
+                  style: TextStyle(
+                    color: context.abzioSecondaryText,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            )
+          ] else ...[
+            Text(
+              'Invoice No: ${order.invoiceNumber}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _launchPdf,
+                    icon: const Icon(Icons.download, size: 18),
+                    label: const Text('View PDF'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _sharePdf,
+                    icon: const Icon(Icons.share, size: 18),
+                    label: const Text('Share'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

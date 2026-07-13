@@ -1860,7 +1860,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                 child: _loadingAddresses
 
-                    ? const _LoadingCard()
+                    ? const _LoadingCard(message: 'Loading your saved addresses...')
 
                     : _CompactAddressCard(
 
@@ -1986,7 +1986,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                 child: _loadingPricing
 
-                    ? const _LoadingCard()
+                    ? const _LoadingCard(message: 'Calculating price details...')
 
                     : PriceBreakdownCard(
 
@@ -2116,19 +2116,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                         ),
 
-                        const SizedBox(height: 6),
-
-                        Text(
-
-                          'Secure total',
-
-                          style: Theme.of(
-
-                            context,
-
-                          ).textTheme.bodySmall?.copyWith(fontSize: 11),
-
-                        ),
+                        const SizedBox(height: 4),
 
                         const SizedBox(height: 2),
 
@@ -2499,7 +2487,29 @@ class _SectionShell extends StatelessWidget {
 
               if (actionLabel != null && onAction != null)
 
-                TextButton(onPressed: onAction, child: Text(actionLabel!)),
+                TextButton(
+
+                  onPressed: onAction,
+
+                  style: TextButton.styleFrom(
+
+                    minimumSize: Size.zero,
+
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+
+                    padding: const EdgeInsets.symmetric(
+
+                      horizontal: 6,
+
+                      vertical: 4,
+
+                    ),
+
+                  ),
+
+                  child: Text(actionLabel!),
+
+                ),
 
             ],
 
@@ -3430,7 +3440,7 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
 
         child: Container(
 
-          padding: EdgeInsets.fromLTRB(
+          padding: const EdgeInsets.fromLTRB(
 
             20,
 
@@ -3438,7 +3448,7 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
 
             20,
 
-            MediaQuery.of(context).padding.bottom + 18,
+            0,
 
           ),
 
@@ -3460,17 +3470,13 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
 
             ),
 
-            child: SingleChildScrollView(
+            child: Column(
 
-              physics: const ClampingScrollPhysics(),
+              mainAxisSize: MainAxisSize.min,
 
-              child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
 
-                mainAxisSize: MainAxisSize.min,
-
-                crossAxisAlignment: CrossAxisAlignment.start,
-
-                children: [
+              children: [
 
                   Center(
 
@@ -3515,9 +3521,37 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
                         ),
                   ),
 
+                  const SizedBox(height: 12),
+
+                  Text(
+
+                    'Total: ${widget.amountLabel}',
+
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+
+                          fontWeight: FontWeight.w800,
+
+                        ),
+
+                  ),
+
                   const SizedBox(height: 18),
 
-                  _recommendedCard(context),
+                  Flexible(
+
+                    child: SingleChildScrollView(
+
+                      physics: const ClampingScrollPhysics(),
+
+                      child: Column(
+
+                        mainAxisSize: MainAxisSize.min,
+
+                        crossAxisAlignment: CrossAxisAlignment.start,
+
+                        children: [
+
+                          _recommendedCard(context),
 
                   const SizedBox(height: 14),
 
@@ -3596,94 +3630,63 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
                   ),
 
                   const SizedBox(height: 14),
-
                   _securityCard(context),
-
                   const SizedBox(height: 16),
-
-                  SizedBox(
-
-                    width: double.infinity,
-
-                    child: DecoratedBox(
-
-                      decoration: BoxDecoration(
-
-                        gradient: const LinearGradient(
-
-                          colors: [Color(0xFFE0C36C), Color(0xFFC89D34)],
-
-                        ),
-
-                        borderRadius: BorderRadius.circular(999),
-
-                        boxShadow: [
-
-                          BoxShadow(
-
-                            color: const Color(
-
-                              0xFFC89D34,
-
-                            ).withValues(alpha: 0.22),
-
-                            blurRadius: 18,
-
-                            offset: const Offset(0, 10),
-
-                          ),
-
-                        ],
-
-                      ),
-
-                      child: ElevatedButton(
-
-                        onPressed: () =>
-
-                            Navigator.of(context).pop(_selectedMethod),
-
-                        style: ElevatedButton.styleFrom(
-
-                          backgroundColor: Colors.transparent,
-
-                          shadowColor: Colors.transparent,
-
-                          foregroundColor: Colors.black,
-
-                          shape: RoundedRectangleBorder(
-
-                            borderRadius: BorderRadius.circular(999),
-
-                          ),
-
-                          padding: const EdgeInsets.symmetric(vertical: 17),
-
-                        ),
-
-                        child: Text(_ctaLabelForSheet()),
-
-                      ),
-
-                    ),
-
-                  ),
-
                 ],
-
               ),
-
             ),
-
           ),
-
-        ),
-
+          Container(
+            padding: EdgeInsets.only(
+              top: 16,
+              bottom: MediaQuery.of(context).padding.bottom + 18,
+            ),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: Colors.black.withValues(alpha: 0.05),
+                ),
+              ),
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE0C36C), Color(0xFFC89D34)],
+                  ),
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFC89D34).withValues(alpha: 0.22),
+                      blurRadius: 18,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(_selectedMethod),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 17),
+                  ),
+                  child: Text(_ctaLabelForSheet()),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-
-    );
-
-  }
+    ),
+  ),
+),
+);
+}
 
 
 
@@ -4445,7 +4448,7 @@ class _PremiumCouponExperience extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (loadingCatalog) ...[
-            const _LoadingCard(),
+            const _LoadingCard(message: 'Finding the best coupons...'),
             const SizedBox(height: 10),
           ],
           if (appliedCode.isNotEmpty) ...[
@@ -5162,7 +5165,11 @@ class _ReferralCreditCard extends StatelessWidget {
 
 class _LoadingCard extends StatelessWidget {
 
-  const _LoadingCard();
+  const _LoadingCard({this.message = 'Loading...'});
+
+
+
+  final String message;
 
 
 
@@ -5184,24 +5191,15 @@ class _LoadingCard extends StatelessWidget {
 
       ),
 
-      child: const Row(
-
+      child: Row(
         children: [
-
-          SizedBox(
-
+          const SizedBox(
             height: 20,
-
             width: 20,
-
             child: CircularProgressIndicator(strokeWidth: 2.2),
-
           ),
-
-          SizedBox(width: 12),
-
-          Expanded(child: Text('Loading your saved addresses...')),
-
+          const SizedBox(width: 12),
+          Expanded(child: Text(message)),
         ],
 
       ),

@@ -32,12 +32,10 @@ import 'screens/user/cart_screen.dart';
 import 'screens/user/chat_list_screen.dart';
 import 'screens/user/checkout_screen.dart';
 import 'screens/user/address_screen.dart';
-import 'screens/user/add_card_screen.dart';
 import 'screens/user/home_screen.dart';
 import 'screens/user/notifications_screen.dart';
 import 'screens/user/order_tracking_screen.dart';
 import 'screens/user/fast_delivery_tracking_screen.dart';
-import 'screens/user/payment_methods_screen.dart';
 import 'screens/user/profile_completion_flow_screen.dart';
 import 'screens/user/product_detail_screen.dart';
 import 'screens/user/profile_screen.dart';
@@ -237,8 +235,7 @@ class AbzioApp extends StatelessWidget {
             ? OpsAccountScreen(mode: mode)
             : const ProfileScreen(),
         '/addresses': (context) => const AddressScreen(),
-        '/add-card': (context) => const AddCardScreen(),
-        '/payments': (context) => const PaymentMethodsScreen(),
+
         '/profile-completion': (context) => const ProfileCompletionFlowScreen(),
         '/profile-setup': (context) => const RiderOnboardingFlowScreen(),
         '/cart': (context) => const CartScreen(),

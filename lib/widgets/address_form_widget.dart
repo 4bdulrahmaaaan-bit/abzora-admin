@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme.dart';
-import 'abzio_motion.dart';
 import '../utils/phone_number_utils.dart';
 
 class AddressFormWidget extends StatelessWidget {
@@ -11,51 +10,39 @@ class AddressFormWidget extends StatelessWidget {
     required this.formKey,
     required this.nameController,
     required this.phoneController,
-    required this.addressController,
     required this.pincodeController,
     required this.houseController,
     required this.landmarkController,
     required this.localityController,
     required this.nameFocusNode,
     required this.phoneFocusNode,
-    required this.addressFocusNode,
     required this.pincodeFocusNode,
     required this.houseFocusNode,
     required this.landmarkFocusNode,
     required this.localityFocusNode,
     required this.addressType,
-    required this.isExpanded,
     required this.isPincodeLookupLoading,
     required this.nameAutoFilled,
-    required this.addressAutoFilled,
-    required this.onToggleExpanded,
     required this.onAddressTypeChanged,
-    this.showFullForm = true,
   });
 
   final GlobalKey<FormState> formKey;
   final TextEditingController nameController;
   final TextEditingController phoneController;
-  final TextEditingController addressController;
   final TextEditingController pincodeController;
   final TextEditingController houseController;
   final TextEditingController landmarkController;
   final TextEditingController localityController;
   final FocusNode nameFocusNode;
   final FocusNode phoneFocusNode;
-  final FocusNode addressFocusNode;
   final FocusNode pincodeFocusNode;
   final FocusNode houseFocusNode;
   final FocusNode landmarkFocusNode;
   final FocusNode localityFocusNode;
   final String addressType;
-  final bool isExpanded;
   final bool isPincodeLookupLoading;
   final bool nameAutoFilled;
-  final bool addressAutoFilled;
-  final VoidCallback onToggleExpanded;
   final ValueChanged<String> onAddressTypeChanged;
-  final bool showFullForm;
 
   @override
   Widget build(BuildContext context) {
@@ -66,156 +53,114 @@ class AddressFormWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (showFullForm) ...[
-            _floatingField(
-              context,
-              controller: nameController,
-              focusNode: nameFocusNode,
-              label: 'Full Name',
-              hintText: 'Recipient name',
-              icon: Icons.person_outline_rounded,
-              textInputAction: TextInputAction.next,
-              validator: (value) {
-                if ((value ?? '').trim().isEmpty) return 'Full name is required';
-                if ((value ?? '').trim().length < 2) return 'Enter a valid name';
-                return null;
-              },
-              onFieldSubmitted: (_) => phoneFocusNode.requestFocus(),
-            ),
-            const SizedBox(height: 12),
-            _floatingField(
-              context,
-              controller: phoneController,
-              focusNode: phoneFocusNode,
-              label: 'Mobile Number',
-              hintText: '10-digit mobile number',
-              icon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-              textInputAction: TextInputAction.next,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s()-]')),
-                LengthLimitingTextInputFormatter(15),
-              ],
-              validator: (value) {
-                final trimmed = (value ?? '').trim();
-                if (trimmed.isEmpty) {
-                  return 'Mobile number is required';
-                }
-                if (!isValidIndianMobileNumber(trimmed)) {
-                  return 'Enter a valid 10-digit number';
-                }
-                return null;
-              },
-              onFieldSubmitted: (_) => addressFocusNode.requestFocus(),
-            ),
-            const SizedBox(height: 12),
-            _floatingField(
-              context,
-              controller: addressController,
-              focusNode: addressFocusNode,
-              label: 'Address',
-              hintText: 'House, street, apartment',
-              icon: Icons.home_outlined,
-              textInputAction: TextInputAction.next,
-              minLines: 2,
-              maxLines: 2,
-              validator: (value) {
-                if ((value ?? '').trim().isEmpty) return 'Address is required';
-                return null;
-              },
-              onFieldSubmitted: (_) => pincodeFocusNode.requestFocus(),
-            ),
-            const SizedBox(height: 12),
-          ],
-          Row(
-            children: [
-              Expanded(
-                child: _floatingField(
-                  context,
-                  controller: pincodeController,
-                  focusNode: pincodeFocusNode,
-                  label: 'Pincode',
-                  hintText: '6 digits',
-                  icon: Icons.pin_drop_outlined,
-                  keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.done,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(6),
-                  ],
-                  validator: (value) {
-                    final trimmed = (value ?? '').trim();
-                    if (trimmed.isEmpty) {
-                      return 'Pincode is required';
-                    }
-                    if (!RegExp(r'^\d{6}$').hasMatch(trimmed)) {
-                      return 'Enter a valid pincode';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              if (showFullForm) ...[
-                const SizedBox(width: 12),
-                SizedBox(
-                  height: AbzioTheme.fieldHeight,
-                  child: TextButton(
-                    onPressed: onToggleExpanded,
-                    child: Text(isExpanded ? 'Hide details' : 'Add details'),
-                  ),
-                ),
-              ],
-            ],
+          _floatingField(
+            context,
+            controller: nameController,
+            focusNode: nameFocusNode,
+            label: 'Full Name',
+            hintText: 'Recipient name',
+            icon: Icons.person_outline_rounded,
+            textInputAction: TextInputAction.next,
+            validator: (value) {
+              if ((value ?? '').trim().isEmpty) return 'Full name is required';
+              if ((value ?? '').trim().length < 2) return 'Enter a valid name';
+              return null;
+            },
+            onFieldSubmitted: (_) => phoneFocusNode.requestFocus(),
           ),
-          if (showFullForm) ...[
-            AnimatedCrossFade(
-              crossFadeState: isExpanded
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              duration: AbzioMotion.medium,
-              firstChild: const SizedBox.shrink(),
-              secondChild: Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Column(
-                  children: [
-                    _floatingField(
-                      context,
-                      controller: houseController,
-                      focusNode: houseFocusNode,
-                      label: 'House / Flat',
-                      hintText: 'Apartment, floor, building',
-                      icon: Icons.apartment_outlined,
-                      textInputAction: TextInputAction.next,
-                      validator: (_) => null,
-                      onFieldSubmitted: (_) => localityFocusNode.requestFocus(),
-                    ),
-                    const SizedBox(height: 12),
-                    _floatingField(
-                      context,
-                      controller: localityController,
-                      focusNode: localityFocusNode,
-                      label: 'Locality',
-                      hintText: 'Area, neighborhood',
-                      icon: Icons.location_city_outlined,
-                      textInputAction: TextInputAction.next,
-                      validator: (_) => null,
-                      onFieldSubmitted: (_) => landmarkFocusNode.requestFocus(),
-                    ),
-                    const SizedBox(height: 12),
-                    _floatingField(
-                      context,
-                      controller: landmarkController,
-                      focusNode: landmarkFocusNode,
-                      label: 'Landmark',
-                      hintText: 'Nearby landmark',
-                      icon: Icons.place_outlined,
-                      textInputAction: TextInputAction.done,
-                      validator: (_) => null,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          const SizedBox(height: 12),
+          _floatingField(
+            context,
+            controller: phoneController,
+            focusNode: phoneFocusNode,
+            label: 'Mobile Number',
+            hintText: '10-digit mobile number',
+            icon: Icons.phone_outlined,
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.next,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s()-]')),
+              LengthLimitingTextInputFormatter(15),
+            ],
+            validator: (value) {
+              final trimmed = (value ?? '').trim();
+              if (trimmed.isEmpty) {
+                return 'Mobile number is required';
+              }
+              if (!isValidIndianMobileNumber(trimmed)) {
+                return 'Enter a valid 10-digit number';
+              }
+              return null;
+            },
+            onFieldSubmitted: (_) => houseFocusNode.requestFocus(),
+          ),
+          const SizedBox(height: 12),
+          _floatingField(
+            context,
+            controller: houseController,
+            focusNode: houseFocusNode,
+            label: 'House / Flat',
+            hintText: 'Apartment, floor, building',
+            icon: Icons.apartment_outlined,
+            textInputAction: TextInputAction.next,
+            validator: (value) {
+              if ((value ?? '').trim().isEmpty) return 'House/Flat is required';
+              return null;
+            },
+            onFieldSubmitted: (_) => localityFocusNode.requestFocus(),
+          ),
+          const SizedBox(height: 12),
+          _floatingField(
+            context,
+            controller: localityController,
+            focusNode: localityFocusNode,
+            label: 'Locality',
+            hintText: 'Area, neighborhood, street',
+            icon: Icons.location_city_outlined,
+            textInputAction: TextInputAction.next,
+            validator: (value) {
+              if ((value ?? '').trim().isEmpty) return 'Locality is required';
+              return null;
+            },
+            onFieldSubmitted: (_) => landmarkFocusNode.requestFocus(),
+          ),
+          const SizedBox(height: 12),
+          _floatingField(
+            context,
+            controller: landmarkController,
+            focusNode: landmarkFocusNode,
+            label: 'Landmark',
+            hintText: 'Nearby landmark (optional)',
+            icon: Icons.place_outlined,
+            textInputAction: TextInputAction.next,
+            validator: (_) => null,
+            onFieldSubmitted: (_) => pincodeFocusNode.requestFocus(),
+          ),
+          const SizedBox(height: 12),
+          _floatingField(
+            context,
+            controller: pincodeController,
+            focusNode: pincodeFocusNode,
+            label: 'Pincode',
+            hintText: '6 digits',
+            icon: Icons.pin_drop_outlined,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(6),
+            ],
+            validator: (value) {
+              final trimmed = (value ?? '').trim();
+              if (trimmed.isEmpty) {
+                return 'Pincode is required';
+              }
+              if (!RegExp(r'^\d{6}$').hasMatch(trimmed)) {
+                return 'Enter a valid pincode';
+              }
+              return null;
+            },
+          ),
             const SizedBox(height: AbzioTheme.spacing20),
             Text(
               'Address Type',
@@ -267,7 +212,6 @@ class AddressFormWidget extends StatelessWidget {
                 ),
               ),
             ),
-          ],
           if (isPincodeLookupLoading) ...[
             const SizedBox(height: 12),
             Row(
@@ -290,7 +234,7 @@ class AddressFormWidget extends StatelessWidget {
               ],
             ),
           ],
-          if (nameAutoFilled || addressAutoFilled) ...[
+          if (nameAutoFilled) ...[
             const SizedBox(height: 12),
             _StatusPill(
               icon: Icons.auto_awesome_rounded,
