@@ -1745,39 +1745,13 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
                       : null,
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _icon,
-                        decoration: const InputDecoration(
-                          labelText: 'Icon key',
-                        ),
-                        items: _iconOptions
-                            .map(
-                              (icon) => DropdownMenuItem(
-                                value: icon,
-                                child: Text(icon),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _icon = value);
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 120,
-                      child: TextFormField(
-                        controller: _sortOrderController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Order'),
-                      ),
-                    ),
-                  ],
+                SizedBox(
+                  width: 120,
+                  child: TextFormField(
+                    controller: _sortOrderController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Order'),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 SwitchListTile.adaptive(

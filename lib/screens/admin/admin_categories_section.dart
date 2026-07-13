@@ -1672,24 +1672,6 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _seoTitleController,
-                  decoration: const InputDecoration(
-                    labelText: 'SEO Title',
-                    hintText: 'Luxury Women’s Fashion',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _seoDescriptionController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'SEO Description',
-                    hintText:
-                        'Premium fashion discovery curated for Abianzo shoppers.',
-                  ),
-                ),
               ],
             ),
           ),
