@@ -480,43 +480,10 @@ extension _AdminSettingsPricingArSectionV2 on _AdminWebPanelState {
           children: [
             Expanded(
               child: _Panel(
-                title: 'Trial and discount control',
-                subtitle: 'Trial-home pricing and customer offer levers.',
+                title: 'Discount control',
+                subtitle: 'Customer offer levers.',
                 child: Column(
                   children: [
-                    _pricingMetricTile(
-                      title: 'Trial fee',
-                      value:
-                          '₹${_pricingValue(trial, 'trialFee', 99).toStringAsFixed(0)}',
-                      subtitle: 'Applied to try-at-home experiences.',
-                      onEdit: () => _editPricingNumber(
-                        title: 'Trial fee',
-                        endpoint: '/admin/pricing/trial',
-                        fieldKey: 'trialFee',
-                        currentValue: _pricingValue(trial, 'trialFee', 99),
-                        min: 0,
-                        max: 5000,
-                      ),
-                    ),
-                    SwitchListTile.adaptive(
-                      value: _pricingToggle(trial, 'refundable', true),
-                      onChanged: (value) => _updatePricingScope(
-                        endpoint: '/admin/pricing/trial',
-                        body: {'refundable': value},
-                        successMessage: 'Trial refundability updated.',
-                      ),
-                      title: const Text('Refundable trial fee'),
-                    ),
-                    SwitchListTile.adaptive(
-                      value: _pricingToggle(trial, 'waiveOnPurchase', true),
-                      onChanged: (value) => _updatePricingScope(
-                        endpoint: '/admin/pricing/trial',
-                        body: {'waiveOnPurchase': value},
-                        successMessage: 'Trial waive-on-purchase updated.',
-                      ),
-                      title: const Text('Waive on purchase'),
-                    ),
-                    const Divider(),
                     SwitchListTile.adaptive(
                       value: _pricingToggle(
                         discounts,
@@ -571,112 +538,7 @@ extension _AdminSettingsPricingArSectionV2 on _AdminWebPanelState {
                 ),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _Panel(
-                title: 'Rider payout and dynamic rules',
-                subtitle:
-                    'Protect supply while keeping unit economics healthy.',
-                child: Column(
-                  children: [
-                    _pricingMetricTile(
-                      title: 'Base rider payout',
-                      value:
-                          '₹${_pricingValue(rider, 'basePayout', 30).toStringAsFixed(0)}',
-                      subtitle: 'Minimum same-day payout per order.',
-                      onEdit: () => _editPricingNumber(
-                        title: 'Base rider payout',
-                        endpoint: '/admin/pricing/rider',
-                        fieldKey: 'basePayout',
-                        currentValue: _pricingValue(rider, 'basePayout', 30),
-                        min: 30,
-                        max: 1000,
-                      ),
-                    ),
-                    _pricingMetricTile(
-                      title: 'Peak bonus',
-                      value:
-                          '₹${_pricingValue(rider, 'peakBonus', 10).toStringAsFixed(0)}',
-                      subtitle: 'Applied during busy windows.',
-                      onEdit: () => _editPricingNumber(
-                        title: 'Peak bonus',
-                        endpoint: '/admin/pricing/rider',
-                        fieldKey: 'peakBonus',
-                        currentValue: _pricingValue(rider, 'peakBonus', 10),
-                        min: 0,
-                        max: 200,
-                      ),
-                    ),
-                    _pricingMetricTile(
-                      title: 'Trial payout base',
-                      value:
-                          '₹${_pricingValue(rider, 'trialPayoutBase', 60).toStringAsFixed(0)}',
-                      subtitle: 'Two-trip try-at-home payout floor.',
-                      onEdit: () => _editPricingNumber(
-                        title: 'Trial payout base',
-                        endpoint: '/admin/pricing/rider',
-                        fieldKey: 'trialPayoutBase',
-                        currentValue: _pricingValue(
-                          rider,
-                          'trialPayoutBase',
-                          60,
-                        ),
-                        min: 60,
-                        max: 500,
-                      ),
-                    ),
-                    SwitchListTile.adaptive(
-                      value: _pricingToggle(
-                        rules,
-                        'highDemandLowRidersEnabled',
-                        true,
-                      ),
-                      onChanged: (value) => _updatePricingScope(
-                        endpoint: '/admin/pricing',
-                        body: {
-                          'scope': 'dynamicRules',
-                          'updates': {'highDemandLowRidersEnabled': value},
-                        },
-                        successMessage: 'Demand surge rule updated.',
-                      ),
-                      title: const Text('High demand + low riders surge'),
-                    ),
-                    SwitchListTile.adaptive(
-                      value: _pricingToggle(
-                        rules,
-                        'lowConversionBoostEnabled',
-                        true,
-                      ),
-                      onChanged: (value) => _updatePricingScope(
-                        endpoint: '/admin/pricing',
-                        body: {
-                          'scope': 'dynamicRules',
-                          'updates': {'lowConversionBoostEnabled': value},
-                        },
-                        successMessage: 'Low conversion relief updated.',
-                      ),
-                      title: const Text('Low conversion fee relief'),
-                    ),
-                    SwitchListTile.adaptive(
-                      value: _pricingToggle(
-                        rules,
-                        'highReturnPromoteTrialEnabled',
-                        true,
-                      ),
-                      onChanged: (value) => _updatePricingScope(
-                        endpoint: '/admin/pricing',
-                        body: {
-                          'scope': 'dynamicRules',
-                          'updates': {'highReturnPromoteTrialEnabled': value},
-                        },
-                        successMessage: 'Trial-promotion rule updated.',
-                      ),
-                      title: const Text('High return trial promotion'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            const Expanded(child: SizedBox.shrink()),
           ],
         ),
         const SizedBox(height: 16),
