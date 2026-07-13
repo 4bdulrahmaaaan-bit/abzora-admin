@@ -1328,9 +1328,6 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _slugController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _seoTitleController = TextEditingController();
-  final TextEditingController _seoDescriptionController =
-      TextEditingController();
   final TextEditingController _orderController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
@@ -1355,8 +1352,6 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
       _nameController.text = category.name;
       _slugController.text = category.slug;
       _descriptionController.text = category.description;
-      _seoTitleController.text = category.seoTitle;
-      _seoDescriptionController.text = category.seoDescription;
       _orderController.text = category.sortOrder.toString();
       _isActive = category.isActive;
       _isFeatured = category.isFeatured;
@@ -1376,8 +1371,6 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
     _nameController.dispose();
     _slugController.dispose();
     _descriptionController.dispose();
-    _seoTitleController.dispose();
-    _seoDescriptionController.dispose();
     _orderController.dispose();
     super.dispose();
   }
@@ -1445,8 +1438,8 @@ class _CategoryFormModalState extends State<CategoryFormModal> {
           isActive: _isActive,
           showOnHome: _showOnHome,
           tabType: _tabType,
-          seoTitle: _seoTitleController.text.trim(),
-          seoDescription: _seoDescriptionController.text.trim(),
+          seoTitle: widget.initialCategory?.seoTitle ?? '',
+          seoDescription: widget.initialCategory?.seoDescription ?? '',
           createdAt: widget.initialCategory?.createdAt ?? '',
           updatedAt: widget.initialCategory?.updatedAt ?? '',
           deletedAt: widget.initialCategory?.deletedAt ?? '',

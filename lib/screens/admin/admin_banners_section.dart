@@ -1598,21 +1598,8 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
   final _picker = ImagePicker();
 
   static const _tabOptions = ['All', 'Men', 'Women', 'Kids', 'Atelier'];
-  static const _iconOptions = [
-    'category',
-    'designer',
-    'male',
-    'female',
-    'sparkle',
-    'watch',
-    'shirt',
-    'celebration',
-    'sneakers',
-    'beauty',
-  ];
 
   String _tab = 'All';
-  String _icon = 'category';
   bool _isActive = true;
   XFile? _pickedImage;
   Uint8List? _pickedPreview;
@@ -1625,11 +1612,10 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
       _labelController.text = visual.label;
       _sortOrderController.text = visual.sortOrder.toString();
       _tab = visual.tab;
-      _icon = visual.icon;
       _isActive = visual.isActive;
     } else {
       _sortOrderController.text = '0';
-      _icon = _iconOptions.first;
+      _tab = _tabOptions.first;
     }
   }
 
@@ -1681,7 +1667,7 @@ class _CategoryVisualFormModalState extends State<_CategoryVisualFormModal> {
           tab: _tab,
           label: normalizedLabel,
           imageUrl: widget.initialVisual?.imageUrl ?? '',
-          icon: _icon,
+          icon: widget.initialVisual?.icon ?? 'category',
           sortOrder: int.tryParse(_sortOrderController.text.trim()) ?? 0,
           isActive: _isActive,
         ),
