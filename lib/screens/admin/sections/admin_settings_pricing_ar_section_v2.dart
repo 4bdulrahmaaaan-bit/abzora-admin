@@ -338,25 +338,7 @@ extension _AdminSettingsPricingArSectionV2 on _AdminWebPanelState {
                         percent: true,
                       ),
                     ),
-                    _pricingMetricTile(
-                      title: 'Custom default',
-                      value:
-                          '${(_pricingValue(commission, 'defaultCommissionCustom', 0.24) * 100).toStringAsFixed(0)}%',
-                      subtitle: 'Applied to tailoring and custom orders.',
-                      onEdit: () => _editPricingNumber(
-                        title: 'Custom commission',
-                        endpoint: '/admin/pricing/commission',
-                        fieldKey: 'defaultCommissionCustom',
-                        currentValue: _pricingValue(
-                          commission,
-                          'defaultCommissionCustom',
-                          0.24,
-                        ),
-                        min: 0.20,
-                        max: 0.30,
-                        percent: true,
-                      ),
-                    ),
+
                     _pricingMetricTile(
                       title: 'High-performer adjustment',
                       value:
